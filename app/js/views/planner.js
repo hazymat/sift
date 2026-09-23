@@ -117,13 +117,13 @@ export default {
     function itemRow(i, label) {
       const span = i.end_time ? `${fmt(i.time)}–${fmt(i.end_time)}` : null;
       return `
-        <div class="line has-item${i.done_at ? ' done' : ''}${selected.has(i.id) ? ' selected' : ''}" data-item="${i.id}"${i.time ? ` data-time="${i.time}"` : ''}>
-          <span class="margin">${label ?? ''}</span>
+        <div class="line has-item${i.done_at ? ' done' : ''}${selected.has(i.id) ? ' selected' : ''}${i._mark ? ` ${i._mark}` : ''}${i.time && (i.end_time || i.estimate_min) ? ' spans' : ''}" data-item="${i.id}"${i.time ? ` data-time="${i.time}"` : ''}>
+          <span class="margin">${i.time && label ? `<input class="margin-time" value="${label}" data-time-for="${i.id}" aria-label="Start time" inputmode="decimal" autocomplete="off">` : label ?? ''}</span>
           <span class="content">
             <button type="button" class="drag-grip" aria-label="Drag to a time" title="Drag onto a time">⠿</button>
             <input type="checkbox" class="tick" aria-label="Done" ${i.done_at ? 'checked' : ''}>
             <input class="item-title hand" value="${esc(i.title)}" aria-label="Item" autocomplete="off">
-            ${span ? `<span class="span-tag">${span}</span>` : i.estimate_min ? `<span class="span-tag">~${i.estimate_min} min</span>` : ''}
+            ${span ? `<span class="span-tag">${span}</span>` : i.estimate_min ? `<span class="span-tag">~${i.estimate_min} min</span>` : i.estimate_unsure ? '<span class="span-tag">duration?</span>' : ''}
             <button type="button" class="more" data-act="details" aria-label="Details">⋯</button>
           </span>
           ${i.time ? '<span class="resize-grip" title="Drag down to set how long" aria-hidden="true"></span>' : ''}
@@ -136,8 +136,10 @@ export default {
         <div class="item-details" data-for="${i.id}">
           <label>Time<input type="time" name="time" value="${i.time || ''}"></label>
           <label>Until<input type="time" name="end_time" value="${i.end_time || ''}"></label>
-          <label>Estimate<select name="estimate_min">
-            ${['', 15, 30, 45, 60, 90, 120, 180, 240].map(m => `<option value="${m}" ${String(i.estimate_min ?? '') === String(m) ? 'selected' : ''}>${m ? `${m} min` : '—'}</option>`).join('')}
+          <label>Duration<select name="estimate_min">
+            <option value="" ${!i.estimate_min && !i.estimate_unsure ? 'selected' : ''}>Pick a duration</option>
+            <option value="unsure" ${i.estimate_unsure && !i.estimate_min ? 'selected' : ''}>Not sure yet</option>
+            ${[15, 30, 45, 60, 90, 120, 180, 240].map(m => `<option value="${m}" ${Number(i.estimate_min) === m ? 'selected' : ''}>${m < 60 ? `${m} min` : `${m / 60} h${m % 60 ? ` ${m % 60} min` : ''}`}</option>`).join('')}
           </select></label>
           <label>Day<input type="date" name="date" value="${i.date}"></label>
           <label class="wide">Note<input name="notes" value="${esc(i.notes)}" autocomplete="off"></label>
@@ -148,15 +150,18 @@ export default {
         </div>`;
     }
 
-    function emptyRow(time, label, cls = '') {
-      return `<div class="line blank ${cls}" data-time="${time}"><span class="margin">${label}</span><span class="content" data-act="add-at"></span></div>`;
+    function emptyRow(time, label, cls = '', takenBy = '') {
+      return takenBy
+        ? `<div class="line blank covered ${cls}" data-time="${time}" title="Taken by ${esc(takenBy)}"><span class="margin">${label}</span><span class="content"></span></div>`
+        : `<div class="line blank ${cls}" data-time="${time}"><span class="margin">${label}</span><span class="content" data-act="add-at"></span></div>`;
     }
 
-    function renderLines() {
+    // `list` lets a drag or resize draw how the day would look before it's saved.
+    function renderLines(list = items) {
       const start = toMin(settings.day_start);
       const end = toMin(settings.day_end);
       const step = Math.max(5, Number(settings.slot_min) || 30);
-      const timed = items.filter(i => i.time && !lifted.has(i.id));
+      const timed = list.filter(i => i.time && (!lifted.has(i.id) || i._mark === 'preview'));
       const at = t => toMin(t);
       const out = [];
 
@@ -165,8 +170,8 @@ export default {
       if (early.length) out.push(...early.map(i => itemRow(i, fmt(i.time))));
 
       // Covered = inside another item's span, shown as a bracket instead of an empty line
-      const spans = timed.map(i => [at(i.time), i.end_time ? at(i.end_time) : i.estimate_min ? at(i.time) + i.estimate_min : at(i.time)]);
-      const covered = t => spans.some(([a, b]) => t > a && t < b);
+      const spans = timed.map(i => [at(i.time), i.end_time ? at(i.end_time) : i.estimate_min ? at(i.time) + i.estimate_min : at(i.time), i]);
+      const coveredBy = t => spans.find(([a, b]) => t > a && t < b)?.[2];
 
       for (let t = start; t <= end; t += step) {
         const here = timed.filter(i => at(i.time) >= t && at(i.time) < t + step && at(i.time) <= end + step - 1);
@@ -174,7 +179,10 @@ export default {
         const between = here.filter(i => at(i.time) !== t);
         const label = fmt(fromMin(t));
         if (onLine.length) out.push(...onLine.map((i, n) => itemRow(i, n ? '' : label)));
-        else out.push(emptyRow(fromMin(t), label, covered(t) ? 'covered' : ''));
+        else {
+          const by = coveredBy(t);
+          out.push(emptyRow(fromMin(t), label, by?._mark || '', by ? by.title : ''));
+        }
         out.push(...between.map(i => itemRow(i, fmt(i.time))));
       }
 
@@ -371,6 +379,27 @@ export default {
         }
       } else if (t.classList.contains('item-title') && id) {
         if (t.value.trim()) await change(id, { title: t.value.trim() });
+      } else if (t.classList.contains('margin-time')) {
+        // Typed start time in the margin: 12.45, 12:45, 1245 or 14
+        const m = t.value.trim().match(/^(\d{1,2})(?:[.:\s]?(\d{2}))?$/);
+        const it = items.find(x => x.id === t.dataset.timeFor);
+        if (!m || Number(m[1]) > 23 || Number(m[2] || 0) > 59) {
+          toast("Couldn't read that time. Try 14.30");
+          t.value = fmt(it.time);
+          return;
+        }
+        const time = `${String(Number(m[1])).padStart(2, '0')}:${m[2] || '00'}`;
+        if (time === it.time) { t.value = fmt(it.time); return; }
+        const moved = items.map(x => (x.id === it.id
+          ? { ...x, time, end_time: x.end_time ? fromMin(Math.min(23 * 60 + 59, toMin(time) + duration(x))) : null, _mark: 'preview' }
+          : x));
+        const preview = withPushes(moved, new Set([it.id]));
+        const pushedN = preview.filter(x => x._mark === 'pushed').length;
+        await moveMany(diff(preview), `Time: ${fmt(time)}${pushedN ? `, pushed ${pushedN} on` : ''}`);
+      } else if (t.name === 'estimate_min' && id) {
+        const v = t.value;
+        await change(id, v === 'unsure' ? { estimate_min: null, estimate_unsure: true } : { estimate_min: v ? Number(v) : null, estimate_unsure: false },
+          v === 'unsure' ? 'Duration: not sure yet' : v ? `Duration: ${v} min` : 'Duration cleared');
       } else if (t.name && id) {
         const value = t.name === 'estimate_min' ? (t.value ? Number(t.value) : null) : (t.value || null);
         if (t.name === 'date' && !value) return;
@@ -477,6 +506,50 @@ export default {
       return null;
     }
 
+    // Items in the way get pushed later (keeping their length), knock-on down
+    // the day. `fixed` are the items being placed on purpose.
+    function withPushes(list, fixed) {
+      const out = list.map(i => ({ ...i }));
+      const len = i => (i.end_time ? toMin(i.end_time) - toMin(i.time) : i.estimate_min || 0);
+      const placed = out.filter(i => i.time && fixed.has(i.id));
+      if (!placed.length) return out;
+      const from = Math.min(...placed.map(i => toMin(i.time)));
+      const busy = placed.filter(i => len(i) > 0).map(i => [toMin(i.time), toMin(i.time) + len(i)]);
+      const others = out.filter(i => i.time && !fixed.has(i.id) && toMin(i.time) >= from).sort((a, b) => toMin(a.time) - toMin(b.time));
+      for (const o of others) {
+        const d = len(o);
+        let a = toMin(o.time);
+        let moved = false;
+        for (let guard = 0; guard < 100; guard++) {
+          const hit = busy.find(([x, y]) => a < y && a + Math.max(d, 1) > x);
+          if (!hit) break;
+          a = hit[1];
+          moved = true;
+        }
+        if (moved) {
+          o.time = fromMin(Math.min(a, 23 * 60 + 59));
+          if (o.end_time) o.end_time = fromMin(Math.min(a + d, 23 * 60 + 59));
+          o._mark = 'pushed';
+        }
+        if (d > 0) busy.push([a, a + d]);
+      }
+      return out;
+    }
+
+    // Field changes between the saved day and a preview.
+    function diff(preview) {
+      const out = new Map();
+      for (const v of preview) {
+        const i = items.find(x => x.id === v.id);
+        if (!i) continue;
+        const f = {};
+        if ((v.time ?? null) !== (i.time ?? null)) f.time = v.time ?? null;
+        if ((v.end_time ?? null) !== (i.end_time ?? null)) f.end_time = v.end_time ?? null;
+        if (Object.keys(f).length) out.set(v.id, f);
+      }
+      return out;
+    }
+
     // Each carried item's new time for a drop at `time`.
     function plan(time) {
       const anchor = items.find(i => i.id === press.id);
@@ -498,24 +571,27 @@ export default {
       return out;
     }
 
+    // Mid-flight preview: redraw the day as it would be if dropped here —
+    // carried items at their new times, anything in the way pushed on.
     function showPreview(target) {
-      el.querySelectorAll('.drop-preview').forEach(n => n.remove());
-      el.querySelectorAll('.drop-target').forEach(n => n.classList.remove('drop-target'));
-      if (!target) { delete press.ghost.dataset.when; return; }
-      if (target.pile) {
-        $('#pile').classList.add('drop-target');
-        press.ghost.dataset.when = 'To place';
+      $('#pile').classList.toggle('drop-target', !!target?.pile);
+      const key = target ? (target.pile ? 'pile' : target.time) : '';
+      if (key === press.previewKey) return;
+      press.previewKey = key;
+      if (!target || target.pile) {
+        press.changes = target?.pile ? new Map(press.ids.map(id => [id, { time: null, end_time: null }])) : null;
+        press.ghost.dataset.when = target?.pile ? 'To place' : '';
+        if (!target) delete press.ghost.dataset.when;
+        renderLines();
         return;
       }
       press.ghost.dataset.when = fmt(target.time);
-      for (const [id, f] of plan(target.time)) {
-        const i = items.find(x => x.id === id);
-        const line = [...linesEl.querySelectorAll('.line[data-time]')].find(l => (l.dataset.time === 'evening' ? eveningTime() : l.dataset.time) === f.time)
-          || (toMin(f.time) >= toMin(eveningTime()) ? linesEl.querySelector('.line[data-time="evening"]') : null);
-        if (!line) continue;
-        line.classList.add('drop-target');
-        line.querySelector('.content')?.insertAdjacentHTML('beforeend', `<span class="drop-preview hand">${esc(i.title)} <span class="span-tag">${fmt(f.time)}${f.end_time ? `–${fmt(f.end_time)}` : ''}</span></span>`);
-      }
+      const planned = plan(target.time);
+      const moved = items.map(i => (planned.has(i.id) ? { ...i, ...planned.get(i.id), _mark: 'preview' } : i));
+      const preview = withPushes(moved, new Set(planned.keys()));
+      press.changes = diff(preview);
+      press.pushedCount = preview.filter(i => i._mark === 'pushed').length;
+      renderLines(preview);
     }
 
     let press = null;  // pointer down on a ⠿ (maybe a tap, maybe a drag)
@@ -530,8 +606,8 @@ export default {
       if (!item) return;
       try { el.setPointerCapture(ev.pointerId); } catch {} // the row is re-rendered while dragging
       if (grip.classList.contains('resize-grip')) {
-        resizing = { item, row, startY: ev.clientY, base: duration(item), minutes: duration(item) };
-        row.classList.add('resizing');
+        const lineH = (linesEl.querySelector('.line.blank') || row).getBoundingClientRect().height;
+        resizing = { item, startY: ev.clientY, base: duration(item), minutes: null, lineH };
         return;
       }
       press = { id: item.id, x: ev.clientX, y: ev.clientY, rowH: row.getBoundingClientRect().height, dragging: false };
@@ -575,47 +651,39 @@ export default {
       }
       p.ghost.remove();
       document.body.classList.remove('is-dragging');
-      el.querySelectorAll('.drop-preview').forEach(n => n.remove());
-      el.querySelectorAll('.drop-target').forEach(n => n.classList.remove('drop-target'));
+      $('#pile').classList.remove('drop-target');
       lifted.clear();
       const t = ev.type === 'pointerup' ? p.target : null;
-      press = p; // plan() reads the carried ids
-      const fields = t?.pile
-        ? new Map(p.ids.map(id => [id, { time: null, end_time: null }]))
-        : t ? plan(t.time) : null;
-      press = null;
       const n = p.ids.length;
-      if (!fields) { renderLines(); renderPile(); paintSelection(); return; }
-      await moveMany(fields, t.pile ? `${n > 1 ? `${n} items` : 'Item'} back to To place` : `${n > 1 ? `Moved ${n} items` : 'Moved'} to ${fmt(t.time)}`);
+      if (!t || !p.changes?.size) { renderLines(); renderPile(); paintSelection(); return; }
+      const pushed = p.pushedCount ? `, pushed ${p.pushedCount} on` : '';
+      await moveMany(p.changes, t.pile ? `${n > 1 ? `${n} items` : 'Item'} back to To place` : `${n > 1 ? `Moved ${n} items` : 'Moved'} to ${fmt(t.time)}${pushed}`);
     };
     el.addEventListener('pointerup', endPress);
     el.addEventListener('pointercancel', endPress);
 
+    // Stretching an item: redraw the day live (lines it covers blocked out,
+    // anything in the way pushed on), save on release.
     function resizeMove(ev) {
-      el.querySelectorAll('.will-cover').forEach(n => n.classList.remove('will-cover'));
-      const line = linesEl.querySelector('.line.blank') || resizing.row;
-      const perPx = step() / line.getBoundingClientRect().height;
+      const perPx = step() / resizing.lineH;
       const minutes = Math.max(15, Math.round((resizing.base + (ev.clientY - resizing.startY) * perPx) / 15) * 15);
+      if (minutes === resizing.minutes) return;
       resizing.minutes = minutes;
-      const start = toMin(resizing.item.time);
-      const end = start + minutes;
-      const tag = resizing.row.querySelector('.span-tag') || resizing.row.querySelector('.content').insertBefore(Object.assign(document.createElement('span'), { className: 'span-tag' }), resizing.row.querySelector('.more'));
-      tag.textContent = `${fmt(resizing.item.time)}–${fmt(fromMin(end))}`;
-      for (const l of linesEl.querySelectorAll('.line[data-time]')) {
-        const t = l.dataset.time === 'evening' ? null : toMin(l.dataset.time);
-        if (t != null && t > start && t < end) l.classList.add('will-cover');
-      }
+      const it = resizing.item;
+      const end = fromMin(Math.min(23 * 60 + 59, toMin(it.time) + minutes));
+      const stretched = items.map(i => (i.id === it.id ? { ...i, end_time: end, _mark: 'preview' } : i));
+      const preview = withPushes(stretched, new Set([it.id]));
+      resizing.changes = diff(preview);
+      resizing.end = end;
+      resizing.pushedCount = preview.filter(i => i._mark === 'pushed').length;
+      renderLines(preview);
     }
 
     async function resizeEnd(ev) {
       const r = resizing;
       resizing = null;
-      el.querySelectorAll('.will-cover').forEach(n => n.classList.remove('will-cover'));
-      r.row.classList.remove('resizing');
-      if (ev.type === 'pointercancel') return renderLines();
-      const end = fromMin(toMin(r.item.time) + r.minutes);
-      if (end !== r.item.end_time) await change(r.item.id, { end_time: end }, `Until ${fmt(end)}`);
-      else renderLines();
+      if (ev.type === 'pointercancel' || !r.changes?.size) return renderLines();
+      await moveMany(r.changes, `Until ${fmt(r.end)}${r.pushedCount ? `, pushed ${r.pushedCount} on` : ''}`);
     }
 
     // ---------- calendar popup ----------

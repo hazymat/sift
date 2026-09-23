@@ -137,7 +137,7 @@ export default {
         return `<div class="thought-panel">
           <label>Day<input type="date" name="plan_date" value="${isoDate()}"></label>
           <label>Time (optional)<input type="time" name="plan_time" value="${p.time || ''}"></label>
-          <label>Estimate<select name="plan_est">${['', 15, 30, 45, 60, 90, 120].map(m => `<option value="${m}">${m ? `${m} min` : '—'}</option>`).join('')}</select></label>
+          <label>Duration<select name="plan_est"><option value="">Pick a duration</option><option value="unsure">Not sure yet</option>${[15, 30, 45, 60, 90, 120].map(m => `<option value="${m}">${m} min</option>`).join('')}</select></label>
           <button type="button" class="primary" data-act="plan-go">Add to the day</button>
         </div>`;
       }
@@ -253,9 +253,10 @@ export default {
         const p = li.querySelector('.thought-panel');
         const date = p.querySelector('[name="plan_date"]').value || isoDate();
         const time = p.querySelector('[name="plan_time"]').value || null;
-        const est = Number(p.querySelector('[name="plan_est"]').value) || null;
+        const estRaw = p.querySelector('[name="plan_est"]').value;
+        const est = Number(estRaw) || null;
         const parsed = parseTimed(t.body.split('\n')[0]);
-        const item = await addItem(date, { title: parsed.title.slice(0, 200), time: time || parsed.time, end_time: parsed.end_time, estimate_min: est, source_thought_id: t.id });
+        const item = await addItem(date, { title: parsed.title.slice(0, 200), time: time || parsed.time, end_time: parsed.end_time, estimate_min: est, estimate_unsure: estRaw === 'unsure', source_thought_id: t.id });
         await convert(t, { collection: 'day_items', id: item.id, date }, `On the plan for ${date === isoDate() ? 'today' : date}`);
       } else if (act === 'store-go') {
         const boxId = li.querySelector('[name="box"]').value;

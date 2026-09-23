@@ -1295,3 +1295,29 @@ li[data-id]:hover .kit-grip { opacity: .8; }
 .checklist > li[data-depth="1"] { margin-left: 28px; }
 .checklist .icon-btn.small { opacity: .35; background: none; box-shadow: none; }
 .checklist li:hover .icon-btn.small { opacity: 1; }
+
+
+/* Day Planner: blocked-out time, pushes and the stretch preview */
+.line.blank.covered .content { cursor: default; margin-left: 0; border-left: 3px solid var(--active-border); background: var(--active-bg); opacity: .55; }
+.line.blank.covered:hover .content::before { content: none; }
+.line.has-item.spans { background: linear-gradient(90deg, transparent 64px, var(--active-bg) 64px); }
+.line.has-item.preview .content, .line.blank.preview .content { transform: rotate(-.8deg); transform-origin: left center; }
+.line.has-item.preview { outline: 1px dashed var(--active-border); outline-offset: -2px; }
+.line.has-item.pushed .content { transform: rotate(.6deg); transform-origin: left center; opacity: .75; }
+.line.has-item.pushed .margin { color: var(--place); }
+.line.has-item.preview .content, .line.has-item.pushed .content { transition: transform .12s; }
+
+.margin-time {
+  width: 100%;
+  padding: 2px 0 !important;
+  text-align: right;
+  font-family: var(--hand);
+  font-size: .9rem;
+  color: var(--ink) !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: 6px !important;
+  cursor: text;
+}
+.margin-time:hover { border-color: var(--glass-border) !important; }
+.margin-time:focus { background: var(--glass-track) !important; border-color: var(--active-border) !important; text-align: center; }

@@ -55,4 +55,60 @@ export function installInlineEditing() {
   document.addEventListener('change', ev => {
     if (inline(ev.target)) original.set(ev.target, ev.target.value);
   }, true);
+
+  installDateFields();
+}
+
+// Date and time fields fire "change" while you're still typing (e.g. after
+// the first digit of a day), which would save and redraw mid-edit. Hold those
+// back: the change is let through once, when you leave the field or press
+// Enter. Esc puts the old value back (with an Undo toast).
+const DATEISH = 'input[type="date"], input[type="time"], input[type="datetime-local"], input[type="month"]';
+function installDateFields() {
+  const was = new WeakMap();
+  let releasing = false;
+  const isDate = el => el instanceof HTMLInputElement && el.matches(DATEISH) && !el.matches('.no-inline');
+
+  document.addEventListener('focusin', ev => { if (isDate(ev.target)) was.set(ev.target, ev.target.value); });
+
+  document.addEventListener('change', ev => {
+    if (!releasing && isDate(ev.target) && was.has(ev.target)) ev.stopImmediatePropagation();
+  }, true);
+
+  const release = el => {
+    if (!was.has(el)) return;
+    const before = was.get(el);
+    was.delete(el);
+    if (el.value === before) return;
+    releasing = true;
+    try { el.dispatchEvent(new Event('change', { bubbles: true })); } finally { releasing = false; }
+  };
+
+  document.addEventListener('focusout', ev => { if (isDate(ev.target)) release(ev.target); });
+
+  document.addEventListener('keydown', ev => {
+    const el = ev.target;
+    if (!isDate(el) || !was.has(el)) return;
+    if (ev.key === 'Enter') { ev.preventDefault(); el.blur(); }
+    if (ev.key === 'Escape') {
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+      const before = was.get(el);
+      const typed = el.value;
+      was.delete(el);
+      el.value = before;
+      el.blur();
+      if (typed !== before) {
+        toast('Escape cancelled change', {
+          action: 'Undo',
+          onAction: () => {
+            if (!el.isConnected) return;
+            el.value = typed;
+            releasing = true;
+            try { el.dispatchEvent(new Event('change', { bubbles: true })); } finally { releasing = false; }
+          },
+        });
+      }
+    }
+  }, true);
 }
