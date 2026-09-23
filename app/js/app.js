@@ -10,6 +10,8 @@ export const AREAS = [
   { id: 'contracts', label: 'Contracts', icon: 'i-contracts', view: './views/contracts.js' },
   { id: 'contacts', label: 'Contacts', icon: 'i-contacts', view: './views/contacts.js' },
   { id: 'settings', label: 'Settings', icon: 'i-settings', view: './views/settings.js', pinnable: false },
+  // Not in the nav: reached from each area's ⋯ menu and from Settings.
+  { id: 'bin', label: 'Archive & Bin', icon: 'i-archive', view: './views/bin.js', pinnable: false, hidden: true },
 ];
 
 export const MAX_PINNED = 4;
@@ -65,7 +67,7 @@ export async function setTheme(id) {
 // ---------- navigation ----------
 
 function renderNav() {
-  const more = AREAS.filter(a => !pinned.includes(a.id));
+  const more = AREAS.filter(a => !a.hidden && !pinned.includes(a.id));
   const activeInMore = more.some(a => a.id === current);
 
   // Bottom bar (phone): pinned areas + More.
@@ -208,6 +210,7 @@ async function boot() {
 
   await route();
   renderSyncStatus();
+  import('./bin.js').then(bin => bin.autoEmpty()).catch(err => console.warn('Bin clean-up failed:', err));
   registerServiceWorker();
 }
 

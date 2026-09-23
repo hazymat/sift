@@ -57,7 +57,7 @@
 
 One IndexedDB database per signed-in user (`sift_<user_id>`), or `sift_local` before sign-in (§8.6). Object stores = collections below, plus `blobs`, `outbox`, `sync_meta`.
 
-Common fields on every record: `id (UUIDv7), created_at, updated_at, deleted_at, tags[]`, plus sync metadata `_field_clocks {field: hlc}`, `_server_seq`, `_dirty_fields[]` (§8).
+Common fields on every record: `id (UUIDv7), created_at, updated_at, deleted_at, archived_at, purged_at, tags[]`, plus sync metadata `_field_clocks {field: hlc}`, `_server_seq`, `_dirty_fields[]` (§8).
 
 ### 4.1 Tasks
 
@@ -142,6 +142,7 @@ An ongoing saga with one or more organisations or people, e.g. "Mum's care fundi
 ### 4.7 Cross-cutting
 
 - `tags` are free strings on every record; autocomplete from local data.
+- **Archive & Bin** (every area): **Archive** = `archived_at` set: hidden from normal views, still searchable (search shows "+ n in archive"), never expires. **Bin** = `deleted_at` set: kept 30 days, then purged automatically. **Delete forever** / **Empty bin** purge: content fields are blanked and `purged_at` set, but the record stays as a tombstone so sync can't resurrect it (and the undo toast runs before anything is purged). One **Archive & Bin** page (`#/bin/<archive|bin>/<area>`): tabs Archive | Bin, area filter, search, grouped by area; each entry has Restore, bin entries also Delete forever. Reached from each area's ⋯ menu (pre-filtered) and from Settings. Each area supplies a provider (`entries(kind)`) to `js/bin.js`; a deleted box shows as one entry with the items deleted with it.
 - **Undo** (every area): every change shows a toast for ~6 s with **Undo** ("Saved · Undo", "Removed 'Jumpers' · Undo", "Deleted box BA · Undo"), like "undo send". Deletes don't ask "are you sure?"; they're soft deletes, so undo is a restore. Edits undo by writing the old value back (a new clock stamp, so it syncs like any edit). Shared helper: `undoable()` in `js/toast.js`.
 - **Text to list** (every area): wherever plain text becomes list items (Find Things contents, Day Planner dump box, Brain Dump, Contacts research mode, Tasks), the same entry is used: one item per line, a line starting with `-` (or a space) is a sub-item of the line above, **Ctrl+Enter** (⌘+Enter on Mac) adds, with the same hint text. Shared helper: `js/listentry.js`.
 - `settings` (single record, synced): `default_calendar_id, week_start, theme, pinned_areas[]`.

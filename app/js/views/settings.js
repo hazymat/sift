@@ -28,6 +28,12 @@ export default {
       </section>
 
       <section class="card">
+        <h2>Archive &amp; Bin</h2>
+        <p class="muted">Archived things are hidden but still searchable. Deleted things stay in the bin for 30 days.</p>
+        <div class="segmented"><a class="seg-link" href="#/bin/archive/all">Archive <span id="count-archive" class="muted"></span></a><a class="seg-link" href="#/bin/bin/all">Bin <span id="count-bin" class="muted"></span></a></div>
+      </section>
+
+      <section class="card">
         <h2>Storage</h2>
         <dl class="facts" id="storage"></dl>
       </section>
@@ -72,7 +78,7 @@ export default {
       list.innerHTML = [
         ...pinned.map(id => row(app.AREAS.find(a => a.id === id))),
         '<li class="divider">More</li>',
-        ...app.AREAS.filter(a => !pinned.includes(a.id)).map(row),
+        ...app.AREAS.filter(a => !a.hidden && !pinned.includes(a.id)).map(row),
       ].join('');
     };
 
@@ -102,6 +108,12 @@ export default {
     });
 
     renderPins();
+
+    import('../bin.js').then(async bin => {
+      const c = await bin.counts();
+      el.querySelector('#count-archive').textContent = c.archive;
+      el.querySelector('#count-bin').textContent = c.bin;
+    });
 
     const storage = el.querySelector('#storage');
     const est = await navigator.storage?.estimate?.();

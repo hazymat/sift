@@ -453,6 +453,37 @@ button.danger { color: #ff8a80; }
 .tool-menu summary::-webkit-details-marker { display: none; }
 .tool-menu .menu { left: auto; right: 0; z-index: 20; }
 .tool-menu .menu button { text-align: left; box-shadow: none; }
+.tool-menu .menu hr { border: 0; border-top: 1px solid var(--glass-border); margin: 2px 4px; width: calc(100% - 8px); }
+.tool-menu .menu a { padding: 6px 14px; border-radius: var(--radius-pill); box-shadow: none; background: none; }
+.tool-menu .menu a:hover { background: var(--glass-hover); }
+.archive-hint { margin: 14px 4px; font-size: .9rem; }
+.archive-hint a, .bin-note { color: var(--accent); }
+.bin-note { color: var(--muted); font-size: .85rem; margin: 10px 4px 16px; }
+.seg-link { padding: 6px 14px; border-radius: var(--radius-pill); background: var(--glass); box-shadow: var(--glass-highlight), var(--shadow-sm); }
+.seg-link:hover { background: var(--glass-hover); }
+.small-btn { padding: 3px 10px; font-size: .8rem; margin-left: 6px; }
+
+/* ---------- Archive & Bin ---------- */
+.bin-head { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.bin-head .segmented button[aria-pressed="true"] { background: var(--active-bg); border-color: var(--active-border); }
+.bin-group { margin-bottom: 22px; }
+.bin-group > h2 { font-weight: 300; font-size: 1.2rem; margin: 0 4px 8px; }
+.bin-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.bin-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 10px 14px;
+  border-radius: 18px;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+}
+.bin-main { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.bin-kind { font-size: .68rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.bin-title { font-weight: 500; overflow-wrap: anywhere; }
+.bin-sub { font-size: .78rem; }
+.bin-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.bin-actions button { padding: 5px 12px; font-size: .85rem; }
 
 .find-section { margin-bottom: 28px; }
 .find-section > h2 { font-weight: 300; font-size: 1.4rem; margin: 0 4px 12px; }

@@ -247,6 +247,24 @@ export async function updateMany(collection, changes) {
   return changed;
 }
 
+// "Delete forever": blank every content field but keep the record as a
+// tombstone (id, clocks, deleted_at, purged_at) so sync can't bring it back.
+export async function purgeMany(collection, ids) {
+  assertCollection(collection);
+  await open();
+  const keep = new Set(['created_at', 'updated_at', 'deleted_at']);
+  const now = new Date().toISOString();
+  const changes = [];
+  for (const id of ids) {
+    const r = await get(collection, id, { includeDeleted: true });
+    if (!r || r.purged_at) continue;
+    const blank = { purged_at: now, deleted_at: r.deleted_at || now };
+    for (const k of Object.keys(r)) if (!SYSTEM_FIELDS.has(k) && !keep.has(k) && k !== 'purged_at') blank[k] = null;
+    changes.push([id, blank]);
+  }
+  return updateMany(collection, changes);
+}
+
 // ---------- reads ----------
 
 export async function get(collection, id, { includeDeleted = false } = {}) {

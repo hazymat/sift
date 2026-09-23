@@ -2,7 +2,7 @@
 // cards. Tapping a card zooms into the box (#/places/<box id>); Back zooms
 // out again. Search across all life areas, CSV import/export.
 
-import { loadTree, search, importCsv, exportCsv } from '../places.js';
+import { loadTree, search, importCsv, exportCsv, archivedMatchCount } from '../places.js';
 import { sortable } from '../sortable.js';
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
@@ -56,6 +56,9 @@ export default {
               <button type="button" data-act="rename-edition">Rename life area</button>
               <button type="button" data-act="import">Import CSV</button>
               <button type="button" data-act="export">Export CSV</button>
+              <hr>
+              <a href="#/bin/archive/places">Archive</a>
+              <a href="#/bin/bin/places">Bin</a>
             </div>
           </details>
         </div>
@@ -137,6 +140,14 @@ export default {
                highlight: r.boxMatch && !r.items.length ? null : r.items,
              })).join('')}</div>`
           : `<div class="empty"><h2>Nothing found</h2><p class="muted">Try fewer or different words.</p></div>`;
+        body.insertAdjacentHTML('beforeend', '<p class="archive-hint" hidden></p>');
+        const asked = query;
+        archivedMatchCount(query).then(n => {
+          const hint = body.querySelector('.archive-hint');
+          if (!n || !hint || asked !== query) return;
+          hint.innerHTML = `<a href="#/bin/archive/places/${encodeURIComponent(query)}">+ ${n} in archive</a>`;
+          hint.hidden = false;
+        });
         requestAnimationFrame(() => fitPills());
         return;
       }
@@ -200,6 +211,7 @@ export default {
             <button type="button" data-act="add-items">Add items <kbd>${SHORTCUT}</kbd></button>
             <span class="spacer"></span>
             <label class="inline">Move to <select name="parent_place_id">${sections.map(o => `<option value="${o.id}" ${o.id === s.id ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}</select></label>
+            <button type="button" data-act="archive-box">Archive box</button>
             <button type="button" class="danger" data-act="delete-box">Delete box</button>
           </div>
         </article>
@@ -209,6 +221,7 @@ export default {
           <button type="button" data-act="sel-outdent" title="Bring back out">Outdent</button>
           <button type="button" data-act="sel-up" aria-label="Move up">↑</button>
           <button type="button" data-act="sel-down" aria-label="Move down">↓</button>
+          <button type="button" data-act="sel-archive">Archive</button>
           <button type="button" data-act="sel-delete" class="danger">Delete</button>
           <button type="button" data-act="sel-clear" aria-label="Clear selection">✕</button>
         </div>`;
@@ -472,6 +485,27 @@ export default {
           next.after(...rows);
         }
         await saveOrder(new Map(), `Moved ${rows.length}`);
+      } else if (name === 'sel-archive') {
+        const items = findBox(openId)?.b.items || [];
+        const ids = [...new Set([...selected, ...items.filter(i => selected.has(i.parent_item_id)).map(i => i.id)])];
+        const now = new Date().toISOString();
+        await store.updateMany('items', ids.map(id => [id, { archived_at: now }]));
+        clearSelection();
+        await reload();
+        undoable(`Archived ${ids.length} item${ids.length === 1 ? '' : 's'}`, async () => {
+          await store.updateMany('items', ids.map(id => [id, { archived_at: null }]));
+          await reload();
+        });
+      } else if (name === 'archive-box') {
+        const { b: box } = findBox(openId);
+        const boxId = openId;
+        await store.update('places', boxId, { archived_at: new Date().toISOString() });
+        tree = await loadTree();
+        location.hash = '#/places';
+        undoable(`Archived box ${box.label_code || box.name || ''}`.trim(), async () => {
+          await store.update('places', boxId, { archived_at: null });
+          await reload();
+        });
       } else if (name === 'sel-delete') {
         const items = findBox(openId)?.b.items || [];
         const gone = [...new Set([...selected, ...items.filter(i => selected.has(i.parent_item_id)).map(i => i.id)])];

@@ -13,7 +13,9 @@ const same = (a, b) => (a || '').trim().toLowerCase() === (b || '').trim().toLow
 
 // Everything in one pass, nested and sorted.
 export async function loadTree() {
-  const [places, items] = await Promise.all([store.list('places'), store.list('items')]);
+  // Archived boxes and items are hidden here; they live in Archive (bin.js).
+  const [places, items] = (await Promise.all([store.list('places'), store.list('items')]))
+    .map(rows => rows.filter(r => !r.archived_at));
   const children = new Map();
   for (const p of places) {
     const key = p.parent_place_id || null;
@@ -84,6 +86,66 @@ export function search(tree, query) {
     }
   }
   return results;
+}
+
+// ---------- archive & bin ----------
+
+export const binProvider = {
+  area: 'places',
+  label: 'Find Things',
+  async entries(kind) {
+    const inState = r => !r.purged_at && (kind === 'bin' ? !!r.deleted_at : !r.deleted_at && !!r.archived_at);
+    const places = await store.list('places', { includeDeleted: true });
+    const items = await store.list('items', { includeDeleted: true });
+    const byId = new Map(places.map(p => [p.id, p]));
+    const path = p => {
+      const names = [];
+      for (let cur = byId.get(p.parent_place_id); cur; cur = byId.get(cur.parent_place_id)) names.unshift(cur.name);
+      return names.join(' › ');
+    };
+    const out = [];
+    const claimed = new Set();
+    for (const b of places.filter(p => p.kind === 'box' && inState(p))) {
+      const inside = items.filter(i => i.place_id === b.id && !i.purged_at);
+      // Items deleted together with the box come back with it.
+      const kids = kind === 'bin'
+        ? inside.filter(i => i.deleted_at && Math.abs(Date.parse(i.deleted_at) - Date.parse(b.deleted_at)) < 5000)
+        : [];
+      kids.forEach(i => claimed.add(i.id));
+      const count = kind === 'bin' ? kids.length : inside.filter(i => !i.deleted_at).length;
+      out.push({
+        collection: 'places', id: b.id, kind: 'Box',
+        title: b.label_code ? `${b.label_code} · ${b.name}` : b.name,
+        subtitle: path(b),
+        detail: count ? `${count} item${count === 1 ? '' : 's'}` : 'empty',
+        at: kind === 'bin' ? b.deleted_at : b.archived_at,
+        children: kids.map(i => ({ collection: 'items', id: i.id })),
+        search: [b.label_code, b.name, b.location_note, b.notes, ...inside.map(i => i.name)].join(' '),
+      });
+    }
+    for (const i of items) {
+      if (!inState(i) || claimed.has(i.id)) continue;
+      const box = byId.get(i.place_id);
+      out.push({
+        collection: 'items', id: i.id, kind: 'Item',
+        title: i.name,
+        subtitle: box ? [path(box), box.label_code || box.name].filter(Boolean).join(' › ') : '',
+        detail: i.notes || '',
+        at: kind === 'bin' ? i.deleted_at : i.archived_at,
+        children: [],
+        search: `${i.name} ${i.notes || ''}`,
+      });
+    }
+    return out.sort((a, b) => (b.at || '').localeCompare(a.at || ''));
+  },
+};
+
+// How many archived entries match a search (for "+ n in archive").
+export async function archivedMatchCount(query) {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.length) return 0;
+  return (await binProvider.entries('archive'))
+    .filter(e => words.every(w => `${e.title} ${e.subtitle} ${e.search}`.toLowerCase().includes(w))).length;
 }
 
 // ---------- import / export ----------
