@@ -29,6 +29,7 @@ const SHELL = [
   'js/drafts.js',
   'js/pillmenu.js',
   'js/summary.js',
+  'js/exporttext.js',
   'js/linkpicker.js',
   'js/csv.js',
   'js/places.js',

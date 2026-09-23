@@ -1711,3 +1711,11 @@ main:has(> .planner), main:has(.planner) { max-width: 1600px; }
 .checklist .item-sub { margin: -6px 0 6px 64px; }
 .list-panel { display: block; }
 .list-notes .rich-edit { min-height: 4em; font-size: .95rem; font-family: var(--font); }
+.ex-preview { max-height: 320px; overflow: auto; padding: 10px 12px; border-radius: 10px; background: var(--glass-track); border: 1px solid var(--glass-border); font-size: .82rem; white-space: pre-wrap; }
+
+/* Nothing may push the page wider than the screen: long links and long
+   unbroken text wrap, and the page never scrolls sideways. */
+.ref { white-space: normal; overflow-wrap: anywhere; }
+.rich-edit, .thought-body, .item-note, .note-body, .review-title { overflow-wrap: anywhere; min-width: 0; }
+html, body { overflow-x: clip; }
+main { min-width: 0; max-width: 100%; }

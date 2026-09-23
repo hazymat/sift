@@ -96,6 +96,21 @@ export default {
         <p class="muted">Everything is stored on this device only. Sync between devices is coming later.</p>
       </section>
 
+      <section class="card" id="exchange-card">
+        <h2>Data exchange</h2>
+        <p class="muted">Days from the Day Planner as plain text: each day's tasks (done and not done) with their notes, and the day's notes.</p>
+        <div class="settings-grid">
+          <label>From<input type="date" name="ex_from"></label>
+          <label>To<input type="date" name="ex_to"></label>
+        </div>
+        <label class="check-row"><input type="checkbox" name="ex_links" checked> Include linked items (contacts, tasks…) as a numbered list at the end</label>
+        <div class="backup-row">
+          <button type="button" data-ex="copy">Copy to clipboard</button>
+          <button type="button" data-ex="download">Download .txt</button>
+        </div>
+        <pre class="ex-preview" hidden></pre>
+      </section>
+
       <section class="card">
         <h2>This device</h2>
         <dl class="facts">
@@ -117,6 +132,35 @@ export default {
         <p class="muted hint">Erasing removes every task, plan, note, contact, box and setting stored here. The app itself stays installed.</p>
       </section>
     `;
+
+    // Data exchange: days as plain text
+    {
+      const card = el.querySelector('#exchange-card');
+      const { isoDate, addDays } = await import('../days.js');
+      card.querySelector('[name="ex_from"]').value = addDays(isoDate(), -6);
+      card.querySelector('[name="ex_to"]').value = isoDate();
+      card.addEventListener('click', async ev => {
+        const b = ev.target.closest('[data-ex]');
+        if (!b) return;
+        const from = card.querySelector('[name="ex_from"]').value;
+        const to = card.querySelector('[name="ex_to"]').value;
+        if (!from || !to) return toast('Pick the days first');
+        const { daysAsText } = await import('../exporttext.js');
+        const text = await daysAsText(from, to, { links: card.querySelector('[name="ex_links"]').checked });
+        const pre = card.querySelector('.ex-preview');
+        pre.textContent = text;
+        pre.hidden = false;
+        if (b.dataset.ex === 'copy') {
+          try { await navigator.clipboard.writeText(text); toast('Copied'); } catch { toast("Couldn't copy: the browser blocked the clipboard. The text is shown below."); }
+        } else {
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+          a.download = `sift-days-${from}${to !== from ? `-to-${to}` : ''}.txt`;
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        }
+      });
+    }
 
     // Clear and erase
     el.querySelector('#erase-card').addEventListener('click', async ev => {
