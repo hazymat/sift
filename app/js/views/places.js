@@ -242,16 +242,18 @@ export default {
           paintBase = null;
           carried = selected.has(li.dataset.item) && selected.size > 1
             ? [...list.children].filter(r => selected.has(r.dataset.item)) : [];
-          carried.forEach(r => { if (r !== li) r.classList.add('carried'); });
+          if (carried.length) liftGroup(li, carried);
+          document.body.classList.add('is-dragging');
         },
         onEnd: ({ item, dx }) => {
+          document.body.classList.remove('is-dragging');
           const depth = dx > 30 ? 1 : dx < -30 ? 0 : null;
           if (carried.length) {
-            // Drop every selected row where the dragged one landed, in their original order.
+            dropGroup(item, carried);
+            // Every selected row lands where the dragged one did, in their original order.
             const at = carried.indexOf(item);
             carried.slice(0, at).forEach(r => item.before(r));
             carried.slice(at + 1).reverse().forEach(r => item.after(r));
-            carried.forEach(r => r.classList.remove('carried'));
           }
           const moved = carried.length ? carried : [item];
           carried = [];
@@ -288,6 +290,38 @@ export default {
 
     let paintBase = null; // selection before a swipe started
 
+    // Dragging several rows: the others leave the list (so it closes up and
+    // behaves like one block moving) and a stack of all of them rides on the
+    // held row. A long selection shows a window of rows that fades at the edges.
+    function liftGroup(held, rows) {
+      const h = held.getBoundingClientRect().height;
+      const at = rows.indexOf(held);
+      const max = Math.max(3, Math.floor((innerHeight * 0.45) / h));
+      let from = Math.max(0, at - Math.floor((max - 1) / 2));
+      const to = Math.min(rows.length, from + max);
+      from = Math.max(0, to - max);
+      const ghost = document.createElement('div');
+      ghost.className = 'drag-ghost';
+      ghost.style.setProperty('--row', `${h}px`);
+      ghost.style.top = `${-(at - from) * h}px`;
+      ghost.classList.toggle('fade-top', from > 0);
+      ghost.classList.toggle('fade-bottom', to < rows.length);
+      ghost.innerHTML = rows.slice(from, to).map(r => `
+        <div class="ghost-row${r.dataset.depth === '1' ? ' sub' : ''}${r === held ? ' lead' : ''}">
+          <span>${esc(r.querySelector('input[name="name"]').value)}</span>
+          ${r === held ? `<span class="ghost-count">${rows.length} items</span>` : ''}
+        </div>`).join('');
+      held.append(ghost);
+      held.classList.add('group-drag');
+      rows.forEach(r => { if (r !== held) r.hidden = true; });
+    }
+
+    function dropGroup(held, rows) {
+      held.querySelector('.drag-ghost')?.remove();
+      held.classList.remove('group-drag');
+      rows.forEach(r => { r.hidden = false; });
+    }
+
     function paintSelection() {
       for (const li of page.querySelectorAll('.item-list > li')) {
         const on = selected.has(li.dataset.item);
@@ -314,15 +348,17 @@ export default {
       const before = (findBox(openId)?.b.items || []).map(i => [i.id, { sort_order: i.sort_order, parent_item_id: i.parent_item_id || null }]);
       for (const li of list.children) if (depths.has(li.dataset.item)) li.dataset.depth = depths.get(li.dataset.item);
       let parent = null;
+      const changes = [];
       for (const [n, li] of [...list.children].entries()) {
         const sub = li.dataset.depth === '1' && parent;
         li.dataset.depth = sub ? 1 : 0;
         if (!sub) parent = li.dataset.item;
-        await store.update('items', li.dataset.item, { sort_order: n, parent_item_id: sub ? parent : null });
+        changes.push([li.dataset.item, { sort_order: n, parent_item_id: sub ? parent : null }]);
       }
+      await store.updateMany('items', changes);
       tree = await loadTree();
       undoable(label, async () => {
-        for (const [id, fields] of before) await store.update('items', id, fields);
+        await store.updateMany('items', before);
         await reload();
       });
     }
@@ -439,11 +475,12 @@ export default {
       } else if (name === 'sel-delete') {
         const items = findBox(openId)?.b.items || [];
         const gone = [...new Set([...selected, ...items.filter(i => selected.has(i.parent_item_id)).map(i => i.id)])];
-        for (const g of gone) await store.remove('items', g);
+        const now = new Date().toISOString();
+        await store.updateMany('items', gone.map(g => [g, { deleted_at: now }]));
         clearSelection();
         await reload();
         undoable(`Removed ${gone.length} item${gone.length === 1 ? '' : 's'}`, async () => {
-          for (const g of gone) await store.restore('items', g);
+          await store.updateMany('items', gone.map(g => [g, { deleted_at: null }]));
           await reload();
         });
       } else if (name === 'delete-item') {
@@ -461,13 +498,13 @@ export default {
         const { b: box } = findBox(openId);
         const boxId = openId;
         const itemIds = box.items.map(i => i.id);
-        for (const i of itemIds) await store.remove('items', i);
+        await store.updateMany('items', itemIds.map(i => [i, { deleted_at: new Date().toISOString() }]));
         await store.remove('places', boxId);
         tree = await loadTree();
         location.hash = '#/places';
         undoable(`Deleted box ${box.label_code || box.name || ''}`.trim(), async () => {
           await store.restore('places', boxId);
-          for (const i of itemIds) await store.restore('items', i);
+          await store.updateMany('items', itemIds.map(i => [i, { deleted_at: null }]));
           await reload();
         });
       } else if (name === 'import') {

@@ -224,6 +224,29 @@ export function restore(collection, id) {
   return write(collection, id, { deleted_at: null }, { mustExist: true });
 }
 
+// Many updates in one transaction (reordering a long list, batch delete…).
+// `changes` is [[id, fields], …]; missing ids are skipped. Returns the
+// records that actually changed.
+export async function updateMany(collection, changes) {
+  assertCollection(collection);
+  await open();
+  const tx = db.transaction([collection, 'outbox', 'sync_meta'], 'readwrite');
+  const records = tx.objectStore(collection);
+  const changed = [];
+  for (const [id, fields] of changes) {
+    const existing = await promisify(records.get(id));
+    const record = existing && stamp(existing, fields);
+    if (!record) continue;
+    records.put(record);
+    tx.objectStore('outbox').put({ id, collection, queued_at: Date.now() });
+    changed.push(record);
+  }
+  if (changed.length) tx.objectStore('sync_meta').put(lastClock, 'clock');
+  await done(tx);
+  for (const r of changed) emit({ collection, id: r.id, deleted: !!r.deleted_at });
+  return changed;
+}
+
 // ---------- reads ----------
 
 export async function get(collection, id, { includeDeleted = false } = {}) {

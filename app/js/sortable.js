@@ -21,10 +21,11 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, onMove, on
   let lastX = 0;
   let lastY = 0;
 
-  const siblings = () => [...list.children].filter(el => el !== dragging);
+  // Hidden rows (e.g. the rest of a group being dragged) don't take part.
+  const siblings = () => [...list.children].filter(el => el !== dragging && !el.hidden);
 
   const rowAt = y => {
-    const rows = [...list.children];
+    const rows = [...list.children].filter(el => !el.hidden);
     return rows.find(r => { const b = r.getBoundingClientRect(); return y >= b.top && y < b.bottom; })
       || (y < rows[0]?.getBoundingClientRect().top ? rows[0] : rows.at(-1));
   };
@@ -67,7 +68,7 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, onMove, on
     const grip = e.target.closest(handle);
     if (!grip || !list.contains(grip) || e.button > 0) return;
     e.preventDefault();
-    grip.setPointerCapture(e.pointerId);
+    try { grip.setPointerCapture(e.pointerId); } catch {} // synthetic events have no real pointer
     const item = grip.closest('li');
     lastX = e.clientX;
     lastY = e.clientY;
