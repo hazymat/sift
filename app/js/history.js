@@ -10,10 +10,11 @@ export const AREA_OF = {
   day_items: 'Day Planner', days: 'Day Planner',
   thoughts: 'Brain Dump',
   contacts: 'Contacts', contact_categories: 'Contacts', contact_jobs: 'Contacts', interactions: 'Contacts', cases: 'Contacts', case_notes: 'Contacts',
+  lists: 'Lists', list_items: 'Lists',
   scans: 'Scans', contracts: 'Contracts', settings: 'Settings',
 };
 
-const NAME_FIELDS = ['title', 'name', 'body', 'label_code', 'summary'];
+const NAME_FIELDS = ['title', 'name', 'text', 'body', 'label_code', 'summary'];
 const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 const short = v => {
   if (v == null || v === '') return '—';

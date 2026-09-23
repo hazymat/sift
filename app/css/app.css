@@ -1280,3 +1280,18 @@ li[data-id]:hover .kit-grip { opacity: .8; }
 .drop-preview { flex: 1; min-width: 0; opacity: .55; padding: 2px 8px; border: 1px dashed var(--active-border); border-radius: 10px; font-size: 1.05rem; animation: preview-in .15s ease-out; }
 @keyframes preview-in { from { opacity: 0; transform: translateX(-6px); } to { opacity: .55; transform: none; } }
 .line.has-item .drop-preview { flex: none; max-width: 45%; }
+
+
+/* ---------- Lists ---------- */
+.lists-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 6px; }
+.lists-head .tool-menu { margin-left: auto; }
+.list-card { text-decoration: none; color: var(--text); }
+.list-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 10px; }
+.list-actions a { color: var(--accent); }
+.list-bar { flex: 1 1 120px; max-width: 260px; }
+.list-actions button[aria-pressed="true"] { background: var(--active-bg); border-color: var(--active-border); }
+.checklist > li[data-id] { display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 2px 6px; border-radius: 14px; border: 1px solid transparent; }
+.checklist > li[data-id]:hover { background: var(--glass); border-color: var(--glass-border); }
+.checklist > li[data-depth="1"] { margin-left: 28px; }
+.checklist .icon-btn.small { opacity: .35; background: none; box-shadow: none; }
+.checklist li:hover .icon-btn.small { opacity: 1; }

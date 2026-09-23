@@ -10,9 +10,10 @@ import { binProvider as findThings } from './places.js';
 import { binProvider as tasks } from './tasks.js';
 import { binProvider as contacts } from './contacts.js';
 import { binProvider as dump } from './views/dump.js';
+import { binProvider as lists } from './lists.js';
 
 export const BIN_DAYS = 30;
-const PROVIDERS = [tasks, dump, findThings, contacts];
+const PROVIDERS = [tasks, dump, findThings, lists, contacts];
 
 export function binProviders(area = 'all') {
   return PROVIDERS.filter(p => area === 'all' || p.area === area);

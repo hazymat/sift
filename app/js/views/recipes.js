@@ -1,7 +1,7 @@
 import { placeholder } from './placeholder.js';
 
 export default placeholder(
-  'Recipes',
-  'Recipes, and every time you make one: batches, readings, tasting notes, photos.',
+  'Batch Book',
+  'Recipes, and every batch you make from them: readings, tasting notes, photos. For baking, brewing, wine making and the like.',
   9,
 );

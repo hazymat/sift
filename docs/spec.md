@@ -173,7 +173,19 @@ An ongoing saga with one or more organisations or people, e.g. "Mum's care fundi
   - Renewal/switch = new row with `previous_contract_id` → history chain per policy line.
   - Scans attach via `scans.linked = {collection: "contracts", id}`.
 
-### 4.8 Recipes (recipe book with makes)
+### 4.7a Lists (reusable checklists)
+
+For lists you use again and again: packing for a trip, the weekly shop, a pre-flight check for the van.
+
+- `lists`: `name, kind (template|instance|list), template_id?, notes, sort_order, used_at?`
+- `list_items`: `list_id, text, parent_id? (one level of sub-items), sort_order, checked_at?`
+- **Template**: the master list. "Use this template" makes an **instance** (a full copy, e.g. "Holiday packing – Portugal"), editable without touching the template.
+- **Ticking**: tick items off in any order; progress "18 of 30"; **Reset ticks** clears them all (e.g. to re-pack for the trip home); **Hide ticked**.
+- **Keeping template and copies in step**: an instance offers "Add n missing from template"; selecting items in an instance offers "Add to template".
+- **Plain lists** have ticks without a template (a one-off shopping list).
+- Same list behaviour as everywhere (select, drag, indent, text to list), undo, History, Archive & Bin.
+
+### 4.8 Batch Book (recipes and the batches made from them)
 
 A recipe book that also records every time a recipe is **made**: a batch of wine, a loaf, a sauce. The recipe is the plan; a **make** is one real run of it, with its own notes, readings, photos and outcome, so the next make can be better.
 
@@ -184,7 +196,7 @@ A recipe book that also records every time a recipe is **made**: a batch of wine
   - Taste notes over time ("3 months: still harsh; 6 months: good").
 - Photos and recordings (e.g. a voice note of tasting) use the Scans blob pipeline (§4.5, §8.4).
 - **Links**: step waits become Day Planner items on the right dates ("Batch W-2026-04: rack"); a make can live in a Find Things box ("Under Coal Hole: 6 bottles W-2026-04"); ingredients can be added to a shopping list (Brain Dump `shopping`).
-- UI: **Recipes** area: recipe cards (photo, title, category, last made); a recipe page shows ingredients (scalable), steps, and its makes as a timeline; a make page shows readings (with chart), notes, photos and a "Log reading" button. "Make this" starts a make from the recipe.
+- UI: **Batch Book** area (internally `recipes`): recipe cards (photo, title, category, last made); a recipe page shows ingredients (scalable), steps, and its makes as a timeline; a make page shows readings (with chart), notes, photos and a "Log reading" button. "Make this" starts a make from the recipe.
 - Details to be filled in later with the user.
 
 ### 4.7 Cross-cutting
@@ -223,7 +235,7 @@ Single-page app, hash routing, top nav on laptop, bottom tab bar on iPhone. Glob
 | **Find Things** | Search bar always on top (`/`), searching every life area: matching boxes show their path and only the matching items. Life Area tabs; each group is a grid of box cards (big code, name, where it lives in orange, first few items, "+ n more"). Tap a card to edit the box and its contents (add many items at once, one per line). Menu: add box / group / life area, import / export CSV. | Same, one column; box editor as a full-height sheet. |
 | **Contacts** | Tabs: **Recent** (transient + recently used, "What was this?" prompts), **Directory** (by category; research mode per category), **Cases**. Contact detail: name, about, details (tap to call/email, which logs an interaction), raw captured text, notes, timeline (captured, looked up, contacted), connected contacts, cases, tasks and day items, jobs. | Same, full-screen detail. Quick "Contacted" button. |
 | **Contracts** | Spreadsheet-style table: sort, filter, group, column picker, inline edit. Detail with history chain + scans. Footer: annual cost total. | Cards by category, current first, renewals due highlighted. Tap-to-call provider. |
-| **Recipes** | Recipe cards; recipe page (ingredients, steps, makes timeline); make page (readings + chart, notes, photos). | Same; "Log reading" is one tap from the make. |
+| **Batch Book** | Recipe cards; recipe page (ingredients, steps, makes timeline); make page (readings + chart, notes, photos). | Same; "Log reading" is one tap from the make. |
 | **Scans** | Reverse-chronological thumbnails, kind pill filters, search. Drag-and-drop to add. | Big **Scan** button, recent scans below. Full-screen viewer, pinch zoom. |
 
 - Header: sync status (local only / synced / syncing / n pending / offline).
@@ -381,7 +393,7 @@ Single-page app, hash routing, top nav on laptop, bottom tab bar on iPhone. Glob
 6. Contacts + Cases (transient/stored, categories, research mode, interactions log, "Make contact" from Brain Dump, case timeline).
 7. Scans.
 8. Contracts.
-9. Recipes (recipes, makes, readings, photos).
+9. Batch Book (recipes, makes/batches, readings, photos).
 10. Search.
 11. Backup / restore.
 

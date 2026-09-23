@@ -19,6 +19,8 @@ const SHELL = [
   'js/contacts.js',
   'js/backup.js',
   'js/history.js',
+  'js/lists.js',
+  'js/views/lists.js',
   'js/listkit.js',
   'js/inline.js',
   'js/views/history.js',

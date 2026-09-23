@@ -7,10 +7,11 @@ export const AREAS = [
   { id: 'planner', label: 'Day Planner', icon: 'i-planner', view: './views/planner.js' },
   { id: 'dump', label: 'Brain Dump', icon: 'i-dump', view: './views/dump.js' },
   { id: 'places', label: 'Find Things', icon: 'i-places', view: './views/places.js' },
+  { id: 'lists', label: 'Lists', icon: 'i-lists', view: './views/lists.js' },
   { id: 'scans', label: 'Scans', icon: 'i-scans', view: './views/scans.js' },
   { id: 'contracts', label: 'Contracts', icon: 'i-contracts', view: './views/contracts.js' },
   { id: 'contacts', label: 'Contacts', icon: 'i-contacts', view: './views/contacts.js' },
-  { id: 'recipes', label: 'Recipes', icon: 'i-recipes', view: './views/recipes.js' },
+  { id: 'recipes', label: 'Batch Book', icon: 'i-recipes', view: './views/recipes.js' },
   { id: 'settings', label: 'Settings', icon: 'i-settings', view: './views/settings.js', pinnable: false },
   // Not in the nav: reached from each area's ⋯ menu and from Settings.
   { id: 'bin', label: 'Archive & Bin', icon: 'i-archive', view: './views/bin.js', pinnable: false, hidden: true },
