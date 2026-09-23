@@ -12,7 +12,7 @@
 //   press and move straight away → onPaint(firstItem, itemUnderPointer) (swipe-select)
 //   press and hold, then drag → drag as above (onLift(item) when it lifts)
 
-export function sortable(list, { handle = '.drag-handle', holdMs = 0, keyboard = true, onMove, onEnd, onTap, onPaint, onLift } = {}) {
+export function sortable(list, { handle = '.drag-handle', holdMs = 0, keyboard = true, onMove, onEnd, onTap, onPaint, onLift, onDrag } = {}) {
   let dragging = null;
   let pending = null; // pressed; waiting to see if it's a tap, swipe or hold
   let painting = null;
@@ -98,7 +98,9 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, keyboard =
       return;
     }
     if (!dragging) return;
-    dragging.style.setProperty('--dx', `${Math.max(-40, Math.min(40, lastX - startX))}px`);
+    // onDrag may return the sideways shift to show (e.g. snapped to a depth).
+    const shown = onDrag?.({ item: dragging, dx: lastX - startX });
+    dragging.style.setProperty('--dx', `${shown ?? Math.max(-40, Math.min(40, lastX - startX))}px`);
     place(e.clientY);
     follow(e.clientY);
   });

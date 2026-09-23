@@ -164,8 +164,24 @@ export function createListKit({
         carried = [...new Set(carried)];
         if (carried.length > 1) liftGroup(li, carried);
       },
+      // While dragging sideways, the row snaps to the depth it will land at
+      // and says so ("sub-item" / "top level").
+      onDrag: ({ item, dx }) => {
+        if (!indent) return 0;
+        const by = dx > 30 ? 1 : dx < -30 ? -1 : 0;
+        const from = depthOf(item);
+        const prev = item.previousElementSibling?.matches('li[data-id]') ? item.previousElementSibling : null;
+        const limit = prev ? Math.min(maxDepth, depthOf(prev) + 1) : 0;
+        const to = Math.max(0, Math.min(limit, from + by));
+        if (to !== from) item.dataset.dropDepth = String(to);
+        else delete item.dataset.dropDepth;
+        item.dataset.dropLabel = to > from ? 'sub-item' : to < from ? 'top level' : '';
+        return (to - from) * 28;
+      },
       onEnd: ({ item, dx }) => {
         document.body.classList.remove('is-dragging');
+        delete item.dataset.dropDepth;
+        delete item.dataset.dropLabel;
         const group = carried.length > 1 ? carried : [item];
         if (carried.length > 1) {
           dropGroup(item, carried);
