@@ -57,7 +57,7 @@ export async function useTemplate(template, templateItems, name) {
   const idMap = new Map();
   for (const i of nestItems(templateItems)) {
     const made = await store.create('list_items', {
-      list_id: inst.id, text: i.text, parent_id: i.parent_id ? idMap.get(i.parent_id) || null : null, sort_order: i.sort_order, checked_at: null,
+      list_id: inst.id, text: i.text, notes: i.notes || '', parent_id: i.parent_id ? idMap.get(i.parent_id) || null : null, sort_order: i.sort_order, checked_at: null,
     });
     idMap.set(i.id, made.id);
   }

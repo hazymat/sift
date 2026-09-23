@@ -57,6 +57,11 @@ export const KINDS = {
     text: b => `${b.label_code || ''} ${b.name} ${b.location_note || ''} ${b.notes || ''}`, route: b => `#/find-things/${b.id}`,
     only: b => b.kind === 'box',
   },
+  list_items: {
+    label: 'List item', icon: '☐',
+    title: i => i.text || '(item)', sub: () => 'Lists',
+    text: i => `${i.text} ${i.notes || ''}`, route: i => `#/lists/${i.list_id}`,
+  },
   lists: {
     label: 'List', icon: '📋',
     title: l => l.name || '(list)', sub: () => 'Lists',

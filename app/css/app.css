@@ -1705,3 +1705,9 @@ main:has(> .planner), main:has(.planner) { max-width: 1600px; }
 .cal-sheet { width: min(380px, calc(100vw - 16px)); }
 .cal-grid .cal-pad { min-height: 2.4em; }
 .cal-head strong { flex: 1; text-align: center; }
+
+/* Lists: notes under items, and the item panel. */
+.checklist li[data-id] { flex-wrap: wrap; }
+.checklist .item-sub { margin: -6px 0 6px 64px; }
+.list-panel { display: block; }
+.list-notes .rich-edit { min-height: 4em; font-size: .95rem; font-family: var(--font); }

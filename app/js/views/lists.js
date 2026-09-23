@@ -6,6 +6,7 @@ import { loadLists, nestItems, progress, createList, addItems, useTemplate, miss
 import { createListKit } from '../listkit.js';
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
+import { richText, previewLine } from '../richtext.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -56,6 +57,47 @@ export default {
         <div class="project-grid">${inUse.map(card).join('') || '<p class="muted">No lists yet.</p>'}</div>`;
     }
 
+    // ---------- an item's note and panel ----------
+
+    let openItem = null;
+    let pendingNote = null;
+    let noteTimer;
+    // Under the item: the note's first line; clicking it opens the panel.
+    function noteLine(i) {
+      const { html, more } = previewLine(i.notes || '');
+      if (!html) return '';
+      return `<div class="item-sub"><span class="item-note task-note" data-act="item-details" role="button" tabindex="0" title="${openItem === i.id ? 'Close' : 'Open to read or edit'}"><span class="note-emoji" aria-hidden="true">📝</span>${html}${more ? ` <span class="more-lines">+${more} more</span>` : ''}</span></div>`;
+    }
+    async function flushNote() {
+      clearTimeout(noteTimer);
+      const p = pendingNote;
+      pendingNote = null;
+      if (p) await store.update('list_items', p.id, { notes: p.md });
+    }
+    async function toggleItem(id) {
+      await flushNote();
+      openItem = openItem === id ? null : id;
+      await render();
+    }
+    function mountNotes() {
+      const box = el.querySelector('.list-panel .list-notes');
+      if (!box || !openItem) return;
+      const id = openItem;
+      const it = data.items.find(x => x.id === id);
+      richText(box, {
+        value: it?.notes || '',
+        placeholder: 'Notes…',
+        origin: () => ({ collection: 'list_items', id, title: it?.text, field: 'notes' }),
+        onChange: md => { clearTimeout(noteTimer); pendingNote = { id, md }; noteTimer = setTimeout(flushNote, 600); },
+      });
+    }
+    this.onItemPointer = ev => {
+      if (!openItem || !el.isConnected) return;
+      if (ev.target.closest(`li[data-id="${openItem}"], li[data-for="${openItem}"], dialog, .toast, .ref-picker, .ref-menu, .pill-menu`)) return;
+      toggleItem(openItem);
+    };
+    document.addEventListener('pointerdown', this.onItemPointer, true);
+
     // ---------- one list ----------
 
     function page() {
@@ -92,8 +134,17 @@ export default {
             <button type="button" class="drag-handle" aria-label="Select or move">${icon('i-grip')}</button>
             ${isTemplate ? '' : `<input type="checkbox" class="tick" ${i.checked_at ? 'checked' : ''} aria-label="Ticked">`}
             <input class="task-title" name="text" value="${esc(i.text)}" aria-label="Item" autocomplete="off">
-            <button type="button" class="icon-btn small" data-act="remove" aria-label="Remove">×</button>
-          </li>`).join('')}
+            <button type="button" class="more" data-act="item-details" aria-label="Details" aria-expanded="${openItem === i.id}">⋯</button>
+            ${noteLine(i)}
+          </li>
+          ${openItem === i.id ? `<li class="task-details list-panel" data-for="${i.id}">
+            <div class="list-notes"></div>
+            <div class="detail-actions">
+              <button type="button" class="close-details" data-act="close-item">Close</button>
+              <span class="spacer"></span>
+              <button type="button" class="danger" data-act="remove">Remove</button>
+            </div>
+          </li>` : ''}`).join('')}
         </ul>
         ${state.hideTicked && pr.done ? `<p class="muted hint">${pr.done} ticked item${pr.done === 1 ? '' : 's'} hidden.</p>` : ''}
         <textarea id="list-new" class="list-entry" rows="2" placeholder="Add items"></textarea>
@@ -121,6 +172,7 @@ export default {
         const n = body.querySelector('[data-list-name]');
         if (n) { n.focus(); n.select(); }
       }
+      mountNotes();
       const ta = body.querySelector('#list-new');
       if (ta) addEntry = listEntry(ta, addLines, { draft: `lists:${state.id || 'new'}` });
     };
@@ -268,8 +320,12 @@ export default {
         });
         return;
       }
+      if (act === 'item-details') return toggleItem(b.closest('li[data-id], li[data-for]').dataset.id || b.closest('li[data-for]').dataset.for);
+      if (act === 'close-item') return toggleItem(openItem);
       if (act === 'remove') {
-        const id = b.closest('li[data-id]').dataset.id;
+        const row = b.closest('li[data-id], li[data-for]');
+        const id = row.dataset.id || row.dataset.for;
+        if (openItem === id) { await flushNote(); openItem = null; }
         return batch([id], { deleted_at: new Date().toISOString() }, 'Removed');
       }
       if (act === 'archive-list' || act === 'delete-list') {
@@ -288,6 +344,7 @@ export default {
     });
 
     this.onKey = ev => {
+      if (ev.key === 'Escape' && openItem && !ev.defaultPrevented && !document.querySelector('.ref-picker')) { ev.preventDefault(); toggleItem(openItem); return; }
       if (ev.key === 'Escape' && !ev.target.closest('input, textarea') && kit.escape()) ev.preventDefault();
     };
     addEventListener('keydown', this.onKey);
@@ -303,6 +360,7 @@ export default {
     this.kitChecklist?.destroy();
     this.kitTemplate?.destroy();
     removeEventListener('keydown', this.onKey);
+    document.removeEventListener('pointerdown', this.onItemPointer, true);
   },
 
   quickAdd() {
