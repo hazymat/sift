@@ -27,12 +27,20 @@ export function parseLines(text) {
 export function listEntry(textarea, onSubmit, { draft } = {}) {
   if (draft) keepDraft(textarea, draft);
   const submit = async () => {
-    const lines = parseLines(textarea.value);
+    const text = textarea.value;
+    const lines = parseLines(text);
     if (!lines.length) return;
-    await onSubmit(lines);
+    // Empty the box and forget the draft first: adding may redraw the view,
+    // and a fresh box would otherwise get the old draft back.
     textarea.value = '';
     draftCleared(textarea);
-    textarea.focus();
+    try {
+      await onSubmit(lines);
+    } catch (err) {
+      if (textarea.isConnected) { textarea.value = text; textarea.dispatchEvent(new Event('input')); }
+      throw err;
+    }
+    if (textarea.isConnected) textarea.focus();
   };
   textarea.addEventListener('keydown', ev => {
     if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) {
