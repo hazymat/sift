@@ -1511,3 +1511,19 @@ li[data-id]:hover .kit-grip { opacity: .8; }
 .pill-act:hover, .pill-act:focus-visible { color: var(--accent); border-color: var(--active-border); }
 .pill-act:hover .pill-now, .pill-act:focus-visible .pill-now { display: none; }
 .pill-act:hover .pill-hover, .pill-act:focus-visible .pill-hover { display: inline; }
+
+/* Item titles wrap onto more lines when they're long (a one-line textarea
+   that grows); the row grows with them. */
+.line textarea.item-title {
+  display: block;
+  resize: none;
+  overflow: hidden;
+  field-sizing: content;
+  flex: 1 1 0%;
+  width: auto;
+  min-width: 6em;
+  min-height: 0;
+  line-height: 1.3;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

@@ -12,7 +12,20 @@ import { toast } from './toast.js';
 const SKIP = '.new-line, .quick-add, #case-note, input[type="search"], input[type="checkbox"], input[type="radio"], input[type="file"], input[type="date"], input[type="time"], .no-inline';
 const original = new WeakMap();
 
-const inline = el => el instanceof HTMLInputElement && !el.matches(SKIP) && !el.closest('dialog.sheet form');
+// A textarea.one-line behaves like a single-line field (Enter saves, no line
+// breaks) but wraps long text onto more lines and grows to fit.
+const inline = el => (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement && el.classList.contains('one-line'))
+  && !el.matches(SKIP) && !el.closest('dialog.sheet form');
+
+const NATIVE_FIT = CSS.supports?.('field-sizing', 'content');
+export function autosize(el) {
+  if (NATIVE_FIT) return;
+  el.style.height = 'auto';
+  el.style.height = `${el.scrollHeight}px`;
+}
+export function autosizeAll(root = document) {
+  if (!NATIVE_FIT) for (const el of root.querySelectorAll('textarea.one-line')) autosize(el);
+}
 
 export function installInlineEditing() {
   document.addEventListener('focusin', ev => {
@@ -42,6 +55,18 @@ export function installInlineEditing() {
       });
     }
   }, true);
+
+  // One-line textareas: pasted line breaks become spaces; grow as you type.
+  document.addEventListener('input', ev => {
+    const el = ev.target;
+    if (!(el instanceof HTMLTextAreaElement) || !el.classList.contains('one-line')) return;
+    if (/\n/.test(el.value)) {
+      const at = el.selectionStart;
+      el.value = el.value.replace(/\s*\n\s*/g, ' ');
+      el.setSelectionRange(at, at);
+    }
+    autosize(el);
+  });
 
   // Enter saves: leaving the field fires "change", which the view saves.
   document.addEventListener('keydown', ev => {

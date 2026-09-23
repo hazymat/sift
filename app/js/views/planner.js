@@ -12,6 +12,7 @@ import { listEntry, listHint } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import { richText, toHtml, previewLine } from '../richtext.js';
 import { keepDraft } from '../drafts.js';
+import { autosizeAll } from '../inline.js';
 import { loadAll as loadTasks, forDay, suggestions, doneFields, aimDate } from '../tasks.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -241,7 +242,7 @@ export default {
           <span class="content">
             <button type="button" class="drag-grip" aria-label="Drag to a time" title="Drag onto a time">⠿</button>
             <input type="checkbox" class="tick" aria-label="Done" ${i.done_at ? 'checked' : ''}>
-            <input class="item-title hand" value="${esc(i.title)}" aria-label="Item" autocomplete="off">
+            <textarea class="item-title one-line hand" rows="1" aria-label="Item" spellcheck="false">${esc(i.title)}</textarea>
             ${span ? `<span class="span-tag">${span}</span>` : i.estimate_min ? `<span class="span-tag">~${durationLabel(Number(i.estimate_min))}</span>` : ''}
             <button type="button" class="more" data-act="details" aria-label="Details">⋯</button>
             ${noteEditing === i.id
@@ -374,7 +375,9 @@ export default {
       }
       linesEl.innerHTML = out.join('');
       mountNoteEditors();
-      placeNowMarker();
+      autosizeAll(linesEl); // long titles wrap onto more lines…
+      fitSpanBlocks();
+      placeNowMarker(); // …so the ▶ is measured after that
     }
 
     // ▶ in the margin at the current time: between the line for the current
@@ -383,6 +386,31 @@ export default {
     nowMarker.className = 'now-marker';
     nowMarker.setAttribute('aria-hidden', 'true');
     nowMarker.textContent = '▶';
+    // Wrapped text changes height when the handwriting font arrives or the
+    // window changes width: fit again, then put the ▶ back in place.
+    const refit = () => { if (!linesEl.isConnected) return; autosizeAll(linesEl); fitSpanBlocks(); placeNowMarker(); };
+    document.fonts?.ready.then(refit);
+    removeEventListener('resize', this.onRefit || (() => {}));
+    this.onRefit = () => { clearTimeout(this.refitTimer); this.refitTimer = setTimeout(refit, 150); };
+    addEventListener('resize', this.onRefit);
+
+    // A block over several lines whose text needs more room than those lines
+    // give it grows: its last line gets taller.
+    function fitSpanBlocks() {
+      for (const block of linesEl.querySelectorAll('.span-block')) {
+        const content = block.querySelector(':scope > .line.has-item > .content');
+        const last = block.lastElementChild;
+        if (!content || !last) continue;
+        last.style.minHeight = '';
+        // The text is centred, so it spills both ways: measure it at its own height.
+        content.style.bottom = 'auto';
+        const natural = content.offsetHeight;
+        content.style.bottom = '';
+        const short = natural + 8 - block.offsetHeight;
+        if (short > 0) last.style.minHeight = `${last.offsetHeight + short}px`;
+      }
+    }
+
     function placeNowMarker() {
       const paper = $('.paper');
       if (!paper) return;
@@ -419,6 +447,7 @@ export default {
       const pile = items.filter(i => !i.time && !lifted.has(i.id));
       $('#pile').innerHTML = pile.map(i => `<li>${itemRow(i, '')}</li>`).join('')
         || '<li class="muted pile-empty">Nothing waiting. Dump things below, then give them times.</li>';
+      autosizeAll($('#pile'));
       mountNoteEditors();
     }
 
@@ -1133,6 +1162,7 @@ export default {
 
   unmount() {
     this.dockWatch?.disconnect();
+    removeEventListener('resize', this.onRefit);
     clearInterval(this.nowTimer);
     this.bar?.remove();
     document.body.classList.remove('has-select-bar', 'is-dragging');
