@@ -114,7 +114,7 @@ function openMoreSheet() {
 // ---------- routing ----------
 
 async function route() {
-  const id = location.hash.replace(/^#\/?/, '').split('/')[0];
+  const [id, ...rest] = location.hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent);
   const next = area(id);
   if (!next) {
     location.replace(`#/${pinned[0]}`);
@@ -123,7 +123,10 @@ async function route() {
   const sheet = $('#more-sheet');
   if (sheet.open) sheet.close();
   $('#topnav-more-menu').parentElement.removeAttribute('open');
-  if (next.id === current) return;
+  if (next.id === current) {
+    currentView?.route?.(rest); // same area, deeper path (e.g. a box)
+    return;
+  }
 
   current = next.id;
   renderNav();
@@ -138,6 +141,7 @@ async function route() {
   if (current !== next.id) return; // navigated away while loading
   currentView = module.default;
   await currentView.mount(main, { store, app: appApi });
+  if (rest.length) await currentView.route?.(rest);
   $('#quick-add').hidden = !currentView.quickAdd;
 }
 

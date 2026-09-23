@@ -1,18 +1,29 @@
-// Find Things: life areas (tabs; stored as kind "edition") → sections → box cards. Search across all
-// life areas, box editor, CSV import/export.
+// Find Things: life areas (tabs; stored as kind "edition") → sections → box
+// cards. Tapping a card zooms into the box (#/places/<box id>); Back zooms
+// out again. Search across all life areas, CSV import/export.
 
 import { loadTree, search, importCsv, exportCsv } from '../places.js';
+import { sortable } from '../sortable.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
-const PREVIEW_ITEMS = 8;
 const EDITION_KEY = 'sift-find-edition';
+const ZOOM = 'box-zoom'; // view-transition-name shared by a card and its box page
 
 function remember(key, value) {
-  try { value === undefined ? localStorage.getItem(key) : localStorage.setItem(key, value); } catch {}
+  try { localStorage.setItem(key, value); } catch {}
 }
 function recall(key) {
   try { return localStorage.getItem(key); } catch { return null; }
+}
+
+// Animate a DOM change as a zoom between a card and the box page, where the
+// browser supports view transitions; otherwise just make the change.
+async function zoom(update) {
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!document.startViewTransition || reduced) return update();
+  const t = document.startViewTransition(update);
+  await t.finished.catch(() => {});
 }
 
 export default {
@@ -20,28 +31,32 @@ export default {
     let tree = [];
     let editionId = recall(EDITION_KEY);
     let query = '';
+    let openId = null; // box currently zoomed into
+    let gridScroll = 0;
 
     el.innerHTML = `
-      <div class="find-bar">
-        <input type="search" id="find-q" class="search" placeholder="Find anything… (press /)" autocomplete="off" enterkeyhint="search">
+      <div id="find-grid">
+        <div class="find-bar">
+          <input type="search" id="find-q" class="search" placeholder="Find anything… (press /)" autocomplete="off" enterkeyhint="search">
+        </div>
+        <div class="find-tools">
+          <div class="segmented" id="editions" role="tablist" aria-label="Life areas"></div>
+          <details class="tool-menu">
+            <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
+            <div class="menu">
+              <button type="button" data-act="add-box">Add box</button>
+              <button type="button" data-act="add-section">Add section</button>
+              <button type="button" data-act="add-edition">New life area</button>
+              <button type="button" data-act="rename-edition">Rename life area</button>
+              <button type="button" data-act="import">Import CSV</button>
+              <button type="button" data-act="export">Export CSV</button>
+            </div>
+          </details>
+        </div>
+        <div id="find-body"></div>
       </div>
-      <div class="find-tools">
-        <div class="segmented" id="editions" role="tablist" aria-label="Life areas"></div>
-        <details class="tool-menu">
-          <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
-          <div class="menu">
-            <button type="button" data-act="add-box">Add box</button>
-            <button type="button" data-act="add-section">Add section</button>
-            <button type="button" data-act="add-edition">New life area</button>
-            <button type="button" data-act="rename-edition">Rename life area</button>
-            <button type="button" data-act="import">Import CSV</button>
-            <button type="button" data-act="export">Export CSV</button>
-          </div>
-        </details>
-      </div>
-      <div id="find-body"></div>
+      <div id="box-page" hidden></div>
 
-      <dialog class="sheet box-sheet" id="box-sheet" aria-label="Box"></dialog>
       <dialog class="sheet" id="import-sheet" aria-label="Import CSV">
         <div class="sheet-handle"></div>
         <h2>Import CSV</h2>
@@ -57,44 +72,55 @@ export default {
       </dialog>
     `;
 
+    const grid = el.querySelector('#find-grid');
     const body = el.querySelector('#find-body');
+    const page = el.querySelector('#box-page');
     const q = el.querySelector('#find-q');
-    const boxSheet = el.querySelector('#box-sheet');
     const importSheet = el.querySelector('#import-sheet');
 
-    // ---------- rendering ----------
+    // ---------- grid ----------
 
     const edition = () => tree.find(e => e.id === editionId) || tree[0];
 
+    // Items show as pills so short ones share a line; the pill area is
+    // clipped to a few lines and fitPills() fills in "+ n more".
     function card(box, { path, highlight } = {}) {
       const items = highlight ?? box.items;
-      const shown = items.slice(0, highlight ? items.length : PREVIEW_ITEMS);
-      const more = items.length - shown.length;
-      return `<button type="button" class="box-card${box.label_code ? '' : ' no-code'}" data-box="${box.id}">
+      return `<div class="box-card${box.label_code ? '' : ' no-code'}" data-box="${box.id}" role="button" tabindex="0" aria-label="${esc(box.label_code ? `${box.label_code} ${box.name}` : box.name)}">
         ${path ? `<span class="box-path">${esc(path)}</span>` : ''}
         <span class="box-head">
           ${box.label_code ? `<span class="box-code">${esc(box.label_code)}</span>` : ''}
-          <span class="box-name">${esc(box.name)}</span>
+          <span class="box-name">${esc(box.name || 'Untitled box')}</span>
         </span>
         ${box.location_note ? `<span class="box-where">${esc(box.location_note)}</span>` : ''}
-        ${box.notes ? `<span class="box-notes">${esc(box.notes)}</span>` : ''}
-        ${shown.length ? `<ul class="box-items">${shown.map(i => `<li>${esc(i.name)}${i.notes ? ` <span class="muted">(${esc(i.notes)})</span>` : ''}</li>`).join('')}</ul>` : ''}
-        ${more > 0 ? `<span class="muted box-more">+ ${more} more</span>` : ''}
-        ${!items.length && !highlight ? '<span class="muted box-more">Empty</span>' : ''}
-      </button>`;
+        <span class="box-pills${highlight ? ' all' : ''}">${items.map(i => `<span class="item-pill${i.depth ? ' sub' : ''}">${esc(i.name)}</span>`).join('')}</span>
+        <span class="muted box-more"></span>
+        <input class="quick-add" data-add="${box.id}" placeholder="+ item" aria-label="Add item to ${esc(box.label_code || box.name)}" enterkeyhint="done" autocomplete="off">
+      </div>`;
     }
 
-    function renderEditions() {
+    function fitPills(root = body) {
+      for (const wrap of root.querySelectorAll('.box-pills:not(.all)')) {
+        for (const pill of wrap.children) pill.style.display = '';
+        const limit = wrap.getBoundingClientRect().bottom;
+        let hidden = 0;
+        for (const pill of wrap.children) {
+          if (pill.getBoundingClientRect().bottom > limit + 1) hidden++;
+        }
+        // Measure first, then take the overflow out of the layout.
+        if (hidden) [...wrap.children].slice(-hidden).forEach(pill => { pill.style.display = 'none'; });
+        wrap.nextElementSibling.textContent = hidden ? `+ ${hidden} more` : (wrap.children.length ? '' : 'Empty');
+      }
+    }
+
+    function renderGrid() {
       const tabs = el.querySelector('#editions');
       const current = edition();
       tabs.innerHTML = tree.map(e =>
         `<button type="button" role="tab" data-edition="${e.id}" aria-pressed="${e.id === current?.id}">${esc(e.name)}</button>`
       ).join('');
       tabs.hidden = query !== '' || tree.length === 0;
-    }
 
-    function render() {
-      renderEditions();
       if (query) {
         const results = search(tree, query);
         const count = results.reduce((n, r) => n + (r.items.length || 1), 0);
@@ -102,12 +128,12 @@ export default {
           ? `<p class="muted result-count">${count} match${count === 1 ? '' : 'es'}</p>
              <div class="box-grid">${results.map(r => card(r.box, {
                path: `${r.edition.name} › ${r.section.name}`,
-               highlight: r.boxMatch && !r.items.length ? r.box.items : r.items,
+               highlight: r.boxMatch && !r.items.length ? null : r.items,
              })).join('')}</div>`
           : `<div class="empty"><h2>Nothing found</h2><p class="muted">Try fewer or different words.</p></div>`;
+        requestAnimationFrame(() => fitPills());
         return;
       }
-      const current = edition();
       if (!current) {
         body.innerHTML = `<div class="empty">
           <h2>Where is everything?</h2>
@@ -124,99 +150,163 @@ export default {
             <button type="button" class="box-card add-card" data-act="add-box" data-section="${s.id}">+ Add box</button>
           </div>
         </section>`).join('') || '<div class="empty"><p class="muted">No boxes in this life area yet.</p></div>';
+      requestAnimationFrame(() => fitPills());
     }
 
-    async function reload() {
-      tree = await loadTree();
-      render();
-    }
-
-    // ---------- box editor ----------
+    // ---------- box page ----------
 
     const findBox = id => {
       for (const e of tree) for (const s of e.sections) for (const b of s.boxes) if (b.id === id) return { e, s, b };
       return null;
     };
 
-    function openBox(id) {
-      const found = findBox(id);
-      if (!found) return;
+    function renderPage() {
+      const found = findBox(openId);
+      if (!found) return false;
       const { e, s, b } = found;
       const sections = tree.flatMap(ed => ed.sections.map(sec => ({ id: sec.id, label: `${ed.name} › ${sec.name}` })));
-      boxSheet.innerHTML = `
-        <div class="sheet-handle"></div>
-        <p class="muted box-path">${esc(e.name)} › ${esc(s.name)}</p>
-        <div class="box-fields">
-          <label>Code<input name="label_code" value="${esc(b.label_code)}" placeholder="e.g. BA" autocomplete="off"></label>
-          <label class="grow">Name<input name="name" value="${esc(b.name)}" autocomplete="off"></label>
-          <label class="full">Where it lives<input name="location_note" value="${esc(b.location_note)}" placeholder="e.g. Under desk back" autocomplete="off"></label>
-          <label class="full">Notes<input name="notes" value="${esc(b.notes)}" placeholder="e.g. 9L Really Useful" autocomplete="off"></label>
-          <label class="full">Section<select name="parent_place_id">${sections.map(o => `<option value="${o.id}" ${o.id === s.id ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}</select></label>
+      page.innerHTML = `
+        <div class="box-page-bar">
+          <button type="button" class="back" data-act="back">‹ ${esc(s.name)}</button>
+          <span class="muted box-path">${esc(e.name)}</span>
         </div>
-        <h3>Contents</h3>
-        <ul class="item-list">${b.items.map(i => `
-          <li data-item="${i.id}">
-            <input name="name" value="${esc(i.name)}" aria-label="Item">
-            <input name="notes" value="${esc(i.notes)}" placeholder="note" aria-label="Note" class="item-note">
-            <button type="button" class="icon-btn small" data-act="delete-item" aria-label="Remove ${esc(i.name)}">×</button>
-          </li>`).join('')}
-        </ul>
-        <textarea id="new-items" rows="3" placeholder="Add items, one per line"></textarea>
-        <div class="sheet-actions">
-          <button type="button" class="danger" data-act="delete-box">Delete box</button>
-          <span class="spacer"></span>
-          <button type="button" id="add-items">Add items</button>
-          <button type="button" class="primary" data-close>Done</button>
-        </div>`;
-      boxSheet.dataset.box = b.id;
-      if (!boxSheet.open) boxSheet.showModal();
+        <article class="box-page">
+          <header class="box-page-head">
+            <input class="box-code-input" name="label_code" value="${esc(b.label_code)}" placeholder="Code" aria-label="Code" autocomplete="off">
+            <input class="box-name-input" name="name" value="${esc(b.name)}" placeholder="Box name" aria-label="Name" autocomplete="off">
+          </header>
+          <div class="box-fields">
+            <label>Where it lives<input name="location_note" value="${esc(b.location_note)}" placeholder="e.g. Under desk back" autocomplete="off"></label>
+            <label>Notes<input name="notes" value="${esc(b.notes)}" placeholder="e.g. 9L Really Useful" autocomplete="off"></label>
+          </div>
+          <h3>Contents <span class="muted">${b.items.length}</span></h3>
+          <ul class="item-list">${b.items.map(i => `
+            <li data-item="${i.id}" data-depth="${i.depth}">
+              <button type="button" class="drag-handle" aria-label="Move ${esc(i.name)}">${icon('i-grip')}</button>
+              <input name="name" value="${esc(i.name)}" aria-label="Item">
+              <input name="notes" value="${esc(i.notes)}" placeholder="note" aria-label="Note" class="item-note">
+              <button type="button" class="icon-btn small" data-act="delete-item" aria-label="Remove ${esc(i.name)}">×</button>
+            </li>`).join('')}
+          </ul>
+          <textarea id="new-items" rows="2" placeholder="Add items, one per line (start a line with - for a sub-item)"></textarea>
+          <p class="muted hint">Drag ≡ to reorder; drag right to make a sub-item, left to undo. Or Tab / Shift+Tab while editing an item.</p>
+          <div class="sheet-actions">
+            <button type="button" data-act="add-items">Add items</button>
+            <span class="spacer"></span>
+            <label class="inline">Section <select name="parent_place_id">${sections.map(o => `<option value="${o.id}" ${o.id === s.id ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}</select></label>
+            <button type="button" class="danger" data-act="delete-box">Delete box</button>
+          </div>
+        </article>`;
+      sortable(page.querySelector('.item-list'), {
+        onEnd: ({ item, dx }) => saveOrder(item, dx > 30 ? 1 : dx < -30 ? 0 : null),
+      });
+      return true;
     }
 
-    boxSheet.addEventListener('change', async ev => {
+    // Persist the list as shown: order, and each sub-item's parent (the
+    // nearest top-level item above it). `depth` overrides the moved item.
+    async function saveOrder(moved, depth) {
+      const list = page.querySelector('.item-list');
+      if (moved && depth != null) moved.dataset.depth = depth;
+      let parent = null;
+      for (const [n, li] of [...list.children].entries()) {
+        const sub = li.dataset.depth === '1' && parent;
+        li.dataset.depth = sub ? 1 : 0;
+        if (!sub) parent = li.dataset.item;
+        await store.update('items', li.dataset.item, { sort_order: n, parent_item_id: sub ? parent : null });
+      }
+      tree = await loadTree();
+    }
+
+    // Tab / Shift+Tab on an item makes it a sub-item or brings it back out.
+    page.addEventListener('keydown', async ev => {
+      const li = ev.target.closest('[data-item]');
+      if (!li || ev.key !== 'Tab' || ev.target.name !== 'name') return;
+      const depth = ev.shiftKey ? 0 : 1;
+      if (String(depth) === li.dataset.depth || (depth === 1 && !li.previousElementSibling)) return;
+      ev.preventDefault();
+      await saveOrder(li, depth);
+    });
+
+    // Show the grid or the open box. `name` pairs the card and page for the zoom.
+    function show() {
+      const opening = openId && renderPage();
+      grid.hidden = !!opening;
+      page.hidden = !opening;
+      if (!opening) {
+        renderGrid();
+        const back = el.querySelector(`[data-box="${CSS.escape(page.dataset.was || '')}"]`);
+        if (back) back.style.viewTransitionName = ZOOM;
+        scrollTo(0, gridScroll);
+      } else {
+        page.querySelector('.box-page').style.viewTransitionName = ZOOM;
+        scrollTo(0, 0);
+      }
+    }
+
+    async function openBox(id) {
+      if (id === openId) return;
+      const leaving = openId;
+      if (id) {
+        gridScroll = scrollY;
+        el.querySelectorAll('.box-card').forEach(c => { c.style.viewTransitionName = c.dataset.box === id ? ZOOM : ''; });
+      }
+      page.dataset.was = leaving || '';
+      await zoom(() => { openId = id; show(); });
+      el.querySelectorAll('[style*="view-transition-name"]').forEach(n => { n.style.viewTransitionName = ''; });
+    }
+
+    async function reload() {
+      tree = await loadTree();
+      if (openId && !findBox(openId)) openId = null;
+      openId ? renderPage() : renderGrid();
+    }
+
+    page.addEventListener('change', async ev => {
       const t = ev.target;
-      const boxId = boxSheet.dataset.box;
       const itemLi = t.closest('[data-item]');
       if (itemLi) {
         await store.update('items', itemLi.dataset.item, { [t.name]: t.value.trim() });
       } else if (t.name) {
-        await store.update('places', boxId, { [t.name]: t.value.trim() });
+        await store.update('places', openId, { [t.name]: t.value.trim() });
+        if (t.name === 'parent_place_id') await reload();
       }
+      tree = await loadTree(); // keep the grid behind in step
     });
-
-    boxSheet.addEventListener('click', async ev => {
-      const b = ev.target.closest('button');
-      if (ev.target === boxSheet || b?.hasAttribute('data-close')) { boxSheet.close(); return; }
-      if (!b) return;
-      const boxId = boxSheet.dataset.box;
-      if (b.id === 'add-items') {
-        const ta = boxSheet.querySelector('#new-items');
-        const lines = ta.value.split('\n').map(l => l.trim()).filter(Boolean);
-        const start = findBox(boxId)?.b.items.length || 0;
-        for (const [n, name] of lines.entries()) {
-          await store.create('items', { name, place_id: boxId, notes: '', quantity: null, sort_order: start + n, last_moved_at: null });
-        }
-        await reload();
-        openBox(boxId);
-        boxSheet.querySelector('#new-items').focus();
-      } else if (b.dataset.act === 'delete-item') {
-        await store.remove('items', b.closest('[data-item]').dataset.item);
-        b.closest('li').remove();
-      } else if (b.dataset.act === 'delete-box') {
-        const { b: box } = findBox(boxId);
-        if (!confirm(`Delete ${box.label_code || box.name} and its ${box.items.length} items?`)) return;
-        for (const i of box.items) await store.remove('items', i.id);
-        await store.remove('places', boxId);
-        boxSheet.close();
-      }
-    });
-
-    boxSheet.addEventListener('close', reload);
 
     // ---------- actions ----------
 
     async function act(name, target) {
       const current = edition();
-      if (name === 'import') {
+      if (name === 'back') {
+        history.length > 1 ? history.back() : (location.hash = '#/places');
+      } else if (name === 'add-items') {
+        // Lines starting with a space, "-", "*" or "•" are sub-items of the line above.
+        const ta = page.querySelector('#new-items');
+        const existing = findBox(openId)?.b.items || [];
+        let parent = existing.filter(i => !i.depth).at(-1)?.id || null;
+        let n = existing.length;
+        for (const raw of ta.value.split('\n')) {
+          const itemName = raw.replace(/^[\s\-*•]+/, '').trim();
+          if (!itemName) continue;
+          const sub = /^(\s|[-*•])/.test(raw) && parent;
+          const made = await store.create('items', { name: itemName, place_id: openId, parent_item_id: sub ? parent : null, notes: '', quantity: null, sort_order: n++, last_moved_at: null });
+          if (!sub) parent = made.id;
+        }
+        await reload();
+        page.querySelector('#new-items').focus();
+      } else if (name === 'delete-item') {
+        await store.remove('items', target.closest('[data-item]').dataset.item);
+        target.closest('li').remove();
+        tree = await loadTree();
+      } else if (name === 'delete-box') {
+        const { b: box } = findBox(openId);
+        if (!confirm(`Delete ${box.label_code || box.name} and its ${box.items.length} items?`)) return;
+        for (const i of box.items) await store.remove('items', i.id);
+        await store.remove('places', openId);
+        tree = await loadTree();
+        location.hash = '#/places';
+      } else if (name === 'import') {
         importSheet.querySelector('#import-result').textContent = '';
         importSheet.showModal();
       } else if (name === 'export') {
@@ -250,21 +340,41 @@ export default {
           sectionId = sec.id;
         }
         const count = tree.flatMap(e => e.sections).find(s => s.id === sectionId)?.boxes.length || 0;
-        const box = await store.create('places', { kind: 'box', name: 'New box', label_code: '', parent_place_id: sectionId, location_note: '', notes: '', sort_order: count });
-        await reload();
-        openBox(box.id);
-        boxSheet.querySelector('input[name="label_code"]').focus();
+        const box = await store.create('places', { kind: 'box', name: '', label_code: '', parent_place_id: sectionId, location_note: '', notes: '', sort_order: count });
+        tree = await loadTree();
+        location.hash = `#/places/${box.id}`;
       }
     }
 
+    // Inline add on a card: Enter adds the item and keeps the field ready.
+    body.addEventListener('keydown', async ev => {
+      const input = ev.target.closest('.quick-add');
+      if (input) {
+        if (ev.key !== 'Enter' || !input.value.trim()) return;
+        ev.preventDefault();
+        const boxId = input.dataset.add;
+        const count = findBox(boxId)?.b.items.length || 0;
+        await store.create('items', { name: input.value.trim(), place_id: boxId, notes: '', quantity: null, sort_order: count, last_moved_at: null });
+        tree = await loadTree();
+        input.closest('.box-card').outerHTML = card(findBox(boxId).b);
+        const fresh = body.querySelector(`.box-card[data-box="${boxId}"]`);
+        fitPills(fresh.parentElement);
+        fresh.querySelector('.quick-add').focus();
+        return;
+      }
+      const c = ev.target.closest('.box-card[data-box]');
+      if (c && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); c.click(); }
+    });
+
     el.addEventListener('click', ev => {
+      if (ev.target.closest('.quick-add')) return;
       const t = ev.target.closest('[data-act], [data-box], [data-edition]');
-      if (!t || boxSheet.contains(t) || importSheet.contains(t)) return;
+      if (!t || importSheet.contains(t)) return;
       if (t.dataset.edition) {
         editionId = t.dataset.edition; remember(EDITION_KEY, editionId);
-        render();
+        renderGrid();
       } else if (t.dataset.box) {
-        openBox(t.dataset.box);
+        location.hash = `#/places/${t.dataset.box}`;
       } else {
         t.closest('details')?.removeAttribute('open');
         act(t.dataset.act, t);
@@ -294,20 +404,31 @@ export default {
     let timer;
     q.addEventListener('input', () => {
       clearTimeout(timer);
-      timer = setTimeout(() => { query = q.value.trim(); render(); }, 120);
+      timer = setTimeout(() => { query = q.value.trim(); renderGrid(); }, 120);
     });
 
     this.onKey = ev => {
-      if (ev.key === '/' && !ev.target.closest('input, textarea, select')) { ev.preventDefault(); q.focus(); }
-      if (ev.key === 'Escape' && document.activeElement === q && q.value) { q.value = ''; query = ''; render(); }
+      if (ev.key === '/' && !openId && !ev.target.closest('input, textarea, select')) { ev.preventDefault(); q.focus(); }
+      if (ev.key === 'Escape' && openId && !ev.target.closest('input, textarea, select')) act('back');
+      if (ev.key === 'Escape' && document.activeElement === q && q.value) { q.value = ''; query = ''; renderGrid(); }
     };
     addEventListener('keydown', this.onKey);
 
-    await reload();
+    this.onResize = () => { if (!openId) fitPills(); };
+    addEventListener('resize', this.onResize);
+    this.openBox = openBox;
+    tree = await loadTree();
+    show();
+  },
+
+  // Called by the router with the path after #/places/.
+  route([boxId]) {
+    return this.openBox?.(boxId || null);
   },
 
   unmount() {
     removeEventListener('keydown', this.onKey);
+    removeEventListener('resize', this.onResize);
   },
 
   quickAdd() {

@@ -8,8 +8,8 @@ How the pages are read:
   - tables with BOX / Desc / Contents column groups (repeated side by side)
     become boxes; orange text in the Desc cell is where the box lives
   - Box/Contents and Locations/Items/Note tables work the same way
-  - each line of a Contents cell is an item; sub-bullets are items too,
-    noted as part of their parent when the parent line ends with ':'
+  - each line of a Contents cell is an item; sub-bullets become sub-items
+    of the line above them
   - loose text outside tables goes into a "Page notes" box
 
 Output stays in private/ (gitignored): it describes where things are kept.
@@ -24,7 +24,7 @@ W = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}'
 HEADING = {'1E4E79', '2E74B5', '1F4D78'}
 PLACE = {'ED7D31', 'C55A11', 'F4B083'}
 GREY = {'767676', '595959'}
-COLUMNS = ['life_area', 'section', 'box_code', 'box_name', 'box_location', 'box_notes', 'item', 'item_notes']
+COLUMNS = ['life_area', 'section', 'box_code', 'box_name', 'box_location', 'box_notes', 'item', 'item_notes', 'sub_of']
 
 
 # ---------- reading the docx ----------
@@ -81,18 +81,19 @@ def header(row):
 # ---------- turning cells into rows ----------
 
 def items_from(lines):
-    """Contents lines -> [(item, notes)]."""
+    """Contents lines -> [(item, notes, sub_of)]."""
     out = []
     top = min((lv for _, lv, _ in lines if lv is not None), default=None)
+    # Bullets under plain lines are nested; in an all-bullet cell, only deeper ones.
+    plain = any(lv is None for _, lv, _ in lines)
     parent = None
     for text, lv, _ in lines:
-        nested = lv is not None and top is not None and lv > top
-        if nested and parent and parent.endswith(':'):
-            out.append((text, f'part of: {parent.rstrip(":").strip()}'))
+        nested = lv is not None and (plain or lv > top)
+        if nested and parent:
+            out.append((text, '', parent))
         else:
-            out.append((text, ''))
-            if not nested:
-                parent = text
+            out.append((text, '', ''))
+            parent = text
     return out
 
 
@@ -105,9 +106,9 @@ class Writer:
         base = [self.edition, section, code, name or code, location, notes]
         items = items_from(contents)
         if not items:
-            self.rows.append(base + ['', ''])
-        for item, item_notes in items:
-            self.rows.append(base + [item, item_notes])
+            self.rows.append(base + ['', '', ''])
+        for item, item_notes, sub_of in items:
+            self.rows.append(base + [item, item_notes, sub_of])
 
 
 def split_desc(lines):

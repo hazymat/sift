@@ -4,7 +4,7 @@
 import * as store from './store.js';
 import { parseCsvObjects, toCsv } from './csv.js';
 
-export const CSV_COLUMNS = ['life_area', 'section', 'box_code', 'box_name', 'box_location', 'box_notes', 'item', 'item_notes'];
+export const CSV_COLUMNS = ['life_area', 'section', 'box_code', 'box_name', 'box_location', 'box_notes', 'item', 'item_notes', 'sub_of'];
 const DEFAULT_EDITION = 'Standard';
 const DEFAULT_SECTION = 'Boxes';
 
@@ -32,10 +32,30 @@ export async function loadTree() {
       ...section,
       boxes: kids(section.id).map(box => ({
         ...box,
-        items: (itemsByBox.get(box.id) || []).sort(byOrder),
+        items: nest((itemsByBox.get(box.id) || []).sort(byOrder)),
       })),
     })),
   }));
+}
+
+// Items in display order: each top-level item followed by its sub-items,
+// with `depth` 0 or 1. A sub-item whose parent is gone shows at top level.
+export function nest(items) {
+  const ids = new Set(items.map(i => i.id));
+  const kids = new Map();
+  for (const i of items) {
+    if (i.parent_item_id && ids.has(i.parent_item_id)) {
+      if (!kids.has(i.parent_item_id)) kids.set(i.parent_item_id, []);
+      kids.get(i.parent_item_id).push(i);
+    }
+  }
+  const out = [];
+  for (const i of items) {
+    if (i.parent_item_id && ids.has(i.parent_item_id)) continue;
+    out.push({ ...i, depth: 0 });
+    for (const k of kids.get(i.id) || []) out.push({ ...k, depth: 1 });
+  }
+  return out;
 }
 
 export function boxTitle(box) {
@@ -79,6 +99,7 @@ function normalise(row) {
     box_notes: pick('box_notes'),
     item: pick('item', 'item_name', 'contents'),
     item_notes: pick('item_notes', 'notes'),
+    sub_of: pick('sub_of', 'parent_item'),
   };
 }
 
@@ -107,10 +128,25 @@ export async function importCsv(text) {
       p => (r.box_code ? same(p.label_code, r.box_code) : !p.label_code && same(p.name, r.box_name)),
       { name: r.box_name || r.box_code, label_code: r.box_code, location_note: r.box_location, notes: r.box_notes });
     if (!r.item) continue;
-    if (items.some(i => i.place_id === box.id && same(i.name, r.item))) { count.skipped++; continue; }
+    const parent = r.sub_of && items.find(i => i.place_id === box.id && !i.parent_item_id && same(i.name, r.sub_of));
+    const existing = items.find(i => i.place_id === box.id && same(i.name, r.item));
+    if (existing) {
+      // Already here: only fill in a missing parent (older imports were flat).
+      if (parent && !existing.parent_item_id && parent.id !== existing.id) {
+        const oldNote = `part of: ${r.sub_of.replace(/:\s*$/, '').trim()}`;
+        Object.assign(existing, await store.update('items', existing.id, {
+          parent_item_id: parent.id,
+          ...(same(existing.notes, oldNote) ? { notes: '' } : {}),
+        }));
+        count.nested = (count.nested || 0) + 1;
+      } else {
+        count.skipped++;
+      }
+      continue;
+    }
     const order = items.filter(i => i.place_id === box.id).length;
     items.push(await store.create('items', {
-      name: r.item, place_id: box.id, notes: r.item_notes, quantity: null, sort_order: order, last_moved_at: null,
+      name: r.item, place_id: box.id, parent_item_id: parent?.id || null, notes: r.item_notes, quantity: null, sort_order: order, last_moved_at: null,
     }));
     count.items++;
   }
@@ -123,8 +159,9 @@ export async function exportCsv() {
     for (const section of edition.sections) {
       for (const box of section.boxes) {
         const base = [edition.name, section.name, box.label_code, box.name, box.location_note, box.notes];
-        if (!box.items.length) rows.push([...base, '', '']);
-        for (const i of box.items) rows.push([...base, i.name, i.notes]);
+        if (!box.items.length) rows.push([...base, '', '', '']);
+        const names = new Map(box.items.map(i => [i.id, i.name]));
+        for (const i of box.items) rows.push([...base, i.name, i.notes, names.get(i.parent_item_id) || '']);
       }
     }
   }

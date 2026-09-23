@@ -89,7 +89,7 @@ A day's battle plan: dump what you want to do, then give things times. Built for
 
 - `places`: `kind (edition|section|box)` (`edition` is shown as **Life Area**), name, label_code? (physical label, e.g. "BA", "W1"), parent_place_id?, location_note? (where it lives, e.g. "Under desk back"), notes? (e.g. "9L Really Useful"), sort_order`
   - **Life Areas** are separate parts of life the list is split into (e.g. Standard, Build), shown as tabs. Each has **sections** (e.g. "Where Things Area", "Wardrobe Boxes", "Front Room"), which hold **boxes** (a box can also be a spot, like "Malakai's room - fireplace").
-- `items`: `name, place_id (a box), quantity?, notes?, sort_order, last_moved_at`
+- `items`: `name, place_id (a box), parent_item_id? (one level of sub-items), quantity?, notes?, sort_order, last_moved_at`
   - Moving an item = change `place_id`; moving a box to another section = change its `parent_place_id`.
 
 ### 4.4 Contacts
@@ -284,7 +284,7 @@ Single-page app, hash routing, top nav on laptop, bottom tab bar on iPhone. Glob
 
 - **Backup** (phase 1): one tap → `.sift` file (zip of JSON records + blobs), optionally encrypted with a backup passphrase. Saved via share sheet to Files / iCloud Drive / Downloads. Settings shows "last backup" with a reminder after 14 days when sync is off.
 - **Restore**: into an empty device, or merge into existing data using the same per-field merge rules.
-- Imports: Find Things CSV, one row per item (`life_area, section, box_code, box_name, box_location, box_notes, item, item_notes`; only a box name or code is required; importing again merges, no duplicates; also exported). `tools/onenote_to_csv.py` converts the OneNote pages (exported as .docx). Contacts CSV; contracts CSV (unknown columns → custom fields).
+- Imports: Find Things CSV, one row per item (`life_area, section, box_code, box_name, box_location, box_notes, item, item_notes, sub_of`; only a box name or code is required; importing again merges, no duplicates; also exported). `tools/onenote_to_csv.py` converts the OneNote pages (exported as .docx). Contacts CSV; contracts CSV (unknown columns → custom fields).
 
 ## 11. File layout
 
