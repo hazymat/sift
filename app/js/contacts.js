@@ -31,7 +31,7 @@ export const CASE_STATUS = [
 
 const PHONE = /(?:\+|\b0|\b00)[\d\s().-]{7,}\d/g;
 const EMAIL = /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g;
-const URL_RE = /\bhttps?:\/\/[^\s<>"]+|\bwww\.[^\s<>"]+/gi;
+const URL_RE = /\bhttps?:\/\/[^\s<>"]+|\bwww\.[^\s<>"]+|\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:co\.uk|org\.uk|com|net|org|uk|io)\b(?:\/[^\s<>"]*)?/gi;
 
 export function extractDetails(text = '') {
   const out = [];
@@ -41,17 +41,28 @@ export function extractDetails(text = '') {
     if (v && !seen.has(v)) { seen.add(v); out.push({ label, value: v }); }
   };
   for (const m of text.match(EMAIL) || []) add('Email', m);
-  for (const m of text.match(URL_RE) || []) add('Website', m);
+  for (const m of text.replace(EMAIL, ' ').match(URL_RE) || []) add('Website', m);
   for (const m of text.match(PHONE) || []) if (m.replace(/\D/g, '').length >= 9) add('Phone', m);
   return out;
 }
 
-// A name guess: the first line with numbers, emails and links taken out.
-export function guessName(text = '') {
+// Split free text into a name (the first line up to its first email, link or
+// number), the details, and whatever's left over (becomes a note).
+export function splitContactText(text = '') {
   const first = text.split('\n').map(l => l.trim()).find(Boolean) || '';
-  const cleaned = first.replace(EMAIL, '').replace(URL_RE, '').replace(PHONE, '').replace(/[\s,;:–-]+$/, '').trim();
-  return (cleaned || first).slice(0, 60);
+  const blank = s => ' '.repeat(s.length);
+  // Blank out each kind of detail in turn, keeping positions, to find the first.
+  let masked = first.replace(EMAIL, blank);
+  masked = masked.replace(URL_RE, blank);
+  masked = masked.replace(PHONE, m => (m.replace(/\D/g, '').length >= 9 ? blank(m) : m));
+  let cut = first.length;
+  for (let i = 0; i < first.length; i++) if (masked[i] !== first[i]) { cut = i; break; }
+  const name = first.slice(0, cut).replace(/[\s,;:–-]+$/, '').trim();
+  const rest = masked.slice(cut).replace(/\s+/g, ' ').replace(/^[\s,;:–-]+|[\s,;:–-]+$/g, '').trim();
+  return { name: (name || first).slice(0, 60), details: extractDetails(text), rest };
 }
+
+export const guessName = text => splitContactText(text).name;
 
 export const telHref = v => `tel:${v.replace(/[^\d+]/g, '')}`;
 export const detailHref = d => {
@@ -59,10 +70,10 @@ export const detailHref = d => {
   if (/phone|mobile|tel/i.test(d.label) || /^[+\d][\d\s().-]{6,}$/.test(v)) return telHref(v);
   if (/@/.test(v)) return `mailto:${v}`;
   if (/^https?:\/\//i.test(v)) return v;
-  if (/^www\./i.test(v)) return `https://${v}`;
+  if (/^www\./i.test(v) || /^[a-z0-9-]+(\.[a-z0-9-]+)+(\/|$)/i.test(v)) return `https://${v}`;
   return null;
 };
-export const howFor = d => (/@/.test(d.value) ? 'email' : /^https?:|^www\./i.test(d.value) ? 'other' : 'call');
+export const howFor = d => (/@/.test(d.value) ? 'email' : /^https?:|^www\.|^[a-z0-9-]+\.[a-z]/i.test(d.value) ? 'other' : 'call');
 
 // ---------- records ----------
 
@@ -88,7 +99,8 @@ export function createContact(fields) {
 
 // Make a contact from any text (e.g. a Brain Dump selection).
 export function contactFromText(text, extra = {}) {
-  return createContact({ name: guessName(text), body: text.trim(), details: extractDetails(text), ...extra });
+  const { name, details, rest } = splitContactText(text);
+  return createContact({ name, body: text.trim(), details, notes: rest, ...extra });
 }
 
 export async function logInteraction(fields) {
