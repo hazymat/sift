@@ -1527,3 +1527,24 @@ li[data-id]:hover .kit-grip { opacity: .8; }
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* The link dropdown and chip menu use their own colours: papers change the
+   page's text colour, which made them unreadable on some. A plain light card
+   reads the same on every paper and theme. */
+.ref-picker, .ref-menu {
+  --text: #16202e;
+  --muted: #5b6676;
+  --accent: #1f5fd1;
+  --glass-border: rgba(0, 0, 0, .14);
+  --glass-track: #f3f5f9;
+  --active-bg: #dde8fb;
+  --active-border: rgba(31, 95, 209, .45);
+  background: #ffffff;
+  color: var(--text);
+  border-color: rgba(0, 0, 0, .18);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+}
+.ref-picker .ref-q { background: #f3f5f9; color: #16202e; border: 1px solid rgba(0, 0, 0, .18); font-family: var(--font); }
+.ref-picker .ref-q::placeholder { color: #7a8494; }
+.ref-picker button, .ref-menu button { color: #16202e; background: #eef2f8; border: 1px solid rgba(0, 0, 0, .14); font-family: var(--font); }
+.ref-picker .ref-go { background: #1f5fd1; color: #fff; border-color: #1f5fd1; }
