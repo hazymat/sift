@@ -129,6 +129,26 @@ export async function open(name = LOCAL_DB) {
   return db;
 }
 
+// Erase everything on this device: close the database and delete it. Other
+// open tabs close theirs (versionchange) and reload.
+export async function eraseAll() {
+  if (db) { db.close(); db = null; }
+  await new Promise((resolve, reject) => {
+    const r = indexedDB.deleteDatabase(LOCAL_DB);
+    r.onsuccess = () => resolve();
+    r.onblocked = () => resolve();
+    r.onerror = () => reject(r.error);
+  });
+}
+
+// Forget the undo history (the data itself stays).
+export async function clearHistory() {
+  const d = await open();
+  const tx = d.transaction('history', 'readwrite');
+  tx.objectStore('history').clear();
+  await done(tx);
+}
+
 export function getDeviceId() {
   return deviceId;
 }

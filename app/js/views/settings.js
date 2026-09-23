@@ -103,7 +103,47 @@ export default {
           <dt>Installed</dt><dd>${matchMedia('(display-mode: standalone)').matches || navigator.standalone ? 'Yes' : 'No, running in the browser'}</dd>
         </dl>
       </section>
+
+      <section class="card danger-zone" id="erase-card">
+        <h2>Clear and erase</h2>
+        <p class="muted">These can't be undone. Back up first if you might want anything back.</p>
+        <div class="backup-row">
+          <button type="button" data-erase="drafts">Clear unsaved drafts</button>
+          <button type="button" data-erase="history">Clear the undo history</button>
+        </div>
+        <div class="backup-row">
+          <button type="button" class="danger" data-erase="all">Erase all data on this device…</button>
+        </div>
+        <p class="muted hint">Erasing removes every task, plan, note, contact, box and setting stored here. The app itself stays installed.</p>
+      </section>
     `;
+
+    // Clear and erase
+    el.querySelector('#erase-card').addEventListener('click', async ev => {
+      const b = ev.target.closest('[data-erase]');
+      if (!b) return;
+      const kind = b.dataset.erase;
+      const siftKeys = prefix => { try { return Object.keys(localStorage).filter(k => k.startsWith(prefix)); } catch { return []; } };
+      if (kind === 'drafts') {
+        const keys = siftKeys('sift:draft:');
+        if (!keys.length) return toast('No unsaved drafts');
+        if (!confirm(`Clear ${keys.length} unsaved draft${keys.length === 1 ? '' : 's'} (text typed into "add" boxes but not added)?`)) return;
+        keys.forEach(k => localStorage.removeItem(k));
+        toast('Drafts cleared');
+      } else if (kind === 'history') {
+        if (!confirm('Clear the undo history? Your data stays; you just can\'t undo past changes any more.')) return;
+        await store.clearHistory();
+        toast('Undo history cleared');
+      } else if (kind === 'all') {
+        const typed = prompt('⚠️ ERASE ALL DATA ON THIS DEVICE ⚠️\n\nThis deletes every task, plan, note, contact, box, list and setting stored here. It cannot be undone.\n\nBack up first if you might want it.\n\nType DELETE (in capitals) to erase everything:');
+        if (typed === null) return;
+        if (typed.trim() !== 'DELETE') return toast('Not erased: you have to type DELETE exactly');
+        await store.eraseAll();
+        [...siftKeys('sift:'), ...siftKeys('sift-')].forEach(k => localStorage.removeItem(k));
+        location.hash = '#/';
+        location.reload();
+      }
+    });
 
     // Notes: spotting numbers and emails
     const ns = el.querySelector('#notes-settings');
