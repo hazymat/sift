@@ -716,7 +716,9 @@ kbd { font: inherit; font-size: .72em; padding: 1px 5px; margin-left: 4px; borde
 
 .day-nav { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px; }
 .day-nav button { padding: 6px 14px; }
-.day-nav .cal-btn { margin-left: auto; }
+.day-nav .share-btn { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
+.day-nav .cal-icon { padding: 6px 10px; display: inline-flex; align-items: center; }
+.day-nav .icon { width: 18px; height: 18px; }
 
 .day-head { margin: 4px 4px 14px; }
 .day-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin: 6px 0 0; }

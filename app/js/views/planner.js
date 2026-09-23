@@ -31,9 +31,10 @@ export default {
     el.innerHTML = `<div class="planner" data-paper="notebook">
       <div class="day-nav">
         <button type="button" data-act="prev" aria-label="Previous day">‹</button>
+        <button type="button" data-act="calendar" class="cal-icon" aria-label="Pick a date" title="Pick a date"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg></button>
         <button type="button" data-act="today">Today</button>
         <button type="button" data-act="next" aria-label="Next day">›</button>
-        <button type="button" data-act="calendar" class="cal-btn">Calendar</button>
+        <button type="button" data-act="share" class="share-btn" title="Share this day (coming soon)"><svg class="icon" aria-hidden="true"><use href="#i-share"/></svg> Share</button>
       </div>
       <header class="day-head">
         <h1 class="day-title"><span class="weekday"></span> <span class="date"></span></h1>
@@ -576,6 +577,7 @@ export default {
       else if (act === 'next') go(addDays(date, 1));
       else if (act === 'today') go(isoDate());
       else if (act === 'calendar') openCalendar(date);
+      else if (act === 'share') toast('Sharing a day is coming soon');
       else if (act === 'paper-week' || act === 'paper-all') resetPapers(act === 'paper-week');
       else if (act === 'add-at') openLine(t);
       else if (act === 'toggle-note') {
