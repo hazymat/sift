@@ -1681,27 +1681,6 @@ main:has(> .planner), main:has(.planner) { max-width: 1600px; }
   grid-template-areas: "nav nav" "head head" "carry carry" "side paper" "side pile" "side hk";
 }
 
-/* Live clock: green LED digits on a dark panel, blinking colon. */
-.led-clock {
-  display: inline-flex;
-  align-items: baseline;
-  padding: 3px 10px;
-  border-radius: 8px;
-  background: #07110a;
-  border: 1px solid rgba(57, 255, 106, .25);
-  box-shadow: inset 0 0 8px rgba(0, 0, 0, .8);
-  color: #3dff72;
-  font-family: "Consolas", "Lucida Console", "Courier New", monospace;
-  font-weight: 700;
-  font-size: 1.05rem;
-  letter-spacing: .08em;
-  font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 4px rgba(61, 255, 114, .9), 0 0 10px rgba(61, 255, 114, .45);
-  user-select: none;
-}
-.led-colon { animation: led-blink 1s steps(1, end) infinite; margin: 0 1px; }
-@keyframes led-blink { 50% { opacity: .12; } }
-@media (prefers-reduced-motion: reduce) { .led-colon { animation: none; } }
 .cal-sheet { width: min(380px, calc(100vw - 16px)); }
 .cal-grid .cal-pad { min-height: 2.4em; }
 .cal-head strong { flex: 1; text-align: center; }
