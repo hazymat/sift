@@ -6,14 +6,28 @@
 //   onMove runs after each step so callers can enforce rules (e.g. a limit);
 //   onEnd({ item, dx }) runs once when the drag finishes; dx is the sideways
 //   distance dragged (used for indenting), 0 for keyboard moves.
+//
+// With `holdMs`, the grip does three things:
+//   tap                       → onTap(item, event)
+//   press and move straight away → onPaint(firstItem, itemUnderPointer) (swipe-select)
+//   press and hold, then drag → drag as above (onLift(item) when it lifts)
 
-export function sortable(list, { handle = '.drag-handle', onMove, onEnd } = {}) {
+export function sortable(list, { handle = '.drag-handle', holdMs = 0, onMove, onEnd, onTap, onPaint, onLift } = {}) {
   let dragging = null;
+  let pending = null; // pressed; waiting to see if it's a tap, swipe or hold
+  let painting = null;
   let offsetY = 0;
   let startX = 0;
   let lastX = 0;
+  let lastY = 0;
 
   const siblings = () => [...list.children].filter(el => el !== dragging);
+
+  const rowAt = y => {
+    const rows = [...list.children];
+    return rows.find(r => { const b = r.getBoundingClientRect(); return y >= b.top && y < b.bottom; })
+      || (y < rows[0]?.getBoundingClientRect().top ? rows[0] : rows.at(-1));
+  };
 
   // Where the dragged item's visual centre now is, so the DOM follows it.
   function place(clientY) {
@@ -40,26 +54,66 @@ export function sortable(list, { handle = '.drag-handle', onMove, onEnd } = {}) 
     dragging.style.transform = `translate(var(--dx, 0px), ${clientY - offsetY - top}px)`;
   }
 
+  function lift(item, x, y) {
+    dragging = item;
+    offsetY = y - item.getBoundingClientRect().top;
+    startX = lastX = x;
+    item.classList.add('dragging');
+    onLift?.(item);
+    navigator.vibrate?.(10);
+  }
+
   list.addEventListener('pointerdown', e => {
     const grip = e.target.closest(handle);
     if (!grip || !list.contains(grip) || e.button > 0) return;
     e.preventDefault();
-    dragging = grip.closest('li');
-    offsetY = e.clientY - dragging.getBoundingClientRect().top;
-    startX = lastX = e.clientX;
-    dragging.classList.add('dragging');
     grip.setPointerCapture(e.pointerId);
+    const item = grip.closest('li');
+    lastX = e.clientX;
+    lastY = e.clientY;
+    if (!holdMs) return lift(item, e.clientX, e.clientY);
+    pending = {
+      item, x: e.clientX, y: e.clientY, event: e,
+      timer: setTimeout(() => {
+        if (!pending) return;
+        const p = pending;
+        pending = null;
+        lift(p.item, lastX, lastY);
+      }, holdMs),
+    };
   });
 
   list.addEventListener('pointermove', e => {
-    if (!dragging) return;
     lastX = e.clientX;
+    lastY = e.clientY;
+    if (pending) {
+      if (Math.hypot(e.clientX - pending.x, e.clientY - pending.y) < 6) return;
+      clearTimeout(pending.timer);
+      painting = pending.item;
+      pending = null;
+    }
+    if (painting) {
+      onPaint?.(painting, rowAt(e.clientY));
+      return;
+    }
+    if (!dragging) return;
     dragging.style.setProperty('--dx', `${Math.max(-40, Math.min(40, lastX - startX))}px`);
     place(e.clientY);
     follow(e.clientY);
   });
 
-  const finish = () => {
+  const finish = e => {
+    if (pending) {
+      clearTimeout(pending.timer);
+      const { item, event } = pending;
+      pending = null;
+      if (e.type === 'pointerup') onTap?.(item, event);
+      return;
+    }
+    if (painting) {
+      painting = null;
+      return;
+    }
     if (!dragging) return;
     const item = dragging;
     item.classList.remove('dragging');

@@ -36,6 +36,8 @@ export default {
     let editionId = recall(EDITION_KEY);
     let query = '';
     let openId = null; // box currently zoomed into
+    const selected = new Set(); // item ids selected in the open box
+    let anchor = null; // last tapped item, for shift-click ranges
     let gridScroll = 0;
 
     el.innerHTML = `
@@ -185,25 +187,79 @@ export default {
           </div>
           <h3>Contents <span class="muted">${b.items.length}</span></h3>
           <ul class="item-list">${b.items.map(i => `
-            <li data-item="${i.id}" data-depth="${i.depth}">
-              <button type="button" class="drag-handle" aria-label="Move ${esc(i.name)}">${icon('i-grip')}</button>
+            <li data-item="${i.id}" data-depth="${i.depth}"${selected.has(i.id) ? ' class="selected"' : ''}>
+              <button type="button" class="drag-handle" aria-label="Select or move ${esc(i.name)}" aria-pressed="${selected.has(i.id)}">${icon('i-grip')}</button>
               <input name="name" value="${esc(i.name)}" aria-label="Item">
               <input name="notes" value="${esc(i.notes)}" placeholder="note" aria-label="Note" class="item-note">
               <button type="button" class="icon-btn small" data-act="delete-item" aria-label="Remove ${esc(i.name)}">×</button>
             </li>`).join('')}
           </ul>
           <textarea id="new-items" class="list-entry" rows="2" placeholder="Add items"></textarea>
-          <p class="muted hint">${listHint()} Drag ≡ to reorder; drag right to make a sub-item, left to undo (or Tab / Shift+Tab). Changes save as you go; Esc closes.</p>
+          <p class="muted hint">${listHint()} ≡: tap to select, swipe down the ≡ column to select several, press and hold to drag (sideways to indent; or Tab / Shift+Tab). Changes save as you go; Esc closes.</p>
           <div class="sheet-actions">
             <button type="button" data-act="add-items">Add items <kbd>${SHORTCUT}</kbd></button>
             <span class="spacer"></span>
             <label class="inline">Move to <select name="parent_place_id">${sections.map(o => `<option value="${o.id}" ${o.id === s.id ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}</select></label>
             <button type="button" class="danger" data-act="delete-box">Delete box</button>
           </div>
-        </article>`;
-      sortable(page.querySelector('.item-list'), {
-        onEnd: ({ item, dx }) => saveOrder(item, dx > 30 ? 1 : dx < -30 ? 0 : null),
+        </article>
+        <div class="select-bar" role="toolbar" aria-label="Selected items" hidden>
+          <span class="select-count"></span>
+          <button type="button" data-act="sel-indent" title="Make sub-items">Indent</button>
+          <button type="button" data-act="sel-outdent" title="Bring back out">Outdent</button>
+          <button type="button" data-act="sel-up" aria-label="Move up">↑</button>
+          <button type="button" data-act="sel-down" aria-label="Move down">↓</button>
+          <button type="button" data-act="sel-delete" class="danger">Delete</button>
+          <button type="button" data-act="sel-clear" aria-label="Clear selection">✕</button>
+        </div>`;
+      const list = page.querySelector('.item-list');
+      let carried = []; // selected rows in their order when a drag lifted
+      sortable(list, {
+        holdMs: 260,
+        onTap: (li, ev) => {
+          const id = li.dataset.item;
+          if (ev.shiftKey && anchor) {
+            const ids = [...list.children].map(r => r.dataset.item);
+            const [a, b] = [ids.indexOf(anchor), ids.indexOf(id)].sort((x, y) => x - y);
+            ids.slice(a, b + 1).forEach(x => selected.add(x));
+          } else {
+            selected.has(id) ? selected.delete(id) : selected.add(id);
+          }
+          anchor = id;
+          paintSelection();
+        },
+        onPaint: (from, to) => {
+          const rows = [...list.children];
+          const [a, b] = [rows.indexOf(from), rows.indexOf(to)].sort((x, y) => x - y);
+          if (!paintBase) paintBase = new Set(selected);
+          selected.clear();
+          paintBase.forEach(x => selected.add(x));
+          rows.slice(a, b + 1).forEach(r => selected.add(r.dataset.item));
+          anchor = from.dataset.item;
+          paintSelection();
+        },
+        onLift: li => {
+          paintBase = null;
+          carried = selected.has(li.dataset.item) && selected.size > 1
+            ? [...list.children].filter(r => selected.has(r.dataset.item)) : [];
+          carried.forEach(r => { if (r !== li) r.classList.add('carried'); });
+        },
+        onEnd: ({ item, dx }) => {
+          const depth = dx > 30 ? 1 : dx < -30 ? 0 : null;
+          if (carried.length) {
+            // Drop every selected row where the dragged one landed, in their original order.
+            const at = carried.indexOf(item);
+            carried.slice(0, at).forEach(r => item.before(r));
+            carried.slice(at + 1).reverse().forEach(r => item.after(r));
+            carried.forEach(r => r.classList.remove('carried'));
+          }
+          const moved = carried.length ? carried : [item];
+          carried = [];
+          saveOrder(new Map(depth == null ? [] : moved.map(r => [r.dataset.item, depth])));
+        },
       });
+      list.addEventListener('pointerup', () => { paintBase = null; });
+      paintSelection();
       addItems = listEntry(page.querySelector('#new-items'), addLines);
       return true;
     }
@@ -230,12 +286,33 @@ export default {
       });
     }
 
+    let paintBase = null; // selection before a swipe started
+
+    function paintSelection() {
+      for (const li of page.querySelectorAll('.item-list > li')) {
+        const on = selected.has(li.dataset.item);
+        li.classList.toggle('selected', on);
+        li.querySelector('.drag-handle')?.setAttribute('aria-pressed', on);
+      }
+      const bar = page.querySelector('.select-bar');
+      if (!bar) return;
+      bar.hidden = !selected.size;
+      document.body.classList.toggle('has-select-bar', !!selected.size);
+      bar.querySelector('.select-count').textContent = `${selected.size} selected`;
+    }
+
+    function clearSelection() {
+      selected.clear();
+      anchor = null;
+      paintSelection();
+    }
+
     // Persist the list as shown: order, and each sub-item's parent (the
-    // nearest top-level item above it). `depth` overrides the moved item.
-    async function saveOrder(moved, depth) {
+    // nearest top-level item above it). `depths` (id → 0|1) overrides rows.
+    async function saveOrder(depths = new Map(), label = 'Moved') {
       const list = page.querySelector('.item-list');
       const before = (findBox(openId)?.b.items || []).map(i => [i.id, { sort_order: i.sort_order, parent_item_id: i.parent_item_id || null }]);
-      if (moved && depth != null) moved.dataset.depth = depth;
+      for (const li of list.children) if (depths.has(li.dataset.item)) li.dataset.depth = depths.get(li.dataset.item);
       let parent = null;
       for (const [n, li] of [...list.children].entries()) {
         const sub = li.dataset.depth === '1' && parent;
@@ -244,7 +321,7 @@ export default {
         await store.update('items', li.dataset.item, { sort_order: n, parent_item_id: sub ? parent : null });
       }
       tree = await loadTree();
-      undoable('Moved', async () => {
+      undoable(label, async () => {
         for (const [id, fields] of before) await store.update('items', id, fields);
         await reload();
       });
@@ -257,7 +334,7 @@ export default {
       const depth = ev.shiftKey ? 0 : 1;
       if (String(depth) === li.dataset.depth || (depth === 1 && !li.previousElementSibling)) return;
       ev.preventDefault();
-      await saveOrder(li, depth);
+      await saveOrder(new Map([[li.dataset.item, depth]]), depth ? 'Indented' : 'Outdented');
     });
 
     // Show the grid or the open box. `name` pairs the card and page for the zoom.
@@ -278,6 +355,9 @@ export default {
 
     async function openBox(id) {
       if (id === openId) return;
+      selected.clear();
+      anchor = null;
+      document.body.classList.remove('has-select-bar');
       const leaving = openId;
       if (id) {
         gridScroll = scrollY;
@@ -336,6 +416,36 @@ export default {
         history.length > 1 ? history.back() : (location.hash = '#/places');
       } else if (name === 'add-items') {
         await addItems();
+      } else if (name === 'sel-clear') {
+        clearSelection();
+      } else if (name === 'sel-indent' || name === 'sel-outdent') {
+        const depth = name === 'sel-indent' ? 1 : 0;
+        await saveOrder(new Map([...selected].map(id => [id, depth])), `${depth ? 'Indented' : 'Outdented'} ${selected.size}`);
+        paintSelection();
+      } else if (name === 'sel-up' || name === 'sel-down') {
+        const list = page.querySelector('.item-list');
+        const rows = [...list.children].filter(r => selected.has(r.dataset.item));
+        if (!rows.length) return;
+        if (name === 'sel-up') {
+          const prev = rows[0].previousElementSibling;
+          if (!prev) return;
+          prev.before(...rows);
+        } else {
+          const next = rows.at(-1).nextElementSibling;
+          if (!next) return;
+          next.after(...rows);
+        }
+        await saveOrder(new Map(), `Moved ${rows.length}`);
+      } else if (name === 'sel-delete') {
+        const items = findBox(openId)?.b.items || [];
+        const gone = [...new Set([...selected, ...items.filter(i => selected.has(i.parent_item_id)).map(i => i.id)])];
+        for (const g of gone) await store.remove('items', g);
+        clearSelection();
+        await reload();
+        undoable(`Removed ${gone.length} item${gone.length === 1 ? '' : 's'}`, async () => {
+          for (const g of gone) await store.restore('items', g);
+          await reload();
+        });
       } else if (name === 'delete-item') {
         const id = target.closest('[data-item]').dataset.item;
         const items = findBox(openId)?.b.items || [];
@@ -464,6 +574,7 @@ export default {
 
     this.onKey = ev => {
       if (ev.key === '/' && !openId && !ev.target.closest('input, textarea, select')) { ev.preventDefault(); q.focus(); }
+      if (ev.key === 'Escape' && openId && selected.size && !ev.target.closest('input, textarea')) { ev.preventDefault(); clearSelection(); return; }
       if (ev.key === 'Escape' && openId && !importSheet.open) { ev.preventDefault(); saveAndClose(); return; }
       if (ev.key === 'Escape' && document.activeElement === q && q.value) { q.value = ''; query = ''; renderGrid(); }
     };
@@ -482,6 +593,7 @@ export default {
   },
 
   unmount() {
+    document.body.classList.remove('has-select-bar');
     removeEventListener('keydown', this.onKey);
     removeEventListener('resize', this.onResize);
   },

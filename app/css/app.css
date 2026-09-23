@@ -565,6 +565,38 @@ label.inline select { width: auto; max-width: 220px; font-size: .85rem; padding:
 .item-list li:hover .drag-handle, .item-list li:focus-within .drag-handle { opacity: .8; }
 .item-list li.dragging { position: relative; z-index: 2; background: var(--glass-strong); box-shadow: var(--shadow); }
 .hint { font-size: .75rem; margin: 6px 2px 0; }
+.item-list li.selected { background: var(--active-bg); box-shadow: inset 0 0 0 1px var(--active-border); }
+.item-list li.selected .drag-handle { opacity: 1; color: var(--accent); }
+.item-list li.carried { opacity: .35; }
+.item-list .drag-handle { touch-action: none; }
+.select-bar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 14px);
+  transform: translateX(-50%);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100vw - 24px);
+  overflow-x: auto;
+  padding: 6px 8px 6px 14px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+  border: 1px solid var(--active-border);
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+}
+.select-bar .select-count { font-size: .85rem; margin-right: 6px; }
+.select-bar button { padding: 5px 10px; font-size: .85rem; box-shadow: none; }
+body.has-select-bar .toast { bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 72px); }
+body.has-select-bar main { padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 80px); }
+@media (min-width: 768px) {
+  .select-bar { bottom: 24px; }
+  body.has-select-bar .toast { bottom: 82px; }
+}
 .toast {
   position: fixed;
   left: 50%;
