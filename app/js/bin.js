@@ -7,9 +7,10 @@
 
 import * as store from './store.js';
 import { binProvider as findThings } from './places.js';
+import { binProvider as tasks } from './tasks.js';
 
 export const BIN_DAYS = 30;
-const PROVIDERS = [findThings];
+const PROVIDERS = [tasks, findThings];
 
 export function binProviders(area = 'all') {
   return PROVIDERS.filter(p => area === 'all' || p.area === area);

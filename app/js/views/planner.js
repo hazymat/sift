@@ -11,6 +11,7 @@ import {
 import { listEntry, listHint } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import { richText } from '../richtext.js';
+import { loadAll as loadTasks, forDay, suggestions, doneFields, aimDate } from '../tasks.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -54,7 +55,7 @@ export default {
       <div class="day-bottom">
         <section class="day-tasks">
           <h2>Tasks</h2>
-          <p class="muted" id="tasks-note"></p>
+          <div id="day-tasks"></div>
         </section>
         <section class="day-notes">
           <h2>Notes</h2>
@@ -110,8 +111,6 @@ export default {
       $('#focus').value = day.focus || '';
       for (const b of el.querySelectorAll('[data-energy]')) b.setAttribute('aria-pressed', b.dataset.energy === day.energy);
       notes.setValue(day.notes || '');
-      const energy = ENERGY.find(e => e.id === day.energy);
-      $('#tasks-note').textContent = `Tasks started or due on this day will show here once Tasks is built.${energy ? ` With ${energy.label.toLowerCase()} energy, Sift will suggest ${energy.hint.toLowerCase()}.` : ''}`;
       el.classList.toggle('is-down-day', down);
     }
 
@@ -203,6 +202,42 @@ export default {
       }
     }
 
+    // Tasks for this day: planned (start date), aim today, ongoing multi-day,
+    // and energy-matched suggestions to adopt.
+    let tasks = [];
+    async function renderTasks() {
+      tasks = (await loadTasks()).tasks;
+      const { planned, aimed, ongoing } = forDay(tasks, date);
+      const onPlan = new Set(items.map(i => i.task_id).filter(Boolean));
+      const row = (t, note = '') => `
+        <li data-task="${t.id}" class="${t.done_at ? 'done' : ''}">
+          <input type="checkbox" class="task-tick" ${t.done_at ? 'checked' : ''} aria-label="Done">
+          <a class="task-link" href="#/tasks/list${t.project_id ? `/${t.project_id}` : ''}">${esc(t.title)}</a>
+          ${note ? `<span class="span-tag">${note}</span>` : ''}
+          ${onPlan.has(t.id) ? '<span class="span-tag">on the plan</span>' : `<button type="button" class="small-btn" data-act="task-to-plan">To place</button>`}
+        </li>`;
+      const energy = ENERGY.find(e => e.id === day.energy);
+      const ideas = suggestions(tasks, day.energy);
+      const parts = [];
+      if (planned.length) parts.push(`<ul class="day-task-list">${planned.map(t => row(t)).join('')}</ul>`);
+      if (aimed.length) parts.push(`<h3>Aim is this day</h3><ul class="day-task-list">${aimed.map(t => row(t, '⚑ aim')).join('')}</ul>`);
+      if (ongoing.length) {
+        parts.push(`<h3>Ongoing</h3><ul class="day-task-list ongoing">${ongoing.map(t => {
+          const total = Math.round((parseDate(aimDate(t)) - parseDate(t.start_date)) / 86400000) + 1;
+          const n = Math.round((parseDate(date) - parseDate(t.start_date)) / 86400000) + 1;
+          return row(t, `day ${n} of ${total}`);
+        }).join('')}</ul>`);
+      }
+      if (energy && ideas.length) {
+        parts.push(`<h3>${energy.label} energy ideas</h3><ul class="day-task-list ideas">${ideas.map(t => `
+          <li data-task="${t.id}"><span class="task-link">${esc(t.title)}</span>
+            <button type="button" class="small-btn" data-act="adopt">Adopt</button></li>`).join('')}</ul>`);
+      } else if (energy) {
+        parts.push(`<p class="muted hint">Tag tasks with ${energy.label.toLowerCase()} energy (${energy.hint.toLowerCase()}) and they'll be suggested here.</p>`);
+      }
+      $('#day-tasks').innerHTML = parts.join('') || '<p class="muted hint">No tasks for this day. In Tasks, use ⋯ → Plan for day, or set today\'s energy level for ideas.</p>';
+    }
+
     async function render() {
       settings = await daySettings();
       [day, items] = await Promise.all([getDay(date), itemsFor(date)]);
@@ -211,6 +246,7 @@ export default {
       renderLines();
       renderPile();
       renderCarry();
+      renderTasks();
     }
 
     async function refresh() {
@@ -272,11 +308,26 @@ export default {
         const energy = day.energy === t.dataset.energy ? null : t.dataset.energy;
         day = await saveDay(date, { energy });
         header();
+        renderTasks();
       } else if (act === 'prev') go(addDays(date, -1));
       else if (act === 'next') go(addDays(date, 1));
       else if (act === 'today') go(isoDate());
       else if (act === 'calendar') openCalendar(date);
       else if (act === 'add-at') openLine(t);
+      else if (act === 'adopt' || act === 'task-to-plan') {
+        const taskId = t.closest('[data-task]').dataset.task;
+        const task = tasks.find(x => x.id === taskId);
+        if (act === 'adopt') {
+          await store.update('tasks', taskId, { start_date: date });
+          await renderTasks();
+          undoable(`Adopted "${task.title}"`, async () => { await store.update('tasks', taskId, { start_date: null }); renderTasks(); });
+        } else {
+          const made = await addItem(date, { title: task.title, task_id: taskId });
+          await refresh();
+          renderTasks();
+          undoable(`"${task.title}" is in To place`, async () => { await store.remove('day_items', made.id); await refresh(); renderTasks(); });
+        }
+      }
       else if (act === 'details') { editing = editing === id ? null : id; refresh(); }
       else if (act === 'unschedule') { editing = null; await change(id, { time: null, end_time: null }, 'Back to the pile'); }
       else if (act === 'delete') {
@@ -299,8 +350,24 @@ export default {
       const t = ev.target;
       const itemEl = t.closest('[data-item], [data-for]');
       const id = itemEl?.dataset.item || itemEl?.dataset.for;
-      if (t.classList.contains('tick') && id) {
+      if (t.classList.contains('task-tick')) {
+        const taskId = t.closest('[data-task]').dataset.task;
+        await store.update('tasks', taskId, doneFields(t.checked));
+        renderTasks();
+        undoable(t.checked ? 'Task done' : 'Task not done', async () => { await store.update('tasks', taskId, doneFields(!t.checked)); renderTasks(); });
+      } else if (t.classList.contains('tick') && id) {
+        const item = items.find(i => i.id === id);
         await change(id, { done_at: t.checked ? new Date().toISOString() : null }, t.checked ? 'Done' : 'Not done');
+        // A plan item that came from a task offers to tick the task too.
+        if (t.checked && item?.task_id) {
+          const task = await store.get('tasks', item.task_id);
+          if (task && !task.done_at) {
+            toast(`Done. Tick off the task "${task.title}" too?`, {
+              action: 'Tick task',
+              onAction: async () => { await store.update('tasks', task.id, doneFields(true)); renderTasks(); toast('✓ Task done'); },
+            });
+          }
+        }
       } else if (t.classList.contains('item-title') && id) {
         if (t.value.trim()) await change(id, { title: t.value.trim() });
       } else if (t.name && id) {
