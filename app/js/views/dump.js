@@ -27,7 +27,7 @@ export const KINDS = [
   { id: 'place_item', label: 'Thing to store' },
 ];
 const kindLabel = id => KINDS.find(k => k.id === id)?.label || 'Thought';
-const TARGET = { tasks: ['Task', 'tasks/list'], day_items: ['Day plan', 'planner'], items: ['Find Things', 'places'], contacts: ['Contact', 'contacts'] };
+const TARGET = { tasks: ['Task', 'tasks/list'], day_items: ['Day plan', 'planner'], items: ['Find Things', 'find-things'], contacts: ['Contact', 'contacts'] };
 
 function ago(iso) {
   const mins = Math.round((Date.now() - Date.parse(iso)) / 60000);

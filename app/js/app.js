@@ -7,7 +7,8 @@ export const AREAS = [
   { id: 'tasks', label: 'Tasks', icon: 'i-tasks', view: './views/tasks.js' },
   { id: 'planner', label: 'Day Planner', icon: 'i-planner', view: './views/planner.js' },
   { id: 'dump', label: 'Brain Dump', icon: 'i-dump', view: './views/dump.js' },
-  { id: 'places', label: 'Find Things', icon: 'i-places', view: './views/places.js' },
+  // Internally "places" (saved nav order etc. use it); the address is #/find-things.
+  { id: 'places', slug: 'find-things', label: 'Find Things', icon: 'i-places', view: './views/places.js' },
   { id: 'lists', label: 'Lists', icon: 'i-lists', view: './views/lists.js' },
   { id: 'scans', label: 'Scans', icon: 'i-scans', view: './views/scans.js' },
   { id: 'contracts', label: 'Contracts', icon: 'i-contracts', view: './views/contracts.js' },
@@ -23,7 +24,8 @@ export const MAX_PINNED = 4;
 const DEFAULT_PINNED = ['tasks', 'dump', 'places', 'scans'];
 
 const $ = sel => document.querySelector(sel);
-const area = id => AREAS.find(a => a.id === id);
+const area = id => AREAS.find(a => a.id === id || a.slug === id);
+const path = a => a.slug || a.id; // what the address bar shows
 const icon = (id, cls = 'icon') => `<svg class="${cls}" aria-hidden="true"><use href="#${id}"/></svg>`;
 
 let pinned = DEFAULT_PINNED;
@@ -78,13 +80,13 @@ function renderNav() {
   // Bottom bar (phone): pinned areas + More.
   $('#tabbar').innerHTML = pinned.map(id => {
     const a = area(id);
-    return `<a href="#/${a.id}" class="tab" ${a.id === current ? 'aria-current="page"' : ''}>
+    return `<a href="#/${path(a)}" class="tab" ${a.id === current ? 'aria-current="page"' : ''}>
       ${icon(a.icon)}<span>${a.label}</span></a>`;
   }).join('') + `<button type="button" class="tab" id="more-tab" ${activeInMore ? 'aria-current="page"' : ''}>
       ${icon(activeInMore ? area(current).icon : 'i-more')}<span>${activeInMore ? area(current).label : 'More'}</span></button>`;
 
   $('#more-list').innerHTML = more.map(a =>
-    `<a href="#/${a.id}" ${a.id === current ? 'aria-current="page"' : ''}>${icon(a.icon)}<span>${a.label}</span></a>`
+    `<a href="#/${path(a)}" ${a.id === current ? 'aria-current="page"' : ''}>${icon(a.icon)}<span>${a.label}</span></a>`
   ).join('');
 
   // Top nav (laptop): everything, pinned first; overflow goes into a dropdown.
@@ -93,7 +95,7 @@ function renderNav() {
   // links get put back alongside the new ones (entries repeated).
   $('#topnav-more-menu').innerHTML = '';
   $('#topnav-links').innerHTML = ordered.map(a =>
-    `<a href="#/${a.id}" data-area="${a.id}" ${a.id === current ? 'aria-current="page"' : ''}>${icon(a.icon)}<span>${a.label}</span></a>`
+    `<a href="#/${path(a)}" data-area="${a.id}" ${a.id === current ? 'aria-current="page"' : ''}>${icon(a.icon)}<span>${a.label}</span></a>`
   ).join('');
   fitTopNav();
 
@@ -127,7 +129,7 @@ async function route() {
   const [id, ...rest] = location.hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent);
   const next = area(id);
   if (!next) {
-    location.replace(`#/${pinned[0]}`);
+    location.replace(`#/${path(area(pinned[0]))}`);
     return;
   }
   const sheet = $('#more-sheet');

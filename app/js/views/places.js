@@ -1,5 +1,5 @@
 // Find Things: life areas (tabs; stored as kind "edition") → sections → box
-// cards. Tapping a card zooms into the box (#/places/<box id>); Back zooms
+// cards. Tapping a card zooms into the box (#/find-things/<box id>); Back zooms
 // out again. Search across all life areas, CSV import/export.
 
 import { loadTree, search, importCsv, exportCsv, archivedMatchCount } from '../places.js';
@@ -360,7 +360,7 @@ export default {
     async function act(name, target) {
       const current = edition();
       if (name === 'back') {
-        history.length > 1 ? history.back() : (location.hash = '#/places');
+        history.length > 1 ? history.back() : (location.hash = '#/find-things');
       } else if (name === 'add-items') {
         await addItems();
       } else if (name === 'archive-box') {
@@ -368,7 +368,7 @@ export default {
         const boxId = openId;
         await store.update('places', boxId, { archived_at: new Date().toISOString() });
         tree = await loadTree();
-        location.hash = '#/places';
+        location.hash = '#/find-things';
         undoable(`Archived box ${box.label_code || box.name || ''}`.trim(), async () => {
           await store.update('places', boxId, { archived_at: null });
           await reload();
@@ -391,7 +391,7 @@ export default {
         await store.updateMany('items', itemIds.map(i => [i, { deleted_at: new Date().toISOString() }]));
         await store.remove('places', boxId);
         tree = await loadTree();
-        location.hash = '#/places';
+        location.hash = '#/find-things';
         undoable(`Deleted box ${box.label_code || box.name || ''}`.trim(), async () => {
           await store.restore('places', boxId);
           await store.updateMany('items', itemIds.map(i => [i, { deleted_at: null }]));
@@ -433,7 +433,7 @@ export default {
         const count = tree.flatMap(e => e.sections).find(s => s.id === sectionId)?.boxes.length || 0;
         const box = await store.create('places', { kind: 'box', name: '', label_code: '', parent_place_id: sectionId, location_note: '', notes: '', sort_order: count });
         tree = await loadTree();
-        location.hash = `#/places/${box.id}`;
+        location.hash = `#/find-things/${box.id}`;
       }
     }
 
@@ -466,7 +466,7 @@ export default {
         editionId = t.dataset.edition; remember(EDITION_KEY, editionId);
         renderGrid();
       } else if (t.dataset.box) {
-        location.hash = `#/places/${t.dataset.box}`;
+        location.hash = `#/find-things/${t.dataset.box}`;
       } else {
         t.closest('details')?.removeAttribute('open');
         act(t.dataset.act, t);
@@ -514,7 +514,7 @@ export default {
     show();
   },
 
-  // Called by the router with the path after #/places/.
+  // Called by the router with the path after #/find-things/.
   route([boxId]) {
     return this.openBox?.(boxId || null);
   },

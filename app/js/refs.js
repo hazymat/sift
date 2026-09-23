@@ -49,12 +49,12 @@ export const KINDS = {
   items: {
     label: 'Thing', icon: '📦',
     title: i => i.name || '(unnamed)', sub: () => 'Find Things',
-    text: i => `${i.name} ${i.notes || ''}`, route: i => `#/places/${i.place_id}`,
+    text: i => `${i.name} ${i.notes || ''}`, route: i => `#/find-things/${i.place_id}`,
   },
   places: {
     label: 'Box', icon: '🗃️',
     title: b => [b.label_code, b.name].filter(Boolean).join(' ') || '(box)', sub: b => b.location_note || 'Find Things',
-    text: b => `${b.label_code || ''} ${b.name} ${b.location_note || ''} ${b.notes || ''}`, route: b => `#/places/${b.id}`,
+    text: b => `${b.label_code || ''} ${b.name} ${b.location_note || ''} ${b.notes || ''}`, route: b => `#/find-things/${b.id}`,
     only: b => b.kind === 'box',
   },
   lists: {
