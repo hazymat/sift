@@ -20,10 +20,10 @@ function recall(key) {
 }
 
 // Animate a DOM change as a zoom between a card and the box page, where the
-// browser supports view transitions; otherwise just make the change.
+// browser supports view transitions; otherwise just make the change. With
+// "reduce motion" on, the zoom still runs, a little quicker (see app.css).
 async function zoom(update) {
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (!document.startViewTransition || reduced) return update();
+  if (!document.startViewTransition) return update();
   const t = document.startViewTransition(update);
   await t.finished.catch(() => {});
 }
