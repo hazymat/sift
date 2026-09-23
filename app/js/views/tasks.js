@@ -286,7 +286,7 @@ export default {
       for (const b of el.querySelectorAll('[data-view]')) b.setAttribute('aria-pressed', b.dataset.view === state.view);
       body.innerHTML = { list: viewList, today: viewToday, upcoming: viewUpcoming, projects: viewProjects, done: viewDone }[state.view]();
       const ta = body.querySelector('#task-new');
-      if (ta) listEntry(ta, addLines);
+      if (ta) listEntry(ta, addLines, { draft: `tasks:${state.view}:${state.project || ''}` });
       const ul = body.querySelector('.task-list');
       const ordered = state.view === 'list';
       kitOrdered.attach(ordered ? ul : null);

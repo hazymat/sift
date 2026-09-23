@@ -214,7 +214,7 @@ export default {
           </div>
         </article>`;
       kit.attach(page.querySelector('.item-list'));
-      addItems = listEntry(page.querySelector('#new-items'), addLines);
+      addItems = listEntry(page.querySelector('#new-items'), addLines, { draft: `places:${openId}` });
       return true;
     }
 

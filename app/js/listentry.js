@@ -5,6 +5,8 @@
 //   - a line starting with a space, "-", "*" or "•" is a sub-item of the line above
 //   - Ctrl+Enter (⌘+Enter on Mac) adds; the button does the same
 
+import { keepDraft, draftCleared } from './drafts.js';
+
 const MAC = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 export const SHORTCUT = MAC ? '⌘↵' : 'Ctrl+Enter';
 
@@ -20,13 +22,16 @@ export function parseLines(text) {
 }
 
 // Wire a textarea: Ctrl/⌘+Enter calls onSubmit(lines). The textarea is
-// cleared and refocused after a successful submit.
-export function listEntry(textarea, onSubmit) {
+// cleared and refocused after a successful submit. With `draft` (a key, or a
+// function giving one) unsaved text is kept until it's added (drafts.js).
+export function listEntry(textarea, onSubmit, { draft } = {}) {
+  if (draft) keepDraft(textarea, draft);
   const submit = async () => {
     const lines = parseLines(textarea.value);
     if (!lines.length) return;
     await onSubmit(lines);
     textarea.value = '';
+    draftCleared(textarea);
     textarea.focus();
   };
   textarea.addEventListener('keydown', ev => {

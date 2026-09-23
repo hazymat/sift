@@ -5,6 +5,7 @@
 
 import * as store from '../store.js';
 import { linkDetailsInText } from '../refs.js';
+import { keepDraft, draftCleared } from '../drafts.js';
 import { SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import { toHtml, richText } from '../richtext.js';
@@ -80,6 +81,7 @@ export default {
 
     const $ = s => el.querySelector(s);
     const input = $('#dump-body');
+    keepDraft(input, 'dump'); // what you're typing survives closing the app
     const list = $('#thoughts');
 
     function paintKinds() {
@@ -202,6 +204,7 @@ export default {
         made.push(t);
       }
       input.value = '';
+      draftCleared(input);
       input.focus();
       await render();
       const extra = contacts.length ? `, ${contacts.length} new contact${contacts.length === 1 ? '' : 's'}` : '';

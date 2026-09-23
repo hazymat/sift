@@ -13,6 +13,7 @@ import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import { richText } from '../richtext.js';
 import { mentionsOf } from '../refs.js';
+import { keepDraft, draftCleared } from '../drafts.js';
 import { addTask } from '../tasks.js';
 import { isoDate } from '../days.js';
 import { createListKit } from '../listkit.js';
@@ -306,10 +307,11 @@ export default {
         : state.tab === 'contact' ? await viewContact()
         : viewRecent();
       const cap = body.querySelector('#c-new');
+      if (cap) keepDraft(cap, 'contacts:new');
       if (cap) cap.addEventListener('keydown', ev => { if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); capture(); } });
       kit.attach(body.querySelector('.kit-list'));
       const research = body.querySelector('#research-new');
-      if (research) listEntry(research, addCandidates);
+      if (research) listEntry(research, addCandidates, { draft: `contacts:research:${state.id}` });
       const q = body.querySelector('#c-q');
       if (q) q.addEventListener('input', () => { clearTimeout(this.qt); this.qt = setTimeout(() => { state.q = q.value.trim(); render().then(() => { const n = body.querySelector('#c-q'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }); }, 200); });
       const notesBox = body.querySelector('#c-notes');
@@ -351,6 +353,7 @@ export default {
       if (!text) return;
       const c = await contactFromText(text);
       ta.value = '';
+      draftCleared(ta);
       await render();
       undoable(`Saved ${c.name || 'contact'}`, async () => { await store.remove('contacts', c.id); render(); });
     }

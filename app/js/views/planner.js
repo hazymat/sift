@@ -11,6 +11,7 @@ import {
 import { listEntry, listHint } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import { richText, toHtml, previewLine } from '../richtext.js';
+import { keepDraft } from '../drafts.js';
 import { loadAll as loadTasks, forDay, suggestions, doneFields, aimDate } from '../tasks.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -639,6 +640,7 @@ export default {
     });
 
     // Dump box → pile (or straight onto the plan when a line starts with a time).
+    const dumpDraft = keepDraft($('#dump'), () => `planner:${date}`);
     listEntry($('#dump'), async lines => {
       const made = [];
       for (const line of lines) {
@@ -1087,7 +1089,7 @@ export default {
       editing = null;
       selected.clear();
       openNotes.clear();
-      $('#dump').value = '';
+      dumpDraft.restore(); // each day keeps its own unsaved "to place" text
       await render();
     };
 

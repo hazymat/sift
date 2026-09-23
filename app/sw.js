@@ -26,6 +26,7 @@ const SHELL = [
   'js/views/history.js',
   'js/richtext.js',
   'js/refs.js',
+  'js/drafts.js',
   'js/linkpicker.js',
   'js/csv.js',
   'js/places.js',

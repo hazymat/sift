@@ -116,7 +116,7 @@ export default {
       (l?.kind === 'template' ? kitChecklist : kitTemplate).attach(null);
       kit.attach(state.id ? body.querySelector('.checklist') : null);
       const ta = body.querySelector('#list-new');
-      if (ta) addEntry = listEntry(ta, addLines);
+      if (ta) addEntry = listEntry(ta, addLines, { draft: `lists:${state.id || 'new'}` });
     };
 
     // ---------- editing ----------
