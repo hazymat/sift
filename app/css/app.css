@@ -1386,10 +1386,10 @@ li[data-id]:hover .kit-grip { opacity: .8; }
   right: 6px;
   z-index: 1;
   align-content: center;
-  padding-left: 12px;
+  padding-left: 4px; /* + the 4px bar = the 8px of a one-line item, so titles line up */
   border-left: 4px solid var(--accent);
   border-radius: 4px 12px 12px 4px;
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  background: transparent; /* the bar and the missing lines say "one item" */
 }
 .span-block > .line.has-item > .resize-grip { bottom: -1px; left: calc(64px + (100% - 64px) / 2); }
 .span-block > .line.blank.covered .content { cursor: default; }
