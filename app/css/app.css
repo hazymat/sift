@@ -996,3 +996,63 @@ kbd { font: inherit; font-size: .72em; padding: 1px 5px; margin-left: 4px; borde
 .md-bar .md-toggle { margin-left: auto; font-size: .78rem; }
 .md-bar .md-toggle[aria-pressed="true"] { background: var(--active-bg); border-color: var(--active-border); }
 .rich.raw .md-bar [data-cmd] { opacity: .35; pointer-events: none; }
+
+
+/* Planner drag: grip to move onto a time, bottom handle to set length */
+.line.has-item { position: relative; }
+.drag-grip {
+  flex: none;
+  padding: 2px 4px;
+  font-size: .9rem;
+  line-height: 1;
+  background: none;
+  box-shadow: none;
+  border: 0;
+  color: var(--muted);
+  opacity: .35;
+  cursor: grab;
+  touch-action: none;
+}
+.line:hover .drag-grip, .line:focus-within .drag-grip { opacity: .9; }
+.resize-grip {
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 44px;
+  height: 9px;
+  margin-left: -22px;
+  border-radius: 999px;
+  background: var(--active-border);
+  opacity: 0;
+  cursor: ns-resize;
+  touch-action: none;
+  z-index: 2;
+}
+.line.has-item:hover .resize-grip, .line.resizing .resize-grip { opacity: .8; }
+@media (hover: none) { .resize-grip { opacity: .5; } .drag-grip { opacity: .7; } }
+.drag-float {
+  position: fixed;
+  z-index: 60;
+  pointer-events: none;
+  background: var(--glass-strong);
+  border: 1px solid var(--active-border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  opacity: .95;
+}
+.drag-float[data-when]::after {
+  content: attr(data-when);
+  position: absolute;
+  right: 8px;
+  top: -12px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: .75rem;
+  background: var(--active-bg);
+  border: 1px solid var(--active-border);
+  color: var(--text);
+}
+.drag-source { opacity: .35; }
+.line.drop-target { background: var(--active-bg); }
+#pile.drop-target { outline: 2px dashed var(--active-border); outline-offset: 2px; }
+.line.will-cover .content { border-left: 3px solid var(--active-border); margin-left: 10px; background: var(--glass-track); }

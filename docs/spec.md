@@ -84,7 +84,7 @@ Common fields on every record: `id (UUIDv7), created_at, updated_at, deleted_at,
 2. **Day Focus** (bold, prominent): one or a handful of things that matter today.
 3. **Today's Energy Level**: High / Medium / Low (see Energy below).
 4. **Carry-over**: "n unfinished from earlier days · Bring them here" (last 7 days), for today and future days.
-5. **Lined paper** with a margin: one line per slot from **day start** to **day end** (default 8.30 to 18.30, 30 minutes per line; all three in Settings). Times are written in the margin.
+5. **Lined paper** with a margin: one line per slot from **day start** to **day end** (default 8.00 to 18.00, one line per hour; all three in Settings). Times are written in the margin.
    - Anything can be put at any time: an item at an odd time (12.45) gets its own line in time order; several items at one time get several lines. Items with an end time or estimate bracket the lines they cover.
    - Items before the day starts get lines above; items after it go under **Evening** at the bottom.
    - Tap an empty line to write on it; tick items off; ⋯ opens time, until, estimate, day (move to another date), note, back to pile, delete.
@@ -95,11 +95,11 @@ Common fields on every record: `id (UUIDv7), created_at, updated_at, deleted_at,
 **Getting around**: ‹ Today › buttons (and ← → / T on a keyboard), plus a **Calendar** popup: a month grid where days that have anything planned or written are marked with a dot and down days are dimmed. Any date, past or future, opens the same page (look back at last Thursday; plan next week).
 
 **Paper styles**: the page is drawn in a paper style. Default in Settings; any day can use a different one (Paper picker on the page, stored on the day).
-- **Notebook** (default): light yellow paper, faint grey lines, red margin, handwriting, navy ink.
+- **Notebook**: light yellow paper, faint grey lines, red margin, handwriting, navy ink.
 - **Techie**: dark terminal page, monospace, 24-hour times (08:30), faint grid, teal/amber.
 - **Dot journal**: cream bullet-journal paper with a dot grid, no rules, handwriting, navy pen.
 - **Minimal**: clean white page, system font, hairlines, roomy lines, small grey times.
-- **Glass**: the app's own glass look (follows the app theme).
+- **Glass** (default): the app's own glass look (follows the app theme).
 Each paper sets fonts, colours, spacing and time format through tokens scoped to the planner, so new papers are CSS only. Handwriting uses fonts already on the device (Segoe Print, Bradley Hand, Noteworthy …); a bundled web font can be added later.
 
 **Energy**: Tasks can carry an `energy` tag (high | medium | low). Rough guide: **low** = laptop work (coding, accounts/bookkeeping, design); **medium** = pottering jobs; **high** = big tidy-ups, starting a big project. Setting today's energy makes the Tasks section suggest matching tasks to **adopt** for the day (suggestions only; nothing is added without a tap).

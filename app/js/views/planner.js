@@ -118,14 +118,16 @@ export default {
     function itemRow(i, label) {
       const span = i.end_time ? `${fmt(i.time)}–${fmt(i.end_time)}` : null;
       return `
-        <div class="line has-item${i.done_at ? ' done' : ''}" data-item="${i.id}">
+        <div class="line has-item${i.done_at ? ' done' : ''}" data-item="${i.id}"${i.time ? ` data-time="${i.time}"` : ''}>
           <span class="margin">${label ?? ''}</span>
           <span class="content">
+            <button type="button" class="drag-grip" aria-label="Drag to a time" title="Drag onto a time">⠿</button>
             <input type="checkbox" class="tick" aria-label="Done" ${i.done_at ? 'checked' : ''}>
             <input class="item-title hand" value="${esc(i.title)}" aria-label="Item" autocomplete="off">
             ${span ? `<span class="span-tag">${span}</span>` : i.estimate_min ? `<span class="span-tag">~${i.estimate_min} min</span>` : ''}
             <button type="button" class="more" data-act="details" aria-label="Details">⋯</button>
           </span>
+          ${i.time ? '<span class="resize-grip" title="Drag down to set how long" aria-hidden="true"></span>' : ''}
         </div>
         ${editing === i.id ? details(i) : ''}`;
     }
@@ -332,6 +334,111 @@ export default {
         await refresh();
       });
     });
+
+    // ---------- drag onto a time; drag the bottom handle to set length ----------
+
+    const QUARTER = 15;
+    let drag = null;
+    const step = () => Math.max(5, Number(settings.slot_min) || 60);
+    const duration = i => (i.end_time ? toMin(i.end_time) - toMin(i.time) : i.estimate_min || step());
+
+    // Time under the pointer: a line's own time, plus quarter hours through a slot line.
+    function timeAt(y) {
+      for (const line of linesEl.querySelectorAll('.line[data-time]')) {
+        const r = line.getBoundingClientRect();
+        if (y < r.top || y >= r.bottom) continue;
+        if (line.dataset.time === 'evening') return { line, time: fromMin(toMin(settings.day_end) + step()) };
+        const base = toMin(line.dataset.time);
+        const slot = line.classList.contains('blank') ? step() : 0;
+        const extra = slot ? Math.min(slot - QUARTER, Math.floor(((y - r.top) / r.height) * slot / QUARTER) * QUARTER) : 0;
+        return { line, time: fromMin(base + Math.max(0, extra)) };
+      }
+      return null;
+    }
+
+    const clearMarks = () => el.querySelectorAll('.drop-target, .will-cover').forEach(n => n.classList.remove('drop-target', 'will-cover'));
+
+    el.addEventListener('pointerdown', ev => {
+      const grip = ev.target.closest('.drag-grip, .resize-grip');
+      if (!grip || ev.button > 0) return;
+      ev.preventDefault();
+      const row = grip.closest('[data-item]');
+      const item = items.find(i => i.id === row.dataset.item);
+      if (!item) return;
+      try { grip.setPointerCapture(ev.pointerId); } catch {}
+      if (grip.classList.contains('resize-grip')) {
+        drag = { mode: 'resize', item, row, startY: ev.clientY, base: duration(item), minutes: duration(item) };
+        row.classList.add('resizing');
+        return;
+      }
+      const r = row.getBoundingClientRect();
+      const ghost = row.cloneNode(true);
+      ghost.classList.add('drag-float');
+      Object.assign(ghost.style, { width: `${r.width}px`, left: `${r.left}px`, top: `${r.top}px` });
+      el.querySelector('.planner').append(ghost);
+      row.classList.add('drag-source');
+      drag = { mode: 'move', item, row, ghost, dy: ev.clientY - r.top, target: null };
+    });
+
+    el.addEventListener('pointermove', ev => {
+      if (!drag) return;
+      clearMarks();
+      if (drag.mode === 'move') {
+        drag.ghost.style.top = `${ev.clientY - drag.dy}px`;
+        const overPile = $('.pile').getBoundingClientRect();
+        if (ev.clientY >= overPile.top && ev.clientY <= overPile.bottom) {
+          drag.target = { pile: true };
+          $('#pile').classList.add('drop-target');
+          drag.ghost.dataset.when = 'To place';
+          return;
+        }
+        const hit = timeAt(ev.clientY);
+        drag.target = hit;
+        if (hit) { hit.line.classList.add('drop-target'); drag.ghost.dataset.when = fmt(hit.time); } else delete drag.ghost.dataset.when;
+        return;
+      }
+      // resize: minutes per pixel from the height of one slot line
+      const line = linesEl.querySelector('.line.blank') || drag.row;
+      const perPx = step() / line.getBoundingClientRect().height;
+      const minutes = Math.max(QUARTER, Math.round((drag.base + (ev.clientY - drag.startY) * perPx) / QUARTER) * QUARTER);
+      drag.minutes = minutes;
+      const start = toMin(drag.item.time);
+      const end = start + minutes;
+      const tag = drag.row.querySelector('.span-tag') || drag.row.querySelector('.content').insertBefore(Object.assign(document.createElement('span'), { className: 'span-tag' }), drag.row.querySelector('.more'));
+      tag.textContent = `${fmt(drag.item.time)}–${fmt(fromMin(end))}`;
+      for (const l of linesEl.querySelectorAll('.line[data-time]')) {
+        const t = l.dataset.time === 'evening' ? null : toMin(l.dataset.time);
+        if (t != null && t > start && t < end) l.classList.add('will-cover');
+      }
+    });
+
+    const endDrag = async ev => {
+      if (!drag) return;
+      const d = drag;
+      drag = null;
+      clearMarks();
+      d.ghost?.remove();
+      d.row.classList.remove('drag-source', 'resizing');
+      if (ev.type === 'pointercancel') { renderLines(); return; }
+      if (d.mode === 'resize') {
+        const end = fromMin(toMin(d.item.time) + d.minutes);
+        if (end !== d.item.end_time) await change(d.item.id, { end_time: end }, `Until ${fmt(end)}`);
+        else renderLines();
+        return;
+      }
+      if (!d.target) return;
+      if (d.target.pile) {
+        if (d.item.time) await change(d.item.id, { time: null, end_time: null }, 'Back to the pile');
+        return;
+      }
+      const time = d.target.time;
+      if (time === d.item.time) return;
+      const fields = { time };
+      if (d.item.time && d.item.end_time) fields.end_time = fromMin(toMin(time) + duration(d.item));
+      await change(d.item.id, fields, `Moved to ${fmt(time)}`);
+    };
+    el.addEventListener('pointerup', endDrag);
+    el.addEventListener('pointercancel', endDrag);
 
     // ---------- calendar popup ----------
 

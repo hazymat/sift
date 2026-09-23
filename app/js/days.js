@@ -4,13 +4,13 @@
 import * as store from './store.js';
 
 export const DAY_DEFAULTS = {
-  day_start: '08:30',
-  day_end: '18:30',
-  slot_min: 30,
+  day_start: '08:00',
+  day_end: '18:00',
+  slot_min: 60,
   down_days: [0], // 0 = Sunday … 6 = Saturday
   hint_down_day: true,
   hint_walk_breaks: true,
-  paper_style: 'notebook',
+  paper_style: 'glass',
 };
 
 // Page styles for the planner (default in Settings, overridable per day).
