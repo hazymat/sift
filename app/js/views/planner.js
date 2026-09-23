@@ -91,9 +91,11 @@ export default {
       planner.dataset.paper = paper;
       fmt = paper === 'techie' ? t => t : showTime;
       const sel = $('#paper-style');
-      sel.innerHTML = `<option value="">Default (${PAPERS.find(p => p.id === settings.paper_style)?.label || ''})</option>`
-        + PAPERS.map(p => `<option value="${p.id}">${p.label}</option>`).join('');
-      sel.value = day.paper || '';
+      // Each paper once; the default one is marked and means "follow Settings".
+      sel.innerHTML = PAPERS.map(p => p.id === settings.paper_style
+        ? `<option value="">${p.label} (default)</option>`
+        : `<option value="${p.id}">${p.label}</option>`).join('');
+      sel.value = day.paper && day.paper !== settings.paper_style ? day.paper : '';
     }
 
     // ---------- rendering ----------

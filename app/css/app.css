@@ -857,16 +857,16 @@ kbd { font: inherit; font-size: .72em; padding: 1px 5px; margin-left: 4px; borde
 /* Notebook: light yellow paper, faint grey lines, red margin, handwriting. */
 .planner[data-paper="notebook"] {
   color-scheme: light;
-  --paper-bg: #fbf7df;
+  --paper-bg: #f5edc6;
   --text: #1f2d3d;
   --muted: rgba(31, 45, 61, .55);
   --ink: #1d4f91;
   --rule: rgba(95, 110, 130, .26);
   --margin-rule: rgba(214, 60, 60, .65);
   --focus-ink: #c62828;
-  --glass: rgba(0, 0, 0, .025);
-  --glass-hover: rgba(0, 0, 0, .06);
-  --glass-track: rgba(0, 0, 0, .035);
+  --glass: rgba(0, 0, 0, .06);
+  --glass-hover: rgba(0, 0, 0, .1);
+  --glass-track: rgba(0, 0, 0, .05);
   --glass-strong: #fffbe9;
   --glass-border: rgba(0, 0, 0, .1);
   --glass-highlight: inset 0 0 0 transparent;
@@ -1362,3 +1362,11 @@ li[data-id]:hover .kit-grip { opacity: .8; }
 .item-note .more-lines { font-size: .72rem; color: var(--accent); margin-left: 4px; }
 .task-list > li[data-task] { flex-wrap: wrap; }
 .task-note { margin: -6px 0 6px 64px; }
+
+/* Notebook: item text in the same ink as the margin times */
+.planner[data-paper="notebook"] .line .item-title,
+.planner[data-paper="notebook"] .day-task-list .task-link,
+.planner[data-paper="notebook"] .pickup-row { color: var(--ink); }
+/* Blue theme, glass paper: the big day name in white */
+:root:not([data-theme="light"]):not([data-theme="dark"]) .planner[data-paper="glass"] .day-title .weekday,
+:root[data-theme="blue"] .planner[data-paper="glass"] .day-title .weekday { color: #fff; }
