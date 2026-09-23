@@ -3,6 +3,7 @@
 // Every extra (day, aim, energy, project, milestone, notes) lives behind a
 // task's ⋯ so the list stays simple until you want more.
 
+import { cogHtml } from '../viewcog.js';
 import * as store from '../store.js';
 import { loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES, HORIZONS, horizonOf } from '../tasks.js';
 import { ENERGY, isoDate, addDays, parseDate, addItem } from '../days.js';
@@ -11,7 +12,7 @@ import { summarise } from '../summary.js';
 import { createListKit } from '../listkit.js';
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
-import { richText, toHtml, previewLine } from '../richtext.js';
+import { richText, toHtml, previewLine, inlineAll } from '../richtext.js';
 import { loadContacts } from '../contacts.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -60,6 +61,7 @@ export default {
         <div class="segmented" id="task-views" role="tablist" aria-label="Views">
           ${VIEWS.map(v => `<button type="button" data-view="${v.id}">${v.label}</button>`).join('')}
         </div>
+        ${cogHtml('tasks')}
         <details class="tool-menu">
           <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
           <div class="menu">
@@ -107,9 +109,9 @@ export default {
       return out.join('');
     }
 
-    function row(t, { draggable = true } = {}) {
+    function row(t, { draggable = true, group = '' } = {}) {
       return `
-        <li data-task="${t.id}" data-id="${t.id}" data-depth="${t.depth ?? 0}" class="${isDone(t) ? 'done' : ''}">
+        <li data-task="${t.id}" data-id="${t.id}" data-depth="${t.depth ?? 0}" class="${isDone(t) ? 'done' : ''} ${group}">
           <button type="button" class="drag-handle" aria-label="Select${draggable ? ' or move' : ''} ${esc(t.title)}">${icon('i-grip')}</button>
           <input type="checkbox" class="tick" ${isDone(t) ? 'checked' : ''} aria-label="Done">
           <input class="task-title" value="${esc(t.title)}" aria-label="Task" autocomplete="off">
@@ -134,11 +136,14 @@ export default {
     // Notes under tasks: the first line; clicking it opens (or closes) the
     // task's panel, where the whole note can be read and edited.
     function noteHtml(t) {
-      const { html, more } = previewLine(t.notes);
+      const { html } = previewLine(t.notes);
       if (!html) return '';
+      // All three spacings are drawn; the page's spacing shows one (CSS):
+      // tight = just 📝, medium = every line run together, loose = the note as written.
       return `<span class="item-note task-note" data-act="toggle-note" role="button" tabindex="0" aria-expanded="${open === t.id}" title="${open === t.id ? 'Close' : 'Open to read or edit'}">`
         + `<span class="note-emoji" aria-hidden="true">📝</span>`
-        + `${html}${more > 0 ? ` <span class="more-lines">+${more} more</span>` : ''}</span>`;
+        + `<span class="note-medium">${inlineAll(t.notes)}</span>`
+        + `<span class="note-loose">${toHtml(t.notes)}</span></span>`;
     }
 
     function details(t) {
@@ -187,7 +192,15 @@ export default {
     // Views render one <ul> with heading rows between groups, so selection
     // (and, in List, dragging) works across the whole view.
     const head = (html, attrs = '') => `<li class="list-head"${attrs}>${html}</li>`;
-    const rowsOf = (tasks, opts) => tasks.map(t => row(t, opts)).join('');
+    // A task and its sub-tasks share one card: the parent opens it, sub-tasks
+    // sit inside, the last one closes it.
+    const rowsOf = (tasks, opts) => tasks.map((t, n) => {
+      const d = t.depth ?? 0;
+      const next = tasks[n + 1];
+      const nd = next ? next.depth ?? 0 : 0;
+      const group = d === 0 ? (nd > 0 ? 'group-top' : '') : `group-kid${nd === 0 ? ' group-end' : ''}`;
+      return row(t, { ...opts, group });
+    }).join('');
     const listOf = (inner, empty = '') => (inner ? `<ul class="task-list">${inner}</ul>` : empty);
 
     // Tasks in list order, hiding done ones (unless shown) and collapsed sub-trees.

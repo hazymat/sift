@@ -1875,3 +1875,56 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 
 /* Desktop "More" dropdown: solid enough to read over the page. */
 #topnav-overflow .menu { background: color-mix(in srgb, var(--bg, #0f172a) 94%, transparent); border: 1px solid var(--glass-border); box-shadow: 0 12px 34px rgba(0, 0, 0, .45); }
+
+/* ⚙ on every page: sits before the ⋯ menu. Spacing buttons are line icons. */
+.page-cog { margin-left: auto; }
+.page-cog + .tool-menu { margin-left: 4px; }
+.density-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; display: block; }
+.density-opts button { padding: 5px 10px; }
+
+/* Spacing everywhere: rows get closer or further apart. */
+#main { --row-gap: 6px; --row-pad: 6px; }
+#main[data-density="tight"] { --row-gap: 2px; --row-pad: 2px; }
+#main[data-density="loose"] { --row-gap: 10px; --row-pad: 10px; }
+#main .item-list, #main .checklist, #main .thought-list { display: grid; gap: var(--row-gap); }
+#main .thought { padding-block: var(--row-pad); }
+
+/* Tasks: each task on its own card. */
+.task-list { display: grid; gap: var(--row-gap); }
+.task-list > li[data-task] { background: var(--glass-track); border-color: var(--glass-border); padding: var(--row-pad) 8px; }
+.task-list > li.list-head { background: none; }
+
+/* Tight: one line per task; the note is just 📝 and pills sit in the line. */
+#main[data-density="tight"] .task-list > li[data-task] { flex-wrap: nowrap; min-height: 34px; }
+#main[data-density="tight"] .task-list > li[data-task] > .item-sub { flex: 0 1 auto; margin: 0; order: 1; min-width: 0; overflow: hidden; white-space: nowrap; }
+#main[data-density="tight"] .task-list > li[data-task] > .chips { order: 2; flex-wrap: nowrap; overflow: hidden; }
+#main[data-density="tight"] .task-list > li[data-task] > .more { order: 3; }
+#main[data-density="tight"] .task-note .note-medium, #main[data-density="tight"] .task-note .note-loose { display: none; }
+#main[data-density="tight"] .task-note { flex: none; }
+
+/* Medium: the note under the task, every line run together on one line. */
+#main:not([data-density="tight"]):not([data-density="loose"]) .task-note .note-loose { display: none; }
+.task-note .note-medium .sep { opacity: .5; margin: 0 2px; }
+#main:not([data-density="tight"]):not([data-density="loose"]) .task-note { white-space: normal; }
+
+/* Loose: the note as written (line breaks, lists, bold). */
+#main[data-density="loose"] .task-note .note-medium { display: none; }
+#main[data-density="loose"] .task-note { white-space: normal; display: flex; gap: 4px; align-items: flex-start; }
+#main[data-density="loose"] .task-note .note-loose { display: block; }
+#main[data-density="loose"] .task-note .note-loose ul { margin: 2px 0; padding-left: 1.2em; }
+#main:not([data-density="tight"]):not([data-density="loose"]) .task-note .note-medium { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+#main:not([data-density="tight"]) .task-note { display: flex; gap: 4px; align-items: baseline; }
+#main:not([data-density="tight"]) .task-note .note-medium, #main:not([data-density="tight"]) .task-note .note-loose { flex: 1; min-width: 0; }
+
+/* Sub-tasks live inside their parent's card: indented with padding (not
+   margin), no gap or border between them, rounded only at the ends. */
+.task-list > li[data-depth="1"], .task-list > li[data-depth="2"], .task-list > li[data-depth="3"], .task-list > li[data-depth="4"] { margin-left: 0; }
+.task-list > li[data-depth="1"] { padding-left: 36px; }
+.task-list > li[data-depth="2"] { padding-left: 64px; }
+.task-list > li[data-depth="3"], .task-list > li[data-depth="4"] { padding-left: 92px; }
+.task-list > li.group-top { border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom-color: transparent; }
+.task-list > li.group-kid { margin-top: calc(-1 * var(--row-gap)); border-radius: 0; border-top-color: transparent; }
+.task-list > li.group-kid:not(.group-end) { border-bottom-color: transparent; }
+.task-list > li.group-kid.group-end { border-bottom-left-radius: 14px; border-bottom-right-radius: 14px; }
+.task-list > li.group-kid::before { content: ""; position: absolute; left: 22px; top: 0; bottom: 0; width: 1px; background: var(--glass-border); }
+.task-list > li.group-kid { position: relative; }

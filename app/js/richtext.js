@@ -50,6 +50,11 @@ export function previewLine(md) {
   return { html: lines.length ? inline(lines[0]) : '', more: Math.max(0, lines.length - 1) };
 }
 
+// All of a note's lines run together on one line ("a · b · c"), as HTML.
+export function inlineAll(md) {
+  return (md || '').split('\n').map(l => l.replace(/^#{1,6}\s+/, '').replace(/^\s*[-*]\s+/, '• ').trim()).filter(Boolean).map(inline).join(' <span class="sep">·</span> ');
+}
+
 function inline(text) {
   return esc(text)
     .replace(LINK_RE, (m, label, c, id) => `<span class="ref" data-ref="${c}/${id}" contenteditable="false">${label}</span>`)

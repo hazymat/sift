@@ -31,6 +31,7 @@ const SHELL = [
   'js/summary.js',
   'js/exporttext.js',
   'js/holdopen.js',
+  'js/viewcog.js',
   'js/linkpicker.js',
   'js/csv.js',
   'js/places.js',

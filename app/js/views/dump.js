@@ -3,6 +3,7 @@
 // filtered, searched, edited, pinned, and converted into a task, a day plan
 // item, a Find Things item or (select text) a contact.
 
+import { cogHtml } from '../viewcog.js';
 import * as store from '../store.js';
 import { linkDetailsInText } from '../refs.js';
 import { readDraft, writeDraft } from '../drafts.js';
@@ -66,6 +67,7 @@ export default {
           ${KINDS.map(k => `<button type="button" data-filter="${k.id}">${k.label}</button>`).join('')}
           <button type="button" data-filter="pinned">★ Pinned</button>
         </div>
+        ${cogHtml('dump')}
         <details class="tool-menu">
           <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
           <div class="menu">

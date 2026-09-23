@@ -2,6 +2,7 @@
 // cards. Tapping a card zooms into the box (#/find-things/<box id>); Back zooms
 // out again. Search across all life areas, CSV import/export.
 
+import { cogHtml } from '../viewcog.js';
 import { loadTree, search, importCsv, exportCsv, archivedMatchCount, splitQuantity } from '../places.js';
 import { richText, previewLine } from '../richtext.js';
 import { createListKit } from '../listkit.js';
@@ -46,6 +47,7 @@ export default {
         </div>
         <div class="find-tools">
           <div class="segmented" id="editions" role="tablist" aria-label="Life areas"></div>
+          ${cogHtml('places')}
           <details class="tool-menu">
             <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
             <div class="menu">
