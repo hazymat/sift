@@ -40,6 +40,15 @@ export default {
         <label class="check-row"><input type="checkbox" name="hint_walk_breaks"> Build in walking breaks during laptop work <span class="muted">(with the focus timer, coming later)</span></label>
       </section>
 
+      <section class="card" id="notes-settings">
+        <h2>Notes</h2>
+        <p class="muted">In any note, 📞 links a contact, 📝 links anything, ⚠️ links something important. Or just keep the emoji.</p>
+        <label class="check-row"><input type="checkbox" name="spot_details"> Turn phone numbers and emails typed into notes into contacts (with Undo)</label>
+        <div class="settings-grid">
+          <label>Phone numbers without a country code are from<select name="phone_country"></select></label>
+        </div>
+      </section>
+
       <section class="card">
         <h2>Navigation</h2>
         <p class="muted">Drag to reorder. The top ${app.MAX_PINNED} go in the bottom bar on your phone; the rest live under More.</p>
@@ -89,6 +98,22 @@ export default {
         </dl>
       </section>
     `;
+
+    // Notes: spotting numbers and emails
+    const ns = el.querySelector('#notes-settings');
+    {
+      const { COUNTRIES, spotSettings } = await import('../refs.js');
+      const cur = await spotSettings();
+      const sel = ns.querySelector('[name="phone_country"]');
+      sel.innerHTML = [...COUNTRIES].sort((a, b) => a[1].localeCompare(b[1])).map(([cc, name]) => `<option value="${cc}">${name} (+${cc})</option>`).join('');
+      sel.value = cur.phone_country;
+      ns.querySelector('[name="spot_details"]').checked = cur.spot_details;
+      ns.addEventListener('change', async ev => {
+        const t = ev.target;
+        await store.updateSettings({ [t.name]: t.type === 'checkbox' ? t.checked : t.value });
+        toast('✓ Saved');
+      });
+    }
 
     // Day Planner settings
     const { daySettings } = await import('../days.js');

@@ -1,5 +1,6 @@
 import * as store from './store.js';
 import { installInlineEditing } from './inline.js';
+import { installRefLinks } from './refs.js';
 
 // Adding an area is one entry here plus a view module (spec §5.1).
 export const AREAS = [
@@ -209,6 +210,7 @@ async function boot() {
   });
   $('#quick-add').onclick = () => currentView?.quickAdd?.();
   installInlineEditing();
+  installRefLinks();
   addEventListener('hashchange', route);
   addEventListener('resize', fitTopNav);
   store.subscribe(renderSyncStatus);

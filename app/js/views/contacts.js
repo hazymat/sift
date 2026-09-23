@@ -12,6 +12,7 @@ import {
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import { richText } from '../richtext.js';
+import { mentionsOf } from '../refs.js';
 import { addTask } from '../tasks.js';
 import { isoDate } from '../days.js';
 import { createListKit } from '../listkit.js';
@@ -178,6 +179,8 @@ export default {
       const { cases, log } = linkedTo(c);
       const tasks = await store.list('tasks', { filter: t => t.contact_ids?.includes(c.id) && !t.archived_at });
       const dayItems = await store.list('day_items', { filter: i => i.contact_ids?.includes(c.id) && !i.archived_at });
+      const known = new Set([...tasks, ...dayItems].map(r => r.id));
+      const mentions = (await mentionsOf('contacts', c.id)).filter(m => !known.has(m.id) && m.id !== c.id);
       const timeline = [
         { at: c.captured_at, text: 'Recorded', kind: 'captured' },
         ...log.map(i => ({ at: i.at, text: `${HOW.find(h => h.id === i.how)?.icon || ''} ${i.direction === 'in' ? 'They' : 'I'} ${i.how === 'call' ? 'called' : i.how === 'email' ? 'emailed' : i.how === 'text' ? 'texted' : i.how}${i.detail_used ? ` (${i.detail_used})` : ''}${i.summary ? `: ${i.summary}` : ''}`, kind: 'log', id: i.id })),
@@ -217,10 +220,11 @@ export default {
           <h3 class="milestone">Log</h3>
           ${logForm('contact')}
           <ul class="timeline">${timeline.map(e => `<li class="${e.kind}"><span class="muted">${when(e.at)}</span> ${esc(e.text)}</li>`).join('')}</ul>
-          ${cases.length || tasks.length || dayItems.length ? `<h3 class="milestone">Connected</h3><ul class="links">
+          ${cases.length || tasks.length || dayItems.length || mentions.length ? `<h3 class="milestone">Connected</h3><ul class="links">
             ${cases.map(k => `<li><a href="#/contacts/cases/${k.id}">Case: ${esc(k.title)}</a></li>`).join('')}
             ${tasks.map(t => `<li><a href="#/tasks/list${t.project_id ? `/${t.project_id}` : ''}">Task: ${esc(t.title)}</a></li>`).join('')}
             ${dayItems.map(i => `<li><a href="#/planner/${i.date}">Plan ${i.date}: ${esc(i.title)}</a></li>`).join('')}
+            ${mentions.map(m => `<li><a href="${m.route}">${m.icon} Mentioned in ${esc(m.label.toLowerCase())}: ${esc(m.title)}</a></li>`).join('')}
           </ul>` : ''}
           <div class="detail-actions">
             <button type="button" data-act="contact-task">+ Task with this contact</button>
@@ -312,7 +316,7 @@ export default {
       if (notesBox) {
         const c = byId(state.id);
         let t;
-        richText(notesBox, { value: c.notes || '', placeholder: 'Record contact notes here', onChange: md => { clearTimeout(t); t = setTimeout(() => store.update('contacts', c.id, { notes: md }), 600); } });
+        richText(notesBox, { value: c.notes || '', placeholder: 'Record contact notes here', spot: false, origin: () => ({ collection: 'contacts', id: c.id, title: c.name, field: 'notes' }), onChange: md => { clearTimeout(t); t = setTimeout(() => store.update('contacts', c.id, { notes: md }), 600); } });
       }
     };
 

@@ -434,6 +434,8 @@ const DEFAULT_SETTINGS = {
   week_start: 1,
   theme: 'blue', // blue | dark | light | auto
   pinned_areas: null, // null = app default
+  spot_details: true, // phone numbers / emails in notes become contacts
+  phone_country: '44', // calling code for numbers written without one
 };
 
 export async function getSettings() {

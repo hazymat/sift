@@ -25,6 +25,8 @@ const SHELL = [
   'js/inline.js',
   'js/views/history.js',
   'js/richtext.js',
+  'js/refs.js',
+  'js/linkpicker.js',
   'js/csv.js',
   'js/places.js',
   'js/views/placeholder.js',

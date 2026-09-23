@@ -1412,3 +1412,61 @@ li[data-id]:hover .kit-grip { opacity: .8; }
 /* No ruled lines inside a multi-slot item: the block reads as one piece.
    (Margin times stay; the block keeps a line at its bottom edge.) */
 .span-block > .line:not(:last-child) { border-bottom-color: transparent; }
+
+/* ---------- Links in notes (refs.js, linkpicker.js) ---------- */
+.rich { position: relative; }
+.ref {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 0 1px;
+  white-space: nowrap;
+}
+.ref:hover { text-decoration-style: solid; background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.ref-new { animation: ref-made 1.6s ease-out; }
+@keyframes ref-made { 0%, 30% { background: color-mix(in srgb, var(--accent) 40%, transparent); } 100% { background: transparent; } }
+
+.ref-picker, .ref-menu {
+  position: absolute;
+  z-index: 60;
+  background: color-mix(in srgb, var(--bg, #0f172a) 94%, var(--text) 6%);
+  color: var(--text);
+  border: 1px solid var(--active-border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-sm, 0 8px 30px rgba(0, 0, 0, .3));
+  font-family: var(--font);
+  font-size: .9rem;
+}
+.ref-picker { width: min(340px, 100%); padding: 6px; scroll-margin-bottom: calc(var(--tabbar-h) + 24px); }
+.ref-picker .ref-q { width: 100%; font-size: .95rem; padding: 6px 8px; }
+.ref-list { list-style: none; margin: 6px 0 0; padding: 0; max-height: 260px; overflow-y: auto; }
+.ref-list li { display: grid; grid-template-columns: 24px 1fr; column-gap: 6px; padding: 6px 8px; border-radius: 6px; cursor: pointer; }
+.ref-list li.ref-none, .ref-list li.ref-new, .ref-list li.ref-empty { display: block; }
+.ref-list li.ref-none { color: var(--muted); }
+.ref-list li.ref-none kbd { font-size: .7rem; border: 1px solid var(--glass-border); border-radius: 4px; padding: 0 4px; margin-left: 4px; }
+.ref-list li.ref-new { color: var(--accent); }
+.ref-list li.ref-empty { cursor: default; font-size: .82rem; }
+.ref-list li.active { background: var(--active-bg); }
+.ref-list li.ticked { box-shadow: inset 3px 0 0 var(--accent); }
+.ref-list li.ticked .ref-icon::after { content: " ✓"; color: var(--accent); }
+.ref-icon { grid-row: span 2; font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif; }
+.ref-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ref-sub { font-size: .75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ref-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: .72rem; padding: 6px 4px 0; }
+.ref-foot .ref-go { padding: 3px 10px; font-size: .8rem; }
+.ref-menu { display: flex; gap: 4px; padding: 4px; }
+.ref-menu button { padding: 3px 10px; font-size: .82rem; }
+
+/* While typing in a note, everything else dims (richtext.js). */
+.note-spotlight {
+  position: fixed;
+  z-index: 900;
+  pointer-events: none;
+  border-radius: 12px;
+  box-shadow: 0 0 0 200vmax rgba(0, 0, 0, .5);
+  animation: note-dim .2s ease-out;
+}
+@keyframes note-dim { from { box-shadow: 0 0 0 200vmax rgba(0, 0, 0, 0); } }

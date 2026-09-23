@@ -10,7 +10,7 @@ import {
 } from '../days.js';
 import { listEntry, listHint } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
-import { richText, toHtml, plainLines } from '../richtext.js';
+import { richText, toHtml, previewLine } from '../richtext.js';
 import { loadAll as loadTasks, forDay, suggestions, doneFields, aimDate } from '../tasks.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -125,14 +125,35 @@ export default {
     el.addEventListener('focusout', async ev => {
       const box = ev.target.closest?.('[data-note-for]');
       if (!box || box.contains(ev.relatedTarget) || !box._editor) return;
-      await leaveNoteBox(box);
+      const id = box.dataset.noteFor;
+      const staying = ev.relatedTarget?.closest?.(`.item-details[data-for="${id}"], [data-item="${id}"]`);
+      await leaveNoteBox(box, { redraw: !staying });
     });
-    async function leaveNoteBox(box) {
+    // Buttons in the panel keep the note focused while pressed, and the note
+    // is saved (quietly, without redrawing) before the button does its thing,
+    // so e.g. Close both saves and closes.
+    el.addEventListener('mousedown', ev => {
+      if (ev.target.closest('.item-details button') && !ev.target.closest('.rich')) ev.preventDefault();
+    });
+    async function flushNote(scope) {
+      const box = scope?.querySelector('.detail-notes[data-note-for]');
+      if (box?._editor) await leaveNoteBox(box, { redraw: false });
+    }
+    async function leaveNoteBox(box, { redraw = true } = {}) {
       const id = box.dataset.noteFor;
       const it = items.find(i => i.id === id);
       if (!it) return;
       const text = box._editor.value.replace(/\s+$/, '');
       const cancelled = box.dataset.cancel === '1';
+      if (!redraw && !cancelled) {
+        if (text !== (it.notes || '')) {
+          const old = it.notes || '';
+          await store.update('day_items', id, { notes: text });
+          it.notes = text;
+          undoable(text ? 'Note saved' : 'Note removed', async () => { await store.update('day_items', id, { notes: old }); await refresh(); });
+        }
+        return;
+      }
       box._editor = null;
       if (box.classList.contains('note-edit')) noteEditing = null;
       if (!cancelled && text !== (it.notes || '')) {
@@ -150,6 +171,7 @@ export default {
     let notesTimer;
     const notes = richText($('#notes'), {
       placeholder: 'Anything about today…',
+      origin: () => ({ collection: 'days', id: date, title: `Notes for ${date}`, field: 'notes' }),
       onChange: md => {
         clearTimeout(notesTimer);
         const forDate = date;
@@ -219,13 +241,12 @@ export default {
     const openNotes = new Set();
     let noteEditing = null; // item whose notes are being typed (Shift+Enter)
     function noteHtml(i) {
-      const lines = plainLines(i.notes);
-      if (!lines.length) return '';
+      const { html, more } = previewLine(i.notes);
+      if (!html) return '';
       const open = openNotes.has(i.id);
-      const more = lines.length - 1;
-      return `<div class="item-note${open ? ' open' : ''}" data-act="toggle-note" role="button" tabindex="0" aria-expanded="${open}" title="${open ? 'Show less' : 'Show the whole note'}">`
+      return `<div class="item-note${open ? ' open' : ''}" data-act="toggle-note" role="button" tabindex="0" aria-expanded="${editing === i.id}" title="${editing === i.id ? 'Close' : 'Open to read or edit'}">`
         + `<span class="note-emoji" aria-hidden="true">📝</span>`
-        + `${open ? `<div class="note-body">${toHtml(i.notes)}</div>` : esc(lines[0])}${!open && more > 0 ? ` <span class="more-lines">+${more} more</span>` : ''}</div>`;
+        + `${open ? `<div class="note-body">${toHtml(i.notes)}</div>` : html}${!open && more > 0 ? ` <span class="more-lines">+${more} more</span>` : ''}</div>`;
     }
 
     // Mount the notes editor wherever a row or details panel asked for one.
@@ -234,7 +255,7 @@ export default {
         if (box._editor) continue;
         const it = items.find(i => i.id === box.dataset.noteFor);
         if (!it) continue;
-        box._editor = richText(box, { value: it.notes || '' });
+        box._editor = richText(box, { value: it.notes || '', origin: () => ({ collection: 'day_items', id: it.id, title: it.title, field: 'notes' }) });
       }
     }
 
@@ -480,6 +501,7 @@ export default {
     el.addEventListener('click', async ev => {
       const t = ev.target.closest('[data-act], [data-energy]');
       if (!t) return;
+      if (t.closest('.item-details') && !t.closest('.rich')) await flushNote(t.closest('.item-details'));
       const itemEl = t.closest('[data-item], [data-for]');
       const id = itemEl?.dataset.item || itemEl?.dataset.for;
       const act = t.dataset.act;
@@ -495,10 +517,8 @@ export default {
       else if (act === 'add-at') openLine(t);
       else if (act === 'toggle-note') {
         const nid = t.closest('[data-item]').dataset.item;
-        openNotes.has(nid) ? openNotes.delete(nid) : openNotes.add(nid);
-        renderLines();
-        renderPile();
-        paintSelection();
+        if (editing === nid) closeDetails();
+        else { editing = nid; refresh(); }
       }
       else if (act === 'adopt' || act === 'task-to-plan') {
         const taskId = t.closest('[data-task]').dataset.task;
@@ -514,7 +534,7 @@ export default {
           undoable(`"${task.title}" is in To place`, async () => { await store.remove('day_items', made.id); await refresh(); renderTasks(); });
         }
       }
-      else if (act === 'details') { editing = editing === id ? null : id; refresh(); }
+      else if (act === 'details') { if (editing === id) closeDetails(); else { editing = id; refresh(); } }
       else if (act === 'close-details') closeDetails();
       else if (act === 'unschedule') { editing = null; await change(id, { time: null, end_time: null }, 'Time unallocated'); }
       else if (act === 'delete') {

@@ -4,9 +4,10 @@
 // item, a Find Things item or (select text) a contact.
 
 import * as store from '../store.js';
+import { linkDetailsInText } from '../refs.js';
 import { SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
-import { toHtml } from '../richtext.js';
+import { toHtml, richText } from '../richtext.js';
 import { addTask } from '../tasks.js';
 import { addItem, isoDate, parseTimed, daySettings, durationChoices, durationLabel } from '../days.js';
 import { loadTree } from '../places.js';
@@ -116,7 +117,7 @@ export default {
             <button type="button" class="pin" data-act="pin" aria-pressed="${!!t.pinned}" title="Pin">${t.pinned ? '★' : '☆'}</button>
           </div>
           ${editing === t.id
-            ? `<textarea class="thought-edit hand" rows="${Math.min(10, t.body.split('\n').length + 1)}">${esc(t.body)}</textarea>`
+            ? `<div class="thought-edit" data-thought="${t.id}"></div>`
             : `<div class="thought-body hand" data-act="edit">${toHtml(t.body)}</div>`}
           <div class="thought-actions">
             <button type="button" data-act="to-task">→ Task</button>
@@ -191,12 +192,22 @@ export default {
       if (!text) return;
       const bodies = splitLines ? text.split('\n').map(l => l.replace(/^[\s\-*•]+/, '').trim()).filter(Boolean) : [text];
       const made = [];
-      for (const body of bodies) made.push(await store.create('thoughts', { body, kind, pinned: false, converted_to: null }));
+      const contacts = [];
+      for (const body of bodies) {
+        const t = await store.create('thoughts', { body, kind, pinned: false, converted_to: null });
+        // Phone numbers and emails become linked contacts.
+        const linked = await linkDetailsInText(body, { collection: 'thoughts', id: t.id, title: body.split('\n')[0].slice(0, 60) });
+        if (linked.linked) await store.update('thoughts', t.id, { body: linked.text });
+        contacts.push(...linked.made);
+        made.push(t);
+      }
       input.value = '';
       input.focus();
       await render();
-      undoable(`Saved ${made.length > 1 ? `${made.length} thoughts` : kindLabel(kind).toLowerCase()}`, async () => {
+      const extra = contacts.length ? `, ${contacts.length} new contact${contacts.length === 1 ? '' : 's'}` : '';
+      undoable(`Saved ${made.length > 1 ? `${made.length} thoughts` : kindLabel(kind).toLowerCase()}${extra}`, async () => {
         await store.updateMany('thoughts', made.map(m => [m.id, { deleted_at: new Date().toISOString() }]));
+        if (contacts.length) await store.updateMany('contacts', contacts.map(id => [id, { deleted_at: new Date().toISOString() }]));
         await render();
       });
     }
@@ -235,7 +246,15 @@ export default {
       if (act === 'save-lines') return save(true);
       if (act === 'toggle-converted') { state.showConverted = !state.showConverted; return render(); }
       if (!t) return;
-      if (act === 'edit') { editing = t.id; await render(); list.querySelector(`[data-id="${t.id}"] .thought-edit`)?.focus(); }
+      if (act === 'edit') {
+        editing = t.id;
+        await render();
+        const box = list.querySelector(`[data-id="${t.id}"] .thought-edit`);
+        if (box) {
+          box._editor = richText(box, { value: t.body, origin: () => ({ collection: 'thoughts', id: t.id, title: t.body.split('\n')[0].slice(0, 60), field: 'body' }) });
+          box._editor.focus();
+        }
+      }
       else if (act === 'pin') {
         await store.update('thoughts', t.id, { pinned: !t.pinned });
         render();
@@ -285,12 +304,13 @@ export default {
       }
     });
 
-    // Editing a thought saves when you leave it (Esc cancels).
+    // Editing a thought saves when you leave it (Esc cancels, Ctrl+Enter saves).
     list.addEventListener('focusout', async ev => {
-      if (!ev.target.classList.contains('thought-edit')) return;
-      const li = ev.target.closest('[data-id]');
-      const t = thoughts.find(x => x.id === li.dataset.id);
-      const body = ev.target.value.trim();
+      const box = ev.target.closest?.('.thought-edit');
+      if (!box?._editor || box.contains(ev.relatedTarget)) return;
+      const t = thoughts.find(x => x.id === box.dataset.thought);
+      const body = box.dataset.cancel ? t.body : box._editor.value.trim();
+      box._editor = null;
       editing = null;
       if (body && body !== t.body) {
         await store.update('thoughts', t.id, { body });
@@ -303,7 +323,10 @@ export default {
     };
     addEventListener('keydown', this.onKey);
     list.addEventListener('keydown', ev => {
-      if (ev.target.classList.contains('thought-edit') && ev.key === 'Escape') { ev.stopPropagation(); ev.target.value = thoughts.find(x => x.id === ev.target.closest('[data-id]').dataset.id).body; ev.target.blur(); }
+      const box = ev.target.closest?.('.thought-edit');
+      if (!box) return;
+      if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); box.dataset.cancel = '1'; ev.target.blur(); }
+      if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); ev.target.blur(); }
     });
 
     // Select text in a thought → "Make contact" button by the selection.
