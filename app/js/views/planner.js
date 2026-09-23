@@ -14,7 +14,7 @@ import { richText, toHtml, previewLine } from '../richtext.js';
 import { keepDraft } from '../drafts.js';
 import { autosizeAll } from '../inline.js';
 import { summarise } from '../summary.js';
-import { loadAll as loadTasks, forDay, suggestions, doneFields, aimDate, addTask } from '../tasks.js';
+import { loadAll as loadTasks, forDay, suggestions, doneFields, aimDate, addTask, horizonOf } from '../tasks.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -47,16 +47,15 @@ export default {
       </header>
       <div class="carry" hidden></div>
       <section class="paper" aria-label="Plan"><div id="lines"></div></section>
-      <section class="pile">
-        <h2>To place</h2>
-        <ul id="pile" class="pile-list"></ul>
-        <textarea id="dump" class="list-entry hand" rows="3" placeholder="What do you want to get done?"></textarea>
-        <p class="muted hint">${listHint({ subItems: false })} Start a line with a time (12.45) to put it straight on the plan.</p>
-      </section>
       <div class="day-bottom">
-        <section class="day-tasks">
+        <section class="pile">
           <h2>Tasks</h2>
-          <div id="day-tasks"></div>
+          <ul id="pile" class="pile-list"></ul>
+          <textarea id="dump" class="list-entry hand" rows="3" placeholder="What do you want to get done?"></textarea>
+          <div class="pile-foot">
+            <button type="button" data-act="bring-in">Bring in from tasks…</button>
+          </div>
+          <p class="muted hint">${listHint({ subItems: false })} Start a line with a time (12.45) to put it straight on the plan, or drag a task onto a time.</p>
         </section>
         <section class="day-notes">
           <h2>Notes</h2>
@@ -77,7 +76,8 @@ export default {
       </section>
       </div>
       <dialog class="sheet cal-sheet" id="cal" aria-label="Pick a date"></dialog>
-      <dialog class="sheet review-sheet" id="review" aria-label="Unfinished from earlier days"></dialog>`;
+      <dialog class="sheet review-sheet" id="review" aria-label="Unfinished from earlier days"></dialog>
+      <dialog class="sheet review-sheet bring-sheet" id="bring" aria-label="Bring in from tasks"></dialog>`;
 
     const $ = s => el.querySelector(s);
     const linesEl = $('#lines');
@@ -454,7 +454,7 @@ export default {
     function renderPile() {
       const pile = items.filter(i => !i.time && !lifted.has(i.id));
       $('#pile').innerHTML = pile.map(i => `<li>${itemRow(i, '')}</li>`).join('')
-        || '<li class="muted pile-empty">Nothing waiting. Dump things below, then give them times.</li>';
+        || '<li class="muted pile-empty">No tasks for this day yet. Add some below, or bring them in from Tasks.</li>';
       autosizeAll($('#pile'));
       mountNoteEditors();
     }
@@ -472,38 +472,100 @@ export default {
     // Tasks for this day: planned (start date), aim today, ongoing multi-day,
     // and energy-matched suggestions to adopt.
     let tasks = [];
+    // "Bring in from tasks": a list of tasks to go through for this day.
+    // At the top, what's planned or aimed for this day and ideas for today's
+    // energy; then Now, Next and Later. Each can be claimed into the day,
+    // moved to Next or Later, or archived.
     async function renderTasks() {
       tasks = (await loadTasks()).tasks;
-      const { planned, aimed, ongoing } = forDay(tasks, date);
-      const onPlan = new Set(items.map(i => i.task_id).filter(Boolean));
-      const row = (t, note = '') => `
-        <li data-task="${t.id}" class="${t.done_at ? 'done' : ''}">
-          <input type="checkbox" class="task-tick" ${t.done_at ? 'checked' : ''} aria-label="Done">
-          <a class="task-link" href="#/tasks/list${t.project_id ? `/${t.project_id}` : ''}">${esc(t.title)}</a>
-          ${note ? `<span class="span-tag">${note}</span>` : ''}
-          ${onPlan.has(t.id) ? '<span class="span-tag">on the plan</span>' : `<button type="button" class="small-btn" data-act="task-to-plan">To place</button>`}
-        </li>`;
-      const energy = ENERGY.find(e => e.id === day.energy);
-      const ideas = suggestions(tasks, day.energy);
-      const parts = [];
-      if (planned.length) parts.push(`<ul class="day-task-list">${planned.map(t => row(t)).join('')}</ul>`);
-      if (aimed.length) parts.push(`<h3>Aim is this day</h3><ul class="day-task-list">${aimed.map(t => row(t, '⚑ aim')).join('')}</ul>`);
-      if (ongoing.length) {
-        parts.push(`<h3>Ongoing</h3><ul class="day-task-list ongoing">${ongoing.map(t => {
-          const total = Math.round((parseDate(aimDate(t)) - parseDate(t.start_date)) / 86400000) + 1;
-          const n = Math.round((parseDate(date) - parseDate(t.start_date)) / 86400000) + 1;
-          return row(t, `day ${n} of ${total}`);
-        }).join('')}</ul>`);
-      }
-      if (energy && ideas.length) {
-        parts.push(`<h3>${energy.label} energy ideas</h3><ul class="day-task-list ideas">${ideas.map(t => `
-          <li data-task="${t.id}"><span class="task-link">${esc(t.title)}</span>
-            <button type="button" class="small-btn" data-act="adopt">Adopt</button></li>`).join('')}</ul>`);
-      } else if (energy) {
-        parts.push(`<p class="muted hint">Tag tasks with ${energy.label.toLowerCase()} energy (${energy.hint.toLowerCase()}) and they'll be suggested here.</p>`);
-      }
-      $('#day-tasks').innerHTML = parts.join('') || '<p class="muted hint">No tasks for this day. In Tasks, use ⋯ → Plan for day, or set today\'s energy level for ideas.</p>';
+      if ($('#bring').open) drawBring();
     }
+
+    async function openBring() {
+      tasks = (await loadTasks()).tasks;
+      drawBring();
+      const dlg = $('#bring');
+      if (!dlg.open) dlg.showModal();
+    }
+
+    function drawBring() {
+      const open = tasks.filter(t => !t.done_at && !t.archived_at && t.status !== 'done');
+      const onDay = new Set(items.map(i => i.task_id).filter(Boolean));
+      const { planned, aimed, ongoing } = forDay(open, date);
+      const top = [...new Set([...planned, ...aimed, ...ongoing])];
+      const ideas = suggestions(open, day.energy).filter(t => !top.includes(t));
+      const seen = new Set([...top, ...ideas]);
+      const by = h => open.filter(t => horizonOf(t) === h && !seen.has(t) && !t.parent_task_id);
+      const energy = ENERGY.find(e => e.id === day.energy);
+      const card = (t, note = '') => {
+        const e = ENERGY.find(x => x.id === t.energy);
+        const aim = aimDate(t);
+        const first = (t.notes || '').split('\n').map(l => l.trim()).find(Boolean);
+        const h = horizonOf(t);
+        return `<li data-bring="${t.id}">
+          <div class="bring-main">
+            <span class="review-title hand">${esc(t.title)}</span>
+            <span class="bring-info">
+              ${note ? `<span class="span-tag">${esc(note)}</span>` : ''}
+              ${e ? `<span class="span-tag bolts" title="Energy: ${e.label}">${e.bolts}</span>` : ''}
+              ${aim ? `<span class="span-tag" title="Completion aim">⚑ ${esc(aim)}</span>` : ''}
+              ${t.start_date && t.start_date !== date ? `<span class="span-tag" title="Planned for">📅 ${esc(t.start_date)}</span>` : ''}
+            </span>
+            ${first ? `<span class="bring-note muted">📝 ${esc(first.replace(/\[([^\]]*)\]\(sift:[^)]*\)/g, '$1'))}</span>` : ''}
+          </div>
+          <span class="review-actions">
+            ${onDay.has(t.id) ? '<span class="span-tag">on this day</span>' : `<button type="button" class="primary" data-bring-act="claim">Claim for ${date === isoDate() ? 'today' : 'this day'}</button>`}
+            ${h !== 'next' ? '<button type="button" data-bring-act="next">Next</button>' : ''}
+            ${h !== 'later' ? '<button type="button" data-bring-act="later">Later</button>' : ''}
+            <button type="button" data-bring-act="archive">Archive</button>
+          </span>
+        </li>`;
+      };
+      const section = (title, list, note) => (list.length ? `<h3 class="milestone">${title}</h3><ul class="review-list bring-list">${list.map(t => card(t, typeof note === 'function' ? note(t) : note)).join('')}</ul>` : '');
+      const aimNote = t => (t.start_date === date ? '' : aimDate(t) === date ? 'aim is this day' : 'ongoing');
+      $('#bring').innerHTML = `
+        <div class="sheet-handle"></div>
+        <h2>Bring in from tasks</h2>
+        <p class="muted hint">Claim what you'll do ${date === isoDate() ? 'today' : 'on this day'}. Push the rest to Next or Later, or archive what's no longer needed.</p>
+        ${section('For this day', top, aimNote)}
+        ${energy ? section(`Ideas for ${energy.bolts} energy`, ideas) : ''}
+        ${section('Now', by('now'))}
+        ${section('Next', by('next'))}
+        ${section('Later', by('later'))}
+        ${open.length ? '' : '<p class="muted">No open tasks. Add some in Tasks.</p>'}
+        <div class="review-all"><button type="button" data-bring-act="close" class="primary">Done</button></div>`;
+    }
+
+    // Claiming makes a plan item linked to the task (with its note and
+    // people) and marks the task as planned for this day.
+    $('#bring').addEventListener('click', async ev => {
+      const b = ev.target.closest('[data-bring-act]');
+      if (!b) return;
+      const act = b.dataset.bringAct;
+      if (act === 'close') { $('#bring').close(); return; }
+      const id = b.closest('[data-bring]')?.dataset.bring;
+      const task = tasks.find(t => t.id === id);
+      if (!task) return;
+      const before = { horizon: task.horizon ?? null, start_date: task.start_date ?? null, archived_at: task.archived_at ?? null };
+      let made = null;
+      if (act === 'claim') {
+        made = await addItem(date, { title: task.title, task_id: task.id, notes: task.notes || '', contact_ids: task.contact_ids || [], case_id: task.case_id || null });
+        await store.update('tasks', task.id, { start_date: task.start_date || date, horizon: 'now' });
+      } else if (act === 'next' || act === 'later') {
+        await store.update('tasks', task.id, { horizon: act });
+      } else if (act === 'archive') {
+        await store.update('tasks', task.id, { archived_at: new Date().toISOString() });
+      }
+      await refresh();
+      await renderTasks();
+      const label = { claim: `"${task.title}" is on ${date === isoDate() ? 'today' : 'this day'}`, next: `"${task.title}" is for next`, later: `"${task.title}" is for later`, archive: `Archived "${task.title}"` }[act];
+      undoable(label, async () => {
+        if (made) await store.remove('day_items', made.id);
+        await store.update('tasks', task.id, before);
+        await refresh();
+        await renderTasks();
+      });
+    });
 
     async function render() {
       settings = await daySettings();
@@ -582,6 +644,7 @@ export default {
       else if (act === 'next') go(addDays(date, 1));
       else if (act === 'today') go(isoDate());
       else if (act === 'calendar') openCalendar(date);
+      else if (act === 'bring-in') openBring();
       else if (act === 'share') toast('Sharing a day is coming soon');
       else if (act === 'paper-week' || act === 'paper-all') resetPapers(act === 'paper-week');
       else if (act === 'clear-day') clearDay();

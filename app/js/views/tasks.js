@@ -1,10 +1,10 @@
 // Tasks: a simple checklist that grows into a project planner.
-// #/tasks/<view>/<project id>   views: list, today, upcoming, projects, done
+// #/tasks/<view>/<project id>   views: list, now, next, later, projects, done
 // Every extra (day, aim, energy, project, milestone, notes) lives behind a
 // task's ⋯ so the list stays simple until you want more.
 
 import * as store from '../store.js';
-import { loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES } from '../tasks.js';
+import { loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES, HORIZONS, horizonOf } from '../tasks.js';
 import { ENERGY, isoDate, addDays, parseDate, addItem } from '../days.js';
 import { pillMenu } from '../pillmenu.js';
 import { summarise } from '../summary.js';
@@ -18,8 +18,9 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
 const VIEWS = [
   { id: 'list', label: 'List' },
-  { id: 'today', label: 'Today' },
-  { id: 'upcoming', label: 'Upcoming' },
+  { id: 'now', label: 'Now' },
+  { id: 'next', label: 'Next' },
+  { id: 'later', label: 'Later' },
   { id: 'projects', label: 'Projects' },
   { id: 'done', label: 'Done' },
 ];
@@ -123,7 +124,9 @@ export default {
     // Clicking a pill changes it in place.
     function subLine(t) {
       const e = ENERGY.find(x => x.id === t.energy);
-      const pills = e ? `<button type="button" class="pill-act bolts" data-act="energy-pill" title="Energy: ${e.label}. Click to change" aria-label="Energy ${e.label}, change">${e.bolts}</button>` : '';
+      const h = horizonOf(t);
+      const pills = (e ? `<button type="button" class="pill-act bolts" data-act="energy-pill" title="Energy: ${e.label}. Click to change" aria-label="Energy ${e.label}, change">${e.bolts}</button>` : '')
+        + (h !== 'now' && state.view !== h && !isDone(t) ? `<button type="button" class="pill-act" data-act="horizon-pill" title="For ${h}. Click to change">${h}</button>` : '');
       const note = t.notes ? noteHtml(t) : '';
       return pills || note ? `<div class="item-sub">${pills}${note}</div>` : '';
     }
@@ -154,6 +157,9 @@ export default {
           <label>People<select name="add_contact"><option value="">+ Add a contact…</option>${people.contacts.filter(c => !(t.contact_ids || []).includes(c.id)).map(c => `<option value="${c.id}">${esc(c.name || '(no name)')}</option>`).join('')}</select></label>
           <label>Case<select name="case_id"><option value="">None</option>${people.cases.map(k => `<option value="${k.id}" ${t.case_id === k.id ? 'selected' : ''}>${esc(k.title)}</option>`).join('')}</select></label>
           ${(t.contact_ids || []).length ? `<div class="energy-pick"><span>With</span>${t.contact_ids.map(cid => people.contacts.find(c => c.id === cid)).filter(Boolean).map(c => `<span class="chip">${esc(c.name)} <button type="button" class="chip-x" data-act="remove-contact" data-id="${c.id}" aria-label="Remove">×</button></span>`).join('')}</div>` : ''}
+          <div class="energy-pick" role="group" aria-label="When"><span>When</span>
+            ${HORIZONS.map(x => `<button type="button" data-horizon="${x.id}" aria-pressed="${horizonOf(t) === x.id}">${x.label}</button>`).join('')}
+          </div>
           <div class="energy-pick" role="group" aria-label="Energy"><span>Energy</span>
             ${ENERGY.map(e => `<button type="button" class="bolts" data-energy="${e.id}" aria-pressed="${t.energy === e.id}" title="${esc(`${e.label}: ${e.hint}`)}" aria-label="${e.label}">${e.bolts}</button>`).join('')}
           </div>
@@ -244,28 +250,18 @@ export default {
       return html;
     }
 
-    function viewToday() {
+    // Now / Next / Later: the open tasks for that horizon (no horizon = Now),
+    // with anything overdue or planned for today first in Now.
+    function viewHorizon(h) {
       const today = isoDate();
-      const open = data.tasks.filter(t => !isDone(t));
-      const late = open.filter(t => aimDate(t) && aimDate(t) < today);
-      const planned = open.filter(t => t.start_date === today || (t.start_date && t.start_date < today && !aimDate(t)));
-      const due = open.filter(t => aimDate(t) === today && !planned.includes(t));
-      const section = (title, list, note) => list.length ? head(`${title}${note ? ` <span class="muted">${note}</span>` : ''}`) + rowsOf(list.map(t => ({ ...t, depth: 0 })), { draggable: false }) : '';
-      return listOf(section('Overdue', late, 'aim date has passed') + section('Planned for today', planned) + section('Aim is today', due),
-        '<div class="empty"><h2>Nothing planned for today.</h2><p class="muted">Give tasks a day with ⋯ → Plan for day, or adopt some in Day Planner.</p></div>');
-    }
-
-    function viewUpcoming() {
-      const today = isoDate();
-      const days = [...Array(14)].map((_, n) => addDays(today, n));
-      const open = data.tasks.filter(t => !isDone(t));
+      const open = data.tasks.filter(t => !isDone(t) && horizonOf(t) === h && (!state.project || t.project_id === state.project));
       const flat = list => rowsOf(list.map(t => ({ ...t, depth: 0 })), { draggable: false });
-      const html = days.map(d => {
-        const list = open.filter(t => t.start_date === d || aimDate(t) === d);
-        return list.length ? head(`<a href="#/planner/${d}">${shortDate(d)}</a>`) + flat(list) : '';
-      }).join('');
-      const later = open.filter(t => (t.start_date && t.start_date > days.at(-1)) || (aimDate(t) && aimDate(t) > days.at(-1)));
-      return listOf(html + (later.length ? head('Later') + flat(later) : ''), '<div class="empty"><h2>Nothing in the next two weeks.</h2></div>');
+      const urgent = h === 'now' ? open.filter(t => (aimDate(t) && aimDate(t) <= today) || (t.start_date && t.start_date <= today)) : [];
+      const rest = open.filter(t => !urgent.includes(t));
+      const body = (urgent.length ? head('Due or planned') + flat(urgent) + (rest.length ? head('Everything else') : '') : '') + flat(rest);
+      const empty = { now: 'Nothing for now. Add something above.', next: 'Nothing lined up next.', later: 'Nothing for later.' }[h];
+      return addBox({ now: 'Add tasks for now…', next: 'Add tasks for next…', later: 'Add tasks for later…' }[h])
+        + listOf(open.length ? body : '', `<div class="empty"><h2>${empty}</h2></div>`);
     }
 
     function viewProjects() {
@@ -303,7 +299,7 @@ export default {
       data = await loadAll();
       people = await loadContacts();
       for (const b of el.querySelectorAll('[data-view]')) b.setAttribute('aria-pressed', b.dataset.view === state.view);
-      body.innerHTML = { list: viewList, today: viewToday, upcoming: viewUpcoming, projects: viewProjects, done: viewDone }[state.view]();
+      body.innerHTML = { list: viewList, now: () => viewHorizon('now'), next: () => viewHorizon('next'), later: () => viewHorizon('later'), projects: viewProjects, done: viewDone }[state.view]();
       const ta = body.querySelector('#task-new');
       if (ta) listEntry(ta, addLines, { draft: `tasks:${state.view}:${state.project || ''}` });
       const ul = body.querySelector('.task-list');
@@ -333,7 +329,7 @@ export default {
       const made = [];
       let parent = null;
       const base = { project_id: state.project || null };
-      if (state.view === 'today') base.start_date = isoDate();
+      if (['next', 'later'].includes(state.view)) base.horizon = state.view;
       let shortened = 0;
       for (const line of lines) {
         // A long line gets a short title; the note keeps it all.
@@ -398,7 +394,9 @@ export default {
     }
     const taskActions = [
       { id: 'done', label: 'Done', run: ids => batchSet(ids, doneFields(true), 'Done:') },
-      { id: 'today', label: 'Plan for today', run: ids => batchSet(ids, { start_date: isoDate() }, 'Planned for today:') },
+      { id: 'now', label: 'Now', run: ids => batchSet(ids, { horizon: 'now' }, 'Now:') },
+      { id: 'next', label: 'Next', run: ids => batchSet(ids, { horizon: 'next' }, 'Next:') },
+      { id: 'later', label: 'Later', run: ids => batchSet(ids, { horizon: 'later' }, 'Later:') },
       { id: 'archive', label: 'Archive', run: ids => batchSet(ids, { archived_at: new Date().toISOString() }, 'Archived', { subs: true }) },
       { id: 'delete', label: 'Delete', danger: true, run: ids => batchSet(ids, { deleted_at: new Date().toISOString() }, 'Deleted', { subs: true }) },
     ];
@@ -467,7 +465,7 @@ export default {
     });
 
     el.addEventListener('click', async ev => {
-      const b = ev.target.closest('[data-act], [data-view], [data-energy], [data-open-project]');
+      const b = ev.target.closest('[data-act], [data-view], [data-energy], [data-horizon], [data-open-project]');
       if (!b) return;
       if (b.dataset.view) { state.project = null; go(b.dataset.view, null); return; }
       if (b.dataset.openProject) { go('list', b.dataset.openProject); return; }
@@ -478,6 +476,15 @@ export default {
       b.closest('details')?.removeAttribute('open');
       if (act === 'remove-contact' && id) {
         await change(id, { contact_ids: (task.contact_ids || []).filter(x => x !== b.dataset.id) }, 'Removed a person');
+        return;
+      }
+      if (b.dataset.horizon && id) {
+        await change(id, { horizon: b.dataset.horizon }, `For ${b.dataset.horizon}`);
+        return;
+      }
+      if (act === 'horizon-pill' && id) {
+        pillMenu(b, HORIZONS.map(x => ({ value: x.id, label: x.label, current: horizonOf(task) === x.id })),
+          v => change(id, { horizon: v }, `For ${v}`));
         return;
       }
       if (act === 'energy-pill' && id) {
@@ -579,7 +586,9 @@ export default {
   },
 
   route([view, project]) {
-    this.state.view = ['list', 'today', 'upcoming', 'projects', 'done'].includes(view) ? view : 'list';
+    // Old links to Today / Upcoming land on Now.
+    const v = { today: 'now', upcoming: 'now' }[view] || view;
+    this.state.view = ['list', 'now', 'next', 'later', 'projects', 'done'].includes(v) ? v : 'list';
     this.state.project = view === 'list' ? project || null : null;
     this.closeDetails?.();
     return this.render();

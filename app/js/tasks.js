@@ -84,6 +84,14 @@ export function forDay(tasks, date) {
   return { planned, aimed, ongoing };
 }
 
+// When a task is for: now (the default), next, or later.
+export const HORIZONS = [
+  { id: 'now', label: 'Now' },
+  { id: 'next', label: 'Next' },
+  { id: 'later', label: 'Later' },
+];
+export const horizonOf = t => t.horizon || 'now';
+
 // Unplanned, unfinished tasks matching an energy level (for "adopt").
 export function suggestions(tasks, energy, limit = 5) {
   if (!energy) return [];
