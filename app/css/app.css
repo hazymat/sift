@@ -1237,3 +1237,17 @@ li[data-id]:hover .kit-grip { opacity: .8; }
 
 .rich-edit h4 { margin: .6em 0 .2em; font-size: .85rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-family: var(--font); }
 .rich-edit h4:first-child { margin-top: 0; }
+
+
+/* ---------- History ---------- */
+.history-btn { text-decoration: none; margin-left: 4px; }
+.history-list > li.h-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 14px; border: 1px solid transparent; }
+.history-list > li.h-row:hover { background: var(--glass); border-color: var(--glass-border); }
+.h-time { flex: none; font-size: .8rem; width: 3.2em; }
+.h-main { flex: 1; min-width: 0; display: grid; }
+.h-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.h-sub { font-size: .75rem; }
+.h-row.undone .h-label { text-decoration: line-through; opacity: .6; }
+.h-row [data-act="undo"] { padding: 4px 12px; font-size: .85rem; }
+.h-details { list-style: none; margin: 0 0 8px 40px; padding: 8px 12px; border-radius: 12px; background: var(--glass-track); font-size: .82rem; }
+.h-details ul { margin: 0; padding-left: 16px; }

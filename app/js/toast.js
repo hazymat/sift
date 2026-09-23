@@ -1,3 +1,5 @@
+import { labelHistory } from './store.js';
+
 // Brief message pill above the tab bar.
 //   toast('✓ Saved')
 //   toast('Removed "Jumpers"', { action: 'Undo', onAction: () => … })
@@ -35,7 +37,15 @@ function hide() {
   el?.classList.remove('show');
 }
 
-// Show an undo toast for a change that has just been made.
+// Show an undo toast for a change that has just been made. The change is
+// also named in History under the same message.
 export function undoable(message, undo) {
-  toast(message, { action: 'Undo', onAction: undo });
+  labelHistory(message);
+  toast(message, {
+    action: 'Undo',
+    onAction: async () => {
+      await undo();
+      await labelHistory(`Undo: ${message}`);
+    },
+  });
 }

@@ -58,6 +58,12 @@ export default {
       </section>
 
       <section class="card">
+        <h2>History</h2>
+        <p class="muted">Every change on this device, newest first. Undo any of them individually, in any order.</p>
+        <a class="seg-link" href="#/history">Open history</a>
+      </section>
+
+      <section class="card">
         <h2>Archive &amp; Bin</h2>
         <p class="muted">Archived things are hidden but still searchable. Deleted things stay in the bin for 30 days.</p>
         <div class="segmented"><a class="seg-link" href="#/bin/archive/all">Archive <span id="count-archive" class="muted"></span></a><a class="seg-link" href="#/bin/bin/all">Bin <span id="count-bin" class="muted"></span></a></div>

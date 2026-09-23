@@ -14,6 +14,7 @@ export const AREAS = [
   { id: 'settings', label: 'Settings', icon: 'i-settings', view: './views/settings.js', pinnable: false },
   // Not in the nav: reached from each area's ⋯ menu and from Settings.
   { id: 'bin', label: 'Archive & Bin', icon: 'i-archive', view: './views/bin.js', pinnable: false, hidden: true },
+  { id: 'history', label: 'History', icon: 'i-history', view: './views/history.js', pinnable: false, hidden: true },
 ];
 
 export const MAX_PINNED = 4;

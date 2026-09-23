@@ -18,7 +18,7 @@ export const COLLECTIONS = [
   'settings',
 ];
 
-const DB_VERSION = 5; // bump when adding object stores; onupgradeneeded only adds what's missing
+const DB_VERSION = 6; // bump when adding object stores; onupgradeneeded only adds what's missing
 const LOCAL_DB = 'sift_local';
 const SYSTEM_FIELDS = new Set(['id', '_field_clocks', '_dirty_fields', '_server_seq']);
 const SETTINGS_ID = 'settings'; // fixed id so every device edits the same record
@@ -110,6 +110,8 @@ export async function open(name = LOCAL_DB) {
     if (!d.objectStoreNames.contains('outbox')) d.createObjectStore('outbox', { keyPath: 'id' });
     // key/value: device_id, clock, device_settings, last_seq ...
     if (!d.objectStoreNames.contains('sync_meta')) d.createObjectStore('sync_meta');
+    // Change history for "undo anything" (this device only, never synced).
+    if (!d.objectStoreNames.contains('history')) d.createObjectStore('history', { keyPath: 'id' });
   };
   db = await promisify(request);
   db.onversionchange = () => { db.close(); location.reload(); };
@@ -199,7 +201,10 @@ async function write(collection, id, changes, { mustExist }) {
     tx.objectStore('sync_meta').put(lastClock, 'clock');
   }
   await done(tx);
-  if (record) emit({ collection, id, deleted: !!record.deleted_at });
+  if (record) {
+    noteChange(collection, existing, record);
+    emit({ collection, id, deleted: !!record.deleted_at });
+  }
   return record || existing;
 }
 
@@ -236,6 +241,7 @@ export async function updateMany(collection, changes) {
   const tx = db.transaction([collection, 'outbox', 'sync_meta'], 'readwrite');
   const records = tx.objectStore(collection);
   const changed = [];
+  const befores = [];
   for (const [id, fields] of changes) {
     const existing = await promisify(records.get(id));
     const record = existing && stamp(existing, fields);
@@ -243,9 +249,11 @@ export async function updateMany(collection, changes) {
     records.put(record);
     tx.objectStore('outbox').put({ id, collection, queued_at: Date.now() });
     changed.push(record);
+    befores.push(existing);
   }
   if (changed.length) tx.objectStore('sync_meta').put(lastClock, 'clock');
   await done(tx);
+  changed.forEach((r, i) => noteChange(collection, befores[i], r));
   for (const r of changed) emit({ collection, id: r.id, deleted: !!r.deleted_at });
   return changed;
 }
@@ -266,6 +274,92 @@ export async function purgeMany(collection, ids) {
     changes.push([id, blank]);
   }
   return updateMany(collection, changes);
+}
+
+// ---------- history ----------
+// Every change made through this store is recorded (field-level before and
+// after) so any change can be undone later, one at a time, in any order.
+// Writes close together form one entry; the toast that follows an action
+// names it (labelHistory). History lives on this device only.
+
+const HISTORY_MAX = 1000;
+const QUIET = new Set(['updated_at', 'looked_up_at', '_field_clocks', '_dirty_fields', '_server_seq']);
+let pending = null;
+let pendingTimer = null;
+let lastEntry = null;
+
+const pick = (obj, fields) => Object.fromEntries(fields.map(f => [f, obj?.[f] ?? null]));
+
+function noteChange(collection, before, after) {
+  const fields = Object.keys(after).filter(f => !QUIET.has(f) && !same(before?.[f] ?? null, after[f] ?? null));
+  if (!fields.length) return;
+  pending ??= { changes: [], at: new Date().toISOString() };
+  const prev = pending.changes.find(c => c.collection === collection && c.id === after.id);
+  if (prev) {
+    for (const f of fields) {
+      if (!prev.created && !(f in prev.after)) prev.before[f] = before?.[f] ?? null;
+      prev.after[f] = after[f] ?? null;
+    }
+  } else {
+    pending.changes.push({ collection, id: after.id, created: !before, before: before ? pick(before, fields) : null, after: pick(after, fields) });
+  }
+  clearTimeout(pendingTimer);
+  pendingTimer = setTimeout(flushHistory, 1500);
+}
+
+// Name the action that just happened (called by the undo toast helper).
+export function labelHistory(label, extra = {}) {
+  if (pending) {
+    Object.assign(pending, { label }, extra);
+    return flushHistory();
+  }
+  // Already flushed moments ago without a name: name it now.
+  if (lastEntry && !lastEntry.label && Date.now() - Date.parse(lastEntry.at) < 4000) {
+    Object.assign(lastEntry, { label }, extra);
+    return putHistory(lastEntry);
+  }
+  return Promise.resolve();
+}
+
+async function putHistory(entry) {
+  await open();
+  const tx = db.transaction('history', 'readwrite');
+  tx.objectStore('history').put(entry);
+  await done(tx);
+  emit({ collection: 'history', id: entry.id });
+}
+
+async function flushHistory() {
+  clearTimeout(pendingTimer);
+  const entry = pending;
+  pending = null;
+  if (!entry?.changes.length) return;
+  // Typing in one field saves every so often: fold those into one entry.
+  const one = entry.changes.length === 1 && entry.changes[0];
+  const last = lastEntry?.changes.length === 1 && lastEntry.changes[0];
+  if (!entry.label && !lastEntry?.label && one && last && !one.created && !last.created
+      && one.collection === last.collection && one.id === last.id
+      && Object.keys(one.after).join() === Object.keys(last.after).join()
+      && Date.now() - Date.parse(lastEntry.at) < 60000) {
+    last.after = one.after;
+    lastEntry.at = entry.at;
+    return putHistory(lastEntry);
+  }
+  entry.id = uuidv7();
+  lastEntry = entry;
+  await putHistory(entry);
+  // Keep the newest HISTORY_MAX entries (ids are time-ordered).
+  const tx = db.transaction('history', 'readwrite');
+  const keys = await promisify(tx.objectStore('history').getAllKeys());
+  for (const k of keys.slice(0, Math.max(0, keys.length - HISTORY_MAX))) tx.objectStore('history').delete(k);
+  await done(tx);
+}
+
+export async function historyList() {
+  await flushHistory();
+  await open();
+  const all = await promisify(db.transaction('history').objectStore('history').getAll());
+  return all.reverse(); // newest first
 }
 
 // ---------- backup / restore ----------
