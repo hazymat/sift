@@ -142,6 +142,7 @@ An ongoing saga with one or more organisations or people, e.g. "Mum's care fundi
 ### 4.7 Cross-cutting
 
 - `tags` are free strings on every record; autocomplete from local data.
+- **Text to list** (every area): wherever plain text becomes list items (Find Things contents, Day Planner dump box, Brain Dump, Contacts research mode, Tasks), the same entry is used: one item per line, a line starting with `-` (or a space) is a sub-item of the line above, **Ctrl+Enter** (⌘+Enter on Mac) adds, with the same hint text. Shared helper: `js/listentry.js`.
 - `settings` (single record, synced): `default_calendar_id, week_start, theme, pinned_areas[]`.
 - `device_settings` (local only, never synced): `server_url, device_name, keep_all_scans_on_device`.
 

@@ -4,6 +4,7 @@
 
 import { loadTree, search, importCsv, exportCsv } from '../places.js';
 import { sortable } from '../sortable.js';
+import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -190,10 +191,10 @@ export default {
               <button type="button" class="icon-btn small" data-act="delete-item" aria-label="Remove ${esc(i.name)}">×</button>
             </li>`).join('')}
           </ul>
-          <textarea id="new-items" rows="2" placeholder="Add items, one per line (start a line with - for a sub-item)"></textarea>
-          <p class="muted hint">Drag ≡ to reorder; drag right to make a sub-item, left to undo. Or Tab / Shift+Tab while editing an item.</p>
+          <textarea id="new-items" class="list-entry" rows="2" placeholder="Add items"></textarea>
+          <p class="muted hint">${listHint()} Drag ≡ to reorder; drag right to make a sub-item, left to undo (or Tab / Shift+Tab).</p>
           <div class="sheet-actions">
-            <button type="button" data-act="add-items">Add items</button>
+            <button type="button" data-act="add-items">Add items <kbd>${SHORTCUT}</kbd></button>
             <span class="spacer"></span>
             <label class="inline">Move to <select name="parent_place_id">${sections.map(o => `<option value="${o.id}" ${o.id === s.id ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}</select></label>
             <button type="button" class="danger" data-act="delete-box">Delete box</button>
@@ -202,7 +203,24 @@ export default {
       sortable(page.querySelector('.item-list'), {
         onEnd: ({ item, dx }) => saveOrder(item, dx > 30 ? 1 : dx < -30 ? 0 : null),
       });
+      addItems = listEntry(page.querySelector('#new-items'), addLines);
       return true;
+    }
+
+    // Lines from the list entry → items; sub-lines go under the line above
+    // (or under the last top-level item already in the box).
+    let addItems = () => {};
+    async function addLines(lines) {
+      const existing = findBox(openId)?.b.items || [];
+      let parent = existing.filter(i => !i.depth).at(-1)?.id || null;
+      let n = existing.length;
+      for (const line of lines) {
+        const sub = line.sub && parent;
+        const made = await store.create('items', { name: line.text, place_id: openId, parent_item_id: sub ? parent : null, notes: '', quantity: null, sort_order: n++, last_moved_at: null });
+        if (!sub) parent = made.id;
+      }
+      await reload();
+      page.querySelector('#new-items')?.focus();
     }
 
     // Persist the list as shown: order, and each sub-item's parent (the
@@ -252,6 +270,9 @@ export default {
       if (id) {
         gridScroll = scrollY;
         el.querySelectorAll('.box-card').forEach(c => { c.style.viewTransitionName = c.dataset.box === id ? ZOOM : ''; });
+      } else if (leaving) {
+        const open = page.querySelector('.box-page');
+        if (open) open.style.viewTransitionName = ZOOM; // shrinks back into its card
       }
       page.dataset.was = leaving || '';
       await zoom(() => { openId = id; show(); });
@@ -283,20 +304,7 @@ export default {
       if (name === 'back') {
         history.length > 1 ? history.back() : (location.hash = '#/places');
       } else if (name === 'add-items') {
-        // Lines starting with a space, "-", "*" or "•" are sub-items of the line above.
-        const ta = page.querySelector('#new-items');
-        const existing = findBox(openId)?.b.items || [];
-        let parent = existing.filter(i => !i.depth).at(-1)?.id || null;
-        let n = existing.length;
-        for (const raw of ta.value.split('\n')) {
-          const itemName = raw.replace(/^[\s\-*•]+/, '').trim();
-          if (!itemName) continue;
-          const sub = /^(\s|[-*•])/.test(raw) && parent;
-          const made = await store.create('items', { name: itemName, place_id: openId, parent_item_id: sub ? parent : null, notes: '', quantity: null, sort_order: n++, last_moved_at: null });
-          if (!sub) parent = made.id;
-        }
-        await reload();
-        page.querySelector('#new-items').focus();
+        await addItems();
       } else if (name === 'delete-item') {
         await store.remove('items', target.closest('[data-item]').dataset.item);
         target.closest('li').remove();
