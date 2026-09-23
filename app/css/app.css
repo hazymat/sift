@@ -1138,7 +1138,7 @@ a.chip { color: var(--text); text-decoration: none; }
 
 /* ---------- Brain Dump ---------- */
 .dump-capture { margin-bottom: 18px; }
-#dump-body { font-size: 1.15rem; line-height: 1.5; min-height: 7em; }
+#dump-body .rich-edit, #dump-body .rich-raw { font-size: 1.15rem; line-height: 1.5; min-height: 7em; }
 .dump-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
 .dump-row .segmented button, #dump-filter button { padding: 5px 12px; font-size: .85rem; }
 .dump-row .segmented button[aria-pressed="true"], #dump-filter button[aria-pressed="true"] { background: var(--active-bg); border-color: var(--active-border); }

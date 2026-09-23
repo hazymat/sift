@@ -5,7 +5,7 @@
 
 import * as store from '../store.js';
 import { linkDetailsInText } from '../refs.js';
-import { keepDraft, draftCleared } from '../drafts.js';
+import { readDraft, writeDraft } from '../drafts.js';
 import { SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import { toHtml, richText } from '../richtext.js';
@@ -48,7 +48,7 @@ export default {
 
     el.innerHTML = `
       <section class="dump-capture">
-        <textarea id="dump-body" class="hand" rows="4" placeholder="What's on your mind?"></textarea>
+        <div id="dump-body"></div>
         <div class="dump-row">
           <div class="segmented" id="dump-kinds" role="group" aria-label="Kind">
             ${KINDS.map(k => `<button type="button" data-kind="${k.id}">${k.label}</button>`).join('')}
@@ -80,8 +80,19 @@ export default {
       <button type="button" class="make-contact" hidden>Make contact</button>`;
 
     const $ = s => el.querySelector(s);
-    const input = $('#dump-body');
-    keepDraft(input, 'dump'); // what you're typing survives closing the app
+    // The capture box is the notes editor (toolbar, emoji links, numbers and
+    // emails become contacts). What you're typing is kept as a draft until
+    // it's saved, and the thought it will become already has its id, so
+    // contacts made while typing link back to it.
+    let captureId = readDraft('dump:id') || store.uuidv7();
+    writeDraft('dump:id', captureId);
+    const captureBox = $('#dump-body');
+    const input = richText(captureBox, {
+      value: readDraft('dump'),
+      placeholder: "What's on your mind?",
+      origin: () => ({ collection: 'thoughts', id: captureId, title: (input?.value || '').split('\n')[0].slice(0, 60) || 'Brain dump', field: 'body' }),
+      onChange: md => writeDraft('dump', md),
+    });
     const list = $('#thoughts');
 
     function paintKinds() {
@@ -196,15 +207,17 @@ export default {
       const made = [];
       const contacts = [];
       for (const body of bodies) {
-        const t = await store.create('thoughts', { body, kind, pinned: false, converted_to: null });
+        const t = await store.create('thoughts', { ...(made.length ? {} : { id: captureId }), body, kind, pinned: false, converted_to: null });
         // Phone numbers and emails become linked contacts.
         const linked = await linkDetailsInText(body, { collection: 'thoughts', id: t.id, title: body.split('\n')[0].slice(0, 60) });
         if (linked.linked) await store.update('thoughts', t.id, { body: linked.text });
         contacts.push(...linked.made);
         made.push(t);
       }
-      input.value = '';
-      draftCleared(input);
+      input.setValue('');
+      writeDraft('dump', '');
+      captureId = store.uuidv7();
+      writeDraft('dump:id', captureId);
       input.focus();
       await render();
       const extra = contacts.length ? `, ${contacts.length} new contact${contacts.length === 1 ? '' : 's'}` : '';
@@ -215,8 +228,8 @@ export default {
       });
     }
 
-    input.addEventListener('keydown', ev => {
-      if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); save(ev.shiftKey); }
+    captureBox.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey) && !ev.target.closest('.ref-picker')) { ev.preventDefault(); save(ev.shiftKey); }
     });
 
     // ---------- converting ----------
@@ -381,7 +394,7 @@ export default {
   },
 
   quickAdd() {
-    document.querySelector('#dump-body')?.focus();
+    document.querySelector('#dump-body .rich-edit')?.focus();
   },
 };
 
