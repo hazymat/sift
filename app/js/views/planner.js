@@ -14,7 +14,7 @@ import { richText, toHtml, previewLine } from '../richtext.js';
 import { keepDraft } from '../drafts.js';
 import { autosizeAll } from '../inline.js';
 import { summarise } from '../summary.js';
-import { loadAll as loadTasks, forDay, suggestions, doneFields, aimDate } from '../tasks.js';
+import { loadAll as loadTasks, forDay, suggestions, doneFields, aimDate, addTask } from '../tasks.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -69,6 +69,9 @@ export default {
         <div class="hk-actions">
           <button type="button" data-act="paper-week">Reset this week to this page's paper</button>
           <button type="button" data-act="paper-all">Reset all pages to today's paper</button>
+        </div>
+        <div class="hk-actions">
+          <button type="button" class="danger" data-act="clear-day">Clear this day…</button>
         </div>
         <p class="muted hint">The default paper, used by any day you haven't changed, is in Settings.</p>
       </section>
@@ -310,6 +313,8 @@ export default {
             ${i.dropped_at
               ? '<button type="button" data-act="take-back" title="It needs doing after all">Take back</button>'
               : i.done_at ? '' : '<button type="button" data-act="let-go" title="Didn\'t do it and it doesn\'t need doing any more">Let go</button>'}
+            <button type="button" data-act="to-task" title="Take it off this day and keep it as a task">→ Tasks</button>
+            <button type="button" data-act="archive-item" title="Take it off this day into the Archive">Archive</button>
             <button type="button" class="danger" data-act="delete">Delete</button>
           </div>
         </div>`;
@@ -580,6 +585,7 @@ export default {
       else if (act === 'calendar') openCalendar(date);
       else if (act === 'share') toast('Sharing a day is coming soon');
       else if (act === 'paper-week' || act === 'paper-all') resetPapers(act === 'paper-week');
+      else if (act === 'clear-day') clearDay();
       else if (act === 'add-at') openLine(t);
       else if (act === 'toggle-note') {
         const nid = t.closest('[data-item]').dataset.item;
@@ -603,7 +609,14 @@ export default {
       else if (act === 'details') { if (editing === id) closeDetails(); else { editing = id; refresh(); } }
       else if (act === 'close-details') closeDetails();
       else if (act === 'unschedule') { editing = null; await change(id, { time: null, end_time: null }, 'Time unallocated'); }
-      else if (act === 'delete') {
+      else if (act === 'archive-item') {
+        editing = null;
+        const it = items.find(i => i.id === id);
+        await change(id, { archived_at: new Date().toISOString() }, `Archived "${it?.title || 'item'}"`);
+      } else if (act === 'to-task') {
+        editing = null;
+        await toTask(items.find(i => i.id === id));
+      } else if (act === 'delete') {
         editing = null;
         const gone = items.find(i => i.id === id);
         await store.remove('day_items', id);
@@ -1096,6 +1109,64 @@ export default {
         go(b.dataset.day);
       }
     });
+
+    // ---------- a plan item back to being a task ----------
+
+    // It leaves the day and shows in Tasks, keeping everything it had. An
+    // item that came from a task goes back into that task (notes and people
+    // merged); otherwise a new task is made. Undoable.
+    async function toTask(it) {
+      if (!it) return;
+      const from = it.task_id && await store.get('tasks', it.task_id);
+      let undo;
+      if (from) {
+        const before = { notes: from.notes || '', contact_ids: from.contact_ids || [], start_date: from.start_date ?? null };
+        const notes = !it.notes || (from.notes || '').includes(it.notes) ? from.notes || '' : [from.notes, it.notes].filter(Boolean).join('\n\n');
+        await store.update('tasks', from.id, {
+          notes,
+          contact_ids: [...new Set([...(from.contact_ids || []), ...(it.contact_ids || [])])],
+          start_date: from.start_date === it.date ? null : from.start_date ?? null,
+        });
+        undo = () => store.update('tasks', from.id, before);
+      } else {
+        const made = await addTask({
+          title: it.title, notes: it.notes || '', contact_ids: it.contact_ids || [], case_id: it.case_id || null,
+          source_thought_id: it.source_thought_id || null, done_at: it.done_at || null, status: it.done_at ? 'done' : 'todo',
+          // Plan-only fields come along so nothing is lost if it goes back.
+          estimate_min: it.estimate_min ?? null, estimate_unsure: !!it.estimate_unsure,
+          from_day: { date: it.date, time: it.time || null, end_time: it.end_time || null },
+        });
+        undo = () => store.remove('tasks', made.id);
+      }
+      await store.remove('day_items', it.id);
+      await refresh();
+      renderTasks();
+      undoable(`"${it.title}" is now in Tasks`, async () => {
+        await undo();
+        await store.restore('day_items', it.id);
+        await refresh();
+        renderTasks();
+      });
+    }
+
+    // ---------- clear the day ----------
+
+    // Every item on this day (timed or not) goes to the Bin; Undo brings
+    // them back. Focus, energy and notes stay.
+    async function clearDay() {
+      const all = await itemsFor(date);
+      if (!all.length) return toast('Nothing on this day to clear');
+      if (!confirm(`Remove all ${all.length} item${all.length === 1 ? '' : 's'} from this day? They go to the Bin, and you can undo.`)) return;
+      const now = new Date().toISOString();
+      await store.updateMany('day_items', all.map(i => [i.id, { deleted_at: now }]));
+      editing = null;
+      selected.clear();
+      await refresh();
+      undoable(`Cleared ${all.length} item${all.length === 1 ? '' : 's'} (in the Bin)`, async () => {
+        await store.updateMany('day_items', all.map(i => [i.id, { deleted_at: null }]));
+        await refresh();
+      });
+    }
 
     // ---------- paper for many days ----------
 
