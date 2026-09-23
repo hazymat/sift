@@ -89,6 +89,9 @@ function renderNav() {
 
   // Top nav (laptop): everything, pinned first; overflow goes into a dropdown.
   const ordered = [...pinned.map(area), ...more];
+  // The dropdown is refilled by fitTopNav; empty it first or old overflow
+  // links get put back alongside the new ones (entries repeated).
+  $('#topnav-more-menu').innerHTML = '';
   $('#topnav-links').innerHTML = ordered.map(a =>
     `<a href="#/${a.id}" data-area="${a.id}" ${a.id === current ? 'aria-current="page"' : ''}>${icon(a.icon)}<span>${a.label}</span></a>`
   ).join('');
@@ -211,6 +214,19 @@ async function boot() {
   $('#quick-add').onclick = () => currentView?.quickAdd?.();
   installInlineEditing();
   installRefLinks();
+  // A dropdown menu opens inside the screen: flipped to the other side if
+  // it would run off the left or right edge.
+  document.addEventListener('toggle', ev => {
+    const d = ev.target;
+    if (!(d instanceof HTMLDetailsElement) || !d.open) return;
+    const m = d.querySelector(':scope > .menu');
+    if (!m) return;
+    m.style.left = '';
+    m.style.right = '';
+    const r = m.getBoundingClientRect();
+    if (r.left < 8) { m.style.left = '0'; m.style.right = 'auto'; }
+    else if (r.right > innerWidth - 8) { m.style.right = '0'; m.style.left = 'auto'; }
+  }, true);
   // An open dropdown menu (<details class="tool-menu">) closes on a click elsewhere.
   document.addEventListener('pointerdown', ev => {
     for (const d of document.querySelectorAll('details.tool-menu[open]')) if (!d.contains(ev.target)) d.removeAttribute('open');
