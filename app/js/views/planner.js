@@ -192,16 +192,16 @@ export default {
     });
     const planner = $('.planner');
 
-    // A long day: Tasks and Notes dock in a column to the right of the plan
-    // (wide screens only, see CSS). A little slack either side so it doesn't
-    // flip back and forth as the plan's width changes.
+    // A wide screen: when the plan would be over 1000px wide, Tasks and Notes
+    // dock in a column to its right (a little slack so it doesn't flip back
+    // and forth at the edge).
     this.dockWatch?.disconnect();
     this.dockWatch = new ResizeObserver(() => {
-      const h = $('.paper').offsetHeight;
-      if (h > 750) planner.classList.add('docked');
-      else if (h < 650) planner.classList.remove('docked');
+      const w = planner.offsetWidth;
+      if (w > 1000) planner.classList.add('docked');
+      else if (w < 960) planner.classList.remove('docked');
     });
-    this.dockWatch.observe($('.paper'));
+    this.dockWatch.observe(planner);
     let fmt = showTime; // 8.30, or 08:30 on techie paper
 
     function applyPaper() {
