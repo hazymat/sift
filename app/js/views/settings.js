@@ -36,6 +36,7 @@ export default {
         <div class="segmented" id="down-days">${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d, n) => `<button type="button" data-dow="${(n + 1) % 7}">${d}</button>`).join('')}</div>
         <h3>Nudges</h3>
         <label class="check-row"><input type="checkbox" name="show_now_marker"> Show a ▶ in the margin at the current time</label>
+        <label class="check-row"><input type="checkbox" name="show_evening"> Show a section after the day ends, called <input name="evening_label" class="inline-text" placeholder="Evening plans" autocomplete="off" aria-label="Name of the section after the day ends"></label>
         <label class="check-row"><input type="checkbox" name="hint_down_day"> Remind me to do less on down days</label>
         <label class="check-row"><input type="checkbox" name="hint_walk_breaks"> Build in walking breaks during laptop work <span class="muted">(with the focus timer, coming later)</span></label>
       </section>
@@ -129,11 +130,20 @@ export default {
       ps.querySelector('[name="duration_max_min"]').value = String(d.duration_max_min);
       ps.querySelector('[name="hint_down_day"]').checked = d.hint_down_day;
       ps.querySelector('[name="show_now_marker"]').checked = d.show_now_marker;
+      ps.querySelector('[name="show_evening"]').checked = d.show_evening;
+      ps.querySelector('[name="evening_label"]').value = d.evening_label;
       ps.querySelector('[name="hint_walk_breaks"]').checked = d.hint_walk_breaks;
       for (const b of ps.querySelectorAll('[data-dow]')) b.setAttribute('aria-pressed', d.down_days.includes(Number(b.dataset.dow)));
     };
     ps.addEventListener('change', async ev => {
       const t = ev.target;
+      if (t.name === 'evening_label') {
+        // Cleared = back to the default name.
+        await store.updateSettings({ evening_label: t.value.trim() || null });
+        if (!t.value.trim()) drawPlanner();
+        toast('✓ Saved');
+        return;
+      }
       const value = t.type === 'checkbox' ? t.checked : ['slot_min', 'duration_max_min'].includes(t.name) ? Number(t.value) : t.value;
       if (t.name && value !== '') { await store.updateSettings({ [t.name]: value }); toast('✓ Saved'); }
     });

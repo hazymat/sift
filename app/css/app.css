@@ -1470,3 +1470,4 @@ li[data-id]:hover .kit-grip { opacity: .8; }
   animation: note-dim .2s ease-out;
 }
 @keyframes note-dim { from { box-shadow: 0 0 0 200vmax rgba(0, 0, 0, 0); } }
+.check-row .inline-text { width: 12em; padding: 3px 8px; font-size: .9rem; margin-left: 4px; }

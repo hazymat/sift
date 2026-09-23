@@ -13,6 +13,8 @@ export const DAY_DEFAULTS = {
   paper_style: 'glass',
   duration_max_min: 240, // longest choice in the Duration list
   show_now_marker: true, // ▶ in the margin at the current time (today only)
+  show_evening: true, // a section after the day's last line
+  evening_label: 'Evening plans',
 };
 
 // Page styles for the planner (default in Settings, overridable per day).

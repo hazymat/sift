@@ -6,7 +6,7 @@
 import * as store from '../store.js';
 import {
   daySettings, ENERGY, PAPERS, durationChoices, durationLabel, isoDate, parseDate, addDays, toMin, fromMin, showTime, parseTimed,
-  getDay, saveDay, itemsFor, addItem, unfinishedBefore, datesWithContent,
+  getDay, saveDay, itemsFor, addItem, unfinishedBefore, datesWithContent, DAY_DEFAULTS,
 } from '../days.js';
 import { listEntry, listHint } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
@@ -335,11 +335,14 @@ export default {
         n = k - 1;
       }
 
-      // Evening: anything after the last line's slot
+      // Evening: anything after the last line's slot. It can be switched off
+      // in Settings, but items already there still show.
       const evening = timed.filter(i => at(i.time) >= end + step);
-      out.push(`<div class="line section-label"><span class="margin"></span><span class="content">Evening</span></div>`);
-      out.push(...evening.map(i => itemRow(i, fmt(i.time))));
-      out.push(`<div class="line blank" data-time="evening"><span class="margin"></span><span class="content" data-act="add-at"></span></div>`);
+      if (settings.show_evening || evening.length) {
+        out.push(`<div class="line section-label"><span class="margin"></span><span class="content">${esc(settings.evening_label || DAY_DEFAULTS.evening_label)}</span></div>`);
+        out.push(...evening.map(i => itemRow(i, fmt(i.time))));
+        if (settings.show_evening) out.push(`<div class="line blank" data-time="evening"><span class="margin"></span><span class="content" data-act="add-at"></span></div>`);
+      }
       linesEl.innerHTML = out.join('');
       mountNoteEditors();
       placeNowMarker();
