@@ -1577,3 +1577,7 @@ main:has(> .planner), main:has(.planner) { max-width: 1600px; }
 }
 .pill-menu button[aria-checked="true"] { background: #dde8fb; border-color: #1f5fd1; }
 .pill-menu button:hover, .pill-menu button:focus-visible { border-color: #1f5fd1; outline: none; }
+
+/* Day name colour per paper: white on Techie (like Glass), black on Dot journal. */
+.planner[data-paper="techie"] .day-title .weekday { color: #fff; }
+.planner[data-paper="dots"] .day-title .weekday { color: #15171a; }
