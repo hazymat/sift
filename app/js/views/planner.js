@@ -189,6 +189,17 @@ export default {
       },
     });
     const planner = $('.planner');
+
+    // A long day: Tasks and Notes dock in a column to the right of the plan
+    // (wide screens only, see CSS). A little slack either side so it doesn't
+    // flip back and forth as the plan's width changes.
+    this.dockWatch?.disconnect();
+    this.dockWatch = new ResizeObserver(() => {
+      const h = $('.paper').offsetHeight;
+      if (h > 750) planner.classList.add('docked');
+      else if (h < 650) planner.classList.remove('docked');
+    });
+    this.dockWatch.observe($('.paper'));
     let fmt = showTime; // 8.30, or 08:30 on techie paper
 
     function applyPaper() {
@@ -1110,6 +1121,7 @@ export default {
   },
 
   unmount() {
+    this.dockWatch?.disconnect();
     clearInterval(this.nowTimer);
     this.bar?.remove();
     document.body.classList.remove('has-select-bar', 'is-dragging');
