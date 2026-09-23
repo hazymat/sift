@@ -1251,3 +1251,32 @@ li[data-id]:hover .kit-grip { opacity: .8; }
 .h-row [data-act="undo"] { padding: 4px 12px; font-size: .85rem; }
 .h-details { list-style: none; margin: 0 0 8px 40px; padding: 8px 12px; border-radius: 12px; background: var(--glass-track); font-size: .82rem; }
 .h-details ul { margin: 0; padding-left: 16px; }
+
+
+/* Day Planner: pick up and move */
+.line.has-item.selected { background: var(--active-bg); box-shadow: inset 3px 0 0 var(--active-border); }
+.line.has-item.selected .drag-grip { opacity: 1; color: var(--accent); }
+.pickup-stack {
+  position: fixed;
+  z-index: 60;
+  pointer-events: none;
+  display: grid;
+  gap: 3px;
+  transform: rotate(-1.2deg);
+  filter: drop-shadow(0 14px 24px rgba(0, 0, 0, .35));
+}
+.pickup-row { padding: 6px 12px; border-radius: 12px; background: var(--glass-strong); border: 1px solid var(--active-border); font-size: 1.05rem; color: var(--text); }
+.pickup-more { font-size: .75rem; color: var(--muted); padding-left: 12px; }
+.pickup-stack[data-when]::before {
+  content: attr(data-when);
+  justify-self: end;
+  padding: 1px 10px;
+  border-radius: 999px;
+  font-size: .75rem;
+  background: var(--active-bg);
+  border: 1px solid var(--active-border);
+  color: var(--text);
+}
+.drop-preview { flex: 1; min-width: 0; opacity: .55; padding: 2px 8px; border: 1px dashed var(--active-border); border-radius: 10px; font-size: 1.05rem; animation: preview-in .15s ease-out; }
+@keyframes preview-in { from { opacity: 0; transform: translateX(-6px); } to { opacity: .55; transform: none; } }
+.line.has-item .drop-preview { flex: none; max-width: 45%; }

@@ -117,7 +117,7 @@ export default {
     function itemRow(i, label) {
       const span = i.end_time ? `${fmt(i.time)}–${fmt(i.end_time)}` : null;
       return `
-        <div class="line has-item${i.done_at ? ' done' : ''}" data-item="${i.id}"${i.time ? ` data-time="${i.time}"` : ''}>
+        <div class="line has-item${i.done_at ? ' done' : ''}${selected.has(i.id) ? ' selected' : ''}" data-item="${i.id}"${i.time ? ` data-time="${i.time}"` : ''}>
           <span class="margin">${label ?? ''}</span>
           <span class="content">
             <button type="button" class="drag-grip" aria-label="Drag to a time" title="Drag onto a time">⠿</button>
@@ -156,7 +156,7 @@ export default {
       const start = toMin(settings.day_start);
       const end = toMin(settings.day_end);
       const step = Math.max(5, Number(settings.slot_min) || 30);
-      const timed = items.filter(i => i.time);
+      const timed = items.filter(i => i.time && !lifted.has(i.id));
       const at = t => toMin(t);
       const out = [];
 
@@ -187,7 +187,7 @@ export default {
     }
 
     function renderPile() {
-      const pile = items.filter(i => !i.time);
+      const pile = items.filter(i => !i.time && !lifted.has(i.id));
       $('#pile').innerHTML = pile.map(i => `<li>${itemRow(i, '')}</li>`).join('')
         || '<li class="muted pile-empty">Nothing waiting. Dump things below, then give them times.</li>';
     }
@@ -253,6 +253,7 @@ export default {
       items = await itemsFor(date);
       renderLines();
       renderPile();
+      paintSelection?.();
     }
 
     // ---------- editing ----------
@@ -405,28 +406,120 @@ export default {
       });
     });
 
-    // ---------- drag onto a time; drag the bottom handle to set length ----------
+    // ---------- select, pick up and move; resize from the bottom handle ----------
+    // ⠿ tap = select / deselect. ⠿ press and move = pick up (the selection if
+    // this item is in it): the items leave the page and ride under the pointer,
+    // and the lines they'd land on show a preview. Drop on a line = that
+    // line's time (snaps to the line, never in between). Timed items keep
+    // their spacing; untimed ones fill the following lines. Drop on To place =
+    // no time. The bottom handle of a timed item drags its length.
 
-    const QUARTER = 15;
-    let drag = null;
+    const selected = new Set();
+    const lifted = new Set();
     const step = () => Math.max(5, Number(settings.slot_min) || 60);
     const duration = i => (i.end_time ? toMin(i.end_time) - toMin(i.time) : i.estimate_min || step());
+    const eveningTime = () => fromMin(toMin(settings.day_end) + step());
 
-    // Time under the pointer: a line's own time, plus quarter hours through a slot line.
-    function timeAt(y) {
+    // Selection bar
+    const bar = document.createElement('div');
+    bar.className = 'select-bar';
+    bar.hidden = true;
+    bar.innerHTML = `<span class="select-count"></span>
+      <button type="button" data-sel="done">Done</button>
+      <button type="button" data-sel="pile">To place</button>
+      <button type="button" data-sel="tomorrow">Tomorrow</button>
+      <button type="button" data-sel="delete" class="danger">Delete</button>
+      <button type="button" data-sel="clear" aria-label="Clear selection">✕</button>`;
+    document.body.append(bar);
+    this.bar = bar;
+
+    function paintSelection() {
+      for (const id of [...selected]) if (!items.some(i => i.id === id)) selected.delete(id);
+      el.querySelectorAll('.line.has-item').forEach(r => r.classList.toggle('selected', selected.has(r.dataset.item)));
+      bar.hidden = !selected.size;
+      document.body.classList.toggle('has-select-bar', !!selected.size);
+      bar.querySelector('.select-count').textContent = `${selected.size} selected`;
+    }
+    const clearSelection = () => { selected.clear(); paintSelection(); };
+
+    async function moveMany(fieldsById, label) {
+      const before = [...fieldsById.keys()].map(id => {
+        const i = items.find(x => x.id === id);
+        return [id, Object.fromEntries(Object.keys(fieldsById.get(id)).map(k => [k, i?.[k] ?? null]))];
+      });
+      await store.updateMany('day_items', [...fieldsById]);
+      await refresh();
+      paintSelection();
+      undoable(label, async () => { await store.updateMany('day_items', before); await refresh(); paintSelection(); });
+    }
+
+    bar.addEventListener('click', async ev => {
+      const b = ev.target.closest('[data-sel]');
+      if (!b) return;
+      const ids = items.filter(i => selected.has(i.id)).map(i => i.id);
+      const n = ids.length;
+      const plural = `${n} item${n === 1 ? '' : 's'}`;
+      if (b.dataset.sel === 'clear') return clearSelection();
+      if (b.dataset.sel === 'done') await moveMany(new Map(ids.map(id => [id, { done_at: new Date().toISOString() }])), `Done: ${plural}`);
+      if (b.dataset.sel === 'pile') await moveMany(new Map(ids.map(id => [id, { time: null, end_time: null }])), `${plural} back to To place`);
+      if (b.dataset.sel === 'tomorrow') { await moveMany(new Map(ids.map(id => [id, { date: addDays(date, 1), carried_from: date }])), `${plural} moved to tomorrow`); clearSelection(); }
+      if (b.dataset.sel === 'delete') { await moveMany(new Map(ids.map(id => [id, { deleted_at: new Date().toISOString() }])), `Deleted ${plural}`); clearSelection(); }
+    });
+
+    // Where a drop would land: the line under the middle of what's carried.
+    function targetAt(y) {
+      const pileBox = $('.pile').getBoundingClientRect();
+      if (y >= pileBox.top && y <= pileBox.bottom) return { pile: true };
       for (const line of linesEl.querySelectorAll('.line[data-time]')) {
         const r = line.getBoundingClientRect();
-        if (y < r.top || y >= r.bottom) continue;
-        if (line.dataset.time === 'evening') return { line, time: fromMin(toMin(settings.day_end) + step()) };
-        const base = toMin(line.dataset.time);
-        const slot = line.classList.contains('blank') ? step() : 0;
-        const extra = slot ? Math.min(slot - QUARTER, Math.floor(((y - r.top) / r.height) * slot / QUARTER) * QUARTER) : 0;
-        return { line, time: fromMin(base + Math.max(0, extra)) };
+        if (y >= r.top && y < r.bottom) return { line, time: line.dataset.time === 'evening' ? eveningTime() : line.dataset.time };
       }
       return null;
     }
 
-    const clearMarks = () => el.querySelectorAll('.drop-target, .will-cover').forEach(n => n.classList.remove('drop-target', 'will-cover'));
+    // Each carried item's new time for a drop at `time`.
+    function plan(time) {
+      const anchor = items.find(i => i.id === press.id);
+      const moving = items.filter(i => press.ids.includes(i.id));
+      const base = toMin(time);
+      let nextFree = base;
+      const out = new Map();
+      for (const i of moving) {
+        let start;
+        if (i.time && anchor.time) start = base + (toMin(i.time) - toMin(anchor.time));
+        else if (i.id === anchor.id) start = base;
+        else { nextFree += step(); start = nextFree; }
+        start = Math.max(0, Math.min(23 * 60 + 45, start));
+        const fields = { time: fromMin(start) };
+        if (i.time && i.end_time) fields.end_time = fromMin(Math.min(24 * 60 - 1, start + duration(i)));
+        else fields.end_time = i.time ? null : i.end_time;
+        out.set(i.id, fields);
+      }
+      return out;
+    }
+
+    function showPreview(target) {
+      el.querySelectorAll('.drop-preview').forEach(n => n.remove());
+      el.querySelectorAll('.drop-target').forEach(n => n.classList.remove('drop-target'));
+      if (!target) { delete press.ghost.dataset.when; return; }
+      if (target.pile) {
+        $('#pile').classList.add('drop-target');
+        press.ghost.dataset.when = 'To place';
+        return;
+      }
+      press.ghost.dataset.when = fmt(target.time);
+      for (const [id, f] of plan(target.time)) {
+        const i = items.find(x => x.id === id);
+        const line = [...linesEl.querySelectorAll('.line[data-time]')].find(l => (l.dataset.time === 'evening' ? eveningTime() : l.dataset.time) === f.time)
+          || (toMin(f.time) >= toMin(eveningTime()) ? linesEl.querySelector('.line[data-time="evening"]') : null);
+        if (!line) continue;
+        line.classList.add('drop-target');
+        line.querySelector('.content')?.insertAdjacentHTML('beforeend', `<span class="drop-preview hand">${esc(i.title)} <span class="span-tag">${fmt(f.time)}${f.end_time ? `–${fmt(f.end_time)}` : ''}</span></span>`);
+      }
+    }
+
+    let press = null;  // pointer down on a ⠿ (maybe a tap, maybe a drag)
+    let resizing = null;
 
     el.addEventListener('pointerdown', ev => {
       const grip = ev.target.closest('.drag-grip, .resize-grip');
@@ -435,80 +528,95 @@ export default {
       const row = grip.closest('[data-item]');
       const item = items.find(i => i.id === row.dataset.item);
       if (!item) return;
-      try { grip.setPointerCapture(ev.pointerId); } catch {}
+      try { el.setPointerCapture(ev.pointerId); } catch {} // the row is re-rendered while dragging
       if (grip.classList.contains('resize-grip')) {
-        drag = { mode: 'resize', item, row, startY: ev.clientY, base: duration(item), minutes: duration(item) };
+        resizing = { item, row, startY: ev.clientY, base: duration(item), minutes: duration(item) };
         row.classList.add('resizing');
         return;
       }
-      const r = row.getBoundingClientRect();
-      const ghost = row.cloneNode(true);
-      ghost.classList.add('drag-float');
-      Object.assign(ghost.style, { width: `${r.width}px`, left: `${r.left}px`, top: `${r.top}px` });
-      el.querySelector('.planner').append(ghost);
-      row.classList.add('drag-source');
-      drag = { mode: 'move', item, row, ghost, dy: ev.clientY - r.top, target: null };
+      press = { id: item.id, x: ev.clientX, y: ev.clientY, rowH: row.getBoundingClientRect().height, dragging: false };
     });
 
     el.addEventListener('pointermove', ev => {
-      if (!drag) return;
-      clearMarks();
-      if (drag.mode === 'move') {
-        drag.ghost.style.top = `${ev.clientY - drag.dy}px`;
-        const overPile = $('.pile').getBoundingClientRect();
-        if (ev.clientY >= overPile.top && ev.clientY <= overPile.bottom) {
-          drag.target = { pile: true };
-          $('#pile').classList.add('drop-target');
-          drag.ghost.dataset.when = 'To place';
-          return;
-        }
-        const hit = timeAt(ev.clientY);
-        drag.target = hit;
-        if (hit) { hit.line.classList.add('drop-target'); drag.ghost.dataset.when = fmt(hit.time); } else delete drag.ghost.dataset.when;
-        return;
+      if (resizing) return resizeMove(ev);
+      if (!press) return;
+      if (!press.dragging) {
+        if (Math.hypot(ev.clientX - press.x, ev.clientY - press.y) < 6) return;
+        // Pick up: the selection if this item is in it, otherwise just this one.
+        press.dragging = true;
+        press.ids = selected.has(press.id) && selected.size > 1 ? items.filter(i => selected.has(i.id)).map(i => i.id) : [press.id];
+        const carried = items.filter(i => press.ids.includes(i.id));
+        const ghost = document.createElement('div');
+        ghost.className = 'pickup-stack';
+        ghost.innerHTML = carried.slice(0, 4).map(i => `<div class="pickup-row hand">${esc(i.title)}${i.time ? ` <span class="span-tag">${fmt(i.time)}</span>` : ''}</div>`).join('')
+          + (carried.length > 4 ? `<div class="pickup-more">+ ${carried.length - 4} more</div>` : '');
+        document.body.append(ghost);
+        press.ghost = ghost;
+        press.ids.forEach(id => lifted.add(id));
+        renderLines();
+        renderPile();
+        document.body.classList.add('is-dragging');
       }
-      // resize: minutes per pixel from the height of one slot line
-      const line = linesEl.querySelector('.line.blank') || drag.row;
+      const w = Math.min(420, $('.paper').getBoundingClientRect().width - 80);
+      Object.assign(press.ghost.style, { left: `${ev.clientX - 20}px`, top: `${ev.clientY - press.rowH / 2}px`, width: `${w}px` });
+      press.target = targetAt(ev.clientY);
+      showPreview(press.target);
+    });
+
+    const endPress = async ev => {
+      if (resizing) return resizeEnd(ev);
+      const p = press;
+      press = null;
+      if (!p) return;
+      if (!p.dragging) {
+        // A tap: select / deselect.
+        selected.has(p.id) ? selected.delete(p.id) : selected.add(p.id);
+        return paintSelection();
+      }
+      p.ghost.remove();
+      document.body.classList.remove('is-dragging');
+      el.querySelectorAll('.drop-preview').forEach(n => n.remove());
+      el.querySelectorAll('.drop-target').forEach(n => n.classList.remove('drop-target'));
+      lifted.clear();
+      const t = ev.type === 'pointerup' ? p.target : null;
+      press = p; // plan() reads the carried ids
+      const fields = t?.pile
+        ? new Map(p.ids.map(id => [id, { time: null, end_time: null }]))
+        : t ? plan(t.time) : null;
+      press = null;
+      const n = p.ids.length;
+      if (!fields) { renderLines(); renderPile(); paintSelection(); return; }
+      await moveMany(fields, t.pile ? `${n > 1 ? `${n} items` : 'Item'} back to To place` : `${n > 1 ? `Moved ${n} items` : 'Moved'} to ${fmt(t.time)}`);
+    };
+    el.addEventListener('pointerup', endPress);
+    el.addEventListener('pointercancel', endPress);
+
+    function resizeMove(ev) {
+      el.querySelectorAll('.will-cover').forEach(n => n.classList.remove('will-cover'));
+      const line = linesEl.querySelector('.line.blank') || resizing.row;
       const perPx = step() / line.getBoundingClientRect().height;
-      const minutes = Math.max(QUARTER, Math.round((drag.base + (ev.clientY - drag.startY) * perPx) / QUARTER) * QUARTER);
-      drag.minutes = minutes;
-      const start = toMin(drag.item.time);
+      const minutes = Math.max(15, Math.round((resizing.base + (ev.clientY - resizing.startY) * perPx) / 15) * 15);
+      resizing.minutes = minutes;
+      const start = toMin(resizing.item.time);
       const end = start + minutes;
-      const tag = drag.row.querySelector('.span-tag') || drag.row.querySelector('.content').insertBefore(Object.assign(document.createElement('span'), { className: 'span-tag' }), drag.row.querySelector('.more'));
-      tag.textContent = `${fmt(drag.item.time)}–${fmt(fromMin(end))}`;
+      const tag = resizing.row.querySelector('.span-tag') || resizing.row.querySelector('.content').insertBefore(Object.assign(document.createElement('span'), { className: 'span-tag' }), resizing.row.querySelector('.more'));
+      tag.textContent = `${fmt(resizing.item.time)}–${fmt(fromMin(end))}`;
       for (const l of linesEl.querySelectorAll('.line[data-time]')) {
         const t = l.dataset.time === 'evening' ? null : toMin(l.dataset.time);
         if (t != null && t > start && t < end) l.classList.add('will-cover');
       }
-    });
+    }
 
-    const endDrag = async ev => {
-      if (!drag) return;
-      const d = drag;
-      drag = null;
-      clearMarks();
-      d.ghost?.remove();
-      d.row.classList.remove('drag-source', 'resizing');
-      if (ev.type === 'pointercancel') { renderLines(); return; }
-      if (d.mode === 'resize') {
-        const end = fromMin(toMin(d.item.time) + d.minutes);
-        if (end !== d.item.end_time) await change(d.item.id, { end_time: end }, `Until ${fmt(end)}`);
-        else renderLines();
-        return;
-      }
-      if (!d.target) return;
-      if (d.target.pile) {
-        if (d.item.time) await change(d.item.id, { time: null, end_time: null }, 'Back to the pile');
-        return;
-      }
-      const time = d.target.time;
-      if (time === d.item.time) return;
-      const fields = { time };
-      if (d.item.time && d.item.end_time) fields.end_time = fromMin(toMin(time) + duration(d.item));
-      await change(d.item.id, fields, `Moved to ${fmt(time)}`);
-    };
-    el.addEventListener('pointerup', endDrag);
-    el.addEventListener('pointercancel', endDrag);
+    async function resizeEnd(ev) {
+      const r = resizing;
+      resizing = null;
+      el.querySelectorAll('.will-cover').forEach(n => n.classList.remove('will-cover'));
+      r.row.classList.remove('resizing');
+      if (ev.type === 'pointercancel') return renderLines();
+      const end = fromMin(toMin(r.item.time) + r.minutes);
+      if (end !== r.item.end_time) await change(r.item.id, { end_time: end }, `Until ${fmt(end)}`);
+      else renderLines();
+    }
 
     // ---------- calendar popup ----------
 
@@ -571,12 +679,14 @@ export default {
     this.show = async d => {
       date = /^\d{4}-\d{2}-\d{2}$/.test(d || '') ? d : isoDate();
       editing = null;
+      selected.clear();
       $('#dump').value = '';
       await render();
     };
 
     this.onKey = ev => {
       if (ev.target.closest('input, textarea, select') || $('#cal').open) return;
+      if (ev.key === 'Escape' && selected.size) { clearSelection(); return; }
       if (ev.key === 'ArrowLeft') go(addDays(date, -1));
       if (ev.key === 'ArrowRight') go(addDays(date, 1));
       if (ev.key === 't') go(isoDate());
@@ -591,6 +701,8 @@ export default {
   },
 
   unmount() {
+    this.bar?.remove();
+    document.body.classList.remove('has-select-bar', 'is-dragging');
     removeEventListener('keydown', this.onKey);
   },
 };
