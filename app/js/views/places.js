@@ -185,6 +185,10 @@ export default {
           <button type="button" class="back" data-act="back">‹ ${esc(s.name)}</button>
           <span class="muted box-path">${esc(e.name)}</span>
         </div>
+        <div class="find-bar box-find">
+          <input type="search" id="box-q" class="search" placeholder="Search in this box…" value="${esc(query)}" autocomplete="off" enterkeyhint="search">
+          <span class="muted box-hits" aria-live="polite"></span>
+        </div>
         <article class="box-page">
           <header class="box-page-head">
             <input class="box-code-input" name="label_code" value="${esc(b.label_code)}" placeholder="Code" aria-label="Code" autocomplete="off">
@@ -215,7 +219,32 @@ export default {
         </article>`;
       kit.attach(page.querySelector('.item-list'));
       addItems = listEntry(page.querySelector('#new-items'), addLines, { draft: `places:${openId}` });
+      page.querySelector('#box-q').addEventListener('input', ev => {
+        query = ev.target.value.trim(); // the same search as the grid's; stays in this box
+        q.value = ev.target.value;
+        markHits();
+      });
+      markHits(true);
       return true;
+    }
+
+    // In a box, things matching the search are marked like a highlighter
+    // pen; the first one is scrolled into view when the box opens.
+    function markHits(scroll = false) {
+      const found = findBox(openId);
+      if (!found) return;
+      const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+      let n = 0;
+      for (const li of page.querySelectorAll('.item-list [data-item]')) {
+        const it = found.b.items.find(i => i.id === li.dataset.item);
+        const text = `${it?.name || ''} ${it?.notes || ''}`.toLowerCase();
+        const hit = words.length > 0 && words.every(w => text.includes(w));
+        li.classList.toggle('hit', hit);
+        if (hit) n++;
+      }
+      const out = page.querySelector('.box-hits');
+      if (out) out.textContent = words.length ? (n ? `${n} found` : 'Not in this box') : '';
+      if (scroll && n) page.querySelector('.item-list .hit')?.scrollIntoView({ block: 'center' });
     }
 
     // Lines from the list entry → items; sub-lines go under the line above
@@ -292,6 +321,7 @@ export default {
       grid.hidden = !!opening;
       page.hidden = !opening;
       if (!opening) {
+        q.value = query; // a search changed inside a box carries back out
         renderGrid();
         const back = el.querySelector(`[data-box="${CSS.escape(page.dataset.was || '')}"]`);
         if (back) back.style.viewTransitionName = ZOOM;
@@ -501,6 +531,7 @@ export default {
 
     this.onKey = ev => {
       if (ev.key === '/' && !openId && !ev.target.closest('input, textarea, select')) { ev.preventDefault(); q.focus(); }
+      if (ev.key === 'Escape' && ev.target.id === 'box-q' && ev.target.value) { ev.preventDefault(); ev.target.value = ''; query = ''; q.value = ''; markHits(); return; }
       if (ev.key === 'Escape' && openId && !ev.target.closest('input, textarea') && kit.escape()) { ev.preventDefault(); return; }
       if (ev.key === 'Escape' && openId && !importSheet.open) { ev.preventDefault(); saveAndClose(); return; }
       if (ev.key === 'Escape' && document.activeElement === q && q.value) { q.value = ''; query = ''; renderGrid(); }
