@@ -746,7 +746,7 @@ kbd { font: inherit; font-size: .72em; padding: 1px 5px; margin-left: 4px; borde
   backdrop-filter: var(--blur-strong);
   box-shadow: var(--glass-highlight), var(--shadow);
 }
-.line { display: grid; grid-template-columns: 64px 1fr; min-height: 38px; border-bottom: 1px solid var(--rule); }
+.line { display: grid; grid-template-columns: 64px 1fr; min-height: 2.375rem; border-bottom: 1px solid var(--rule); }
 .line .margin {
   display: flex;
   align-items: center;
@@ -905,7 +905,7 @@ kbd { font: inherit; font-size: .72em; padding: 1px 5px; margin-left: 4px; borde
 .planner[data-paper="techie"] .day-title .weekday { text-transform: uppercase; letter-spacing: .08em; font-size: clamp(1.8rem, 6vw, 2.6rem); }
 .planner[data-paper="techie"] .day-title .weekday::before { content: "> "; opacity: .6; }
 .planner[data-paper="techie"] .day-title .date { font-family: var(--hand); font-size: clamp(1rem, 3.5vw, 1.4rem); }
-.planner[data-paper="techie"] .line { min-height: 32px; border-bottom-style: dashed; grid-template-columns: 72px 1fr; }
+.planner[data-paper="techie"] .line { min-height: 2rem; border-bottom-style: dashed; grid-template-columns: 72px 1fr; }
 .planner[data-paper="techie"] .line .margin { font-size: .8rem; }
 .planner[data-paper="techie"] .line .item-title { font-size: .95rem; }
 .planner[data-paper="techie"] .focus > span { text-transform: uppercase; border-bottom: 0; }
@@ -938,7 +938,7 @@ kbd { font: inherit; font-size: .72em; padding: 1px 5px; margin-left: 4px; borde
   --calm: rgba(60, 150, 100, .1);
   --place: #d9480f;
 }
-.planner[data-paper="dots"] .line { min-height: 38px; }
+.planner[data-paper="dots"] .line { min-height: 2.375rem; }
 .planner[data-paper="dots"] .line .margin { justify-content: center; padding: 0; }
 .planner[data-paper="dots"] .line.has-item .content::before { content: "•"; color: var(--ink); font-size: 1.3rem; margin-right: -2px; }
 .planner[data-paper="dots"] .day-title .weekday { text-decoration: underline; text-decoration-color: var(--focus-ink); text-underline-offset: 8px; text-decoration-thickness: 3px; }
@@ -968,7 +968,7 @@ kbd { font: inherit; font-size: .72em; padding: 1px 5px; margin-left: 4px; borde
 }
 .planner[data-paper="minimal"] .day-title .weekday { font-weight: 300; letter-spacing: -.02em; }
 .planner[data-paper="minimal"] .day-title .date { font-weight: 300; color: var(--muted); }
-.planner[data-paper="minimal"] .line { min-height: 46px; grid-template-columns: 56px 1fr; }
+.planner[data-paper="minimal"] .line { min-height: 2.875rem; grid-template-columns: 56px 1fr; }
 .planner[data-paper="minimal"] .line .margin { font-size: .75rem; color: var(--muted); }
 .planner[data-paper="minimal"] .line .item-title { font-size: 1rem; }
 .planner[data-paper="minimal"] .focus > span { border-bottom: 0; font-size: .75rem; letter-spacing: .12em; color: var(--muted); font-family: var(--font); }
@@ -1323,7 +1323,7 @@ li[data-id]:hover .kit-grip { opacity: .8; }
 
 .line .content { flex-wrap: wrap; }
 .item-note { flex-basis: 100%; margin: -4px 0 4px 52px; font-size: .78rem; color: var(--muted); font-family: var(--font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.line.has-item:has(.item-note) { min-height: 50px; }
+.line.has-item:has(.item-note) { min-height: 3.125rem; }
 
 .paper { position: relative; }
 .now-marker {
@@ -1505,7 +1505,7 @@ li[data-id]:hover .kit-grip { opacity: .8; }
 /* Pills and the note share the line under an item's title. */
 .item-sub { flex-basis: 100%; display: flex; align-items: baseline; gap: 6px; min-width: 0; margin: -4px 0 4px 52px; }
 .item-sub .item-note { flex: 1 1 auto; min-width: 0; margin: 0; }
-.line.has-item:has(.item-sub) { min-height: 50px; }
+.line.has-item:has(.item-sub) { min-height: 3.125rem; }
 .pill-act { flex: none; font-size: .72rem; line-height: 1.4; padding: 0 8px; border-radius: 999px; background: var(--glass-track); border: 1px solid var(--glass-border); color: var(--muted); font-family: var(--font); cursor: pointer; }
 .pill-act .pill-hover { display: none; }
 .pill-act:hover, .pill-act:focus-visible { color: var(--accent); border-color: var(--active-border); }

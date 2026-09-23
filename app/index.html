@@ -13,6 +13,8 @@
       try { t = localStorage.getItem('sift-theme') || t; } catch (e) {}
       if (t === 'auto') t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'blue';
       document.documentElement.dataset.theme = t;
+      // Text size is per device (Settings → Appearance).
+      try { var z = localStorage.getItem('sift-text-size'); if (z) document.documentElement.style.fontSize = z + '%'; } catch (e) {}
     })();
   </script>
   <meta name="mobile-web-app-capable" content="yes">

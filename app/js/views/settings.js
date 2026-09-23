@@ -20,6 +20,11 @@ export default {
           ${app.THEMES.map(t => `<button type="button" data-value="${t.id}" aria-pressed="${t.id === app.currentTheme()}">${t.label}</button>`).join('')}
         </div>
         <p class="muted" id="theme-note"></p>
+        <h3>Text size</h3>
+        <div class="segmented" id="text-size" role="group" aria-label="Text size">
+          ${[[87.5, 'Smaller'], [100, 'Normal'], [112.5, 'Larger'], [125, 'Largest']].map(([v, l]) => `<button type="button" data-size="${v}">${l}</button>`).join('')}
+        </div>
+        <p class="muted">For this device only. Smaller fits more on the page.</p>
       </section>
 
       <section class="card" id="planner-settings">
@@ -158,6 +163,23 @@ export default {
       toast('✓ Saved');
     });
     drawPlanner();
+
+    // Text size: kept on this device, applied before first paint (index.html).
+    const sizeBox = el.querySelector('#text-size');
+    const paintSize = () => {
+      let cur = '100';
+      try { cur = localStorage.getItem('sift-text-size') || '100'; } catch { /* default */ }
+      for (const b of sizeBox.querySelectorAll('button')) b.setAttribute('aria-pressed', String(Number(b.dataset.size) === Number(cur)));
+    };
+    paintSize();
+    sizeBox.addEventListener('click', ev => {
+      const b = ev.target.closest('[data-size]');
+      if (!b) return;
+      try { b.dataset.size === '100' ? localStorage.removeItem('sift-text-size') : localStorage.setItem('sift-text-size', b.dataset.size); } catch { /* not kept */ }
+      document.documentElement.style.fontSize = b.dataset.size === '100' ? '' : `${b.dataset.size}%`;
+      paintSize();
+      toast('✓ Text size changed');
+    });
 
     const themeNote = () => {
       el.querySelector('#theme-note').textContent =
