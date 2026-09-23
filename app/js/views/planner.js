@@ -242,16 +242,27 @@ export default {
             <button type="button" class="drag-grip" aria-label="Drag to a time" title="Drag onto a time">⠿</button>
             <input type="checkbox" class="tick" aria-label="Done" ${i.done_at ? 'checked' : ''}>
             <input class="item-title hand" value="${esc(i.title)}" aria-label="Item" autocomplete="off">
-            ${span ? `<span class="span-tag">${span}</span>` : i.estimate_min ? `<span class="span-tag">~${durationLabel(Number(i.estimate_min))}</span>` : i.estimate_unsure ? '<span class="span-tag">duration?</span>' : ''}
-            ${i.dropped_at ? '<span class="span-tag">let go</span>' : ''}
+            ${span ? `<span class="span-tag">${span}</span>` : i.estimate_min ? `<span class="span-tag">~${durationLabel(Number(i.estimate_min))}</span>` : ''}
             <button type="button" class="more" data-act="details" aria-label="Details">⋯</button>
             ${noteEditing === i.id
               ? `<div class="note-edit" data-note-for="${i.id}"></div>`
-              : i.notes ? noteHtml(i) : ''}
+              : subLine(i)}
           </span>
           ${i.time ? '<span class="resize-grip" title="Drag down to set how long" aria-hidden="true"></span>' : ''}
         </div>
         ${editing === i.id ? details(i) : ''}`;
+    }
+
+    // Under the title: status pills, then the note. A pill says what the item
+    // is; hovering shows what clicking it does (e.g. "let go" → "take back?").
+    const PILLS = [
+      { when: i => i.dropped_at, label: 'let go', hover: 'take back?', act: 'take-back' },
+      { when: i => i.estimate_unsure && !i.estimate_min && !i.end_time, label: 'duration?', hover: 'set it?', act: 'details' },
+    ];
+    function subLine(i) {
+      const pills = PILLS.filter(p => p.when(i)).map(p => `<button type="button" class="pill-act" data-act="${p.act}" title="${esc(p.hover)}"><span class="pill-now">${esc(p.label)}</span><span class="pill-hover">${esc(p.hover)}</span></button>`).join('');
+      const note = i.notes ? noteHtml(i) : '';
+      return pills || note ? `<div class="item-sub">${pills}${note}</div>` : '';
     }
 
     // Notes under items: first line only until clicked; clicking toggles.

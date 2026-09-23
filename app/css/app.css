@@ -1501,3 +1501,13 @@ li[data-id]:hover .kit-grip { opacity: .8; }
   .planner.docked > .day-housekeeping { grid-area: hk; }
   .planner.docked > .day-bottom { grid-area: side; grid-template-columns: 1fr; }
 }
+
+/* Pills and the note share the line under an item's title. */
+.item-sub { flex-basis: 100%; display: flex; align-items: baseline; gap: 6px; min-width: 0; margin: -4px 0 4px 52px; }
+.item-sub .item-note { flex: 1 1 auto; min-width: 0; margin: 0; }
+.line.has-item:has(.item-sub) { min-height: 50px; }
+.pill-act { flex: none; font-size: .72rem; line-height: 1.4; padding: 0 8px; border-radius: 999px; background: var(--glass-track); border: 1px solid var(--glass-border); color: var(--muted); font-family: var(--font); cursor: pointer; }
+.pill-act .pill-hover { display: none; }
+.pill-act:hover, .pill-act:focus-visible { color: var(--accent); border-color: var(--active-border); }
+.pill-act:hover .pill-now, .pill-act:focus-visible .pill-now { display: none; }
+.pill-act:hover .pill-hover, .pill-act:focus-visible .pill-hover { display: inline; }
