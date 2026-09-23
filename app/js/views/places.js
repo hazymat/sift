@@ -1,5 +1,5 @@
-// Find Things: editions (tabs) → sections → box cards. Search across all
-// editions, box editor, CSV import/export.
+// Find Things: life areas (tabs; stored as kind "edition") → sections → box cards. Search across all
+// life areas, box editor, CSV import/export.
 
 import { loadTree, search, importCsv, exportCsv } from '../places.js';
 
@@ -26,14 +26,14 @@ export default {
         <input type="search" id="find-q" class="search" placeholder="Find anything… (press /)" autocomplete="off" enterkeyhint="search">
       </div>
       <div class="find-tools">
-        <div class="segmented" id="editions" role="tablist" aria-label="Editions"></div>
+        <div class="segmented" id="editions" role="tablist" aria-label="Life areas"></div>
         <details class="tool-menu">
           <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
           <div class="menu">
             <button type="button" data-act="add-box">Add box</button>
             <button type="button" data-act="add-section">Add section</button>
-            <button type="button" data-act="add-edition">New edition</button>
-            <button type="button" data-act="rename-edition">Rename edition</button>
+            <button type="button" data-act="add-edition">New life area</button>
+            <button type="button" data-act="rename-edition">Rename life area</button>
             <button type="button" data-act="import">Import CSV</button>
             <button type="button" data-act="export">Export CSV</button>
           </div>
@@ -45,7 +45,7 @@ export default {
       <dialog class="sheet" id="import-sheet" aria-label="Import CSV">
         <div class="sheet-handle"></div>
         <h2>Import CSV</h2>
-        <p class="muted">One row per item. Columns: <code>edition, section, box_code, box_name, box_location, box_notes, item, item_notes</code>. Only a box name or code is required. Anything already here is kept; importing the same file twice won't duplicate it.</p>
+        <p class="muted">One row per item. Columns: <code>life_area, section, box_code, box_name, box_location, box_notes, item, item_notes</code>. Only a box name or code is required. Anything already here is kept; importing the same file twice won't duplicate it.</p>
         <p><input type="file" id="import-file" accept=".csv,text/csv"></p>
         <p class="muted">or paste it:</p>
         <textarea id="import-text" rows="6" placeholder="box_code,box_name,item&#10;A,Electronics,555 timers"></textarea>
@@ -123,7 +123,7 @@ export default {
           <div class="box-grid">${s.boxes.map(b => card(b)).join('')}
             <button type="button" class="box-card add-card" data-act="add-box" data-section="${s.id}">+ Add box</button>
           </div>
-        </section>`).join('') || '<div class="empty"><p class="muted">No boxes in this edition yet.</p></div>';
+        </section>`).join('') || '<div class="empty"><p class="muted">No boxes in this life area yet.</p></div>';
     }
 
     async function reload() {
@@ -228,13 +228,13 @@ export default {
         a.click();
         setTimeout(() => URL.revokeObjectURL(a.href), 1000);
       } else if (name === 'add-edition') {
-        const n = prompt('Name for the new edition (e.g. Build, Garage):');
+        const n = prompt('Name for the new life area (e.g. Home, Build, Garage):');
         if (!n?.trim()) return;
         const e = await store.create('places', { kind: 'edition', name: n.trim(), parent_place_id: null, notes: '', sort_order: tree.length });
         editionId = e.id; remember(EDITION_KEY, e.id);
         await reload();
       } else if (name === 'rename-edition' && current) {
-        const n = prompt('Rename edition:', current.name);
+        const n = prompt('Rename life area:', current.name);
         if (n?.trim()) { await store.update('places', current.id, { name: n.trim() }); await reload(); }
       } else if (name === 'add-section') {
         const ed = current || await store.create('places', { kind: 'edition', name: 'Standard', parent_place_id: null, notes: '', sort_order: 0 });
@@ -282,7 +282,7 @@ export default {
       try {
         const c = await importCsv(text);
         out.textContent = `Added ${c.boxes} boxes and ${c.items} items` +
-          (c.editions ? `, ${c.editions} edition${c.editions === 1 ? '' : 's'}` : '') +
+          (c.editions ? `, ${c.editions} life area${c.editions === 1 ? '' : 's'}` : '') +
           (c.sections ? `, ${c.sections} section${c.sections === 1 ? '' : 's'}` : '') +
           (c.skipped ? `. ${c.skipped} items were already here.` : '.');
         await reload();

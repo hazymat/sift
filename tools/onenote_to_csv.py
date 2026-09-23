@@ -1,7 +1,7 @@
 """Convert "Where things are" OneNote pages (exported as .docx) into the
 Find Things import CSV.
 
-    python tools/onenote_to_csv.py OUT.csv "Page.docx=Edition name" ...
+    python tools/onenote_to_csv.py OUT.csv "Page.docx=Life area name" ...
 
 How the pages are read:
   - blue paragraphs are section headings
@@ -24,7 +24,7 @@ W = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}'
 HEADING = {'1E4E79', '2E74B5', '1F4D78'}
 PLACE = {'ED7D31', 'C55A11', 'F4B083'}
 GREY = {'767676', '595959'}
-COLUMNS = ['edition', 'section', 'box_code', 'box_name', 'box_location', 'box_notes', 'item', 'item_notes']
+COLUMNS = ['life_area', 'section', 'box_code', 'box_name', 'box_location', 'box_notes', 'item', 'item_notes']
 
 
 # ---------- reading the docx ----------

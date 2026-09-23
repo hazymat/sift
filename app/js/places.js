@@ -1,10 +1,10 @@
-// Find Things data: editions → sections → boxes (all in `places`, told apart
+// Find Things data: life areas (kind "edition") → sections → boxes (all in `places`, told apart
 // by `kind`) → items. Plus CSV import/export and search.
 
 import * as store from './store.js';
 import { parseCsvObjects, toCsv } from './csv.js';
 
-export const CSV_COLUMNS = ['edition', 'section', 'box_code', 'box_name', 'box_location', 'box_notes', 'item', 'item_notes'];
+export const CSV_COLUMNS = ['life_area', 'section', 'box_code', 'box_name', 'box_location', 'box_notes', 'item', 'item_notes'];
 const DEFAULT_EDITION = 'Standard';
 const DEFAULT_SECTION = 'Boxes';
 
@@ -71,8 +71,8 @@ export function search(tree, query) {
 function normalise(row) {
   const pick = (...keys) => keys.map(k => row[k]).find(v => v != null && v !== '') || '';
   return {
-    edition: pick('edition') || DEFAULT_EDITION,
-    section: pick('section', 'area', 'group') || DEFAULT_SECTION,
+    edition: pick('life_area', 'edition') || DEFAULT_EDITION,
+    section: pick('section', 'group') || DEFAULT_SECTION,
     box_code: pick('box_code', 'label_code', 'code'),
     box_name: pick('box_name', 'box', 'name', 'desc'),
     box_location: pick('box_location', 'location', 'location_note'),
