@@ -159,6 +159,7 @@ export default {
         </div>
         <div class="task-notes"></div>
         <div class="detail-actions">
+          <button type="button" class="close-details" data-act="close-details" title="Close (or click anywhere outside, or Esc)">Close</button>
           <button type="button" data-act="plan-today">Put on today's plan</button>
           <button type="button" data-act="add-sub">+ Sub-task</button>
           <span class="spacer"></span>
@@ -481,6 +482,8 @@ export default {
       }
       if (b.dataset.energy && id) {
         await change(id, { energy: task.energy === b.dataset.energy ? null : b.dataset.energy }, 'Energy saved');
+      } else if (act === 'close-details') {
+        await closeDetails();
       } else if (act === 'details' || act === 'toggle-note') {
         await flushNote();
         open = open === id ? null : id;
@@ -540,9 +543,30 @@ export default {
 
     this.closeDetails = () => { open = null; };
 
+    // The panel closes when you click anywhere outside it (or its task), press
+    // Esc, or use Close. Whatever you were typing in it is saved first.
+    async function closeDetails() {
+      if (!open) return;
+      const panel = body.querySelector(`.task-details[data-for="${open}"]`);
+      if (panel?.contains(document.activeElement)) document.activeElement.blur();
+      await flushNote();
+      open = null;
+      setTimeout(render);
+    }
+    this.onPointer = ev => {
+      if (!open || !el.isConnected) return;
+      if (ev.target.closest(`.task-details[data-for="${open}"], [data-task="${open}"], dialog, .toast, .ref-picker, .pill-menu`)) return;
+      closeDetails();
+    };
+    document.addEventListener('pointerdown', this.onPointer, true);
+    // Buttons in the panel don't take focus from the notes while pressed.
+    body.addEventListener('mousedown', ev => {
+      if (ev.target.closest('.task-details .detail-actions button')) ev.preventDefault();
+    });
+
     this.onKey = ev => {
       if (ev.key === 'Escape' && !ev.target.closest('input, textarea, select, [contenteditable]') && (kitOrdered.escape() || kitPlain.escape())) return;
-      if (ev.key === 'Escape' && open && !ev.target.closest('input, textarea, select, [contenteditable]')) { open = null; render(); }
+      if (ev.key === 'Escape' && open && !ev.defaultPrevented && !document.querySelector('.ref-picker, .pill-menu')) { ev.preventDefault(); closeDetails(); }
     };
     addEventListener('keydown', this.onKey);
 
@@ -560,6 +584,7 @@ export default {
     this.kitOrdered?.destroy();
     this.kitPlain?.destroy();
     removeEventListener('keydown', this.onKey);
+    document.removeEventListener('pointerdown', this.onPointer, true);
   },
 
   quickAdd() {
