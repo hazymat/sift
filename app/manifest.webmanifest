@@ -1,7 +1,7 @@
 {
   "name": "Sift",
   "short_name": "Sift",
-  "description": "Tasks, thoughts, things, trades, scans and contracts, all in one place.",
+  "description": "Tasks, day plans, thoughts, things, contacts, scans and contracts, all in one place.",
   "id": "./",
   "start_url": "./",
   "scope": "./",

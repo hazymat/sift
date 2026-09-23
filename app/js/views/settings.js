@@ -13,8 +13,6 @@ function formatBytes(n) {
 export default {
   async mount(el, { store, app }) {
     el.innerHTML = `
-      <h1>Settings</h1>
-
       <section class="card">
         <h2>Appearance</h2>
         <div class="segmented" id="theme" role="group" aria-label="Theme">
@@ -111,7 +109,7 @@ export default {
     storage.innerHTML = `
       <dt>Used</dt><dd>${formatBytes(est?.usage)}</dd>
       <dt>Available</dt><dd>${formatBytes(est?.quota)}</dd>
-      <dt>Protected from clean-up</dt><dd>${persisted ? 'Yes' : 'No. Install Sift to your Home Screen to protect your data.'}</dd>
+      <dt>Protected from clean-up</dt><dd>${persisted ? 'Yes' : '⚠️ No. Install Sift to your Home Screen to protect your data.'}</dd>
       <dt>Unsynced changes</dt><dd>${await store.outboxSize()}</dd>
     `;
   },

@@ -4,7 +4,7 @@
 
 ## 1. Goals
 
-- One personal "life app": tasks/projects, a day planner, braindump, where-things-are, trades contacts, quick scans, personal contracts. Contracts + Scans together are the digital home filing cabinet.
+- One personal "life app": tasks/projects, a day planner, braindump, where-things-are, contacts (quick-capture people and organisations, incl. trusted trades), quick scans, personal contracts. Contracts + Scans together are the digital home filing cabinet.
 - Runs on iPhone and laptop as an installable PWA (HTML/CSS/JS, no framework, no build step).
 - **Local-first**: all data, including scan images, lives on the device. Fully usable with no server and no network.
 - **Optional sync** across a user's devices via a self-hosted server we write (multi-user, end-to-end encrypted).
@@ -63,44 +63,79 @@ Common fields on every record: `id (UUIDv7), created_at, updated_at, deleted_at,
 
 - `projects`: `name, description, status (active|paused|done|archived), colour, sort_order, due_date`
 - `milestones`: `project_id, name, due_date, done_at, sort_order`
-- `tasks`: `title, notes, project_id?, milestone_id?, parent_task_id? (subtasks), status (todo|doing|waiting|done), priority (1-4), due_date?, due_time?, done_at?, calendar_event_id?, calendar_sync (none|push), recurrence_rule? (RRULE), source_thought_id?, source_scan_id?, source_contract_id?, sort_order`
+- `tasks`: `title, notes, project_id?, milestone_id?, parent_task_id? (subtasks), status (todo|doing|waiting|done), priority (1-4), due_date?, due_time?, done_at?, calendar_event_id?, calendar_sync (none|push), recurrence_rule? (RRULE), source_thought_id?, source_scan_id?, source_contract_id?, contact_ids[], case_id?, sort_order`
+  - `contact_ids[]`: people/organisations this task involves (reference only; shown as chips, tap to open the contact).
 
 ### 4.2 Braindump
 
 - `thoughts`: `body, kind (thought|idea|task|shopping|journal|place_item), pinned, converted_to {collection, id}?`
   - No kind picked → `thought`. Recategorise anytime by changing `kind`.
   - `task` / `place_item` kinds offer "convert", which creates the target record and links back via `converted_to` / `source_thought_id`.
+  - **Plan it**: any thought can become a day plan item (§4.2a): pick the day, then optionally a start time, end time and/or estimate. The thought links to it via `converted_to`.
+  - **Select any text in a thought → "Make contact"** creates a contact from the selection (see §4.4); the thought keeps a link to it.
 
 ### 4.2a Day planner
 
 A day's battle plan: dump what you want to do, then give things times. Built for getting through a day, not long-term planning (that's Tasks).
 
-- `day_items`: `date (YYYY-MM-DD), title, time? (HH:MM), end_time?, done_at?, sort_order, task_id?, source_thought_id?, carried_from? (date), merged_from[]? (ids of items combined into this one)`
+- `day_items`: `date (YYYY-MM-DD), title, notes?, time? (HH:MM), end_time?, estimate_min?, done_at?, sort_order, task_id?, case_id?, contact_ids[], source_thought_id?, carried_from? (date), merged_from[]? (ids of items combined into this one)`
   - No `time` = on the day's unsorted pile. With `time` = on the timeline, sorted by time.
   - Moving to another day = change `date` (and set `carried_from`).
   - Separate records per item (not an array on a day record) so edits from two devices merge per item.
+  - `estimate_min` = how long I think it takes; with `time` and no `end_time`, the timeline draws the block from the estimate.
+  - **Calendar awareness** (phase 3): real appointments from the connected calendar are drawn on the timeline as busy blocks (read only). Scheduling an item over one warns, and the pile can suggest free slots that fit an item's estimate.
 
 ### 4.3 Where things are (area: Find Things)
 
-- `places`: `name, label_code (physical label, e.g. "PB-14"), parent_place_id? (room → shelf → box), location_note, sort_order`
-- `items`: `name, place_id, quantity?, notes, last_moved_at`
-  - Moving an item = change `place_id`; moving a box moves everything in it.
+- `places`: `kind (edition|section|box), name, label_code? (physical label, e.g. "BA", "W1"), parent_place_id?, location_note? (where it lives, e.g. "Under desk back"), notes? (e.g. "9L Really Useful"), sort_order`
+  - **Editions** are separate "life sections" of the list (e.g. Standard, Build), shown as tabs. Each has **sections** (e.g. "Where Things Area", "Wardrobe Boxes", "Front Room"), which hold **boxes** (a box can also be a spot, like "Malakai's room - fireplace").
+- `items`: `name, place_id (a box), quantity?, notes?, sort_order, last_moved_at`
+  - Moving an item = change `place_id`; moving a box to another section = change its `parent_place_id`.
 
-### 4.4 Trades
+### 4.4 Contacts
 
-- `trades`: `name, company, trade_types[], phone, email, website, address, area_covered, rating (1-5), review, would_use_again (yes|no|maybe)`
-- `trade_jobs`: `trade_id, date, description, cost, rating, notes, task_id?`
+Two kinds of contact, and you can move one between them at any time:
+
+1. **Transient**: a number or detail you need for a few days ("the parking line", "the man about the van"). Never deleted automatically, just sorted by recency. If it has no `about`, it shows a gentle "What was this?" prompt so it can be labelled later.
+2. **Stored**: your contacts directory, in **categories** you define ("Plumber", "Sparky", "Carers", "Mum Care", anything). A stored contact can be in several categories.
+
+Making a transient contact stored asks for its categories; it then appears in those lists. Unstoring keeps everything and moves it back to Recent.
+
+- `contacts`: `name (who: person or organisation), kind (person|organisation), status (transient|stored), category_ids[], about? ("what was this?" / who they are), details[] ({label, value, last_used_at?}: phone, email, website, address, ref no …), body? (unstructured text, kept exactly as captured), notes? (free text: specialities, "not sure they'll do it, but maybe"), research_status? (candidate|contacted|quoted|booked|rejected), rating? (1-5), would_use_again? (yes|no|maybe), area_covered?, captured_at, source_thought_id?, looked_up_at[] (recent views, newest first, capped at 20), last_contacted_at?, pinned`
+  - **Structured or unstructured**: `details[]` holds whatever is known; `body` holds the raw text. Either can be empty.
+  - **Capture from Brain Dump**: select text → Make contact. `body` = the selection; phone numbers, emails and URLs are offered as `details[]`; the user confirms `name` and optionally `about`. Starts transient. `captured_at` = the thought's time, not the conversion time.
+  - **When**: `captured_at` (when I recorded it), `looked_up_at[]` (stamped each time it's opened), `last_contacted_at` plus the interactions log (when I contacted them, and which number or email I used: `details[].last_used_at`).
+  - **Phone calls**: web apps can't read the iPhone's call history. Tapping a number or email in Sift logs an interaction (outgoing call/email, with the detail used) before handing over to the phone; a "Contacted" button logs one by hand (call, text, letter, visit, incoming or outgoing). The timeline then lines up with the phone's Recents by date and time.
+- `contact_categories`: `name, colour?, sort_order`. Arbitrary; created on the fly.
+- `interactions`: `at, how (call|text|email|letter|visit|meeting|other), direction (in|out), contact_id?, case_id?, detail_used?, summary?, scan_id?, task_id?` (one record per event, so logs from two devices merge cleanly).
+- `contact_jobs`: `contact_id, date, description, cost, rating, notes, task_id?` (work someone has done for me).
+- **Research mode** (per category), for "find lots of plumbers": a fast entry list. Type or paste one per line (name, number, website, note in any order; numbers and URLs recognised); each becomes a stored contact in that category with `research_status = candidate`. Then work down the list: tap to call (logged), set status chips (contacted, quoted, booked, rejected), jot notes, compare.
+- **Connections**: contacts referenced by the same tasks, day items or cases are shown as connected. A contact's detail lists "Connected" contacts and cases; a category or case view clusters its contacts together.
+- Recency, not tidiness: Recent is sorted by last activity (captured, looked up or contacted). Transient contacts untouched for 60 days fold into "Older" (never deleted).
+
+### 4.4a Cases
+
+An ongoing saga with one or more organisations or people, e.g. "Mum's care funding: council". Everything about it in one timeline, instead of scattered across calls, letters and tasks.
+
+- `cases`: `title, status (open|waiting|closed), summary?, references[] ({label, value}: case numbers, reference numbers, named contacts), contact_ids[], project_id? (Tasks project, if it also has actionable work), opened_at, closed_at?`
+- The case **timeline** is assembled from records that carry `case_id`:
+  - `interactions` (calls, emails, visits, letters in and out; which number was used; what was said)
+  - `scans` with `linked = {collection: "cases", id}` (letters received or sent: `kind = letter`, `letter_date`, `summary` of what it said; OCR in v2)
+  - `tasks` and `day_items` (what I did or have to do)
+  - case notes (`case_notes`: `case_id, at, body`)
+- Case view: header (title, status, references with copy buttons, contacts with tap-to-call), then the merged timeline newest first, with filters (calls, letters, tasks, notes) and "Add": log call, add letter (opens Scan), add note, add task.
+- Where it lives: a **Cases** tab in Contacts (Recent | Directory | Cases). Cases are also reachable from any linked task, day item, contact or scan.
 
 ### 4.5 Scans
 
-- `scans`: `title, kind (receipt|id|warranty|other), expiry_date?, note?, linked {collection, id}? (contract, trade_job, item, task), keep_on_device (bool), pages[]`
+- `scans`: `title, kind (receipt|id|warranty|letter|other), expiry_date?, letter_date?, summary?, note?, linked {collection, id}? (contract, contact_job, item, task, case), keep_on_device (bool), pages[]`
   - `pages[]`: `{blob_id, thumb_blob_id, mime_type, size_bytes}`
   - `title` defaults to e.g. "Receipt 23 Sep 14:32"; everything else optional.
 - `blobs` store: `{blob_id, bytes (Blob), mime_type, size_bytes, uploaded (bool)}`
 
 ### 4.6 Contracts
 
-- `contracts`: `name, category (insurance|utility|broadband|phone|mortgage|rent|loan|subscription|warranty|pension|other), provider, provider_phone?, provider_url?, reference?, covers?, start_date, end_date?, renewal_date?, auto_renew (bool), notice_days?, cost, cost_frequency (monthly|quarterly|annual|one_off), payment_method_note?, status (current|ended|cancelled), previous_contract_id?, trade_id?, custom_fields[] ({label, value}), notes`
+- `contracts`: `name, category (insurance|utility|broadband|phone|mortgage|rent|loan|subscription|warranty|pension|other), provider, provider_phone?, provider_url?, reference?, covers?, start_date, end_date?, renewal_date?, auto_renew (bool), notice_days?, cost, cost_frequency (monthly|quarterly|annual|one_off), payment_method_note?, status (current|ended|cancelled), previous_contract_id?, contact_id?, custom_fields[] ({label, value}), notes`
   - Renewal/switch = new row with `previous_contract_id` → history chain per policy line.
   - Scans attach via `scans.linked = {collection: "contracts", id}`.
 
@@ -127,10 +162,10 @@ Single-page app, hash routing, top nav on laptop, bottom tab bar on iPhone. Glob
 | Area | Laptop | iPhone |
 |---|---|---|
 | **Tasks** | Left: projects. Main: tasks grouped by milestone, drag reorder. Right: detail. Views: Today, Upcoming, Project, Done. | Segmented views; detail as full-screen sheet. |
-| **Day Planner** | Opens on today; arrows to other days (plan tomorrow tonight). Top: text box, one item per line → the day's pile. Pile offers, one tap each: Tasks due/overdue, yesterday's unfinished items, Dump thoughts of kind `task`. Timeline: items with times, "now" line, tick off, push later, back to pile, send to tomorrow or to Tasks. Drag one item onto another to combine. **Text mode** toggle: the whole day as plain text (`12.45<tab>title`), edited freely and parsed back into items. | Same flow, full width. Typing a time at the start of a line (`12.45 speak to L`) schedules it. |
-| **Dump** | Large text area focused on open; kind pills underneath; Save (⌘↵). Below: thought list/cloud, filter by kind and tag. | Opens into text entry with keyboard up; pills above keyboard. |
-| **Find Things** (places, items) | Tree (rooms → boxes) left, contents right. Search jumps to box. Big `label_code` badge. | Search-first: type item → box label shown large. Tap to browse. |
-| **Trades** | Sortable table (type, rating, last used). Detail with jobs history. | Grouped by trade type; tap-to-call / email. |
+| **Day Planner** | Opens on today; arrows to other days (plan tomorrow tonight). Top: text box, one item per line → the day's pile. Pile offers, one tap each: Tasks due/overdue, yesterday's unfinished items, Brain Dump thoughts of kind `task`. Timeline: items with times, "now" line, tick off, push later, back to pile, send to tomorrow or to Tasks. Drag one item onto another to combine. **Text mode** toggle: the whole day as plain text (`12.45<tab>title`), edited freely and parsed back into items. | Same flow, full width. Typing a time at the start of a line (`12.45 speak to L`) schedules it. |
+| **Brain Dump** | Large text area focused on open; kind pills underneath; Save (⌘↵). Below: thought list/cloud, filter by kind and tag. | Opens into text entry with keyboard up; pills above keyboard. |
+| **Find Things** | Search bar always on top (`/`), searching every edition: matching boxes show their path and only the matching items. Edition tabs; each section is a grid of box cards (big code, name, where it lives in orange, first few items, "+ n more"). Tap a card to edit the box and its contents (add many items at once, one per line). Menu: add box / section / edition, import / export CSV. | Same, one column; box editor as a full-height sheet. |
+| **Contacts** | Tabs: **Recent** (transient + recently used, "What was this?" prompts), **Directory** (by category; research mode per category), **Cases**. Contact detail: name, about, details (tap to call/email, which logs an interaction), raw captured text, notes, timeline (captured, looked up, contacted), connected contacts, cases, tasks and day items, jobs. | Same, full-screen detail. Quick "Contacted" button. |
 | **Contracts** | Spreadsheet-style table: sort, filter, group, column picker, inline edit. Detail with history chain + scans. Footer: annual cost total. | Cards by category, current first, renewals due highlighted. Tap-to-call provider. |
 | **Scans** | Reverse-chronological thumbnails, kind pill filters, search. Drag-and-drop to add. | Big **Scan** button, recent scans below. Full-screen viewer, pinch zoom. |
 
@@ -143,6 +178,8 @@ Single-page app, hash routing, top nav on laptop, bottom tab bar on iPhone. Glob
 - Scope `https://www.googleapis.com/auth/calendar.events`, requested only when the user enables it.
 - Google Identity Services token client in the browser (no refresh token; ~1h tokens re-acquired silently while the Google session is active).
 - One-way push: task with due date and `calendar_sync = push` creates/updates/deletes an event; `calendar_event_id` stored on the task.
+- Read: the day's events are fetched (read only) and shown as busy blocks in Day Planner, so I don't plan my own work over real appointments. Cached for offline viewing.
+- `calendar.js` is a small connector interface (`list_events(from, to)`, `push_event`, `delete_event`), Google first; CalDAV / ICS feed connectors can follow.
 - Offline: calendar operations queued in `calendar_outbox`, flushed on reconnect.
 - The OAuth client is tied to the GitHub Pages origin; Google app verification (free) needed before >100 users can connect.
 
@@ -228,7 +265,7 @@ Single-page app, hash routing, top nav on laptop, bottom tab bar on iPhone. Glob
 
 ### 9.1 Quick scan (2 taps)
 
-- Entry points: Scan button in Scans, Scan in global quick-add, "Attach scan" on contract / trade job / item / task (pre-fills `linked`).
+- Entry points: Scan button in Scans, Scan in global quick-add, "Attach scan" on contract / contact job / item / task (pre-fills `linked`).
 - Flow: tap Scan → camera (`<input type="file" accept="image/*,application/pdf" capture="environment">`) → photo → **saved immediately** with default title and `kind = receipt`.
 - Post-save dismissible strip: kind pills, "+ page", title/expiry fields, "Make contract".
 - Auto on capture: EXIF rotate, greyscale/contrast "scan" filter. v2: edge detection, OCR.
@@ -247,7 +284,7 @@ Single-page app, hash routing, top nav on laptop, bottom tab bar on iPhone. Glob
 
 - **Backup** (phase 1): one tap → `.sift` file (zip of JSON records + blobs), optionally encrypted with a backup passphrase. Saved via share sheet to Files / iCloud Drive / Downloads. Settings shows "last backup" with a reminder after 14 days when sync is off.
 - **Restore**: into an empty device, or merge into existing data using the same per-field merge rules.
-- Imports: places/items CSV (`label_code, box_name, item_name, notes`) for the OneNote box list; trades CSV; contracts CSV (unknown columns → custom fields).
+- Imports: Find Things CSV, one row per item (`edition, section, box_code, box_name, box_location, box_notes, item, item_notes`; only a box name or code is required; importing again merges, no duplicates; also exported). `tools/onenote_to_csv.py` converts the OneNote pages (exported as .docx). Contacts CSV; contracts CSV (unknown columns → custom fields).
 
 ## 11. File layout
 
@@ -266,7 +303,7 @@ Single-page app, hash routing, top nav on laptop, bottom tab bar on iPhone. Glob
   js/crypto.js               key derivation, wrap/unwrap, encrypt/decrypt
   js/sync.js                 outbox, push/pull, merge, blob sync
   js/calendar.js
-  js/views/{tasks,planner,dump,places,trades,contracts,scans,settings}.js
+  js/views/{tasks,planner,dump,places,contacts,contracts,scans,settings}.js
   vendor/{minisearch,pdfjs}/
   icons/
 /server
@@ -281,10 +318,10 @@ Single-page app, hash routing, top nav on laptop, bottom tab bar on iPhone. Glob
 **Phase 1 — Local, single user, no server** (laptop and iPhone each usable standalone)
 1. Shell: PWA install, service worker, area registry/nav, `store.js` with sync-ready record format (UUIDv7, field clocks, soft delete, outbox), persistent storage request.
 2. Find Things (places + items) + CSV import.
-3. Dump.
+3. Brain Dump.
 4. Day Planner (incl. text mode).
 5. Tasks.
-6. Trades.
+6. Contacts + Cases (transient/stored, categories, research mode, interactions log, "Make contact" from Brain Dump, case timeline).
 7. Scans.
 8. Contracts.
 9. Search.
@@ -296,7 +333,7 @@ Single-page app, hash routing, top nav on laptop, bottom tab bar on iPhone. Glob
 13. `sync.js`: record sync + merge, then blob sync.
 
 **Phase 3 — Calendar**
-14. Google Calendar push; scan expiry + contract renewal reminders.
+14. Calendar connector (Google first): busy blocks in Day Planner, task push; scan expiry + contract renewal reminders.
 
 **Phase 4 — v2 cloud adapters**
 15. Adapter interface + Google Drive app-data adapter first.

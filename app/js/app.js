@@ -4,11 +4,11 @@ import * as store from './store.js';
 export const AREAS = [
   { id: 'tasks', label: 'Tasks', icon: 'i-tasks', view: './views/tasks.js' },
   { id: 'planner', label: 'Day Planner', icon: 'i-planner', view: './views/planner.js' },
-  { id: 'dump', label: 'Dump', icon: 'i-dump', view: './views/dump.js' },
+  { id: 'dump', label: 'Brain Dump', icon: 'i-dump', view: './views/dump.js' },
   { id: 'places', label: 'Find Things', icon: 'i-places', view: './views/places.js' },
   { id: 'scans', label: 'Scans', icon: 'i-scans', view: './views/scans.js' },
   { id: 'contracts', label: 'Contracts', icon: 'i-contracts', view: './views/contracts.js' },
-  { id: 'trades', label: 'Trades', icon: 'i-trades', view: './views/trades.js' },
+  { id: 'contacts', label: 'Contacts', icon: 'i-contacts', view: './views/contacts.js' },
   { id: 'settings', label: 'Settings', icon: 'i-settings', view: './views/settings.js', pinnable: false },
 ];
 
@@ -128,6 +128,7 @@ async function route() {
   current = next.id;
   renderNav();
   document.title = `${next.label} · Sift`;
+  $('#page-title').textContent = next.label;
 
   currentView?.unmount?.();
   const main = $('#main');

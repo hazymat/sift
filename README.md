@@ -1,6 +1,6 @@
 # Sift
 
-A personal, local-first "life app": tasks and projects, a braindump, where things are, trusted trades, quick scans and personal contracts. Runs on phone and laptop as an installable PWA. Your data lives on your device, with optional end-to-end encrypted sync through a server you run yourself.
+A personal, local-first "life app": tasks and projects, a braindump, where things are, contacts (including trusted trades), quick scans and personal contracts. Runs on phone and laptop as an installable PWA. Your data lives on your device, with optional end-to-end encrypted sync through a server you run yourself.
 
 Early days: nothing usable yet.
 
