@@ -1,4 +1,5 @@
 import { sortable } from '../sortable.js';
+import { toast } from '../toast.js';
 
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
 
@@ -19,6 +20,22 @@ export default {
           ${app.THEMES.map(t => `<button type="button" data-value="${t.id}" aria-pressed="${t.id === app.currentTheme()}">${t.label}</button>`).join('')}
         </div>
         <p class="muted" id="theme-note"></p>
+      </section>
+
+      <section class="card" id="planner-settings">
+        <h2>Day Planner</h2>
+        <div class="settings-grid">
+          <label>Paper<select name="paper_style"></select></label>
+          <label>Day starts<input type="time" name="day_start"></label>
+          <label>Day ends<input type="time" name="day_end"></label>
+          <label>Each line<select name="slot_min">${[15, 20, 30, 45, 60].map(m => `<option value="${m}">${m} min</option>`).join('')}</select></label>
+        </div>
+        <h3>Down days</h3>
+        <p class="muted">Days to go easy. The planner nudges you to do less.</p>
+        <div class="segmented" id="down-days">${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d, n) => `<button type="button" data-dow="${(n + 1) % 7}">${d}</button>`).join('')}</div>
+        <h3>Nudges</h3>
+        <label class="check-row"><input type="checkbox" name="hint_down_day"> Remind me to do less on down days</label>
+        <label class="check-row"><input type="checkbox" name="hint_walk_breaks"> Build in walking breaks during laptop work <span class="muted">(with the focus timer, coming later)</span></label>
       </section>
 
       <section class="card">
@@ -51,6 +68,38 @@ export default {
         </dl>
       </section>
     `;
+
+    // Day Planner settings
+    const { daySettings } = await import('../days.js');
+    const ps = el.querySelector('#planner-settings');
+    const drawPlanner = async () => {
+      const d = await daySettings();
+      const { PAPERS } = await import('../days.js');
+      ps.querySelector('[name="paper_style"]').innerHTML = PAPERS.map(p => `<option value="${p.id}">${p.label}</option>`).join('');
+      ps.querySelector('[name="paper_style"]').value = d.paper_style;
+      ps.querySelector('[name="day_start"]').value = d.day_start;
+      ps.querySelector('[name="day_end"]').value = d.day_end;
+      ps.querySelector('[name="slot_min"]').value = String(d.slot_min);
+      ps.querySelector('[name="hint_down_day"]').checked = d.hint_down_day;
+      ps.querySelector('[name="hint_walk_breaks"]').checked = d.hint_walk_breaks;
+      for (const b of ps.querySelectorAll('[data-dow]')) b.setAttribute('aria-pressed', d.down_days.includes(Number(b.dataset.dow)));
+    };
+    ps.addEventListener('change', async ev => {
+      const t = ev.target;
+      const value = t.type === 'checkbox' ? t.checked : t.name === 'slot_min' ? Number(t.value) : t.value;
+      if (t.name && value !== '') { await store.updateSettings({ [t.name]: value }); toast('✓ Saved'); }
+    });
+    ps.addEventListener('click', async ev => {
+      const b = ev.target.closest('[data-dow]');
+      if (!b) return;
+      const d = await daySettings();
+      const n = Number(b.dataset.dow);
+      const down = d.down_days.includes(n) ? d.down_days.filter(x => x !== n) : [...d.down_days, n];
+      await store.updateSettings({ down_days: down });
+      drawPlanner();
+      toast('✓ Saved');
+    });
+    drawPlanner();
 
     const themeNote = () => {
       el.querySelector('#theme-note').textContent =

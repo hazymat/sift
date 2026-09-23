@@ -9,6 +9,7 @@ export const AREAS = [
   { id: 'scans', label: 'Scans', icon: 'i-scans', view: './views/scans.js' },
   { id: 'contracts', label: 'Contracts', icon: 'i-contracts', view: './views/contracts.js' },
   { id: 'contacts', label: 'Contacts', icon: 'i-contacts', view: './views/contacts.js' },
+  { id: 'recipes', label: 'Recipes', icon: 'i-recipes', view: './views/recipes.js' },
   { id: 'settings', label: 'Settings', icon: 'i-settings', view: './views/settings.js', pinnable: false },
   // Not in the nav: reached from each area's ⋯ menu and from Settings.
   { id: 'bin', label: 'Archive & Bin', icon: 'i-archive', view: './views/bin.js', pinnable: false, hidden: true },

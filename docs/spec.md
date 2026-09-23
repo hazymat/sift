@@ -4,7 +4,7 @@
 
 ## 1. Goals
 
-- One personal "life app": tasks/projects, a day planner, braindump, where-things-are, contacts (quick-capture people and organisations, incl. trusted trades), quick scans, personal contracts. Contracts + Scans together are the digital home filing cabinet.
+- One personal "life app": a day planner (the heart of it), tasks/projects, braindump, where-things-are, contacts (quick-capture people and organisations, incl. trusted trades), quick scans, personal contracts. Contracts + Scans together are the digital home filing cabinet.
 - Runs on iPhone and laptop as an installable PWA (HTML/CSS/JS, no framework, no build step).
 - **Local-first**: all data, including scan images, lives on the device. Fully usable with no server and no network.
 - **Optional sync** across a user's devices via a self-hosted server we write (multi-user, end-to-end encrypted).
@@ -63,7 +63,8 @@ Common fields on every record: `id (UUIDv7), created_at, updated_at, deleted_at,
 
 - `projects`: `name, description, status (active|paused|done|archived), colour, sort_order, due_date`
 - `milestones`: `project_id, name, due_date, done_at, sort_order`
-- `tasks`: `title, notes, project_id?, milestone_id?, parent_task_id? (subtasks), status (todo|doing|waiting|done), priority (1-4), due_date?, due_time?, done_at?, calendar_event_id?, calendar_sync (none|push), recurrence_rule? (RRULE), source_thought_id?, source_scan_id?, source_contract_id?, contact_ids[], case_id?, sort_order`
+  - A task shows in Day Planner on its `start_date`, and (while not done) on the day of its `aim_at`. Start and aim on different days = a multi-day task.
+- `tasks`: `title, notes, project_id?, milestone_id?, parent_task_id? (subtasks), status (todo|doing|waiting|done), priority (1-4), energy? (high|medium|low), start_date? (the day it's planned for), aim_at? (completion aim, date + optional time), done_at? (set when ticked, cleared when unticked), calendar_event_id?, calendar_sync (none|push), recurrence_rule? (RRULE), source_thought_id?, source_scan_id?, source_contract_id?, contact_ids[], case_id?, sort_order`
   - `contact_ids[]`: people/organisations this task involves (reference only; shown as chips, tap to open the contact).
 
 ### 4.2 Braindump
@@ -76,14 +77,47 @@ Common fields on every record: `id (UUIDv7), created_at, updated_at, deleted_at,
 
 ### 4.2a Day planner
 
-A day's battle plan: dump what you want to do, then give things times. Built for getting through a day, not long-term planning (that's Tasks).
+**The heart of the app.** A day's battle plan for actually working through what has been dumped into Sift from everywhere else. Built for getting through a day (and planning the next few), not long-term planning (that's Tasks). Designed for people with high expectations of themselves: it helps plan less, not more.
 
+**Page** (`#/planner/<date>`), top to bottom:
+1. **Title**: the weekday, big, in the paper's handwriting font, then the date; "Today / Tomorrow / 3 days ago" under it.
+2. **Day Focus** (bold, prominent): one or a handful of things that matter today.
+3. **Today's Energy Level**: High / Medium / Low (see Energy below).
+4. **Carry-over**: "n unfinished from earlier days · Bring them here" (last 7 days), for today and future days.
+5. **Lined paper** with a margin: one line per slot from **day start** to **day end** (default 8.30 to 18.30, 30 minutes per line; all three in Settings). Times are written in the margin.
+   - Anything can be put at any time: an item at an odd time (12.45) gets its own line in time order; several items at one time get several lines. Items with an end time or estimate bracket the lines they cover.
+   - Items before the day starts get lines above; items after it go under **Evening** at the bottom.
+   - Tap an empty line to write on it; tick items off; ⋯ opens time, until, estimate, day (move to another date), note, back to pile, delete.
+6. **To place** (the pile): things for today without a time yet, fed by the dump box (text to list; a line starting with a time, e.g. `12.45 speak to L` or `12.45-13.30 …`, goes straight onto the plan).
+7. **Tasks**: Tasks whose **start date** is this day, plus unfinished Tasks whose **completion aim** falls on this day. Multi-day tasks (start and aim on different days) show in their own strip ("ongoing: day 2 of 5"). Other undated Tasks and Brain Dump items can be **adopted** into the day, which sets their start date.
+8. **Notes**: free text for the day (the notes editor, §4.7), which can reference other things (see mentions).
+
+**Getting around**: ‹ Today › buttons (and ← → / T on a keyboard), plus a **Calendar** popup: a month grid where days that have anything planned or written are marked with a dot and down days are dimmed. Any date, past or future, opens the same page (look back at last Thursday; plan next week).
+
+**Paper styles**: the page is drawn in a paper style. Default in Settings; any day can use a different one (Paper picker on the page, stored on the day).
+- **Notebook** (default): light yellow paper, faint grey lines, red margin, handwriting, navy ink.
+- **Techie**: dark terminal page, monospace, 24-hour times (08:30), faint grid, teal/amber.
+- **Dot journal**: cream bullet-journal paper with a dot grid, no rules, handwriting, navy pen.
+- **Minimal**: clean white page, system font, hairlines, roomy lines, small grey times.
+- **Glass**: the app's own glass look (follows the app theme).
+Each paper sets fonts, colours, spacing and time format through tokens scoped to the planner, so new papers are CSS only. Handwriting uses fonts already on the device (Segoe Print, Bradley Hand, Noteworthy …); a bundled web font can be added later.
+
+**Energy**: Tasks can carry an `energy` tag (high | medium | low). Rough guide: **low** = laptop work (coding, accounts/bookkeeping, design); **medium** = pottering jobs; **high** = big tidy-ups, starting a big project. Setting today's energy makes the Tasks section suggest matching tasks to **adopt** for the day (suggestions only; nothing is added without a tap).
+
+**Doing less** (Settings → Day Planner → Nudges; each can be turned off):
+- **Down days** (default Sunday; any weekdays): the page says so and suggests picking one or two things; resting counts as part of the plan. The paper gets a calm tint.
+- **Walking breaks**: with the **focus timer** (a Pomodoro-style timer started from any item: e.g. 25 min work / 5 min break), low-energy (laptop) items get a "walk around for 10 minutes" break built in.
+- Other nudges to consider: a gentle warning when the planned minutes exceed the hours in the day ("that's 11 hours of plan for 10 hours"); an automatic "rest" line after lunch on down days; celebrating a done list at the end of the day ("You did 6 things") instead of highlighting what didn't happen; unfinished items move on quietly (carry-over) rather than showing as failures.
+
+**Calendar awareness** (phase 3): real appointments from the connected calendar are drawn on the timeline as busy blocks (read only). Scheduling an item over one warns, and the pile can suggest free slots that fit an item's estimate.
+
+- `days`: `id = date (YYYY-MM-DD, so every device edits the same record), date, focus, energy (high|medium|low)?, notes (markdown), paper? (override of the default paper style)`
 - `day_items`: `date (YYYY-MM-DD), title, notes?, time? (HH:MM), end_time?, estimate_min?, done_at?, sort_order, task_id?, case_id?, contact_ids[], source_thought_id?, carried_from? (date), merged_from[]? (ids of items combined into this one)`
-  - No `time` = on the day's unsorted pile. With `time` = on the timeline, sorted by time.
-  - Moving to another day = change `date` (and set `carried_from`).
-  - Separate records per item (not an array on a day record) so edits from two devices merge per item.
-  - `estimate_min` = how long I think it takes; with `time` and no `end_time`, the timeline draws the block from the estimate.
-  - **Calendar awareness** (phase 3): real appointments from the connected calendar are drawn on the timeline as busy blocks (read only). Scheduling an item over one warns, and the pile can suggest free slots that fit an item's estimate.
+  - No `time` = on the day's pile. With `time` = on the timeline, sorted by time.
+  - Moving to another day = change `date` (carry-over also sets `carried_from`).
+  - Separate records per item (not an array on the day) so edits from two devices merge per item.
+  - `estimate_min` = how long I think it takes; with `time` and no `end_time`, the timeline brackets the lines it covers.
+- Still to come: **Text mode** (the whole day as plain text, `12.45<tab>title`, edited freely and parsed back), drag an item onto a line or onto another item to combine, a "now" line.
 
 ### 4.3 Where things are (area: Find Things)
 
@@ -139,13 +173,29 @@ An ongoing saga with one or more organisations or people, e.g. "Mum's care fundi
   - Renewal/switch = new row with `previous_contract_id` → history chain per policy line.
   - Scans attach via `scans.linked = {collection: "contracts", id}`.
 
+### 4.8 Recipes (recipe book with makes)
+
+A recipe book that also records every time a recipe is **made**: a batch of wine, a loaf, a sauce. The recipe is the plan; a **make** is one real run of it, with its own notes, readings, photos and outcome, so the next make can be better.
+
+- `recipes`: `title, category (wine|beer|bread|food|drink|preserve|other, or free), summary?, yield? ({amount, unit}), ingredients[] ({qty, unit, item, note?}), steps[] ({text, wait?: {days|hours}}: a wait makes the planner remind you, e.g. "rack after 14 days"), notes (notes editor), source? (book, URL, person), photo_ids[], version (1, 2, … when changed after makes exist), tags[]`
+- `recipe_makes`: `recipe_id, recipe_version, batch_no (e.g. "W-2026-04", auto-suggested), started_at, finished_at?, status (planned|in progress|done|failed), scale? (e.g. 2× / 23 L), deviations? (what I did differently), notes, rating? (1-5), would_make_again?, place_id? (where it's kept: a Find Things box/spot), photo_ids[]`
+- `make_readings`: `make_id, at, kind (specific_gravity|temperature|ph|taste|weight|volume|note|other), value?, unit?, note?, photo_ids[]` (one record per reading so logs from two devices merge)
+  - Wine/beer: original and final gravity give **ABV** automatically; a gravity chart over time per make.
+  - Taste notes over time ("3 months: still harsh; 6 months: good").
+- Photos and recordings (e.g. a voice note of tasting) use the Scans blob pipeline (§4.5, §8.4).
+- **Links**: step waits become Day Planner items on the right dates ("Batch W-2026-04: rack"); a make can live in a Find Things box ("Under Coal Hole: 6 bottles W-2026-04"); ingredients can be added to a shopping list (Brain Dump `shopping`).
+- UI: **Recipes** area: recipe cards (photo, title, category, last made); a recipe page shows ingredients (scalable), steps, and its makes as a timeline; a make page shows readings (with chart), notes, photos and a "Log reading" button. "Make this" starts a make from the recipe.
+- Details to be filled in later with the user.
+
 ### 4.7 Cross-cutting
 
 - `tags` are free strings on every record; autocomplete from local data.
 - **Archive & Bin** (every area): **Archive** = `archived_at` set: hidden from normal views, still searchable (search shows "+ n in archive"), never expires. **Bin** = `deleted_at` set: kept 30 days, then purged automatically. **Delete forever** / **Empty bin** purge: content fields are blanked and `purged_at` set, but the record stays as a tombstone so sync can't resurrect it (and the undo toast runs before anything is purged). One **Archive & Bin** page (`#/bin/<archive|bin>/<area>`): tabs Archive | Bin, area filter, search, grouped by area; each entry has Restore, bin entries also Delete forever. Reached from each area's ⋯ menu (pre-filtered) and from Settings. Each area supplies a provider (`entries(kind)`) to `js/bin.js`; a deleted box shows as one entry with the items deleted with it.
 - **Undo** (every area): every change shows a toast for ~6 s with **Undo** ("Saved · Undo", "Removed 'Jumpers' · Undo", "Deleted box BA · Undo"), like "undo send". Deletes don't ask "are you sure?"; they're soft deletes, so undo is a restore. Edits undo by writing the old value back (a new clock stamp, so it syncs like any edit). Shared helper: `undoable()` in `js/toast.js`.
+- **Notes editor** (every free-text notes field): you just type; bold, italic, cross-out and lists show formatted as you go (toolbar, Ctrl+B / Ctrl+I), stored as a small markdown subset (`**bold**`, `_italic_`, `~~cross out~~`, `- list`). A **Markdown** toggle shows the raw text for direct editing; it always starts in formatted mode (reload = formatted). Pasting brings plain text only. Shared helper: `js/richtext.js`.
+  - **Mentions** (to build): typing `@` opens a picker over contacts, tasks, day items, Brain Dump thoughts, boxes, cases and recipes; choosing one inserts a chip, stored as `[@Name](sift:<collection>/<id>)`. Tapping a chip opens the thing; the thing lists where it's mentioned ("Mentioned in: Tue 3 Oct notes").
 - **Text to list** (every area): wherever plain text becomes list items (Find Things contents, Day Planner dump box, Brain Dump, Contacts research mode, Tasks), the same entry is used: one item per line, a line starting with `-` (or a space) is a sub-item of the line above, **Ctrl+Enter** (⌘+Enter on Mac) adds, with the same hint text. Shared helper: `js/listentry.js`.
-- `settings` (single record, synced): `default_calendar_id, week_start, theme, pinned_areas[]`.
+- `settings` (single record, synced): `default_calendar_id, week_start, theme, pinned_areas[], day_start, day_end, slot_min, paper_style, down_days[], hint_down_day, hint_walk_breaks`.
 - `device_settings` (local only, never synced): `server_url, device_name, keep_all_scans_on_device`.
 
 ## 5. UI
@@ -165,11 +215,12 @@ Single-page app, hash routing, top nav on laptop, bottom tab bar on iPhone. Glob
 | Area | Laptop | iPhone |
 |---|---|---|
 | **Tasks** | Left: projects. Main: tasks grouped by milestone, drag reorder. Right: detail. Views: Today, Upcoming, Project, Done. | Segmented views; detail as full-screen sheet. |
-| **Day Planner** | Opens on today; arrows to other days (plan tomorrow tonight). Top: text box, one item per line → the day's pile. Pile offers, one tap each: Tasks due/overdue, yesterday's unfinished items, Brain Dump thoughts of kind `task`. Timeline: items with times, "now" line, tick off, push later, back to pile, send to tomorrow or to Tasks. Drag one item onto another to combine. **Text mode** toggle: the whole day as plain text (`12.45<tab>title`), edited freely and parsed back into items. | Same flow, full width. Typing a time at the start of a line (`12.45 speak to L`) schedules it. |
+| **Day Planner** | See §4.2a: title, Day Focus, Today's Energy Level, carry-over, lined paper with times in the margin, Evening, To place (pile + dump box), Tasks, Notes. ‹ Today › and a Calendar popup. Paper picker per day. | Same page, one column. |
 | **Brain Dump** | Large text area focused on open; kind pills underneath; Save (⌘↵). Below: thought list/cloud, filter by kind and tag. | Opens into text entry with keyboard up; pills above keyboard. |
 | **Find Things** | Search bar always on top (`/`), searching every life area: matching boxes show their path and only the matching items. Life Area tabs; each group is a grid of box cards (big code, name, where it lives in orange, first few items, "+ n more"). Tap a card to edit the box and its contents (add many items at once, one per line). Menu: add box / group / life area, import / export CSV. | Same, one column; box editor as a full-height sheet. |
 | **Contacts** | Tabs: **Recent** (transient + recently used, "What was this?" prompts), **Directory** (by category; research mode per category), **Cases**. Contact detail: name, about, details (tap to call/email, which logs an interaction), raw captured text, notes, timeline (captured, looked up, contacted), connected contacts, cases, tasks and day items, jobs. | Same, full-screen detail. Quick "Contacted" button. |
 | **Contracts** | Spreadsheet-style table: sort, filter, group, column picker, inline edit. Detail with history chain + scans. Footer: annual cost total. | Cards by category, current first, renewals due highlighted. Tap-to-call provider. |
+| **Recipes** | Recipe cards; recipe page (ingredients, steps, makes timeline); make page (readings + chart, notes, photos). | Same; "Log reading" is one tap from the make. |
 | **Scans** | Reverse-chronological thumbnails, kind pill filters, search. Drag-and-drop to add. | Big **Scan** button, recent scans below. Full-screen viewer, pinch zoom. |
 
 - Header: sync status (local only / synced / syncing / n pending / offline).
@@ -306,7 +357,7 @@ Single-page app, hash routing, top nav on laptop, bottom tab bar on iPhone. Glob
   js/crypto.js               key derivation, wrap/unwrap, encrypt/decrypt
   js/sync.js                 outbox, push/pull, merge, blob sync
   js/calendar.js
-  js/views/{tasks,planner,dump,places,contacts,contracts,scans,settings}.js
+  js/views/{tasks,planner,dump,places,contacts,contracts,recipes,scans,settings,bin}.js
   vendor/{minisearch,pdfjs}/
   icons/
 /server
@@ -327,19 +378,20 @@ Single-page app, hash routing, top nav on laptop, bottom tab bar on iPhone. Glob
 6. Contacts + Cases (transient/stored, categories, research mode, interactions log, "Make contact" from Brain Dump, case timeline).
 7. Scans.
 8. Contracts.
-9. Search.
-10. Backup / restore.
+9. Recipes (recipes, makes, readings, photos).
+10. Search.
+11. Backup / restore.
 
 **Phase 2 — Sync server (multi-user from its first version)**
-11. `crypto.js`: registration, login, key wrap, recovery key.
-12. sift-server: auth, devices, push/pull, quota, admin CLI, Docker + Caddy.
-13. `sync.js`: record sync + merge, then blob sync.
+12. `crypto.js`: registration, login, key wrap, recovery key.
+13. sift-server: auth, devices, push/pull, quota, admin CLI, Docker + Caddy.
+14. `sync.js`: record sync + merge, then blob sync.
 
 **Phase 3 — Calendar**
-14. Calendar connector (Google first): busy blocks in Day Planner, task push; scan expiry + contract renewal reminders.
+15. Calendar connector (Google first): busy blocks in Day Planner, task push; scan expiry + contract renewal reminders.
 
 **Phase 4 — v2 cloud adapters**
-15. Adapter interface + Google Drive app-data adapter first.
+16. Adapter interface + Google Drive app-data adapter first.
 
 ## 13. Future
 
