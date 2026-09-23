@@ -234,7 +234,7 @@ export default {
         if (box._editor) continue;
         const it = items.find(i => i.id === box.dataset.noteFor);
         if (!it) continue;
-        box._editor = richText(box, { value: it.notes || '', placeholder: 'Notes… Enter for a new line, - for a list. Ctrl+Enter or click away saves, Esc cancels.' });
+        box._editor = richText(box, { value: it.notes || '' });
       }
     }
 
