@@ -5,7 +5,7 @@
 import { loadTree, search, importCsv, exportCsv } from '../places.js';
 import { sortable } from '../sortable.js';
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
-import { toast } from '../toast.js';
+import { toast, undoable } from '../toast.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -215,19 +215,26 @@ export default {
       const existing = findBox(openId)?.b.items || [];
       let parent = existing.filter(i => !i.depth).at(-1)?.id || null;
       let n = existing.length;
+      const made = [];
       for (const line of lines) {
         const sub = line.sub && parent;
-        const made = await store.create('items', { name: line.text, place_id: openId, parent_item_id: sub ? parent : null, notes: '', quantity: null, sort_order: n++, last_moved_at: null });
-        if (!sub) parent = made.id;
+        const item = await store.create('items', { name: line.text, place_id: openId, parent_item_id: sub ? parent : null, notes: '', quantity: null, sort_order: n++, last_moved_at: null });
+        made.push(item.id);
+        if (!sub) parent = item.id;
       }
       await reload();
       page.querySelector('#new-items')?.focus();
+      undoable(`Added ${made.length} item${made.length === 1 ? '' : 's'}`, async () => {
+        for (const id of made) await store.remove('items', id);
+        await reload();
+      });
     }
 
     // Persist the list as shown: order, and each sub-item's parent (the
     // nearest top-level item above it). `depth` overrides the moved item.
     async function saveOrder(moved, depth) {
       const list = page.querySelector('.item-list');
+      const before = (findBox(openId)?.b.items || []).map(i => [i.id, { sort_order: i.sort_order, parent_item_id: i.parent_item_id || null }]);
       if (moved && depth != null) moved.dataset.depth = depth;
       let parent = null;
       for (const [n, li] of [...list.children].entries()) {
@@ -237,6 +244,10 @@ export default {
         await store.update('items', li.dataset.item, { sort_order: n, parent_item_id: sub ? parent : null });
       }
       tree = await loadTree();
+      undoable('Moved', async () => {
+        for (const [id, fields] of before) await store.update('items', id, fields);
+        await reload();
+      });
     }
 
     // Tab / Shift+Tab on an item makes it a sub-item or brings it back out.
@@ -286,16 +297,22 @@ export default {
       openId ? renderPage() : renderGrid();
     }
 
+    // Returns true if something changed.
     async function saveField(t) {
-      if (!t?.name || !page.contains(t) || t.id === 'new-items') return;
+      if (!t?.name || !page.contains(t) || t.id === 'new-items') return false;
       const itemLi = t.closest('[data-item]');
-      if (itemLi) {
-        await store.update('items', itemLi.dataset.item, { [t.name]: t.value.trim() });
-      } else {
-        await store.update('places', openId, { [t.name]: t.value.trim() });
-        if (t.name === 'parent_place_id') await reload();
-      }
+      const [collection, id] = itemLi ? ['items', itemLi.dataset.item] : ['places', openId];
+      const old = (await store.get(collection, id))?.[t.name] ?? '';
+      const value = t.value.trim();
+      if (value === (old ?? '')) return false;
+      await store.update(collection, id, { [t.name]: value });
+      if (t.name === 'parent_place_id') await reload();
       tree = await loadTree(); // keep the grid behind in step
+      undoable('Saved', async () => {
+        await store.update(collection, id, { [t.name]: old });
+        await reload();
+      });
+      return true;
     }
     page.addEventListener('change', ev => saveField(ev.target));
 
@@ -303,10 +320,11 @@ export default {
     // yet added), then zoom back out.
     async function saveAndClose() {
       const active = document.activeElement;
-      if (active?.id === 'new-items' && active.value.trim()) await addItems();
-      else await saveField(active);
+      let changed = false;
+      if (active?.id === 'new-items' && active.value.trim()) { await addItems(); changed = true; }
+      else changed = await saveField(active);
       active?.blur?.();
-      toast('✓ Saved');
+      if (!changed) toast('✓ Saved'); // a change shows its own "… · Undo" toast
       act('back');
     }
 
@@ -319,16 +337,29 @@ export default {
       } else if (name === 'add-items') {
         await addItems();
       } else if (name === 'delete-item') {
-        await store.remove('items', target.closest('[data-item]').dataset.item);
-        target.closest('li').remove();
-        tree = await loadTree();
+        const id = target.closest('[data-item]').dataset.item;
+        const items = findBox(openId)?.b.items || [];
+        const gone = [id, ...items.filter(i => i.parent_item_id === id).map(i => i.id)];
+        const label = items.find(i => i.id === id)?.name || 'item';
+        for (const g of gone) await store.remove('items', g);
+        await reload();
+        undoable(`Removed "${label}"${gone.length > 1 ? ` and ${gone.length - 1} sub-item${gone.length > 2 ? 's' : ''}` : ''}`, async () => {
+          for (const g of gone) await store.restore('items', g);
+          await reload();
+        });
       } else if (name === 'delete-box') {
         const { b: box } = findBox(openId);
-        if (!confirm(`Delete ${box.label_code || box.name} and its ${box.items.length} items?`)) return;
-        for (const i of box.items) await store.remove('items', i.id);
-        await store.remove('places', openId);
+        const boxId = openId;
+        const itemIds = box.items.map(i => i.id);
+        for (const i of itemIds) await store.remove('items', i);
+        await store.remove('places', boxId);
         tree = await loadTree();
         location.hash = '#/places';
+        undoable(`Deleted box ${box.label_code || box.name || ''}`.trim(), async () => {
+          await store.restore('places', boxId);
+          for (const i of itemIds) await store.restore('items', i);
+          await reload();
+        });
       } else if (name === 'import') {
         importSheet.querySelector('#import-result').textContent = '';
         importSheet.showModal();
@@ -377,8 +408,9 @@ export default {
         ev.preventDefault();
         const boxId = input.dataset.add;
         const count = findBox(boxId)?.b.items.length || 0;
-        await store.create('items', { name: input.value.trim(), place_id: boxId, notes: '', quantity: null, sort_order: count, last_moved_at: null });
+        const made = await store.create('items', { name: input.value.trim(), place_id: boxId, notes: '', quantity: null, sort_order: count, last_moved_at: null });
         tree = await loadTree();
+        undoable(`Added "${made.name}"`, async () => { await store.remove('items', made.id); await reload(); });
         input.closest('.box-card').outerHTML = card(findBox(boxId).b);
         const fresh = body.querySelector(`.box-card[data-box="${boxId}"]`);
         fitPills(fresh.parentElement);
@@ -437,9 +469,6 @@ export default {
     };
     addEventListener('keydown', this.onKey);
 
-    // Every write while a box is open gets a brief "Saved" toast.
-    this.unsubscribe = store.subscribe(() => { if (openId) toast('✓ Saved'); });
-
     this.onResize = () => { if (!openId) fitPills(); };
     addEventListener('resize', this.onResize);
     this.openBox = openBox;
@@ -453,7 +482,6 @@ export default {
   },
 
   unmount() {
-    this.unsubscribe?.();
     removeEventListener('keydown', this.onKey);
     removeEventListener('resize', this.onResize);
   },

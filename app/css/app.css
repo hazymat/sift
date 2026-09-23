@@ -573,7 +573,7 @@ label.inline select { width: auto; max-width: 220px; font-size: .85rem; padding:
   padding: 8px 16px;
   border-radius: 999px;
   font-size: .85rem;
-  background: var(--glass-strong);
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
   -webkit-backdrop-filter: var(--blur);
   backdrop-filter: var(--blur);
   border: 1px solid var(--active-border);
@@ -582,8 +582,14 @@ label.inline select { width: auto; max-width: 220px; font-size: .85rem; padding:
   transform: translate(-50%, 8px);
   transition: opacity .2s, transform .2s;
   pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100vw - 32px);
 }
-.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.toast span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toast button { padding: 3px 12px; font-weight: 600; color: var(--accent); background: none; box-shadow: none; border-color: var(--glass-border); }
 @media (min-width: 768px) { .toast { bottom: 28px; } }
 kbd { font: inherit; font-size: .72em; padding: 1px 5px; margin-left: 4px; border-radius: 6px; border: 1px solid var(--glass-border); opacity: .7; }
 @media (hover: none) { kbd { display: none; } }
