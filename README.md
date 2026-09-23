@@ -13,14 +13,15 @@ Early days: nothing usable yet.
 app/      the PWA (plain HTML/CSS/JS, no build step), published to GitHub Pages
 server/   optional self-hosted sync server (phase 2)
 docs/     spec and implementation notes
+tools/    dev helpers
 ```
 
 ## Running locally
 
-Serve `app/` over HTTP from any static server, e.g.
+Serve `app/` with caching turned off:
 
 ```
-npx serve app
+python tools/devserver.py
 ```
 
-(Service workers need `http://localhost` or HTTPS; opening `index.html` directly from disk won't work.)
+Then open http://localhost:5173. Opening `index.html` straight from disk won't work, because modules and service workers need HTTP.
