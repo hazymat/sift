@@ -33,6 +33,7 @@ export default {
         <button type="button" data-act="prev" aria-label="Previous day">‹</button>
         <button type="button" data-act="calendar" class="cal-icon" aria-label="Pick a date" title="Pick a date"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg></button>
         <button type="button" data-act="today">Today</button>
+        <span class="led-clock" role="timer" aria-label="Current time"><span class="led-h">--</span><span class="led-colon">:</span><span class="led-m">--</span></span>
         <button type="button" data-act="next" aria-label="Next day">›</button>
         <details class="tool-menu share-menu">
           <summary class="share-btn" role="button"><svg class="icon" aria-hidden="true"><use href="#i-share"/></svg> Share</summary>
@@ -499,6 +500,18 @@ export default {
       nowMarker.title = `Now: ${fmt(fromMin(Math.floor(mins)))}`;
     }
     this.nowTimer = setInterval(placeNowMarker, 30000);
+
+    // Live clock after "Today": hours and minutes, the colon blinks.
+    const tick = () => {
+      const now = new Date();
+      const h = $('.led-h');
+      if (!h) return;
+      h.textContent = String(now.getHours()).padStart(2, '0');
+      $('.led-m').textContent = String(now.getMinutes()).padStart(2, '0');
+    };
+    tick();
+    clearInterval(this.clockTimer);
+    this.clockTimer = setInterval(tick, 1000);
 
     function renderPile() {
       const pile = items.filter(i => !i.time && !lifted.has(i.id));
@@ -1413,6 +1426,7 @@ export default {
   },
 
   unmount() {
+    clearInterval(this.clockTimer);
     this.dockWatch?.disconnect();
     removeEventListener('resize', this.onRefit);
     clearInterval(this.nowTimer);
