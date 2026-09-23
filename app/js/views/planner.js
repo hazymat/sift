@@ -52,6 +52,10 @@ export default {
         <label class="focus"><span>Day focus</span><input id="focus" placeholder="What matters today?" autocomplete="off"></label>
         <div class="energy" role="group" aria-label="Today's energy level"><span>Today's Energy Level</span>
           ${ENERGY.map(e => `<button type="button" class="bolts" data-energy="${e.id}" title="${esc(`${e.label}: ${e.hint}`)}" aria-label="${e.label}">${e.bolts}</button>`).join('')}
+          <details class="tool-menu view-menu">
+            <summary class="icon-btn" aria-label="View settings for this day" title="View settings for this day"><svg class="icon" aria-hidden="true"><use href="#i-cog"/></svg></summary>
+            <div class="menu view-settings"></div>
+          </details>
         </div>
       </header>
       <div class="carry" hidden></div>
@@ -73,7 +77,6 @@ export default {
       </div>
       <section class="day-housekeeping">
         <h2>Housekeeping / settings</h2>
-        <label class="paper-pick">Paper for this day <select id="paper-style"></select></label>
         <div class="hk-actions">
           <button type="button" data-act="paper-week">Reset this week to this page's paper</button>
           <button type="button" data-act="paper-all">Reset all pages to today's paper</button>
@@ -81,7 +84,7 @@ export default {
         <div class="hk-actions">
           <button type="button" class="danger" data-act="clear-day">Clear this day…</button>
         </div>
-        <p class="muted hint">The default paper, used by any day you haven't changed, is in Settings.</p>
+        <p class="muted hint">Paper, timeslots and layout for a single day are in the ⚙ menu by the energy level; the defaults are in Settings.</p>
       </section>
       </div>
       <dialog class="sheet cal-sheet" id="cal" aria-label="Pick a date"></dialog>
@@ -221,13 +224,50 @@ export default {
       const paper = day.paper || settings.paper_style;
       planner.dataset.paper = paper;
       fmt = paper === 'techie' ? t => t : showTime;
-      const sel = $('#paper-style');
-      // Each paper once; the default one is marked and means "follow Settings".
-      sel.innerHTML = PAPERS.map(p => p.id === settings.paper_style
-        ? `<option value="">${p.label} (default)</option>`
-        : `<option value="${p.id}">${p.label}</option>`).join('');
-      sel.value = day.paper && day.paper !== settings.paper_style ? day.paper : '';
+      planner.classList.toggle('tasks-first', day.layout === 'tasks-first');
+      paintViewMenu();
     }
+
+    // ⚙ View settings for this day: paper, timeslots, layout. Each choice is
+    // saved on the day; "default" follows Settings.
+    const slotMin = () => Math.max(5, Number(day?.slot_min) || Number(settings.slot_min) || 60);
+    function paintViewMenu() {
+      const m = $('.view-settings');
+      if (!m) return;
+      const today = date === isoDate() ? "Today's" : "This day's";
+      const opt = (attr, value, label, on) => `<button type="button" ${attr}="${value}" aria-pressed="${on}">${label}</button>`;
+      const defSlot = Number(settings.slot_min) || 60;
+      const slotLabel = n => ({ 15: '¼ hour', 30: '½ hour', 60: 'Hourly' }[n] || `${n} min`);
+      m.innerHTML = `
+        <h4>${today} paper</h4>
+        <div class="view-opts">
+          ${opt('data-view-paper', '', `Default (${PAPERS.find(p => p.id === settings.paper_style)?.label || 'Glass'})`, !day.paper)}
+          ${PAPERS.map(p => opt('data-view-paper', p.id, p.label, day.paper === p.id)).join('')}
+        </div>
+        <h4>${today} timeslots</h4>
+        <div class="view-opts">
+          ${[15, 30, 60].map(n => opt('data-view-slot', n, `${slotLabel(n)}${n === defSlot ? ' (default)' : ''}`, slotMin() === n)).join('')}
+        </div>
+        <h4>Layout</h4>
+        <div class="view-opts">
+          ${opt('data-view-layout', 'plan-first', 'Timed plan first', day.layout !== 'tasks-first')}
+          ${opt('data-view-layout', 'tasks-first', 'Tasks &amp; notes first', day.layout === 'tasks-first')}
+        </div>`;
+    }
+    $('.view-menu').addEventListener('click', async ev => {
+      const b = ev.target.closest('[data-view-paper], [data-view-slot], [data-view-layout]');
+      if (!b) return;
+      const old = { paper: day.paper ?? null, slot_min: day.slot_min ?? null, layout: day.layout ?? null };
+      let fields;
+      if (b.dataset.viewPaper !== undefined) fields = { paper: b.dataset.viewPaper || null };
+      else if (b.dataset.viewSlot) fields = { slot_min: Number(b.dataset.viewSlot) === (Number(settings.slot_min) || 60) ? null : Number(b.dataset.viewSlot) };
+      else fields = { layout: b.dataset.viewLayout === 'tasks-first' ? 'tasks-first' : null };
+      day = await saveDay(date, fields);
+      applyPaper();
+      renderLines();
+      renderPile();
+      undoable('View changed for this day', async () => { day = await saveDay(date, old); applyPaper(); renderLines(); renderPile(); });
+    });
 
     // ---------- rendering ----------
 
@@ -339,7 +379,7 @@ export default {
     function renderLines(list = items) {
       const start = toMin(settings.day_start);
       const end = toMin(settings.day_end);
-      const step = Math.max(5, Number(settings.slot_min) || 30);
+      const step = slotMin();
       const timed = list.filter(i => i.time && (!lifted.has(i.id) || i._mark === 'preview'));
       const at = t => toMin(t);
       // Rows first ({ html, item?, coveredBy? }), then an item and the slot
@@ -615,7 +655,7 @@ export default {
     function openLine(content) {
       const line = content.closest('.line');
       if (line.querySelector('input')) return;
-      const time = line.dataset.time === 'evening' ? fromMin(toMin(settings.day_end) + Number(settings.slot_min)) : line.dataset.time;
+      const time = line.dataset.time === 'evening' ? fromMin(toMin(settings.day_end) + slotMin()) : line.dataset.time;
       content.innerHTML = '<input class="item-title hand new-line" placeholder="…" autocomplete="off">';
       const input = content.querySelector('input');
       input.focus();
@@ -796,7 +836,7 @@ export default {
 
     const selected = new Set();
     const lifted = new Set();
-    const step = () => Math.max(5, Number(settings.slot_min) || 60);
+    const step = () => slotMin();
     const duration = i => (i.end_time ? toMin(i.end_time) - toMin(i.time) : i.estimate_min || step());
     const eveningTime = () => fromMin(toMin(settings.day_end) + step());
 

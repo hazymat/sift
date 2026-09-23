@@ -1660,3 +1660,23 @@ main:has(> .planner), main:has(.planner) { max-width: 1600px; }
 .box-card .box-code { font-family: ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace; }
 .item-list .more { background: transparent; border-color: transparent; box-shadow: none; opacity: .45; padding: 2px 8px; }
 .item-list li:hover .more, .item-list li:focus-within .more, .item-list .more[aria-expanded="true"] { opacity: 1; }
+
+/* ⚙ view settings for a day */
+.energy .view-menu { margin-left: auto; }
+.view-settings { min-width: 280px; padding: 8px 10px; }
+.view-settings h4 { margin: 8px 2px 4px; font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-family: var(--font); }
+.view-settings h4:first-child { margin-top: 2px; }
+.view-opts { display: flex; flex-wrap: wrap; gap: 4px; }
+.view-opts button { padding: 4px 10px; font-size: .85rem; }
+.view-opts button[aria-pressed="true"] { background: var(--active-bg); border-color: var(--active-border); }
+
+/* Tasks & notes first: they come before the timed plan. */
+.planner.tasks-first:not(.docked) { display: flex; flex-direction: column; }
+.planner.tasks-first:not(.docked) > .day-nav { order: -3; }
+.planner.tasks-first:not(.docked) > .day-head { order: -3; }
+.planner.tasks-first:not(.docked) > .carry { order: -3; }
+.planner.tasks-first:not(.docked) > .day-bottom { order: -2; margin-bottom: 16px; }
+.planner.docked.tasks-first {
+  grid-template-columns: minmax(300px, 30%) minmax(0, 1fr);
+  grid-template-areas: "nav nav" "head head" "carry carry" "side paper" "side pile" "side hk";
+}
