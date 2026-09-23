@@ -80,7 +80,7 @@ A day's battle plan: dump what you want to do, then give things times. Built for
   - Moving to another day = change `date` (and set `carried_from`).
   - Separate records per item (not an array on a day record) so edits from two devices merge per item.
 
-### 4.3 Where things are
+### 4.3 Where things are (area: Find Things)
 
 - `places`: `name, label_code (physical label, e.g. "PB-14"), parent_place_id? (room → shelf → box), location_note, sort_order`
 - `items`: `name, place_id, quantity?, notes, last_moved_at`
@@ -129,7 +129,7 @@ Single-page app, hash routing, top nav on laptop, bottom tab bar on iPhone. Glob
 | **Tasks** | Left: projects. Main: tasks grouped by milestone, drag reorder. Right: detail. Views: Today, Upcoming, Project, Done. | Segmented views; detail as full-screen sheet. |
 | **Day Planner** | Opens on today; arrows to other days (plan tomorrow tonight). Top: text box, one item per line → the day's pile. Pile offers, one tap each: Tasks due/overdue, yesterday's unfinished items, Dump thoughts of kind `task`. Timeline: items with times, "now" line, tick off, push later, back to pile, send to tomorrow or to Tasks. Drag one item onto another to combine. **Text mode** toggle: the whole day as plain text (`12.45<tab>title`), edited freely and parsed back into items. | Same flow, full width. Typing a time at the start of a line (`12.45 speak to L`) schedules it. |
 | **Dump** | Large text area focused on open; kind pills underneath; Save (⌘↵). Below: thought list/cloud, filter by kind and tag. | Opens into text entry with keyboard up; pills above keyboard. |
-| **Places** | Tree (rooms → boxes) left, contents right. Search jumps to box. Big `label_code` badge. | Search-first: type item → box label shown large. Tap to browse. |
+| **Find Things** (places, items) | Tree (rooms → boxes) left, contents right. Search jumps to box. Big `label_code` badge. | Search-first: type item → box label shown large. Tap to browse. |
 | **Trades** | Sortable table (type, rating, last used). Detail with jobs history. | Grouped by trade type; tap-to-call / email. |
 | **Contracts** | Spreadsheet-style table: sort, filter, group, column picker, inline edit. Detail with history chain + scans. Footer: annual cost total. | Cards by category, current first, renewals due highlighted. Tap-to-call provider. |
 | **Scans** | Reverse-chronological thumbnails, kind pill filters, search. Drag-and-drop to add. | Big **Scan** button, recent scans below. Full-screen viewer, pinch zoom. |
@@ -280,7 +280,7 @@ Single-page app, hash routing, top nav on laptop, bottom tab bar on iPhone. Glob
 
 **Phase 1 — Local, single user, no server** (laptop and iPhone each usable standalone)
 1. Shell: PWA install, service worker, area registry/nav, `store.js` with sync-ready record format (UUIDv7, field clocks, soft delete, outbox), persistent storage request.
-2. Places + CSV import.
+2. Find Things (places + items) + CSV import.
 3. Dump.
 4. Day Planner (incl. text mode).
 5. Tasks.
