@@ -1103,6 +1103,7 @@ kbd { font: inherit; font-size: .72em; padding: 1px 5px; margin-left: 4px; borde
 .chip.pri-1 { color: #ff8a80; }
 .chip.pri-2 { color: var(--place); }
 button.chip { box-shadow: none; cursor: pointer; }
+a.chip { color: var(--text); text-decoration: none; }
 .task-details { list-style: none; margin: 0 0 8px 34px; padding: 12px; border-radius: 16px; background: var(--glass); border: 1px solid var(--glass-border); }
 .detail-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 10px; }
 .detail-grid input, .detail-grid select { font-size: .9rem; padding: 6px 8px; color: var(--text); }
@@ -1213,3 +1214,10 @@ button.chip { box-shadow: none; cursor: pointer; }
 .case-note input { flex: 1 1 220px; padding: 6px 10px; color: var(--text); }
 .chip-x { padding: 0 4px; background: none; border: 0; box-shadow: none; color: var(--muted); }
 #case-add-contact { width: auto; padding: 4px 8px; font-size: .85rem; color: var(--text); }
+
+
+/* Backup card */
+.backup-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 8px 0; }
+.file-btn { display: inline-flex; padding: 6px 14px; border-radius: var(--radius-pill); background: var(--glass); border: 1px solid var(--glass-border); color: var(--text); font-size: 1rem; cursor: pointer; }
+.file-btn:hover { background: var(--glass-hover); }
+#backup-status.warn { color: var(--place); }

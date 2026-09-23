@@ -17,6 +17,7 @@ const SHELL = [
   'js/days.js',
   'js/tasks.js',
   'js/contacts.js',
+  'js/backup.js',
   'js/richtext.js',
   'js/csv.js',
   'js/places.js',

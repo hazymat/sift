@@ -10,6 +10,7 @@ import { sortable } from '../sortable.js';
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import { richText } from '../richtext.js';
+import { loadContacts } from '../contacts.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -36,6 +37,7 @@ export default {
   async mount(el) {
     const state = this.state = { view: 'list', project: null, showDone: false };
     let data = { tasks: [], projects: [], milestones: [] };
+    let people = { contacts: [], cases: [] };
     let open = null; // task id with details open
     const collapsed = new Set();
     let notesEditor = null;
@@ -84,6 +86,12 @@ export default {
         const pr = progress(kids);
         out.push(`<button type="button" class="chip kids" data-act="collapse" aria-expanded="${!collapsed.has(t.id)}">${collapsed.has(t.id) ? '▸' : '▾'} ${pr.done}/${pr.total}</button>`);
       }
+      for (const cid of t.contact_ids || []) {
+        const c = people.contacts.find(x => x.id === cid);
+        if (c) out.push(`<a class="chip" href="#/contacts/c/${c.id}" title="Contact">👤 ${esc(c.name || '?')}</a>`);
+      }
+      const kase = t.case_id && people.cases.find(k => k.id === t.case_id);
+      if (kase) out.push(`<a class="chip" href="#/contacts/cases/${kase.id}" title="Case">📁 ${esc(kase.title)}</a>`);
       if (t.notes) out.push('<span class="chip" title="Has notes">✎</span>');
       return out.join('');
     }
@@ -113,6 +121,9 @@ export default {
           <label>Status<select name="status">${STATUSES.map(s => `<option value="${s.id}" ${t.status === s.id ? 'selected' : ''}>${s.label}</option>`).join('')}</select></label>
           <label>Project<select name="project_id"><option value="">None</option>${data.projects.map(p => `<option value="${p.id}" ${t.project_id === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}<option value="__new">+ New project…</option></select></label>
           ${t.project_id ? `<label>Milestone<select name="milestone_id"><option value="">None</option>${ms.map(m => `<option value="${m.id}" ${t.milestone_id === m.id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}<option value="__new">+ New milestone…</option></select></label>` : ''}
+          <label>People<select name="add_contact"><option value="">+ Add a contact…</option>${people.contacts.filter(c => !(t.contact_ids || []).includes(c.id)).map(c => `<option value="${c.id}">${esc(c.name || '(no name)')}</option>`).join('')}</select></label>
+          <label>Case<select name="case_id"><option value="">None</option>${people.cases.map(k => `<option value="${k.id}" ${t.case_id === k.id ? 'selected' : ''}>${esc(k.title)}</option>`).join('')}</select></label>
+          ${(t.contact_ids || []).length ? `<div class="energy-pick"><span>With</span>${t.contact_ids.map(cid => people.contacts.find(c => c.id === cid)).filter(Boolean).map(c => `<span class="chip">${esc(c.name)} <button type="button" class="chip-x" data-act="remove-contact" data-id="${c.id}" aria-label="Remove">×</button></span>`).join('')}</div>` : ''}
           <div class="energy-pick" role="group" aria-label="Energy"><span>Energy</span>
             ${ENERGY.map(e => `<button type="button" data-energy="${e.id}" aria-pressed="${t.energy === e.id}" title="${esc(e.hint)}">${e.label}</button>`).join('')}
           </div>
@@ -249,6 +260,7 @@ export default {
 
     const render = this.render = async () => {
       data = await loadAll();
+      people = await loadContacts();
       for (const b of el.querySelectorAll('[data-view]')) b.setAttribute('aria-pressed', b.dataset.view === state.view);
       body.innerHTML = { list: viewList, today: viewToday, upcoming: viewUpcoming, projects: viewProjects, done: viewDone }[state.view]();
       const ta = body.querySelector('#task-new');
@@ -386,6 +398,8 @@ export default {
         const d = body.querySelector(`[data-for="${id}"] [name="aim_date"]`).value;
         const tm = body.querySelector(`[data-for="${id}"] [name="aim_time"]`).value;
         await change(id, { aim_at: d ? (tm ? `${d}T${tm}` : d) : null }, d ? `Aim: ${shortDate(d)}` : 'Aim cleared');
+      } else if (t.name === 'add_contact') {
+        if (t.value) await change(id, { contact_ids: [...(task.contact_ids || []), t.value] }, 'Added a person');
       } else if (t.name === 'project_id' && t.value === '__new') {
         const p = await newProject();
         if (p) await change(id, { project_id: p.id, milestone_id: null }, `Moved to ${p.name}`); else render();
@@ -414,6 +428,10 @@ export default {
       const task = data.tasks.find(x => x.id === id);
       const act = b.dataset.act;
       b.closest('details')?.removeAttribute('open');
+      if (act === 'remove-contact' && id) {
+        await change(id, { contact_ids: (task.contact_ids || []).filter(x => x !== b.dataset.id) }, 'Removed a person');
+        return;
+      }
       if (b.dataset.energy && id) {
         await change(id, { energy: task.energy === b.dataset.energy ? null : b.dataset.energy }, 'Energy saved');
       } else if (act === 'details') {

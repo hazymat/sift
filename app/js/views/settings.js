@@ -44,6 +44,19 @@ export default {
         <ul class="pin-list" id="nav-order"></ul>
       </section>
 
+      <section class="card" id="backup-card">
+        <h2>Backup</h2>
+        <p class="muted" id="backup-status">Until sync is set up, this device holds the only copy of your data.</p>
+        <div class="backup-row">
+          <button type="button" class="primary" data-act="backup">Back up now</button>
+          <label class="check-row"><input type="checkbox" id="backup-lock"> Lock with a passphrase</label>
+        </div>
+        <div class="backup-row">
+          <label class="file-btn">Restore from a backup…<input type="file" id="restore-file" accept=".sift,application/json,application/gzip,application/octet-stream" hidden></label>
+        </div>
+        <p class="muted hint">Backups are a single .sift file. On iPhone, save it to Files or iCloud Drive. Restoring merges: nothing on this device is lost, and the newest edit of each field wins.</p>
+      </section>
+
       <section class="card">
         <h2>Archive &amp; Bin</h2>
         <p class="muted">Archived things are hidden but still searchable. Deleted things stay in the bin for 30 days.</p>
@@ -162,6 +175,56 @@ export default {
       const c = await bin.counts();
       el.querySelector('#count-archive').textContent = c.archive;
       el.querySelector('#count-bin').textContent = c.bin;
+    });
+
+    // Backup
+    const backup = await import('../backup.js');
+    const backupStatus = async () => {
+      const last = await backup.lastBackup();
+      const overdue = await backup.backupOverdue();
+      const p = el.querySelector('#backup-status');
+      p.classList.toggle('warn', overdue);
+      p.textContent = last
+        ? `Last backup: ${new Date(last).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}.${overdue ? ' ⚠️ Over two weeks ago.' : ''}`
+        : overdue ? '⚠️ Never backed up, and this device holds the only copy of your data.' : 'Until sync is set up, this device holds the only copy of your data.';
+    };
+    backupStatus();
+    el.querySelector('#backup-card').addEventListener('click', async ev => {
+      if (!ev.target.closest('[data-act="backup"]')) return;
+      let passphrase = null;
+      if (el.querySelector('#backup-lock').checked) {
+        passphrase = prompt('Passphrase for this backup (you will need it to restore; it cannot be recovered):');
+        if (!passphrase) return;
+        if (prompt('Type the passphrase again:') !== passphrase) { toast("Passphrases didn't match"); return; }
+      }
+      toast('Making a backup…');
+      const made = await backup.makeBackup({ passphrase });
+      const how = await backup.saveBackupFile(made);
+      if (how === 'cancelled') return;
+      await backup.noteBackup();
+      backupStatus();
+      const n = Object.entries(made.counts).filter(([k]) => k !== 'settings').reduce((a, [, v]) => a + v, 0);
+      toast(`✓ Backed up ${n} record${n === 1 ? '' : 's'}${passphrase ? ' (locked)' : ''}`);
+    });
+    el.querySelector('#restore-file').addEventListener('change', async ev => {
+      const file = ev.target.files[0];
+      ev.target.value = '';
+      if (!file) return;
+      let data;
+      try {
+        try { data = await backup.readBackup(file); }
+        catch (err) {
+          if (!(err instanceof backup.NeedsPassphrase)) throw err;
+          const pass = prompt('This backup is locked. Passphrase:');
+          if (!pass) return;
+          data = await backup.readBackup(file, pass);
+        }
+        const result = await backup.restoreBackup(data);
+        toast(`✓ Restored from ${new Date(data.created_at).toLocaleDateString()}: ${result.added} added, ${result.updated} updated`);
+        setTimeout(() => location.reload(), 1800);
+      } catch (err) {
+        toast(`Couldn't restore: ${err.message}`);
+      }
     });
 
     const storage = el.querySelector('#storage');

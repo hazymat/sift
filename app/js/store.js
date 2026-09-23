@@ -73,6 +73,9 @@ function tick() {
 // Advance our clock past one seen from another device (used by sync).
 export function observeHlc(hlc) {
   const seen = parseHlc(hlc);
+  // Ignore clocks from the future (a device with a wrong date, a bad file):
+  // adopting one would make every later edit here carry that time.
+  if (!(seen.wall <= Date.now() + 86400000)) return;
   if (seen.wall > lastClock.wall || (seen.wall === lastClock.wall && seen.counter > lastClock.counter)) {
     lastClock = { wall: seen.wall, counter: seen.counter };
   }
@@ -263,6 +266,48 @@ export async function purgeMany(collection, ids) {
     changes.push([id, blank]);
   }
   return updateMany(collection, changes);
+}
+
+// ---------- backup / restore ----------
+
+// Every record in every collection, tombstones included (for backups).
+export async function exportAll() {
+  await open();
+  const out = {};
+  for (const c of COLLECTIONS) out[c] = await promisify(db.transaction(c).objectStore(c).getAll());
+  return out;
+}
+
+// Merge records from a backup (or, later, another device) field by field:
+// for each field the later clock wins, exactly like sync. Records we don't
+// have are added as they are. Clocks are kept, not re-stamped.
+export async function mergeRecords(collection, incoming) {
+  assertCollection(collection);
+  await open();
+  const tx = db.transaction([collection, 'sync_meta'], 'readwrite');
+  const records = tx.objectStore(collection);
+  let added = 0;
+  let updated = 0;
+  for (const r of incoming) {
+    if (!r?.id) continue;
+    for (const clock of Object.values(r._field_clocks || {})) observeHlc(clock);
+    const local = await promisify(records.get(r.id));
+    if (!local) { records.put(r); added++; continue; }
+    const merged = { ...local, _field_clocks: { ...(local._field_clocks || {}) } };
+    let changed = false;
+    for (const [field, clock] of Object.entries(r._field_clocks || {})) {
+      if (compareHlc(clock, merged._field_clocks[field]) > 0) {
+        merged[field] = r[field];
+        merged._field_clocks[field] = clock;
+        changed = true;
+      }
+    }
+    if (changed) { records.put(merged); updated++; }
+  }
+  tx.objectStore('sync_meta').put(lastClock, 'clock');
+  await done(tx);
+  if (added || updated) emit({ collection, id: null });
+  return { added, updated };
 }
 
 // ---------- reads ----------
