@@ -10,7 +10,7 @@ import {
 } from '../days.js';
 import { listEntry, listHint } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
-import { richText } from '../richtext.js';
+import { richText, toHtml, plainLines } from '../richtext.js';
 import { loadAll as loadTasks, forDay, suggestions, doneFields, aimDate } from '../tasks.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -68,6 +68,82 @@ export default {
 
     const $ = s => el.querySelector(s);
     const linesEl = $('#lines');
+
+    // Shift+Enter in an item's title: save the title, then type its notes.
+    el.addEventListener('keydown', async ev => {
+      const t = ev.target;
+      if (ev.key === 'Enter' && ev.shiftKey && t.classList?.contains('item-title')) {
+        ev.preventDefault();
+        const id = t.closest('[data-item]').dataset.item;
+        const it = items.find(i => i.id === id);
+        const title = t.value.trim();
+        noteEditing = id;
+        if (title && title !== it.title) {
+          await store.update('day_items', id, { title });
+          undoable('Saved', async () => { await store.update('day_items', id, { title: it.title }); await refresh(); });
+        }
+        await refresh();
+        el.querySelector(`[data-note-for="${id}"]`)?._editor?.focus();
+        return;
+      }
+      const box = t.closest?.('[data-note-for]');
+      if (box) {
+        if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); t.blur(); }
+        if (ev.key === 'Escape') {
+          ev.preventDefault();
+          ev.stopPropagation();
+          box.dataset.cancel = '1';
+          t.blur();
+        }
+      }
+    });
+    // The ⋯ panel closes when you click anywhere outside it (or its row), press
+    // Esc, or use Close. Whatever you were typing in it is saved first.
+    function closeDetails() {
+      if (!editing) return;
+      const panel = el.querySelector(`.item-details[data-for="${editing}"]`);
+      if (panel?.contains(document.activeElement)) document.activeElement.blur();
+      editing = null;
+      // Its note is saved here too, in case the blur didn't get there first.
+      const box = panel?.querySelector('[data-note-for]');
+      setTimeout(() => (box?._editor ? leaveNoteBox(box) : refresh()));
+    }
+    document.addEventListener('pointerdown', ev => {
+      if (!editing || !el.isConnected) return;
+      const t = ev.target;
+      if (t.closest(`.item-details[data-for="${editing}"], [data-item="${editing}"], dialog, .toast, #toasts`)) return;
+      closeDetails();
+    }, true);
+    el.addEventListener('keydown', ev => {
+      if (ev.key !== 'Escape' || !editing || ev.defaultPrevented) return;
+      ev.preventDefault();
+      closeDetails();
+    });
+
+    // An item's notes save when you click away from its notes box (or Esc
+    // cancels). Clicks on the box's own toolbar don't count as leaving.
+    el.addEventListener('focusout', async ev => {
+      const box = ev.target.closest?.('[data-note-for]');
+      if (!box || box.contains(ev.relatedTarget) || !box._editor) return;
+      await leaveNoteBox(box);
+    });
+    async function leaveNoteBox(box) {
+      const id = box.dataset.noteFor;
+      const it = items.find(i => i.id === id);
+      if (!it) return;
+      const text = box._editor.value.replace(/\s+$/, '');
+      const cancelled = box.dataset.cancel === '1';
+      box._editor = null;
+      if (box.classList.contains('note-edit')) noteEditing = null;
+      if (!cancelled && text !== (it.notes || '')) {
+        await change(id, { notes: text }, text ? 'Note saved' : 'Note removed');
+      } else {
+        await refresh();
+        if (cancelled && text !== (it.notes || '')) {
+          toast('Escape cancelled change', { action: 'Undo', onAction: () => change(id, { notes: text }, 'Note saved') });
+        }
+      }
+    }
 
     // Notes save as you type (debounced); the date is captured so a quick
     // day change can't write one day's notes into another.
@@ -129,7 +205,9 @@ export default {
             ${span ? `<span class="span-tag">${span}</span>` : i.estimate_min ? `<span class="span-tag">~${durationLabel(Number(i.estimate_min))}</span>` : i.estimate_unsure ? '<span class="span-tag">duration?</span>' : ''}
             ${i.dropped_at ? '<span class="span-tag">let go</span>' : ''}
             <button type="button" class="more" data-act="details" aria-label="Details">⋯</button>
-            ${i.notes ? noteHtml(i) : ''}
+            ${noteEditing === i.id
+              ? `<div class="note-edit" data-note-for="${i.id}"></div>`
+              : i.notes ? noteHtml(i) : ''}
           </span>
           ${i.time ? '<span class="resize-grip" title="Drag down to set how long" aria-hidden="true"></span>' : ''}
         </div>
@@ -139,13 +217,25 @@ export default {
     // Notes under items: first line only until clicked; clicking toggles.
     // Which ones are open is forgotten when you change day or leave the page.
     const openNotes = new Set();
+    let noteEditing = null; // item whose notes are being typed (Shift+Enter)
     function noteHtml(i) {
-      const lines = i.notes.split('\n').map(l => l.trim()).filter(Boolean);
+      const lines = plainLines(i.notes);
+      if (!lines.length) return '';
       const open = openNotes.has(i.id);
       const more = lines.length - 1;
-      return `<span class="item-note${open ? ' open' : ''}" data-act="toggle-note" role="button" tabindex="0" aria-expanded="${open}" title="${open ? 'Show less' : 'Show the whole note'}">`
-        + `<svg class="icon note-icon" aria-hidden="true"><use href="#i-note"/></svg>`
-        + `${open ? esc(i.notes) : esc(lines[0] || '')}${!open && more > 0 ? ` <span class="more-lines">+${more} more</span>` : ''}</span>`;
+      return `<div class="item-note${open ? ' open' : ''}" data-act="toggle-note" role="button" tabindex="0" aria-expanded="${open}" title="${open ? 'Show less' : 'Show the whole note'}">`
+        + `<span class="note-emoji" aria-hidden="true">📝</span>`
+        + `${open ? `<div class="note-body">${toHtml(i.notes)}</div>` : esc(lines[0])}${!open && more > 0 ? ` <span class="more-lines">+${more} more</span>` : ''}</div>`;
+    }
+
+    // Mount the notes editor wherever a row or details panel asked for one.
+    function mountNoteEditors() {
+      for (const box of el.querySelectorAll('[data-note-for]')) {
+        if (box._editor) continue;
+        const it = items.find(i => i.id === box.dataset.noteFor);
+        if (!it) continue;
+        box._editor = richText(box, { value: it.notes || '', placeholder: 'Notes… Enter for a new line, - for a list. Ctrl+Enter or click away saves, Esc cancels.' });
+      }
     }
 
     function details(i) {
@@ -160,8 +250,9 @@ export default {
               .map(m => `<option value="${m}" ${Number(i.estimate_min) === m ? 'selected' : ''}>${durationLabel(m)}</option>`).join('')}
           </select></label>
           <label>Day<input type="date" name="date" value="${i.date}"></label>
-          <label class="wide">Note<input name="notes" value="${esc(i.notes)}" autocomplete="off"></label>
+          <div class="wide detail-note"><span class="field-label">Note</span><div class="detail-notes" data-note-for="${i.id}"></div></div>
           <div class="detail-actions">
+            <button type="button" class="close-details" data-act="close-details" title="Close (or click anywhere outside, or Esc)">Close</button>
             ${i.time ? '<button type="button" data-act="unschedule" title="Remove the start and end time and put it back in To place">Unallocate time</button>' : ''}
             ${i.dropped_at
               ? '<button type="button" data-act="take-back" title="It needs doing after all">Take back</button>'
@@ -215,7 +306,7 @@ export default {
       const out = [];
       for (let n = 0; n < rows.length; n++) {
         const r = rows[n];
-        if (!r.item || editing === r.item.id) { out.push(r.html); continue; }
+        if (!r.item || editing === r.item.id || noteEditing === r.item.id) { out.push(r.html); continue; }
         let k = n + 1;
         while (k < rows.length && rows[k].coveredBy && rows[k].coveredBy.id === r.item.id) k++;
         if (k === n + 1) { out.push(r.html); continue; }
@@ -229,6 +320,7 @@ export default {
       out.push(...evening.map(i => itemRow(i, fmt(i.time))));
       out.push(`<div class="line blank" data-time="evening"><span class="margin"></span><span class="content" data-act="add-at"></span></div>`);
       linesEl.innerHTML = out.join('');
+      mountNoteEditors();
       placeNowMarker();
     }
 
@@ -274,6 +366,7 @@ export default {
       const pile = items.filter(i => !i.time && !lifted.has(i.id));
       $('#pile').innerHTML = pile.map(i => `<li>${itemRow(i, '')}</li>`).join('')
         || '<li class="muted pile-empty">Nothing waiting. Dump things below, then give them times.</li>';
+      mountNoteEditors();
     }
 
     async function renderCarry() {
@@ -422,6 +515,7 @@ export default {
         }
       }
       else if (act === 'details') { editing = editing === id ? null : id; refresh(); }
+      else if (act === 'close-details') closeDetails();
       else if (act === 'unschedule') { editing = null; await change(id, { time: null, end_time: null }, 'Time unallocated'); }
       else if (act === 'delete') {
         editing = null;

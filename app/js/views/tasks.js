@@ -9,7 +9,7 @@ import { ENERGY, isoDate, addDays, parseDate, addItem } from '../days.js';
 import { createListKit } from '../listkit.js';
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
-import { richText } from '../richtext.js';
+import { richText, toHtml, plainLines } from '../richtext.js';
 import { loadContacts } from '../contacts.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -111,14 +111,13 @@ export default {
     // Notes under tasks: first line only until clicked; clicking toggles.
     // Which ones are open is forgotten when you leave the page.
     const openNotes = new Set();
-    const plain = md => md.replace(/^#{1,6}\s+/gm, '').replace(/\*\*|~~|(^|\s)_|_(\s|$)/g, '$1$2');
     function noteHtml(t) {
-      const lines = plain(t.notes).split('\n').map(l => l.trim()).filter(Boolean);
+      const lines = plainLines(t.notes);
       if (!lines.length) return '';
       const isOpen = openNotes.has(t.id);
       const more = lines.length - 1;
       return `<span class="item-note task-note${isOpen ? ' open' : ''}" data-act="toggle-note" role="button" tabindex="0" aria-expanded="${isOpen}" title="${isOpen ? 'Show less' : 'Show the whole note'}">`
-        + `<svg class="icon note-icon" aria-hidden="true"><use href="#i-note"/></svg>`
+        + `<span class="note-emoji" aria-hidden="true">📝</span>`
         + `${isOpen ? esc(lines.join('\n')) : esc(lines[0])}${!isOpen && more > 0 ? ` <span class="more-lines">+${more} more</span>` : ''}</span>`;
     }
 

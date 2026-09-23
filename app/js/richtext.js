@@ -5,6 +5,24 @@
 //
 //   const editor = richText(container, { value, onChange(markdown), placeholder })
 //   editor.setValue(markdown)
+//
+// Typing "- " or "* " at the start of a line starts a bulleted list; Enter on
+// an empty bullet ends it, so you carry on writing underneath. The toolbar also
+// inserts a few emoji.
+
+export const EMOJI = [
+  ['📝', 'Note'],
+  ['📞', 'Phone'],
+  ['⏰', 'Alarm'],
+  ['⚠️', 'Warning'],
+];
+
+// A note as plain lines for one-line previews: no markdown marks, bullets as "•".
+export function plainLines(md) {
+  return (md || '').split('\n')
+    .map(l => l.replace(/^#{1,6}\s+/, '').replace(/^\s*[-*]\s+/, '• ').replace(/\*\*|~~/g, '').replace(/(^|\s)_(\S.*?)_(?=$|[\s).,!?:;])/g, '$1$2').trim())
+    .filter(Boolean);
+}
 
 const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
@@ -75,7 +93,8 @@ export function richText(container, { value = '', onChange, placeholder = '' } =
       <button type="button" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
       <button type="button" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
       <button type="button" data-cmd="strikeThrough" title="Cross out"><s>S</s></button>
-      <button type="button" data-cmd="insertUnorderedList" title="List">• List</button>
+      <button type="button" data-cmd="insertUnorderedList" title="List (or type - at the start of a line)">• List</button>
+      <span class="md-emoji">${EMOJI.map(([e, name]) => `<button type="button" data-emoji="${e}" title="${name}" aria-label="Insert ${name.toLowerCase()} emoji">${e}</button>`).join('')}</span>
       <button type="button" class="md-toggle" aria-pressed="false" title="Show the raw markdown">Markdown</button>
     </div>
     <div class="rich-edit hand" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="${esc(placeholder)}"></div>
@@ -98,7 +117,28 @@ export function richText(container, { value = '', onChange, placeholder = '' } =
     onChange?.(md);
   };
 
-  edit.addEventListener('input', () => changed(toMarkdown(edit)));
+  edit.addEventListener('input', ev => {
+    // Just after this input event: the browser ignores edits made during one.
+    if (ev.inputType === 'insertText' && ev.data === ' ') queueMicrotask(() => { if (autoList()) changed(toMarkdown(edit)); });
+    changed(toMarkdown(edit));
+  });
+
+  // "- " or "* " typed at the start of a line (not already in a list) → bullet.
+  function autoList() {
+    const sel = getSelection();
+    const node = sel.anchorNode;
+    if (!sel.isCollapsed || node?.nodeType !== Node.TEXT_NODE || node.parentElement.closest('li')) return;
+    if (!/^[-*][\s\u00a0]$/.test(node.nodeValue.slice(0, sel.anchorOffset))) return;
+    // Must be the first thing on its line.
+    for (let n = node; n && n !== edit && !/^(DIV|P)$/.test(n.tagName || ''); n = n.parentNode) {
+      const prev = n.previousSibling;
+      if (prev && !(prev.nodeType === Node.ELEMENT_NODE && /^(DIV|P|UL|H4|BR)$/.test(prev.tagName))) return;
+    }
+    document.execCommand('delete');
+    document.execCommand('delete');
+    document.execCommand('insertUnorderedList');
+    return true;
+  }
   raw.addEventListener('input', () => changed(raw.value));
 
   // Paste as plain text so web pages don't bring their styling along.
@@ -108,7 +148,7 @@ export function richText(container, { value = '', onChange, placeholder = '' } =
   });
 
   container.querySelector('.md-bar').addEventListener('mousedown', ev => {
-    if (ev.target.closest('[data-cmd]')) ev.preventDefault(); // keep the selection in the editor
+    if (ev.target.closest('[data-cmd], [data-emoji]')) ev.preventDefault(); // keep the selection in the editor
   });
   container.querySelector('.md-bar').addEventListener('click', ev => {
     const b = ev.target.closest('button');
@@ -121,14 +161,39 @@ export function richText(container, { value = '', onChange, placeholder = '' } =
       else { paint(); raw.hidden = true; edit.hidden = false; edit.focus(); }
       return;
     }
+    if (b.dataset.emoji) {
+      const e = b.dataset.emoji;
+      if (rawMode) {
+        raw.focus();
+        raw.setRangeText(e, raw.selectionStart, raw.selectionEnd, 'end');
+        changed(raw.value);
+      } else {
+        if (!edit.contains(getSelection().anchorNode)) placeCaretAtEnd();
+        edit.focus();
+        document.execCommand('insertText', false, e);
+        changed(toMarkdown(edit));
+      }
+      return;
+    }
     if (rawMode) return;
     edit.focus();
     document.execCommand(b.dataset.cmd);
     changed(toMarkdown(edit));
   });
 
+  function placeCaretAtEnd() {
+    edit.focus();
+    const r = document.createRange();
+    r.selectNodeContents(edit);
+    r.collapse(false);
+    const sel = getSelection();
+    sel.removeAllRanges();
+    sel.addRange(r);
+  }
+
   paint();
   return {
+    focus: placeCaretAtEnd,
     setValue(next) {
       md = next || '';
       if (rawMode) raw.value = md; else paint();

@@ -780,9 +780,11 @@ kbd { font: inherit; font-size: .72em; padding: 1px 5px; margin-left: 4px; borde
   background: var(--glass-track);
 }
 .item-details .wide { grid-column: 1 / -1; }
+.item-details textarea { font-size: .9rem; padding: 6px 8px; color: var(--text); line-height: 1.4; resize: vertical; }
 .item-details input, .item-details select { font-size: .9rem; padding: 6px 8px; color: var(--text); }
 .detail-actions { grid-column: 1 / -1; display: flex; gap: 8px; justify-content: flex-end; }
 .detail-actions button { padding: 5px 12px; font-size: .85rem; }
+.detail-actions .close-details { margin-right: auto; }
 
 .pile, .day-tasks, .day-notes { margin-top: 20px; }
 .pile h2, .day-tasks h2, .day-notes h2 { font-family: var(--hand); font-weight: 700; font-size: 1.6rem; color: var(--ink); margin: 0 4px 6px; border-bottom: 2px solid var(--rule); }
@@ -1395,3 +1397,18 @@ li[data-id]:hover .kit-grip { opacity: .8; }
 .span-block > .line.has-item.selected > .content { background: var(--active-bg); box-shadow: inset 0 0 0 1px var(--active-border); }
 .span-block > .line.has-item.preview > .content { outline: 1px dashed var(--active-border); }
 .span-block > .line.has-item.done > .content { opacity: .55; }
+
+.note-emoji { font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif; font-size: .85rem; margin-right: 4px; font-style: normal; }
+.note-edit { flex-basis: 100%; margin: 2px 0 8px 52px; min-width: 0; }
+.note-edit .rich-edit, .note-edit .rich-raw, .detail-notes .rich-edit, .detail-notes .rich-raw { min-height: 4.5em; font-size: .95rem; line-height: 1.45; padding: 6px 10px; }
+.detail-note .field-label { display: block; font-size: .85rem; color: var(--muted); margin-bottom: 4px; }
+.md-emoji { display: inline-flex; gap: 2px; }
+.md-emoji button { padding: 3px 7px; font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif; }
+.md-bar { flex-wrap: wrap; }
+.item-note.open { white-space: normal; }
+.item-note .note-body { display: inline-block; vertical-align: top; }
+.item-note .note-body ul { margin: 0; padding-left: 1.2em; }
+.item-note .note-body h4 { margin: 2px 0; font-size: .85rem; }
+/* No ruled lines inside a multi-slot item: the block reads as one piece.
+   (Margin times stay; the block keeps a line at its bottom edge.) */
+.span-block > .line:not(:last-child) { border-bottom-color: transparent; }
