@@ -5,6 +5,7 @@
 import { loadTree, search, importCsv, exportCsv } from '../places.js';
 import { sortable } from '../sortable.js';
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
+import { toast } from '../toast.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -192,7 +193,7 @@ export default {
             </li>`).join('')}
           </ul>
           <textarea id="new-items" class="list-entry" rows="2" placeholder="Add items"></textarea>
-          <p class="muted hint">${listHint()} Drag ≡ to reorder; drag right to make a sub-item, left to undo (or Tab / Shift+Tab).</p>
+          <p class="muted hint">${listHint()} Drag ≡ to reorder; drag right to make a sub-item, left to undo (or Tab / Shift+Tab). Changes save as you go; Esc closes.</p>
           <div class="sheet-actions">
             <button type="button" data-act="add-items">Add items <kbd>${SHORTCUT}</kbd></button>
             <span class="spacer"></span>
@@ -285,17 +286,29 @@ export default {
       openId ? renderPage() : renderGrid();
     }
 
-    page.addEventListener('change', async ev => {
-      const t = ev.target;
+    async function saveField(t) {
+      if (!t?.name || !page.contains(t) || t.id === 'new-items') return;
       const itemLi = t.closest('[data-item]');
       if (itemLi) {
         await store.update('items', itemLi.dataset.item, { [t.name]: t.value.trim() });
-      } else if (t.name) {
+      } else {
         await store.update('places', openId, { [t.name]: t.value.trim() });
         if (t.name === 'parent_place_id') await reload();
       }
       tree = await loadTree(); // keep the grid behind in step
-    });
+    }
+    page.addEventListener('change', ev => saveField(ev.target));
+
+    // Escape anywhere in a box: save what's being typed (including lines not
+    // yet added), then zoom back out.
+    async function saveAndClose() {
+      const active = document.activeElement;
+      if (active?.id === 'new-items' && active.value.trim()) await addItems();
+      else await saveField(active);
+      active?.blur?.();
+      toast('✓ Saved');
+      act('back');
+    }
 
     // ---------- actions ----------
 
@@ -419,10 +432,13 @@ export default {
 
     this.onKey = ev => {
       if (ev.key === '/' && !openId && !ev.target.closest('input, textarea, select')) { ev.preventDefault(); q.focus(); }
-      if (ev.key === 'Escape' && openId && !ev.target.closest('input, textarea, select')) act('back');
+      if (ev.key === 'Escape' && openId && !importSheet.open) { ev.preventDefault(); saveAndClose(); return; }
       if (ev.key === 'Escape' && document.activeElement === q && q.value) { q.value = ''; query = ''; renderGrid(); }
     };
     addEventListener('keydown', this.onKey);
+
+    // Every write while a box is open gets a brief "Saved" toast.
+    this.unsubscribe = store.subscribe(() => { if (openId) toast('✓ Saved'); });
 
     this.onResize = () => { if (!openId) fitPills(); };
     addEventListener('resize', this.onResize);
@@ -437,6 +453,7 @@ export default {
   },
 
   unmount() {
+    this.unsubscribe?.();
     removeEventListener('keydown', this.onKey);
     removeEventListener('resize', this.onResize);
   },

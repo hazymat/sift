@@ -565,6 +565,26 @@ label.inline select { width: auto; max-width: 220px; font-size: .85rem; padding:
 .item-list li:hover .drag-handle, .item-list li:focus-within .drag-handle { opacity: .8; }
 .item-list li.dragging { position: relative; z-index: 2; background: var(--glass-strong); box-shadow: var(--shadow); }
 .hint { font-size: .75rem; margin: 6px 2px 0; }
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 18px);
+  z-index: 50;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: .85rem;
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+  border: 1px solid var(--active-border);
+  box-shadow: var(--shadow);
+  opacity: 0;
+  transform: translate(-50%, 8px);
+  transition: opacity .2s, transform .2s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+@media (min-width: 768px) { .toast { bottom: 28px; } }
 kbd { font: inherit; font-size: .72em; padding: 1px 5px; margin-left: 4px; border-radius: 6px; border: 1px solid var(--glass-border); opacity: .7; }
 @media (hover: none) { kbd { display: none; } }
 .item-pill.sub { opacity: .55; font-size: .66rem; }
