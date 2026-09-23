@@ -1727,3 +1727,10 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
   main { padding-top: calc(var(--safe-top) + 12px); }
   .find-bar { top: calc(var(--safe-top) + 6px); }
 }
+
+/* Glass paper: no border, and a touch more see-through. */
+.planner[data-paper="glass"] .paper {
+  border: 0;
+  background: color-mix(in srgb, var(--glass) 55%, transparent);
+  box-shadow: var(--shadow);
+}
