@@ -30,6 +30,7 @@ const SHELL = [
   'js/pillmenu.js',
   'js/summary.js',
   'js/exporttext.js',
+  'js/holdopen.js',
   'js/linkpicker.js',
   'js/csv.js',
   'js/places.js',

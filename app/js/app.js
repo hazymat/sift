@@ -1,6 +1,7 @@
 import * as store from './store.js';
 import { installInlineEditing } from './inline.js';
 import { installRefLinks } from './refs.js';
+import { installHoldToOpen } from './holdopen.js';
 
 // Adding an area is one entry here plus a view module (spec §5.1).
 export const AREAS = [
@@ -216,6 +217,7 @@ async function boot() {
   $('#quick-add').onclick = () => currentView?.quickAdd?.();
   installInlineEditing();
   installRefLinks();
+  installHoldToOpen();
   // A dropdown menu opens inside the screen: flipped to the other side if
   // it would run off the left or right edge.
   document.addEventListener('toggle', ev => {
