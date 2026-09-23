@@ -31,9 +31,6 @@ export default {
         <button type="button" data-act="today">Today</button>
         <button type="button" data-act="next" aria-label="Next day">›</button>
         <button type="button" data-act="calendar" class="cal-btn">Calendar</button>
-        <label class="paper-pick" title="Page style for this day">Paper
-          <select id="paper-style"></select>
-        </label>
       </div>
       <header class="day-head">
         <h1 class="day-title"><span class="weekday"></span> <span class="date"></span></h1>
@@ -62,6 +59,15 @@ export default {
           <div id="notes"></div>
         </section>
       </div>
+      <section class="day-housekeeping">
+        <h2>Housekeeping / settings</h2>
+        <label class="paper-pick">Paper for this day <select id="paper-style"></select></label>
+        <div class="hk-actions">
+          <button type="button" data-act="paper-week">Reset this week to this page's paper</button>
+          <button type="button" data-act="paper-all">Reset all pages to today's paper</button>
+        </div>
+        <p class="muted hint">The default paper, used by any day you haven't changed, is in Settings.</p>
+      </section>
       </div>
       <dialog class="sheet cal-sheet" id="cal" aria-label="Pick a date"></dialog>
       <dialog class="sheet review-sheet" id="review" aria-label="Unfinished from earlier days"></dialog>`;
@@ -517,6 +523,7 @@ export default {
       else if (act === 'next') go(addDays(date, 1));
       else if (act === 'today') go(isoDate());
       else if (act === 'calendar') openCalendar(date);
+      else if (act === 'paper-week' || act === 'paper-all') resetPapers(act === 'paper-week');
       else if (act === 'add-at') openLine(t);
       else if (act === 'toggle-note') {
         const nid = t.closest('[data-item]').dataset.item;
@@ -1031,6 +1038,45 @@ export default {
         go(b.dataset.day);
       }
     });
+
+    // ---------- paper for many days ----------
+
+    // This week (Mon–Sun) gets this page's paper, or every saved day gets
+    // today's. A day following the default keeps following it. Undoable.
+    async function resetPapers(week) {
+      const name = p => (p ? PAPERS.find(x => x.id === p)?.label : `the default (${PAPERS.find(x => x.id === settings.paper_style)?.label})`);
+      let paper;
+      let dates;
+      if (week) {
+        paper = day.paper || null;
+        const monday = addDays(date, -((parseDate(date).getDay() + 6) % 7));
+        dates = Array.from({ length: 7 }, (_, n) => addDays(monday, n));
+        if (!confirm(`Give every day this week (${monday} to ${dates[6]}) ${name(paper)} paper?`)) return;
+      } else {
+        paper = (await getDay(isoDate()))?.paper || null;
+        dates = (await store.list('days')).map(d => d.date);
+        if (!dates.includes(isoDate())) dates.push(isoDate());
+        if (!confirm(`Give every page ${name(paper)} paper, the same as today? Days you haven't opened yet use the default paper from Settings.`)) return;
+      }
+      const before = [];
+      for (const d of dates) {
+        const old = (await getDay(d))?.paper || null;
+        if (old === paper) continue;
+        before.push([d, old]);
+        await saveDay(d, { paper });
+      }
+      day = await getDay(date) || day;
+      applyPaper();
+      renderLines();
+      renderPile();
+      undoable(`Paper reset on ${before.length} day${before.length === 1 ? '' : 's'}`, async () => {
+        for (const [d, old] of before) await saveDay(d, { paper: old });
+        day = await getDay(date) || day;
+        applyPaper();
+        renderLines();
+        renderPile();
+      });
+    }
 
     // ---------- navigation ----------
 

@@ -1471,3 +1471,14 @@ li[data-id]:hover .kit-grip { opacity: .8; }
 }
 @keyframes note-dim { from { box-shadow: 0 0 0 200vmax rgba(0, 0, 0, 0); } }
 .check-row .inline-text { width: 12em; padding: 3px 8px; font-size: .9rem; margin-left: 4px; }
+
+/* Housekeeping at the bottom of the Day Planner. */
+.day-housekeeping { margin-top: 24px; padding-top: 12px; border-top: 1px solid var(--rule, var(--glass-border)); }
+.day-housekeeping h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); font-family: var(--font); font-weight: 600; }
+.day-housekeeping .paper-pick { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+.hk-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.hk-actions button { font-size: .85rem; padding: 5px 12px; }
+
+/* The top and bottom bars stay solid in the app's theme whatever paper the
+   page underneath is (light papers made the see-through bar unreadable). */
+.tabbar, .appbar { background: color-mix(in srgb, var(--bg, #0f172a) 88%, transparent); }
