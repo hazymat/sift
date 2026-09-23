@@ -68,6 +68,13 @@ export function boxTitle(box) {
 
 // Plain substring match on every word, across codes, names, locations,
 // notes and items. Full-text search across the app comes in step 9.
+// "3x Ethernet kits" / "3 × kits" → { name: 'Ethernet kits', quantity: 3 }.
+export function splitQuantity(text) {
+  const m = String(text || '').trim().match(/^(\d{1,5})\s?[x×]\s+(.+)$/i);
+  return m ? { name: m[2].trim(), quantity: Number(m[1]) } : { name: String(text || '').trim(), quantity: null };
+}
+const itemText = i => `${i.name} ${i.notes || ''} ${(i.tags || []).join(' ')}`;
+
 export function search(tree, query) {
   const words = query.toLowerCase().split(/\s+/).filter(Boolean);
   if (!words.length) return [];
@@ -80,7 +87,7 @@ export function search(tree, query) {
         const boxText = [box.label_code, box.name, box.location_note, box.notes].join(' ');
         const boxMatch = hit(boxText);
         // Words may be split between box and item ("BB microphone").
-        const items = box.items.filter(i => hit(`${i.name} ${i.notes || ''}`) || (!boxMatch && hit(`${boxText} ${i.name} ${i.notes || ''}`)));
+        const items = box.items.filter(i => hit(itemText(i)) || (!boxMatch && hit(`${boxText} ${itemText(i)}`)));
         if (boxMatch || items.length) results.push({ edition, section, box, items, path, boxMatch });
       }
     }
@@ -208,7 +215,7 @@ export async function importCsv(text) {
     }
     const order = items.filter(i => i.place_id === box.id).length;
     items.push(await store.create('items', {
-      name: r.item, place_id: box.id, parent_item_id: parent?.id || null, notes: r.item_notes, quantity: null, sort_order: order, last_moved_at: null,
+      ...splitQuantity(r.item), place_id: box.id, parent_item_id: parent?.id || null, notes: r.item_notes, sort_order: order, last_moved_at: null,
     }));
     count.items++;
   }

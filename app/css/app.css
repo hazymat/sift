@@ -1626,3 +1626,37 @@ main:has(> .planner), main:has(.planner) { max-width: 1600px; }
   transform: rotate(-0.6deg);
 }
 .item-list li.hit input[name="name"]:focus { transform: none; }
+
+/* Find Things: a thing gets the whole line; tags and the note sit under it;
+   its panel holds quantity, tags and the note. */
+.item-list li[data-id] { flex-wrap: wrap; }
+.item-list li[data-id] input[name="name"] { flex: 1 1 0%; min-width: 0; }
+.item-list .qty { flex: none; }
+.item-list .item-sub { margin: -2px 0 4px 36px; }
+.item-list .item-note { max-width: none; opacity: 1; font-size: .8rem; }
+.tag-pill { text-transform: none; }
+.thing-panel { display: block; padding: 10px 12px; margin: 2px 0 8px 28px; border-radius: 14px; background: var(--glass-track); border: 1px solid var(--glass-border); }
+.thing-panel .field-label { display: block; font-size: .85rem; color: var(--muted); margin-bottom: 4px; }
+.tag-edit .tag-list { display: inline-flex; flex-wrap: wrap; gap: 4px; margin-right: 6px; }
+.tag-edit .tag-add { width: 12em; padding: 4px 8px; font-size: .9rem; }
+.thing-notes .rich-edit { min-height: 4em; font-size: .95rem; }
+
+/* The box code reads as a code: monospace on a shaded label, as wide as the
+   code itself, so the name sits right after it. */
+.box-page-head .box-code-input {
+  width: auto;
+  field-sizing: content;
+  min-width: 2.5ch;
+  max-width: 9ch;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace;
+  font-weight: 700;
+  letter-spacing: .02em;
+  padding: 2px 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--text) 30%, transparent);
+}
+.box-page-head .box-code-input:placeholder-shown { font-size: 1.2rem; }
+.box-card .box-code { font-family: ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace; }
+.item-list .more { background: transparent; border-color: transparent; box-shadow: none; opacity: .45; padding: 2px 8px; }
+.item-list li:hover .more, .item-list li:focus-within .more, .item-list .more[aria-expanded="true"] { opacity: 1; }

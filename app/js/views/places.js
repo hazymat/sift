@@ -2,7 +2,8 @@
 // cards. Tapping a card zooms into the box (#/find-things/<box id>); Back zooms
 // out again. Search across all life areas, CSV import/export.
 
-import { loadTree, search, importCsv, exportCsv, archivedMatchCount } from '../places.js';
+import { loadTree, search, importCsv, exportCsv, archivedMatchCount, splitQuantity } from '../places.js';
+import { richText, previewLine } from '../richtext.js';
 import { createListKit } from '../listkit.js';
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
@@ -54,6 +55,7 @@ export default {
               <button type="button" data-act="rename-edition">Rename life area</button>
               <button type="button" data-act="import">Import CSV</button>
               <button type="button" data-act="export">Export CSV</button>
+              <button type="button" data-act="split-quantities">Split "3x …" quantities out of names</button>
               <hr>
               <a href="#/bin/archive/places">Archive</a>
               <a href="#/bin/bin/places">Bin</a>
@@ -203,10 +205,13 @@ export default {
             <li data-id="${i.id}" data-item="${i.id}" data-depth="${i.depth}">
               <button type="button" class="drag-handle" aria-label="Select or move ${esc(i.name)}">${icon('i-grip')}</button>
               <input name="name" value="${esc(i.name)}" aria-label="Item">
-              <input name="notes" value="${esc(i.notes)}" placeholder="note" aria-label="Note" class="item-note">
-              <button type="button" class="icon-btn small" data-act="delete-item" aria-label="Remove ${esc(i.name)}">×</button>
-            </li>`).join('')}
+              ${i.quantity ? `<span class="span-tag qty" title="Quantity">×${i.quantity}</span>` : ''}
+              <button type="button" class="more" data-act="item-details" aria-label="Details" aria-expanded="${openItem === i.id}">⋯</button>
+              ${thingSub(i)}
+            </li>
+            ${openItem === i.id ? thingPanel(i) : ''}`).join('')}
           </ul>
+          <datalist id="thing-tags">${allTags().map(t => `<option value="${esc(t)}">`).join('')}</datalist>
           <textarea id="new-items" class="list-entry" rows="2" placeholder="Add items"></textarea>
           <p class="muted hint">${listHint()} ≡: tap to select, swipe down the ≡ column to select several, press and hold to drag (sideways to indent; or Tab / Shift+Tab). Changes save as you go; Esc closes.</p>
           <div class="sheet-actions">
@@ -219,6 +224,7 @@ export default {
         </article>`;
       kit.attach(page.querySelector('.item-list'));
       addItems = listEntry(page.querySelector('#new-items'), addLines, { draft: `places:${openId}` });
+      mountThingNotes();
       page.querySelector('#box-q').addEventListener('input', ev => {
         query = ev.target.value.trim(); // the same search as the grid's; stays in this box
         q.value = ev.target.value;
@@ -228,6 +234,91 @@ export default {
       return true;
     }
 
+    // ---------- a thing's panel: note, quantity, tags ----------
+
+    let openItem = null; // thing whose panel is open
+    let pendingNote = null;
+    let noteTimer;
+    const allTags = () => [...new Set(tree.flatMap(e => e.sections.flatMap(s => s.boxes.flatMap(b => b.items.flatMap(i => i.tags || [])))))].sort((a, b) => a.localeCompare(b));
+
+    // Under the name: tags (click one to find everything with it), then the
+    // note's first line (click to open the panel).
+    function thingSub(i) {
+      const tags = (i.tags || []).map(t => `<button type="button" class="pill-act tag-pill" data-act="tag-search" data-tag="${esc(t)}" title="Find everything tagged ${esc(t)}">#${esc(t)}</button>`).join('');
+      const { html, more } = previewLine(i.notes || '');
+      const note = html ? `<span class="item-note" data-act="item-details" role="button" tabindex="0" title="${openItem === i.id ? 'Close' : 'Open to read or edit'}"><span class="note-emoji" aria-hidden="true">📝</span>${html}${more ? ` <span class="more-lines">+${more} more</span>` : ''}</span>` : '';
+      return tags || note ? `<div class="item-sub">${tags}${note}</div>` : '';
+    }
+
+    function thingPanel(i) {
+      return `<li class="thing-panel item-details" data-item="${i.id}" data-for="${i.id}">
+        <div class="detail-grid">
+          <label>Quantity<input type="number" name="quantity" min="0" step="1" value="${i.quantity ?? ''}" placeholder="—" inputmode="numeric"></label>
+          <div class="wide tag-edit"><span class="field-label">Tags</span>
+            <span class="tag-list">${(i.tags || []).map(t => `<span class="chip">#${esc(t)} <button type="button" class="chip-x" data-act="remove-tag" data-tag="${esc(t)}" aria-label="Remove tag ${esc(t)}">×</button></span>`).join('')}</span>
+            <input class="tag-add no-inline" list="thing-tags" placeholder="+ tag (Enter)" aria-label="Add a tag" autocomplete="off">
+          </div>
+          <div class="wide"><span class="field-label">Note</span><div class="thing-notes"></div></div>
+        </div>
+        <div class="detail-actions">
+          <button type="button" class="close-details" data-act="close-item">Close</button>
+          <span class="spacer"></span>
+          <button type="button" class="danger" data-act="delete-item">Delete</button>
+        </div>
+      </li>`;
+    }
+
+    function mountThingNotes() {
+      const box = page.querySelector('.thing-panel .thing-notes');
+      if (!box || !openItem) return;
+      const id = openItem;
+      const it = findBox(openId)?.b.items.find(x => x.id === id);
+      richText(box, {
+        value: it?.notes || '',
+        origin: () => ({ collection: 'items', id, title: it?.name, field: 'notes' }),
+        onChange: md => { clearTimeout(noteTimer); pendingNote = { id, md }; noteTimer = setTimeout(flushThingNote, 600); },
+      });
+    }
+    async function flushThingNote() {
+      clearTimeout(noteTimer);
+      const p = pendingNote;
+      pendingNote = null;
+      if (p) { await store.update('items', p.id, { notes: p.md }); tree = await loadTree(); }
+    }
+    async function toggleThing(id) {
+      await flushThingNote();
+      openItem = openItem === id ? null : id;
+      renderPage();
+      markHits();
+    }
+    async function setTags(id, tags, label) {
+      const before = (await store.get('items', id))?.tags || [];
+      await store.update('items', id, { tags });
+      await reload();
+      markHits();
+      page.querySelector('.thing-panel .tag-add')?.focus();
+      undoable(label, async () => { await store.update('items', id, { tags: before }); await reload(); });
+    }
+
+    // Clicking outside the open panel (and its thing) closes it.
+    this.onThingPointer = ev => {
+      if (!openItem || !el.isConnected) return;
+      if (ev.target.closest(`[data-item="${openItem}"], dialog, .toast, .ref-picker, .ref-menu, .pill-menu`)) return;
+      toggleThing(openItem);
+    };
+    document.addEventListener('pointerdown', this.onThingPointer, true);
+    page.addEventListener('keydown', ev => {
+      const t = ev.target;
+      if (!t.classList?.contains('tag-add') || ev.key !== 'Enter') return;
+      ev.preventDefault();
+      const tag = t.value.trim().replace(/^#/, '');
+      const id = t.closest('[data-item]')?.dataset.item;
+      const it = findBox(openId)?.b.items.find(x => x.id === id);
+      if (!tag || !it) return;
+      if ((it.tags || []).some(x => x.toLowerCase() === tag.toLowerCase())) { t.value = ''; return; }
+      setTags(id, [...(it.tags || []), tag], `Tagged #${tag}`);
+    });
+
     // In a box, things matching the search are marked like a highlighter
     // pen; the first one is scrolled into view when the box opens.
     function markHits(scroll = false) {
@@ -235,9 +326,9 @@ export default {
       if (!found) return;
       const words = query.toLowerCase().split(/\s+/).filter(Boolean);
       let n = 0;
-      for (const li of page.querySelectorAll('.item-list [data-item]')) {
+      for (const li of page.querySelectorAll('.item-list li[data-id]')) {
         const it = found.b.items.find(i => i.id === li.dataset.item);
-        const text = `${it?.name || ''} ${it?.notes || ''}`.toLowerCase();
+        const text = `${it?.name || ''} ${it?.notes || ''} ${(it?.tags || []).join(' ')}`.toLowerCase();
         const hit = words.length > 0 && words.every(w => text.includes(w));
         li.classList.toggle('hit', hit);
         if (hit) n++;
@@ -257,7 +348,7 @@ export default {
       const made = [];
       for (const line of lines) {
         const sub = line.sub && parent;
-        const item = await store.create('items', { name: line.text, place_id: openId, parent_item_id: sub ? parent : null, notes: '', quantity: null, sort_order: n++, last_moved_at: null });
+        const item = await store.create('items', { ...splitQuantity(line.text), place_id: openId, parent_item_id: sub ? parent : null, notes: '', sort_order: n++, last_moved_at: null });
         made.push(item.id);
         if (!sub) parent = item.id;
       }
@@ -360,8 +451,8 @@ export default {
       const itemLi = t.closest('[data-item]');
       const [collection, id] = itemLi ? ['items', itemLi.dataset.item] : ['places', openId];
       const old = (await store.get(collection, id))?.[t.name] ?? '';
-      const value = t.value.trim();
-      if (value === (old ?? '')) return false;
+      const value = t.name === 'quantity' ? (t.value.trim() === '' ? null : Math.max(0, Math.round(Number(t.value)))) : t.value.trim();
+      if (value === (old ?? '') || (t.name === 'quantity' && value === (old ?? null))) return false;
       await store.update(collection, id, { [t.name]: value });
       if (t.name === 'parent_place_id') await reload();
       tree = await loadTree(); // keep the grid behind in step
@@ -403,7 +494,33 @@ export default {
           await store.update('places', boxId, { archived_at: null });
           await reload();
         });
+      } else if (name === 'item-details') {
+        await toggleThing(target.closest('[data-item]').dataset.item);
+      } else if (name === 'close-item') {
+        await toggleThing(openItem);
+      } else if (name === 'remove-tag') {
+        const id = target.closest('[data-item]').dataset.item;
+        const it = findBox(openId)?.b.items.find(x => x.id === id);
+        await setTags(id, (it?.tags || []).filter(x => x !== target.dataset.tag), `Removed #${target.dataset.tag}`);
+      } else if (name === 'tag-search') {
+        await flushThingNote();
+        openItem = null;
+        query = target.dataset.tag;
+        q.value = query;
+        location.hash = '#/find-things';
+      } else if (name === 'split-quantities') {
+        const all = tree.flatMap(e => e.sections.flatMap(s => s.boxes.flatMap(b => b.items)));
+        const changes = all.map(i => [i, splitQuantity(i.name)]).filter(([i, s]) => s.quantity && !i.quantity);
+        if (!changes.length) return toast('No names start with a quantity like "3x"');
+        if (!confirm(`Move the quantity out of ${changes.length} name${changes.length === 1 ? '' : 's'} (e.g. "3x Ethernet kits" → "Ethernet kits", quantity 3)?`)) return;
+        await store.updateMany('items', changes.map(([i, s]) => [i.id, { name: s.name, quantity: s.quantity }]));
+        await reload();
+        undoable(`Quantities split out of ${changes.length} name${changes.length === 1 ? '' : 's'}`, async () => {
+          await store.updateMany('items', changes.map(([i]) => [i.id, { name: i.name, quantity: i.quantity ?? null }]));
+          await reload();
+        });
       } else if (name === 'delete-item') {
+        if (openItem) { await flushThingNote(); openItem = null; }
         const id = target.closest('[data-item]').dataset.item;
         const items = findBox(openId)?.b.items || [];
         const gone = [id, ...items.filter(i => i.parent_item_id === id).map(i => i.id)];
@@ -475,7 +592,7 @@ export default {
         ev.preventDefault();
         const boxId = input.dataset.add;
         const count = findBox(boxId)?.b.items.length || 0;
-        const made = await store.create('items', { name: input.value.trim(), place_id: boxId, notes: '', quantity: null, sort_order: count, last_moved_at: null });
+        const made = await store.create('items', { ...splitQuantity(input.value), place_id: boxId, notes: '', sort_order: count, last_moved_at: null });
         tree = await loadTree();
         undoable(`Added "${made.name}"`, async () => { await store.remove('items', made.id); await reload(); });
         input.closest('.box-card').outerHTML = card(findBox(boxId).b);
@@ -531,6 +648,7 @@ export default {
 
     this.onKey = ev => {
       if (ev.key === '/' && !openId && !ev.target.closest('input, textarea, select')) { ev.preventDefault(); q.focus(); }
+      if (ev.key === 'Escape' && openItem && !ev.defaultPrevented) { ev.preventDefault(); toggleThing(openItem); return; }
       if (ev.key === 'Escape' && ev.target.id === 'box-q' && ev.target.value) { ev.preventDefault(); ev.target.value = ''; query = ''; q.value = ''; markHits(); return; }
       if (ev.key === 'Escape' && openId && !ev.target.closest('input, textarea') && kit.escape()) { ev.preventDefault(); return; }
       if (ev.key === 'Escape' && openId && !importSheet.open) { ev.preventDefault(); saveAndClose(); return; }
@@ -553,6 +671,7 @@ export default {
   unmount() {
     this.kit?.destroy();
     removeEventListener('keydown', this.onKey);
+    document.removeEventListener('pointerdown', this.onThingPointer, true);
     removeEventListener('resize', this.onResize);
   },
 
