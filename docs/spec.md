@@ -1,0 +1,298 @@
+# Sift — spec
+
+> *sift (v.)*: to sort through a loose mass so that what matters settles into order. Sift is where your scattered tasks, thoughts, things, receipts, contracts and trusted people gradually find their place.
+
+## 1. Goals
+
+- One personal "life app": tasks/projects, braindump, where-things-are, trades contacts, quick scans, personal contracts. Contracts + Scans together are the digital home filing cabinet.
+- Runs on iPhone and laptop as an installable PWA (HTML/CSS/JS, no framework, no build step).
+- **Local-first**: all data, including scan images, lives on the device. Fully usable with no server and no network.
+- **Optional sync** across a user's devices via a self-hosted server we write (multi-user, end-to-end encrypted).
+- **Free forever**: no paid services, no vendor lock-in. Anyone can run their own server.
+- v2: sync via storage the user already owns (Google Drive app folder, Dropbox, WebDAV, S3-compatible) using the same protocol.
+
+## 2. Non-goals (v1)
+
+- Sharing data between users / households.
+- File management: no folders, no file browser, no arbitrary file types, no annotation or versioning. Scans are capture-and-find, nothing more.
+- User-defined tables / spreadsheet builder. Contracts use a fixed core schema plus free custom fields (§9).
+- Photos on places/items (v2; reuses the Scans pipeline).
+- Server-side search or processing of user data (server only ever holds ciphertext).
+
+## 3. Architecture
+
+```
+ iPhone PWA ─┐                         ┌─ user A data (ciphertext)
+             ├─ HTTPS ─ Caddy ─ sift-server (Node + SQLite + blobs dir)
+ Laptop PWA ─┘                         └─ user B data (ciphertext)
+   │
+   └─ app shell served from GitHub Pages (static, free)
+```
+
+| Layer | Choice | Why |
+|---|---|---|
+| App hosting | GitHub Pages, deployed from `/app` by a GitHub Actions workflow | Free static HTTPS hosting (required for PWA). One fixed origin for everyone, so one Google OAuth client works for all users. Repo must be public for free Pages (nothing secret in it; OAuth client IDs are public by design). Branch-based Pages can only publish root or `/docs`, hence the workflow. |
+| Local storage | IndexedDB via own thin wrapper (`js/store.js`) | Stores records and binary blobs (images/PDFs) natively. No dependency. |
+| Offline shell | Service worker caching app shell + vendored libs | App opens with no network. |
+| Libraries | Vendored in `/vendor` (no CDN): MiniSearch (search), pdf.js (PDF thumbnails) | Open source, work offline, can't start charging. |
+| Crypto | WebCrypto (built into browser) | PBKDF2, AES-GCM, SHA-256. No dependency. |
+| Sync server | Node.js + SQLite (`better-sqlite3`) + blobs on disk, one Docker container | Small, self-hostable anywhere (home server, Pi, free-tier VPS). |
+| HTTPS | Caddy in front, Let's Encrypt via DNS challenge | Browsers block an HTTPS app calling an HTTP server. DNS challenge works even when the server is only reachable over VPN. |
+| Calendar | Google Calendar API from the browser via Google Identity Services | Free, no server involvement. |
+
+### 3.1 Platform storage notes
+
+- iPhone: must be installed to Home Screen (exempt from Safari's 7-day storage eviction). App calls `navigator.storage.persist()` on first run.
+- Safari grants an origin a large share of free disk; hundreds of MB of scans is fine. Usage shown via `navigator.storage.estimate()` in Settings.
+- Laptop (Chrome/Edge): installed PWA gets persistent storage with a very large quota.
+- **Before sync is enabled, the device is the only copy.** Backup/restore (§10) is a phase 1 requirement, not a nice-to-have.
+
+### 3.2 Security model
+
+- **On device**: data stored in plain IndexedDB, protected by the device's own encryption and lock screen. No passphrase friction for local-only use.
+- **Leaving the device** (sync, backups): always end-to-end encrypted. The server and any v2 cloud store see only ciphertext, record ids and sizes.
+- Contract reference numbers and ID scans are masked in the UI with tap-to-reveal (shoulder-surfing protection, not cryptography).
+
+## 4. Data model
+
+One IndexedDB database per signed-in user (`sift_<user_id>`), or `sift_local` before sign-in (§8.6). Object stores = collections below, plus `blobs`, `outbox`, `sync_meta`.
+
+Common fields on every record: `id (UUIDv7), created_at, updated_at, deleted_at, tags[]`, plus sync metadata `_field_clocks {field: hlc}`, `_server_seq`, `_dirty_fields[]` (§8).
+
+### 4.1 Tasks
+
+- `projects`: `name, description, status (active|paused|done|archived), colour, sort_order, due_date`
+- `milestones`: `project_id, name, due_date, done_at, sort_order`
+- `tasks`: `title, notes, project_id?, milestone_id?, parent_task_id? (subtasks), status (todo|doing|waiting|done), priority (1-4), due_date?, due_time?, done_at?, calendar_event_id?, calendar_sync (none|push), recurrence_rule? (RRULE), source_thought_id?, source_scan_id?, source_contract_id?, sort_order`
+
+### 4.2 Braindump
+
+- `thoughts`: `body, kind (thought|idea|task|shopping|journal|place_item), pinned, converted_to {collection, id}?`
+  - No kind picked → `thought`. Recategorise anytime by changing `kind`.
+  - `task` / `place_item` kinds offer "convert", which creates the target record and links back via `converted_to` / `source_thought_id`.
+
+### 4.3 Where things are
+
+- `places`: `name, label_code (physical label, e.g. "PB-14"), parent_place_id? (room → shelf → box), location_note, sort_order`
+- `items`: `name, place_id, quantity?, notes, last_moved_at`
+  - Moving an item = change `place_id`; moving a box moves everything in it.
+
+### 4.4 Trades
+
+- `trades`: `name, company, trade_types[], phone, email, website, address, area_covered, rating (1-5), review, would_use_again (yes|no|maybe)`
+- `trade_jobs`: `trade_id, date, description, cost, rating, notes, task_id?`
+
+### 4.5 Scans
+
+- `scans`: `title, kind (receipt|id|warranty|other), expiry_date?, note?, linked {collection, id}? (contract, trade_job, item, task), keep_on_device (bool), pages[]`
+  - `pages[]`: `{blob_id, thumb_blob_id, mime_type, size_bytes}`
+  - `title` defaults to e.g. "Receipt 23 Sep 14:32"; everything else optional.
+- `blobs` store: `{blob_id, bytes (Blob), mime_type, size_bytes, uploaded (bool)}`
+
+### 4.6 Contracts
+
+- `contracts`: `name, category (insurance|utility|broadband|phone|mortgage|rent|loan|subscription|warranty|pension|other), provider, provider_phone?, provider_url?, reference?, covers?, start_date, end_date?, renewal_date?, auto_renew (bool), notice_days?, cost, cost_frequency (monthly|quarterly|annual|one_off), payment_method_note?, status (current|ended|cancelled), previous_contract_id?, trade_id?, custom_fields[] ({label, value}), notes`
+  - Renewal/switch = new row with `previous_contract_id` → history chain per policy line.
+  - Scans attach via `scans.linked = {collection: "contracts", id}`.
+
+### 4.7 Cross-cutting
+
+- `tags` are free strings on every record; autocomplete from local data.
+- `settings` (single record, synced): `default_calendar_id, week_start, theme, pinned_areas[]`.
+- `device_settings` (local only, never synced): `server_url, device_name, keep_all_scans_on_device`.
+
+## 5. UI
+
+Single-page app, hash routing, top nav on laptop, bottom tab bar on iPhone. Global search always available (`/` on laptop, pull-down on phone).
+
+### 5.1 Navigation
+
+- Areas registered in one list (`id, label, icon, view_module`); adding an area is a single entry.
+- **iPhone**: fixed bottom bar, never scrolls. 4 pinned areas + 5th **More** tab opening a bottom sheet with the rest.
+- **Laptop**: all areas in top nav; overflow collapses into a More dropdown.
+- Pinned set configurable in Settings (drag between "Pinned" (max 4) and "More"); stored in `settings.pinned_areas[]`.
+- When the active area lives in More, the More tab shows as active with that area's icon.
+
+### 5.2 Areas
+
+| Area | Laptop | iPhone |
+|---|---|---|
+| **Tasks** | Left: projects. Main: tasks grouped by milestone, drag reorder. Right: detail. Views: Today, Upcoming, Project, Done. | Segmented views; detail as full-screen sheet. |
+| **Dump** | Large text area focused on open; kind pills underneath; Save (⌘↵). Below: thought list/cloud, filter by kind and tag. | Opens into text entry with keyboard up; pills above keyboard. |
+| **Places** | Tree (rooms → boxes) left, contents right. Search jumps to box. Big `label_code` badge. | Search-first: type item → box label shown large. Tap to browse. |
+| **Trades** | Sortable table (type, rating, last used). Detail with jobs history. | Grouped by trade type; tap-to-call / email. |
+| **Contracts** | Spreadsheet-style table: sort, filter, group, column picker, inline edit. Detail with history chain + scans. Footer: annual cost total. | Cards by category, current first, renewals due highlighted. Tap-to-call provider. |
+| **Scans** | Reverse-chronological thumbnails, kind pill filters, search. Drag-and-drop to add. | Big **Scan** button, recent scans below. Full-screen viewer, pinch zoom. |
+
+- Header: sync status (local only / synced / syncing / n pending / offline).
+- Quick-add (+) on every area pre-fills that area's record type.
+- Theme follows system light/dark.
+
+## 6. Google Calendar integration
+
+- Scope `https://www.googleapis.com/auth/calendar.events`, requested only when the user enables it.
+- Google Identity Services token client in the browser (no refresh token; ~1h tokens re-acquired silently while the Google session is active).
+- One-way push: task with due date and `calendar_sync = push` creates/updates/deletes an event; `calendar_event_id` stored on the task.
+- Offline: calendar operations queued in `calendar_outbox`, flushed on reconnect.
+- The OAuth client is tied to the GitHub Pages origin; Google app verification (free) needed before >100 users can connect.
+
+## 7. Search
+
+- MiniSearch index built on startup from IndexedDB across all collections; updated on every local write and every merged pull.
+- Results grouped by type; item results show place path (`Loft › Shelf 2 › PB-14`).
+
+## 8. Sync
+
+### 8.1 Principles
+
+- Device is the source of truth for its own edits; server is a dumb encrypted relay/store.
+- Server sees: user id, record id, server sequence number, ciphertext, sizes. Never collection names, field names or content.
+- Same protocol targets the self-hosted server (v1) and user-owned cloud storage adapters (v2).
+
+### 8.2 Keys (one password, server can't decrypt)
+
+- `master_key` = PBKDF2-SHA256(password, salt = lowercased email, 600k iterations).
+- `auth_hash` = PBKDF2(master_key, password, 1 iteration) → sent to server; server stores a slow hash (scrypt) of it.
+- `data_key`: random AES-GCM 256 key created on registration, wrapped with a key derived from `master_key`, stored on server as `wrapped_data_key`.
+- New device: log in → receive `wrapped_data_key` → unwrap locally. Password change = rewrap only, no re-encryption.
+- **Recovery key**: `data_key` exported as a printable code at registration. Lost password + lost recovery key = data unrecoverable (forced acknowledgement at setup).
+- Signed-in devices keep `data_key` as a non-extractable CryptoKey in IndexedDB.
+
+### 8.3 Record changes
+
+- Every field write stamps `_field_clocks[field]` with a hybrid logical clock (`wall_ms-counter-device_id`) and adds the field to `_dirty_fields`, then queues the record id in `outbox`.
+- Envelope encrypted per record: `{collection, data, field_clocks, deleted_at}` → AES-GCM(data_key, random 12-byte IV).
+- **Push**: `{record_id, base_seq, ciphertext}` per changed record. Server accepts only if its current seq for that record == `base_seq`, else returns the current version (conflict).
+- **Conflict merge** (client): decrypt server version, then per field take whichever `_field_clocks` value is later; re-push with new `base_seq`.
+- **Pull**: `since = last_seq` → changed records in seq order; client merges each (same per-field rule), updates `last_seq`.
+- Deletes are soft (`deleted_at`); tombstones kept so offline devices can't resurrect deleted records.
+- Sync runs on app open, on regaining network, after local writes (debounced 5 s), and every 5 min while open.
+
+### 8.4 Blobs
+
+- Blob encrypted client-side; `blob_id` = SHA-256 of ciphertext (integrity check on download).
+- Blobs are immutable: upload only what the server lacks (`HEAD`), download on demand.
+- Thumbnails always synced to every device. Full pages downloaded when opened, and kept if `keep_on_device` (per scan) or `keep_all_scans_on_device` (per device, default on for laptop).
+- Old full pages on iPhone can be evicted locally once confirmed uploaded; re-fetched on demand.
+- Purging a scan's tombstone deletes its blobs on the server.
+
+### 8.5 Server (sift-server)
+
+- Node.js, SQLite, blobs in `data/blobs/<user_id>/<blob_id>`. One Docker image; `docker-compose.yml` includes Caddy.
+- Tables: `users (id, email, auth_hash_scrypt, kdf_params, wrapped_data_key, quota_bytes, created_at)`, `devices (id, user_id, name, token_hash, last_seen)`, `records (user_id, record_id, seq, ciphertext, size_bytes)`, `blobs (user_id, blob_id, size_bytes)`.
+- Config: `REGISTRATION (open|invite|closed)`, `DEFAULT_QUOTA_MB` (default 1024), `ALLOWED_ORIGIN` (the GitHub Pages origin, for CORS).
+- Admin CLI: create user / invite code, set quota, list users and usage, revoke device.
+- Login rate limiting and lockout. Tokens: 32 random bytes, stored hashed, per device, revocable.
+- Quota enforced on push and blob upload (sum of `records.size_bytes` + `blobs.size_bytes`).
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /api/prelogin` | email → KDF params |
+| `POST /api/register` | email, auth_hash, kdf_params, wrapped_data_key, invite_code? |
+| `POST /api/login` | email, auth_hash, device_name → token, wrapped_data_key |
+| `GET /api/devices`, `DELETE /api/devices/:id` | list / revoke devices |
+| `POST /api/sync/push` | changed records with base_seq → accepted seqs + conflicts |
+| `GET /api/sync/pull?since=` | records changed since seq |
+| `HEAD/GET/PUT/DELETE /api/blobs/:blob_id` | blob store |
+| `GET /api/usage` | bytes used / quota |
+
+### 8.6 Local-only → signed-in (adding auth after phase 1)
+
+- Phase 1 runs with no account: IndexedDB database `sift_local`, no encryption, no sync.
+- Nothing in phase 1 UI depends on auth; sign-in lives only in Settings → Sync.
+- **Enable sync on a device with existing local data:**
+  1. Register or log in (§8.2).
+  2. Pull everything the account already has (other devices may have pushed) and merge into local data using the per-field rule.
+  3. Queue every local record and blob in the outbox with `base_seq = 0` for records the server doesn't have; push.
+  4. Database renamed to `sift_<user_id>`; `sift_local` removed once push completes.
+- **Sign out**: choose "keep data on this device" (reverts to `sift_local`, sync off) or "remove data from this device".
+- Because the phase 1 record format already carries ids, field clocks, soft deletes and an outbox, no data migration is needed.
+
+### 8.7 v2 cloud adapters
+
+- Adapter interface: `put_record, list_records_since, put_blob, has_blob, get_blob, delete_blob`, with **conditional writes** (ETag / If-Match) to provide the `base_seq` check.
+- Targets: Google Drive app-data folder, Dropbox app folder, WebDAV (incl. Nextcloud), S3-compatible buckets.
+- User's own storage account = zero cost to the project.
+
+## 9. Scans & Contracts detail
+
+### 9.1 Quick scan (2 taps)
+
+- Entry points: Scan button in Scans, Scan in global quick-add, "Attach scan" on contract / trade job / item / task (pre-fills `linked`).
+- Flow: tap Scan → camera (`<input type="file" accept="image/*,application/pdf" capture="environment">`) → photo → **saved immediately** with default title and `kind = receipt`.
+- Post-save dismissible strip: kind pills, "+ page", title/expiry fields, "Make contract".
+- Auto on capture: EXIF rotate, greyscale/contrast "scan" filter. v2: edge detection, OCR.
+- Images resized to 2000 px long edge, JPEG q0.8 (~200–500 KB/page); thumbnail 300 px q0.7. PDFs as-is, pdf.js page-1 thumbnail. 10 MB per-file cap.
+- Scan with `expiry_date` → linked task due 3 months before expiry.
+
+### 9.2 Contracts
+
+- Table UI with inline edit, saved views ("Current insurance", "Renewing in 60 days").
+- **Renew** action: duplicates row as new current contract (`previous_contract_id` set), marks old one ended.
+- Custom fields `{label, value}`; labels autocomplete; frequent labels can become optional columns.
+- Costs normalised to annual for totals and per-category subtotals.
+- Contract with `renewal_date` → linked task due `notice_days` (default 30) before renewal.
+
+## 10. Backup, import, export
+
+- **Backup** (phase 1): one tap → `.sift` file (zip of JSON records + blobs), optionally encrypted with a backup passphrase. Saved via share sheet to Files / iCloud Drive / Downloads. Settings shows "last backup" with a reminder after 14 days when sync is off.
+- **Restore**: into an empty device, or merge into existing data using the same per-field merge rules.
+- Imports: places/items CSV (`label_code, box_name, item_name, notes`) for the OneNote box list; trades CSV; contracts CSV (unknown columns → custom fields).
+
+## 11. File layout
+
+```
+/.github/workflows/pages.yml  (publishes /app to GitHub Pages)
+/app                         (published to GitHub Pages)
+  index.html
+  manifest.webmanifest
+  sw.js
+  css/app.css
+  js/app.js                  boot, routing, area registry
+  js/store.js                IndexedDB wrapper, CRUD, field clocks, soft delete
+  js/search.js
+  js/files.js                capture, compression, thumbnails, blobs
+  js/backup.js               backup / restore / CSV import
+  js/crypto.js               key derivation, wrap/unwrap, encrypt/decrypt
+  js/sync.js                 outbox, push/pull, merge, blob sync
+  js/calendar.js
+  js/views/{tasks,dump,places,trades,contracts,scans,settings}.js
+  vendor/{minisearch,pdfjs}/
+  icons/
+/server
+  src/{index,auth,sync,blobs,admin}.js
+  Dockerfile
+  docker-compose.yml         sift-server + Caddy
+  Caddyfile
+```
+
+## 12. Phases
+
+**Phase 1 — Local, single user, no server** (laptop and iPhone each usable standalone)
+1. Shell: PWA install, service worker, area registry/nav, `store.js` with sync-ready record format (UUIDv7, field clocks, soft delete, outbox), persistent storage request.
+2. Places + CSV import.
+3. Dump.
+4. Tasks.
+5. Trades.
+6. Scans.
+7. Contracts.
+8. Search.
+9. Backup / restore.
+
+**Phase 2 — Sync server (multi-user from its first version)**
+10. `crypto.js`: registration, login, key wrap, recovery key.
+11. sift-server: auth, devices, push/pull, quota, admin CLI, Docker + Caddy.
+12. `sync.js`: record sync + merge, then blob sync.
+
+**Phase 3 — Calendar**
+13. Google Calendar push; scan expiry + contract renewal reminders.
+
+**Phase 4 — v2 cloud adapters**
+14. Adapter interface + Google Drive app-data adapter first.
+
+## 13. Future
+
+- Photos on places/items (reuse `files.js`).
+- OCR + edge detection for scans.
+- Household sharing (shared spaces, per-member wrapping of a shared data key).
+- Two-way calendar sync.
