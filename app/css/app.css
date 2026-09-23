@@ -1338,3 +1338,17 @@ li[data-id]:hover .kit-grip { opacity: .8; }
   pointer-events: none;
   transition: top .4s ease;
 }
+
+
+/* Let go + going through unfinished items */
+.line.has-item.dropped .item-title { text-decoration: line-through; opacity: .45; }
+.line.has-item.dropped .tick { opacity: .3; }
+.carry button { margin-left: 4px; }
+.review-sheet { max-width: 640px; }
+@media (min-width: 768px) { .review-sheet { margin: auto; border-radius: var(--radius-card); border-bottom: 1px solid var(--glass-border); } }
+.review-list { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 6px; }
+.review-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 12px; border-radius: 14px; background: var(--glass-track); border: 1px solid var(--glass-border); transition: opacity .18s, transform .18s; }
+.review-list li.leaving { opacity: 0; transform: translateX(24px); }
+.review-title { flex: 1 1 200px; font-size: 1.05rem; }
+.review-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.review-actions button { padding: 4px 10px; font-size: .82rem; }

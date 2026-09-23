@@ -63,7 +63,8 @@ export default {
         </section>
       </div>
       </div>
-      <dialog class="sheet cal-sheet" id="cal" aria-label="Pick a date"></dialog>`;
+      <dialog class="sheet cal-sheet" id="cal" aria-label="Pick a date"></dialog>
+      <dialog class="sheet review-sheet" id="review" aria-label="Unfinished from earlier days"></dialog>`;
 
     const $ = s => el.querySelector(s);
     const linesEl = $('#lines');
@@ -117,13 +118,14 @@ export default {
     function itemRow(i, label) {
       const span = i.end_time ? `${fmt(i.time)}–${fmt(i.end_time)}` : null;
       return `
-        <div class="line has-item${i.done_at ? ' done' : ''}${selected.has(i.id) ? ' selected' : ''}${i._mark ? ` ${i._mark}` : ''}${i.time && (i.end_time || i.estimate_min) ? ' spans' : ''}" data-item="${i.id}"${i.time ? ` data-time="${i.time}"` : ''}>
+        <div class="line has-item${i.done_at ? ' done' : ''}${i.dropped_at ? ' dropped' : ''}${selected.has(i.id) ? ' selected' : ''}${i._mark ? ` ${i._mark}` : ''}${i.time && (i.end_time || i.estimate_min) ? ' spans' : ''}" data-item="${i.id}"${i.time ? ` data-time="${i.time}"` : ''}>
           <span class="margin">${i.time && label ? `<input class="margin-time" value="${label}" data-time-for="${i.id}" aria-label="Start time" inputmode="decimal" autocomplete="off">` : label ?? ''}</span>
           <span class="content">
             <button type="button" class="drag-grip" aria-label="Drag to a time" title="Drag onto a time">⠿</button>
             <input type="checkbox" class="tick" aria-label="Done" ${i.done_at ? 'checked' : ''}>
             <input class="item-title hand" value="${esc(i.title)}" aria-label="Item" autocomplete="off">
             ${span ? `<span class="span-tag">${span}</span>` : i.estimate_min ? `<span class="span-tag">~${durationLabel(Number(i.estimate_min))}</span>` : i.estimate_unsure ? '<span class="span-tag">duration?</span>' : ''}
+            ${i.dropped_at ? '<span class="span-tag">let go</span>' : ''}
             <button type="button" class="more" data-act="details" aria-label="Details">⋯</button>
             ${i.notes ? `<span class="item-note"><span aria-hidden="true">🗒</span> ${esc(i.notes)}</span>` : ''}
           </span>
@@ -147,6 +149,9 @@ export default {
           <label class="wide">Note<input name="notes" value="${esc(i.notes)}" autocomplete="off"></label>
           <div class="detail-actions">
             ${i.time ? '<button type="button" data-act="unschedule" title="Remove the start and end time and put it back in To place">Unallocate time</button>' : ''}
+            ${i.dropped_at
+              ? '<button type="button" data-act="take-back" title="It needs doing after all">Take back</button>'
+              : i.done_at ? '' : '<button type="button" data-act="let-go" title="Didn\'t do it and it doesn\'t need doing any more">Let go</button>'}
             <button type="button" class="danger" data-act="delete">Delete</button>
           </div>
         </div>`;
@@ -247,7 +252,8 @@ export default {
       box.hidden = !carry.length || date < isoDate();
       if (!box.hidden) {
         box.innerHTML = `<span>${carry.length} unfinished from earlier days</span>
-          <button type="button" data-act="carry">Bring them here</button>`;
+          <button type="button" data-act="carry">Bring them here</button>
+          <button type="button" data-act="review">Go through them</button>`;
       }
     }
 
@@ -386,6 +392,13 @@ export default {
         await store.remove('day_items', id);
         await refresh();
         undoable(`Deleted "${gone?.title || 'item'}"`, async () => { await store.restore('day_items', id); await refresh(); });
+      } else if (act === 'let-go' || act === 'take-back') {
+        editing = null;
+        const it = items.find(i => i.id === id);
+        await change(id, { dropped_at: act === 'let-go' ? new Date().toISOString() : null }, act === 'let-go' ? `Let go: ${it.title}` : `Taken back: ${it.title}`);
+        renderCarry();
+      } else if (act === 'review') {
+        openReview();
       } else if (act === 'carry') {
         const carry = await unfinishedBefore(date);
         const moves = carry.map(i => [i.id, { date, time: null, end_time: null, carried_from: i.date }]);
@@ -497,6 +510,7 @@ export default {
     bar.innerHTML = `<span class="select-count"></span>
       <button type="button" data-sel="done">Done</button>
       <button type="button" data-sel="pile">To place</button>
+      <button type="button" data-sel="letgo" title="Didn't do these and they don't need doing">Let go</button>
       <button type="button" data-sel="tomorrow">Tomorrow</button>
       <button type="button" data-sel="delete" class="danger">Delete</button>
       <button type="button" data-sel="clear" aria-label="Clear selection">✕</button>`;
@@ -531,6 +545,7 @@ export default {
       const plural = `${n} item${n === 1 ? '' : 's'}`;
       if (b.dataset.sel === 'clear') return clearSelection();
       if (b.dataset.sel === 'done') await moveMany(new Map(ids.map(id => [id, { done_at: new Date().toISOString() }])), `Done: ${plural}`);
+      if (b.dataset.sel === 'letgo') { await moveMany(new Map(ids.map(id => [id, { dropped_at: new Date().toISOString() }])), `Let go of ${plural}`); clearSelection(); }
       if (b.dataset.sel === 'pile') await moveMany(new Map(ids.map(id => [id, { time: null, end_time: null }])), `${plural} back to To place`);
       if (b.dataset.sel === 'tomorrow') { await moveMany(new Map(ids.map(id => [id, { date: addDays(date, 1), carried_from: date }])), `${plural} moved to tomorrow`); clearSelection(); }
       if (b.dataset.sel === 'delete') { await moveMany(new Map(ids.map(id => [id, { deleted_at: new Date().toISOString() }])), `Deleted ${plural}`); clearSelection(); }
@@ -726,6 +741,80 @@ export default {
       if (ev.type === 'pointercancel' || !r.changes?.size) return renderLines();
       await moveMany(r.changes, `Until ${fmt(r.end)}${r.pushedCount ? `, pushed ${r.pushedCount} on` : ''}`);
     }
+
+    // ---------- going through unfinished items one by one ----------
+
+    const WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayName = d => {
+      const diff = Math.round((parseDate(d) - parseDate(date)) / 86400000);
+      const nice = `${WEEK[parseDate(d).getDay()]} ${parseDate(d).getDate()} ${parseDate(d).toLocaleDateString(undefined, { month: 'short' })}`;
+      return diff === -1 ? `Yesterday · ${nice}` : `${nice} · ${-diff} days ago`;
+    };
+
+    async function openReview() {
+      await drawReview();
+      const dlg = $('#review');
+      if (!dlg.open) dlg.showModal();
+    }
+
+    async function drawReview() {
+      const left = await unfinishedBefore(date);
+      const dlg = $('#review');
+      if (!left.length) {
+        if (dlg.open) dlg.close();
+        await render();
+        return;
+      }
+      const byDay = new Map();
+      for (const i of left) { if (!byDay.has(i.date)) byDay.set(i.date, []); byDay.get(i.date).push(i); }
+      dlg.innerHTML = `
+        <div class="sheet-handle"></div>
+        <h2>Unfinished from earlier days</h2>
+        <p class="muted hint">For each one: did you do it, do you still want to, or can it go? Letting go is fine; some things just stop mattering.</p>
+        ${[...byDay].map(([d, list]) => `
+          <h3 class="milestone">${esc(dayName(d))}</h3>
+          <ul class="review-list">${list.map(i => `
+            <li data-review-id="${i.id}">
+              <span class="review-title hand">${esc(i.title)}${i.time ? ` <span class="span-tag">${fmt(i.time)}</span>` : ''}</span>
+              <span class="review-actions">
+                <button type="button" data-review="done" title="I did this already">✓ Did it</button>
+                <button type="button" data-review="bring" title="Put it in today's To place">→ Bring to ${date === isoDate() ? 'today' : 'this day'}</button>
+                <button type="button" data-review="letgo" title="Didn't do it and it doesn't need doing any more">Let it go</button>
+              </span>
+            </li>`).join('')}
+          </ul>`).join('')}
+        <div class="sheet-actions">
+          <button type="button" data-review-all="bring">Bring the rest here</button>
+          <button type="button" data-review-all="letgo">Let the rest go</button>
+          <span class="spacer"></span>
+          <button type="button" data-review-close>Close</button>
+        </div>`;
+    }
+
+    const reviewFields = (kind, i) => kind === 'done' ? { done_at: new Date().toISOString() }
+      : kind === 'letgo' ? { dropped_at: new Date().toISOString() }
+      : { date, time: null, end_time: null, carried_from: i.date };
+    const reviewLabel = { done: 'Marked done', letgo: 'Let go', bring: 'Brought here' };
+
+    $('#review').addEventListener('click', async ev => {
+      const dlg = $('#review');
+      if (ev.target === dlg || ev.target.closest('[data-review-close]')) { dlg.close(); return render(); }
+      const b = ev.target.closest('[data-review], [data-review-all]');
+      if (!b) return;
+      const left = await unfinishedBefore(date);
+      const targets = b.dataset.reviewAll ? left : left.filter(i => i.id === b.closest('[data-review-id]').dataset.reviewId);
+      const kind = b.dataset.review || b.dataset.reviewAll;
+      const before = targets.map(i => [i.id, { date: i.date, time: i.time ?? null, end_time: i.end_time ?? null, carried_from: i.carried_from ?? null, done_at: i.done_at ?? null, dropped_at: i.dropped_at ?? null }]);
+      const row = !b.dataset.reviewAll && b.closest('li');
+      if (row) { row.classList.add('leaving'); await new Promise(r => setTimeout(r, 180)); }
+      await store.updateMany('day_items', targets.map(i => [i.id, reviewFields(kind, i)]));
+      await drawReview();
+      undoable(`${reviewLabel[kind]}: ${targets.length === 1 ? targets[0].title : `${targets.length} items`}`, async () => {
+        await store.updateMany('day_items', before);
+        await render();
+        if (dlg.open) drawReview();
+      });
+    });
 
     // ---------- calendar popup ----------
 

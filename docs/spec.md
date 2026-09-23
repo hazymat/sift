@@ -83,7 +83,7 @@ Common fields on every record: `id (UUIDv7), created_at, updated_at, deleted_at,
 1. **Title**: the weekday, big, in the paper's handwriting font, then the date; "Today / Tomorrow / 3 days ago" under it.
 2. **Day Focus** (bold, prominent): one or a handful of things that matter today.
 3. **Today's Energy Level**: High / Medium / Low (see Energy below).
-4. **Carry-over**: "n unfinished from earlier days · Bring them here" (last 7 days), for today and future days.
+4. **Carry-over**: "n unfinished from earlier days · Bring them here · Go through them" (last 7 days). Go through them opens a panel listing each item under the day it came from, with ✓ Did it / → Bring to today / Let it go, plus "Bring the rest here" and "Let the rest go". **Let go** (`dropped_at`) = didn't do it and it doesn't need doing; it stays on its day, struck through, and never counts as unfinished again (also in ⋯ and the selection bar; "Take back" reverses it).
 5. **Lined paper** with a margin: one line per slot from **day start** to **day end** (default 8.00 to 18.00, one line per hour; all three in Settings). Times are written in the margin.
    - Anything can be put at any time: an item at an odd time (12.45) gets its own line in time order; several items at one time get several lines. Items with an end time or estimate bracket the lines they cover.
    - Items before the day starts get lines above; items after it go under **Evening** at the bottom.
@@ -114,7 +114,7 @@ Each paper sets fonts, colours, spacing and time format through tokens scoped to
 **Calendar awareness** (phase 3): real appointments from the connected calendar are drawn on the timeline as busy blocks (read only). Scheduling an item over one warns, and the pile can suggest free slots that fit an item's estimate.
 
 - `days`: `id = date (YYYY-MM-DD, so every device edits the same record), date, focus, energy (high|medium|low)?, notes (markdown), paper? (override of the default paper style)`
-- `day_items`: `date (YYYY-MM-DD), title, notes?, time? (HH:MM), end_time?, estimate_min? (shown as Duration), estimate_unsure ("Not sure yet"), done_at?, sort_order, task_id?, case_id?, contact_ids[], source_thought_id?, carried_from? (date), merged_from[]? (ids of items combined into this one)`
+- `day_items`: `date (YYYY-MM-DD), title, notes?, time? (HH:MM), end_time?, estimate_min? (shown as Duration), estimate_unsure ("Not sure yet"), done_at?, dropped_at? (let go), sort_order, task_id?, case_id?, contact_ids[], source_thought_id?, carried_from? (date), merged_from[]? (ids of items combined into this one)`
   - No `time` = on the day's pile. With `time` = on the timeline, sorted by time.
   - Moving to another day = change `date` (carry-over also sets `carried_from`).
   - Separate records per item (not an array on the day) so edits from two devices merge per item.

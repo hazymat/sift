@@ -108,7 +108,7 @@ export async function itemsFor(date) {
 export async function addItem(date, fields) {
   const count = (await itemsFor(date)).length;
   return store.create('day_items', {
-    date, title: '', notes: '', time: null, end_time: null, estimate_min: null, estimate_unsure: false, done_at: null,
+    date, title: '', notes: '', time: null, end_time: null, estimate_min: null, estimate_unsure: false, done_at: null, dropped_at: null,
     sort_order: count, task_id: null, case_id: null, contact_ids: [], source_thought_id: null, carried_from: null,
     ...fields,
   });
@@ -117,7 +117,8 @@ export async function addItem(date, fields) {
 // Unfinished items from the last `days` days before `date`.
 export async function unfinishedBefore(date, days = 7) {
   const from = addDays(date, -days);
-  return (await store.list('day_items', { filter: i => i.date < date && i.date >= from && !i.done_at && !i.archived_at }))
+  // Done and let-go items are finished either way; neither comes back.
+  return (await store.list('day_items', { filter: i => i.date < date && i.date >= from && !i.done_at && !i.dropped_at && !i.archived_at }))
     .sort((a, b) => a.date.localeCompare(b.date) || byTime(a, b));
 }
 
