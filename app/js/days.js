@@ -129,3 +129,31 @@ export async function datesWithContent(from, to) {
   for (const d of await store.list('days', { filter: d => d.date >= from && d.date <= to && (d.focus || d.notes || d.energy) })) out.add(d.date);
   return out;
 }
+
+// ---------- archive & bin ----------
+// Letting an item go archives it (and marks dropped_at). The Archive shows it
+// like any archived item; the "Let go, not done" filter finds just those.
+// Restoring one recalls it: back on its day, unfinished, not "let go".
+
+const niceDay = d => parseDate(d).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+
+export const binProvider = {
+  area: 'planner',
+  label: 'Day Planner',
+  filters: [{ id: 'letgo', label: 'Let go, not done' }],
+  async entries(kind, { filter } = {}) {
+    const inState = r => !r.purged_at && (kind === 'bin' ? !!r.deleted_at : !r.deleted_at && !!r.archived_at);
+    let rows = await store.list('day_items', { includeDeleted: true, filter: inState });
+    if (filter === 'letgo') rows = rows.filter(i => i.dropped_at && !i.done_at);
+    return rows.map(i => ({
+      collection: 'day_items', id: i.id, kind: 'Plan item', title: i.title,
+      subtitle: `Planned for ${niceDay(i.date)}`,
+      detail: i.time ? showTime(i.time) : '',
+      at: kind === 'bin' ? i.deleted_at : i.archived_at,
+      children: [],
+      search: `${i.title} ${i.notes || ''}`,
+      restoreExtra: kind === 'archive' && i.dropped_at ? { dropped_at: null } : null,
+      returnExtra: kind === 'archive' && i.dropped_at ? { dropped_at: i.dropped_at } : null,
+    })).sort((a, b) => (b.at || '').localeCompare(a.at || ''));
+  },
+};

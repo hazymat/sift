@@ -127,11 +127,23 @@ export default {
             ${span ? `<span class="span-tag">${span}</span>` : i.estimate_min ? `<span class="span-tag">~${durationLabel(Number(i.estimate_min))}</span>` : i.estimate_unsure ? '<span class="span-tag">duration?</span>' : ''}
             ${i.dropped_at ? '<span class="span-tag">let go</span>' : ''}
             <button type="button" class="more" data-act="details" aria-label="Details">⋯</button>
-            ${i.notes ? `<span class="item-note"><span aria-hidden="true">🗒</span> ${esc(i.notes)}</span>` : ''}
+            ${i.notes ? noteHtml(i) : ''}
           </span>
           ${i.time ? '<span class="resize-grip" title="Drag down to set how long" aria-hidden="true"></span>' : ''}
         </div>
         ${editing === i.id ? details(i) : ''}`;
+    }
+
+    // Notes under items: first line only until clicked; clicking toggles.
+    // Which ones are open is forgotten when you change day or leave the page.
+    const openNotes = new Set();
+    function noteHtml(i) {
+      const lines = i.notes.split('\n').map(l => l.trim()).filter(Boolean);
+      const open = openNotes.has(i.id);
+      const more = lines.length - 1;
+      return `<span class="item-note${open ? ' open' : ''}" data-act="toggle-note" role="button" tabindex="0" aria-expanded="${open}" title="${open ? 'Show less' : 'Show the whole note'}">`
+        + `<svg class="icon note-icon" aria-hidden="true"><use href="#i-note"/></svg>`
+        + `${open ? esc(i.notes) : esc(lines[0] || '')}${!open && more > 0 ? ` <span class="more-lines">+${more} more</span>` : ''}</span>`;
     }
 
     function details(i) {
@@ -370,6 +382,13 @@ export default {
       else if (act === 'today') go(isoDate());
       else if (act === 'calendar') openCalendar(date);
       else if (act === 'add-at') openLine(t);
+      else if (act === 'toggle-note') {
+        const nid = t.closest('[data-item]').dataset.item;
+        openNotes.has(nid) ? openNotes.delete(nid) : openNotes.add(nid);
+        renderLines();
+        renderPile();
+        paintSelection();
+      }
       else if (act === 'adopt' || act === 'task-to-plan') {
         const taskId = t.closest('[data-task]').dataset.task;
         const task = tasks.find(x => x.id === taskId);
@@ -395,7 +414,9 @@ export default {
       } else if (act === 'let-go' || act === 'take-back') {
         editing = null;
         const it = items.find(i => i.id === id);
-        await change(id, { dropped_at: act === 'let-go' ? new Date().toISOString() : null }, act === 'let-go' ? `Let go: ${it.title}` : `Taken back: ${it.title}`);
+        const now = new Date().toISOString();
+        await change(id, act === 'let-go' ? { dropped_at: now, archived_at: now } : { dropped_at: null, archived_at: null },
+          act === 'let-go' ? `Let go: ${it.title} (it's in the Archive)` : `Taken back: ${it.title}`);
         renderCarry();
       } else if (act === 'review') {
         openReview();
@@ -545,7 +566,7 @@ export default {
       const plural = `${n} item${n === 1 ? '' : 's'}`;
       if (b.dataset.sel === 'clear') return clearSelection();
       if (b.dataset.sel === 'done') await moveMany(new Map(ids.map(id => [id, { done_at: new Date().toISOString() }])), `Done: ${plural}`);
-      if (b.dataset.sel === 'letgo') { await moveMany(new Map(ids.map(id => [id, { dropped_at: new Date().toISOString() }])), `Let go of ${plural}`); clearSelection(); }
+      if (b.dataset.sel === 'letgo') { const now = new Date().toISOString(); await moveMany(new Map(ids.map(id => [id, { dropped_at: now, archived_at: now }])), `Let go of ${plural} (in the Archive)`); clearSelection(); }
       if (b.dataset.sel === 'pile') await moveMany(new Map(ids.map(id => [id, { time: null, end_time: null }])), `${plural} back to To place`);
       if (b.dataset.sel === 'tomorrow') { await moveMany(new Map(ids.map(id => [id, { date: addDays(date, 1), carried_from: date }])), `${plural} moved to tomorrow`); clearSelection(); }
       if (b.dataset.sel === 'delete') { await moveMany(new Map(ids.map(id => [id, { deleted_at: new Date().toISOString() }])), `Deleted ${plural}`); clearSelection(); }
@@ -770,7 +791,7 @@ export default {
       dlg.innerHTML = `
         <div class="sheet-handle"></div>
         <h2>Unfinished from earlier days</h2>
-        <p class="muted hint">For each one: did you do it, do you still want to, or can it go? Letting go is fine; some things just stop mattering.</p>
+        <p class="muted hint">For each one: did you do it, do you still want to, or can it go? Letting go is fine; some things just stop mattering. Let-go items wait in the Archive in case you want them back; Delete gets rid of them.</p>
         ${[...byDay].map(([d, list]) => `
           <h3 class="milestone">${esc(dayName(d))}</h3>
           <ul class="review-list">${list.map(i => `
@@ -779,22 +800,28 @@ export default {
               <span class="review-actions">
                 <button type="button" data-review="done" title="I did this already">✓ Did it</button>
                 <button type="button" data-review="bring" title="Put it in today's To place">→ Bring to ${date === isoDate() ? 'today' : 'this day'}</button>
-                <button type="button" data-review="letgo" title="Didn't do it and it doesn't need doing any more">Let it go</button>
+                <button type="button" data-review="letgo" title="Didn't do it and it doesn't need doing any more. It goes to the Archive">Let it go</button>
+                <button type="button" data-review="delete" class="danger" title="Get rid of it completely (to the Bin)">Delete</button>
               </span>
             </li>`).join('')}
           </ul>`).join('')}
         <div class="sheet-actions">
           <button type="button" data-review-all="bring">Bring the rest here</button>
           <button type="button" data-review-all="letgo">Let the rest go</button>
+          <button type="button" data-review-all="delete" class="danger">Delete the rest</button>
           <span class="spacer"></span>
           <button type="button" data-review-close>Close</button>
         </div>`;
     }
 
-    const reviewFields = (kind, i) => kind === 'done' ? { done_at: new Date().toISOString() }
-      : kind === 'letgo' ? { dropped_at: new Date().toISOString() }
-      : { date, time: null, end_time: null, carried_from: i.date };
-    const reviewLabel = { done: 'Marked done', letgo: 'Let go', bring: 'Brought here' };
+    const reviewFields = (kind, i) => {
+      const now = new Date().toISOString();
+      return kind === 'done' ? { done_at: now }
+        : kind === 'letgo' ? { dropped_at: now, archived_at: now }
+        : kind === 'delete' ? { deleted_at: now }
+        : { date, time: null, end_time: null, carried_from: i.date };
+    };
+    const reviewLabel = { done: 'Marked done', letgo: 'Let go (in the Archive)', bring: 'Brought here', delete: 'Deleted' };
 
     $('#review').addEventListener('click', async ev => {
       const dlg = $('#review');
@@ -804,7 +831,7 @@ export default {
       const left = await unfinishedBefore(date);
       const targets = b.dataset.reviewAll ? left : left.filter(i => i.id === b.closest('[data-review-id]').dataset.reviewId);
       const kind = b.dataset.review || b.dataset.reviewAll;
-      const before = targets.map(i => [i.id, { date: i.date, time: i.time ?? null, end_time: i.end_time ?? null, carried_from: i.carried_from ?? null, done_at: i.done_at ?? null, dropped_at: i.dropped_at ?? null }]);
+      const before = targets.map(i => [i.id, { date: i.date, time: i.time ?? null, end_time: i.end_time ?? null, carried_from: i.carried_from ?? null, done_at: i.done_at ?? null, dropped_at: i.dropped_at ?? null, archived_at: i.archived_at ?? null, deleted_at: null }]);
       const row = !b.dataset.reviewAll && b.closest('li');
       if (row) { row.classList.add('leaving'); await new Promise(r => setTimeout(r, 180)); }
       await store.updateMany('day_items', targets.map(i => [i.id, reviewFields(kind, i)]));
@@ -878,6 +905,7 @@ export default {
       date = /^\d{4}-\d{2}-\d{2}$/.test(d || '') ? d : isoDate();
       editing = null;
       selected.clear();
+      openNotes.clear();
       $('#dump').value = '';
       await render();
     };

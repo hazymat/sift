@@ -92,7 +92,6 @@ export default {
       }
       const kase = t.case_id && people.cases.find(k => k.id === t.case_id);
       if (kase) out.push(`<a class="chip" href="#/contacts/cases/${kase.id}" title="Case">📁 ${esc(kase.title)}</a>`);
-      if (t.notes) out.push('<span class="chip" title="Has notes">✎</span>');
       return out.join('');
     }
 
@@ -104,8 +103,23 @@ export default {
           <input class="task-title" value="${esc(t.title)}" aria-label="Task" autocomplete="off">
           <span class="chips">${chips(t)}</span>
           <button type="button" class="more" data-act="details" aria-label="Details" aria-expanded="${open === t.id}">⋯</button>
+          ${t.notes && open !== t.id ? noteHtml(t) : ''}
         </li>
         ${open === t.id ? `<li class="task-details" data-for="${t.id}">${details(t)}</li>` : ''}`;
+    }
+
+    // Notes under tasks: first line only until clicked; clicking toggles.
+    // Which ones are open is forgotten when you leave the page.
+    const openNotes = new Set();
+    const plain = md => md.replace(/^#{1,6}\s+/gm, '').replace(/\*\*|~~|(^|\s)_|_(\s|$)/g, '$1$2');
+    function noteHtml(t) {
+      const lines = plain(t.notes).split('\n').map(l => l.trim()).filter(Boolean);
+      if (!lines.length) return '';
+      const isOpen = openNotes.has(t.id);
+      const more = lines.length - 1;
+      return `<span class="item-note task-note${isOpen ? ' open' : ''}" data-act="toggle-note" role="button" tabindex="0" aria-expanded="${isOpen}" title="${isOpen ? 'Show less' : 'Show the whole note'}">`
+        + `<svg class="icon note-icon" aria-hidden="true"><use href="#i-note"/></svg>`
+        + `${isOpen ? esc(lines.join('\n')) : esc(lines[0])}${!isOpen && more > 0 ? ` <span class="more-lines">+${more} more</span>` : ''}</span>`;
     }
 
     function details(t) {
@@ -444,6 +458,9 @@ export default {
         await change(id, { energy: task.energy === b.dataset.energy ? null : b.dataset.energy }, 'Energy saved');
       } else if (act === 'details') {
         open = open === id ? null : id;
+        render();
+      } else if (act === 'toggle-note') {
+        openNotes.has(id) ? openNotes.delete(id) : openNotes.add(id);
         render();
       } else if (act === 'collapse') {
         collapsed.has(id) ? collapsed.delete(id) : collapsed.add(id);

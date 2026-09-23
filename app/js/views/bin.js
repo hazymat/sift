@@ -2,7 +2,7 @@
 // Reached from each area's ⋯ menu (already filtered to that area) and from
 // Settings.
 
-import { binProviders, restoreEntries, returnEntries, purgeEntries, BIN_DAYS } from '../bin.js';
+import { binProviders, restoreEntries, returnEntries, purgeEntries, binEntries, BIN_DAYS } from '../bin.js';
 import { undoable } from '../toast.js';
 import { createListKit } from '../listkit.js';
 
@@ -22,7 +22,7 @@ function ago(iso) {
 
 export default {
   async mount(el) {
-    const state = this.state = { tab: 'archive', area: 'all', q: '' };
+    const state = this.state = { tab: 'archive', area: 'all', q: '', filter: null };
     let shown = []; // entries currently listed, for actions
     const pending = new Map(); // entry key → timer for delayed "delete forever"
     const key = e => `${e.collection}:${e.id}`;
@@ -35,6 +35,7 @@ export default {
         </div>
         <div class="segmented" id="bin-areas" aria-label="Area"></div>
       </div>
+      <div class="segmented bin-filters" id="bin-filters" hidden></div>
       <input type="search" id="bin-q" class="search" placeholder="Search…" autocomplete="off">
       <p class="muted bin-note" id="bin-note"></p>
       <div id="bin-body"></div>`;
@@ -49,10 +50,19 @@ export default {
       el.querySelector('#bin-areas').innerHTML = [{ area: 'all', label: 'All' }, ...providers]
         .map(p => `<button type="button" data-area="${p.area}" aria-pressed="${p.area === state.area}">${esc(p.label)}</button>`).join('');
 
+      // Optional filters (e.g. Day Planner's "Let go, not done"): only offered
+      // in the Archive, and while one is on only that area's matches show.
+      const filters = state.tab === 'archive' ? binProviders(state.area).flatMap(p => p.filters || []) : [];
+      if (!filters.some(f => f.id === state.filter)) state.filter = null;
+      const fbox = el.querySelector('#bin-filters');
+      fbox.hidden = !filters.length;
+      fbox.innerHTML = filters.map(f => `<button type="button" data-filter="${f.id}" aria-pressed="${state.filter === f.id}">${esc(f.label)}</button>`).join('');
+
       const words = state.q.toLowerCase().split(/\s+/).filter(Boolean);
       const groups = [];
       for (const p of binProviders(state.area)) {
-        const entries = (await p.entries(state.tab))
+        if (state.filter && !(p.filters || []).some(f => f.id === state.filter)) continue;
+        const entries = (await p.entries(state.tab, { filter: state.filter }))
           .filter(e => !pending.has(key(e)))
           .filter(e => words.every(w => `${e.title} ${e.subtitle} ${e.search}`.toLowerCase().includes(w)));
         if (entries.length) groups.push({ label: p.label, entries });
@@ -76,7 +86,7 @@ export default {
               </div>
               <div class="bin-actions">
                 <button type="button" data-act="restore">Restore</button>
-                ${state.tab === 'bin' ? '<button type="button" class="danger" data-act="purge">Delete forever</button>' : ''}
+                ${state.tab === 'bin' ? '<button type="button" class="danger" data-act="purge">Delete forever</button>' : '<button type="button" class="danger" data-act="to-bin">Delete</button>'}
               </div>
             </li>`).join('')}`).join('')}</ul>`
         : `<div class="empty"><h2>${state.q ? 'Nothing matches' : state.tab === 'bin' ? 'The bin is empty' : 'Nothing archived'}</h2></div>`;
@@ -92,7 +102,19 @@ export default {
       await render();
       undoable(`Restored ${entries.length}`, async () => { await returnEntries(entries, tab); await render(); });
     }
-    const kitArchive = this.kitArchive = createListKit({ reorder: false, noun: 'thing', actions: [{ id: 'restore', label: 'Restore', run: restoreMany }] });
+    async function toBin(entries) {
+      await binEntries(entries);
+      await render();
+      undoable(`Moved ${entries.length === 1 ? entries[0].title : `${entries.length} things`} to the Bin`, async () => { await binEntries(entries, true); await render(); });
+    }
+    const kitArchive = this.kitArchive = createListKit({
+      reorder: false,
+      noun: 'thing',
+      actions: [
+        { id: 'restore', label: 'Restore', run: restoreMany },
+        { id: 'to-bin', label: 'Delete', danger: true, run: ids => toBin(pick(ids)) },
+      ],
+    });
     const kitBin = this.kitBin = createListKit({
       reorder: false,
       noun: 'thing',
@@ -122,6 +144,7 @@ export default {
       if (!t) return;
       if (t.dataset.tab) { state.tab = t.dataset.tab; go(); return; }
       if (t.dataset.area) { state.area = t.dataset.area; go(); return; }
+      if (t.dataset.filter) { state.filter = state.filter === t.dataset.filter ? null : t.dataset.filter; render(); return; }
       if (t.dataset.act === 'empty') { purgeLater([...shown], `Emptied the bin (${shown.length})`); return; }
       const li = t.closest('[data-key]');
       const entry = li && shown.find(e => key(e) === li.dataset.key);
@@ -131,6 +154,8 @@ export default {
         await restoreEntries([entry], tab);
         await render();
         undoable(`Restored ${entry.title}`, async () => { await returnEntries([entry], tab); await render(); });
+      } else if (t.dataset.act === 'to-bin') {
+        await toBin([entry]);
       } else if (t.dataset.act === 'purge') {
         purgeLater([entry], `Deleted ${entry.title} forever`);
       }

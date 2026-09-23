@@ -1352,3 +1352,13 @@ li[data-id]:hover .kit-grip { opacity: .8; }
 .review-title { flex: 1 1 200px; font-size: 1.05rem; }
 .review-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .review-actions button { padding: 4px 10px; font-size: .82rem; }
+
+.bin-filters { margin: 0 0 8px; }
+.bin-filters button[aria-pressed="true"] { background: var(--active-bg); border-color: var(--active-border); }
+.item-note .note-icon { width: 13px; height: 13px; margin-right: 4px; vertical-align: -2px; stroke-width: 2; }
+.item-note { cursor: pointer; }
+.item-note:hover { color: var(--text); }
+.item-note.open { white-space: pre-wrap; overflow: visible; text-overflow: clip; }
+.item-note .more-lines { font-size: .72rem; color: var(--accent); margin-left: 4px; }
+.task-list > li[data-task] { flex-wrap: wrap; }
+.task-note { margin: -6px 0 6px 64px; }

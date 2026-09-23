@@ -11,9 +11,10 @@ import { binProvider as tasks } from './tasks.js';
 import { binProvider as contacts } from './contacts.js';
 import { binProvider as dump } from './views/dump.js';
 import { binProvider as lists } from './lists.js';
+import { binProvider as planner } from './days.js';
 
 export const BIN_DAYS = 30;
-const PROVIDERS = [tasks, dump, findThings, lists, contacts];
+const PROVIDERS = [planner, tasks, dump, findThings, lists, contacts];
 
 export function binProviders(area = 'all') {
   return PROVIDERS.filter(p => area === 'all' || p.area === area);
@@ -33,9 +34,13 @@ function byCollection(entries) {
 }
 
 // Take entries out of the bin/archive.
+// An entry may carry restoreExtra (e.g. a let-go plan item stops being "let go").
 export async function restoreEntries(entries, kind) {
   for (const [collection, ids] of byCollection(entries)) {
-    await store.updateMany(collection, ids.map(id => [id, { [field(kind)]: null }]));
+    await store.updateMany(collection, ids.map(id => {
+      const e = entries.find(x => x.collection === collection && x.id === id);
+      return [id, { [field(kind)]: null, ...(e?.restoreExtra || {}) }];
+    }));
   }
 }
 
@@ -44,7 +49,15 @@ export async function returnEntries(entries, kind) {
   const f = field(kind);
   for (const e of entries) {
     const stamp = e.at || new Date().toISOString();
-    for (const r of [e, ...e.children]) await store.updateMany(r.collection, [[r.id, { [f]: stamp }]]);
+    for (const r of [e, ...e.children]) await store.updateMany(r.collection, [[r.id, { [f]: stamp, ...(r === e ? e.returnExtra || {} : {}) }]]);
+  }
+}
+
+// Archive → Bin (and back, to undo).
+export async function binEntries(entries, back = false) {
+  const now = new Date().toISOString();
+  for (const [collection, ids] of byCollection(entries)) {
+    await store.updateMany(collection, ids.map(id => [id, { deleted_at: back ? null : now }]));
   }
 }
 
