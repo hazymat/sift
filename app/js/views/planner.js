@@ -429,12 +429,13 @@ export default {
         const endOfDay = toMin(settings.day_end) + step();
         if (i < 0 || mins >= endOfDay) show = false;
         else {
-          // Measure between the written times (the middle of each margin
-          // label), so at 14:00 the ▶ is level with "14.00".
+          // Each line is its time slot: the 15.00 line runs from 15:00 at its
+          // top edge to 16:00 at the next line's top, so 15:45 is three
+          // quarters of the way down it. (Lines can be taller than others.)
           const base = paper.getBoundingClientRect().top;
-          const mid = el2 => { const r = (el2.querySelector('.margin') || el2).getBoundingClientRect(); return r.top + r.height / 2; };
-          const here = mid(at[i].l);
-          const there = next ? mid(next.l) : here + at[i].l.getBoundingClientRect().height;
+          const topOf = el2 => el2.getBoundingClientRect().top;
+          const here = topOf(at[i].l);
+          const there = next ? topOf(next.l) : here + at[i].l.getBoundingClientRect().height;
           const span = (next ? next.t : endOfDay) - at[i].t;
           top = here - base + (there - here) * Math.min(1, (mins - at[i].t) / span);
         }
