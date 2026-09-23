@@ -13,6 +13,7 @@ const shortDate = iso => new Date(iso).toLocaleDateString(undefined, { day: 'num
 
 export default {
   async mount(el) {
+    let nameNext = null; // a list just made: select its name for typing
     const state = this.state = { id: null, hideTicked: false };
     let data = { lists: [], items: [] };
 
@@ -115,6 +116,11 @@ export default {
       kit = l?.kind === 'template' ? kitTemplate : kitChecklist;
       (l?.kind === 'template' ? kitChecklist : kitTemplate).attach(null);
       kit.attach(state.id ? body.querySelector('.checklist') : null);
+      if (nameNext && nameNext === state.id) {
+        nameNext = null;
+        const n = body.querySelector('[data-list-name]');
+        if (n) { n.focus(); n.select(); }
+      }
       const ta = body.querySelector('#list-new');
       if (ta) addEntry = listEntry(ta, addLines, { draft: `lists:${state.id || 'new'}` });
     };
@@ -218,18 +224,22 @@ export default {
       const l = listOf(state.id);
       const act = b.dataset.act;
       if (act === 'home') return go('#/lists');
+      // New ones are made straight away and opened with the name selected:
+      // just type to name it (no pop-up box).
       if (act === 'new-template' || act === 'new-list') {
-        const name = prompt(act === 'new-template' ? 'Template name (e.g. Holiday packing, Weekly shop):' : 'List name:');
-        if (!name?.trim()) return;
-        const made = await createList({ name: name.trim(), kind: act === 'new-template' ? 'template' : 'list' });
-        return go(`#/lists/${made.id}`);
+        const template = act === 'new-template';
+        const made = await createList({ name: template ? 'New template' : 'New list', kind: template ? 'template' : 'list' });
+        nameNext = made.id;
+        go(`#/lists/${made.id}`);
+        undoable(template ? 'New template' : 'New list', async () => { await store.remove('lists', made.id); go('#/lists'); });
+        return;
       }
       if (!l) return;
       if (act === 'add') return addEntry();
       if (act === 'use') {
-        const name = prompt('Name for this copy:', `${l.name} – ${new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`);
-        if (!name?.trim()) return;
-        const inst = await useTemplate(l, itemsOf(l.id), name.trim());
+        const name = `${l.name} – ${new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`;
+        const inst = await useTemplate(l, itemsOf(l.id), name);
+        nameNext = inst.id;
         go(`#/lists/${inst.id}`);
         undoable(`Made "${inst.name}"`, async () => {
           await store.remove('lists', inst.id);
