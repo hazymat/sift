@@ -41,10 +41,11 @@ export function durationLabel(m) {
   return r ? `${h}h ${r}` : `${h}h`;
 }
 
+// Energy is shown as lightning: ⚡ low, ⚡⚡ medium, ⚡⚡⚡ high (low first).
 export const ENERGY = [
-  { id: 'high', label: 'High', hint: 'Big tidy-ups, starting big projects' },
-  { id: 'medium', label: 'Medium', hint: 'Pottering jobs' },
-  { id: 'low', label: 'Low', hint: 'Laptop work: coding, accounts, design' },
+  { id: 'low', label: 'Low', bolts: '⚡', hint: 'Laptop work: coding, accounts, design' },
+  { id: 'medium', label: 'Medium', bolts: '⚡⚡', hint: 'Pottering jobs' },
+  { id: 'high', label: 'High', bolts: '⚡⚡⚡', hint: 'Big tidy-ups, starting big projects' },
 ];
 
 export async function daySettings() {

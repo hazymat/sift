@@ -40,7 +40,7 @@ export default {
         <div class="down-day" hidden></div>
         <label class="focus"><span>Day focus</span><input id="focus" placeholder="What matters today?" autocomplete="off"></label>
         <div class="energy" role="group" aria-label="Today's energy level"><span>Today's Energy Level</span>
-          ${ENERGY.map(e => `<button type="button" data-energy="${e.id}" title="${esc(e.hint)}">${e.label}</button>`).join('')}
+          ${ENERGY.map(e => `<button type="button" class="bolts" data-energy="${e.id}" title="${esc(`${e.label}: ${e.hint}`)}" aria-label="${e.label}">${e.bolts}</button>`).join('')}
         </div>
       </header>
       <div class="carry" hidden></div>

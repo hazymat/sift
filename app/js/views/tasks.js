@@ -6,6 +6,7 @@
 import * as store from '../store.js';
 import { loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES } from '../tasks.js';
 import { ENERGY, isoDate, addDays, parseDate, addItem } from '../days.js';
+import { pillMenu } from '../pillmenu.js';
 import { createListKit } from '../listkit.js';
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
@@ -88,7 +89,6 @@ export default {
       if (t.start_date) out.push(`<span class="chip" title="Planned for">📅 ${shortDate(t.start_date)}</span>`);
       const aim = aimDate(t);
       if (aim) out.push(`<span class="chip${!isDone(t) && aim < isoDate() ? ' late' : ''}" title="Completion aim">⚑ ${shortDate(aim)}${t.aim_at.length > 10 ? ` ${t.aim_at.slice(11, 16)}` : ''}</span>`);
-      if (t.energy) out.push(`<span class="chip" title="Energy">⚡ ${ENERGY.find(e => e.id === t.energy)?.label}</span>`);
       if (t.priority && t.priority < 3) out.push(`<span class="chip pri-${t.priority}">${PRIORITIES.find(p => p.id === t.priority)?.label}</span>`);
       if (t.status === 'doing' || t.status === 'waiting') out.push(`<span class="chip">${STATUSES.find(s => s.id === t.status)?.label}</span>`);
       const kids = kidsOf(t);
@@ -113,9 +113,18 @@ export default {
           <input class="task-title" value="${esc(t.title)}" aria-label="Task" autocomplete="off">
           <span class="chips">${chips(t)}</span>
           <button type="button" class="more" data-act="details" aria-label="Details" aria-expanded="${open === t.id}">⋯</button>
-          ${t.notes ? noteHtml(t) : ''}
+          ${subLine(t)}
         </li>
         ${open === t.id ? `<li class="task-details" data-for="${t.id}">${details(t)}</li>` : ''}`;
+    }
+
+    // Under the title: status pills, then the note (the app-wide convention).
+    // Clicking a pill changes it in place.
+    function subLine(t) {
+      const e = ENERGY.find(x => x.id === t.energy);
+      const pills = e ? `<button type="button" class="pill-act bolts" data-act="energy-pill" title="Energy: ${e.label}. Click to change" aria-label="Energy ${e.label}, change">${e.bolts}</button>` : '';
+      const note = t.notes ? noteHtml(t) : '';
+      return pills || note ? `<div class="item-sub">${pills}${note}</div>` : '';
     }
 
     // Notes under tasks: the first line; clicking it opens (or closes) the
@@ -145,7 +154,7 @@ export default {
           <label>Case<select name="case_id"><option value="">None</option>${people.cases.map(k => `<option value="${k.id}" ${t.case_id === k.id ? 'selected' : ''}>${esc(k.title)}</option>`).join('')}</select></label>
           ${(t.contact_ids || []).length ? `<div class="energy-pick"><span>With</span>${t.contact_ids.map(cid => people.contacts.find(c => c.id === cid)).filter(Boolean).map(c => `<span class="chip">${esc(c.name)} <button type="button" class="chip-x" data-act="remove-contact" data-id="${c.id}" aria-label="Remove">×</button></span>`).join('')}</div>` : ''}
           <div class="energy-pick" role="group" aria-label="Energy"><span>Energy</span>
-            ${ENERGY.map(e => `<button type="button" data-energy="${e.id}" aria-pressed="${t.energy === e.id}" title="${esc(e.hint)}">${e.label}</button>`).join('')}
+            ${ENERGY.map(e => `<button type="button" class="bolts" data-energy="${e.id}" aria-pressed="${t.energy === e.id}" title="${esc(`${e.label}: ${e.hint}`)}" aria-label="${e.label}">${e.bolts}</button>`).join('')}
           </div>
         </div>
         <div class="task-notes"></div>
@@ -463,6 +472,11 @@ export default {
       b.closest('details')?.removeAttribute('open');
       if (act === 'remove-contact' && id) {
         await change(id, { contact_ids: (task.contact_ids || []).filter(x => x !== b.dataset.id) }, 'Removed a person');
+        return;
+      }
+      if (act === 'energy-pill' && id) {
+        pillMenu(b, ENERGY.map(e => ({ value: e.id, label: e.bolts, title: `${e.label}${task.energy === e.id ? ' (click to clear)' : ''}`, current: task.energy === e.id })),
+          v => change(id, { energy: task.energy === v ? null : v }, 'Energy saved'));
         return;
       }
       if (b.dataset.energy && id) {
