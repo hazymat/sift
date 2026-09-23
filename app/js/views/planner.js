@@ -13,6 +13,7 @@ import { toast, undoable } from '../toast.js';
 import { richText, toHtml, previewLine } from '../richtext.js';
 import { keepDraft } from '../drafts.js';
 import { autosizeAll } from '../inline.js';
+import { summarise } from '../summary.js';
 import { loadAll as loadTasks, forDay, suggestions, doneFields, aimDate } from '../tasks.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -696,7 +697,8 @@ export default {
       const made = [];
       for (const line of lines) {
         const p = parseTimed(line.text);
-        made.push(await addItem(date, { title: p.title, time: p.time, end_time: p.end_time }));
+        const { title, notes } = summarise(p.title); // long ones: short title, full text in the note
+        made.push(await addItem(date, { title, notes, time: p.time, end_time: p.end_time }));
       }
       await refresh();
       undoable(`Added ${made.length} item${made.length === 1 ? '' : 's'}`, async () => {

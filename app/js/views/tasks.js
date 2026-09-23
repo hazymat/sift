@@ -7,6 +7,7 @@ import * as store from '../store.js';
 import { loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES } from '../tasks.js';
 import { ENERGY, isoDate, addDays, parseDate, addItem } from '../days.js';
 import { pillMenu } from '../pillmenu.js';
+import { summarise } from '../summary.js';
 import { createListKit } from '../listkit.js';
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
@@ -333,14 +334,18 @@ export default {
       let parent = null;
       const base = { project_id: state.project || null };
       if (state.view === 'today') base.start_date = isoDate();
+      let shortened = 0;
       for (const line of lines) {
-        const t = await addTask({ ...base, title: line.text, parent_task_id: line.sub && parent ? parent : null });
+        // A long line gets a short title; the note keeps it all.
+        const { title, notes } = summarise(line.text);
+        if (notes) shortened++;
+        const t = await addTask({ ...base, title, notes, parent_task_id: line.sub && parent ? parent : null });
         made.push(t.id);
         if (!line.sub) parent = t.id;
       }
       await render();
       body.querySelector('#task-new')?.focus();
-      undoable(`Added ${made.length} task${made.length === 1 ? '' : 's'}`, async () => {
+      undoable(`Added ${made.length} task${made.length === 1 ? '' : 's'}${shortened ? ` (${shortened} long one${shortened === 1 ? '' : 's'} shortened, full text in the note)` : ''}`, async () => {
         await store.updateMany('tasks', made.map(id => [id, { deleted_at: new Date().toISOString() }]));
         await render();
       });
