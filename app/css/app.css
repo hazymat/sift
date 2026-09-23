@@ -1702,3 +1702,6 @@ main:has(> .planner), main:has(.planner) { max-width: 1600px; }
 .led-colon { animation: led-blink 1s steps(1, end) infinite; margin: 0 1px; }
 @keyframes led-blink { 50% { opacity: .12; } }
 @media (prefers-reduced-motion: reduce) { .led-colon { animation: none; } }
+.cal-sheet { width: min(380px, calc(100vw - 16px)); }
+.cal-grid .cal-pad { min-height: 2.4em; }
+.cal-head strong { flex: 1; text-align: center; }

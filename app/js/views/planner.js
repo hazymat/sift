@@ -1199,6 +1199,9 @@ export default {
           settings.down_days.includes(parseDate(d).getDay()) && 'down'].filter(Boolean).join(' ');
         cells.push(`<button type="button" class="${cls}" data-day="${d}">${n}</button>`);
       }
+      // Always six weeks, so the picker is the same height every month and
+      // the ‹ › buttons stay under the pointer when clicked repeatedly.
+      while (cells.length < 42) cells.push('<span class="cal-pad"></span>');
       $('#cal').innerHTML = `
         <div class="sheet-handle"></div>
         <div class="cal-head">
