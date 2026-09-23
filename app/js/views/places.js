@@ -193,7 +193,7 @@ export default {
         </div>
         <article class="box-page">
           <header class="box-page-head">
-            <input class="box-code-input" name="label_code" value="${esc(b.label_code)}" placeholder="Code" aria-label="Code" autocomplete="off">
+            <input class="box-code-input" name="label_code" value="${esc(b.label_code)}" placeholder="Label" aria-label="Label (what is written on it, e.g. BB)" title="Label: what is written on it, e.g. BB" autocomplete="off">
             <input class="box-name-input" name="name" value="${esc(b.name)}" placeholder="Box name" aria-label="Name" autocomplete="off">
           </header>
           <div class="box-fields">
