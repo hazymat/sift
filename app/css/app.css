@@ -716,7 +716,7 @@ kbd { font: inherit; font-size: .72em; padding: 1px 5px; margin-left: 4px; borde
 
 .day-nav { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px; }
 .day-nav button { padding: 6px 14px; }
-.day-nav .share-btn { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
+.day-nav .share-btn { display: inline-flex; align-items: center; gap: 6px; }
 .day-nav .cal-icon { padding: 6px 10px; display: inline-flex; align-items: center; }
 .day-nav .icon { width: 18px; height: 18px; }
 
@@ -1593,3 +1593,9 @@ main:has(> .planner), main:has(.planner) { max-width: 1600px; }
 .bring-main .review-title { flex: none; }
 .bring-info { display: flex; flex-wrap: wrap; gap: 4px; }
 .bring-note { font-size: .82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Share menu in the day nav. */
+.day-nav .share-menu { margin-left: auto; }
+.day-nav .share-menu summary { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: var(--radius-pill); border: 1px solid var(--glass-border); background: var(--glass); }
+.share-menu .menu { min-width: 260px; }
+.share-menu .menu button:disabled { opacity: .45; cursor: not-allowed; }

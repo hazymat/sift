@@ -34,7 +34,16 @@ export default {
         <button type="button" data-act="calendar" class="cal-icon" aria-label="Pick a date" title="Pick a date"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg></button>
         <button type="button" data-act="today">Today</button>
         <button type="button" data-act="next" aria-label="Next day">›</button>
-        <button type="button" data-act="share" class="share-btn" title="Share this day (coming soon)"><svg class="icon" aria-hidden="true"><use href="#i-share"/></svg> Share</button>
+        <details class="tool-menu share-menu">
+          <summary class="share-btn" role="button"><svg class="icon" aria-hidden="true"><use href="#i-share"/></svg> Share</summary>
+          <div class="menu">
+            <button type="button" disabled title="Coming later: share and merge your day with someone">Link day plan with another person</button>
+            <hr>
+            <button type="button" data-share="plain">Copy to clipboard – plain text</button>
+            <button type="button" data-share="rich">Copy to clipboard – rich text</button>
+            <button type="button" data-share="whatsapp">Copy to clipboard – WhatsApp</button>
+          </div>
+        </details>
       </div>
       <header class="day-head">
         <h1 class="day-title"><span class="weekday"></span> <span class="date"></span></h1>
@@ -645,7 +654,6 @@ export default {
       else if (act === 'today') go(isoDate());
       else if (act === 'calendar') openCalendar(date);
       else if (act === 'bring-in') openBring();
-      else if (act === 'share') toast('Sharing a day is coming soon');
       else if (act === 'paper-week' || act === 'paper-all') resetPapers(act === 'paper-week');
       else if (act === 'clear-day') clearDay();
       else if (act === 'add-at') openLine(t);
@@ -1203,6 +1211,79 @@ export default {
         renderTasks();
       });
     }
+
+    // ---------- share: the day as text ----------
+
+    // The day written out: heading, focus and energy, the timed plan in
+    // order, what's after the day, untimed tasks, then the day's notes.
+    // Formats: plain text, WhatsApp (*bold*, _italic_, ~strike~, ✅/⬜) and
+    // rich text (HTML, with plain text alongside for apps that want it).
+    const unlink = s => (s || '').replace(/\[([^\]]*)\]\(sift:[^)]*\)/g, '$1');
+    function mdTo(kind, s) {
+      const t = unlink(s);
+      if (kind === 'whatsapp') return t.replace(/\*\*(.+?)\*\*/g, '*$1*').replace(/~~(.+?)~~/g, '~$1~').replace(/^#{1,6}\s+(.*)$/gm, '*$1*');
+      return t.replace(/\*\*(.+?)\*\*/g, '$1').replace(/~~(.+?)~~/g, '$1').replace(/(^|\s)_(\S.*?)_(?=$|[\s).,!?:;])/g, '$1$2').replace(/^#{1,6}\s+/gm, '');
+    }
+    const shareTitle = () => parseDate(date).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    function dayText(kind) {
+      const wa = kind === 'whatsapp';
+      const bold = s => (wa ? `*${s}*` : s);
+      const endOfDay = toMin(settings.day_end) + step();
+      const timed = items.filter(i => i.time).sort((a, b) => a.time.localeCompare(b.time));
+      const inDay = timed.filter(i => toMin(i.time) < endOfDay);
+      const evening = timed.filter(i => toMin(i.time) >= endOfDay);
+      const untimed = items.filter(i => !i.time);
+      const mark = i => (i.done_at ? (wa ? '✅' : '[x]') : i.dropped_at ? (wa ? '➖' : '[-]') : (wa ? '⬜' : '[ ]'));
+      const when = i => (i.time ? `${fmt(i.time)}${i.end_time ? `–${fmt(i.end_time)}` : ''} ` : '');
+      const line = i => {
+        const title = i.dropped_at && wa ? `~${i.title}~` : i.title;
+        const note = (i.notes || '').trim() ? `\n${mdTo(kind, i.notes).split('\n').filter(l => l.trim()).map(l => `    ${wa && !/^\s*[-*•]\s/.test(l) ? `_${l.trim()}_` : l.trim()}`).join('\n')}` : '';
+        return `${mark(i)} ${when(i)}${title}${note}`;
+      };
+      const energy = ENERGY.find(e => e.id === day.energy);
+      const out = [bold(shareTitle())];
+      if (day.focus) out.push(`Focus: ${day.focus}`);
+      if (energy) out.push(`Energy: ${energy.bolts} ${energy.label}`);
+      const section = (title, list) => { if (list.length) out.push('', bold(title), ...list.map(line)); };
+      section('Plan', inDay);
+      section(settings.evening_label || 'Evening plans', evening);
+      section('Tasks', untimed);
+      if ((day.notes || '').trim()) out.push('', bold('Notes'), mdTo(kind, day.notes).trim());
+      return out.join('\n');
+    }
+    function dayHtml() {
+      const endOfDay = toMin(settings.day_end) + step();
+      const timed = items.filter(i => i.time).sort((a, b) => a.time.localeCompare(b.time));
+      const groups = [['Plan', timed.filter(i => toMin(i.time) < endOfDay)], [settings.evening_label || 'Evening plans', timed.filter(i => toMin(i.time) >= endOfDay)], ['Tasks', items.filter(i => !i.time)]];
+      const li = i => `<li>${i.done_at ? '☑' : '☐'} ${i.time ? `<b>${esc(fmt(i.time))}${i.end_time ? `–${esc(fmt(i.end_time))}` : ''}</b> ` : ''}${i.dropped_at ? `<s>${esc(i.title)}</s>` : esc(i.title)}${(i.notes || '').trim() ? `<div style="color:#666;font-size:90%">${toHtml(unlink(i.notes))}</div>` : ''}</li>`;
+      const energy = ENERGY.find(e => e.id === day.energy);
+      return `<h3>${esc(shareTitle())}</h3>`
+        + (day.focus ? `<p><b>Focus:</b> ${esc(day.focus)}</p>` : '')
+        + (energy ? `<p><b>Energy:</b> ${energy.bolts} ${energy.label}</p>` : '')
+        + groups.filter(([, l]) => l.length).map(([t, l]) => `<h4>${esc(t)}</h4><ul style="list-style:none;padding-left:0">${l.map(li).join('')}</ul>`).join('')
+        + ((day.notes || '').trim() ? `<h4>Notes</h4>${toHtml(unlink(day.notes))}` : '');
+    }
+    async function shareDay(kind) {
+      try {
+        if (kind === 'rich' && window.ClipboardItem) {
+          await navigator.clipboard.write([new ClipboardItem({
+            'text/html': new Blob([dayHtml()], { type: 'text/html' }),
+            'text/plain': new Blob([dayText('plain')], { type: 'text/plain' }),
+          })]);
+        } else {
+          await navigator.clipboard.writeText(dayText(kind === 'whatsapp' ? 'whatsapp' : 'plain'));
+        }
+        toast({ plain: 'Copied as plain text', rich: 'Copied as rich text', whatsapp: 'Copied for WhatsApp' }[kind]);
+      } catch {
+        toast("Couldn't copy: the browser blocked the clipboard");
+      }
+    }
+    el.addEventListener('click', ev => {
+      const b = ev.target.closest('[data-share]');
+      if (!b) return;
+      b.closest('details')?.removeAttribute('open');
+      shareDay(b.dataset.share);
+    });
 
     // ---------- clear the day ----------
 

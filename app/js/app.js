@@ -211,6 +211,10 @@ async function boot() {
   $('#quick-add').onclick = () => currentView?.quickAdd?.();
   installInlineEditing();
   installRefLinks();
+  // An open dropdown menu (<details class="tool-menu">) closes on a click elsewhere.
+  document.addEventListener('pointerdown', ev => {
+    for (const d of document.querySelectorAll('details.tool-menu[open]')) if (!d.contains(ev.target)) d.removeAttribute('open');
+  }, true);
   addEventListener('hashchange', route);
   addEventListener('resize', fitTopNav);
   store.subscribe(renderSyncStatus);
