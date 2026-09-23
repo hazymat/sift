@@ -1799,3 +1799,43 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
   border: 1px solid #d5d8dd;
   font-weight: 300;
 }
+
+/* Glass: the lined plan has no background or border at all. */
+.planner[data-paper="glass"] .paper { background: transparent; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+/* Day Planner Tasks: the same lined paper as the plan (margin rule and
+   lines), "New task" as its last line, done ones folded under "Done". */
+.pile-paper { border-top: 1px solid var(--rule); }
+.pile-paper .pile-list { background: transparent; border: 0; border-radius: 0; margin: 0; overflow: visible; }
+.pile-paper .pile-list .line { grid-template-columns: 64px 1fr; border-bottom: 1px solid var(--rule); }
+.pile-paper .pile-list .line .margin { display: flex; border-right-style: solid; }
+.pile-paper .pile-list .line:last-child { border-bottom: 1px solid var(--rule); }
+.pile-new .new-task { flex: 1; min-width: 0; background: transparent; border-color: transparent; font-size: 1.1rem; padding: 4px 6px; color: var(--text); }
+.pile-new .new-task:focus { background: var(--glass-track); border-color: var(--active-border); }
+.pile-gap { height: 2.375rem; border-bottom: 1px solid var(--rule); background: color-mix(in srgb, var(--accent) 14%, transparent); list-style: none; }
+.pile-done-head .done-toggle { background: transparent; border: 0; box-shadow: none; padding: 2px 4px; color: var(--muted); font-family: var(--font); font-size: .85rem; letter-spacing: .06em; text-transform: uppercase; }
+.pile-done li[data-pile] { opacity: .75; }
+.pile h2 .task-count, .done-toggle .task-count {
+  font-family: var(--font);
+  font-size: .8rem;
+  font-weight: 600;
+  letter-spacing: .02em;
+  vertical-align: middle;
+  padding: 1px 8px;
+  margin-left: 6px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--glass-track);
+  border: 1px solid var(--glass-border);
+}
+.done-toggle .task-count { font-size: .72rem; }
+
+/* Day notes: smaller text, so more fits. */
+.day-notes .rich-edit, .day-notes .rich-raw { font-size: .92rem; line-height: 1.45; min-height: 6em; }
+
+/* Notes toolbars stay on one line and scroll sideways if they must. */
+.md-bar { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: 3px; }
+.md-bar::-webkit-scrollbar { display: none; }
+.md-bar button, .md-bar .md-emoji { flex: none; }
+.md-bar button { padding: 3px 8px; }
+.md-bar .md-toggle { margin-left: auto; }

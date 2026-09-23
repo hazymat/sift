@@ -11,7 +11,7 @@ import {
 import { listEntry, listHint } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import { richText, toHtml, previewLine } from '../richtext.js';
-import { keepDraft } from '../drafts.js';
+import { keepDraft, draftCleared } from '../drafts.js';
 import { autosizeAll } from '../inline.js';
 import { summarise } from '../summary.js';
 import { loadAll as loadTasks, forDay, suggestions, doneFields, aimDate, addTask, horizonOf } from '../tasks.js';
@@ -62,13 +62,16 @@ export default {
       <section class="paper" aria-label="Plan"><div id="lines"></div></section>
       <div class="day-bottom">
         <section class="pile">
-          <h2>Tasks</h2>
-          <ul id="pile" class="pile-list"></ul>
-          <textarea id="dump" class="list-entry hand" rows="3" placeholder="What do you want to get done?"></textarea>
+          <h2>Tasks <span class="task-count" hidden></span></h2>
+          <div class="pile-paper">
+            <ul id="pile" class="pile-list"></ul>
+            <div class="line pile-new"><span class="margin"></span><span class="content"><input id="dump" class="new-task hand" placeholder="New task" autocomplete="off" enterkeyhint="done" aria-label="New task"></span></div>
+            <ul id="pile-done" class="pile-list pile-done"></ul>
+          </div>
           <div class="pile-foot">
             <button type="button" data-act="bring-in">Bring in from tasks…</button>
           </div>
-          <p class="muted hint">${listHint({ subItems: false })} Start a line with a time (12.45) to put it straight on the plan, or drag a task onto a time.</p>
+          <p class="muted hint">Enter adds a task. Start with a time (12.45) to put it straight on the plan. Drag ⠿ to reorder, or onto a time.</p>
         </section>
         <section class="day-notes">
           <h2>Notes</h2>
@@ -503,11 +506,27 @@ export default {
     }
     this.nowTimer = setInterval(placeNowMarker, 30000);
 
-    function renderPile() {
-      const pile = items.filter(i => !i.time && !lifted.has(i.id));
-      $('#pile').innerHTML = pile.map(i => `<li>${itemRow(i, '')}</li>`).join('')
-        || '<li class="muted pile-empty">No tasks for this day yet. Add some below, or bring them in from Tasks.</li>';
-      autosizeAll($('#pile'));
+    // Tasks: the untimed items, in order, on lined paper; done ones fold
+    // away under "Done (n)". While dragging over the list, a gap opens where
+    // the item would land and the others shuffle round it.
+    let doneOpen = false;
+    const pileOrder = (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0);
+    function renderPile(gapAt = null) {
+      const all = items.filter(i => !i.time);
+      const todo = all.filter(i => !i.done_at && !lifted.has(i.id)).sort(pileOrder);
+      const done = all.filter(i => i.done_at && !lifted.has(i.id)).sort(pileOrder);
+      const rows = todo.map(i => `<li data-pile="${i.id}">${itemRow(i, '')}</li>`);
+      if (gapAt != null) rows.splice(Math.min(gapAt, rows.length), 0, '<li class="pile-gap" aria-hidden="true"></li>');
+      $('#pile').innerHTML = rows.join('');
+      $('#pile-done').innerHTML = done.length ? `
+        <li class="line pile-done-head"><span class="margin"></span><span class="content">
+          <button type="button" class="done-toggle" data-act="toggle-done" aria-expanded="${doneOpen}">${doneOpen ? '▾' : '▸'} Done <span class="task-count">${done.length}</span></button>
+        </span></li>
+        ${doneOpen ? done.map(i => `<li data-pile="${i.id}">${itemRow(i, '')}</li>`).join('') : ''}` : '';
+      const count = $('.pile .task-count');
+      count.hidden = !all.length;
+      count.textContent = `${all.filter(i => i.done_at).length}/${all.length}`;
+      autosizeAll($('.pile-paper'));
       mountNoteEditors();
     }
 
@@ -697,6 +716,7 @@ export default {
       else if (act === 'today') go(isoDate());
       else if (act === 'calendar') openCalendar(date);
       else if (act === 'bring-in') openBring();
+      else if (act === 'toggle-done') { doneOpen = !doneOpen; renderPile(); }
       else if (act === 'paper-week' || act === 'paper-all') resetPapers(act === 'paper-week');
       else if (act === 'clear-day') clearDay();
       else if (act === 'add-at') openLine(t);
@@ -815,18 +835,23 @@ export default {
 
     // Dump box → pile (or straight onto the plan when a line starts with a time).
     const dumpDraft = keepDraft($('#dump'), () => `planner:${date}`);
-    listEntry($('#dump'), async lines => {
-      const made = [];
-      for (const line of lines) {
-        const p = parseTimed(line.text);
-        const { title, notes } = summarise(p.title); // long ones: short title, full text in the note
-        made.push(await addItem(date, { title, notes, time: p.time, end_time: p.end_time }));
-      }
+    // "New task" is the last line of the tasks: Enter adds it and leaves a
+    // fresh line ready. A time at the start (12.45 …) puts it on the plan.
+    $('#dump').addEventListener('keydown', async ev => {
+      if (ev.key !== 'Enter' || ev.isComposing) return;
+      ev.preventDefault();
+      const input = ev.target;
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      draftCleared(input);
+      const p = parseTimed(text);
+      const { title, notes } = summarise(p.title); // long ones: short title, full text in the note
+      const last = items.filter(i => !i.time).reduce((m, i) => Math.max(m, i.sort_order ?? 0), -1);
+      const made = await addItem(date, { title, notes, time: p.time, end_time: p.end_time, sort_order: last + 1 });
       await refresh();
-      undoable(`Added ${made.length} item${made.length === 1 ? '' : 's'}`, async () => {
-        await store.updateMany('day_items', made.map(m => [m.id, { deleted_at: new Date().toISOString() }]));
-        await refresh();
-      });
+      input.focus();
+      undoable(`Added "${made.title}"`, async () => { await store.remove('day_items', made.id); await refresh(); });
     });
 
     // ---------- select, pick up and move; resize from the bottom handle ----------
@@ -894,7 +919,12 @@ export default {
     // Where a drop would land: the line under the middle of what's carried.
     function targetAt(y) {
       const pileBox = $('.pile').getBoundingClientRect();
-      if (y >= pileBox.top && y <= pileBox.bottom) return { pile: true };
+      if (y >= pileBox.top && y <= pileBox.bottom) {
+        // Index among the (not carried) to-do rows: before the first row whose middle is below the pointer.
+        const rows = [...$('#pile').querySelectorAll(':scope > li[data-pile]')];
+        const index = rows.filter(r => { const b = r.getBoundingClientRect(); return b.top + b.height / 2 < y; }).length;
+        return { pile: true, index };
+      }
       for (const line of linesEl.querySelectorAll('.line[data-time]')) {
         const r = line.getBoundingClientRect();
         if (y >= r.top && y < r.bottom) return { line, time: line.dataset.time === 'evening' ? eveningTime() : line.dataset.time };
@@ -946,6 +976,21 @@ export default {
       return out;
     }
 
+    // Dropped into the tasks at `index`: no time, and the list renumbered.
+    function pileChanges(index) {
+      const rest = items.filter(i => !i.time && !i.done_at && !press.ids.includes(i.id)).sort(pileOrder);
+      const carried = press.ids.map(id => items.find(i => i.id === id)).filter(Boolean);
+      const order = [...rest.slice(0, index), ...carried, ...rest.slice(index)];
+      const out = new Map();
+      order.forEach((i, n) => {
+        const f = {};
+        if (i.time) { f.time = null; f.end_time = null; }
+        if ((i.sort_order ?? null) !== n) f.sort_order = n;
+        if (Object.keys(f).length) out.set(i.id, f);
+      });
+      return out;
+    }
+
     // Each carried item's new time for a drop at `time`.
     function plan(time) {
       const anchor = items.find(i => i.id === press.id);
@@ -971,16 +1016,18 @@ export default {
     // carried items at their new times, anything in the way pushed on.
     function showPreview(target) {
       $('#pile').classList.toggle('drop-target', !!target?.pile);
-      const key = target ? (target.pile ? 'pile' : target.time) : '';
+      const key = target ? (target.pile ? `pile:${target.index}` : target.time) : '';
       if (key === press.previewKey) return;
       press.previewKey = key;
       if (!target || target.pile) {
-        press.changes = target?.pile ? new Map(press.ids.map(id => [id, { time: null, end_time: null }])) : null;
-        press.ghost.dataset.when = target?.pile ? 'To place' : '';
+        press.changes = target?.pile ? pileChanges(target.index) : null;
+        press.ghost.dataset.when = target?.pile ? 'Tasks' : '';
         if (!target) delete press.ghost.dataset.when;
         renderLines();
+        renderPile(target?.pile ? target.index : null);
         return;
       }
+      renderPile();
       press.ghost.dataset.when = fmt(target.time);
       const planned = plan(target.time);
       const moved = items.map(i => (planned.has(i.id) ? { ...i, ...planned.get(i.id), _mark: 'preview' } : i));
@@ -1053,7 +1100,7 @@ export default {
       const n = p.ids.length;
       if (!t || !p.changes?.size) { renderLines(); renderPile(); paintSelection(); return; }
       const pushed = p.pushedCount ? `, pushed ${p.pushedCount} on` : '';
-      await moveMany(p.changes, t.pile ? `${n > 1 ? `${n} items` : 'Item'} back to To place` : `${n > 1 ? `Moved ${n} items` : 'Moved'} to ${fmt(t.time)}${pushed}`);
+      await moveMany(p.changes, t.pile ? `${n > 1 ? `${n} items` : 'Item'} moved in Tasks` : `${n > 1 ? `Moved ${n} items` : 'Moved'} to ${fmt(t.time)}${pushed}`);
     };
     el.addEventListener('pointerup', endPress);
     el.addEventListener('pointercancel', endPress);
