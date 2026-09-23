@@ -155,7 +155,6 @@ async function route() {
   currentView = module.default;
   await currentView.mount(main, { store, app: appApi });
   if (rest.length) await currentView.route?.(rest);
-  $('#quick-add').hidden = !currentView.quickAdd;
 }
 
 const appApi = { AREAS, MAX_PINNED, pinnedAreas, setPinned, THEMES, currentTheme, setTheme };
@@ -214,7 +213,6 @@ async function boot() {
   $('#more-sheet').addEventListener('click', e => {
     if (e.target === e.currentTarget) e.currentTarget.close(); // backdrop tap
   });
-  $('#quick-add').onclick = () => currentView?.quickAdd?.();
   installInlineEditing();
   installRefLinks();
   installHoldToOpen();
