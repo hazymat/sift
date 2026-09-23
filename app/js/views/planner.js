@@ -243,8 +243,9 @@ export default {
       m.innerHTML = `
         <h4>${today} paper</h4>
         <div class="view-opts">
-          ${paperPill('', `Default (${PAPERS.find(p => p.id === settings.paper_style)?.label || 'Glass'})`, settings.paper_style, !day.paper)}
-          ${PAPERS.map(p => paperPill(p.id, p.label, p.id, day.paper === p.id)).join('')}
+          ${PAPERS.map(p => (p.id === settings.paper_style
+            ? paperPill('', `${p.label} (default)`, p.id, !day.paper || day.paper === p.id) // each paper once; the default follows Settings
+            : paperPill(p.id, p.label, p.id, day.paper === p.id))).join('')}
         </div>
         <h4>${today} timeslots</h4>
         <div class="view-opts">
