@@ -4,7 +4,7 @@
 
 ## 1. Goals
 
-- One personal "life app": tasks/projects, braindump, where-things-are, trades contacts, quick scans, personal contracts. Contracts + Scans together are the digital home filing cabinet.
+- One personal "life app": tasks/projects, a day planner, braindump, where-things-are, trades contacts, quick scans, personal contracts. Contracts + Scans together are the digital home filing cabinet.
 - Runs on iPhone and laptop as an installable PWA (HTML/CSS/JS, no framework, no build step).
 - **Local-first**: all data, including scan images, lives on the device. Fully usable with no server and no network.
 - **Optional sync** across a user's devices via a self-hosted server we write (multi-user, end-to-end encrypted).
@@ -71,6 +71,15 @@ Common fields on every record: `id (UUIDv7), created_at, updated_at, deleted_at,
   - No kind picked → `thought`. Recategorise anytime by changing `kind`.
   - `task` / `place_item` kinds offer "convert", which creates the target record and links back via `converted_to` / `source_thought_id`.
 
+### 4.2a Day planner
+
+A day's battle plan: dump what you want to do, then give things times. Built for getting through a day, not long-term planning (that's Tasks).
+
+- `day_items`: `date (YYYY-MM-DD), title, time? (HH:MM), end_time?, done_at?, sort_order, task_id?, source_thought_id?, carried_from? (date), merged_from[]? (ids of items combined into this one)`
+  - No `time` = on the day's unsorted pile. With `time` = on the timeline, sorted by time.
+  - Moving to another day = change `date` (and set `carried_from`).
+  - Separate records per item (not an array on a day record) so edits from two devices merge per item.
+
 ### 4.3 Where things are
 
 - `places`: `name, label_code (physical label, e.g. "PB-14"), parent_place_id? (room → shelf → box), location_note, sort_order`
@@ -118,6 +127,7 @@ Single-page app, hash routing, top nav on laptop, bottom tab bar on iPhone. Glob
 | Area | Laptop | iPhone |
 |---|---|---|
 | **Tasks** | Left: projects. Main: tasks grouped by milestone, drag reorder. Right: detail. Views: Today, Upcoming, Project, Done. | Segmented views; detail as full-screen sheet. |
+| **Day Planner** | Opens on today; arrows to other days (plan tomorrow tonight). Top: text box, one item per line → the day's pile. Pile offers, one tap each: Tasks due/overdue, yesterday's unfinished items, Dump thoughts of kind `task`. Timeline: items with times, "now" line, tick off, push later, back to pile, send to tomorrow or to Tasks. Drag one item onto another to combine. **Text mode** toggle: the whole day as plain text (`12.45<tab>title`), edited freely and parsed back into items. | Same flow, full width. Typing a time at the start of a line (`12.45 speak to L`) schedules it. |
 | **Dump** | Large text area focused on open; kind pills underneath; Save (⌘↵). Below: thought list/cloud, filter by kind and tag. | Opens into text entry with keyboard up; pills above keyboard. |
 | **Places** | Tree (rooms → boxes) left, contents right. Search jumps to box. Big `label_code` badge. | Search-first: type item → box label shown large. Tap to browse. |
 | **Trades** | Sortable table (type, rating, last used). Detail with jobs history. | Grouped by trade type; tap-to-call / email. |
@@ -256,7 +266,7 @@ Single-page app, hash routing, top nav on laptop, bottom tab bar on iPhone. Glob
   js/crypto.js               key derivation, wrap/unwrap, encrypt/decrypt
   js/sync.js                 outbox, push/pull, merge, blob sync
   js/calendar.js
-  js/views/{tasks,dump,places,trades,contracts,scans,settings}.js
+  js/views/{tasks,planner,dump,places,trades,contracts,scans,settings}.js
   vendor/{minisearch,pdfjs}/
   icons/
 /server
@@ -272,23 +282,24 @@ Single-page app, hash routing, top nav on laptop, bottom tab bar on iPhone. Glob
 1. Shell: PWA install, service worker, area registry/nav, `store.js` with sync-ready record format (UUIDv7, field clocks, soft delete, outbox), persistent storage request.
 2. Places + CSV import.
 3. Dump.
-4. Tasks.
-5. Trades.
-6. Scans.
-7. Contracts.
-8. Search.
-9. Backup / restore.
+4. Day Planner (incl. text mode).
+5. Tasks.
+6. Trades.
+7. Scans.
+8. Contracts.
+9. Search.
+10. Backup / restore.
 
 **Phase 2 — Sync server (multi-user from its first version)**
-10. `crypto.js`: registration, login, key wrap, recovery key.
-11. sift-server: auth, devices, push/pull, quota, admin CLI, Docker + Caddy.
-12. `sync.js`: record sync + merge, then blob sync.
+11. `crypto.js`: registration, login, key wrap, recovery key.
+12. sift-server: auth, devices, push/pull, quota, admin CLI, Docker + Caddy.
+13. `sync.js`: record sync + merge, then blob sync.
 
 **Phase 3 — Calendar**
-13. Google Calendar push; scan expiry + contract renewal reminders.
+14. Google Calendar push; scan expiry + contract renewal reminders.
 
 **Phase 4 — v2 cloud adapters**
-14. Adapter interface + Google Drive app-data adapter first.
+15. Adapter interface + Google Drive app-data adapter first.
 
 ## 13. Future
 

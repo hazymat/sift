@@ -3,6 +3,7 @@ import * as store from './store.js';
 // Adding an area is one entry here plus a view module (spec §5.1).
 export const AREAS = [
   { id: 'tasks', label: 'Tasks', icon: 'i-tasks', view: './views/tasks.js' },
+  { id: 'planner', label: 'Day Planner', icon: 'i-planner', view: './views/planner.js' },
   { id: 'dump', label: 'Dump', icon: 'i-dump', view: './views/dump.js' },
   { id: 'places', label: 'Places', icon: 'i-places', view: './views/places.js' },
   { id: 'scans', label: 'Scans', icon: 'i-scans', view: './views/scans.js' },

@@ -9,6 +9,7 @@
 
 export const COLLECTIONS = [
   'projects', 'milestones', 'tasks',
+  'day_items',
   'thoughts',
   'places', 'items',
   'trades', 'trade_jobs',
@@ -17,7 +18,7 @@ export const COLLECTIONS = [
   'settings',
 ];
 
-const DB_VERSION = 1;
+const DB_VERSION = 2; // bump when adding object stores; onupgradeneeded only adds what's missing
 const LOCAL_DB = 'sift_local';
 const SYSTEM_FIELDS = new Set(['id', '_field_clocks', '_dirty_fields', '_server_seq']);
 const SETTINGS_ID = 'settings'; // fixed id so every device edits the same record
