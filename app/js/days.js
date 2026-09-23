@@ -12,6 +12,7 @@ export const DAY_DEFAULTS = {
   hint_walk_breaks: true,
   paper_style: 'glass',
   duration_max_min: 240, // longest choice in the Duration list
+  show_now_marker: true, // ▶ in the margin at the current time (today only)
 };
 
 // Page styles for the planner (default in Settings, overridable per day).

@@ -92,6 +92,8 @@ Common fields on every record: `id (UUIDv7), created_at, updated_at, deleted_at,
 7. **Tasks**: Tasks whose **start date** is this day, plus unfinished Tasks whose **completion aim** falls on this day. Multi-day tasks (start and aim on different days) show in their own strip ("ongoing: day 2 of 5"). Other undated Tasks and Brain Dump items can be **adopted** into the day, which sets their start date.
 8. **Notes**: free text for the day (the notes editor, §4.7), which can reference other things (see mentions).
 
+**Now marker**: on today's page a small ▶ in the margin marks the current time, placed proportionally between the written times and moving every 30 s (Settings → Day Planner → Nudges; on by default).
+
 **Getting around**: ‹ Today › buttons (and ← → / T on a keyboard), plus a **Calendar** popup: a month grid where days that have anything planned or written are marked with a dot and down days are dimmed. Any date, past or future, opens the same page (look back at last Thursday; plan next week).
 
 **Paper styles**: the page is drawn in a paper style. Default in Settings; any day can use a different one (Paper picker on the page, stored on the day).

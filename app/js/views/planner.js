@@ -194,7 +194,46 @@ export default {
       out.push(...evening.map(i => itemRow(i, fmt(i.time))));
       out.push(`<div class="line blank" data-time="evening"><span class="margin"></span><span class="content" data-act="add-at"></span></div>`);
       linesEl.innerHTML = out.join('');
+      placeNowMarker();
     }
+
+    // ▶ in the margin at the current time: between the line for the current
+    // slot and the next line, in proportion to how far through it we are.
+    const nowMarker = document.createElement('span');
+    nowMarker.className = 'now-marker';
+    nowMarker.setAttribute('aria-hidden', 'true');
+    nowMarker.textContent = '▶';
+    function placeNowMarker() {
+      const paper = $('.paper');
+      if (!paper) return;
+      if (!nowMarker.isConnected) paper.append(nowMarker);
+      const now = new Date();
+      const mins = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+      const lines = [...linesEl.querySelectorAll('.line[data-time]')].filter(l => l.dataset.time !== 'evening');
+      let show = settings.show_now_marker && date === isoDate() && lines.length;
+      let top = 0;
+      if (show) {
+        const at = lines.map(l => ({ l, t: toMin(l.dataset.time) }));
+        const i = at.findLastIndex(x => x.t <= mins);
+        const next = at.slice(i + 1).find(x => x.t > (at[i]?.t ?? -1));
+        const endOfDay = toMin(settings.day_end) + step();
+        if (i < 0 || mins >= endOfDay) show = false;
+        else {
+          // Measure between the written times (the middle of each margin
+          // label), so at 14:00 the ▶ is level with "14.00".
+          const base = paper.getBoundingClientRect().top;
+          const mid = el2 => { const r = (el2.querySelector('.margin') || el2).getBoundingClientRect(); return r.top + r.height / 2; };
+          const here = mid(at[i].l);
+          const there = next ? mid(next.l) : here + at[i].l.getBoundingClientRect().height;
+          const span = (next ? next.t : endOfDay) - at[i].t;
+          top = here - base + (there - here) * Math.min(1, (mins - at[i].t) / span);
+        }
+      }
+      nowMarker.hidden = !show;
+      nowMarker.style.top = `${top}px`;
+      nowMarker.title = `Now: ${fmt(fromMin(Math.floor(mins)))}`;
+    }
+    this.nowTimer = setInterval(placeNowMarker, 30000);
 
     function renderPile() {
       const pile = items.filter(i => !i.time && !lifted.has(i.id));
@@ -771,6 +810,7 @@ export default {
   },
 
   unmount() {
+    clearInterval(this.nowTimer);
     this.bar?.remove();
     document.body.classList.remove('has-select-bar', 'is-dragging');
     removeEventListener('keydown', this.onKey);

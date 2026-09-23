@@ -1325,3 +1325,16 @@ li[data-id]:hover .kit-grip { opacity: .8; }
 .line .content { flex-wrap: wrap; }
 .item-note { flex-basis: 100%; margin: -4px 0 4px 52px; font-size: .78rem; color: var(--muted); font-family: var(--font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .line.has-item:has(.item-note) { min-height: 50px; }
+
+.paper { position: relative; }
+.now-marker {
+  position: absolute;
+  left: 3px;
+  z-index: 2;
+  margin-top: -.55em;
+  font-size: .7rem;
+  line-height: 1.1;
+  color: var(--focus-ink);
+  pointer-events: none;
+  transition: top .4s ease;
+}
