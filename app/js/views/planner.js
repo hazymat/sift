@@ -465,7 +465,6 @@ export default {
       box.hidden = !carry.length || date < isoDate();
       if (!box.hidden) {
         box.innerHTML = `<span>${carry.length} unfinished from earlier days</span>
-          <button type="button" data-act="carry">Bring them here</button>
           <button type="button" data-act="review">Go through them</button>`;
       }
     }
@@ -631,13 +630,6 @@ export default {
         renderCarry();
       } else if (act === 'review') {
         openReview();
-      } else if (act === 'carry') {
-        const carry = await unfinishedBefore(date);
-        const moves = carry.map(i => [i.id, { date, time: null, end_time: null, carried_from: i.date }]);
-        const back = carry.map(i => [i.id, { date: i.date, time: i.time, end_time: i.end_time, carried_from: i.carried_from ?? null }]);
-        await store.updateMany('day_items', moves);
-        await render();
-        undoable(`Brought over ${carry.length}`, async () => { await store.updateMany('day_items', back); await render(); });
       }
     });
 
