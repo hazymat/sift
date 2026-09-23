@@ -184,13 +184,15 @@ export default {
       const step = Math.max(5, Number(settings.slot_min) || 30);
       const timed = list.filter(i => i.time && (!lifted.has(i.id) || i._mark === 'preview'));
       const at = t => toMin(t);
-      const out = [];
+      // Rows first ({ html, item?, coveredBy? }), then an item and the slot
+      // lines it covers are grouped into one block (see below).
+      const rows = [];
+      const itemEntry = (i, label) => rows.push({ html: itemRow(i, label), item: i });
 
       // Before the day starts
-      const early = timed.filter(i => at(i.time) < start);
-      if (early.length) out.push(...early.map(i => itemRow(i, fmt(i.time))));
+      timed.filter(i => at(i.time) < start).forEach(i => itemEntry(i, fmt(i.time)));
 
-      // Covered = inside another item's span, shown as a bracket instead of an empty line
+      // Covered = inside another item's time
       const spans = timed.map(i => [at(i.time), i.end_time ? at(i.end_time) : i.estimate_min ? at(i.time) + i.estimate_min : at(i.time), i]);
       const coveredBy = t => spans.find(([a, b]) => t > a && t < b)?.[2];
 
@@ -199,12 +201,26 @@ export default {
         const onLine = here.filter(i => at(i.time) === t);
         const between = here.filter(i => at(i.time) !== t);
         const label = fmt(fromMin(t));
-        if (onLine.length) out.push(...onLine.map((i, n) => itemRow(i, n ? '' : label)));
+        if (onLine.length) onLine.forEach((i, n) => itemEntry(i, n ? '' : label));
         else {
           const by = coveredBy(t);
-          out.push(emptyRow(fromMin(t), label, by?._mark || '', by ? by.title : ''));
+          rows.push({ html: emptyRow(fromMin(t), label, by?._mark || '', by ? by.title : ''), coveredBy: by });
         }
-        out.push(...between.map(i => itemRow(i, fmt(i.time))));
+        between.forEach(i => itemEntry(i, fmt(i.time)));
+      }
+
+      // An item that runs over later slot lines becomes one block: the lines
+      // keep their times in the margin, and the item sits across them all,
+      // text centred, with a bar down the side.
+      const out = [];
+      for (let n = 0; n < rows.length; n++) {
+        const r = rows[n];
+        if (!r.item || editing === r.item.id) { out.push(r.html); continue; }
+        let k = n + 1;
+        while (k < rows.length && rows[k].coveredBy && rows[k].coveredBy.id === r.item.id) k++;
+        if (k === n + 1) { out.push(r.html); continue; }
+        out.push(`<div class="span-block${r.item._mark ? ` ${r.item._mark}` : ''}" style="--lines:${k - n}">${rows.slice(n, k).map(x => x.html).join('')}</div>`);
+        n = k - 1;
       }
 
       // Evening: anything after the last line's slot
