@@ -1132,3 +1132,33 @@ button.chip { box-shadow: none; cursor: pointer; }
 .day-task-list.ideas li { background: transparent; }
 .day-tasks h3 { font-size: .85rem; margin: 10px 4px 6px; }
 .task-tick { width: 18px; height: 18px; accent-color: #6fb0ff; }
+
+
+/* ---------- Brain Dump ---------- */
+.dump-capture { margin-bottom: 18px; }
+#dump-body { font-size: 1.15rem; line-height: 1.5; min-height: 7em; }
+.dump-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.dump-row .segmented button, #dump-filter button { padding: 5px 12px; font-size: .85rem; }
+.dump-row .segmented button[aria-pressed="true"], #dump-filter button[aria-pressed="true"] { background: var(--active-bg); border-color: var(--active-border); }
+.dump-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.dump-tools .search { flex: 1 1 200px; }
+#dump-filter { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+.thought-list { list-style: none; margin: 10px 0; padding: 0; display: grid; gap: 10px; }
+.thought { padding: 10px 14px 10px; border-radius: 20px; background: var(--glass); border: 1px solid var(--glass-border); }
+.thought.pinned { border-color: var(--active-border); }
+.thought.converted { opacity: .6; }
+.thought-head { display: flex; align-items: center; gap: 8px; font-size: .8rem; }
+.kind-select { width: auto !important; padding: 2px 8px !important; font-size: .78rem; border-radius: 999px !important; color: var(--text); }
+.pin { padding: 2px 8px; background: none; box-shadow: none; font-size: 1rem; color: var(--place); }
+.thought-body { font-size: 1.05rem; line-height: 1.55; margin: 6px 2px; cursor: text; overflow-wrap: anywhere; }
+.thought-body ul { margin: 0; padding-left: 1.2em; }
+.thought-edit { font-size: 1.05rem; margin: 6px 0; }
+.thought-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.thought-actions button { padding: 3px 10px; font-size: .78rem; box-shadow: none; background: transparent; border-color: var(--glass-border); }
+.thought:not(:hover):not(:focus-within) .thought-actions { opacity: .55; }
+.thought-panel { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; align-items: end; margin-top: 10px; padding: 10px; border-radius: 14px; background: var(--glass-track); }
+.thought-panel .wide { grid-column: 1 / -1; }
+.thought-panel input, .thought-panel select { color: var(--text); font-size: .9rem; padding: 6px 8px; }
+.make-contact { position: fixed; z-index: 55; padding: 6px 14px; background: var(--active-bg); border-color: var(--active-border); box-shadow: var(--shadow); }
+.converted-note { list-style: none; text-align: center; }
+.converted-note button { padding: 4px 12px; font-size: .85rem; }
