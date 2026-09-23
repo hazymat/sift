@@ -88,9 +88,9 @@ A day's battle plan: dump what you want to do, then give things times. Built for
 ### 4.3 Where things are (area: Find Things)
 
 - `places`: `kind (edition|section|box)` (`edition` is shown as **Life Area**), name, label_code? (physical label, e.g. "BA", "W1"), parent_place_id?, location_note? (where it lives, e.g. "Under desk back"), notes? (e.g. "9L Really Useful"), sort_order`
-  - **Life Areas** are separate parts of life the list is split into (e.g. Standard, Build), shown as tabs. Each has **sections** (e.g. "Where Things Area", "Wardrobe Boxes", "Front Room"), which hold **boxes** (a box can also be a spot, like "Malakai's room - fireplace").
+  - **Life Areas** are separate parts of life the list is split into (e.g. Standard, Build), shown as tabs. Each has **groups** (e.g. "Where Things Area", "Wardrobe Boxes", "Front Room"; stored as kind `section`), which hold **boxes** (a box can also be a spot, like "Malakai's room - fireplace").
 - `items`: `name, place_id (a box), parent_item_id? (one level of sub-items), quantity?, notes?, sort_order, last_moved_at`
-  - Moving an item = change `place_id`; moving a box to another section = change its `parent_place_id`.
+  - Moving an item = change `place_id`; moving a box to another group = change its `parent_place_id`.
 
 ### 4.4 Contacts
 
@@ -164,7 +164,7 @@ Single-page app, hash routing, top nav on laptop, bottom tab bar on iPhone. Glob
 | **Tasks** | Left: projects. Main: tasks grouped by milestone, drag reorder. Right: detail. Views: Today, Upcoming, Project, Done. | Segmented views; detail as full-screen sheet. |
 | **Day Planner** | Opens on today; arrows to other days (plan tomorrow tonight). Top: text box, one item per line → the day's pile. Pile offers, one tap each: Tasks due/overdue, yesterday's unfinished items, Brain Dump thoughts of kind `task`. Timeline: items with times, "now" line, tick off, push later, back to pile, send to tomorrow or to Tasks. Drag one item onto another to combine. **Text mode** toggle: the whole day as plain text (`12.45<tab>title`), edited freely and parsed back into items. | Same flow, full width. Typing a time at the start of a line (`12.45 speak to L`) schedules it. |
 | **Brain Dump** | Large text area focused on open; kind pills underneath; Save (⌘↵). Below: thought list/cloud, filter by kind and tag. | Opens into text entry with keyboard up; pills above keyboard. |
-| **Find Things** | Search bar always on top (`/`), searching every life area: matching boxes show their path and only the matching items. Life Area tabs; each section is a grid of box cards (big code, name, where it lives in orange, first few items, "+ n more"). Tap a card to edit the box and its contents (add many items at once, one per line). Menu: add box / section / life area, import / export CSV. | Same, one column; box editor as a full-height sheet. |
+| **Find Things** | Search bar always on top (`/`), searching every life area: matching boxes show their path and only the matching items. Life Area tabs; each group is a grid of box cards (big code, name, where it lives in orange, first few items, "+ n more"). Tap a card to edit the box and its contents (add many items at once, one per line). Menu: add box / group / life area, import / export CSV. | Same, one column; box editor as a full-height sheet. |
 | **Contacts** | Tabs: **Recent** (transient + recently used, "What was this?" prompts), **Directory** (by category; research mode per category), **Cases**. Contact detail: name, about, details (tap to call/email, which logs an interaction), raw captured text, notes, timeline (captured, looked up, contacted), connected contacts, cases, tasks and day items, jobs. | Same, full-screen detail. Quick "Contacted" button. |
 | **Contracts** | Spreadsheet-style table: sort, filter, group, column picker, inline edit. Detail with history chain + scans. Footer: annual cost total. | Cards by category, current first, renewals due highlighted. Tap-to-call provider. |
 | **Scans** | Reverse-chronological thumbnails, kind pill filters, search. Drag-and-drop to add. | Big **Scan** button, recent scans below. Full-screen viewer, pinch zoom. |
@@ -284,7 +284,7 @@ Single-page app, hash routing, top nav on laptop, bottom tab bar on iPhone. Glob
 
 - **Backup** (phase 1): one tap → `.sift` file (zip of JSON records + blobs), optionally encrypted with a backup passphrase. Saved via share sheet to Files / iCloud Drive / Downloads. Settings shows "last backup" with a reminder after 14 days when sync is off.
 - **Restore**: into an empty device, or merge into existing data using the same per-field merge rules.
-- Imports: Find Things CSV, one row per item (`life_area, section, box_code, box_name, box_location, box_notes, item, item_notes, sub_of`; only a box name or code is required; importing again merges, no duplicates; also exported). `tools/onenote_to_csv.py` converts the OneNote pages (exported as .docx). Contacts CSV; contracts CSV (unknown columns → custom fields).
+- Imports: Find Things CSV, one row per item (`life_area, group, box_code, box_name, box_location, box_notes, item, item_notes, sub_of`; only a box name or code is required; importing again merges, no duplicates; also exported). `tools/onenote_to_csv.py` converts the OneNote pages (exported as .docx). Contacts CSV; contracts CSV (unknown columns → custom fields).
 
 ## 11. File layout
 

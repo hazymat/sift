@@ -4,7 +4,7 @@
 import * as store from './store.js';
 import { parseCsvObjects, toCsv } from './csv.js';
 
-export const CSV_COLUMNS = ['life_area', 'section', 'box_code', 'box_name', 'box_location', 'box_notes', 'item', 'item_notes', 'sub_of'];
+export const CSV_COLUMNS = ['life_area', 'group', 'box_code', 'box_name', 'box_location', 'box_notes', 'item', 'item_notes', 'sub_of'];
 const DEFAULT_EDITION = 'Standard';
 const DEFAULT_SECTION = 'Boxes';
 
@@ -92,7 +92,7 @@ function normalise(row) {
   const pick = (...keys) => keys.map(k => row[k]).find(v => v != null && v !== '') || '';
   return {
     edition: pick('life_area', 'edition') || DEFAULT_EDITION,
-    section: pick('section', 'group') || DEFAULT_SECTION,
+    section: pick('group', 'section') || DEFAULT_SECTION,
     box_code: pick('box_code', 'label_code', 'code'),
     box_name: pick('box_name', 'box', 'name', 'desc'),
     box_location: pick('box_location', 'location', 'location_note'),

@@ -8,6 +8,8 @@ import { sortable } from '../sortable.js';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
 const EDITION_KEY = 'sift-find-edition';
+// What the headings holding boxes are called (stored as kind "section").
+const GROUP = { one: 'group', One: 'Group' };
 const ZOOM = 'box-zoom'; // view-transition-name shared by a card and its box page
 
 function remember(key, value) {
@@ -45,7 +47,7 @@ export default {
             <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
             <div class="menu">
               <button type="button" data-act="add-box">Add box</button>
-              <button type="button" data-act="add-section">Add section</button>
+              <button type="button" data-act="add-section">Add ${GROUP.one}</button>
               <button type="button" data-act="add-edition">New life area</button>
               <button type="button" data-act="rename-edition">Rename life area</button>
               <button type="button" data-act="import">Import CSV</button>
@@ -60,7 +62,7 @@ export default {
       <dialog class="sheet" id="import-sheet" aria-label="Import CSV">
         <div class="sheet-handle"></div>
         <h2>Import CSV</h2>
-        <p class="muted">One row per item. Columns: <code>life_area, section, box_code, box_name, box_location, box_notes, item, item_notes</code>. Only a box name or code is required. Anything already here is kept; importing the same file twice won't duplicate it.</p>
+        <p class="muted">One row per item. Columns: <code>life_area, group, box_code, box_name, box_location, box_notes, item, item_notes</code>. Only a box name or code is required. Anything already here is kept; importing the same file twice won't duplicate it.</p>
         <p><input type="file" id="import-file" accept=".csv,text/csv"></p>
         <p class="muted">or paste it:</p>
         <textarea id="import-text" rows="6" placeholder="box_code,box_name,item&#10;A,Electronics,555 timers"></textarea>
@@ -193,7 +195,7 @@ export default {
           <div class="sheet-actions">
             <button type="button" data-act="add-items">Add items</button>
             <span class="spacer"></span>
-            <label class="inline">Section <select name="parent_place_id">${sections.map(o => `<option value="${o.id}" ${o.id === s.id ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}</select></label>
+            <label class="inline">Move to <select name="parent_place_id">${sections.map(o => `<option value="${o.id}" ${o.id === s.id ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}</select></label>
             <button type="button" class="danger" data-act="delete-box">Delete box</button>
           </div>
         </article>`;
@@ -328,7 +330,7 @@ export default {
         if (n?.trim()) { await store.update('places', current.id, { name: n.trim() }); await reload(); }
       } else if (name === 'add-section') {
         const ed = current || await store.create('places', { kind: 'edition', name: 'Standard', parent_place_id: null, notes: '', sort_order: 0 });
-        const n = prompt('Section name (e.g. Wardrobe, Garage shelves):');
+        const n = prompt(`${GROUP.One} name (e.g. Wardrobe, Garage shelves):`);
         if (!n?.trim()) return;
         await store.create('places', { kind: 'section', name: n.trim(), parent_place_id: ed.id, location_note: '', notes: '', sort_order: current?.sections.length || 0 });
         await reload();
@@ -393,7 +395,7 @@ export default {
         const c = await importCsv(text);
         out.textContent = `Added ${c.boxes} boxes and ${c.items} items` +
           (c.editions ? `, ${c.editions} life area${c.editions === 1 ? '' : 's'}` : '') +
-          (c.sections ? `, ${c.sections} section${c.sections === 1 ? '' : 's'}` : '') +
+          (c.sections ? `, ${c.sections} ${GROUP.one}${c.sections === 1 ? '' : 's'}` : '') +
           (c.skipped ? `. ${c.skipped} items were already here.` : '.');
         await reload();
       } catch (err) {

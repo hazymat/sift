@@ -4,7 +4,7 @@ Find Things import CSV.
     python tools/onenote_to_csv.py OUT.csv "Page.docx=Life area name" ...
 
 How the pages are read:
-  - blue paragraphs are section headings
+  - blue paragraphs are group headings
   - tables with BOX / Desc / Contents column groups (repeated side by side)
     become boxes; orange text in the Desc cell is where the box lives
   - Box/Contents and Locations/Items/Note tables work the same way
@@ -24,7 +24,7 @@ W = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}'
 HEADING = {'1E4E79', '2E74B5', '1F4D78'}
 PLACE = {'ED7D31', 'C55A11', 'F4B083'}
 GREY = {'767676', '595959'}
-COLUMNS = ['life_area', 'section', 'box_code', 'box_name', 'box_location', 'box_notes', 'item', 'item_notes', 'sub_of']
+COLUMNS = ['life_area', 'group', 'box_code', 'box_name', 'box_location', 'box_notes', 'item', 'item_notes', 'sub_of']
 
 
 # ---------- reading the docx ----------
