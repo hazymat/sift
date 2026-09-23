@@ -1857,3 +1857,21 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 
 /* Toolbars that scroll sideways can be dragged with the mouse. */
 .md-bar.drag-scrolling { cursor: grabbing; user-select: none; }
+
+/* No line at the very top of the lined paper (the title's underline does
+   that job), on every paper. */
+.planner[data-paper] .paper, .planner[data-paper] .pile-paper { border-top: 0; }
+
+/* Section titles (Schedule, Tasks, Notes) and their underline, per paper. */
+.planner :is(.schedule-title, .pile h2, .day-notes h2) { padding-bottom: 2px; }
+.planner[data-paper="glass"] :is(.schedule-title, .pile h2, .day-notes h2) { border-bottom: 3px solid rgba(255, 255, 255, .22); }
+:root:not([data-theme="light"]) .planner[data-paper="glass"] :is(.schedule-title, .pile h2, .day-notes h2) { color: #f6e7a6; } /* pastel yellow on blue */
+.planner[data-paper="notebook"] :is(.schedule-title, .pile h2, .day-notes h2) { border-bottom: 3px solid #1d4f91; }
+.planner[data-paper="techie"] :is(.schedule-title, .pile h2, .day-notes h2) { border-bottom-width: 3px; }
+.planner[data-paper="minimal"] :is(.schedule-title, .pile h2, .day-notes h2) { padding-bottom: 8px; }
+
+/* Notebook: the day name in a deep slate blue. */
+.planner[data-paper="notebook"] .day-title .weekday { color: #344e6a; }
+
+/* Desktop "More" dropdown: solid enough to read over the page. */
+#topnav-overflow .menu { background: color-mix(in srgb, var(--bg, #0f172a) 94%, transparent); border: 1px solid var(--glass-border); box-shadow: 0 12px 34px rgba(0, 0, 0, .45); }
