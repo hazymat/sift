@@ -3,7 +3,7 @@
 // out again. Search across all life areas, CSV import/export.
 
 import { loadTree, search, importCsv, exportCsv, archivedMatchCount } from '../places.js';
-import { sortable } from '../sortable.js';
+import { createListKit } from '../listkit.js';
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 
@@ -36,8 +36,6 @@ export default {
     let editionId = recall(EDITION_KEY);
     let query = '';
     let openId = null; // box currently zoomed into
-    const selected = new Set(); // item ids selected in the open box
-    let anchor = null; // last tapped item, for shift-click ranges
     let gridScroll = 0;
 
     el.innerHTML = `
@@ -198,8 +196,8 @@ export default {
           </div>
           <h3>Contents <span class="muted">${b.items.length}</span></h3>
           <ul class="item-list">${b.items.map(i => `
-            <li data-item="${i.id}" data-depth="${i.depth}"${selected.has(i.id) ? ' class="selected"' : ''}>
-              <button type="button" class="drag-handle" aria-label="Select or move ${esc(i.name)}" aria-pressed="${selected.has(i.id)}">${icon('i-grip')}</button>
+            <li data-id="${i.id}" data-item="${i.id}" data-depth="${i.depth}">
+              <button type="button" class="drag-handle" aria-label="Select or move ${esc(i.name)}">${icon('i-grip')}</button>
               <input name="name" value="${esc(i.name)}" aria-label="Item">
               <input name="notes" value="${esc(i.notes)}" placeholder="note" aria-label="Note" class="item-note">
               <button type="button" class="icon-btn small" data-act="delete-item" aria-label="Remove ${esc(i.name)}">×</button>
@@ -214,67 +212,8 @@ export default {
             <button type="button" data-act="archive-box">Archive box</button>
             <button type="button" class="danger" data-act="delete-box">Delete box</button>
           </div>
-        </article>
-        <div class="select-bar" role="toolbar" aria-label="Selected items" hidden>
-          <span class="select-count"></span>
-          <button type="button" data-act="sel-indent" title="Make sub-items">Indent</button>
-          <button type="button" data-act="sel-outdent" title="Bring back out">Outdent</button>
-          <button type="button" data-act="sel-up" aria-label="Move up">↑</button>
-          <button type="button" data-act="sel-down" aria-label="Move down">↓</button>
-          <button type="button" data-act="sel-archive">Archive</button>
-          <button type="button" data-act="sel-delete" class="danger">Delete</button>
-          <button type="button" data-act="sel-clear" aria-label="Clear selection">✕</button>
-        </div>`;
-      const list = page.querySelector('.item-list');
-      let carried = []; // selected rows in their order when a drag lifted
-      sortable(list, {
-        holdMs: 260,
-        onTap: (li, ev) => {
-          const id = li.dataset.item;
-          if (ev.shiftKey && anchor) {
-            const ids = [...list.children].map(r => r.dataset.item);
-            const [a, b] = [ids.indexOf(anchor), ids.indexOf(id)].sort((x, y) => x - y);
-            ids.slice(a, b + 1).forEach(x => selected.add(x));
-          } else {
-            selected.has(id) ? selected.delete(id) : selected.add(id);
-          }
-          anchor = id;
-          paintSelection();
-        },
-        onPaint: (from, to) => {
-          const rows = [...list.children];
-          const [a, b] = [rows.indexOf(from), rows.indexOf(to)].sort((x, y) => x - y);
-          if (!paintBase) paintBase = new Set(selected);
-          selected.clear();
-          paintBase.forEach(x => selected.add(x));
-          rows.slice(a, b + 1).forEach(r => selected.add(r.dataset.item));
-          anchor = from.dataset.item;
-          paintSelection();
-        },
-        onLift: li => {
-          paintBase = null;
-          carried = selected.has(li.dataset.item) && selected.size > 1
-            ? [...list.children].filter(r => selected.has(r.dataset.item)) : [];
-          if (carried.length) liftGroup(li, carried);
-          document.body.classList.add('is-dragging');
-        },
-        onEnd: ({ item, dx }) => {
-          document.body.classList.remove('is-dragging');
-          const depth = dx > 30 ? 1 : dx < -30 ? 0 : null;
-          if (carried.length) {
-            dropGroup(item, carried);
-            // Every selected row lands where the dragged one did, in their original order.
-            const at = carried.indexOf(item);
-            carried.slice(0, at).forEach(r => item.before(r));
-            carried.slice(at + 1).reverse().forEach(r => item.after(r));
-          }
-          const moved = carried.length ? carried : [item];
-          carried = [];
-          saveOrder(new Map(depth == null ? [] : moved.map(r => [r.dataset.item, depth])));
-        },
-      });
-      list.addEventListener('pointerup', () => { paintBase = null; });
-      paintSelection();
+        </article>`;
+      kit.attach(page.querySelector('.item-list'));
       addItems = listEntry(page.querySelector('#new-items'), addLines);
       return true;
     }
@@ -301,73 +240,16 @@ export default {
       });
     }
 
-    let paintBase = null; // selection before a swipe started
-
-    // Dragging several rows: the others leave the list (so it closes up and
-    // behaves like one block moving) and a stack of all of them rides on the
-    // held row. A long selection shows a window of rows that fades at the edges.
-    function liftGroup(held, rows) {
-      const h = held.getBoundingClientRect().height;
-      const at = rows.indexOf(held);
-      const max = Math.max(3, Math.floor((innerHeight * 0.45) / h));
-      let from = Math.max(0, at - Math.floor((max - 1) / 2));
-      const to = Math.min(rows.length, from + max);
-      from = Math.max(0, to - max);
-      const ghost = document.createElement('div');
-      ghost.className = 'drag-ghost';
-      ghost.style.setProperty('--row', `${h}px`);
-      ghost.style.top = `${-(at - from) * h}px`;
-      ghost.classList.toggle('fade-top', from > 0);
-      ghost.classList.toggle('fade-bottom', to < rows.length);
-      ghost.innerHTML = rows.slice(from, to).map(r => `
-        <div class="ghost-row${r.dataset.depth === '1' ? ' sub' : ''}${r === held ? ' lead' : ''}">
-          <span>${esc(r.querySelector('input[name="name"]').value)}</span>
-          ${r === held ? `<span class="ghost-count">${rows.length} items</span>` : ''}
-        </div>`).join('');
-      held.append(ghost);
-      held.classList.add('group-drag');
-      rows.forEach(r => { if (r !== held) r.hidden = true; });
-    }
-
-    function dropGroup(held, rows) {
-      held.querySelector('.drag-ghost')?.remove();
-      held.classList.remove('group-drag');
-      rows.forEach(r => { r.hidden = false; });
-    }
-
-    function paintSelection() {
-      for (const li of page.querySelectorAll('.item-list > li')) {
-        const on = selected.has(li.dataset.item);
-        li.classList.toggle('selected', on);
-        li.querySelector('.drag-handle')?.setAttribute('aria-pressed', on);
-      }
-      const bar = page.querySelector('.select-bar');
-      if (!bar) return;
-      bar.hidden = !selected.size;
-      document.body.classList.toggle('has-select-bar', !!selected.size);
-      bar.querySelector('.select-count').textContent = `${selected.size} selected`;
-    }
-
-    function clearSelection() {
-      selected.clear();
-      anchor = null;
-      paintSelection();
-    }
-
-    // Persist the list as shown: order, and each sub-item's parent (the
-    // nearest top-level item above it). `depths` (id → 0|1) overrides rows.
-    async function saveOrder(depths = new Map(), label = 'Moved') {
-      const list = page.querySelector('.item-list');
+    // Persist the list as the kit reports it: order, and each sub-item's
+    // parent (the nearest top-level item above it).
+    async function persistOrder(rows, label = 'Moved') {
       const before = (findBox(openId)?.b.items || []).map(i => [i.id, { sort_order: i.sort_order, parent_item_id: i.parent_item_id || null }]);
-      for (const li of list.children) if (depths.has(li.dataset.item)) li.dataset.depth = depths.get(li.dataset.item);
       let parent = null;
-      const changes = [];
-      for (const [n, li] of [...list.children].entries()) {
-        const sub = li.dataset.depth === '1' && parent;
-        li.dataset.depth = sub ? 1 : 0;
-        if (!sub) parent = li.dataset.item;
-        changes.push([li.dataset.item, { sort_order: n, parent_item_id: sub ? parent : null }]);
-      }
+      const changes = rows.map((r, n) => {
+        const sub = r.depth > 0 && parent;
+        if (!sub) parent = r.id;
+        return [r.id, { sort_order: n, parent_item_id: sub ? parent : null }];
+      });
       await store.updateMany('items', changes);
       tree = await loadTree();
       undoable(label, async () => {
@@ -376,17 +258,35 @@ export default {
       });
     }
 
-    // Tab / Shift+Tab on an item makes it a sub-item or brings it back out.
-    page.addEventListener('keydown', async ev => {
-      const li = ev.target.closest('[data-item]');
-      if (!li || ev.key !== 'Tab' || ev.target.name !== 'name') return;
-      const depth = ev.shiftKey ? 0 : 1;
-      if (String(depth) === li.dataset.depth || (depth === 1 && !li.previousElementSibling)) return;
-      ev.preventDefault();
-      await saveOrder(new Map([[li.dataset.item, depth]]), depth ? 'Indented' : 'Outdented');
+    // Selected items plus their sub-items.
+    const withSubs = ids => {
+      const items = findBox(openId)?.b.items || [];
+      return [...new Set([...ids, ...items.filter(i => ids.includes(i.parent_item_id)).map(i => i.id)])];
+    };
+    async function batch(ids, field, label) {
+      const all = withSubs(ids);
+      const now = new Date().toISOString();
+      await store.updateMany('items', all.map(id => [id, { [field]: now }]));
+      await reload();
+      undoable(`${label} ${all.length} item${all.length === 1 ? '' : 's'}`, async () => {
+        await store.updateMany('items', all.map(id => [id, { [field]: null }]));
+        await reload();
+      });
+    }
+
+    const kit = this.kit = createListKit({
+      reorder: true,
+      indent: true,
+      maxDepth: 1,
+      noun: 'item',
+      onReorder: (rows, label) => persistOrder(rows, label),
+      actions: [
+        { id: 'archive', label: 'Archive', run: ids => batch(ids, 'archived_at', 'Archived') },
+        { id: 'delete', label: 'Delete', danger: true, run: ids => batch(ids, 'deleted_at', 'Removed') },
+      ],
     });
 
-    // Show the grid or the open box. `name` pairs the card and page for the zoom.
+    // Show the grid or the open box.    // Show the grid or the open box. `name` pairs the card and page for the zoom.
     function show() {
       const opening = openId && renderPage();
       grid.hidden = !!opening;
@@ -404,9 +304,7 @@ export default {
 
     async function openBox(id) {
       if (id === openId) return;
-      selected.clear();
-      anchor = null;
-      document.body.classList.remove('has-select-bar');
+      kit.clear();
       const leaving = openId;
       if (id) {
         gridScroll = scrollY;
@@ -465,37 +363,6 @@ export default {
         history.length > 1 ? history.back() : (location.hash = '#/places');
       } else if (name === 'add-items') {
         await addItems();
-      } else if (name === 'sel-clear') {
-        clearSelection();
-      } else if (name === 'sel-indent' || name === 'sel-outdent') {
-        const depth = name === 'sel-indent' ? 1 : 0;
-        await saveOrder(new Map([...selected].map(id => [id, depth])), `${depth ? 'Indented' : 'Outdented'} ${selected.size}`);
-        paintSelection();
-      } else if (name === 'sel-up' || name === 'sel-down') {
-        const list = page.querySelector('.item-list');
-        const rows = [...list.children].filter(r => selected.has(r.dataset.item));
-        if (!rows.length) return;
-        if (name === 'sel-up') {
-          const prev = rows[0].previousElementSibling;
-          if (!prev) return;
-          prev.before(...rows);
-        } else {
-          const next = rows.at(-1).nextElementSibling;
-          if (!next) return;
-          next.after(...rows);
-        }
-        await saveOrder(new Map(), `Moved ${rows.length}`);
-      } else if (name === 'sel-archive') {
-        const items = findBox(openId)?.b.items || [];
-        const ids = [...new Set([...selected, ...items.filter(i => selected.has(i.parent_item_id)).map(i => i.id)])];
-        const now = new Date().toISOString();
-        await store.updateMany('items', ids.map(id => [id, { archived_at: now }]));
-        clearSelection();
-        await reload();
-        undoable(`Archived ${ids.length} item${ids.length === 1 ? '' : 's'}`, async () => {
-          await store.updateMany('items', ids.map(id => [id, { archived_at: null }]));
-          await reload();
-        });
       } else if (name === 'archive-box') {
         const { b: box } = findBox(openId);
         const boxId = openId;
@@ -504,17 +371,6 @@ export default {
         location.hash = '#/places';
         undoable(`Archived box ${box.label_code || box.name || ''}`.trim(), async () => {
           await store.update('places', boxId, { archived_at: null });
-          await reload();
-        });
-      } else if (name === 'sel-delete') {
-        const items = findBox(openId)?.b.items || [];
-        const gone = [...new Set([...selected, ...items.filter(i => selected.has(i.parent_item_id)).map(i => i.id)])];
-        const now = new Date().toISOString();
-        await store.updateMany('items', gone.map(g => [g, { deleted_at: now }]));
-        clearSelection();
-        await reload();
-        undoable(`Removed ${gone.length} item${gone.length === 1 ? '' : 's'}`, async () => {
-          await store.updateMany('items', gone.map(g => [g, { deleted_at: null }]));
           await reload();
         });
       } else if (name === 'delete-item') {
@@ -645,7 +501,7 @@ export default {
 
     this.onKey = ev => {
       if (ev.key === '/' && !openId && !ev.target.closest('input, textarea, select')) { ev.preventDefault(); q.focus(); }
-      if (ev.key === 'Escape' && openId && selected.size && !ev.target.closest('input, textarea')) { ev.preventDefault(); clearSelection(); return; }
+      if (ev.key === 'Escape' && openId && !ev.target.closest('input, textarea') && kit.escape()) { ev.preventDefault(); return; }
       if (ev.key === 'Escape' && openId && !importSheet.open) { ev.preventDefault(); saveAndClose(); return; }
       if (ev.key === 'Escape' && document.activeElement === q && q.value) { q.value = ''; query = ''; renderGrid(); }
     };
@@ -664,7 +520,7 @@ export default {
   },
 
   unmount() {
-    document.body.classList.remove('has-select-bar');
+    this.kit?.destroy();
     removeEventListener('keydown', this.onKey);
     removeEventListener('resize', this.onResize);
   },

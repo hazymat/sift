@@ -383,8 +383,11 @@ export default {
         renderPile();
         undoable('Paper changed for this day', async () => { day = await saveDay(date, { paper: old }); applyPaper(); renderLines(); renderPile(); });
       } else if (t.id === 'focus') {
-        day = await saveDay(date, { focus: t.value.trim() });
-        toast('✓ Saved');
+        const old = day.focus || '';
+        if (t.value.trim() === old) return;
+        const forDate = date;
+        day = await saveDay(forDate, { focus: t.value.trim() });
+        undoable('Day focus saved', async () => { const d = await saveDay(forDate, { focus: old }); if (forDate === date) { day = d; header(); } });
       }
     });
 

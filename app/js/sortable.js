@@ -12,7 +12,7 @@
 //   press and move straight away → onPaint(firstItem, itemUnderPointer) (swipe-select)
 //   press and hold, then drag → drag as above (onLift(item) when it lifts)
 
-export function sortable(list, { handle = '.drag-handle', holdMs = 0, onMove, onEnd, onTap, onPaint, onLift } = {}) {
+export function sortable(list, { handle = '.drag-handle', holdMs = 0, keyboard = true, onMove, onEnd, onTap, onPaint, onLift } = {}) {
   let dragging = null;
   let pending = null; // pressed; waiting to see if it's a tap, swipe or hold
   let painting = null;
@@ -128,7 +128,7 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, onMove, on
 
   list.addEventListener('keydown', e => {
     const grip = e.target.closest(handle);
-    if (!grip || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+    if (!keyboard || !grip || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
     e.preventDefault();
     const item = grip.closest('li');
     const target = e.key === 'ArrowUp' ? item.previousElementSibling : item.nextElementSibling;

@@ -11,6 +11,7 @@ import { addTask } from '../tasks.js';
 import { addItem, isoDate, parseTimed } from '../days.js';
 import { loadTree } from '../places.js';
 import { contactFromText } from '../contacts.js';
+import { createListKit } from '../listkit.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -98,6 +99,7 @@ export default {
       list.innerHTML = shown.map(t => card(t)).join('')
         || `<li class="empty"><h2>${thoughts.length ? 'Nothing matches.' : 'Empty head. Nice.'}</h2></li>`;
       if (hidden && !state.showConverted) list.insertAdjacentHTML('beforeend', `<li class="muted hint converted-note"><button type="button" data-act="toggle-converted">Show ${hidden} converted</button></li>`);
+      kit.attach(list);
     };
 
     function card(t) {
@@ -106,6 +108,7 @@ export default {
       return `
         <li class="thought${t.converted_to ? ' converted' : ''}${t.pinned ? ' pinned' : ''}" data-id="${t.id}">
           <div class="thought-head">
+            <button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button>
             <select class="kind-select" aria-label="Kind">${KINDS.map(k => `<option value="${k.id}" ${k.id === t.kind ? 'selected' : ''}>${k.label}</option>`).join('')}</select>
             <span class="muted">${ago(t.created_at)}</span>
             ${conv ? `<a class="chip" href="${href}">→ ${conv[0]}</a>` : ''}
@@ -143,6 +146,41 @@ export default {
         <button type="button" class="primary" data-act="store-go">Add to box</button>
       </div>`;
     }
+
+    // ---------- selecting several ----------
+
+    async function batch(ids, fields, label) {
+      const before = ids.map(id => { const t = thoughts.find(x => x.id === id); return [id, Object.fromEntries(Object.keys(fields).map(k => [k, t?.[k] ?? null]))]; });
+      await store.updateMany('thoughts', ids.map(id => [id, fields]));
+      await render();
+      undoable(`${label} ${ids.length} thought${ids.length === 1 ? '' : 's'}`, async () => { await store.updateMany('thoughts', before); await render(); });
+    }
+    const kit = this.kit = createListKit({
+      reorder: false,
+      noun: 'thought',
+      actions: [
+        { id: 'tasks', label: '→ Tasks', run: async ids => {
+          const made = [];
+          for (const id of ids) {
+            const t = thoughts.find(x => x.id === id);
+            if (!t || t.converted_to) continue;
+            const [first, ...rest] = t.body.split('\n');
+            const task = await addTask({ title: first.trim().slice(0, 200), notes: rest.join('\n').trim(), source_thought_id: t.id });
+            await store.update('thoughts', t.id, { converted_to: { collection: 'tasks', id: task.id } });
+            made.push([t.id, task.id]);
+          }
+          await render();
+          undoable(`Made ${made.length} task${made.length === 1 ? '' : 's'}`, async () => {
+            for (const [tid, taskId] of made) { await store.remove('tasks', taskId); await store.update('thoughts', tid, { converted_to: null }); }
+            await render();
+          });
+        } },
+        { id: 'pin', label: 'Pin', run: ids => batch(ids, { pinned: true }, 'Pinned') },
+        { id: 'unpin', label: 'Unpin', run: ids => batch(ids, { pinned: false }, 'Unpinned') },
+        { id: 'archive', label: 'Archive', run: ids => batch(ids, { archived_at: new Date().toISOString() }, 'Archived') },
+        { id: 'delete', label: 'Delete', danger: true, run: ids => batch(ids, { deleted_at: new Date().toISOString() }, 'Deleted') },
+      ],
+    });
 
     // ---------- capture ----------
 
@@ -257,6 +295,10 @@ export default {
       }
       render();
     });
+    this.onKey = ev => {
+      if (ev.key === 'Escape' && !ev.target.closest('input, textarea, select, [contenteditable]')) kit.escape();
+    };
+    addEventListener('keydown', this.onKey);
     list.addEventListener('keydown', ev => {
       if (ev.target.classList.contains('thought-edit') && ev.key === 'Escape') { ev.stopPropagation(); ev.target.value = thoughts.find(x => x.id === ev.target.closest('[data-id]').dataset.id).body; ev.target.blur(); }
     });
@@ -304,6 +346,8 @@ export default {
   },
 
   unmount() {
+    this.kit?.destroy();
+    removeEventListener('keydown', this.onKey);
     document.removeEventListener('selectionchange', this.onSelect);
   },
 

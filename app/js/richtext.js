@@ -1,5 +1,5 @@
 // Notes editor used for free text across the app. Stored as a small
-// markdown subset (**bold**, _italic_, ~~cross out~~, "- " lists), shown
+// markdown subset (**bold**, _italic_, ~~cross out~~, "- " lists, "## heading"), shown
 // formatted while you type. A "Markdown" toggle shows the raw text; it
 // always starts in formatted mode.
 //
@@ -19,6 +19,12 @@ export function toHtml(md) {
   const out = [];
   let list = null;
   for (const line of (md || '').split('\n')) {
+    const heading = line.match(/^#{1,6}\s+(.*)$/);
+    if (heading) {
+      if (list) { out.push(`<ul>${list.join('')}</ul>`); list = null; }
+      out.push(`<h4>${inline(heading[1])}</h4>`);
+      continue;
+    }
     const item = line.match(/^\s*[-*]\s+(.*)$/);
     if (item) {
       list ??= [];
@@ -43,6 +49,7 @@ export function toMarkdown(root) {
     if (tag === 'B' || tag === 'STRONG' || style.fontWeight === 'bold' || Number(style.fontWeight) >= 600) return wrap(inner(), '**');
     if (tag === 'I' || tag === 'EM' || style.fontStyle === 'italic') return wrap(inner(), '_');
     if (tag === 'S' || tag === 'STRIKE' || tag === 'DEL' || /line-through/.test(style.textDecoration || '')) return wrap(inner(), '~~');
+    if (/^H[1-6]$/.test(tag)) return `## ${inner().replace(/\n+$/, '')}\n`;
     if (tag === 'UL' || tag === 'OL') {
       return [...node.children].map(li => `- ${[...li.childNodes].map(walk).join('').replace(/\n+$/, '')}`).join('\n') + '\n';
     }

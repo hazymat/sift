@@ -6,7 +6,7 @@
 import * as store from '../store.js';
 import { loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES } from '../tasks.js';
 import { ENERGY, isoDate, addDays, parseDate, addItem } from '../days.js';
-import { sortable } from '../sortable.js';
+import { createListKit } from '../listkit.js';
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import { richText } from '../richtext.js';
@@ -98,8 +98,8 @@ export default {
 
     function row(t, { draggable = true } = {}) {
       return `
-        <li data-task="${t.id}" data-depth="${t.depth ?? 0}" class="${isDone(t) ? 'done' : ''}">
-          ${draggable ? `<button type="button" class="drag-handle" aria-label="Move ${esc(t.title)}">${icon('i-grip')}</button>` : ''}
+        <li data-task="${t.id}" data-id="${t.id}" data-depth="${t.depth ?? 0}" class="${isDone(t) ? 'done' : ''}">
+          <button type="button" class="drag-handle" aria-label="Select${draggable ? ' or move' : ''} ${esc(t.title)}">${icon('i-grip')}</button>
           <input type="checkbox" class="tick" ${isDone(t) ? 'checked' : ''} aria-label="Done">
           <input class="task-title" value="${esc(t.title)}" aria-label="Task" autocomplete="off">
           <span class="chips">${chips(t)}</span>
@@ -147,9 +147,11 @@ export default {
         <p class="muted hint">${listHint()} Tap ⋯ on a task for a day, an aim, energy, a project and more.</p>`;
     }
 
-    function listOf(tasks, opts) {
-      return `<ul class="task-list">${tasks.map(t => row(t, opts)).join('')}</ul>`;
-    }
+    // Views render one <ul> with heading rows between groups, so selection
+    // (and, in List, dragging) works across the whole view.
+    const head = (html, attrs = '') => `<li class="list-head"${attrs}>${html}</li>`;
+    const rowsOf = (tasks, opts) => tasks.map(t => row(t, opts)).join('');
+    const listOf = (inner, empty = '') => (inner ? `<ul class="task-list">${inner}</ul>` : empty);
 
     // Tasks in list order, hiding done ones (unless shown) and collapsed sub-trees.
     function visible(tasks) {
@@ -187,15 +189,24 @@ export default {
       if (project) {
         const ms = data.milestones.filter(m => m.project_id === project.id);
         const groups = [{ id: null, name: ms.length ? 'No milestone' : '' }, ...ms];
-        html += groups.map(g => {
-          const tasks = visible(scoped.filter(t => (t.milestone_id || null) === g.id || (t.parent_task_id && scoped.find(p => p.id === t.parent_task_id)?.milestone_id === g.id && !t.milestone_id)));
-          if (!tasks.length && g.id === null && ms.length) return '';
+        // Top-level tasks group by milestone; sub-tasks follow their parent.
+        const top = scoped.filter(t => !t.parent_task_id || !scoped.some(p => p.id === t.parent_task_id));
+        const under = id => {
+          const out = [];
+          const walk = pid => scoped.filter(k => k.parent_task_id === pid).forEach(k => { out.push(k); walk(k.id); });
+          walk(id);
+          return out;
+        };
+        html += listOf(groups.map(g => {
+          const roots = top.filter(t => (t.milestone_id || null) === g.id);
+          const tasks = visible(roots.flatMap(t => [t, ...under(t.id)]));
           const pr = progress(scoped.filter(t => t.milestone_id === g.id));
-          return `${g.name ? `<h3 class="milestone">${esc(g.name)}${g.due_date ? ` <span class="muted">⚑ ${shortDate(g.due_date)}</span>` : ''}${g.id ? ` <span class="muted">${pr.done}/${pr.total}</span>` : ''}</h3>` : ''}${listOf(tasks)}`;
-        }).join('');
+          const label = g.name ? `${esc(g.name)}${g.due_date ? ` <span class="muted">⚑ ${shortDate(g.due_date)}</span>` : ''}${g.id ? ` <span class="muted">${pr.done}/${pr.total}</span>` : ''}` : '';
+          return (label ? head(label, ` data-milestone="${g.id || ''}"`) : '') + rowsOf(tasks);
+        }).join(''));
       } else {
         const tasks = visible(scoped);
-        html += tasks.length ? listOf(tasks) : '<div class="empty"><h2>Nothing to do. Add something above.</h2></div>';
+        html += listOf(rowsOf(tasks), '<div class="empty"><h2>Nothing to do. Add something above.</h2></div>');
       }
       const doneCount = scoped.filter(isDone).length;
       if (doneCount) html += `<p class="muted done-toggle"><button type="button" data-act="toggle-done">${state.showDone ? 'Hide' : 'Show'} ${doneCount} done</button></p>`;
@@ -208,23 +219,22 @@ export default {
       const late = open.filter(t => aimDate(t) && aimDate(t) < today);
       const planned = open.filter(t => t.start_date === today || (t.start_date && t.start_date < today && !aimDate(t)));
       const due = open.filter(t => aimDate(t) === today && !planned.includes(t));
-      const section = (title, list, note) => list.length ? `<h3 class="milestone">${title}</h3>${note ? `<p class="muted hint">${note}</p>` : ''}${listOf(list.map(t => ({ ...t, depth: 0 })), { draggable: false })}` : '';
-      const html = section('Overdue', late, 'Aim date has passed.') + section('Planned for today', planned) + section('Aim is today', due);
-      return html || '<div class="empty"><h2>Nothing planned for today.</h2><p class="muted">Give tasks a day with ⋯ → Plan for day, or adopt some in Day Planner.</p></div>';
+      const section = (title, list, note) => list.length ? head(`${title}${note ? ` <span class="muted">${note}</span>` : ''}`) + rowsOf(list.map(t => ({ ...t, depth: 0 })), { draggable: false }) : '';
+      return listOf(section('Overdue', late, 'aim date has passed') + section('Planned for today', planned) + section('Aim is today', due),
+        '<div class="empty"><h2>Nothing planned for today.</h2><p class="muted">Give tasks a day with ⋯ → Plan for day, or adopt some in Day Planner.</p></div>');
     }
 
     function viewUpcoming() {
       const today = isoDate();
       const days = [...Array(14)].map((_, n) => addDays(today, n));
       const open = data.tasks.filter(t => !isDone(t));
+      const flat = list => rowsOf(list.map(t => ({ ...t, depth: 0 })), { draggable: false });
       const html = days.map(d => {
         const list = open.filter(t => t.start_date === d || aimDate(t) === d);
-        if (!list.length) return '';
-        return `<h3 class="milestone"><a href="#/planner/${d}">${shortDate(d)}</a></h3>${listOf(list.map(t => ({ ...t, depth: 0 })), { draggable: false })}`;
+        return list.length ? head(`<a href="#/planner/${d}">${shortDate(d)}</a>`) + flat(list) : '';
       }).join('');
       const later = open.filter(t => (t.start_date && t.start_date > days.at(-1)) || (aimDate(t) && aimDate(t) > days.at(-1)));
-      return (html || '<div class="empty"><h2>Nothing in the next two weeks.</h2></div>')
-        + (later.length ? `<h3 class="milestone">Later</h3>${listOf(later.map(t => ({ ...t, depth: 0 })), { draggable: false })}` : '');
+      return listOf(html + (later.length ? head('Later') + flat(later) : ''), '<div class="empty"><h2>Nothing in the next two weeks.</h2></div>');
     }
 
     function viewProjects() {
@@ -253,7 +263,7 @@ export default {
         if (!byDay.has(d)) byDay.set(d, []);
         byDay.get(d).push({ ...t, depth: 0 });
       }
-      return [...byDay].map(([d, list]) => `<h3 class="milestone">${shortDate(d)} <span class="muted">${list.length}</span></h3>${listOf(list, { draggable: false })}`).join('');
+      return listOf([...byDay].map(([d, list]) => head(`${shortDate(d)} <span class="muted">${list.length}</span>`) + rowsOf(list, { draggable: false })).join(''));
     }
 
     // ---------- render ----------
@@ -265,8 +275,10 @@ export default {
       body.innerHTML = { list: viewList, today: viewToday, upcoming: viewUpcoming, projects: viewProjects, done: viewDone }[state.view]();
       const ta = body.querySelector('#task-new');
       if (ta) listEntry(ta, addLines);
-      const list = body.querySelectorAll('.task-list');
-      if (state.view === 'list') list.forEach(ul => wireDrag(ul));
+      const ul = body.querySelector('.task-list');
+      const ordered = state.view === 'list';
+      kitOrdered.attach(ordered ? ul : null);
+      kitPlain.attach(ordered ? null : ul);
       const notesBox = body.querySelector('.task-notes');
       if (notesBox && open) {
         const t = data.tasks.find(x => x.id === open);
@@ -299,69 +311,61 @@ export default {
       });
     }
 
-    // ---------- reorder & nest ----------
+    // ---------- reorder, nest, select (shared list behaviour) ----------
 
-    function wireDrag(ul) {
-      let kids = [];
-      sortable(ul, {
-        handle: '.drag-handle',
-        onLift: li => {
-          // A parent carries its sub-tasks: hide them while dragging.
-          kids = [];
-          const depth = Number(li.dataset.depth);
-          for (let n = li.nextElementSibling; n && Number(n.dataset.depth) > depth; n = n.nextElementSibling) kids.push(n);
-          kids.forEach(k => { k.hidden = true; });
-          li.dataset.carry = kids.length ? `+${kids.length}` : '';
-        },
-        onEnd: ({ item, dx }) => {
-          let after = item;
-          for (const k of kids) { after.after(k); after = k; k.hidden = false; }
-          const shift = dx > 30 ? 1 : dx < -30 ? -1 : 0;
-          if (shift) [item, ...kids].forEach(r => { r.dataset.depth = Math.max(0, Number(r.dataset.depth) + shift); });
-          delete item.dataset.carry;
-          kids = [];
-          saveOrder(ul, shift ? (shift > 0 ? 'Made a sub-task' : 'Moved out') : 'Moved');
-        },
-      });
-    }
-
-    async function saveOrder(ul, label) {
-      const rows = [...ul.querySelectorAll(':scope > li[data-task]')];
+    // Persist what the kit reports: order, parents from depth, and in a
+    // project the milestone of the heading a top-level task sits under.
+    async function persistOrder(rows, label, ul) {
       const before = rows.map(r => {
-        const t = data.tasks.find(x => x.id === r.dataset.task);
-        return [t.id, { sort_order: t.sort_order, parent_task_id: t.parent_task_id || null }];
+        const t = data.tasks.find(x => x.id === r.id);
+        return [t.id, { sort_order: t.sort_order, parent_task_id: t.parent_task_id || null, milestone_id: t.milestone_id || null }];
       });
+      const minOrder = Math.min(...before.map(b => b[1].sort_order ?? 0));
+      const milestoneOf = new Map();
+      let current = null;
+      for (const li of ul.children) {
+        if (li.matches('.list-head[data-milestone]')) current = li.dataset.milestone || null;
+        else if (li.dataset.id) milestoneOf.set(li.dataset.id, current);
+      }
       const stack = [];
       const changes = rows.map((r, n) => {
-        let depth = Math.min(Number(r.dataset.depth), stack.length); // can't skip a level
+        const depth = Math.min(r.depth, stack.length);
         const parent = depth ? stack[depth - 1] : null;
         stack.length = depth;
-        stack.push(r.dataset.task);
-        const minOrder = Math.min(...before.map(b => b[1].sort_order ?? 0));
-        return [r.dataset.task, { sort_order: minOrder + n, parent_task_id: parent }];
+        stack.push(r.id);
+        const fields = { sort_order: minOrder + n, parent_task_id: parent };
+        if (state.project && !parent && ul.querySelector('.list-head[data-milestone]')) fields.milestone_id = milestoneOf.get(r.id) ?? null;
+        return [r.id, fields];
       });
       await store.updateMany('tasks', changes);
       await render();
       undoable(label, async () => { await store.updateMany('tasks', before); await render(); });
     }
 
-    // Tab / Shift+Tab on a task title nests / un-nests it (with its sub-tasks).
-    body.addEventListener('keydown', async ev => {
-      if (ev.key !== 'Tab' || !ev.target.classList.contains('task-title') || state.view !== 'list') return;
-      const li = ev.target.closest('li[data-task]');
-      const depth = Number(li.dataset.depth);
-      const next = ev.shiftKey ? depth - 1 : depth + 1;
-      const prev = li.previousElementSibling?.closest('li[data-task]');
-      if (next < 0 || (!ev.shiftKey && (!prev || Number(prev.dataset.depth) < depth))) return;
-      ev.preventDefault();
-      for (let n = li.nextElementSibling; n && Number(n.dataset.depth) > depth; n = n.nextElementSibling) n.dataset.depth = Number(n.dataset.depth) + (next - depth);
-      li.dataset.depth = next;
-      const id = li.dataset.task;
-      await saveOrder(li.closest('ul'), ev.shiftKey ? 'Moved out' : 'Made a sub-task');
-      body.querySelector(`li[data-task="${id}"] .task-title`)?.focus();
-    });
+    // Selected tasks plus everything under them.
+    const withSubs = ids => {
+      const out = new Set(ids);
+      const walk = pid => data.tasks.filter(k => k.parent_task_id === pid).forEach(k => { out.add(k.id); walk(k.id); });
+      ids.forEach(walk);
+      return [...out];
+    };
+    async function batchSet(ids, fields, label, { subs = false } = {}) {
+      const all = subs ? withSubs(ids) : ids;
+      const before = all.map(id => { const t = data.tasks.find(x => x.id === id); return [id, Object.fromEntries(Object.keys(fields).map(k => [k, t?.[k] ?? null]))]; });
+      await store.updateMany('tasks', all.map(id => [id, fields]));
+      await render();
+      undoable(`${label} ${all.length} task${all.length === 1 ? '' : 's'}`, async () => { await store.updateMany('tasks', before); await render(); });
+    }
+    const taskActions = [
+      { id: 'done', label: 'Done', run: ids => batchSet(ids, doneFields(true), 'Done:') },
+      { id: 'today', label: 'Plan for today', run: ids => batchSet(ids, { start_date: isoDate() }, 'Planned for today:') },
+      { id: 'archive', label: 'Archive', run: ids => batchSet(ids, { archived_at: new Date().toISOString() }, 'Archived', { subs: true }) },
+      { id: 'delete', label: 'Delete', danger: true, run: ids => batchSet(ids, { deleted_at: new Date().toISOString() }, 'Deleted', { subs: true }) },
+    ];
+    const kitOrdered = this.kitOrdered = createListKit({ reorder: true, indent: true, maxDepth: 4, noun: 'task', actions: taskActions, onReorder: persistOrder });
+    const kitPlain = this.kitPlain = createListKit({ reorder: false, noun: 'task', actions: taskActions });
 
-    // ---------- editing ----------
+        // ---------- editing ----------
 
     async function change(id, fields, label = 'Saved') {
       const before = data.tasks.find(t => t.id === id);
@@ -385,7 +389,11 @@ export default {
       const li = t.closest('[data-task], [data-for]');
       const id = li?.dataset.task || li?.dataset.for;
       if (t.dataset.project) {
-        if (t.value.trim()) { await store.update('projects', t.dataset.project, { name: t.value.trim() }); toast('✓ Saved'); }
+        const p = data.projects.find(x => x.id === t.dataset.project);
+        if (!t.value.trim() || t.value.trim() === p?.name) return;
+        const old = p.name;
+        await store.update('projects', p.id, { name: t.value.trim() });
+        undoable('Saved', async () => { await store.update('projects', p.id, { name: old }); render(); });
         return;
       }
       if (!id) return;
@@ -493,6 +501,7 @@ export default {
     this.closeDetails = () => { open = null; };
 
     this.onKey = ev => {
+      if (ev.key === 'Escape' && !ev.target.closest('input, textarea, select, [contenteditable]') && (kitOrdered.escape() || kitPlain.escape())) return;
       if (ev.key === 'Escape' && open && !ev.target.closest('input, textarea, select, [contenteditable]')) { open = null; render(); }
     };
     addEventListener('keydown', this.onKey);
@@ -508,6 +517,8 @@ export default {
   },
 
   unmount() {
+    this.kitOrdered?.destroy();
+    this.kitPlain?.destroy();
     removeEventListener('keydown', this.onKey);
   },
 

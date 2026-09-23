@@ -7,13 +7,14 @@
 import * as store from '../store.js';
 import {
   loadContacts, createContact, contactFromText, extractDetails, logInteraction, lastActivity,
-  detailHref, howFor, HOW, RESEARCH, CASE_STATUS,
+  detailHref, howFor, HOW, RESEARCH, CASE_STATUS, withCapturedText, CAPTURED_HEADING,
 } from '../contacts.js';
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import { richText } from '../richtext.js';
 import { addTask } from '../tasks.js';
 import { isoDate } from '../days.js';
+import { createListKit } from '../listkit.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -62,6 +63,8 @@ export default {
     const go = hash => { if (location.hash !== hash) location.hash = hash; else render(); };
 
     const byId = id => data.contacts.find(c => c.id === id);
+    // First real line of the notes, for cards (not the "Captured" heading).
+    const noteLine = c => (c.notes || '').split('\n').map(l => l.replace(/[*_~#]/g, '').trim()).find(l => l && !CAPTURED_HEADING.includes(l))?.slice(0, 90) || '';
     const catName = id => data.categories.find(k => k.id === id)?.name || '';
 
     // ---------- shared bits ----------
@@ -77,12 +80,13 @@ export default {
 
     function contactCard(c) {
       return `
-        <li class="c-card${c.pinned ? ' pinned' : ''}" data-contact-card="${c.id}">
+        <li class="c-card${c.pinned ? ' pinned' : ''}" data-contact-card="${c.id}" data-id="${c.id}">
+          <button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button>
           <a class="c-main" href="#/contacts/c/${c.id}">
             <span class="c-name">${esc(c.name || '(no name)')}</span>
             ${c.about ? `<span class="muted c-about">${esc(c.about)}</span>` : c.status === 'transient' ? '<span class="what-was-this">What was this?</span>' : ''}
             ${c.category_ids?.length ? `<span class="muted c-about">${c.category_ids.map(catName).filter(Boolean).map(esc).join(' · ')}</span>` : ''}
-            ${c.notes ? `<span class="muted c-about c-note">${esc(c.notes.replace(/[*_~]/g, '').split('\n')[0].slice(0, 90))}</span>` : ''}
+            ${noteLine(c) ? `<span class="muted c-about c-note">${esc(noteLine(c))}</span>` : ''}
           </a>
           <span class="c-details">${detailChips(c)}</span>
           <span class="muted c-when">${ago(lastActivity(c))}${c.research_status ? ` · ${RESEARCH.find(r => r.id === c.research_status)?.label}` : ''}</span>
@@ -104,8 +108,9 @@ export default {
           <button type="button" class="primary" data-act="capture">Save <kbd>${SHORTCUT}</kbd></button>
         </div>
         <input type="search" id="c-q" class="search" placeholder="Search contacts…" value="${esc(state.q)}" autocomplete="off">
-        <ul class="c-list">${recent.map(contactCard).join('') || '<li class="empty"><h2>No contacts yet. Paste a number above.</h2></li>'}</ul>
-        ${older.length ? `<details class="older"><summary>Older (${older.length})</summary><ul class="c-list">${older.map(contactCard).join('')}</ul></details>` : ''}`;
+        <ul class="c-list kit-list">${recent.map(contactCard).join('') || (older.length ? '' : '<li class="empty"><h2>No contacts yet. Paste a number above.</h2></li>')}
+          ${older.length ? `<li class="list-head older-head">Older <span class="muted">(untouched for ${OLDER_DAYS} days)</span></li>${older.map(contactCard).join('')}` : ''}
+        </ul>`;
     }
 
     // ---------- Directory ----------
@@ -127,7 +132,7 @@ export default {
             <p class="muted hint">One per line: name, number, website, a note, in any order. Numbers, emails and links are recognised. Each becomes a candidate in ${esc(cat.name)}. ${SHORTCUT} to add.</p>
             <textarea id="research-new" rows="4" placeholder="Smith Plumbing 0161 555 0101 smithplumbing.co.uk good reviews&#10;Dave (Anna's plumber) 07700 900123 not sure he'll do it, but maybe"></textarea>
           </details>
-          <ul class="c-list research-list">${inCat.map(c => `
+          <ul class="c-list research-list kit-list">${inCat.map(c => `
             ${contactCard(c)}
             <li class="research-row" data-research="${c.id}">
               ${RESEARCH.map(r => `<button type="button" data-status="${r.id}" aria-pressed="${c.research_status === r.id}">${r.label}</button>`).join('')}
@@ -207,6 +212,8 @@ export default {
             </li>`).join('')}
           </ul>
           <button type="button" data-act="add-detail">+ Detail</button>
+          <h3 class="milestone">Notes</h3>
+          <div id="c-notes"></div>
           <h3 class="milestone">Log</h3>
           ${logForm('contact')}
           <ul class="timeline">${timeline.map(e => `<li class="${e.kind}"><span class="muted">${when(e.at)}</span> ${esc(e.text)}</li>`).join('')}</ul>
@@ -215,9 +222,6 @@ export default {
             ${tasks.map(t => `<li><a href="#/tasks/list${t.project_id ? `/${t.project_id}` : ''}">Task: ${esc(t.title)}</a></li>`).join('')}
             ${dayItems.map(i => `<li><a href="#/planner/${i.date}">Plan ${i.date}: ${esc(i.title)}</a></li>`).join('')}
           </ul>` : ''}
-          <h3 class="milestone">Notes</h3>
-          <div id="c-notes"></div>
-          ${c.body ? `<details class="raw-body"><summary>As captured</summary><pre>${esc(c.body)}</pre></details>` : ''}
           <div class="detail-actions">
             <button type="button" data-act="contact-task">+ Task with this contact</button>
             <span class="spacer"></span>
@@ -299,6 +303,7 @@ export default {
         : viewRecent();
       const cap = body.querySelector('#c-new');
       if (cap) cap.addEventListener('keydown', ev => { if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); capture(); } });
+      kit.attach(body.querySelector('.kit-list'));
       const research = body.querySelector('#research-new');
       if (research) listEntry(research, addCandidates);
       const q = body.querySelector('#c-q');
@@ -307,9 +312,32 @@ export default {
       if (notesBox) {
         const c = byId(state.id);
         let t;
-        richText(notesBox, { value: c.notes || '', placeholder: 'Specialities, "not sure they will do it, but maybe"…', onChange: md => { clearTimeout(t); t = setTimeout(() => store.update('contacts', c.id, { notes: md }), 600); } });
+        richText(notesBox, { value: c.notes || '', placeholder: 'Record contact notes here', onChange: md => { clearTimeout(t); t = setTimeout(() => store.update('contacts', c.id, { notes: md }), 600); } });
       }
     };
+
+    // ---------- selecting several ----------
+
+    async function batch(ids, fields, label) {
+      const before = ids.map(id => { const c = byId(id); return [id, Object.fromEntries(Object.keys(fields).map(k => [k, c?.[k] ?? null]))]; });
+      await store.updateMany('contacts', ids.map(id => [id, fields]));
+      await render();
+      undoable(`${label} ${ids.length} contact${ids.length === 1 ? '' : 's'}`, async () => { await store.updateMany('contacts', before); await render(); });
+    }
+    const kit = this.kit = createListKit({
+      reorder: false,
+      noun: 'contact',
+      actions: [
+        { id: 'store', label: 'Store', run: ids => batch(ids, { status: 'stored' }, 'Stored') },
+        { id: 'pin', label: 'Pin', run: ids => batch(ids, { pinned: true }, 'Pinned') },
+        { id: 'archive', label: 'Archive', run: ids => batch(ids, { archived_at: new Date().toISOString() }, 'Archived') },
+        { id: 'delete', label: 'Delete', danger: true, run: ids => batch(ids, { deleted_at: new Date().toISOString() }, 'Deleted') },
+      ],
+    });
+    this.onKey = ev => {
+      if (ev.key === 'Escape' && !ev.target.closest('input, textarea, select, [contenteditable]')) kit.escape();
+    };
+    addEventListener('keydown', this.onKey);
 
     // ---------- actions ----------
 
@@ -473,21 +501,37 @@ export default {
 
     el.addEventListener('change', async ev => {
       const t = ev.target;
-      if (t.dataset.category) { if (t.value.trim()) { await store.update('contact_categories', t.dataset.category, { name: t.value.trim() }); toast('✓ Saved'); } return; }
+      if (t.dataset.category) {
+        const cat = data.categories.find(k => k.id === t.dataset.category);
+        if (!t.value.trim() || t.value.trim() === cat?.name) return;
+        const old = cat.name;
+        await store.update('contact_categories', cat.id, { name: t.value.trim() });
+        undoable('Saved', async () => { await store.update('contact_categories', cat.id, { name: old }); render(); });
+        return;
+      }
       if (t.id === 'case-add-contact' && t.value) {
         const k = data.cases.find(x => x.id === state.id);
         await store.update('cases', k.id, { contact_ids: [...(k.contact_ids || []), t.value] });
         return render();
       }
-      if (t.dataset.case && t.name) { await store.update('cases', t.dataset.case, { [t.name]: t.value.trim() }); toast('✓ Saved'); return; }
+      if (t.dataset.case && t.name) {
+        const k = data.cases.find(x => x.id === t.dataset.case);
+        const old = k?.[t.name] ?? '';
+        if (t.value.trim() === old) return;
+        await store.update('cases', k.id, { [t.name]: t.value.trim() });
+        data = await loadContacts();
+        undoable('Saved', async () => { await store.update('cases', k.id, { [t.name]: old }); render(); });
+        return;
+      }
       const refRow = t.closest('[data-ref]');
       if (refRow) {
         const k = data.cases.find(x => x.id === state.id);
         const refs = structuredClone(k.references);
         refs[Number(refRow.dataset.ref)][t.name] = t.value.trim();
+        const oldRefs = k.references;
         await store.update('cases', k.id, { references: refs });
         data = await loadContacts();
-        toast('✓ Saved');
+        undoable('Saved', async () => { await store.update('cases', k.id, { references: oldRefs }); render(); });
         return;
       }
       if (t.dataset.edit && t.name) return updateContact(t.dataset.edit, { [t.name]: t.value.trim() });
@@ -508,11 +552,21 @@ export default {
       Object.assign(this.state, { tab: 'contact', id });
       // Opening a contact counts as looking it up.
       const c = await store.get('contacts', id);
-      if (c) await store.update('contacts', id, { looked_up_at: [new Date().toISOString(), ...(c.looked_up_at || [])].slice(0, 20) });
+      if (c) {
+        const fields = { looked_up_at: [new Date().toISOString(), ...(c.looked_up_at || [])].slice(0, 20) };
+        const notes = withCapturedText(c.notes || '', c.body || '');
+        if (notes !== (c.notes || '')) fields.notes = notes;
+        await store.update('contacts', id, fields);
+      }
     } else {
       Object.assign(this.state, { tab: ['directory', 'cases'].includes(tab) ? tab : 'recent', id: id || null });
     }
     return this.render();
+  },
+
+  unmount() {
+    this.kit?.destroy();
+    removeEventListener('keydown', this.onKey);
   },
 
   quickAdd() {

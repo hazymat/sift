@@ -4,6 +4,7 @@
 
 import { binProviders, restoreEntries, returnEntries, purgeEntries, BIN_DAYS } from '../bin.js';
 import { undoable } from '../toast.js';
+import { createListKit } from '../listkit.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
@@ -62,11 +63,11 @@ export default {
         ? `Deleted things stay here for ${BIN_DAYS} days, then they're gone for good.${shown.length ? ' <button type="button" class="danger small-btn" data-act="empty">Empty bin</button>' : ''}`
         : 'Archived things are out of the way but not gone. Search still finds them.';
 
-      body.innerHTML = groups.length ? groups.map(g => `
-        <section class="bin-group">
-          <h2>${esc(g.label)}</h2>
-          <ul class="bin-list">${g.entries.map(e => `
-            <li data-key="${esc(key(e))}">
+      body.innerHTML = groups.length ? `<ul class="bin-list">${groups.map(g => `
+          <li class="list-head bin-head-row">${esc(g.label)}</li>
+          ${g.entries.map(e => `
+            <li data-key="${esc(key(e))}" data-id="${esc(key(e))}">
+              <button type="button" class="drag-handle kit-grip" aria-label="Select"><svg class="icon" aria-hidden="true"><use href="#i-grip"/></svg></button>
               <div class="bin-main">
                 <span class="bin-kind">${esc(e.kind)}</span>
                 <span class="bin-title">${esc(e.title || 'Untitled')}</span>
@@ -77,11 +78,29 @@ export default {
                 <button type="button" data-act="restore">Restore</button>
                 ${state.tab === 'bin' ? '<button type="button" class="danger" data-act="purge">Delete forever</button>' : ''}
               </div>
-            </li>`).join('')}
-          </ul>
-        </section>`).join('')
+            </li>`).join('')}`).join('')}</ul>`
         : `<div class="empty"><h2>${state.q ? 'Nothing matches' : state.tab === 'bin' ? 'The bin is empty' : 'Nothing archived'}</h2></div>`;
+      kitArchive.attach(state.tab === 'archive' ? body.querySelector('.bin-list') : null);
+      kitBin.attach(state.tab === 'bin' ? body.querySelector('.bin-list') : null);
     };
+
+    const pick = ids => shown.filter(e => ids.includes(key(e)));
+    async function restoreMany(ids) {
+      const entries = pick(ids);
+      const tab = state.tab;
+      await restoreEntries(entries, tab);
+      await render();
+      undoable(`Restored ${entries.length}`, async () => { await returnEntries(entries, tab); await render(); });
+    }
+    const kitArchive = this.kitArchive = createListKit({ reorder: false, noun: 'thing', actions: [{ id: 'restore', label: 'Restore', run: restoreMany }] });
+    const kitBin = this.kitBin = createListKit({
+      reorder: false,
+      noun: 'thing',
+      actions: [
+        { id: 'restore', label: 'Restore', run: restoreMany },
+        { id: 'purge', label: 'Delete forever', danger: true, run: ids => purgeLater(pick(ids), `Deleted ${ids.length} forever`) },
+      ],
+    });
 
     // "Delete forever" and "Empty bin" wait for the undo toast to run out.
     function purgeLater(entries, message) {
@@ -130,6 +149,11 @@ export default {
     };
 
     await render();
+  },
+
+  unmount() {
+    this.kitArchive?.destroy();
+    this.kitBin?.destroy();
   },
 
   route([tab, area, q]) {

@@ -97,10 +97,20 @@ export function createContact(fields) {
   });
 }
 
-// Make a contact from any text (e.g. a Brain Dump selection).
+export const CAPTURED_HEADING = '## Captured when created';
+
+// Notes with the original text kept under a heading (the user can edit or
+// delete it like any other note).
+export function withCapturedText(notes = '', body = '') {
+  if (!body.trim() || notes.includes(CAPTURED_HEADING)) return notes;
+  return `${notes.trim() ? `${notes.trim()}\n\n` : ''}${CAPTURED_HEADING}\n${body.trim()}`;
+}
+
+// Whatever is left over after the name and details becomes the note, and the
+// original text is kept under "Captured when created".
 export function contactFromText(text, extra = {}) {
   const { name, details, rest } = splitContactText(text);
-  return createContact({ name, body: text.trim(), details, notes: rest, ...extra });
+  return createContact({ name, body: text.trim(), details, notes: withCapturedText(rest, text), ...extra });
 }
 
 export async function logInteraction(fields) {
