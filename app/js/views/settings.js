@@ -29,6 +29,7 @@ export default {
           <label>Day starts<input type="time" name="day_start"></label>
           <label>Day ends<input type="time" name="day_end"></label>
           <label>Each line<select name="slot_min">${[15, 20, 30, 45, 60].map(m => `<option value="${m}">${m} min</option>`).join('')}</select></label>
+          <label>Longest duration<select name="duration_max_min">${[120, 180, 240, 300, 360, 480].map(m => `<option value="${m}">${m / 60} hours</option>`).join('')}</select></label>
         </div>
         <h3>Down days</h3>
         <p class="muted">Days to go easy. The planner nudges you to do less.</p>
@@ -99,13 +100,14 @@ export default {
       ps.querySelector('[name="day_start"]').value = d.day_start;
       ps.querySelector('[name="day_end"]').value = d.day_end;
       ps.querySelector('[name="slot_min"]').value = String(d.slot_min);
+      ps.querySelector('[name="duration_max_min"]').value = String(d.duration_max_min);
       ps.querySelector('[name="hint_down_day"]').checked = d.hint_down_day;
       ps.querySelector('[name="hint_walk_breaks"]').checked = d.hint_walk_breaks;
       for (const b of ps.querySelectorAll('[data-dow]')) b.setAttribute('aria-pressed', d.down_days.includes(Number(b.dataset.dow)));
     };
     ps.addEventListener('change', async ev => {
       const t = ev.target;
-      const value = t.type === 'checkbox' ? t.checked : t.name === 'slot_min' ? Number(t.value) : t.value;
+      const value = t.type === 'checkbox' ? t.checked : ['slot_min', 'duration_max_min'].includes(t.name) ? Number(t.value) : t.value;
       if (t.name && value !== '') { await store.updateSettings({ [t.name]: value }); toast('✓ Saved'); }
     });
     ps.addEventListener('click', async ev => {

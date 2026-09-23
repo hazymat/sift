@@ -5,7 +5,7 @@
 
 import * as store from '../store.js';
 import {
-  daySettings, ENERGY, PAPERS, isoDate, parseDate, addDays, toMin, fromMin, showTime, parseTimed,
+  daySettings, ENERGY, PAPERS, durationChoices, durationLabel, isoDate, parseDate, addDays, toMin, fromMin, showTime, parseTimed,
   getDay, saveDay, itemsFor, addItem, unfinishedBefore, datesWithContent,
 } from '../days.js';
 import { listEntry, listHint } from '../listentry.js';
@@ -123,8 +123,9 @@ export default {
             <button type="button" class="drag-grip" aria-label="Drag to a time" title="Drag onto a time">⠿</button>
             <input type="checkbox" class="tick" aria-label="Done" ${i.done_at ? 'checked' : ''}>
             <input class="item-title hand" value="${esc(i.title)}" aria-label="Item" autocomplete="off">
-            ${span ? `<span class="span-tag">${span}</span>` : i.estimate_min ? `<span class="span-tag">~${i.estimate_min} min</span>` : i.estimate_unsure ? '<span class="span-tag">duration?</span>' : ''}
+            ${span ? `<span class="span-tag">${span}</span>` : i.estimate_min ? `<span class="span-tag">~${durationLabel(Number(i.estimate_min))}</span>` : i.estimate_unsure ? '<span class="span-tag">duration?</span>' : ''}
             <button type="button" class="more" data-act="details" aria-label="Details">⋯</button>
+            ${i.notes ? `<span class="item-note"><span aria-hidden="true">🗒</span> ${esc(i.notes)}</span>` : ''}
           </span>
           ${i.time ? '<span class="resize-grip" title="Drag down to set how long" aria-hidden="true"></span>' : ''}
         </div>
@@ -139,12 +140,13 @@ export default {
           <label>Duration<select name="estimate_min">
             <option value="" ${!i.estimate_min && !i.estimate_unsure ? 'selected' : ''}>Pick a duration</option>
             <option value="unsure" ${i.estimate_unsure && !i.estimate_min ? 'selected' : ''}>Not sure yet</option>
-            ${[15, 30, 45, 60, 90, 120, 180, 240].map(m => `<option value="${m}" ${Number(i.estimate_min) === m ? 'selected' : ''}>${m < 60 ? `${m} min` : `${m / 60} h${m % 60 ? ` ${m % 60} min` : ''}`}</option>`).join('')}
+            ${[...new Set([...durationChoices(settings.duration_max_min), ...(i.estimate_min ? [Number(i.estimate_min)] : [])])].sort((a, b) => a - b)
+              .map(m => `<option value="${m}" ${Number(i.estimate_min) === m ? 'selected' : ''}>${durationLabel(m)}</option>`).join('')}
           </select></label>
           <label>Day<input type="date" name="date" value="${i.date}"></label>
           <label class="wide">Note<input name="notes" value="${esc(i.notes)}" autocomplete="off"></label>
           <div class="detail-actions">
-            ${i.time ? '<button type="button" data-act="unschedule">Back to pile</button>' : ''}
+            ${i.time ? '<button type="button" data-act="unschedule" title="Remove the start and end time and put it back in To place">Unallocate time</button>' : ''}
             <button type="button" class="danger" data-act="delete">Delete</button>
           </div>
         </div>`;
@@ -338,7 +340,7 @@ export default {
         }
       }
       else if (act === 'details') { editing = editing === id ? null : id; refresh(); }
-      else if (act === 'unschedule') { editing = null; await change(id, { time: null, end_time: null }, 'Back to the pile'); }
+      else if (act === 'unschedule') { editing = null; await change(id, { time: null, end_time: null }, 'Time unallocated'); }
       else if (act === 'delete') {
         editing = null;
         const gone = items.find(i => i.id === id);
@@ -399,7 +401,7 @@ export default {
       } else if (t.name === 'estimate_min' && id) {
         const v = t.value;
         await change(id, v === 'unsure' ? { estimate_min: null, estimate_unsure: true } : { estimate_min: v ? Number(v) : null, estimate_unsure: false },
-          v === 'unsure' ? 'Duration: not sure yet' : v ? `Duration: ${v} min` : 'Duration cleared');
+          v === 'unsure' ? 'Duration: not sure yet' : v ? `Duration: ${durationLabel(Number(v))}` : 'Duration cleared');
       } else if (t.name && id) {
         const value = t.name === 'estimate_min' ? (t.value ? Number(t.value) : null) : (t.value || null);
         if (t.name === 'date' && !value) return;

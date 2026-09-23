@@ -1321,3 +1321,7 @@ li[data-id]:hover .kit-grip { opacity: .8; }
 }
 .margin-time:hover { border-color: var(--glass-border) !important; }
 .margin-time:focus { background: var(--glass-track) !important; border-color: var(--active-border) !important; text-align: center; }
+
+.line .content { flex-wrap: wrap; }
+.item-note { flex-basis: 100%; margin: -4px 0 4px 52px; font-size: .78rem; color: var(--muted); font-family: var(--font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.line.has-item:has(.item-note) { min-height: 50px; }

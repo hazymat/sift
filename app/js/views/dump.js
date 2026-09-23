@@ -8,7 +8,7 @@ import { SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import { toHtml } from '../richtext.js';
 import { addTask } from '../tasks.js';
-import { addItem, isoDate, parseTimed } from '../days.js';
+import { addItem, isoDate, parseTimed, daySettings, durationChoices, durationLabel } from '../days.js';
 import { loadTree } from '../places.js';
 import { contactFromText } from '../contacts.js';
 import { createListKit } from '../listkit.js';
@@ -131,13 +131,15 @@ export default {
     }
 
     let boxes = [];
+    let maxDuration = 240;
+    daySettings().then(d => { maxDuration = d.duration_max_min; });
     function panelHtml(t) {
       if (panel.type === 'plan') {
         const p = parseTimed(t.body.split('\n')[0]);
         return `<div class="thought-panel">
           <label>Day<input type="date" name="plan_date" value="${isoDate()}"></label>
           <label>Time (optional)<input type="time" name="plan_time" value="${p.time || ''}"></label>
-          <label>Duration<select name="plan_est"><option value="">Pick a duration</option><option value="unsure">Not sure yet</option>${[15, 30, 45, 60, 90, 120].map(m => `<option value="${m}">${m} min</option>`).join('')}</select></label>
+          <label>Duration<select name="plan_est"><option value="">Pick a duration</option><option value="unsure">Not sure yet</option>${durationChoices(maxDuration).map(m => `<option value="${m}">${durationLabel(m)}</option>`).join('')}</select></label>
           <button type="button" class="primary" data-act="plan-go">Add to the day</button>
         </div>`;
       }

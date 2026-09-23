@@ -11,6 +11,7 @@ export const DAY_DEFAULTS = {
   hint_down_day: true,
   hint_walk_breaks: true,
   paper_style: 'glass',
+  duration_max_min: 240, // longest choice in the Duration list
 };
 
 // Page styles for the planner (default in Settings, overridable per day).
@@ -21,6 +22,21 @@ export const PAPERS = [
   { id: 'minimal', label: 'Minimal' },
   { id: 'glass', label: 'Glass' },
 ];
+
+// Duration choices: 5, 10, 15, 30, 45, 60 min, then every 15 min up to the max.
+export function durationChoices(max = 240) {
+  const out = [5, 10, 15, 30, 45, 60];
+  for (let m = 75; m <= max; m += 15) out.push(m);
+  return out.filter(m => m <= Math.max(60, max));
+}
+
+// 45 → "45 min", 60 → "60 min", 75 → "1h 15", 120 → "2h"
+export function durationLabel(m) {
+  if (m <= 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  return r ? `${h}h ${r}` : `${h}h`;
+}
 
 export const ENERGY = [
   { id: 'high', label: 'High', hint: 'Big tidy-ups, starting big projects' },
