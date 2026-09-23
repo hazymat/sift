@@ -59,6 +59,7 @@ export default {
         </div>
       </header>
       <div class="carry" hidden></div>
+      <h2 class="schedule-title section-title">Schedule</h2>
       <section class="paper" aria-label="Plan"><div id="lines"></div></section>
       <div class="day-bottom">
         <section class="pile">
@@ -917,9 +918,9 @@ export default {
     });
 
     // Where a drop would land: the line under the middle of what's carried.
-    function targetAt(y) {
+    function targetAt(x, y) {
       const pileBox = $('.pile').getBoundingClientRect();
-      if (y >= pileBox.top && y <= pileBox.bottom) {
+      if (y >= pileBox.top && y <= pileBox.bottom && x >= pileBox.left && x <= pileBox.right) {
         // Index among the (not carried) to-do rows: before the first row whose middle is below the pointer.
         const rows = [...$('#pile').querySelectorAll(':scope > li[data-pile]')];
         const index = rows.filter(r => { const b = r.getBoundingClientRect(); return b.top + b.height / 2 < y; }).length;
@@ -1078,7 +1079,7 @@ export default {
       }
       const w = Math.min(420, $('.paper').getBoundingClientRect().width - 80);
       Object.assign(press.ghost.style, { left: `${ev.clientX - 20}px`, top: `${ev.clientY - press.rowH / 2}px`, width: `${w}px` });
-      press.target = targetAt(ev.clientY);
+      press.target = targetAt(ev.clientX, ev.clientY);
       showPreview(press.target);
     });
 

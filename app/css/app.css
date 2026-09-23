@@ -1492,7 +1492,7 @@ main:has(> .planner), main:has(.planner) { max-width: 1600px; }
 .planner.docked {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(300px, 30%);
-  grid-template-areas: "nav nav" "head head" "carry carry" "paper side" "pile side" "hk side";
+  grid-template-areas: "nav nav" "head head" "carry carry" "stitle side" "paper side" "pile side" "hk side";
   column-gap: 24px;
   align-items: start;
 }
@@ -1678,7 +1678,7 @@ main:has(> .planner), main:has(.planner) { max-width: 1600px; }
 .planner.tasks-first:not(.docked) > .day-bottom { order: -2; margin-bottom: 16px; }
 .planner.docked.tasks-first {
   grid-template-columns: minmax(300px, 30%) minmax(0, 1fr);
-  grid-template-areas: "nav nav" "head head" "carry carry" "side paper" "side pile" "side hk";
+  grid-template-areas: "nav nav" "head head" "carry carry" "side stitle" "side paper" "side pile" "side hk";
 }
 
 .cal-sheet { width: min(380px, calc(100vw - 16px)); }
@@ -1839,3 +1839,21 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 .md-bar button, .md-bar .md-emoji { flex: none; }
 .md-bar button { padding: 3px 8px; }
 .md-bar .md-toggle { margin-left: auto; }
+
+/* "Schedule" over the plan, styled like "Tasks" and level with it when
+   they sit side by side. */
+.schedule-title { font-family: var(--hand); font-weight: 700; font-size: 1.6rem; color: var(--ink); margin: 20px 4px 6px; border-bottom: 2px solid var(--rule); }
+.planner.docked > .schedule-title { grid-area: stitle; }
+.planner.docked > .day-bottom > .pile:first-child { margin-top: 20px; }
+.planner.docked > .day-bottom { align-self: start; }
+.planner[data-paper="techie"] .schedule-title::before { content: "## "; opacity: .5; }
+.planner[data-paper="minimal"] .schedule-title { font-family: var(--font); font-size: .8rem; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); font-weight: 600; }
+.planner[data-paper="dots"] .schedule-title { border-bottom: 0; }
+
+/* Tasks: smaller writing and lines, so more fits. */
+.pile-paper .line { min-height: 2rem; }
+.pile-paper .line .item-title, .pile-new .new-task { font-size: .95rem; }
+.pile-gap { height: 2rem; }
+
+/* Toolbars that scroll sideways can be dragged with the mouse. */
+.md-bar.drag-scrolling { cursor: grabbing; user-select: none; }

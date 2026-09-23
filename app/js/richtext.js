@@ -112,6 +112,34 @@ function wrap(text, mark) {
   return m[2] ? `${m[1]}${mark}${m[2]}${mark}${m[3]}` : text;
 }
 
+// A toolbar too wide for its space scrolls sideways; with a mouse it can be
+// grabbed and dragged too (a drag doesn't press the button it started on).
+let barDrag = null;
+document.addEventListener('pointerdown', ev => {
+  const bar = ev.target.closest?.('.md-bar');
+  if (!bar || ev.pointerType !== 'mouse' || bar.scrollWidth <= bar.clientWidth) return;
+  barDrag = { bar, x: ev.clientX, left: bar.scrollLeft, moved: false };
+});
+document.addEventListener('pointermove', ev => {
+  if (!barDrag) return;
+  const dx = ev.clientX - barDrag.x;
+  if (!barDrag.moved && Math.abs(dx) < 5) return;
+  barDrag.moved = true;
+  barDrag.bar.classList.add('drag-scrolling');
+  barDrag.bar.scrollLeft = barDrag.left - dx;
+});
+document.addEventListener('pointerup', () => {
+  if (!barDrag) return;
+  const { bar, moved } = barDrag;
+  barDrag = null;
+  bar.classList.remove('drag-scrolling');
+  if (moved) {
+    const stop = e => { e.stopPropagation(); e.preventDefault(); };
+    bar.addEventListener('click', stop, { capture: true, once: true });
+    setTimeout(() => bar.removeEventListener('click', stop, { capture: true }), 50);
+  }
+});
+
 // While a note is being typed in, the rest of the page dims: a fixed layer
 // over everything with a hole where the note (and any dropdown) is. Clicks
 // go straight through it.
