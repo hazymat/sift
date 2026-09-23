@@ -1599,3 +1599,10 @@ main:has(> .planner), main:has(.planner) { max-width: 1600px; }
 .day-nav .share-menu summary { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: var(--radius-pill); border: 1px solid var(--glass-border); background: var(--glass); }
 .share-menu .menu { min-width: 260px; }
 .share-menu .menu button:disabled { opacity: .45; cursor: not-allowed; }
+
+/* Placeholder text: light, near white on the blue and dark themes (the
+   browser default grey was hard to read on blue). */
+:root:not([data-theme="light"]) :is(input, textarea)::placeholder { color: rgba(255, 255, 255, .72); opacity: 1; }
+:root:not([data-theme="light"]) .quick-add::placeholder { color: rgba(255, 255, 255, .6); }
+.planner:not([data-paper="glass"]):not([data-paper="techie"]) :is(input, textarea)::placeholder { color: color-mix(in srgb, var(--ink, #333) 55%, transparent); }
+.ref-picker .ref-q::placeholder { color: #7a8494; }
