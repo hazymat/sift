@@ -39,6 +39,16 @@ export default {
     let data = { tasks: [], projects: [], milestones: [] };
     let people = { contacts: [], cases: [] };
     let open = null; // task id with details open
+    // Notes typed in the panel save shortly after typing stops, or at once
+    // when the panel closes.
+    let pendingNote = null;
+    let noteTimer;
+    async function flushNote() {
+      clearTimeout(noteTimer);
+      const p = pendingNote;
+      pendingNote = null;
+      if (p) await store.update('tasks', p.id, { notes: p.md });
+    }
     const collapsed = new Set();
     let notesEditor = null;
 
@@ -103,21 +113,19 @@ export default {
           <input class="task-title" value="${esc(t.title)}" aria-label="Task" autocomplete="off">
           <span class="chips">${chips(t)}</span>
           <button type="button" class="more" data-act="details" aria-label="Details" aria-expanded="${open === t.id}">⋯</button>
-          ${t.notes && open !== t.id ? noteHtml(t) : ''}
+          ${t.notes ? noteHtml(t) : ''}
         </li>
         ${open === t.id ? `<li class="task-details" data-for="${t.id}">${details(t)}</li>` : ''}`;
     }
 
-    // Notes under tasks: first line only until clicked; clicking toggles.
-    // Which ones are open is forgotten when you leave the page.
-    const openNotes = new Set();
+    // Notes under tasks: the first line; clicking it opens (or closes) the
+    // task's panel, where the whole note can be read and edited.
     function noteHtml(t) {
       const { html, more } = previewLine(t.notes);
       if (!html) return '';
-      const isOpen = openNotes.has(t.id);
-      return `<span class="item-note task-note${isOpen ? ' open' : ''}" data-act="toggle-note" role="button" tabindex="0" aria-expanded="${isOpen}" title="${isOpen ? 'Show less' : 'Show the whole note'}">`
+      return `<span class="item-note task-note" data-act="toggle-note" role="button" tabindex="0" aria-expanded="${open === t.id}" title="${open === t.id ? 'Close' : 'Open to read or edit'}">`
         + `<span class="note-emoji" aria-hidden="true">📝</span>`
-        + `${isOpen ? `<span class="note-body">${toHtml(t.notes)}</span>` : html}${!isOpen && more > 0 ? ` <span class="more-lines">+${more} more</span>` : ''}</span>`;
+        + `${html}${more > 0 ? ` <span class="more-lines">+${more} more</span>` : ''}</span>`;
     }
 
     function details(t) {
@@ -293,13 +301,17 @@ export default {
       kitPlain.attach(ordered ? null : ul);
       const notesBox = body.querySelector('.task-notes');
       if (notesBox && open) {
-        const t = data.tasks.find(x => x.id === open);
-        let timer;
+        const id = open;
+        const t = data.tasks.find(x => x.id === id);
         notesEditor = richText(notesBox, {
           value: t?.notes || '',
           placeholder: 'Notes…',
-          origin: () => ({ collection: 'tasks', id: open, title: t?.title, field: 'notes' }),
-          onChange: md => { clearTimeout(timer); timer = setTimeout(() => store.update('tasks', open, { notes: md }), 600); },
+          origin: () => ({ collection: 'tasks', id, title: t?.title, field: 'notes' }),
+          onChange: md => {
+            clearTimeout(noteTimer);
+            pendingNote = { id, md };
+            noteTimer = setTimeout(flushNote, 600);
+          },
         });
       }
     };
@@ -455,11 +467,9 @@ export default {
       }
       if (b.dataset.energy && id) {
         await change(id, { energy: task.energy === b.dataset.energy ? null : b.dataset.energy }, 'Energy saved');
-      } else if (act === 'details') {
+      } else if (act === 'details' || act === 'toggle-note') {
+        await flushNote();
         open = open === id ? null : id;
-        render();
-      } else if (act === 'toggle-note') {
-        openNotes.has(id) ? openNotes.delete(id) : openNotes.add(id);
         render();
       } else if (act === 'collapse') {
         collapsed.has(id) ? collapsed.delete(id) : collapsed.add(id);
