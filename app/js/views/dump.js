@@ -6,6 +6,7 @@
 import * as store from '../store.js';
 import { linkDetailsInText } from '../refs.js';
 import { readDraft, writeDraft } from '../drafts.js';
+import { titleFrom, cleanLine } from '../summary.js';
 import { SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import { toHtml, richText } from '../richtext.js';
@@ -90,7 +91,7 @@ export default {
     const input = richText(captureBox, {
       value: readDraft('dump'),
       placeholder: "What's on your mind?",
-      origin: () => ({ collection: 'thoughts', id: captureId, title: (input?.value || '').split('\n')[0].slice(0, 60) || 'Brain dump', field: 'body' }),
+      origin: () => ({ collection: 'thoughts', id: captureId, title: titleFrom(input?.value || '') || 'Brain dump', field: 'body' }),
       onChange: md => writeDraft('dump', md),
     });
     const list = $('#thoughts');
@@ -116,6 +117,18 @@ export default {
       kit.attach(list);
     };
 
+    // Like iPhone Notes: the first line is the title (shown bold); if it had
+    // to be shortened, the whole text follows underneath.
+    function thoughtBody(t) {
+      const title = t.title || titleFrom(t.body);
+      const lines = t.body.split('\n');
+      const firstAt = lines.findIndex(l => l.trim());
+      // Only when the title is the whole first line is that line left out below.
+      const whole = cleanLine(lines[firstAt] || '').toLowerCase() === title.toLowerCase();
+      const rest = whole ? lines.slice(firstAt + 1).join('\n') : t.body;
+      return `<div class="thought-body hand" data-act="edit"><div class="thought-title">${esc(title)}</div>${rest.trim() ? toHtml(rest) : ''}</div>`;
+    }
+
     function card(t) {
       const conv = t.converted_to && TARGET[t.converted_to.collection];
       const href = conv && (t.converted_to.collection === 'day_items' ? `#/planner/${t.converted_to.date || ''}` : t.converted_to.collection === 'contacts' ? `#/contacts/c/${t.converted_to.id}` : `#/${conv[1]}`);
@@ -131,7 +144,7 @@ export default {
           </div>
           ${editing === t.id
             ? `<div class="thought-edit" data-thought="${t.id}"></div>`
-            : `<div class="thought-body hand" data-act="edit">${toHtml(t.body)}</div>`}
+            : thoughtBody(t)}
           <div class="thought-actions">
             <button type="button" data-act="to-task">→ Task</button>
             <button type="button" data-act="plan">Plan it</button>
@@ -207,10 +220,10 @@ export default {
       const made = [];
       const contacts = [];
       for (const body of bodies) {
-        const t = await store.create('thoughts', { ...(made.length ? {} : { id: captureId }), body, kind, pinned: false, converted_to: null });
+        const t = await store.create('thoughts', { ...(made.length ? {} : { id: captureId }), title: titleFrom(body), body, kind, pinned: false, converted_to: null });
         // Phone numbers and emails become linked contacts.
         const linked = await linkDetailsInText(body, { collection: 'thoughts', id: t.id, title: body.split('\n')[0].slice(0, 60) });
-        if (linked.linked) await store.update('thoughts', t.id, { body: linked.text });
+        if (linked.linked) await store.update('thoughts', t.id, { body: linked.text, title: titleFrom(linked.text) });
         contacts.push(...linked.made);
         made.push(t);
       }
@@ -329,8 +342,8 @@ export default {
       box._editor = null;
       editing = null;
       if (body && body !== t.body) {
-        await store.update('thoughts', t.id, { body });
-        undoable('Saved', async () => { await store.update('thoughts', t.id, { body: t.body }); render(); });
+        await store.update('thoughts', t.id, { body, title: titleFrom(body) });
+        undoable('Saved', async () => { await store.update('thoughts', t.id, { body: t.body, title: t.title ?? null }); render(); });
       }
       render();
     });

@@ -31,6 +31,16 @@ const tidy = s => {
   return t ? t[0].toUpperCase() + t.slice(1) : t;
 };
 
+// A title for free text (like iPhone Notes): its first line, without
+// markdown or link syntax, shortened if it's long.
+export const cleanLine = line => line.trim().replace(/\[([^\]]*)\]\(sift:[^)]*\)/g, '$1').replace(/^#{1,6}\s+/, '').replace(/^[-*•]\s+/, '')
+  .replace(/\*\*|~~/g, '').replace(/(^|\s)_(\S.*?)_(?=$|[\s).,!?:;])/g, '$1$2').trim();
+
+export function titleFrom(text) {
+  const first = (text || '').split('\n').map(l => l.trim()).find(Boolean) || '';
+  return summarise(cleanLine(first)).title;
+}
+
 export function summarise(text, max = MAX) {
   const whole = text.trim();
   if (whole.length <= max) return { title: whole, notes: '' };

@@ -38,7 +38,7 @@ export const KINDS = {
   },
   thoughts: {
     label: 'Brain dump', icon: '💭',
-    title: t => unlinkText(firstLine(t.body)).slice(0, 80) || '(empty)', sub: () => 'Brain Dump',
+    title: t => t.title || unlinkText(firstLine(t.body)).slice(0, 80) || '(empty)', sub: () => 'Brain Dump',
     text: t => t.body || '', route: () => '#/dump', important: t => !!t.pinned,
   },
   cases: {

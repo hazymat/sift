@@ -1739,3 +1739,4 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 /* Press and hold an item's text to open its panel: the row fills while held. */
 .holding { transition: box-shadow .45s ease-in; box-shadow: inset 0 0 0 2px var(--active-border), inset 0 0 0 999px color-mix(in srgb, var(--accent) 10%, transparent) !important; }
 :is(.item-title, .task-title, .item-list input[name="name"]) { -webkit-touch-callout: none; }
+.thought-title { font-weight: 700; font-size: 1.12em; margin-bottom: 2px; }
