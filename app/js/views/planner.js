@@ -236,13 +236,15 @@ export default {
       if (!m) return;
       const today = date === isoDate() ? "Today's" : "This day's";
       const opt = (attr, value, label, on) => `<button type="button" ${attr}="${value}" aria-pressed="${on}">${label}</button>`;
+      // Each paper's pill looks like that paper.
+      const paperPill = (value, label, look, on) => `<button type="button" class="paper-pill" data-look="${look}" data-view-paper="${value}" aria-pressed="${on}">${label}</button>`;
       const defSlot = Number(settings.slot_min) || 60;
       const slotLabel = n => ({ 15: '¼ hour', 30: '½ hour', 60: 'Hourly' }[n] || `${n} min`);
       m.innerHTML = `
         <h4>${today} paper</h4>
         <div class="view-opts">
-          ${opt('data-view-paper', '', `Default (${PAPERS.find(p => p.id === settings.paper_style)?.label || 'Glass'})`, !day.paper)}
-          ${PAPERS.map(p => opt('data-view-paper', p.id, p.label, day.paper === p.id)).join('')}
+          ${paperPill('', `Default (${PAPERS.find(p => p.id === settings.paper_style)?.label || 'Glass'})`, settings.paper_style, !day.paper)}
+          ${PAPERS.map(p => paperPill(p.id, p.label, p.id, day.paper === p.id)).join('')}
         </div>
         <h4>${today} timeslots</h4>
         <div class="view-opts">
