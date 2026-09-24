@@ -2281,3 +2281,11 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
 /* The version, after the sync state and at the top of Settings (js/version.js). */
 .pill-version { margin-left: .35em; opacity: .7; font-size: .9em; }
 .app-version { margin: 0 0 6px; font-size: .78rem; }
+
+/* Touch screens: no ✕ on sheets (drag the handle down or tap outside), and a
+   thicker handle that's easier to grab. */
+@media (pointer: coarse) {
+  .sheet-close { display: none; }
+  .sheet-handle { width: 56px; height: 7px; border-radius: 4px; opacity: .65; margin: 6px auto 14px; }
+  .sheet-handle::before { inset: -18px -90px; }
+}
