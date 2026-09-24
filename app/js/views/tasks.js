@@ -312,7 +312,7 @@ export default {
     function viewHorizon(h) {
       const today = isoDate();
       const open = data.tasks.filter(t => !isDone(t) && horizonOf(t) === h && (!state.project || t.project_id === state.project));
-      const flat = list => rowsOf(list.map(t => ({ ...t, depth: 0 })), { draggable: false });
+      const flat = list => rowsOf(list.map(t => ({ ...t, depth: 0 })));
       const urgent = h === 'now' ? open.filter(t => (aimDate(t) && aimDate(t) <= today) || (t.start_date && t.start_date <= today)) : [];
       const rest = open.filter(t => !urgent.includes(t));
       const body = (urgent.length ? head('Due or planned') + flat(urgent) + (rest.length ? head('Everything else') : '') : '') + flat(rest);
@@ -360,8 +360,10 @@ export default {
       wireEntry();
       const ul = body.querySelector('.task-list');
       const ordered = state.view === 'list';
+      const flatOrder = LISTS.includes(state.view); // Task Dump, Now, Next, Later: drag to reorder, no nesting
       kitOrdered.attach(ordered ? ul : null);
-      kitPlain.attach(ordered ? null : ul);
+      kitFlat.attach(flatOrder ? ul : null);
+      kitPlain.attach(ordered || flatOrder ? null : ul);
       const notesBox = body.querySelector('.task-notes');
       if (notesBox && open) {
         const id = open;
@@ -554,6 +556,16 @@ export default {
     ];
     const kitOrdered = this.kitOrdered = createListKit({ reorder: true, indent: true, maxDepth: 4, noun: 'task', actions: taskActions, onReorder: persistOrder });
     const kitPlain = this.kitPlain = createListKit({ reorder: false, noun: 'task', actions: taskActions });
+    // In Task Dump / Now / Next / Later only the order changes: the moved tasks
+    // swap their places among themselves, so tasks on other lists keep theirs.
+    const kitFlat = this.kitFlat = createListKit({ reorder: true, noun: 'task', actions: taskActions, onReorder: async (rows, label) => {
+      const before = rows.map(r => [r.id, { sort_order: data.tasks.find(x => x.id === r.id)?.sort_order ?? 0 }]);
+      let orders = before.map(b => b[1].sort_order).sort((a, b) => a - b);
+      if (new Set(orders).size < orders.length) orders = orders.map((_, n) => orders[0] + n);
+      await store.updateMany('tasks', rows.map((r, n) => [r.id, { sort_order: orders[n] }]));
+      await render();
+      undoable(label, async () => { await store.updateMany('tasks', before); await render(); });
+    } });
 
         // ---------- editing ----------
 
@@ -777,7 +789,7 @@ export default {
     });
 
     this.onKey = ev => {
-      if (ev.key === 'Escape' && !ev.target.closest('input, textarea, select, [contenteditable]') && (kitOrdered.escape() || kitPlain.escape())) return;
+      if (ev.key === 'Escape' && !ev.target.closest('input, textarea, select, [contenteditable]') && (kitOrdered.escape() || kitFlat.escape() || kitPlain.escape())) return;
       if (ev.key === 'Escape' && open && !ev.defaultPrevented && !document.querySelector('.ref-picker, .pill-menu')) { ev.preventDefault(); closeDetails(); }
     };
     addEventListener('keydown', this.onKey);
@@ -800,6 +812,7 @@ export default {
   unmount() {
     this.kitOrdered?.destroy();
     this.kitPlain?.destroy();
+    this.kitFlat?.destroy();
     removeEventListener('keydown', this.onKey);
     document.removeEventListener('pointerdown', this.onPointer, true);
     this.pills?.destroy();

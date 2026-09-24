@@ -36,6 +36,7 @@ export default {
           ${[[87.5, 'Smaller'], [100, 'Normal'], [112.5, 'Larger'], [125, 'Largest']].map(([v, l]) => `<button type="button" data-size="${v}" style="font-size:${v / 100}em">${l}</button>`).join('')}
         </div>
         <p class="muted">${esc(word('ph_set_size'))}</p>
+        <label class="check-row"><input type="checkbox" id="show-hints"> Show hints <span class="muted">(the grey help text under lists and boxes, e.g. "Enter adds a task…")</span></label>
       </section>
 
       <section class="card" id="planner-settings">
@@ -617,6 +618,14 @@ export default {
       document.documentElement.style.fontSize = b.dataset.size === '100' ? '' : `${b.dataset.size}%`;
       paintSize();
       toast('✓ Text size changed');
+    });
+
+    const hintsBox = el.querySelector('#show-hints');
+    hintsBox.checked = document.documentElement.classList.contains('show-hints');
+    hintsBox.addEventListener('change', async () => {
+      app.setHints(hintsBox.checked);
+      await store.updateSettings({ show_hints: hintsBox.checked });
+      toast(hintsBox.checked ? '✓ Hints shown' : '✓ Hints hidden');
     });
 
     const themeNote = () => {

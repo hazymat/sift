@@ -83,6 +83,14 @@ export async function setTheme(id) {
   await store.updateSettings({ theme });
 }
 
+// ---------- hints ----------
+// The grey help text under lists and boxes ("Enter adds a task…") shows only
+// when Settings → Appearance → Show hints is on (off at first). Settings' own
+// explanations always show.
+export function setHints(on) {
+  document.documentElement.classList.toggle('show-hints', on);
+}
+
 // ---------- navigation ----------
 
 function renderNav() {
@@ -172,7 +180,7 @@ async function route(force = false) {
   if (rest.length) await currentView.route?.(rest);
 }
 
-const appApi = { AREAS, MAX_PINNED, pinnedAreas, setPinned, THEMES, currentTheme, setTheme, checkForUpdate, applyUpdate };
+const appApi = { AREAS, MAX_PINNED, pinnedAreas, setPinned, THEMES, currentTheme, setTheme, setHints, checkForUpdate, applyUpdate };
 
 // ---------- header status ----------
 
@@ -244,6 +252,7 @@ async function boot() {
     if (pinned.join(',') === OLD_DEFAULT) pinned = DEFAULT_PINNED; // never changed by hand: take the new order
   }
   theme = THEMES.some(t => t.id === settings.theme) ? settings.theme : 'blue';
+  setHints(!!settings.show_hints);
   applyTheme();
   prefersLight.addEventListener('change', applyTheme);
 

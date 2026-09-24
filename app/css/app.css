@@ -1360,7 +1360,7 @@ li[data-id]:hover .kit-grip { opacity: .8; }
 
 .line .content { flex-wrap: wrap; }
 .item-note { flex-basis: 100%; margin: -4px 0 4px 52px; font-size: .78rem; color: var(--muted); font-family: var(--font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.line.has-item:has(.item-note) { min-height: 3.125rem; }
+#main:not([data-density="tight"]) .line.has-item:has(.item-note) { min-height: 3.125rem; }
 
 .paper { position: relative; }
 .now-marker {
@@ -1542,7 +1542,7 @@ main:has(> .planner), main:has(.planner) { max-width: 1600px; }
 /* Pills and the note share the line under an item's title. */
 .item-sub { flex-basis: 100%; display: flex; align-items: baseline; gap: 6px; min-width: 0; margin: -4px 0 4px 52px; }
 .item-sub .item-note { flex: 1 1 auto; min-width: 0; margin: 0; }
-.line.has-item:has(.item-sub) { min-height: 3.125rem; }
+#main:not([data-density="tight"]) .line.has-item:has(.item-sub) { min-height: 3.125rem; }
 .pill-act { flex: none; font-size: .72rem; line-height: 1.4; padding: 0 8px; border-radius: 999px; background: var(--glass-track); border: 1px solid var(--glass-border); color: var(--muted); font-family: var(--font); cursor: pointer; }
 .pill-act .pill-hover { display: none; }
 .pill-act:hover, .pill-act:focus-visible { color: var(--accent); border-color: var(--active-border); }
@@ -2803,3 +2803,9 @@ select.dd-open, .dd-open > select { outline: none; }
 .day-nav .day-step .icon { width: 18px; height: 18px; stroke-width: 2.2; }
 .pile h2 .bring-link .bring-arrow { color: var(--energy-ink, #4caf7a); font-weight: 800; font-size: 1.1em; }
 .day-nav :is(.day-step, .cal-icon) { align-self: stretch; }
+
+/* Hints (the grey help text under lists and boxes) only when Settings → Show hints is on. */
+html:not(.show-hints) #main:not([data-area="settings"]) .hint { display: none; }
+/* "Bring in from tasks": a small pill, always, faintly green. */
+.pile h2 .bring-link { color: var(--text); border-color: color-mix(in srgb, var(--energy-ink, #4caf7a) 35%, transparent); background: color-mix(in srgb, var(--energy-ink, #4caf7a) 10%, transparent); }
+.pile h2 .bring-link:hover, .pile h2 .bring-link:focus-visible { border-color: color-mix(in srgb, var(--energy-ink, #4caf7a) 60%, transparent); background: color-mix(in srgb, var(--energy-ink, #4caf7a) 20%, transparent); }
