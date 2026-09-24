@@ -25,6 +25,7 @@ const SHELL = [
   'js/inline.js',
   'js/views/history.js',
   'js/richtext.js',
+  'js/fullnote.js',
   'js/refs.js',
   'js/drafts.js',
   'js/pillmenu.js',

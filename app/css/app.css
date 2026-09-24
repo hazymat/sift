@@ -1491,7 +1491,7 @@ li[data-id]:hover .kit-grip { opacity: .8; }
 
 /* While typing in a note, everything else dims (richtext.js). */
 .note-spotlight {
-  position: fixed;
+  position: absolute;
   z-index: 900;
   pointer-events: none;
   border-radius: 12px;
@@ -2189,3 +2189,25 @@ select:focus option:checked { background-color: var(--active-border, #35507a); }
 @media (max-width: 700px) { .edit-pills, .task-list .edit-pills, .checklist .edit-pills { margin-left: 16px; } }
 /* Phones (the trial): no ⋯; More, holding the text or tapping the note open the panel. */
 body.pills-only :is(.task-list, .item-list, .checklist, .planner) .more:not([aria-expanded="true"]) { display: none; }
+
+/* A note full screen (js/fullnote.js): on phones when you tap into a note, on a
+   laptop from the ⤢ button. Toolbar at the bottom, just above the keyboard. */
+.md-full { font-size: 1rem !important; }
+.note-full-head { display: none; }
+.rich.is-full {
+  position: fixed; left: 0; right: 0; top: 0; height: 100dvh; z-index: 1000;
+  display: flex; flex-direction: column; gap: 8px; margin: 0;
+  padding: calc(var(--safe-top) + 8px) 12px 8px;
+  background: var(--bg); border-radius: 0; box-sizing: border-box;
+}
+.rich.is-full > .note-full-head { display: flex; align-items: center; gap: 10px; flex: none; }
+.note-full-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; color: var(--muted); }
+.note-full-done { padding: 6px 18px; }
+.rich.is-full > .rich-edit, .rich.is-full > .rich-raw { flex: 1; min-height: 0 !important; max-height: none !important; overflow-y: auto; border-color: transparent; background: transparent; font-size: 1.1rem; }
+.rich.is-full > .md-bar { order: 9; flex: none; margin: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.rich.is-full > .md-bar::-webkit-scrollbar { display: none; }
+.rich.is-full .md-full { background: var(--active-bg); border-color: var(--active-border); }
+@media (min-width: 761px) { .rich.is-full { right: auto; width: min(900px, 100vw); left: max(0px, calc(50vw - 450px)); } }
+/* Nothing on the page behind it scrolls, and nothing on the way up can trap the fixed note. */
+html.note-full, html.note-full body { overflow: hidden; }
+html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { transform: none !important; filter: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; contain: none !important; }

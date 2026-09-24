@@ -44,6 +44,7 @@ import { openPicker } from './linkpicker.js';
 import { openRef, findDetails, detailKey, loadDetailIndex, createDetailContact, spotSettings, attachContact, detachContact, unlinkInRecord } from './refs.js';
 import * as store from './store.js';
 import { toast } from './toast.js';
+import { openFull, closeFull, isFull, PHONE } from './fullnote.js';
 
 const LINK_RE = /\[([^\]]+)\]\(sift:([a-z_]+)\/([\w-]+)\)/g;
 
@@ -193,9 +194,11 @@ document.addEventListener('pointerup', () => {
   }
 });
 
-// While a note is being typed in, the rest of the page dims: a fixed layer
-// over everything with a hole where the note (and any dropdown) is. Clicks
-// go straight through it.
+// While a note is being typed in, the rest of the page dims: a layer over
+// everything with a hole where the note (and any dropdown) is. Clicks go
+// straight through it. It is placed in page coordinates, not fixed to the
+// screen: when the iPhone keyboard opens, iOS scrolls the visible part of the
+// page and a fixed layer ended up out of line with the note it should frame.
 let beam = null;
 let beamHost = null;
 let beamFrame = 0;
@@ -215,7 +218,7 @@ function spotlight(host) {
     const top = Math.min(...rects.map(r => r.top)) - 6;
     const right = Math.max(...rects.map(r => r.right)) + 6;
     const bottom = Math.max(...rects.map(r => r.bottom)) + 6;
-    Object.assign(beam.style, { left: `${left}px`, top: `${top}px`, width: `${right - left}px`, height: `${bottom - top}px` });
+    Object.assign(beam.style, { left: `${left + scrollX}px`, top: `${top + scrollY}px`, width: `${right - left}px`, height: `${bottom - top}px` });
     beamFrame = requestAnimationFrame(follow);
   };
   follow();
@@ -232,6 +235,7 @@ export function richText(container, { value = '', onChange, placeholder = '', or
   container.classList.add('rich');
   container.innerHTML = `
     <div class="md-bar" role="toolbar" aria-label="Formatting">
+      <button type="button" class="md-full" title="Full screen: just this note" aria-label="Edit full screen">⤢</button>
       <button type="button" class="md-mode" aria-pressed="false" title="Full toolbar: text size">Aa</button>
       <button type="button" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
       <button type="button" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
@@ -434,12 +438,29 @@ export function richText(container, { value = '', onChange, placeholder = '', or
   }
 
   // Leaving the note: anything finished gets spotted; the page un-dims.
-  container.addEventListener('focusin', () => spotlight(container));
+  // On a phone the note opens full screen as soon as you tap into it
+  // (fullnote.js); a full-screen note needs no dimming.
+  container.addEventListener('focusin', () => {
+    if (PHONE.matches && !isFull(container)) openFull(container, { label: fullLabel() });
+    if (!isFull(container)) spotlight(container);
+  });
+  let pressing = false;
+  container.addEventListener('pointerdown', () => { pressing = true; });
+  addEventListener('pointerup', () => setTimeout(() => { pressing = false; }, 300), { passive: true });
   container.addEventListener('focusout', ev => {
     if (container.contains(ev.relatedTarget)) return;
     spotNow(true);
     unspotlight(container);
+    // Leaving a full-screen note (the keyboard's ✓, say) puts it back in its place.
+    if (isFull(container)) setTimeout(() => { if (!pressing && !container.contains(document.activeElement)) closeFull({ blur: false }); }, 250);
   });
+  const fullLabel = () => { const o = from(); return o?.title && o.title !== 'Brain dump' ? o.title : 'Note'; };
+  container.addEventListener('click', ev => {
+    if (ev.target.closest('.note-full-done')) closeFull();
+  });
+  edit.addEventListener('keydown', ev => {
+    if (ev.key === 'Escape' && isFull(container) && !document.querySelector('.ref-picker')) { ev.preventDefault(); ev.stopPropagation(); closeFull({ blur: false }); edit.focus(); }
+  }, true);
 
   // What has been typed on the caret's line so far (a line starts at the block's
   // start or after a line break).
@@ -529,12 +550,17 @@ export function richText(container, { value = '', onChange, placeholder = '', or
   });
 
   container.querySelector('.md-bar').addEventListener('mousedown', ev => {
-    if (ev.target.closest('[data-cmd], [data-emoji], [data-size]')) ev.preventDefault(); // keep the selection in the editor
+    if (ev.target.closest('[data-cmd], [data-emoji], [data-size], .md-full')) ev.preventDefault(); // keep the selection in the editor
   });
   container.querySelector('.md-bar').addEventListener('click', ev => {
     const b = ev.target.closest('button');
     if (!b) return;
     if (b.classList.contains('md-mode')) { setFull(!container.classList.contains('bar-full')); return; }
+    if (b.classList.contains('md-full')) {
+      if (isFull(container)) { closeFull({ blur: false }); spotlight(container); edit.focus(); }
+      else { unspotlight(container); openFull(container, { label: fullLabel() }); if (!container.contains(document.activeElement)) placeCaretAtEnd(); }
+      return;
+    }
     if (b.dataset.size) { if (!rawMode) { edit.focus(); setSize(Number(b.dataset.size)); } return; }
     if (b === toggle) {
       rawMode = !rawMode;
