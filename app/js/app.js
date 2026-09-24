@@ -8,15 +8,15 @@ import { installViewCog } from './viewcog.js';
 
 // Adding an area is one entry here plus a view module (spec §5.1).
 export const AREAS = [
+  { id: 'dump', label: 'Brain Dump', icon: 'i-dump', view: './views/dump.js' },
   { id: 'tasks', label: 'Tasks', icon: 'i-tasks', view: './views/tasks.js' },
   { id: 'planner', label: 'Day Planner', icon: 'i-planner', view: './views/planner.js' },
-  { id: 'dump', label: 'Brain Dump', icon: 'i-dump', view: './views/dump.js' },
+  { id: 'lists', label: 'Lists', icon: 'i-lists', view: './views/lists.js' },
   // Internally "places" (saved nav order etc. use it); the address is #/find-things.
   { id: 'places', slug: 'find-things', label: 'Find Things', icon: 'i-places', view: './views/places.js' },
-  { id: 'lists', label: 'Lists', icon: 'i-lists', view: './views/lists.js' },
+  { id: 'contacts', label: 'Contacts', icon: 'i-contacts', view: './views/contacts.js' },
   { id: 'scans', label: 'Scans', icon: 'i-scans', view: './views/scans.js' },
   { id: 'contracts', label: 'Contracts', icon: 'i-contracts', view: './views/contracts.js' },
-  { id: 'contacts', label: 'Contacts', icon: 'i-contacts', view: './views/contacts.js' },
   { id: 'recipes', label: 'Batch Book', icon: 'i-recipes', view: './views/recipes.js' },
   { id: 'settings', label: 'Settings', icon: 'i-settings', view: './views/settings.js', pinnable: false },
   // Not in the nav: reached from each area's ⋯ menu and from Settings.
@@ -25,7 +25,9 @@ export const AREAS = [
 ];
 
 export const MAX_PINNED = 4;
-const DEFAULT_PINNED = ['tasks', 'dump', 'places', 'scans'];
+// The first one is where the app opens.
+const DEFAULT_PINNED = ['dump', 'tasks', 'planner', 'lists'];
+const OLD_DEFAULT = 'tasks,dump,places,scans'; // before 2026-09-24: moved to the new default
 
 const $ = sel => document.querySelector(sel);
 const area = id => AREAS.find(a => a.id === id || a.slug === id);
@@ -211,6 +213,7 @@ async function boot() {
   const settings = await store.getSettings();
   if (Array.isArray(settings.pinned_areas)) {
     pinned = settings.pinned_areas.filter(id => area(id)).slice(0, MAX_PINNED);
+    if (pinned.join(',') === OLD_DEFAULT) pinned = DEFAULT_PINNED; // never changed by hand: take the new order
   }
   theme = THEMES.some(t => t.id === settings.theme) ? settings.theme : 'blue';
   applyTheme();
