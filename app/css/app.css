@@ -2525,11 +2525,16 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 #notes .rich-edit:hover { background-color: color-mix(in srgb, var(--text) var(--line-hover), transparent); }
 #notes .rich-edit:focus, #notes .rich-raw:focus { background-color: color-mix(in srgb, var(--text) var(--line-lit), transparent); }
 
-/* The ⠿ handle on Day Planner items and tasks: hidden until the pointer is
-   over it (or it's in use). Touch screens, which have no hover, keep it faint. */
+/* Every ⠿ handle (Day Planner items and tasks, and the list rows on Tasks,
+   Lists, Find Things, Brain Dump, Contacts, History, Bin and Settings) is
+   hidden until the pointer is anywhere on its line, or while it's selected,
+   dragged or has the keyboard. Touch screens, which have no hover, keep it faint. */
 @media (hover: hover) {
-  .line .drag-grip, .line:hover .drag-grip, .line:focus-within .drag-grip { opacity: 0; transition: opacity .12s; }
-  .line .drag-grip:hover, .line .drag-grip:focus-visible, .line.selected .drag-grip, .line.dragging .drag-grip, body.is-dragging .line .drag-grip { opacity: .9; }
+  .line .drag-grip, li[data-id] :is(.drag-handle, .kit-grip), .pin-list .drag-handle { opacity: 0 !important; transition: opacity .12s; }
+  .line:hover .drag-grip, .line .drag-grip:focus-visible, .line.dragging .drag-grip, body.is-dragging .line .drag-grip,
+  li[data-id]:hover :is(.drag-handle, .kit-grip), li[data-id] :is(.drag-handle, .kit-grip):focus-visible, li[data-id].dragging :is(.drag-handle, .kit-grip),
+  .pin-list li:hover .drag-handle, .pin-list .drag-handle:focus-visible, .pin-list li.dragging .drag-handle { opacity: .8 !important; }
+  .line.selected .drag-grip, li[data-id].selected :is(.drag-handle, .kit-grip) { opacity: 1 !important; }
 }
 @media (hover: none) { .line .drag-grip { opacity: .35; } }
 
