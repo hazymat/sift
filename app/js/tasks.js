@@ -65,6 +65,7 @@ export async function addTask(fields) {
     title: '', notes: '', project_id: null, milestone_id: null, parent_task_id: null,
     status: 'todo', priority: 3, energy: null, start_date: null, aim_at: null, done_at: null,
     calendar_event_id: null, calendar_sync: 'none', recurrence_rule: null,
+    horizon: 'inbox', estimate_min: null,
     source_thought_id: null, source_scan_id: null, source_contract_id: null,
     contact_ids: [], case_id: null, sort_order: count,
     ...fields,
@@ -93,6 +94,7 @@ export function forDay(tasks, date) {
 
 // When a task is for: now (the default), next, or later.
 export const HORIZONS = [
+  { id: 'inbox', label: 'Inbox' },
   { id: 'now', label: 'Now' },
   { id: 'next', label: 'Next' },
   { id: 'later', label: 'Later' },

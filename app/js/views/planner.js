@@ -589,6 +589,7 @@ export default {
           </div>
           <span class="review-actions">
             ${onDay.has(t.id) ? '<span class="span-tag">on this day</span>' : `<button type="button" class="primary" data-bring-act="claim">Claim for ${date === isoDate() ? 'today' : 'this day'}</button>`}
+            ${h !== 'now' ? '<button type="button" data-bring-act="now">Now</button>' : ''}
             ${h !== 'next' ? '<button type="button" data-bring-act="next">Next</button>' : ''}
             ${h !== 'later' ? '<button type="button" data-bring-act="later">Later</button>' : ''}
             <button type="button" data-bring-act="archive">Archive</button>
@@ -600,9 +601,10 @@ export default {
       $('#bring').innerHTML = `
         <div class="sheet-handle"></div>
         <h2>Bring in from tasks</h2>
-        <p class="muted hint">Claim what you'll do ${date === isoDate() ? 'today' : 'on this day'}. Push the rest to Next or Later, or archive what's no longer needed.</p>
+        <p class="muted hint">Claim what you'll do ${date === isoDate() ? 'today' : 'on this day'}. Push the rest to Now, Next or Later, or archive what's no longer needed.</p>
         ${section('For this day', top, aimNote)}
         ${energy ? section(`Ideas for ${energy.bolts} energy`, ideas) : ''}
+        ${section('Inbox', by('inbox'))}
         ${section('Now', by('now'))}
         ${section('Next', by('next'))}
         ${section('Later', by('later'))}
@@ -623,16 +625,16 @@ export default {
       const before = { horizon: task.horizon ?? null, start_date: task.start_date ?? null, archived_at: task.archived_at ?? null };
       let made = null;
       if (act === 'claim') {
-        made = await addItem(date, { title: task.title, task_id: task.id, notes: task.notes || '', contact_ids: task.contact_ids || [], case_id: task.case_id || null });
+        made = await addItem(date, { title: task.title, task_id: task.id, notes: task.notes || '', contact_ids: task.contact_ids || [], case_id: task.case_id || null, estimate_min: task.estimate_min ?? null });
         await store.update('tasks', task.id, { start_date: task.start_date || date, horizon: 'now' });
-      } else if (act === 'next' || act === 'later') {
+      } else if (act === 'now' || act === 'next' || act === 'later') {
         await store.update('tasks', task.id, { horizon: act });
       } else if (act === 'archive') {
         await store.update('tasks', task.id, { archived_at: new Date().toISOString() });
       }
       await refresh();
       await renderTasks();
-      const label = { claim: `"${task.title}" is on ${date === isoDate() ? 'today' : 'this day'}`, next: `"${task.title}" is for next`, later: `"${task.title}" is for later`, archive: `Archived "${task.title}"` }[act];
+      const label = { claim: `"${task.title}" is on ${date === isoDate() ? 'today' : 'this day'}`, now: `"${task.title}" is for now`, next: `"${task.title}" is for next`, later: `"${task.title}" is for later`, archive: `Archived "${task.title}"` }[act];
       undoable(label, async () => {
         if (made) await store.remove('day_items', made.id);
         await store.update('tasks', task.id, before);
@@ -736,7 +738,7 @@ export default {
           await renderTasks();
           undoable(`Adopted "${task.title}"`, async () => { await store.update('tasks', taskId, { start_date: null }); renderTasks(); });
         } else {
-          const made = await addItem(date, { title: task.title, task_id: taskId });
+          const made = await addItem(date, { title: task.title, task_id: taskId, estimate_min: task.estimate_min ?? null });
           await refresh();
           renderTasks();
           undoable(`"${task.title}" is in To place`, async () => { await store.remove('day_items', made.id); await refresh(); renderTasks(); });

@@ -14,6 +14,11 @@ function formatBytes(n) {
 export default {
   async mount(el, { store, app }) {
     el.innerHTML = `
+      <section class="card" id="install-card">
+        <h2>Home Screen and your data</h2>
+        <div id="install-body"></div>
+      </section>
+
       <section class="card">
         <h2>Appearance</h2>
         <div class="segmented" id="theme" role="group" aria-label="Theme">
@@ -143,6 +148,20 @@ export default {
         <p class="muted hint">Erasing removes every task, plan, note, contact, box and setting stored here. The app itself stays installed.</p>
       </section>
     `;
+
+    // Home Screen: on an iPhone, an app not on the Home Screen can lose its data after 7 days.
+    {
+      const install = await import('../install.js');
+      const box = el.querySelector('#install-body');
+      const draw = async () => { box.innerHTML = await install.cardHtml(); };
+      box.addEventListener('click', async ev => {
+        const b = ev.target.closest('[data-install]');
+        if (!b) return;
+        if (b.dataset.install === 'how') box.querySelector('.install-steps').hidden = !box.querySelector('.install-steps').hidden;
+        if (b.dataset.install === 'prompt') { await install.promptInstall(); draw(); }
+      });
+      await draw();
+    }
 
     // Sync: sign in (or create the account on a fresh server), then it runs
     // by itself. Everything is encrypted on this device before it leaves.

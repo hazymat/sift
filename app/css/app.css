@@ -2052,3 +2052,59 @@ li.flash { animation: row-flash 2.4s ease-out; border-radius: 12px; }
 .trust-help { margin: 8px 0; font-size: .9rem; }
 .trust-help summary { cursor: pointer; color: var(--muted); }
 .trust-steps { margin: 6px 0; padding-left: 1.2em; display: grid; gap: 6px; }
+
+/* ---------- Tasks: tabs that fit a phone, chips under the title, the new-task entry ---------- */
+.tasks-head .segmented { flex: 1 1 0; min-width: 0; flex-wrap: nowrap; overflow: visible; display: flex; }
+.tasks-head .segmented button { flex: 1 1 0; min-width: 0; padding: 7px 4px; text-align: center; }
+@media (max-width: 480px) { .tasks-head .segmented button { font-size: .85rem; padding: 7px 2px; } }
+.task-list .item-sub { flex-wrap: wrap; row-gap: 4px; }
+.task-list .item-sub .chips { display: inline-flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+.task-list .item-sub .task-note { flex: 1 1 12ch; }
+#main[data-density="tight"] .task-list .item-sub { flex-wrap: nowrap; }
+#main[data-density="tight"] .task-list .item-sub .chips { flex-wrap: nowrap; }
+#task-body { min-height: 55vh; }
+
+.task-entry { margin: var(--row-gap, 6px) 0 4px; }
+.task-entry:not(:focus-within) .task-entry-more { display: none; }
+.task-entry-more { display: grid; gap: 8px; padding: 2px 8px 8px 54px; }
+.entry-note { width: 100%; background: transparent; border: 0; border-bottom: 1px solid var(--glass-border); color: var(--text); font: inherit; font-size: .95rem; padding: 4px 2px; resize: none; overflow: hidden; box-shadow: none; }
+.entry-note:focus { outline: none; border-bottom-color: var(--active-border); }
+.entry-note::placeholder { color: var(--muted); }
+.entry-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.entry-chip { position: relative; display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--glass-border); background: var(--glass-track); font-size: .82rem; color: var(--muted); cursor: pointer; }
+.entry-chip.set { color: var(--text); border-color: var(--active-border); background: var(--active-bg); }
+.entry-chip :is(input, select) { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 16px; }
+.task-entry-more .hint { margin: 0; font-size: .75rem; }
+
+/* An empty page: just a big ＋ (tap it, or anywhere on the page) */
+.task-entry.is-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 45vh; }
+.task-entry.is-empty:not(.open) .task-add-line { display: none; }
+.task-entry.is-empty.open .entry-plus { display: none; }
+.task-entry.is-empty .task-add-line, .task-entry.is-empty .task-entry-more { width: 100%; }
+.entry-plus { width: 68px; height: 68px; border-radius: 50%; font-size: 2rem; line-height: 1; display: grid; place-items: center; border: 1px dashed var(--glass-border); background: var(--glass-track); color: var(--muted); box-shadow: none; }
+
+/* The panel: note, plan, folded "More" */
+.task-details .task-notes { margin-bottom: 10px; }
+.task-details .energy-pick { margin-bottom: 8px; }
+.detail-more { grid-column: 1 / -1; margin: 6px 0 10px; }
+.detail-more > summary { cursor: pointer; color: var(--muted); font-size: .85rem; padding: 4px 0; }
+.detail-more[open] > summary { margin-bottom: 8px; }
+.linklike { align-self: end; background: none; border: 0; box-shadow: none; color: var(--accent, var(--text)); font-size: .85rem; text-align: left; padding: 6px 2px; }
+@media (max-width: 480px) {
+  .task-details { margin-left: 0; padding: 10px; }
+  .detail-grid { grid-template-columns: 1fr 1fr; }
+  .detail-actions { flex-wrap: wrap; }
+  .task-entry-more { padding-left: 16px; }
+}
+.task-list .item-sub .chips { justify-content: flex-start; max-width: none; }
+
+/* Home Screen warning */
+.install-alert { border: 1px solid #ff8a8a; background: rgba(220, 60, 60, .16); border-radius: 12px; padding: 10px 14px; }
+.install-alert p { margin: 6px 0; }
+.install-alert b { color: #ffb4b4; }
+.install-alert .primary { margin: 6px 0; }
+.install-steps { margin: 8px 0; padding-left: 1.3em; display: grid; gap: 6px; }
+.install-ok { color: #8fe0a8; margin: 0; }
+.install-banner { display: flex; align-items: flex-start; gap: 10px; margin: 0; padding: 8px 14px; background: #b3261e; color: #fff; font-size: .85rem; line-height: 1.35; }
+.install-banner a { color: #fff; text-decoration: underline; font-weight: 600; }
+.install-banner button { margin-left: auto; flex: none; background: none; border: 0; box-shadow: none; color: #fff; font-size: 1rem; padding: 0 4px; }

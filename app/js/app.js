@@ -254,6 +254,7 @@ async function boot() {
 
   await route();
   renderSyncStatus();
+  import('./install.js').then(m => m.showBanner());
   // Sync: runs in the background once signed in. When another device's
   // changes arrive, the page you're on is redrawn (unless you're typing).
   import('./sync.js').then(sync => {
