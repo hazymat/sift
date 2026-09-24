@@ -69,33 +69,61 @@ function inline(text) {
     .replace(/(^|[\s(])_(.+?)_(?=$|[\s).,!?:;])/g, '$1<i>$2</i>');
 }
 
+// Bullet lines as nested lists. `items` are { d: depth, html }; a line can only
+// sit one level deeper than the one before it.
+function listHtml(items) {
+  let html = '';
+  let depth = -1;
+  for (const { d: want, html: text } of items) {
+    const d = Math.max(0, Math.min(want, depth + 1));
+    if (depth === -1) { html += '<ul>'; depth = 0; }
+    else if (d > depth) { html += '<ul>'; depth = d; }
+    else {
+      html += '</li>';
+      for (; depth > d; depth--) html += '</ul></li>';
+    }
+    html += `<li>${text}`;
+  }
+  return `${html}</li>${'</ul></li>'.repeat(Math.max(0, depth))}</ul>`;
+}
+
 export function toHtml(md) {
   const out = [];
   let list = null;
+  const flush = () => { if (list) { out.push(listHtml(list)); list = null; } };
   for (const line of (md || '').split('\n')) {
     const big = line.match(/^#\s+(.*)$/);
     const small = line.match(/^-#\s+(.*)$/);
     const heading = big || small || line.match(/^#{2,6}\s+(.*)$/);
     if (heading) {
-      if (list) { out.push(`<ul>${list.join('')}</ul>`); list = null; }
+      flush();
       const text = inline(heading[1]) || '<br>';
       out.push(big ? `<h3>${text}</h3>` : small ? `<div data-sz="s">${text}</div>` : `<h4>${text}</h4>`);
       continue;
     }
-    const item = line.match(/^\s*[-*]\s+(.*)$/);
+    const item = line.match(/^(\s*)[-*]\s+(.*)$/);
     if (item) {
       list ??= [];
-      list.push(`<li>${inline(item[1]) || '<br>'}</li>`);
+      list.push({ d: Math.floor(item[1].replace(/\t/g, '  ').length / 2), html: inline(item[2]) || '<br>' });
       continue;
     }
-    if (list) { out.push(`<ul>${list.join('')}</ul>`); list = null; }
+    flush();
     out.push(`<div>${inline(line) || '<br>'}</div>`);
   }
-  if (list) out.push(`<ul>${list.join('')}</ul>`);
+  flush();
   return out.join('');
 }
 
 export function toMarkdown(root) {
+  // A list's lines, two spaces of indent per level. (The browser nests a list either
+  // inside an <li> or straight inside the <ul>; both come out the same.)
+  const listLines = (ul, depth) => [...ul.children].flatMap(child => {
+    if (child.tagName === 'UL' || child.tagName === 'OL') return listLines(child, depth + 1);
+    if (child.tagName !== 'LI') return [];
+    const own = [...child.childNodes].filter(n => n.nodeName !== 'UL' && n.nodeName !== 'OL').map(walk).join('').replace(/\n+$/, '');
+    const nested = [...child.children].filter(n => n.tagName === 'UL' || n.tagName === 'OL').flatMap(n => listLines(n, depth + 1));
+    return [`${'  '.repeat(depth)}- ${own}`, ...nested];
+  });
   const walk = node => {
     if (node.nodeType === Node.TEXT_NODE) return node.nodeValue.replace(/ /g, ' ');
     if (node.nodeType !== Node.ELEMENT_NODE) return '';
@@ -110,9 +138,7 @@ export function toMarkdown(root) {
     if (tag === 'H3') return `# ${inner().replace(/\n+$/, '')}\n`;
     if (/^H[1-6]$/.test(tag)) return `## ${inner().replace(/\n+$/, '')}\n`;
     if (node.dataset?.sz === 's') return `-# ${inner().replace(/\n+$/, '')}\n`;
-    if (tag === 'UL' || tag === 'OL') {
-      return [...node.children].map(li => `- ${[...li.childNodes].map(walk).join('').replace(/\n+$/, '')}`).join('\n') + '\n';
-    }
+    if (tag === 'UL' || tag === 'OL') return `${listLines(node, 0).join('\n')}\n`;
     if (tag === 'DIV' || tag === 'P') {
       const text = inner();
       return text.endsWith('\n') ? text : `${text}\n`;
@@ -471,6 +497,22 @@ export function richText(container, { value = '', onChange, placeholder = '', or
     after.addRange(range);
     changed(toMarkdown(edit));
   }
+
+  // Tab / Shift+Tab in a bullet indents / outdents it (elsewhere Tab moves on as usual).
+  edit.addEventListener('keydown', ev => {
+    if (ev.key !== 'Tab' || ev.ctrlKey || ev.altKey || ev.metaKey) return;
+    const sel = getSelection();
+    const li = sel.anchorNode && (sel.anchorNode.nodeType === Node.TEXT_NODE ? sel.anchorNode.parentElement : sel.anchorNode).closest?.('li');
+    if (!li || !edit.contains(li)) return;
+    ev.preventDefault();
+    if (ev.shiftKey) {
+      if (li.parentElement.closest('li') || li.parentElement.parentElement?.tagName === 'UL') document.execCommand('outdent');
+    } else if (li.previousElementSibling) {
+      document.execCommand('indent');
+    }
+    for (const span of edit.querySelectorAll('span[style]')) span.replaceWith(...span.childNodes); // the browser adds these
+    changed(toMarkdown(edit));
+  });
 
   container.querySelector('.md-bar').addEventListener('mousedown', ev => {
     if (ev.target.closest('[data-cmd], [data-emoji], [data-size]')) ev.preventDefault(); // keep the selection in the editor

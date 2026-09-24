@@ -2020,3 +2020,5 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 
 /* Long notes: the editor scrolls inside itself, so the toolbar stays on the page */
 .rich-edit, .rich-raw { max-height: min(50vh, 32rem); overflow-y: auto; overscroll-behavior: contain; }
+
+.rich-edit ul ul, .thought-body ul ul, .note-body ul ul, .note-loose ul ul { margin: 0; padding-left: 1.3em; }
