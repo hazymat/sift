@@ -17,7 +17,7 @@ import { autosizeAll } from '../inline.js';
 import { summarise } from '../summary.js';
 import { loadAll as loadTasks, forDay, suggestions, doneFields, aimDate, addTask, horizonOf } from '../tasks.js';
 import * as att from '../attachments.js';
-import { editPills, selectPill, datePill, energyPill } from '../editpills.js';
+import { editPills, selectPill, energyPill } from '../editpills.js';
 import { energyMenu } from '../pillmenu.js';
 import { askYes } from '../ask.js';
 import { word } from '../words.js';
@@ -443,7 +443,7 @@ export default {
             ${[...new Set([...durationChoices(settings.duration_max_min), ...(i.estimate_min ? [Number(i.estimate_min)] : [])])].sort((a, b) => a - b)
               .map(m => `<option value="${m}" ${Number(i.estimate_min) === m ? 'selected' : ''}>${durationLabel(m)}</option>`).join('')}
           </select></label>
-          <label>Day<input type="date" name="date" value="${i.date}"></label>
+          <label>Move to another day<input type="date" name="date" value="${i.date}"></label>
           <div class="energy-pick wide" role="group" aria-label="Energy"><span>Energy</span>
             ${ENERGY.map(e => `<button type="button" class="bolts" data-item-energy="${e.id}" aria-pressed="${i.energy === e.id}" title="${esc(`${e.label}: ${e.hint}`)}" aria-label="${e.label}">${e.bolts}</button>`).join('')}
           </div>
@@ -767,7 +767,7 @@ export default {
       return made;
     }
 
-    // Tap an item's text to edit it: pills for energy, duration and day open
+    // Tap an item's text to edit it: pills for energy and duration open
     // under it, plus More for the whole panel (js/editpills.js).
     this.pills = editPills(planner, {
       title: '.item-title',
@@ -779,8 +779,7 @@ export default {
         const mins = [...new Set([...durationChoices(settings.duration_max_min), ...(i.estimate_min ? [Number(i.estimate_min)] : [])])].sort((a, b) => a - b);
         const addNote = (i.notes || '').trim() ? '' : '<textarea class="add-note pill-note no-inline" data-pill="notes" rows="1" placeholder="Add note" aria-label="Note"></textarea>';
         return addNote + energyPill(i.energy)
-          + selectPill('estimate_min', 'Estimated time', '⏱', [['', 'Not estimated'], ['unsure', 'Not sure yet'], ...mins.map(m => [m, durationLabel(m)])], i.estimate_min || (i.estimate_unsure ? 'unsure' : ''))
-          + datePill('date', 'Day', '📅', i.date, d => (d === isoDate() ? 'Today' : new Date(`${d}T12:00`).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })));
+          + selectPill('estimate_min', 'Estimated time', '⏱', [['', 'Not estimated'], ['unsure', 'Not sure yet'], ...mins.map(m => [m, durationLabel(m)])], i.estimate_min || (i.estimate_unsure ? 'unsure' : ''));
       },
       change: async (id, name, v) => {
         if (name === 'notes') { if (v.trim()) await change(id, { notes: v.trim() }, 'Note saved'); return; }
@@ -996,20 +995,19 @@ export default {
     // "New task" is the last line of the tasks: Enter adds it and leaves a
     // fresh line ready. A time at the start (12.45 …) puts it on the plan.
     // While you're on it, Add note and pills show under it, as on the Tasks
-    // page: Energy, Estimated time, Day, and More (adds it and opens its panel).
+    // page: Energy, Estimated time and More (adds it and opens its panel). No
+    // Day: what you write on a day belongs to that day (moving is in the panel).
     // They stay while anything is typed or set; Esc on an empty line closes them.
     const pileNew = $('.pile-new');
-    let draft = { energy: null, estimate_min: null, date: null };
-    const dayShown = d => (d === isoDate() ? 'Today' : new Date(`${d}T12:00`).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }));
+    let draft = { energy: null, estimate_min: null };
     function paintNewPills() {
       $('.new-pills').innerHTML = energyPill(draft.energy)
         + selectPill('estimate_min', 'Estimated time', '⏱', [['', 'Not estimated'], ...durationChoices(settings.duration_max_min).map(m => [m, durationLabel(m)])], draft.estimate_min)
-        + datePill('date', 'Day', '📅', draft.date || date, dayShown)
         + '<button type="button" class="entry-chip pill-more" data-pill-more>More…</button>';
     }
-    const newIdle = () => !$('#dump').value.trim() && !$('#dump-note').value.trim() && !draft.energy && !draft.estimate_min && !(draft.date && draft.date !== date);
+    const newIdle = () => !$('#dump').value.trim() && !$('#dump-note').value.trim() && !draft.energy && !draft.estimate_min;
     function resetNew() {
-      draft = { energy: null, estimate_min: null, date: null };
+      draft = { energy: null, estimate_min: null };
       const noteEl = $('#dump-note');
       noteEl.value = '';
       noteEl.style.height = '';
@@ -1037,7 +1035,6 @@ export default {
       const f = ev.target.closest('[data-pill]');
       if (!f) return;
       if (f.dataset.pill === 'estimate_min') draft.estimate_min = f.value ? Number(f.value) : null;
-      if (f.dataset.pill === 'date') draft.date = f.value || null;
       paintNewPills();
     });
     async function addNew({ open = false } = {}) {
@@ -1049,14 +1046,13 @@ export default {
       const p = parseTimed(text);
       const { title, notes: longText } = summarise(p.title); // long ones: short title, full text in the note
       const notes = [longText, $('#dump-note').value.trim()].filter(Boolean).join('\n\n');
-      const onDay = draft.date || date;
       const last = items.filter(i => !i.time).reduce((m, i) => Math.max(m, i.sort_order ?? 0), -1);
-      const made = await addItem(onDay, { title, notes, time: p.time, end_time: p.end_time, sort_order: onDay === date ? last + 1 : 0, energy: draft.energy, estimate_min: draft.estimate_min });
+      const made = await addItem(date, { title, notes, time: p.time, end_time: p.end_time, sort_order: last + 1, energy: draft.energy, estimate_min: draft.estimate_min });
       resetNew();
-      if (open && onDay === date) { closeNew(); input.blur(); editing = made.id; }
+      if (open) { closeNew(); input.blur(); editing = made.id; }
       await refresh();
       if (!open) input.focus();
-      undoable(onDay === date ? `Added "${made.title}"` : `Added "${made.title}" to ${dayShown(onDay)}`, async () => { await store.remove('day_items', made.id); await refresh(); });
+      undoable(`Added "${made.title}"`, async () => { await store.remove('day_items', made.id); await refresh(); });
     }
     $('#dump').addEventListener('keydown', ev => {
       if (ev.key === 'Escape') {
