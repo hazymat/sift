@@ -2395,3 +2395,5 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 /* Wide Day Planner (schedule and Tasks/Notes side by side): more room across,
    between the two columns and at the sides. */
 .planner.docked { column-gap: 44px; padding-inline: 20px; }
+/* Day Planner: more room under the line beneath Schedule, Tasks and Notes. */
+.planner :is(.schedule-title, .pile h2, .day-notes h2) { margin-bottom: 16px; }
