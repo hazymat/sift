@@ -2468,3 +2468,25 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 
 .pile-blank { cursor: text; }
 .pile-paper .pile-blank { border-bottom: 1px solid var(--rule); }
+
+/* Day Planner Tasks: the tick box (and the ⠿ handle) sit in the margin, left
+   of the red line, so the task's text has the whole line. Empty lines and the
+   New task line show a faint empty tick box in the same place, so every line
+   reads as a task line. */
+.pile-paper .line { position: relative; }
+.pile-paper .line.has-item > .content > .tick { position: absolute; left: 38px; top: 7px; margin: 0; }
+.pile-paper .line.has-item > .content > .drag-grip { position: absolute; left: 12px; top: 6px; }
+.pile-paper :is(.pile-new, .pile-blank) > .margin { position: relative; }
+.pile-paper :is(.pile-new, .pile-blank) > .margin::after {
+  content: ''; position: absolute; left: 38px; top: 7px; width: 18px; height: 18px; box-sizing: border-box;
+  border: 1.5px solid color-mix(in srgb, var(--text) 55%, transparent); border-radius: 5px; opacity: .35;
+}
+.pile-new > .margin { cursor: text; }
+.pile-paper .line.has-item .item-sub { margin-left: 6px; }
+
+/* Day Planner Notes: just the note, no box around it, and the toolbar only
+   while you're writing in it (clicking a toolbar button keeps you in it). */
+#notes.rich:not(:focus-within) > .md-bar { display: none; }
+#notes .rich-edit, #notes .rich-raw { border-color: transparent !important; background: transparent; border-radius: 0; box-shadow: none; }
+#notes .rich-edit:hover { background: color-mix(in srgb, var(--text) 4%, transparent); }
+#notes .rich-edit:focus, #notes .rich-raw:focus { background: color-mix(in srgb, var(--text) 6%, transparent); }
