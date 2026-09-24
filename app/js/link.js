@@ -7,7 +7,9 @@
 // follows (by each field's own clock, so it is "last edit wins", not "whoever
 // saved last"). Ticking (or unticking) either side ticks the other. Day-only things (which
 // day, start and end time, order, let go, carried over) and task-only things
-// (project, dates, list, priority) are not touched.
+// (project, dates, list, priority) are not touched, with one exception: when
+// an item moves to another day and no copy is left on the task's Plan for day,
+// the task's Plan for day follows it.
 //
 // Run once at start-up. It works on every change, including ones that arrive
 // from another device, and settles by itself: a value that is already the same
@@ -50,6 +52,11 @@ async function reconcile(change) {
     const diff = follow(item, task);
     // Ticked (or unticked) on the Day Planner: the task follows.
     if (newer(item, task, 'done_at') && !same(item.done_at, task.done_at)) Object.assign(diff, { done_at: item.done_at ?? null, status: item.done_at ? 'done' : 'todo' });
+    // Moved to another day: the task's Plan for day follows, unless another copy is still on that day.
+    if (task.start_date && item.date && item.date !== task.start_date && store.compareHlc(item._field_clocks?.date, task._field_clocks?.start_date) > 0) {
+      const copies = await store.list('day_items', { filter: i => i.task_id === task.id && !i.archived_at });
+      if (!copies.some(i => i.date === task.start_date)) diff.start_date = item.date;
+    }
     if (Object.keys(diff).length) await store.update('tasks', task.id, diff);
     // …and on to the task's other day items.
     const fresh = await store.get('tasks', task.id);
