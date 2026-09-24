@@ -120,6 +120,7 @@ export default {
     let captureId = readDraft('dump:id') || store.uuidv7();
     writeDraft('dump:id', captureId);
     const captureBox = $('#dump-body');
+    captureBox.dataset.ctrlEnter = 'keep'; // Ctrl+Enter saves the note and you carry on writing
     const input = richText(captureBox, {
       value: readDraft('dump'),
       placeholder: word('ph_dump_new'),

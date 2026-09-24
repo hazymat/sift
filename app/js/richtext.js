@@ -483,6 +483,17 @@ export function richText(container, { value = '', onChange, placeholder = '', or
     // Ctrl+Enter (⌘+Enter on a Mac or iPad keyboard) is the same as Done.
     if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey) && isFull(container) && !document.querySelector('.ref-picker')) { ev.preventDefault(); ev.stopPropagation(); closeFull(); }
   }, true);
+  // Ctrl+Enter anywhere else in a note: finish writing (leaving the note saves
+  // it, as clicking away does). A note that saves with Ctrl+Enter and carries
+  // on (the Brain Dump's New note) says so with data-ctrl-enter="keep".
+  const finishOnCtrlEnter = ev => {
+    if (ev.key !== 'Enter' || !(ev.ctrlKey || ev.metaKey) || isFull(container) || document.querySelector('.ref-picker')) return;
+    ev.preventDefault();
+    if (container.dataset.ctrlEnter === 'keep') return;
+    setTimeout(() => { if (container.contains(document.activeElement)) document.activeElement.blur(); }, 0);
+  };
+  edit.addEventListener('keydown', finishOnCtrlEnter);
+  raw.addEventListener('keydown', finishOnCtrlEnter);
 
   // What has been typed on the caret's line so far (a line starts at the block's
   // start or after a line break).
