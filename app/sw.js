@@ -35,6 +35,7 @@ const SHELL = [
   'js/install.js',
   'js/link.js',
   'js/sheets.js',
+  'js/searchclear.js',
   'js/viewcog.js',
   'js/crypto.js',
   'js/sync.js',

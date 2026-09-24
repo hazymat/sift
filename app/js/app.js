@@ -3,6 +3,7 @@ import { installInlineEditing } from './inline.js';
 import { installRefLinks } from './refs.js';
 import { installHoldToOpen } from './holdopen.js';
 import { installSheets } from './sheets.js';
+import { installSearchClear } from './searchclear.js';
 import { installViewCog } from './viewcog.js';
 
 // Adding an area is one entry here plus a view module (spec §5.1).
@@ -227,6 +228,7 @@ async function boot() {
   installRefLinks();
   installHoldToOpen();
   installSheets();
+  installSearchClear();
   applyDensity = installViewCog(() => current);
   // A dropdown menu opens inside the screen: flipped to the other side if
   // it would run off the left or right edge.
