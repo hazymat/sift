@@ -87,17 +87,15 @@ export default {
           <div id="notes"></div>
         </section>
       </div>
-      <section class="day-housekeeping">
-        <h2>Housekeeping / settings</h2>
-        <div class="hk-actions">
-          <button type="button" data-act="paper-week">Reset this week to this page's paper</button>
-          <button type="button" data-act="paper-all">Reset all pages to today's paper</button>
-        </div>
-        <div class="hk-actions">
-          <button type="button" class="danger" data-act="clear-day">Clear this day…</button>
-        </div>
+      <footer class="day-housekeeping">
+        <span class="hk-title">Housekeeping:</span>
+        <button type="button" class="hk-link" data-act="paper-week">reset this week to this page's paper</button>
+        <span class="hk-sep" aria-hidden="true">·</span>
+        <button type="button" class="hk-link" data-act="paper-all">reset all pages to today's paper</button>
+        <span class="hk-sep" aria-hidden="true">·</span>
+        <button type="button" class="hk-link danger" data-act="clear-day">clear this day…</button>
         <p class="muted hint">${esc(word('ph_day_view'))}</p>
-      </section>
+      </footer>
       </div>
       <dialog class="sheet cal-sheet" id="cal" aria-label="Pick a date"></dialog>
       <dialog class="sheet review-sheet" id="review" aria-label="Unfinished from earlier days"></dialog>

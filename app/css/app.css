@@ -2587,3 +2587,27 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 .task-list > li[data-task]:has(+ li.task-details)::before { content: ''; position: absolute; z-index: -1; left: 65px; right: 0; top: 0; bottom: 0; border: 1px solid var(--glass-border); border-bottom: 0; border-radius: 14px 14px 0 0; background: var(--glass-track); pointer-events: none; }
 .task-list > li[data-task]:has(+ li.task-details)::after { display: none; }
 .task-list > li.task-details { margin: 0 0 10px 65px !important; border-top: 0; border-radius: 0 0 14px 14px; }
+
+/* Day Planner: done items are faint the same way whether they take one line or
+   several (the whole item fades, tick box included). */
+.line.has-item.done > .content { opacity: .55; }
+
+/* Day Planner housekeeping: a quiet footer of text links under everything,
+   across the whole page, after a full-width rule. */
+.day-housekeeping { margin-top: 40px; padding: 12px 4px 0; border-top: 1px solid var(--rule, var(--glass-border)); font-size: .8rem; color: var(--muted); display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 6px; }
+.planner.docked > .day-housekeeping { grid-area: auto; grid-column: 1 / -1; }
+.hk-title { font-weight: 600; }
+.hk-link { padding: 0; border: 0; background: none; box-shadow: none; font-size: inherit; color: var(--muted); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--muted) 50%, transparent); text-underline-offset: 3px; cursor: pointer; }
+.hk-link:hover { color: var(--text); }
+.hk-link.danger { color: color-mix(in srgb, #ff8a8a 80%, var(--muted)); }
+.hk-sep { opacity: .5; }
+.day-housekeeping .hint { flex-basis: 100%; margin: 6px 0 0; }
+
+/* Tasks: the lists (Task Dump, Now, Next, Later, Done) as plain text tabs with
+   an underline, like the Brain Dump filters, not pills like the main menu. */
+#task-views { background: none; padding: 0; gap: 2px; border-radius: 0; border-bottom: 1px solid var(--glass-border); flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+#task-views button { flex: none !important; background: none !important; border: 0 !important; border-bottom: 2px solid transparent !important; border-radius: 0 !important; box-shadow: none !important; padding: 8px 12px 6px !important; font-size: .95rem; color: var(--muted); white-space: nowrap; }
+#task-views button[aria-pressed="true"] { color: var(--text); border-bottom-color: currentColor !important; font-weight: 600; }
+#task-views button:hover { color: var(--text); }
+.tasks-head { align-items: flex-end; }
+.tasks-head #task-views { flex: 1 1 auto !important; max-width: none; }
