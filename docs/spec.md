@@ -26,7 +26,7 @@
 | App hosting | GitHub Pages, deployed from `/app` by a GitHub Actions workflow | Free static HTTPS hosting (required for PWA). One fixed origin for everyone, so one Google OAuth client works for all users. Repo must be public for free Pages (nothing secret in it; OAuth client IDs are public by design). Branch-based Pages can only publish root or `/docs`, hence the workflow. |
 | Local storage | IndexedDB via own thin wrapper (`js/store.js`) | Stores records and binary blobs (images/PDFs) natively. No dependency. |
 | Offline shell | Service worker caching app shell + vendored libs | App opens with no network. |
-| Libraries | Vendored in `/vendor` (no CDN): MiniSearch (search), pdf.js (PDF thumbnails) | Open source, work offline, can't start charging. |
+| Libraries | Vendored in `/vendor` (no CDN): MiniSearch (search), pdf.js (PDF thumbnails) | Open source, and they work offline. |
 | Crypto | WebCrypto (built into browser) | PBKDF2, AES-GCM, SHA-256. No dependency. |
 | Sync server | Node.js + SQLite (`better-sqlite3`) + blobs on disk, one Docker container | Small, self-hostable anywhere (home server, Pi, free-tier VPS). |
 | HTTPS | Caddy in front, Let's Encrypt via DNS challenge | Browsers block an HTTPS app calling an HTTP server. DNS challenge works even when the server is only reachable over VPN. |
