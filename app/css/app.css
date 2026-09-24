@@ -2022,3 +2022,9 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 .rich-edit, .rich-raw { max-height: min(50vh, 32rem); overflow-y: auto; overscroll-behavior: contain; }
 
 .rich-edit ul ul, .thought-body ul ul, .note-body ul ul, .note-loose ul ul { margin: 0; padding-left: 1.3em; }
+
+/* Bullets in notes: first level always a filled dot; deeper levels open circle, then square */
+:is(.rich-edit, .thought-body, .note-body, .note-medium, .note-loose, .item-note, .detail-notes, .task-notes, .list-notes, .thing-notes) ul { list-style-type: disc; }
+:is(.rich-edit, .thought-body, .note-body, .note-medium, .note-loose, .item-note, .detail-notes, .task-notes, .list-notes, .thing-notes) ul ul { list-style-type: circle; }
+:is(.rich-edit, .thought-body, .note-body, .note-medium, .note-loose, .item-note, .detail-notes, .task-notes, .list-notes, .thing-notes) ul ul ul { list-style-type: square; }
+:is(.rich-edit, .thought-body, .note-body, .note-loose, .item-note) li::marker { font-family: system-ui, sans-serif; }
