@@ -2525,3 +2525,6 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 .top-search:not(:focus-within) .search-x { display: none; }
 .top-search:focus-within .search-wrap > .search { cursor: text; }
 .top-search-icon { position: absolute; left: 11px; top: 11px; width: 18px; height: 18px; z-index: 2; pointer-events: none; color: var(--text); opacity: .8; }
+
+/* Day Planner Tasks: "New task" is only a faint hint of where to write next. */
+.planner .pile-new .new-task::placeholder { color: color-mix(in srgb, var(--text) 22%, transparent) !important; opacity: 1; }
