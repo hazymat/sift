@@ -1176,7 +1176,6 @@ a.chip { color: var(--text); text-decoration: none; }
 .thought-list { list-style: none; margin: 10px 0; padding: 0; display: grid; gap: 10px; }
 .thought { padding: 10px 14px 10px; border-radius: 20px; background: var(--glass); border: 1px solid var(--glass-border); }
 .thought.pinned { border-color: var(--active-border); }
-.thought.converted { opacity: .6; }
 .thought-head { display: flex; align-items: center; gap: 8px; font-size: .8rem; }
 .kind-select { width: auto !important; padding: 2px 8px !important; font-size: .78rem; border-radius: 999px !important; color: var(--text); }
 .pin { padding: 2px 8px; background: none; box-shadow: none; font-size: 1rem; color: var(--place); }
@@ -2211,3 +2210,8 @@ body.pills-only :is(.task-list, .item-list, .checklist, .planner) .more:not([ari
 /* Nothing on the page behind it scrolls, and nothing on the way up can trap the fixed note. */
 html.note-full, html.note-full body { overflow: hidden; }
 html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { transform: none !important; filter: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; contain: none !important; }
+
+/* ↗ Make: lines of a note into tasks or a contact (js/linemake.js). */
+.md-make-menu { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 6px; padding: 6px 8px; border-radius: 12px; background: var(--menu-bg, var(--glass-strong)); border: 1px solid var(--glass-border); font-size: .85rem; }
+.md-make-menu button { padding: 4px 12px; font-size: .85rem; }
+.rich.is-full > .md-make-menu { order: 8; margin: 0; }

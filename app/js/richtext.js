@@ -242,6 +242,7 @@ export function richText(container, { value = '', onChange, placeholder = '', or
       <button type="button" data-cmd="strikeThrough" title="Cross out"><s>S</s></button>
       <button type="button" data-cmd="insertUnorderedList" title="List (or type - at the start of a line)">• List</button>
       <button type="button" data-cmd="insertOrderedList" title="Numbered list (or type 1. at the start of a line)">1. List</button>
+      <button type="button" class="md-make" title="Make this line (or the selected lines) into tasks or a contact; the text stays here, linked" aria-haspopup="menu">↗ Make</button>
       <span class="md-sizes"><button type="button" data-size="-1" title="Smaller text (this line)" aria-label="Smaller text">A<small>−</small></button><button type="button" data-size="1" title="Bigger text (this line)" aria-label="Bigger text">A<sup>+</sup></button></span>
       <span class="md-emoji">${EMOJI.map(([e, name]) => `<button type="button" data-emoji="${e}" title="${name}" aria-label="Insert ${name.toLowerCase()} emoji">${e}</button>`).join('')}</span>
       <button type="button" class="md-toggle" aria-pressed="false" title="Show the raw markdown">Markdown</button>
@@ -550,12 +551,13 @@ export function richText(container, { value = '', onChange, placeholder = '', or
   });
 
   container.querySelector('.md-bar').addEventListener('mousedown', ev => {
-    if (ev.target.closest('[data-cmd], [data-emoji], [data-size], .md-full')) ev.preventDefault(); // keep the selection in the editor
+    if (ev.target.closest('[data-cmd], [data-emoji], [data-size], .md-full, .md-make')) ev.preventDefault(); // keep the selection in the editor
   });
   container.querySelector('.md-bar').addEventListener('click', ev => {
     const b = ev.target.closest('button');
     if (!b) return;
     if (b.classList.contains('md-mode')) { setFull(!container.classList.contains('bar-full')); return; }
+    if (b.classList.contains('md-make')) { toggleMakeMenu(b); return; }
     if (b.classList.contains('md-full')) {
       if (isFull(container)) { closeFull({ blur: false }); spotlight(container); edit.focus(); }
       else { unspotlight(container); openFull(container, { label: fullLabel() }); if (!container.contains(document.activeElement)) placeCaretAtEnd(); }
@@ -588,6 +590,49 @@ export function richText(container, { value = '', onChange, placeholder = '', or
     edit.focus();
     document.execCommand(b.dataset.cmd);
     changed(toMarkdown(edit));
+  });
+
+  // ↗ Make: the line the cursor is on (or the selected lines) becomes tasks in
+  // the Inbox or a contact; the text stays, linked to them (linemake.js). The
+  // menu sits inside the note so using it doesn't count as leaving the note.
+  let makeRange = null;
+  container.querySelector('.md-bar').addEventListener('pointerdown', ev => {
+    if (!ev.target.closest('.md-make')) return;
+    const s = getSelection();
+    if (s.rangeCount && edit.contains(s.anchorNode)) makeRange = s.getRangeAt(0).cloneRange();
+  });
+  function toggleMakeMenu(btn) {
+    const old = container.querySelector('.md-make-menu');
+    if (old) { old.remove(); return; }
+    const m = document.createElement('div');
+    m.className = 'md-make-menu';
+    m.setAttribute('role', 'menu');
+    m.innerHTML = '<span class="muted">This line (or the selected lines) →</span>'
+      + '<button type="button" role="menuitem" data-make="tasks">☐ Tasks in the Inbox</button>'
+      + '<button type="button" role="menuitem" data-make="contact">👤 A contact</button>';
+    btn.closest('.md-bar').after(m);
+  }
+  container.addEventListener('mousedown', ev => { if (ev.target.closest('.md-make-menu')) ev.preventDefault(); });
+  container.addEventListener('click', async ev => {
+    const b = ev.target.closest('[data-make]');
+    if (!b) return;
+    b.closest('.md-make-menu').remove();
+    if (rawMode) { toast('Switch off Markdown first'); return; }
+    if (makeRange && edit.contains(makeRange.startContainer)) restoreRange(makeRange);
+    const before = md;
+    const { makeFromLines } = await import('./linemake.js');
+    const res = await makeFromLines(edit, b.dataset.make, from());
+    if (!res) { toast('Put the cursor on a line first, or select some lines'); return; }
+    changed(toMarkdown(edit));
+    toast(res.label, {
+      action: 'Undo',
+      onAction: async () => {
+        for (const x of res.made) await store.remove(x.collection, x.id);
+        md = before;
+        paint();
+        onChange?.(md);
+      },
+    });
   });
 
   function placeCaretAtEnd() {

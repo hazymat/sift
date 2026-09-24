@@ -57,7 +57,7 @@ const byOrder = (a, b) => Number(!!b.pinned) - Number(!!a.pinned) || orderKey(a)
 
 export default {
   async mount(el) {
-    const state = this.state = { filter: 'all', q: '', showConverted: false };
+    const state = this.state = { filter: 'all', q: '' };
     let kind = 'thought';
     let thoughts = [];
     let panel = null; // { id, type: 'plan' | 'store' }
@@ -99,8 +99,6 @@ export default {
           <details class="tool-menu">
             <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
             <div class="menu">
-              <button type="button" data-act="toggle-converted">Show / hide converted</button>
-              <hr>
               <a href="#/bin/archive/dump">Archive</a>
               <a href="#/bin/bin/dump">Bin</a>
             </div>
@@ -148,12 +146,9 @@ export default {
       const words = state.q.toLowerCase().split(/\s+/).filter(Boolean);
       const shown = thoughts.filter(t =>
         (state.filter === 'all' || (state.filter === 'pinned' ? t.pinned : t.kind === state.filter))
-        && (state.showConverted || !t.converted_to || t.pinned)
         && words.every(w => t.body.toLowerCase().includes(w)));
-      const hidden = thoughts.filter(t => t.converted_to && !state.showConverted).length;
       list.innerHTML = shown.map(t => card(t)).join('')
         || `<li class="empty"><h2>${thoughts.length ? 'Nothing matches.' : 'Empty head. Nice.'}</h2></li>`;
-      if (hidden && !state.showConverted) list.insertAdjacentHTML('beforeend', `<li class="muted hint converted-note"><button type="button" data-act="toggle-converted">Show ${hidden} converted</button></li>`);
       // Compact spacing: the note you're editing fills the page (like opening a box in Find Things).
       el.dataset.zoom = editing && el.dataset.density === 'tight' ? editing : '';
       if (!el.dataset.zoom) delete el.dataset.zoom;
@@ -356,7 +351,6 @@ export default {
       const t = li && thoughts.find(x => x.id === li.dataset.id);
       const act = b.dataset.act;
       if (act === 'save') return save();
-      if (act === 'toggle-converted') { state.showConverted = !state.showConverted; return render(); }
       if (!t) return;
       if (act === 'edit') {
         editing = t.id;
@@ -392,7 +386,7 @@ export default {
       } else if (act === 'to-task') {
         const [first, ...rest] = t.body.split('\n');
         const task = await addTaskFirst({ title: first.trim().slice(0, 200), notes: rest.join('\n').trim(), source_thought_id: t.id });
-        await convert(t, { collection: 'tasks', id: task.id }, `Now a task, at the top of Tasks: ${task.title}`);
+        await convert(t, { collection: 'tasks', id: task.id }, `Now a task in the Inbox: ${task.title}`);
       } else if (act === 'plan' || act === 'store') {
         if (act === 'store') {
           boxes = [];
