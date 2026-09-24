@@ -303,6 +303,8 @@ Single-page app, hash routing, top nav on laptop, bottom tab bar on iPhone. Glob
 
 ### 8.5 Server (sift-server)
 
+> **As built (2026-09-24):** Node 24 with built-in `node:sqlite` (no `better-sqlite3`), no dependencies. Run natively under systemd on the home server (Docker in the Proxmox container hit a runc/AppArmor clash). The Docker image is still planned for VPS installs. HTTPS on the LAN uses Caddy `tls internal` for the IP, with each device trusting Caddy's root CA, because a public DNS name would reveal the LAN address. Record ids on the server are HMACs of `collection/id`. The local database stays `sift_local` (not renamed to `sift_<user_id>`).
+
 - Node.js, SQLite, blobs in `data/blobs/<user_id>/<blob_id>`. One Docker image; `docker-compose.yml` includes Caddy.
 - Tables: `users (id, email, auth_hash_scrypt, kdf_params, wrapped_data_key, quota_bytes, created_at)`, `devices (id, user_id, name, token_hash, last_seen)`, `records (user_id, record_id, seq, ciphertext, size_bytes)`, `blobs (user_id, blob_id, size_bytes)`.
 - Config: `REGISTRATION (open|invite|closed)`, `DEFAULT_QUOTA_MB` (default 1024), `ALLOWED_ORIGIN` (the GitHub Pages origin, for CORS).

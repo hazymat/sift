@@ -32,6 +32,8 @@ const SHELL = [
   'js/exporttext.js',
   'js/holdopen.js',
   'js/viewcog.js',
+  'js/crypto.js',
+  'js/sync.js',
   'js/linkpicker.js',
   'js/csv.js',
   'js/places.js',

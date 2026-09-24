@@ -1,0 +1,12 @@
+{
+  "name": "sift-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Sync server for Sift: stores encrypted records per user, push with conflict check, pull since a sequence number.",
+  "engines": { "node": ">=22.5" },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test.js"
+  }
+}

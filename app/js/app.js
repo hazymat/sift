@@ -128,7 +128,7 @@ function openMoreSheet() {
 
 // ---------- routing ----------
 
-async function route() {
+async function route(force = false) {
   const [id, ...rest] = location.hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent);
   const next = area(id);
   if (!next) {
@@ -138,7 +138,7 @@ async function route() {
   const sheet = $('#more-sheet');
   if (sheet.open) sheet.close();
   $('#topnav-more-menu').parentElement.removeAttribute('open');
-  if (next.id === current) {
+  if (next.id === current && force !== true) {
     currentView?.route?.(rest); // same area, deeper path (e.g. a box)
     return;
   }
@@ -165,9 +165,12 @@ const appApi = { AREAS, MAX_PINNED, pinnedAreas, setPinned, THEMES, currentTheme
 // ---------- header status ----------
 
 async function renderSyncStatus() {
-  // Phase 1 has no sync: always local only. Pending count shown for later.
-  $('#sync-status').textContent = 'Local only';
-  $('#sync-status').title = `${await store.outboxSize()} changes stored on this device only`;
+  const { status } = await import('./sync.js');
+  const pill = $('#sync-status');
+  const text = { off: 'Local only', idle: 'Sync on', syncing: 'Syncing…', ok: 'In sync', offline: 'Offline', error: 'Sync problem' }[status.state] || 'Local only';
+  pill.textContent = status.state === 'ok' && status.pending ? `${status.pending} to sync` : text;
+  pill.dataset.state = status.state;
+  pill.title = status.state === 'off' ? `${await store.outboxSize()} changes stored on this device only` : status.error || text;
 }
 
 // ---------- service worker ----------
@@ -243,6 +246,17 @@ async function boot() {
 
   await route();
   renderSyncStatus();
+  // Sync: runs in the background once signed in. When another device's
+  // changes arrive, the page you're on is redrawn (unless you're typing).
+  import('./sync.js').then(sync => {
+    let was = null;
+    sync.onStatus(st => {
+      renderSyncStatus();
+      if (was === 'syncing' && st.state === 'ok' && st.changed && !document.activeElement?.closest('input, textarea, [contenteditable="true"]')) route(true);
+      was = st.state;
+    });
+    sync.init();
+  });
   import('./bin.js').then(bin => bin.autoEmpty()).catch(err => console.warn('Bin clean-up failed:', err));
   registerServiceWorker();
 }

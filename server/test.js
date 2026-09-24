@@ -1,0 +1,83 @@
+// End-to-end check of sift-server against a throwaway database.
+//   node test.js      (starts its own server on a spare port)
+
+import { spawn } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sift-test-'));
+const PORT = 18000 + Math.floor(Math.random() * 1000);
+const child = spawn(process.execPath, ['server.js'], { env: { ...process.env, PORT, DATA_DIR: dir, REGISTRATION: 'first' }, stdio: ['ignore', 'pipe', 'inherit'] });
+await new Promise(r => child.stdout.once('data', r));
+const base = `http://127.0.0.1:${PORT}`;
+
+async function call(method, url, body, token) {
+  const res = await fetch(base + url, {
+    method,
+    headers: { 'Content-Type': 'application/json', Origin: 'http://localhost:5173', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  return { status: res.status, cors: res.headers.get('access-control-allow-origin'), json: await res.json().catch(() => null) };
+}
+
+try {
+  let r = await call('GET', '/api/health');
+  assert.equal(r.json.registration, 'open');
+
+  r = await call('POST', '/api/register', { email: 'Mat@Example.com', auth_hash: 'a'.repeat(44), kdf: { name: 'PBKDF2-SHA256', iterations: 600000, salt: 's' }, wrapped_data_key: 'wrapped', device_name: 'Laptop' });
+  assert.equal(r.status, 200, JSON.stringify(r.json));
+  assert.equal(r.cors, 'http://localhost:5173');
+  const laptop = r.json.token;
+
+  r = await call('POST', '/api/register', { email: 'other@example.com', auth_hash: 'b'.repeat(44), kdf: {}, wrapped_data_key: 'x' });
+  assert.equal(r.status, 403, 'second registration refused');
+
+  r = await call('POST', '/api/prelogin', { email: 'mat@example.com' });
+  assert.equal(r.json.kdf.salt, 's');
+
+  r = await call('POST', '/api/login', { email: 'mat@example.com', auth_hash: 'wrong'.repeat(9), device_name: 'Phone' });
+  assert.equal(r.status, 401);
+  r = await call('POST', '/api/login', { email: 'mat@example.com', auth_hash: 'a'.repeat(44), device_name: 'Phone' });
+  assert.equal(r.status, 200);
+  assert.equal(r.json.wrapped_data_key, 'wrapped');
+  const phone = r.json.token;
+
+  // push two new records from the laptop
+  r = await call('POST', '/api/sync/push', { records: [{ record_id: 'r1', base_seq: 0, ciphertext: 'c1' }, { record_id: 'r2', base_seq: 0, ciphertext: 'c2' }] }, laptop);
+  assert.deepEqual(r.json.accepted.map(a => a.seq), [1, 2]);
+
+  // the phone pulls them
+  r = await call('GET', '/api/sync/pull?since=0', null, phone);
+  assert.equal(r.json.records.length, 2);
+  assert.equal(r.json.last_seq, 2);
+
+  // the phone edits r1 (knows seq 1): accepted
+  r = await call('POST', '/api/sync/push', { records: [{ record_id: 'r1', base_seq: 1, ciphertext: 'c1-phone' }] }, phone);
+  assert.equal(r.json.accepted[0].seq, 3);
+
+  // the laptop still thinks r1 is at seq 1: conflict, gets the phone's copy back
+  r = await call('POST', '/api/sync/push', { records: [{ record_id: 'r1', base_seq: 1, ciphertext: 'c1-laptop' }] }, laptop);
+  assert.equal(r.json.accepted.length, 0);
+  assert.equal(r.json.conflicts[0].ciphertext, 'c1-phone');
+  assert.equal(r.json.conflicts[0].seq, 3);
+
+  // after merging, the laptop pushes on top of seq 3
+  r = await call('POST', '/api/sync/push', { records: [{ record_id: 'r1', base_seq: 3, ciphertext: 'c1-merged' }] }, laptop);
+  assert.equal(r.json.accepted[0].seq, 4);
+
+  r = await call('GET', '/api/sync/pull?since=2', null, phone);
+  assert.deepEqual(r.json.records.map(x => [x.record_id, x.seq, x.ciphertext]), [['r1', 4, 'c1-merged']]);
+
+  r = await call('GET', '/api/devices', null, laptop);
+  assert.equal(r.json.devices.length, 2);
+
+  r = await call('GET', '/api/sync/pull?since=0', null, 'nonsense');
+  assert.equal(r.status, 401);
+
+  console.log('all server checks passed');
+} finally {
+  child.kill();
+  fs.rmSync(dir, { recursive: true, force: true });
+}

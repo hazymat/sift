@@ -1970,3 +1970,11 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 
 #main[data-density="loose"] .thought-list { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
 #main[data-density="loose"] .thought.size-m, #main[data-density="loose"] .thought.size-l { grid-column: 1 / -1; }
+
+/* Sync */
+.recovery-code { font-family: ui-monospace, Consolas, monospace; font-size: 1rem; padding: 12px 14px; border-radius: 10px; background: var(--glass-track); border: 1px dashed var(--glass-border); white-space: pre-wrap; word-break: break-all; user-select: all; }
+.sync-devices { margin: 8px 0; padding-left: 1.2em; }
+#sync-status[data-state="syncing"] { opacity: .8; }
+#sync-status[data-state="ok"] { color: #7dd3a8; border-color: rgba(125, 211, 168, .4); }
+#sync-status[data-state="offline"] { color: var(--muted); }
+#sync-status[data-state="error"] { color: #f5a66a; border-color: rgba(245, 166, 106, .5); }

@@ -483,3 +483,85 @@ export async function updateDeviceSettings(changes) {
   tx.objectStore('sync_meta').put({ ...current, ...changes }, 'device_settings');
   await done(tx);
 }
+
+// ---------- sync support (js/sync.js) ----------
+
+export async function metaGet(key) {
+  await open();
+  return promisify(db.transaction('sync_meta').objectStore('sync_meta').get(key));
+}
+
+export async function metaSet(key, value) {
+  await open();
+  const tx = db.transaction('sync_meta', 'readwrite');
+  if (value === undefined) tx.objectStore('sync_meta').delete(key);
+  else tx.objectStore('sync_meta').put(value, key);
+  await done(tx);
+}
+
+export async function outboxAll() {
+  await open();
+  return promisify(db.transaction('outbox').objectStore('outbox').getAll());
+}
+
+// Queue every record (turning sync on for data that was never pushed, e.g.
+// restored from a backup).
+export async function queueAll() {
+  await open();
+  let n = 0;
+  for (const c of COLLECTIONS) {
+    const tx = db.transaction([c, 'outbox'], 'readwrite');
+    const keys = await promisify(tx.objectStore(c).getAllKeys());
+    for (const id of keys) { tx.objectStore('outbox').put({ id, collection: c, queued_at: Date.now() }); n++; }
+    await done(tx);
+  }
+  return n;
+}
+
+// The server accepted a record at `seq`. Its outbox entry goes only if the
+// record wasn't changed again meanwhile (same queued_at).
+export async function markPushed(collection, id, seq, queuedAt) {
+  assertCollection(collection);
+  await open();
+  const tx = db.transaction([collection, 'outbox'], 'readwrite');
+  const record = await promisify(tx.objectStore(collection).get(id));
+  const entry = await promisify(tx.objectStore('outbox').get(id));
+  const untouched = entry && entry.queued_at === queuedAt;
+  if (record) {
+    record._server_seq = seq;
+    if (untouched) record._dirty_fields = [];
+    tx.objectStore(collection).put(record);
+  }
+  if (untouched || !entry) tx.objectStore('outbox').delete(id);
+  await done(tx);
+}
+
+// A record from the server (another device): merged field by field, later
+// clock wins, so unpushed local edits survive. Remembers the server's seq.
+export async function applyRemote(collection, incoming, seq) {
+  assertCollection(collection);
+  await open();
+  const tx = db.transaction([collection, 'sync_meta'], 'readwrite');
+  const store = tx.objectStore(collection);
+  for (const clock of Object.values(incoming._field_clocks || {})) observeHlc(clock);
+  const local = await promisify(store.get(incoming.id));
+  let changed = true;
+  if (!local) {
+    store.put({ ...incoming, _dirty_fields: [], _server_seq: seq });
+  } else {
+    const merged = { ...local, _field_clocks: { ...(local._field_clocks || {}) }, _server_seq: seq };
+    changed = false;
+    for (const [field, clock] of Object.entries(incoming._field_clocks || {})) {
+      if (compareHlc(clock, merged._field_clocks[field]) > 0) {
+        merged[field] = incoming[field];
+        merged._field_clocks[field] = clock;
+        changed = true;
+      }
+    }
+    store.put(merged);
+  }
+  tx.objectStore('sync_meta').put(lastClock, 'clock');
+  await done(tx);
+  if (changed) emit({ collection, id: incoming.id, deleted: !!incoming.deleted_at, remote: true });
+  return changed;
+}

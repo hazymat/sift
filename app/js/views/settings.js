@@ -91,9 +91,9 @@ export default {
         <dl class="facts" id="storage"></dl>
       </section>
 
-      <section class="card">
+      <section class="card" id="sync-card">
         <h2>Sync</h2>
-        <p class="muted">Everything is stored on this device only. Sync between devices is coming later.</p>
+        <div id="sync-body"></div>
       </section>
 
       <section class="card" id="exchange-card">
@@ -132,6 +132,105 @@ export default {
         <p class="muted hint">Erasing removes every task, plan, note, contact, box and setting stored here. The app itself stays installed.</p>
       </section>
     `;
+
+    // Sync: sign in (or create the account on a fresh server), then it runs
+    // by itself. Everything is encrypted on this device before it leaves.
+    {
+      const sync = await import('../sync.js');
+      const box = el.querySelector('#sync-body');
+      const ago = iso => {
+        if (!iso) return 'not yet';
+        const s = Math.round((Date.now() - Date.parse(iso)) / 1000);
+        return s < 60 ? 'just now' : s < 3600 ? `${Math.round(s / 60)} min ago` : new Date(iso).toLocaleString();
+      };
+      const draw = async () => {
+        const acct = sync.signedIn();
+        const st = sync.status;
+        if (acct) {
+          box.innerHTML = `
+            <p><b>Signed in</b> as ${acct.email} on <code>${acct.server.replace(/^https?:\/\//, '')}</code></p>
+            <p class="muted" id="sync-line">${{ syncing: 'Syncing…', ok: `In sync · last ${ago(st.last)}`, offline: 'Offline: changes wait on this device and sync when the server is reachable (e.g. on the VPN)', error: `Couldn't sync: ${st.error}`, idle: 'Waiting to sync…' }[st.state] || ''}${st.pending ? ` · ${st.pending} change${st.pending === 1 ? '' : 's'} to send` : ''}</p>
+            <div class="backup-row">
+              <button type="button" class="primary" data-sync="now">Sync now</button>
+              <button type="button" data-sync="devices">Devices</button>
+              <button type="button" data-sync="out">Sign out on this device</button>
+            </div>
+            <ul class="sync-devices" hidden></ul>
+            <p class="muted hint">Your data is encrypted on this device before it's sent; the server can't read it. Signing out keeps everything on this device.</p>`;
+          return;
+        }
+        box.innerHTML = `
+          <p class="muted">Sync keeps your phone and laptop in step through your own server. Everything is encrypted here first; the server only stores scrambled copies.</p>
+          <div class="settings-grid sync-form">
+            <label class="wide">Server<input name="server" value="${sync.DEFAULT_SERVER}" autocomplete="off" class="no-inline"></label>
+            <label>Email<input name="email" type="email" autocomplete="username" class="no-inline"></label>
+            <label>Password<input name="password" type="password" autocomplete="current-password" class="no-inline"></label>
+          </div>
+          <div class="backup-row">
+            <button type="button" class="primary" data-sync="in">Sign in</button>
+            <button type="button" data-sync="create" hidden>Create account</button>
+            <span class="muted" id="sync-msg"></span>
+          </div>`;
+        const server = box.querySelector('[name="server"]').value;
+        sync.serverInfo(server).then(info => {
+          box.querySelector('[data-sync="create"]').hidden = info.registration !== 'open';
+          box.querySelector('#sync-msg').textContent = info.registration === 'open' ? 'This server has no account yet: create yours.' : '';
+        }).catch(() => { box.querySelector('#sync-msg').textContent = "Can't reach the server from here (VPN on?)"; });
+      };
+      sync.onStatus(() => { if (el.isConnected) draw(); });
+      box.addEventListener('click', async ev => {
+        const b = ev.target.closest('[data-sync]');
+        if (!b) return;
+        const what = b.dataset.sync;
+        const val = n => box.querySelector(`[name="${n}"]`)?.value.trim();
+        const msg = t => { const m = box.querySelector('#sync-msg'); if (m) m.textContent = t; };
+        try {
+          if (what === 'now') return sync.syncNow();
+          if (what === 'out') {
+            if (!confirm('Sign out of sync on this device? Everything stays on this device; it just stops syncing.')) return;
+            await sync.signOut();
+            return draw();
+          }
+          if (what === 'devices') {
+            const ul = box.querySelector('.sync-devices');
+            ul.hidden = !ul.hidden;
+            if (!ul.hidden) ul.innerHTML = (await sync.devices()).map(d => `<li>${d.name}${d.this ? ' <span class="muted">(this one)</span>' : ''} <span class="muted">· last seen ${ago(d.last_seen)}</span></li>`).join('');
+            return;
+          }
+          const server = val('server');
+          const email = val('email');
+          const password = box.querySelector('[name="password"]').value;
+          if (!email || !password) return msg('Enter your email and password');
+          if (what === 'create') {
+            if (password.length < 10) return msg('Use at least 10 characters');
+            b.disabled = true;
+            msg('Creating your account and keys…');
+            const code = await sync.register(server, email, password);
+            box.innerHTML = `
+              <p><b>Account created.</b> This is your <b>recovery code</b>. If you ever forget your password, it is the only way to get your data back. Nobody (not even the server) can reset it for you.</p>
+              <pre class="recovery-code">${code}</pre>
+              <div class="backup-row">
+                <button type="button" data-copy-code>Copy</button>
+                <label class="check-row"><input type="checkbox" id="code-saved"> I've saved it somewhere safe</label>
+                <button type="button" class="primary" id="code-done" disabled>Start syncing</button>
+              </div>`;
+            box.querySelector('[data-copy-code]').onclick = () => navigator.clipboard.writeText(code).then(() => toast('Copied'));
+            box.querySelector('#code-saved').onchange = e => { box.querySelector('#code-done').disabled = !e.target.checked; };
+            box.querySelector('#code-done').onclick = async () => { await sync.start(); draw(); };
+            return;
+          }
+          b.disabled = true;
+          msg('Signing in…');
+          await sync.signIn(server, email, password);
+          await sync.start();
+          draw();
+        } catch (e) {
+          b.disabled = false;
+          msg(e instanceof TypeError ? "Can't reach the server from here (VPN on?)" : e.message);
+        }
+      });
+      draw();
+    }
 
     // Data exchange: days as plain text
     {
