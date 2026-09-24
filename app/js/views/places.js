@@ -266,10 +266,10 @@ export default {
       return `<li class="thing-panel item-details" data-item="${i.id}" data-for="${i.id}">
         <div class="detail-grid">
           <label>Quantity<input type="number" name="quantity" min="0" step="1" value="${i.quantity ?? ''}" placeholder="—" inputmode="numeric"></label>
-          <div class="wide tag-edit"><span class="field-label">Tags</span>
+          <div class="tag-edit"><span class="field-label">Tags</span><div class="tag-box">
             <span class="tag-list">${(i.tags || []).map(t => `<span class="chip">#${esc(t)} <button type="button" class="chip-x" data-act="remove-tag" data-tag="${esc(t)}" aria-label="Remove tag ${esc(t)}">×</button></span>`).join('')}</span>
             <input class="tag-add no-inline" list="thing-tags" placeholder="+ tag (Enter)" aria-label="Add a tag" autocomplete="off">
-          </div>
+          </div></div>
           <div class="wide"><span class="field-label">Note</span><div class="thing-notes"></div></div>
           <div class="wide">${att.rowHtml(atts.get(i.id))}</div>
         </div>

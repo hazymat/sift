@@ -2725,3 +2725,21 @@ select.dd-open, .dd-open > select { outline: none; }
 .item-list .drag-handle.thing-grip .icon { width: 17px; height: 17px; }
 .item-list li:hover .drag-handle.thing-grip, .item-list li.dragging .drag-handle.thing-grip { opacity: .9 !important; }
 .item-list li.selected .drag-handle.thing-grip { opacity: 1 !important; color: var(--accent); }
+
+/* Find Things: an open thing and its panel are one rounded box (like Tasks):
+   Quantity and Tags side by side as proper fields, then Note and Attach,
+   then Close on the left and Delete on the right. */
+.item-list li[data-id]:has(+ li.thing-panel) { background: var(--glass-track); border: 1px solid var(--glass-border); border-bottom: 0; border-radius: 14px 14px 0 0; }
+.item-list li.thing-panel { display: block; margin: -6px 0 4px; padding: 6px 14px 14px 36px; border: 1px solid var(--glass-border); border-top: 0; border-radius: 0 0 14px 14px; background: var(--glass-track); }
+.item-list li.thing-panel:hover { background: var(--glass-track); }
+.thing-panel .detail-grid { grid-template-columns: 7rem minmax(0, 1fr); gap: 12px; }
+.thing-panel .detail-grid .wide { grid-column: 1 / -1; }
+.thing-panel label { display: flex; flex-direction: column; gap: 4px; font-size: .85rem; color: var(--muted); }
+.item-list .thing-panel input { background: var(--glass-track); border: 1px solid var(--glass-border); padding: 7px 10px; font-size: .95rem; color: var(--text); }
+.item-list .thing-panel input:focus { border-color: var(--active-border); }
+.thing-panel .tag-box { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-height: 36px; box-sizing: border-box; padding: 3px 6px; border-radius: var(--radius-sm); border: 1px solid var(--glass-border); background: var(--glass-track); }
+.thing-panel .tag-box:focus-within { border-color: var(--active-border); }
+.thing-panel .tag-edit .tag-list { margin: 0; }
+.item-list .thing-panel .tag-box .tag-add { flex: 1 1 8em; width: auto; min-width: 6em; border: 0; background: transparent; padding: 4px; }
+.thing-panel .detail-actions { margin-top: 4px; }
+@media (max-width: 560px) { .item-list li.thing-panel { padding-left: 14px; } .thing-panel .detail-grid { grid-template-columns: 5.5rem minmax(0, 1fr); } }
