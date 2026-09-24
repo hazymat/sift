@@ -2575,3 +2575,7 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 .task-list .item-sub { margin-left: 65px; max-width: calc(100% - 65px); }
 .task-list .edit-pills .pill-note { margin-left: 1px; flex-basis: calc(100% - 1px); }
 @media (max-width: 700px) { .task-list .edit-pills .pill-note { margin-left: 49px; flex-basis: calc(100% - 49px); } }
+
+/* "New task" is a hint, never mistaken for a task's name: italic and very faint
+   (the Tasks page and the Day Planner's Tasks). */
+.task-add-line .new-task-line::placeholder, .planner .pile-new .new-task::placeholder { font-style: italic; color: color-mix(in srgb, var(--text) 22%, transparent) !important; opacity: 1; }
