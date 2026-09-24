@@ -209,8 +209,7 @@ export default {
           <h3>Contents <span class="muted">${b.items.length}</span></h3>
           <ul class="item-list">${b.items.map(i => `
             <li data-id="${i.id}" data-item="${i.id}" data-depth="${i.depth}">
-              <button type="button" class="drag-handle" aria-label="Select or move ${esc(i.name)}">${icon('i-grip')}</button>
-              <svg class="icon thing-icon" aria-hidden="true"><use href="#i-places"/></svg>
+              <button type="button" class="drag-handle thing-grip" aria-label="Select or move ${esc(i.name)}" title="Tap to select, hold to drag">${icon('i-places')}</button>
               <input name="name" value="${esc(i.name)}" aria-label="Item">
               ${i.quantity ? `<span class="span-tag qty" title="Quantity">×${i.quantity}</span>` : ''}
               <button type="button" class="more" data-act="item-details" aria-label="Details" aria-expanded="${openItem === i.id}">⋯</button>
@@ -220,7 +219,7 @@ export default {
           </ul>
           <datalist id="thing-tags">${allTags().map(t => `<option value="${esc(t)}">`).join('')}</datalist>
           <textarea id="new-items" class="list-entry" rows="2" placeholder="${esc(word('ph_add_items'))}"></textarea>
-          <p class="muted hint">${listHint({ enterAdds: true })} ⠿: tap to select, swipe down the ⠿ column to select several, press and hold to drag (sideways to indent; or Tab / Shift+Tab). Changes save as you go; Esc closes.</p>
+          <p class="muted hint">${listHint({ enterAdds: true })} The cube: tap to select, swipe down the cubes to select several, press and hold to drag (sideways to indent; or Tab / Shift+Tab). Changes save as you go; Esc closes.</p>
           <div class="sheet-actions">
             <button type="button" data-act="add-items">Add items <kbd>${SHORTCUT}</kbd></button>
             <span class="spacer"></span>

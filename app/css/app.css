@@ -2719,7 +2719,9 @@ select.dd-open, .dd-open > select { outline: none; }
   :is(.line, li[data-id]):hover .more, :is(.line, li[data-id]):focus-within .more, :is(.line, li[data-id]) .more:focus-visible { opacity: 1 !important; }
 }
 
-/* Find Things: each thing in a box has the Find Things cube in front of it;
-   its note line and pills move over to start where its name starts. */
-.item-list .thing-icon { width: 16px; height: 16px; flex: none; color: var(--muted); opacity: .75; }
-.item-list li:has(> .thing-icon) > :is(.item-sub, .edit-pills) { margin-left: 56px; }
+/* Find Things: each thing's grab handle is the Find Things cube, always
+   showing (it's the thing's icon as well as its handle). */
+.item-list .drag-handle.thing-grip { opacity: .6 !important; }
+.item-list .drag-handle.thing-grip .icon { width: 17px; height: 17px; }
+.item-list li:hover .drag-handle.thing-grip, .item-list li.dragging .drag-handle.thing-grip { opacity: .9 !important; }
+.item-list li.selected .drag-handle.thing-grip { opacity: 1 !important; color: var(--accent); }
