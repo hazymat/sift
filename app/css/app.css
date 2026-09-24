@@ -833,6 +833,9 @@ kbd { font: inherit; font-size: .72em; padding: 1px 5px; margin-left: 4px; borde
 .settings-grid input, .settings-grid select { color: var(--text); }
 .check-row { display: flex; align-items: center; gap: 8px; font-size: .9rem; color: var(--text); margin: 6px 0; }
 .check-row input { width: auto; }
+.check-row input[type="checkbox"] { width: 18px; height: 18px; margin: 0; flex: none; accent-color: #6fb0ff; cursor: pointer; }
+/* Fields in a settings grid fit their column (date fields were wider and overlapped). */
+.settings-grid :is(input, select) { box-sizing: border-box; min-width: 0; max-width: 100%; }
 #down-days button[aria-pressed="true"] { background: var(--calm); border-color: rgba(120, 220, 170, .5); }
 
 
