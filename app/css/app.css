@@ -2487,9 +2487,21 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 /* Day Planner Notes: just the note, no box around it, and the toolbar only
    while you're writing in it (clicking a toolbar button keeps you in it). */
 #notes.rich:not(:focus-within) > .md-bar { display: none; }
-#notes .rich-edit, #notes .rich-raw { border-color: transparent !important; background: transparent; border-radius: 0; box-shadow: none; }
-#notes .rich-edit:hover { background: color-mix(in srgb, var(--text) 4%, transparent); }
-#notes .rich-edit:focus, #notes .rich-raw:focus { background: color-mix(in srgb, var(--text) 6%, transparent); }
+#notes .rich-edit, #notes .rich-raw {
+  border-color: transparent !important; border-radius: 0; box-shadow: none;
+  /* Ruled paper: a line under every line of writing, at least five of them,
+     and always a spare line or two below the text. */
+  --note-line: 2rem;
+  line-height: var(--note-line);
+  padding: 0 10px calc(var(--note-line) * 1.5);
+  min-height: calc(var(--note-line) * 5);
+  background-color: transparent;
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--note-line) - 1px), var(--rule) calc(var(--note-line) - 1px), var(--rule) var(--note-line));
+  background-attachment: local;
+}
+#notes .rich-edit :is(ul, ol, p, div, h3, h4) { margin-top: 0; margin-bottom: 0; line-height: var(--note-line); }
+#notes .rich-edit:hover { background-color: color-mix(in srgb, var(--text) 4%, transparent); }
+#notes .rich-edit:focus, #notes .rich-raw:focus { background-color: color-mix(in srgb, var(--text) 6%, transparent); }
 
 /* The ⠿ handle on Day Planner items and tasks: hidden until the pointer is
    over it (or it's in use). Touch screens, which have no hover, keep it faint. */
