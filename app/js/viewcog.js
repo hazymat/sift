@@ -1,8 +1,8 @@
-// The ⚙ view menu every page has (same style as the Day Planner's). It always
+// The 👁 view menu every page has (same style as the Day Planner's). It always
 // offers Spacing: tight / medium / loose, remembered per page on this device.
 // Pages can add their own sections above it.
 //
-//   cogHtml(extraSectionsHtml)   the ⚙ button and its menu, for a page header
+//   cogHtml(extraSectionsHtml)   the 👁 view button and its menu, for a page header
 //   spacingHtml(area)            just the Spacing section (the Day Planner adds
 //                                it to its own menu)
 //   installViewCog(getArea)      once, in app.js: wires the switch and applies
@@ -29,7 +29,7 @@ export function spacingHtml(area) {
 
 export function cogHtml(area, extra = '') {
   return `<details class="tool-menu view-menu page-cog">
-      <summary class="icon-btn" aria-label="View settings" title="View settings"><svg class="icon" aria-hidden="true"><use href="#i-cog"/></svg></summary>
+      <summary class="icon-btn" aria-label="View settings" title="View settings"><svg class="icon" aria-hidden="true"><use href="#i-view"/></svg></summary>
       <div class="menu view-settings">${extra}${spacingHtml(area)}</div>
     </details>`;
 }

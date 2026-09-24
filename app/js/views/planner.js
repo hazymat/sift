@@ -58,7 +58,7 @@ export default {
         <div class="energy" role="group" aria-label="Today's energy level"><span>Today's Energy Level</span>
           ${ENERGY.map(e => `<button type="button" class="bolts" data-energy="${e.id}" title="${esc(`${e.label}: ${e.hint}`)}" aria-label="${e.label}">${e.bolts}</button>`).join('')}
           <details class="tool-menu view-menu">
-            <summary class="icon-btn" aria-label="View settings for this day" title="View settings for this day"><svg class="icon" aria-hidden="true"><use href="#i-cog"/></svg></summary>
+            <summary class="icon-btn" aria-label="View settings for this day" title="View settings for this day"><svg class="icon" aria-hidden="true"><use href="#i-view"/></svg></summary>
             <div class="menu view-settings"></div>
           </details>
         </div>
@@ -93,7 +93,7 @@ export default {
         <div class="hk-actions">
           <button type="button" class="danger" data-act="clear-day">Clear this day…</button>
         </div>
-        <p class="muted hint">Paper, timeslots and layout for a single day are in the ⚙ menu by the energy level; the defaults are in Settings.</p>
+        <p class="muted hint">Paper, timeslots and layout for a single day are in the view menu (the eye) by the energy level; the defaults are in Settings.</p>
       </section>
       </div>
       <dialog class="sheet cal-sheet" id="cal" aria-label="Pick a date"></dialog>
@@ -237,7 +237,7 @@ export default {
       paintViewMenu();
     }
 
-    // ⚙ View settings for this day: paper, timeslots, layout. Each choice is
+    // 👁 View settings for this day: paper, timeslots, layout. Each choice is
     // saved on the day; "default" follows Settings.
     const slotMin = () => Math.max(5, Number(day?.slot_min) || Number(settings.slot_min) || 60);
     function paintViewMenu() {
