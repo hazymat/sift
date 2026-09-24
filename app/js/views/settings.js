@@ -384,7 +384,7 @@ export default {
         await store.clearHistory();
         toast('Undo history cleared');
       } else if (kind === 'all') {
-        const typed = prompt('⚠️ ERASE ALL DATA ON THIS DEVICE ⚠️\n\nThis deletes every task, plan, note, contact, box, list and setting stored here. It cannot be undone.\n\nBack up first if you might want it.\n\nType DELETE (in capitals) to erase everything:');
+        const typed = prompt('⚠️ ERASE ALL DATA ON THIS DEVICE ⚠️\n\nThis deletes every task, plan, note, contact, box, list and setting stored here. It cannot be undone.\n\nIf you use Sync: this only clears THIS device and signs it out of Sync. Your server and other devices keep their copies (sign in again to get it all back), but anything not yet synced is lost.\n\nBack up first if you might want it.\n\nType DELETE (in capitals) to erase everything:');
         if (typed === null) return;
         if (typed.trim() !== 'DELETE') return toast('Not erased: you have to type DELETE exactly');
         await store.eraseAll();
