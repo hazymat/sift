@@ -2758,3 +2758,8 @@ select.dd-open, .dd-open > select { outline: none; }
 .thought-head { flex-wrap: wrap; row-gap: 4px; gap: 6px; padding-right: 26px; }
 .thought-head .pin { position: absolute; top: 9px; right: 8px; }
 .thought-head .kind-select { width: auto; flex: none; field-sizing: content; padding-top: 3px; padding-bottom: 3px; padding-left: 10px; }
+
+/* Tasks page: the New task line follows the last task like any other line
+   (no extra gap under the list). */
+.task-list:has(+ #task-entry) { margin-bottom: 0; }
+#task-entry { margin-top: 0; }
