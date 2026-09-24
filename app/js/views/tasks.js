@@ -212,7 +212,7 @@ export default {
             <input id="task-new" class="new-task-line no-inline" placeholder="${esc(placeholder)}" autocomplete="off" enterkeyhint="done" aria-label="New task">
           </div>
           <div class="task-entry-more">
-            <textarea id="task-new-note" class="entry-note no-inline" rows="1" placeholder="Add note" aria-label="Note"></textarea>
+            <textarea id="task-new-note" class="entry-note add-note no-inline" rows="1" placeholder="Add note" aria-label="Note"></textarea>
             <div class="entry-actions">
               <label class="entry-chip" data-chip="energy">⚡ <span class="chip-text" data-empty="Energy">Energy</span>
                 <select data-entry="energy" aria-label="Energy"><option value="">No energy set</option>${ENERGY.map(e => opt(e.id, `${e.bolts} ${e.label}`)).join('')}</select></label>
@@ -718,7 +718,7 @@ export default {
         if (!t) return '';
         const aim = t.aim_at ? t.aim_at.slice(0, 10) : '';
         // No note yet: an "Add note" line under the title, like adding a new task.
-        const addNote = (t.notes || '').trim() ? '' : `<textarea class="entry-note pill-note no-inline" data-pill="notes" rows="1" placeholder="Add note" aria-label="Note"></textarea>`;
+        const addNote = (t.notes || '').trim() ? '' : `<textarea class="entry-note add-note pill-note no-inline" data-pill="notes" rows="1" placeholder="Add note" aria-label="Note"></textarea>`;
         return addNote + selectPill('energy', 'Energy', v => ENERGY.find(e => e.id === v)?.bolts || '⚡', [['', 'No energy set'], ...ENERGY.map(e => [e.id, e.label])], t.energy)
           + selectPill('estimate_min', 'Estimated time', '⏱', [['', 'Not estimated'], ...hours], t.estimate_min)
           + datePill('start_date', 'Plan for day', '📅', t.start_date, shortDate)

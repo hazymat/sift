@@ -2528,3 +2528,22 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 
 /* Day Planner Tasks: "New task" is only a faint hint of where to write next. */
 .planner .pile-new .new-task::placeholder { color: color-mix(in srgb, var(--text) 22%, transparent) !important; opacity: 1; }
+
+/* "Add note" under a line you're writing or editing (Tasks, the Day Planner's
+   schedule and tasks): small capitals, italic and faint, like a pencilled hint. */
+.add-note { display: block; width: 100%; box-sizing: border-box; min-height: 1.5em; margin: 0; padding: 2px 6px; border: 0 !important; border-radius: 0; background: transparent; box-shadow: none; resize: none; overflow: hidden; font-family: var(--font); font-size: .85rem; line-height: 1.4; color: var(--text); field-sizing: content; }
+.add-note:focus { outline: none; background: color-mix(in srgb, var(--text) 5%, transparent); }
+.add-note::placeholder { font-style: italic; font-variant: small-caps; letter-spacing: .06em; font-size: 1.05em; color: color-mix(in srgb, var(--text) 30%, transparent) !important; opacity: 1; }
+/* Day Planner: the note line sits under the title, only while you're on that line. */
+.line .content > .add-note { flex-basis: 100%; margin: -2px 0 4px; }
+.pile-new .content { flex-wrap: wrap; }
+.pile-new:not(:focus-within) #dump-note:placeholder-shown { display: none; }
+
+/* Tasks page: the new-task line is ruled paper, not a box; an empty list shows
+   a few more ruled lines under it, with the first task on the first line. */
+.task-add-line, .task-add-line:focus-within { border: 0; border-bottom: 1px solid var(--glass-border); border-radius: 0; background: transparent; margin: 0; }
+.task-add-line:focus-within { background: color-mix(in srgb, var(--text) 5%, transparent); }
+.task-entry.is-empty { display: block; min-height: 0; }
+.task-entry.is-empty .entry-plus { display: none; }
+.task-entry.is-empty:not(.open) .task-add-line { display: flex; }
+.task-entry.is-empty::after { content: ''; display: block; height: calc(43px * 3); background: repeating-linear-gradient(to bottom, transparent 0, transparent 42px, var(--glass-border) 42px, var(--glass-border) 43px); pointer-events: none; }

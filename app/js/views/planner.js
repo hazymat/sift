@@ -73,7 +73,7 @@ export default {
           <h2>${esc(word('day_tasks'))} <span class="task-count" hidden></span></h2>
           <div class="pile-paper">
             <ul id="pile" class="pile-list"></ul>
-            <div class="line pile-new"><span class="margin"></span><span class="content"><input id="dump" class="new-task hand" placeholder="New task" autocomplete="off" enterkeyhint="done" aria-label="New task"></span></div>
+            <div class="line pile-new"><span class="margin"></span><span class="content"><input id="dump" class="new-task hand" placeholder="New task" autocomplete="off" enterkeyhint="done" aria-label="New task"><textarea id="dump-note" class="add-note no-inline" rows="1" placeholder="Add note" aria-label="Note"></textarea></span></div>
             <ul id="pile-done" class="pile-list pile-done"></ul>
             <div id="pile-blank" aria-hidden="true"></div>
           </div>
@@ -106,6 +106,11 @@ export default {
     const $ = s => el.querySelector(s);
     const linesEl = $('#lines');
     $('#pile-blank').addEventListener('click', () => $('#dump').focus());
+    // The New task line's note: Ctrl+Enter adds the task, as Enter does on the title.
+    $('#dump-note').addEventListener('keydown', ev => {
+      if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); $('#dump').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); }
+    });
+    $('#dump-note').addEventListener('input', ev => { ev.target.style.height = 'auto'; ev.target.style.height = `${ev.target.scrollHeight}px`; });
 
     // Shift+Enter in an item's title: save the title, then type its notes.
     el.addEventListener('keydown', async ev => {
@@ -705,11 +710,13 @@ export default {
         const i = items.find(x => x.id === id);
         if (!i) return '';
         const mins = [...new Set([...durationChoices(settings.duration_max_min), ...(i.estimate_min ? [Number(i.estimate_min)] : [])])].sort((a, b) => a - b);
-        return selectPill('energy', 'Energy', v => ENERGY.find(e => e.id === v)?.bolts || '⚡', [['', 'No energy set'], ...ENERGY.map(e => [e.id, e.label])], i.energy)
+        const addNote = (i.notes || '').trim() ? '' : '<textarea class="add-note pill-note no-inline" data-pill="notes" rows="1" placeholder="Add note" aria-label="Note"></textarea>';
+        return addNote + selectPill('energy', 'Energy', v => ENERGY.find(e => e.id === v)?.bolts || '⚡', [['', 'No energy set'], ...ENERGY.map(e => [e.id, e.label])], i.energy)
           + selectPill('estimate_min', 'Estimated time', '⏱', [['', 'Not estimated'], ['unsure', 'Not sure yet'], ...mins.map(m => [m, durationLabel(m)])], i.estimate_min || (i.estimate_unsure ? 'unsure' : ''))
           + datePill('date', 'Day', '📅', i.date, d => (d === isoDate() ? 'Today' : new Date(`${d}T12:00`).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })));
       },
       change: async (id, name, v) => {
+        if (name === 'notes') { if (v.trim()) await change(id, { notes: v.trim() }, 'Note saved'); return; }
         if (name === 'energy') return change(id, { energy: v || null }, v ? 'Energy saved' : 'Energy cleared');
         if (name === 'estimate_min') {
           return change(id, v === 'unsure' ? { estimate_min: null, estimate_unsure: true } : { estimate_min: v ? Number(v) : null, estimate_unsure: false },
@@ -732,25 +739,38 @@ export default {
       const line = content.closest('.line');
       if (line.querySelector('input')) return;
       const time = line.dataset.time === 'evening' ? fromMin(toMin(settings.day_end) + slotMin()) : line.dataset.time;
-      content.innerHTML = '<input class="item-title hand new-line" autocomplete="off">';
+      // The title, and an "Add note" line under it for anything more.
+      content.innerHTML = '<input class="item-title hand new-line" autocomplete="off"><textarea class="add-note no-inline" rows="1" placeholder="Add note" aria-label="Note"></textarea>';
       const input = content.querySelector('input');
+      const note = content.querySelector('.add-note');
       input.focus();
       let finished = false;
       const finish = async save => {
-        if (finished) return; // Enter then blur would otherwise save twice
+        if (finished) return; // Enter then leaving would otherwise save twice
         finished = true;
         const text = input.value.trim();
+        const notes = note.value.trim();
         input.remove();
+        note.remove();
         if (save && text) {
           const parsed = parseTimed(text);
-          await create({ title: parsed.title, time: parsed.time || time, end_time: parsed.end_time });
+          await create({ title: parsed.title, time: parsed.time || time, end_time: parsed.end_time, notes });
         }
       };
       input.addEventListener('keydown', ev => {
         if (ev.key === 'Enter') { ev.preventDefault(); finish(true); }
         if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); finish(false); }
       });
-      input.addEventListener('blur', () => finish(true), { once: true });
+      note.addEventListener('keydown', ev => {
+        if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); finish(true); }
+        if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); finish(false); }
+      });
+      note.addEventListener('input', () => { note.style.height = 'auto'; note.style.height = `${note.scrollHeight}px`; });
+      // Leaving both the title and its note saves it.
+      content.addEventListener('focusout', ev => {
+        if (content.contains(ev.relatedTarget)) return;
+        setTimeout(() => { if (!content.contains(document.activeElement)) finish(true); }, 0);
+      });
     }
 
     att.enableDrop(el, '.item-details[data-for]', node => ({ collection: 'day_items', id: node.dataset.for }), () => refresh());
@@ -898,7 +918,11 @@ export default {
       input.value = '';
       draftCleared(input);
       const p = parseTimed(text);
-      const { title, notes } = summarise(p.title); // long ones: short title, full text in the note
+      const { title, notes: longText } = summarise(p.title); // long ones: short title, full text in the note
+      const noteEl = $('#dump-note');
+      const notes = [longText, noteEl.value.trim()].filter(Boolean).join('\n\n');
+      noteEl.value = '';
+      noteEl.style.height = '';
       const last = items.filter(i => !i.time).reduce((m, i) => Math.max(m, i.sort_order ?? 0), -1);
       const made = await addItem(date, { title, notes, time: p.time, end_time: p.end_time, sort_order: last + 1 });
       await refresh();
