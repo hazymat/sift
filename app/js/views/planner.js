@@ -308,6 +308,7 @@ export default {
             <input type="checkbox" class="tick" aria-label="Done" ${i.done_at ? 'checked' : ''}>
             <textarea class="item-title one-line hand" rows="1" aria-label="Item" spellcheck="false">${esc(i.title)}</textarea>
             ${span ? `<span class="span-tag">${span}</span>` : i.estimate_min ? `<span class="span-tag">~${durationLabel(Number(i.estimate_min))}</span>` : ''}
+            ${i.energy ? `<span class="span-tag bolts" title="Energy: ${esc(ENERGY.find(e => e.id === i.energy)?.label || '')}">${ENERGY.find(e => e.id === i.energy)?.bolts || ''}</span>` : ''}
             <button type="button" class="more" data-act="details" aria-label="Details">⋯</button>
             ${noteEditing === i.id
               ? `<div class="note-edit" data-note-for="${i.id}"></div>`
@@ -365,6 +366,9 @@ export default {
               .map(m => `<option value="${m}" ${Number(i.estimate_min) === m ? 'selected' : ''}>${durationLabel(m)}</option>`).join('')}
           </select></label>
           <label>Day<input type="date" name="date" value="${i.date}"></label>
+          <div class="energy-pick wide" role="group" aria-label="Energy"><span>Energy</span>
+            ${ENERGY.map(e => `<button type="button" class="bolts" data-item-energy="${e.id}" aria-pressed="${i.energy === e.id}" title="${esc(`${e.label}: ${e.hint}`)}" aria-label="${e.label}">${e.bolts}</button>`).join('')}
+          </div>
           <div class="wide detail-note"><span class="field-label">Note</span><div class="detail-notes" data-note-for="${i.id}"></div></div>
           <div class="wide">${att.rowHtml(atts.get(i.id))}</div>
           <div class="detail-actions">
@@ -627,7 +631,7 @@ export default {
       const before = { horizon: task.horizon ?? null, start_date: task.start_date ?? null, archived_at: task.archived_at ?? null };
       let made = null;
       if (act === 'claim') {
-        made = await addItem(date, { title: task.title, task_id: task.id, notes: task.notes || '', contact_ids: task.contact_ids || [], case_id: task.case_id || null, estimate_min: task.estimate_min ?? null });
+        made = await addItem(date, { title: task.title, task_id: task.id, notes: task.notes || '', contact_ids: task.contact_ids || [], case_id: task.case_id || null, estimate_min: task.estimate_min ?? null, energy: task.energy ?? null });
         await store.update('tasks', task.id, { start_date: task.start_date || date, horizon: 'now' });
       } else if (act === 'now' || act === 'next' || act === 'later') {
         await store.update('tasks', task.id, { horizon: act });
@@ -712,8 +716,14 @@ export default {
     att.enableDrop(el, '.item-details[data-for]', node => ({ collection: 'day_items', id: node.dataset.for }), () => refresh());
     el.addEventListener('click', async ev => {
       if (att.onClick(ev, b => { const id = b.closest('[data-for]')?.dataset.for; return id ? { collection: 'day_items', id } : null; }, () => refresh())) return;
-      const t = ev.target.closest('[data-act], [data-energy]');
+      const t = ev.target.closest('[data-act], [data-energy], [data-item-energy]');
       if (!t) return;
+      if (t.dataset.itemEnergy) {
+        const eid = t.closest('[data-for]')?.dataset.for;
+        const it = items.find(x => x.id === eid);
+        if (it) await change(eid, { energy: it.energy === t.dataset.itemEnergy ? null : t.dataset.itemEnergy }, 'Energy saved');
+        return;
+      }
       if (t.closest('.item-details') && !t.closest('.rich')) await flushNote(t.closest('.item-details'));
       const itemEl = t.closest('[data-item], [data-for]');
       const id = itemEl?.dataset.item || itemEl?.dataset.for;
@@ -745,7 +755,7 @@ export default {
           await renderTasks();
           undoable(`Adopted "${task.title}"`, async () => { await store.update('tasks', taskId, { start_date: null }); renderTasks(); });
         } else {
-          const made = await addItem(date, { title: task.title, task_id: taskId, estimate_min: task.estimate_min ?? null });
+          const made = await addItem(date, { title: task.title, task_id: taskId, estimate_min: task.estimate_min ?? null, energy: task.energy ?? null, notes: task.notes || '', contact_ids: task.contact_ids || [], case_id: task.case_id || null });
           await refresh();
           renderTasks();
           undoable(`"${task.title}" is in To place`, async () => { await store.remove('day_items', made.id); await refresh(); renderTasks(); });

@@ -125,7 +125,7 @@ export async function itemsFor(date) {
 export async function addItem(date, fields) {
   const count = (await itemsFor(date)).length;
   return store.create('day_items', {
-    date, title: '', notes: '', time: null, end_time: null, estimate_min: null, estimate_unsure: false, done_at: null, dropped_at: null,
+    date, title: '', notes: '', time: null, end_time: null, energy: null, estimate_min: null, estimate_unsure: false, done_at: null, dropped_at: null,
     sort_order: count, task_id: null, case_id: null, contact_ids: [], source_thought_id: null, carried_from: null,
     ...fields,
   });

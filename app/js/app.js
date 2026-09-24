@@ -250,6 +250,7 @@ async function boot() {
   // What each energy level means (Settings → Energy levels) feeds the hover text everywhere.
   const days = await import('./days.js');
   await days.applyEnergyMeanings();
+  import('./link.js').then(m => m.installMirror()); // a task and its day items share title, note, energy, time, people, case
   store.subscribe(change => { if (change?.collection === 'settings') days.applyEnergyMeanings(); });
 
   await route();

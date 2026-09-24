@@ -33,6 +33,7 @@ const SHELL = [
   'js/holdopen.js',
   'js/attachments.js',
   'js/install.js',
+  'js/link.js',
   'js/viewcog.js',
   'js/crypto.js',
   'js/sync.js',

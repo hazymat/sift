@@ -665,7 +665,7 @@ export default {
         input?.select();
         undoable('Added a sub-task', async () => { await store.remove('tasks', sub.id); await render(); });
       } else if (act === 'plan-today' && task) {
-        const made = await addItem(isoDate(), { title: task.title, task_id: task.id, estimate_min: task.estimate_min ?? null });
+        const made = await addItem(isoDate(), { title: task.title, task_id: task.id, estimate_min: task.estimate_min ?? null, energy: task.energy ?? null, notes: task.notes || '', contact_ids: task.contact_ids || [], case_id: task.case_id || null });
         if (!task.start_date) await store.update('tasks', task.id, { start_date: isoDate() });
         await render();
         undoable(`On today's plan: ${task.title}`, async () => {
