@@ -150,7 +150,7 @@ export default {
         </ul>
         ${state.hideTicked && pr.done ? `<p class="muted hint">${pr.done} ticked item${pr.done === 1 ? '' : 's'} hidden.</p>` : ''}
         <textarea id="list-new" class="list-entry" rows="2" placeholder="Add items"></textarea>
-        <p class="muted hint">${listHint()}</p>
+        <p class="muted hint">${listHint({ enterAdds: true })}</p>
         <div class="detail-actions">
           <button type="button" data-act="add">Add items <kbd>${SHORTCUT}</kbd></button>
           <span class="spacer"></span>
@@ -176,7 +176,7 @@ export default {
       }
       mountNotes();
       const ta = body.querySelector('#list-new');
-      if (ta) addEntry = listEntry(ta, addLines, { draft: `lists:${state.id || 'new'}` });
+      if (ta) addEntry = listEntry(ta, addLines, { draft: `lists:${state.id || 'new'}`, enterAdds: true });
     };
 
     // ---------- editing ----------

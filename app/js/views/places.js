@@ -215,7 +215,7 @@ export default {
           </ul>
           <datalist id="thing-tags">${allTags().map(t => `<option value="${esc(t)}">`).join('')}</datalist>
           <textarea id="new-items" class="list-entry" rows="2" placeholder="Add items"></textarea>
-          <p class="muted hint">${listHint()} ≡: tap to select, swipe down the ≡ column to select several, press and hold to drag (sideways to indent; or Tab / Shift+Tab). Changes save as you go; Esc closes.</p>
+          <p class="muted hint">${listHint({ enterAdds: true })} ≡: tap to select, swipe down the ≡ column to select several, press and hold to drag (sideways to indent; or Tab / Shift+Tab). Changes save as you go; Esc closes.</p>
           <div class="sheet-actions">
             <button type="button" data-act="add-items">Add items <kbd>${SHORTCUT}</kbd></button>
             <span class="spacer"></span>
@@ -225,7 +225,7 @@ export default {
           </div>
         </article>`;
       kit.attach(page.querySelector('.item-list'));
-      addItems = listEntry(page.querySelector('#new-items'), addLines, { draft: `places:${openId}` });
+      addItems = listEntry(page.querySelector('#new-items'), addLines, { draft: `places:${openId}`, enterAdds: true });
       mountThingNotes();
       page.querySelector('#box-q').addEventListener('input', ev => {
         query = ev.target.value.trim(); // the same search as the grid's; stays in this box

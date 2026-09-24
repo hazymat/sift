@@ -10,7 +10,8 @@
 // A bar appears while anything is selected: built-in Indent / Outdent / ↑ / ↓
 // (when enabled) plus the caller's actions.
 //
-//   const kit = createListKit({ reorder, indent, maxDepth, actions, onReorder, noun })
+//   const kit = createListKit({ reorder, indent, maxDepth, actions, onReorder, noun, grid })
+//   grid: true for cards laid out in rows and columns (drag follows the pointer both ways)
 //   after each render: kit.attach(ul)        on leaving the view: kit.destroy()
 //   onReorder(rows, label): rows = [{ id, depth }] in the new order; persist them
 //   actions: [{ id, label, danger?, run(ids) }]; ids are in list order
@@ -20,7 +21,7 @@ import { sortable } from './sortable.js';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 export function createListKit({
-  reorder = true, indent = false, maxDepth = 1, actions = [], onReorder, noun = 'item',
+  reorder = true, indent = false, maxDepth = 1, actions = [], onReorder, noun = 'item', grid = false,
 } = {}) {
   const selected = new Set();
   let anchor = null;
@@ -133,6 +134,7 @@ export function createListKit({
       handle: '.drag-handle',
       holdMs: reorder ? 260 : 100000, // without reordering, a hold does nothing
       keyboard: reorder,
+      grid,
       onTap: (li, ev) => {
         const id = li.dataset.id;
         if (ev.shiftKey && anchor) {

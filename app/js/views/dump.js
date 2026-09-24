@@ -41,6 +41,11 @@ function ago(iso) {
   return new Date(iso).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
+// Pinned first, then the order you dragged them into; ones you haven't placed
+// yet (new thoughts) come first, newest on top.
+const orderKey = t => t.sort_order ?? -Date.parse(t.created_at) / 1e12;
+const byOrder = (a, b) => Number(!!b.pinned) - Number(!!a.pinned) || orderKey(a) - orderKey(b);
+
 export default {
   async mount(el) {
     const state = this.state = { filter: 'all', q: '', showConverted: false };
@@ -117,8 +122,7 @@ export default {
     }
 
     const render = this.render = async () => {
-      thoughts = (await store.list('thoughts', { filter: t => !t.archived_at }))
-        .sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned) || b.created_at.localeCompare(a.created_at));
+      thoughts = (await store.list('thoughts', { filter: t => !t.archived_at })).sort(byOrder);
       atts = await att.byParent();
       paintCapture();
       paintKinds();
@@ -131,6 +135,9 @@ export default {
       list.innerHTML = shown.map(t => card(t)).join('')
         || `<li class="empty"><h2>${thoughts.length ? 'Nothing matches.' : 'Empty head. Nice.'}</h2></li>`;
       if (hidden && !state.showConverted) list.insertAdjacentHTML('beforeend', `<li class="muted hint converted-note"><button type="button" data-act="toggle-converted">Show ${hidden} converted</button></li>`);
+      // Compact spacing: the note you're editing fills the page (like opening a box in Find Things).
+      el.dataset.zoom = editing && el.dataset.density === 'tight' ? editing : '';
+      if (!el.dataset.zoom) delete el.dataset.zoom;
       kit.attach(list);
     };
 
@@ -160,7 +167,8 @@ export default {
       const conv = t.converted_to && TARGET[t.converted_to.collection];
       const href = conv && (t.converted_to.collection === 'day_items' ? `#/planner/${t.converted_to.date || ''}` : t.converted_to.collection === 'contacts' ? `#/contacts/c/${t.converted_to.id}` : `#/${conv[1]}`);
       return `
-        <li class="thought size-${sizeOf(t)}${t.converted_to ? ' converted' : ''}${t.pinned ? ' pinned' : ''}" data-id="${t.id}">
+        <li class="thought size-${sizeOf(t)}${t.converted_to ? ' converted' : ''}${t.pinned ? ' pinned' : ''}${editing === t.id && el.dataset.density === 'tight' ? ' zoomed' : ''}" data-id="${t.id}">
+          ${editing === t.id && el.dataset.density === 'tight' ? '<div class="zoom-back">‹ Back to notes <span class="muted">(click anywhere outside the note, or Esc)</span></div>' : ''}
           <div class="thought-head">
             <button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button>
             <select class="kind-select" aria-label="Kind">${KINDS.map(k => `<option value="${k.id}" ${k.id === t.kind ? 'selected' : ''}>${k.label}</option>`).join('')}</select>
@@ -214,8 +222,21 @@ export default {
       await render();
       undoable(`${label} ${ids.length} thought${ids.length === 1 ? '' : 's'}`, async () => { await store.updateMany('thoughts', before); await render(); });
     }
+    // Dragging cards (hold ≡, then move) saves the new order. Notes hidden by the
+    // filter keep their places among the others.
+    async function persistOrder(order) {
+      const shown = new Set(order.map(r => r.id));
+      const before = thoughts.map(t => [t.id, { sort_order: t.sort_order ?? null }]);
+      let next = 0;
+      const merged = thoughts.map(t => (shown.has(t.id) ? order[next++].id : t.id));
+      await store.updateMany('thoughts', merged.map((id, i) => [id, { sort_order: i }]));
+      await render();
+      undoable('Moved a note', async () => { await store.updateMany('thoughts', before); await render(); });
+    }
     const kit = this.kit = createListKit({
-      reorder: false,
+      reorder: true,
+      grid: true,
+      onReorder: persistOrder,
       noun: 'thought',
       actions: [
         { id: 'tasks', label: '→ Tasks', run: async ids => {

@@ -12,11 +12,14 @@
 //   press and move straight away → onPaint(firstItem, itemUnderPointer) (swipe-select)
 //   press and hold, then drag → drag as above (onLift(item) when it lifts)
 
-export function sortable(list, { handle = '.drag-handle', holdMs = 0, keyboard = true, onMove, onEnd, onTap, onPaint, onLift, onDrag } = {}) {
+// With `grid: true` the items sit in rows and columns (cards): the dragged one
+// follows the pointer both ways and drops into the card it is over.
+export function sortable(list, { handle = '.drag-handle', holdMs = 0, keyboard = true, grid = false, onMove, onEnd, onTap, onPaint, onLift, onDrag } = {}) {
   let dragging = null;
   let pending = null; // pressed; waiting to see if it's a tap, swipe or hold
   let painting = null;
   let offsetY = 0;
+  let offsetX = 0;
   let startX = 0;
   let lastX = 0;
   let lastY = 0;
@@ -31,7 +34,18 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, keyboard =
   };
 
   // Where the dragged item's visual centre now is, so the DOM follows it.
-  function place(clientY) {
+  function place(clientY, clientX = 0) {
+    if (grid) {
+      // The card under the pointer (its middle part, so cards of different sizes don't jitter).
+      const under = siblings().find(el => {
+        const r = el.getBoundingClientRect();
+        return clientX > r.left + r.width * 0.2 && clientX < r.right - r.width * 0.2 && clientY > r.top + r.height * 0.2 && clientY < r.bottom - r.height * 0.2;
+      });
+      if (!under) return;
+      if (dragging.compareDocumentPosition(under) & Node.DOCUMENT_POSITION_PRECEDING) list.insertBefore(dragging, under); else under.after(dragging);
+      onMove?.(dragging);
+      return;
+    }
     for (const el of siblings()) {
       const r = el.getBoundingClientRect();
       const mid = r.top + r.height / 2;
@@ -48,16 +62,19 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, keyboard =
     }
   }
 
-  function follow(clientY) {
+  function follow(clientY, clientX = 0) {
     // Translate so the item stays under the finger even after DOM moves.
     dragging.style.transform = '';
-    const top = dragging.getBoundingClientRect().top;
-    dragging.style.transform = `translate(var(--dx, 0px), ${clientY - offsetY - top}px)`;
+    const box = dragging.getBoundingClientRect();
+    dragging.style.transform = grid
+      ? `translate(${clientX - offsetX - box.left}px, ${clientY - offsetY - box.top}px)`
+      : `translate(var(--dx, 0px), ${clientY - offsetY - box.top}px)`;
   }
 
   function lift(item, x, y) {
     dragging = item;
     offsetY = y - item.getBoundingClientRect().top;
+    offsetX = x - item.getBoundingClientRect().left;
     startX = lastX = x;
     item.classList.add('dragging');
     onLift?.(item);
@@ -99,10 +116,12 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, keyboard =
     }
     if (!dragging) return;
     // onDrag may return the sideways shift to show (e.g. snapped to a depth).
-    const shown = onDrag?.({ item: dragging, dx: lastX - startX });
-    dragging.style.setProperty('--dx', `${shown ?? Math.max(-40, Math.min(40, lastX - startX))}px`);
-    place(e.clientY);
-    follow(e.clientY);
+    if (!grid) {
+      const shown = onDrag?.({ item: dragging, dx: lastX - startX });
+      dragging.style.setProperty('--dx', `${shown ?? Math.max(-40, Math.min(40, lastX - startX))}px`);
+    }
+    place(e.clientY, e.clientX);
+    follow(e.clientY, e.clientX);
   });
 
   const finish = e => {

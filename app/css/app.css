@@ -1956,7 +1956,9 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 #main .thought { min-width: 0; }
 #main .thought.size-m { grid-column: span 2; }
 #main .thought.size-l { grid-column: 1 / -1; }
-@media (max-width: 560px) { #main .thought.size-m { grid-column: 1 / -1; } }
+/* Medium spacing: long notes are wide but not the whole row, so more sit side by side. */
+#main:not([data-density="loose"]):not([data-density="tight"]) .thought.size-l { grid-column: span 3; }
+@media (max-width: 560px) { #main .thought.size-m, #main:not([data-density="loose"]):not([data-density="tight"]) .thought.size-l { grid-column: 1 / -1; } }
 #main:not([data-density="loose"]):not([data-density="tight"]) .thought .thought-body {
   display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden;
 }
@@ -2028,3 +2030,17 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 :is(.rich-edit, .thought-body, .note-body, .note-medium, .note-loose, .item-note, .detail-notes, .task-notes, .list-notes, .thing-notes) ul ul { list-style-type: circle; }
 :is(.rich-edit, .thought-body, .note-body, .note-medium, .note-loose, .item-note, .detail-notes, .task-notes, .list-notes, .thing-notes) ul ul ul { list-style-type: square; }
 :is(.rich-edit, .thought-body, .note-body, .note-loose, .item-note) li::marker { font-family: system-ui, sans-serif; }
+
+/* Compact spacing: editing a note takes the whole page */
+#main[data-zoom] :is(.dump-capture, .dump-tools, .make-contact, .converted-note) { display: none; }
+#main[data-zoom] > .hint { display: none; }
+#main[data-zoom] .thought:not(.zoomed) { display: none; }
+#main[data-zoom] .thought-list { grid-template-columns: 1fr; }
+#main[data-zoom] .thought.zoomed { grid-column: 1 / -1; aspect-ratio: auto; display: block; padding: 12px 16px 16px; }
+#main[data-zoom] .thought.zoomed :is(.thought-actions, .kind-select) { display: flex; }
+#main[data-zoom] .thought.zoomed .kind-select { display: inline-block; }
+#main[data-zoom] .thought.zoomed .rich-edit { min-height: 50vh; max-height: 65vh; }
+.zoom-back { font-size: .9rem; margin: 0 2px 8px; color: var(--muted); }
+#main[data-density="tight"] .thought-list { gap: 10px; }
+#main[data-density="tight"] .thought .thought-title { font-size: .88rem; }
+#main[data-density="tight"] .thought .thought-head { font-size: .72rem; }
