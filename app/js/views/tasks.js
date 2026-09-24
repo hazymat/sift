@@ -15,6 +15,7 @@ import { toast, undoable } from '../toast.js';
 import { richText, toHtml, previewLine, inlineAll } from '../richtext.js';
 import { loadContacts } from '../contacts.js';
 import * as att from '../attachments.js';
+import { editPills, selectPill, datePill } from '../editpills.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -442,10 +443,21 @@ export default {
         noteEl.style.height = '';
       };
       noteEl.addEventListener('input', () => { noteEl.style.height = 'auto'; noteEl.style.height = `${noteEl.scrollHeight}px`; });
-      // Leaving the entry with nothing typed puts the extras away too.
-      entry.addEventListener('focusout', ev => {
-        if (entry.contains(ev.relatedTarget) || ta.value.trim()) return;
-        setTimeout(() => { if (!entry.contains(document.activeElement) && !ta.value.trim()) { reset(); entry.classList.remove('open'); } }, 0);
+      // The extras stay open while the entry is in use. They are shown by the
+      // .open class, not by focus: on an iPhone a tap takes the focus away
+      // before it lands, so focus-based showing hid them under your finger.
+      entry.addEventListener('focusin', () => entry.classList.add('open'));
+      let pressing = false;
+      entry.addEventListener('pointerdown', () => { pressing = true; });
+      addEventListener('pointerup', () => setTimeout(() => { pressing = false; }, 400), { passive: true });
+      // Leaving it with nothing typed or set puts the extras away.
+      const idle = () => !ta.value.trim() && !noteEl.value.trim() && ![...entry.querySelectorAll('[data-entry]')].some(f => f.value && !(f.dataset.entry === 'horizon' && f.value === defaultList()));
+      entry.addEventListener('focusout', () => {
+        setTimeout(() => {
+          if (pressing || entry.contains(document.activeElement) || !idle()) return;
+          reset();
+          entry.classList.remove('open');
+        }, 300);
       });
       const submit = () => {
         const raw = ta.value;
@@ -696,6 +708,35 @@ export default {
 
     this.closeDetails = () => { open = null; };
 
+    // Tap a task's title to edit it: pills for energy, time, dates and list
+    // open under it, plus More for the whole panel (js/editpills.js).
+    const hours = durationChoices(480).map(m => [m, durationLabel(m)]);
+    this.pills = editPills(body, {
+      title: '.task-title',
+      row: 'li[data-task]',
+      key: r => r.dataset.task,
+      html: id => {
+        const t = data.tasks.find(x => x.id === id);
+        if (!t) return '';
+        const aim = t.aim_at ? t.aim_at.slice(0, 10) : '';
+        return selectPill('energy', 'Energy', v => ENERGY.find(e => e.id === v)?.bolts || '⚡', [['', 'No energy set'], ...ENERGY.map(e => [e.id, e.label])], t.energy)
+          + selectPill('estimate_min', 'Time needed', '⏱', [['', 'Time not set'], ...hours], t.estimate_min)
+          + datePill('start_date', 'Plan for day', '📅', t.start_date, shortDate)
+          + datePill('aim_date', 'Aim to finish', '⚑', aim, shortDate)
+          + selectPill('horizon', 'List', '📥', HORIZONS.map(h => [h.id, h.label]), horizonOf(t));
+      },
+      change: async (id, name, value) => {
+        const t = data.tasks.find(x => x.id === id);
+        if (!t) return;
+        if (name === 'aim_date') {
+          const time = t.aim_at?.length > 10 ? t.aim_at.slice(10) : '';
+          return change(id, { aim_at: value ? `${value}${time}` : null }, value ? `Aim: ${shortDate(value)}` : 'Aim cleared');
+        }
+        const v = name === 'estimate_min' ? (value ? Number(value) : null) : value || null;
+        await change(id, { [name]: v }, name === 'start_date' && v ? `Planned for ${shortDate(v)}` : name === 'horizon' ? `In ${HORIZONS.find(x => x.id === v)?.label || v}` : 'Saved');
+      },
+    });
+
     // The panel closes when you click anywhere outside it (or its task), press
     // Esc, or use Close. Whatever you were typing in it is saved first.
     async function closeDetails() {
@@ -752,6 +793,7 @@ export default {
     this.kitPlain?.destroy();
     removeEventListener('keydown', this.onKey);
     document.removeEventListener('pointerdown', this.onPointer, true);
+    this.pills?.destroy();
   },
 
   quickAdd() {

@@ -17,6 +17,7 @@ import { autosizeAll } from '../inline.js';
 import { summarise } from '../summary.js';
 import { loadAll as loadTasks, forDay, suggestions, doneFields, aimDate, addTask, horizonOf } from '../tasks.js';
 import * as att from '../attachments.js';
+import { editPills, selectPill, datePill } from '../editpills.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -309,7 +310,7 @@ export default {
             <textarea class="item-title one-line hand" rows="1" aria-label="Item" spellcheck="false">${esc(i.title)}</textarea>
             ${span ? `<span class="span-tag">${span}</span>` : i.estimate_min ? `<span class="span-tag">~${durationLabel(Number(i.estimate_min))}</span>` : ''}
             ${i.energy ? `<span class="span-tag bolts" title="Energy: ${esc(ENERGY.find(e => e.id === i.energy)?.label || '')}">${ENERGY.find(e => e.id === i.energy)?.bolts || ''}</span>` : ''}
-            <button type="button" class="more" data-act="details" aria-label="Details">⋯</button>
+            <button type="button" class="more" data-act="details" aria-label="Details" aria-expanded="${editing === i.id}">⋯</button>
             ${noteEditing === i.id
               ? `<div class="note-edit" data-note-for="${i.id}"></div>`
               : subLine(i)}
@@ -678,6 +679,30 @@ export default {
       undoable(`Added "${made.title}"`, async () => { await store.remove('day_items', made.id); await refresh(); });
       return made;
     }
+
+    // Tap an item's text to edit it: pills for energy, duration and day open
+    // under it, plus More for the whole panel (js/editpills.js).
+    this.pills = editPills(planner, {
+      title: '.item-title',
+      row: '.line.has-item[data-item]',
+      key: r => r.dataset.item,
+      html: id => {
+        const i = items.find(x => x.id === id);
+        if (!i) return '';
+        const mins = [...new Set([...durationChoices(settings.duration_max_min), ...(i.estimate_min ? [Number(i.estimate_min)] : [])])].sort((a, b) => a - b);
+        return selectPill('energy', 'Energy', v => ENERGY.find(e => e.id === v)?.bolts || '⚡', [['', 'No energy set'], ...ENERGY.map(e => [e.id, e.label])], i.energy)
+          + selectPill('estimate_min', 'Duration', '⏱', [['', 'No duration'], ['unsure', 'Not sure yet'], ...mins.map(m => [m, durationLabel(m)])], i.estimate_min || (i.estimate_unsure ? 'unsure' : ''))
+          + datePill('date', 'Day', '📅', i.date, d => (d === isoDate() ? 'Today' : new Date(`${d}T12:00`).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })));
+      },
+      change: async (id, name, v) => {
+        if (name === 'energy') return change(id, { energy: v || null }, v ? 'Energy saved' : 'Energy cleared');
+        if (name === 'estimate_min') {
+          return change(id, v === 'unsure' ? { estimate_min: null, estimate_unsure: true } : { estimate_min: v ? Number(v) : null, estimate_unsure: false },
+            v === 'unsure' ? 'Duration: not sure yet' : v ? `Duration: ${durationLabel(Number(v))}` : 'Duration cleared');
+        }
+        if (name === 'date' && v && v !== date) { this.pills.close(); return change(id, { date: v }, `Moved to ${v}`); }
+      },
+    });
 
     async function change(id, fields, label = 'Saved') {
       const before = await store.get('day_items', id);
@@ -1480,6 +1505,7 @@ export default {
   },
 
   unmount() {
+    this.pills?.destroy();
     this.dockWatch?.disconnect();
     removeEventListener('resize', this.onRefit);
     clearInterval(this.nowTimer);

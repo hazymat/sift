@@ -2092,7 +2092,7 @@ li.flash { animation: row-flash 2.4s ease-out; border-radius: 12px; }
 #task-body { min-height: 55vh; }
 
 .task-entry { margin: var(--row-gap, 6px) 0 4px; }
-.task-entry:not(:focus-within) .task-entry-more { display: none; }
+.task-entry:not(.open) .task-entry-more { display: none; }
 .task-entry-more { display: grid; gap: 8px; padding: 2px 8px 8px 54px; }
 .entry-note { width: 100%; background: transparent; border: 0; border-bottom: 1px solid var(--glass-border); color: var(--text); font: inherit; font-size: .95rem; padding: 4px 2px; resize: none; overflow: hidden; box-shadow: none; }
 .entry-note:focus { outline: none; border-bottom-color: var(--active-border); }
@@ -2178,3 +2178,14 @@ select:focus option:checked { background-color: var(--active-border, #35507a); }
 :is(.rich-edit, .thought-body, .note-body, .note-medium, .note-loose, .item-note, .detail-notes, .task-notes, .list-notes, .thing-notes) ol { list-style-type: decimal; }
 :is(.rich-edit, .thought-body, .note-body, .note-loose) ol ol, :is(.rich-edit, .thought-body, .note-body, .note-loose) ul ol, :is(.rich-edit, .thought-body, .note-body, .note-loose) ol ul { margin: 0; padding-left: 1.4em; }
 :is(.rich-edit, .thought-body, .note-body, .note-loose) ol li::marker { font-family: system-ui, sans-serif; }
+
+/* Pills under an item being edited in place (js/editpills.js). */
+.edit-pills { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 8px 52px; }
+.task-list .edit-pills { margin: -2px 0 8px 64px; }
+.item-list .edit-pills { margin: 0 0 6px 36px; }
+.checklist .edit-pills { margin: -2px 0 8px 64px; }
+.line .edit-pills { margin: 2px 0 6px 0; }
+.edit-pills .pill-more { color: var(--text); }
+@media (max-width: 700px) { .edit-pills, .task-list .edit-pills, .checklist .edit-pills { margin-left: 16px; } }
+/* Phones (the trial): no ⋯; More, holding the text or tapping the note open the panel. */
+body.pills-only :is(.task-list, .item-list, .checklist, .planner) .more:not([aria-expanded="true"]) { display: none; }

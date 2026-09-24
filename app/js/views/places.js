@@ -9,6 +9,7 @@ import { createListKit } from '../listkit.js';
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import * as att from '../attachments.js';
+import { editPills, selectPill } from '../editpills.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -474,6 +475,28 @@ export default {
     }
     page.addEventListener('change', ev => saveField(ev.target));
 
+    // Tap a thing's name to edit it: a Quantity pill and More (its panel) open
+    // under it (js/editpills.js).
+    this.pills = editPills(page, {
+      title: 'li[data-item] > input[name="name"]',
+      row: 'li[data-item]',
+      key: r => r.dataset.item,
+      html: id => {
+        const it = findBox(openId)?.b.items.find(x => x.id === id);
+        if (!it) return '';
+        const n = [...new Set([...Array.from({ length: 20 }, (_, k) => k + 1), ...(it.quantity ? [it.quantity] : [])])].sort((a, b) => a - b);
+        return selectPill('quantity', 'Quantity', '#', [['', 'No quantity'], ...n.map(q => [q, `×${q}`])], it.quantity);
+      },
+      change: async (id, name, v) => {
+        const old = (await store.get('items', id))?.quantity ?? null;
+        const value = v ? Number(v) : null;
+        if (value === old) return;
+        await store.update('items', id, { quantity: value });
+        await reload();
+        undoable(value ? `Quantity ×${value}` : 'Quantity cleared', async () => { await store.update('items', id, { quantity: old }); await reload(); });
+      },
+    });
+
     // Escape anywhere in a box: save what's being typed (including lines not
     // yet added), then zoom back out.
     async function saveAndClose() {
@@ -682,6 +705,7 @@ export default {
 
   unmount() {
     this.kit?.destroy();
+    this.pills?.destroy();
     removeEventListener('keydown', this.onKey);
     document.removeEventListener('pointerdown', this.onThingPointer, true);
     removeEventListener('resize', this.onResize);

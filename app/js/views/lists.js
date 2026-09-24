@@ -9,6 +9,7 @@ import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import { richText, previewLine } from '../richtext.js';
 import * as att from '../attachments.js';
+import { editPills } from '../editpills.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -166,6 +167,8 @@ export default {
     // ---------- render ----------
 
     const body = el;
+    // Tap an item to edit it: More (its note and files) opens under it (js/editpills.js).
+    this.pills = editPills(body, { title: '.checklist .task-title', row: '.checklist > li[data-id]', key: r => r.dataset.id, html: () => '', change: () => {} });
     att.enableDrop(el, 'li.list-panel[data-for], ul.checklist > li[data-id]', node => ({ collection: 'list_items', id: node.dataset.for || node.dataset.id }), () => render());
     const render = this.render = async () => {
       data = await loadLists();
@@ -379,6 +382,7 @@ export default {
 
   unmount() {
     this.kitChecklist?.destroy();
+    this.pills?.destroy();
     this.kitTemplate?.destroy();
     removeEventListener('keydown', this.onKey);
     document.removeEventListener('pointerdown', this.onItemPointer, true);
