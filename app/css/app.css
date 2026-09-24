@@ -1621,7 +1621,6 @@ main:has(> .planner), main:has(.planner) { max-width: 1600px; }
 .pile-list .line { grid-template-columns: 1fr; border-bottom: 1px solid var(--glass-border); }
 .pile-list .line:last-child { border-bottom: 0; }
 .pile-list .line .margin { display: none; }
-.pile-foot { display: flex; justify-content: flex-end; margin: 6px 0; }
 .bring-sheet { max-width: 720px; }
 .bring-list li { align-items: flex-start; }
 .bring-main { display: flex; flex-direction: column; gap: 2px; flex: 1 1 220px; min-width: 0; }
@@ -2768,3 +2767,10 @@ select.dd-open, .dd-open > select { outline: none; }
    pills start where its text starts, like the New task line's (not indented
    like the schedule's, which have the tick box in the line). */
 .pile-paper .line .content > .edit-pills { margin-left: 6px !important; flex-basis: calc(100% - 6px); }
+
+/* Day Planner Tasks: "Bring in from tasks" is quiet text at the right end of
+   the heading, a button only under the pointer; the hint sits right under the lines. */
+.pile h2 { display: flex; align-items: baseline; gap: 8px; }
+.pile h2 .bring-link { margin-left: auto; align-self: center; padding: 3px 10px; border: 1px solid transparent; border-radius: 999px; background: transparent; box-shadow: none; font-family: var(--font); font-weight: 500; font-size: .82rem; color: var(--muted); white-space: nowrap; cursor: pointer; }
+.pile h2 .bring-link:hover, .pile h2 .bring-link:focus-visible { color: var(--text); background: var(--glass-hover, var(--glass-track)); border-color: var(--glass-border); outline: none; }
+.pile > .hint { margin-top: 8px; }
