@@ -609,7 +609,7 @@ export default {
 
     const themeNote = () => {
       el.querySelector('#theme-note').textContent =
-        app.currentTheme() === 'auto' ? 'Light by day, Blue at night, following your device.' : '';
+        app.currentTheme() === 'auto' ? 'Light by day, Glass at night, following your device.' : '';
     };
     themeNote();
     el.querySelector('#theme').addEventListener('click', async e => {

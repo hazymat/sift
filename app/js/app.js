@@ -56,7 +56,7 @@ export async function setPinned(ids) {
 // ---------- theme ----------
 
 export const THEMES = [
-  { id: 'blue', label: 'Blue' },
+  { id: 'blue', label: 'Glass' }, // id stays "blue" (saved on devices)
   { id: 'dark', label: 'Dark' },
   { id: 'light', label: 'Light' },
   { id: 'auto', label: 'Auto' },
