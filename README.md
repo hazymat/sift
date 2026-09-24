@@ -22,6 +22,7 @@ Not built yet: Scans, Contracts and Batch Book (they show as placeholders), the 
 
 ## Documents
 
+- [docs/pitch.md](docs/pitch.md): why Sift, and how it compares with Apple Notes and Google Keep
 - [docs/spec.md](docs/spec.md): what it is and how it works
 - [docs/implementation.md](docs/implementation.md): progress, the to-do list and decisions
 - [server/README.md](server/README.md): running your own sync server (Ubuntu or Docker)
