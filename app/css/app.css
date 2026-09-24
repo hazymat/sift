@@ -421,7 +421,6 @@ main {
   outline: none;
 }
 input:focus, select:focus, textarea:focus { border-color: var(--active-border); }
-select option { color: #0f172a; }
 textarea { resize: vertical; }
 label { display: grid; gap: 4px; font-size: .8rem; color: var(--muted); }
 label > input, label > select { font-size: 1rem; color: var(--text); }
@@ -2132,3 +2131,16 @@ li.flash { animation: row-flash 2.4s ease-out; border-radius: 12px; }
 .detail-actions button { white-space: nowrap; }
 .task-details, .task-details * { max-width: 100%; }
 .task-details .md-bar { max-width: 100%; overflow-x: auto; }
+
+/* ---------- Dropdowns take the theme: never a plain white box ---------- */
+:root, :root[data-theme="blue"] { --menu-bg: #1a2444; }
+:root[data-theme="dark"] { --menu-bg: #25272d; }
+:root[data-theme="light"] { --menu-bg: #ffffff; }
+/* The list a <select> opens (where the browser lets a page style it; iPhone and Android use their own picker, which follows the theme's light or dark). */
+select option, select optgroup { background-color: var(--paper-bg, var(--menu-bg)); color: var(--text); }
+select:focus option:checked { background-color: var(--active-border, #35507a); }
+/* The small pop-up for energy and lists */
+.pill-menu { background: var(--menu-bg); border: 1px solid var(--active-border); }
+.pill-menu button { background: var(--glass); border: 1px solid var(--glass-border); color: var(--text); }
+.pill-menu button[aria-checked="true"] { background: var(--active-bg); border-color: var(--active-border); }
+.pill-menu button:hover, .pill-menu button:focus-visible { border-color: var(--accent, var(--active-border)); background: var(--glass-hover); outline: none; }
