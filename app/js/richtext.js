@@ -480,6 +480,8 @@ export function richText(container, { value = '', onChange, placeholder = '', or
   });
   edit.addEventListener('keydown', ev => {
     if (ev.key === 'Escape' && isFull(container) && !document.querySelector('.ref-picker')) { ev.preventDefault(); ev.stopPropagation(); closeFull({ blur: false }); edit.focus(); }
+    // Ctrl+Enter (⌘+Enter on a Mac or iPad keyboard) is the same as Done.
+    if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey) && isFull(container) && !document.querySelector('.ref-picker')) { ev.preventDefault(); ev.stopPropagation(); closeFull(); }
   }, true);
 
   // What has been typed on the caret's line so far (a line starts at the block's
