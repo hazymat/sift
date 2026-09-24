@@ -1938,8 +1938,8 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 #main[data-density="tight"] .task-list > li[data-task] > .chips { flex: 0 1 auto; min-width: 0; max-width: none; }
 #main[data-density="tight"] .task-list > li[data-task] > .item-sub { flex: 0 1 auto; }
 
-/* Blue glass: section titles white, their underline yellow. */
-:root:not([data-theme="light"]) .planner[data-paper="glass"] :is(.schedule-title, .pile h2, .day-notes h2) { color: #fff; border-bottom-color: #f2d35b; }
+/* Blue glass: section titles white; the underline stays the soft light-blue line (Mat changed his mind about yellow). */
+:root:not([data-theme="light"]) .planner[data-paper="glass"] :is(.schedule-title, .pile h2, .day-notes h2) { color: #fff; }
 
 /* Tasks: the "New task" line at the end of the list, shaped like a task. */
 .task-add-line { display: flex; align-items: center; gap: 10px; margin: var(--row-gap, 6px) 0 4px; padding: var(--row-pad, 6px) 8px var(--row-pad, 6px) 16px; min-height: 42px; border-radius: 14px; border: 1px dashed var(--glass-border); }

@@ -16,6 +16,7 @@ const shortDate = iso => new Date(iso).toLocaleDateString(undefined, { day: 'num
 export default {
   async mount(el) {
     let nameNext = null; // a list just made: select its name for typing
+    let focusAdd = false; // Enter or Tab from the list name carries on into "Add items"
     const state = this.state = { id: null, hideTicked: false };
     let data = { lists: [], items: [] };
 
@@ -176,6 +177,7 @@ export default {
       }
       mountNotes();
       const ta = body.querySelector('#list-new');
+      if (ta && focusAdd) { focusAdd = false; ta.focus(); }
       if (ta) addEntry = listEntry(ta, addLines, { draft: `lists:${state.id || 'new'}`, enterAdds: true });
     };
 
@@ -243,6 +245,17 @@ export default {
     });
     const kitTemplate = this.kitTemplate = createListKit({ reorder: true, indent: true, maxDepth: 1, noun: 'item', onReorder: persistOrder, actions: common });
     let kit = kitChecklist;
+
+    // Naming a list: Enter or Tab saves the name and goes on to "Add items".
+    body.addEventListener('keydown', ev => {
+      const n = ev.target.closest?.('[data-list-name]');
+      if (!n || ev.isComposing || ev.altKey || ev.ctrlKey || ev.metaKey || (ev.key !== 'Enter' && !(ev.key === 'Tab' && !ev.shiftKey))) return;
+      ev.preventDefault();
+      focusAdd = true;
+      n.blur();
+      // A changed name redraws the page (which picks the flag up); otherwise go straight there.
+      setTimeout(() => { if (focusAdd) { focusAdd = false; body.querySelector('#list-new')?.focus(); } }, 250);
+    });
 
     el.addEventListener('change', async ev => {
       const t = ev.target;
