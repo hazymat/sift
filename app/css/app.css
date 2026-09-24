@@ -2710,3 +2710,16 @@ select.dd-open, .dd-open > select { outline: none; }
 
 /* Day focus and Energy side by side only while both texts fit (planner.js alignHeads). */
 .focus-row.stacked .energy { flex-basis: 100%; }
+
+/* The ⋯ (Details) button at the end of a line, like the ⠿ handle: hidden until
+   the pointer is anywhere on the line (or you're in it, or its panel is open).
+   Phones hide it anyway (body.pills-only). */
+@media (hover: hover) {
+  :is(.line, li[data-id]) .more:not([aria-expanded="true"]) { opacity: 0 !important; transition: opacity .12s; }
+  :is(.line, li[data-id]):hover .more, :is(.line, li[data-id]):focus-within .more, :is(.line, li[data-id]) .more:focus-visible { opacity: 1 !important; }
+}
+
+/* Find Things: each thing in a box has the Find Things cube in front of it;
+   its note line and pills move over to start where its name starts. */
+.item-list .thing-icon { width: 16px; height: 16px; flex: none; color: var(--muted); opacity: .75; }
+.item-list li:has(> .thing-icon) > :is(.item-sub, .edit-pills) { margin-left: 56px; }

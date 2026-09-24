@@ -1,9 +1,9 @@
 // One list behaviour for the whole app (it started as Find Things' box
 // contents). Rows are <li data-id data-depth> with a ⠿ grip (.drag-handle).
 //
-//   ≡ tap                select / deselect (Shift: range, Ctrl/⌘: toggle)
-//   swipe down the ≡s    select a range
-//   ≡ press and hold     drag (the selection moves as one stack; a parent
+//   ⠿ tap                select / deselect (Shift: range, Ctrl/⌘: toggle)
+//   swipe down the ⠿s    select a range
+//   ⠿ press and hold     drag (the selection moves as one stack; a parent
 //                        carries its children); sideways = indent / outdent
 //   Tab / Shift+Tab      indent / outdent the row being edited
 //   Esc                  clear the selection

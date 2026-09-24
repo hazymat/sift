@@ -244,7 +244,7 @@ export default {
       await render();
       undoable(`${label} ${ids.length} thought${ids.length === 1 ? '' : 's'}`, async () => { await store.updateMany('thoughts', before); await render(); });
     }
-    // Dragging cards (hold ≡, then move) saves the new order. Notes hidden by the
+    // Dragging cards (hold ⠿, then move) saves the new order. Notes hidden by the
     // filter keep their places among the others.
     async function persistOrder(order) {
       const shown = new Set(order.map(r => r.id));

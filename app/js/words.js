@@ -83,7 +83,7 @@ export const WORDS = [
   { group: "Phrases: Contacts", key: 'ph_new_category', default: "e.g. Plumbers, Painters, Pub mates, Call centres", hint: "The example in the New category box." },
   { group: "Phrases: Contacts", key: 'ph_new_case', default: "e.g. Broadband complaint, Insurance claim", hint: "The example in the New case box." },
   { group: "Phrases: Contacts", key: 'ph_new_task', default: "What needs doing?", hint: "The grey prompt when adding a task from a case." },
-  { group: "Phrases: Settings", key: 'ph_history', default: "Every change on this device. Undo any of them, in any order; undoing is itself a change you can undo. Tap ≡ to select several, then Undo in the bar.", hint: "The hint on the History page." },
+  { group: "Phrases: Settings", key: 'ph_history', default: "Every change on this device. Undo any of them, in any order; undoing is itself a change you can undo. Tap ⠿ to select several, then Undo in the bar.", hint: "The hint on the History page." },
   { group: "Phrases: Settings", key: 'ph_history_search', default: "Search history…", hint: "The search box on the History page." },
   { group: "Phrases: Settings", key: 'ph_set_size', default: "For this device only. Smaller fits more on the page.", hint: "Under Text size." },
   { group: "Phrases: Settings", key: 'ph_set_down', default: "Days to go easy. The planner nudges you to do less.", hint: "Under Down days." },
