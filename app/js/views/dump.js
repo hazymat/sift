@@ -49,9 +49,17 @@ export default {
     let panel = null; // { id, type: 'plan' | 'store' }
     let editing = null;
     let atts = new Map(); // note id → its attachments
+    // The little "Saved ✓ / Saving… / Not saved" line above an editor.
+    const showSaved = (line, state, saved = 'Saved ✓') => {
+      if (!line) return;
+      line.hidden = state === 'clear';
+      line.dataset.state = state;
+      line.textContent = state === 'saving' ? 'Saving…' : state === 'failed' ? 'Not saved: try again' : saved;
+    };
 
     el.innerHTML = `
       <section class="dump-capture">
+        <div class="save-state" id="dump-save" aria-live="polite" hidden></div>
         <div id="dump-body"></div>
         <div id="dump-att"></div>
         <div class="dump-row">
@@ -97,7 +105,7 @@ export default {
       value: readDraft('dump'),
       placeholder: "What's on your mind?",
       origin: () => ({ collection: 'thoughts', id: captureId, title: titleFrom(input?.value || '') || 'Brain dump', field: 'body' }),
-      onChange: md => writeDraft('dump', md),
+      onChange: md => { writeDraft('dump', md); showSaved($('#dump-save'), md.trim() ? 'saved' : 'clear', 'Draft saved ✓'); },
     });
     const list = $('#thoughts');
     // Files attached to what's being typed belong to the thought it will become.
@@ -163,7 +171,7 @@ export default {
             <button type="button" class="pin" data-act="pin" aria-pressed="${!!t.pinned}" title="Pin">${t.pinned ? '★' : '☆'}</button>
           </div>
           ${editing === t.id
-            ? `<div class="thought-edit" data-thought="${t.id}"></div>`
+            ? `<div class="save-state" data-state="saved">Saved ✓</div><div class="thought-edit" data-thought="${t.id}"></div>`
             : thoughtBody(t)}
           ${atts.get(t.id)?.length ? att.rowHtml(atts.get(t.id), { addButton: false }) : ''}
           <div class="thought-actions">
@@ -251,6 +259,7 @@ export default {
       }
       input.setValue('');
       writeDraft('dump', '');
+      showSaved($('#dump-save'), 'clear');
       captureId = store.uuidv7();
       writeDraft('dump:id', captureId);
       input.focus();
@@ -312,7 +321,26 @@ export default {
         await render();
         const box = list.querySelector(`[data-id="${t.id}"] .thought-edit`);
         if (box) {
-          box._editor = richText(box, { value: t.body, origin: () => ({ collection: 'thoughts', id: t.id, title: t.body.split('\n')[0].slice(0, 60), field: 'body' }) });
+          box._orig = t.body;
+          box._saved = t.body;   // what is stored right now (t itself goes stale when the list redraws)
+          const line = box.previousElementSibling;
+          let timer;
+          const flush = async () => {
+            clearTimeout(timer);
+            const body = box._editor?.value.trim();
+            if (!body || body === box._saved) return showSaved(line, 'saved');
+            try {
+              await store.update('thoughts', t.id, { body, title: titleFrom(body) });
+              box._saved = body;
+              showSaved(line, 'saved');
+            } catch { showSaved(line, 'failed'); }
+          };
+          box._flush = flush;
+          box._editor = richText(box, {
+            value: t.body,
+            origin: () => ({ collection: 'thoughts', id: t.id, title: t.body.split('\n')[0].slice(0, 60), field: 'body' }),
+            onChange: () => { showSaved(line, 'saving'); clearTimeout(timer); timer = setTimeout(flush, 700); },
+          });
           box._editor.focus();
         }
       }
@@ -370,12 +398,14 @@ export default {
       const box = ev.target.closest?.('.thought-edit');
       if (!box?._editor || box.contains(ev.relatedTarget)) return;
       const t = thoughts.find(x => x.id === box.dataset.thought);
-      const body = box.dataset.cancel ? t.body : box._editor.value.trim();
+      const orig = box._orig ?? t.body;
+      const body = box.dataset.cancel ? orig : box._editor.value.trim();
       box._editor = null;
       editing = null;
-      if (body && body !== t.body) {
-        await store.update('thoughts', t.id, { body, title: titleFrom(body) });
-        undoable('Saved', async () => { await store.update('thoughts', t.id, { body: t.body, title: t.title ?? null }); render(); });
+      // It has been saving as you typed; this puts the last bit in (or, after Esc, the original back).
+      if (body && body !== (box._saved ?? t.body)) await store.update('thoughts', t.id, { body, title: titleFrom(body) });
+      if (body && body !== orig) {
+        undoable('Saved', async () => { await store.update('thoughts', t.id, { body: orig, title: titleFrom(orig) }); render(); });
       }
       render();
     });

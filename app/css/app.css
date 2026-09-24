@@ -1998,3 +1998,7 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 #main[data-density="tight"] .thought .att-row { display: none; }
 .drop-over { outline: 2px dashed var(--active-border, currentColor); outline-offset: 2px; }
 .thought-actions .icon { width: 1.05em; height: 1.05em; vertical-align: -.15em; }
+.save-state { font-size: .78rem; color: var(--muted, inherit); opacity: .85; margin: 2px 4px; min-height: 1.1em; }
+.save-state[data-state="saving"] { opacity: .6; }
+.save-state[data-state="failed"] { color: #ff8a8a; opacity: 1; }
+.save-state[hidden] { display: none; }
