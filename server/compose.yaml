@@ -1,0 +1,34 @@
+# Sift server and HTTPS on a VPS.
+#   1. Point your domain's A record at this machine; open ports 80 and 443.
+#   2. Create .env next to this file:   SIFT_DOMAIN=sift.example.com
+#   3. docker compose up -d --build
+#   4. Admin:  docker compose exec sift node admin.js users
+# Data lives in the "sift-data" volume; back it up (see README.md).
+
+services:
+  sift:
+    build: .
+    restart: unless-stopped
+    environment:
+      REGISTRATION: ${REGISTRATION:-first}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://hazymat.github.io,http://localhost:5173}
+      QUOTA_MB: ${QUOTA_MB:-1024}
+    volumes:
+      - sift-data:/data
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SIFT_DOMAIN: ${SIFT_DOMAIN:?set SIFT_DOMAIN in .env}
+    volumes:
+      - ./deploy/Caddyfile.docker:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on: [sift]
+
+volumes:
+  sift-data:
+  caddy-data:

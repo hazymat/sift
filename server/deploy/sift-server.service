@@ -1,0 +1,25 @@
+[Unit]
+Description=Sift sync server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=sift
+Group=sift
+WorkingDirectory=/opt/sift-server
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=8787
+Environment=DATA_DIR=/var/lib/sift
+EnvironmentFile=/etc/sift/sift.env
+ExecStart=/usr/bin/node /opt/sift-server/server.js
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/sift
+
+[Install]
+WantedBy=multi-user.target

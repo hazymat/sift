@@ -1,0 +1,5 @@
+{$SIFT_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy sift:8787
+	header -Server
+}

@@ -1,0 +1,8 @@
+# Public server (a VPS): the domain must already point at this machine, and
+# ports 80 and 443 must be open. Caddy gets and renews a real certificate.
+# install.sh replaces __ADDRESS__ with your domain.
+__ADDRESS__ {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:8787
+	header -Server
+}

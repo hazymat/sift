@@ -1,0 +1,11 @@
+# Home network: Caddy runs its own small certificate authority ("tls internal")
+# and issues a certificate for the server's address. Each device trusts that
+# authority once (see README). Nothing goes in public DNS.
+# install.sh replaces __ADDRESS__ with the address you give it (an IP or a
+# local name such as sift.lan).
+https://__ADDRESS__ {
+	tls internal
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:8787
+	header -Server
+}
