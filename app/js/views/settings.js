@@ -20,7 +20,7 @@ export default {
     const { versionText } = await import('../version.js');
     el.innerHTML = `
       <section class="card" id="install-card">
-        <p class="muted app-version">Sift ${versionText()}</p>
+        <p class="muted app-version">Sift ${versionText()} <button type="button" class="link-btn" data-act="check-update">Check for updates</button></p>
         <h2>Home Screen and your data</h2>
         <div id="install-body"></div>
       </section>
@@ -588,6 +588,18 @@ export default {
         });
       }
       dlg.showModal();
+    });
+
+    // Check for updates: get the newest version now instead of waiting.
+    el.querySelector('[data-act="check-update"]').addEventListener('click', async ev => {
+      const b = ev.currentTarget;
+      b.disabled = true;
+      b.textContent = 'Checking…';
+      const r = await app.checkForUpdate();
+      if (r === 'ready') { toast('Updating…'); await app.applyUpdate(); return; }
+      b.disabled = false;
+      b.textContent = 'Check for updates';
+      toast(r === 'offline' ? "Can't reach the website to check" : `You have the latest version (${versionText()})`);
     });
 
     // Text size: kept on this device, applied before first paint (index.html).

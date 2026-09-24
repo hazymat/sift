@@ -67,7 +67,10 @@ const SHELL = [
 ];
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)));
+  // Straight from the server, not the browser's own cache (GitHub Pages lets
+  // browsers keep files for 10 minutes, so a new version could have been
+  // stored with old files in it).
+  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL.map(url => new Request(url, { cache: 'reload' })))));
 });
 
 self.addEventListener('activate', event => {

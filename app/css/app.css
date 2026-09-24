@@ -2323,3 +2323,5 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
 .edit-pills .pill-note, .edit-pills .pill-note:focus { border-radius: 0; border: 0; outline: none; box-shadow: none; }
 /* Editing a title in place: no border or rounded box, just the line lit up a little. */
 .task-title:focus { border-color: transparent; border-radius: 0; background: color-mix(in srgb, var(--text) 7%, transparent); box-shadow: none; }
+
+.link-btn { padding: 0; margin-left: 6px; border: 0; background: none; box-shadow: none; color: var(--accent); font-size: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }

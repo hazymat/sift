@@ -171,7 +171,7 @@ async function route(force = false) {
   if (rest.length) await currentView.route?.(rest);
 }
 
-const appApi = { AREAS, MAX_PINNED, pinnedAreas, setPinned, THEMES, currentTheme, setTheme };
+const appApi = { AREAS, MAX_PINNED, pinnedAreas, setPinned, THEMES, currentTheme, setTheme, checkForUpdate, applyUpdate };
 
 // ---------- header status ----------
 
@@ -186,8 +186,31 @@ async function renderSyncStatus() {
 
 // ---------- service worker ----------
 
+// Look for a new version now: 'ready' when one is waiting (it goes in when
+// applyUpdate() is called or the banner's Reload is pressed), 'latest' when
+// this is the newest, 'offline' when the server can't be reached.
+export async function checkForUpdate() {
+  const reg = await navigator.serviceWorker?.getRegistration();
+  if (!reg) return 'latest';
+  try { await reg.update(); } catch { return 'offline'; }
+  if (reg.installing) await new Promise(ok => { const w = reg.installing; w.addEventListener('statechange', () => { if (w.state !== 'installing') ok(); }); });
+  return reg.waiting ? 'ready' : 'latest';
+}
+export async function applyUpdate() {
+  const reg = await navigator.serviceWorker?.getRegistration();
+  if (reg?.waiting) reg.waiting.postMessage('skip-waiting'); else location.reload();
+}
+
 function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
+  // An app left open (the iPhone Home Screen app, say) looks for a new version
+  // whenever it comes back to the front, at most once a minute.
+  let lastCheck = 0;
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible' || Date.now() - lastCheck < 60000) return;
+    lastCheck = Date.now();
+    navigator.serviceWorker.getRegistration().then(r => r?.update()).catch(() => {});
+  });
   navigator.serviceWorker.register('./sw.js').then(reg => {
     const offer = worker => {
       const banner = $('#update-banner');
