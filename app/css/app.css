@@ -2325,3 +2325,6 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
 .task-title:focus { border-color: transparent; border-radius: 0; background: color-mix(in srgb, var(--text) 7%, transparent); box-shadow: none; }
 
 .link-btn { padding: 0; margin-left: 6px; border: 0; background: none; box-shadow: none; color: var(--accent); font-size: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+/* Day Planner lines: typing on a line (a new one or an item's text) shows no
+   border or rounded box, just the line lit up a little, like task titles. */
+.line .item-title:focus { border-color: transparent; border-radius: 0; background: color-mix(in srgb, var(--text) 7%, transparent); box-shadow: none; }

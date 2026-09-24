@@ -718,7 +718,7 @@ export default {
       const line = content.closest('.line');
       if (line.querySelector('input')) return;
       const time = line.dataset.time === 'evening' ? fromMin(toMin(settings.day_end) + slotMin()) : line.dataset.time;
-      content.innerHTML = '<input class="item-title hand new-line" placeholder="…" autocomplete="off">';
+      content.innerHTML = '<input class="item-title hand new-line" autocomplete="off">';
       const input = content.querySelector('input');
       input.focus();
       let finished = false;
