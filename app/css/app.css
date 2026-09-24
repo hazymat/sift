@@ -2374,3 +2374,20 @@ input[type="checkbox"]::after { content: ''; width: 5px; height: 9px; border: so
 input[type="checkbox"]:checked { background: #6fb0ff; border-color: #6fb0ff; }
 input[type="checkbox"]:checked::after { opacity: 1; }
 input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); outline-offset: 2px; }
+
+/* Tasks, compact spacing: no note at all (Mat). */
+#main[data-density="tight"] .task-list .task-note { display: none; }
+/* Tasks, expanded spacing: the note as written, up to about 8 lines, fading
+   out at the bottom if there's more (tap it to open the task and read it all). */
+#main[data-density="loose"] .task-note .note-loose { max-height: 10.5em; overflow: hidden; }
+#main[data-density="loose"] .task-note.is-long .note-loose { -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent); mask-image: linear-gradient(to bottom, #000 70%, transparent); }
+.task-note .note-more { display: none; }
+#main[data-density="loose"] .task-note.is-long { flex-direction: column; }
+#main[data-density="loose"] .task-note .note-more { display: block; font-size: .85em; color: var(--accent); margin-top: 2px; }
+
+/* Brain Dump: Share on a saved note (copy, or the phone's share sheet). */
+.share-note { display: inline-block; position: relative; }
+.share-note > summary { list-style: none; display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; font-size: .78rem; border: 1px solid var(--glass-border); border-radius: 999px; cursor: pointer; }
+.share-note > summary::-webkit-details-marker { display: none; }
+.share-note > summary .icon { width: 1em; height: 1em; }
+.share-note .menu { position: absolute; z-index: 20; left: 0; top: calc(100% + 4px); min-width: 230px; }

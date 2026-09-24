@@ -6,7 +6,7 @@
 
 import { cogHtml } from '../viewcog.js';
 import * as store from '../store.js';
-import { linkDetailsInText } from '../refs.js';
+import { linkDetailsInText, unlinkText } from '../refs.js';
 import { readDraft, writeDraft } from '../drafts.js';
 import { titleFrom, cleanLine } from '../summary.js';
 import { SHORTCUT } from '../listentry.js';
@@ -199,6 +199,14 @@ export default {
             <button type="button" data-act="to-task">→ Task</button>
             <button type="button" data-act="plan">Plan it</button>
             <button type="button" data-act="store">→ Find Things</button>
+            <details class="tool-menu share-note">
+              <summary role="button">${icon('i-share')} Share</summary>
+              <div class="menu">
+                <button type="button" data-act="copy-plain">Copy to clipboard – plain text</button>
+                <button type="button" data-act="copy-rich">Copy to clipboard – with formatting</button>
+                ${navigator.share ? '<button type="button" data-act="share-sheet">Share…</button>' : ''}
+              </div>
+            </details>
             <button type="button" data-att-add title="Attach photos, PDFs or text files (or drop them onto the note)">${icon('i-clip')} Attach</button>
             <span class="spacer"></span>
             <button type="button" data-act="archive">Archive</button>
@@ -409,6 +417,21 @@ export default {
         const count = (await store.list('items', { filter: i => i.place_id === boxId })).length;
         const item = await store.create('items', { name: t.body.split('\n')[0].trim().slice(0, 200), place_id: boxId, parent_item_id: null, notes: '', quantity: null, sort_order: count, last_moved_at: null });
         await convert(t, { collection: 'items', id: item.id }, 'Added to the box');
+      } else if (act === 'copy-plain' || act === 'copy-rich' || act === 'share-sheet') {
+        // Share a saved note: the text as written (links as their words).
+        const text = unlinkText(t.body);
+        try {
+          if (act === 'share-sheet') { await navigator.share({ title: t.title || titleFrom(t.body), text: text.replace(/\*\*|~~/g, '') }); return; }
+          if (act === 'copy-rich' && window.ClipboardItem) {
+            await navigator.clipboard.write([new ClipboardItem({
+              'text/html': new Blob([toHtml(text)], { type: 'text/html' }),
+              'text/plain': new Blob([text], { type: 'text/plain' }),
+            })]);
+          } else await navigator.clipboard.writeText(text.replace(/\*\*|~~/g, '')); // plain: no bold or cross-out marks
+          toast(act === 'copy-rich' ? 'Copied with formatting' : 'Copied');
+        } catch (err) {
+          if (err?.name !== 'AbortError') toast("Couldn't share it from here");
+        }
       } else if (act === 'archive' || act === 'delete') {
         const field = act === 'delete' ? 'deleted_at' : 'archived_at';
         await store.update('thoughts', t.id, { [field]: new Date().toISOString() });

@@ -146,10 +146,12 @@ export default {
       const { html } = previewLine(t.notes);
       if (!html) return '';
       // All three spacings are drawn; the page's spacing shows one (CSS):
-      // tight = the start of it on the task's line, medium = every line run together, loose = the note as written. No icon.
-      return `<span class="item-note task-note" data-act="toggle-note" role="button" tabindex="0" aria-expanded="${open === t.id}" title="${open === t.id ? 'Close' : 'Open to read or edit'}">`
+      // tight = no note, medium = every line run together (two lines at most),
+      // loose = the note as written, about 8 lines at most ("… more" if longer). No icon.
+      const long = t.notes.split('\n').length > 8 || t.notes.length > 480;
+      return `<span class="item-note task-note${long ? ' is-long' : ''}" data-act="toggle-note" role="button" tabindex="0" aria-expanded="${open === t.id}" title="${open === t.id ? 'Close' : 'Open to read or edit'}">`
         + `<span class="note-medium">${inlineAll(t.notes)}</span>`
-        + `<span class="note-loose">${toHtml(t.notes)}</span></span>`;
+        + `<span class="note-loose">${toHtml(t.notes)}</span>${long ? '<span class="note-more">… more</span>' : ''}</span>`;
     }
 
     // The panel: the note first, then the plan (list, time needed, dates,
