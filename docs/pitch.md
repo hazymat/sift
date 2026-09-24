@@ -23,7 +23,7 @@ Apple Notes and Google Keep are good at keeping notes. Sift is for what happens 
 | Turn a line into a task or a contact, and keep the line | No (copy it by hand) | No (a reminder at most) | Yes: ↗ Make, and the line becomes a link |
 | A phone number in a note is a real contact, with a call log | Tap to call only | Tap to call only | Yes |
 | Your day on paper: tasks given times and lengths, unfinished things carried over | No | No | Day Planner |
-| Energy levels: fit today's tasks to how you feel | No | No | Yes |
+| Energy levels: choose today's tasks based on how you feel | No | No | Yes |
 | Where things are kept (boxes, shelves, search inside a box) | No | No | Find Things |
 | Ongoing sagas: every call, letter and task about one complaint or claim in one timeline | No | No | Cases |
 | Undo any change, in any order | Recent edits only | Recent edits only | Full history |
