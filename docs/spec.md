@@ -241,7 +241,7 @@ Single-page app, hash routing, top nav on laptop, bottom tab bar on iPhone. Glob
 
 - Header: sync status (local only / synced / syncing / n pending / offline).
 - Quick-add (+) on every area pre-fills that area's record type.
-- Themes: Blue (default, glass look from the home dashboard), Dark (neutral), Light, or Auto (Light by day, Blue at night, following the system). Chosen in Settings.
+- Themes: Glass (default, the glass look from the home dashboard; stored as "blue"), Dark (neutral), Light, or Auto (Light by day, Glass at night, following the system). Chosen in Settings.
 
 ## 6. Google Calendar integration
 
