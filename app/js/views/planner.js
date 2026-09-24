@@ -58,7 +58,12 @@ export default {
         <div class="focus-row">
         <label class="focus"><span class="hand-label">${esc(word('day_focus'))}</span><input id="focus" placeholder="${esc(word('day_focus_prompt'))}" autocomplete="off"></label>
         <div class="energy" role="group" aria-label="Today's energy level"><span class="hand-label energy-label">${esc(word('day_energy'))}</span>
-          ${ENERGY.map(e => `<button type="button" class="bolts" data-energy="${e.id}" title="${esc(`${e.label}: ${e.hint}`)}" aria-label="${e.label}">${e.bolts}</button>`).join('')}
+          <button type="button" class="energy-level bolts" data-act="energy-edit" hidden></button>
+          <input id="energy-note" placeholder="${esc(word('day_energy_prompt'))}" autocomplete="off" aria-label="How you feel today">
+          <div class="energy-choose" role="group" aria-label="Energy level">
+            ${ENERGY.map(e => `<button type="button" class="bolts" data-energy="${e.id}" title="${esc(`${e.label}: ${e.hint}`)}" aria-label="${e.label}">${e.bolts}</button>`).join('')}
+            <button type="button" data-energy="none" title="No energy level" aria-label="No energy level">✕</button>
+          </div>
           <details class="tool-menu view-menu">
             <summary class="icon-btn" aria-label="View settings for this day" title="View settings for this day"><svg class="icon" aria-hidden="true"><use href="#i-view"/></svg></summary>
             <div class="menu view-settings"></div>
@@ -150,6 +155,26 @@ export default {
       const box = panel?.querySelector('[data-note-for]');
       setTimeout(() => (box?._editor ? leaveNoteBox(box) : refresh()));
     }
+    // The day's Energy: clicking the line (or its ⚡) opens the ⚡ pills under
+    // it and you can type a few words too; clicking elsewhere, Tab away or
+    // Enter / Esc puts the pills away.
+    const energyBox = () => el.querySelector('.focus-row .energy');
+    function openEnergy() {
+      energyBox().classList.add('editing');
+      if (document.activeElement !== $('#energy-note')) $('#energy-note').focus();
+    }
+    const closeEnergy = () => energyBox()?.classList.remove('editing');
+    el.addEventListener('focusin', ev => { if (ev.target.id === 'energy-note') openEnergy(); });
+    el.addEventListener('focusout', ev => {
+      if (ev.target.id === 'energy-note' && ev.relatedTarget && !energyBox().contains(ev.relatedTarget)) closeEnergy();
+    });
+    el.addEventListener('keydown', ev => { if (ev.target.id === 'energy-note' && (ev.key === 'Enter' || ev.key === 'Escape')) closeEnergy(); });
+    // Pressing a ⚡ keeps the cursor in the words.
+    el.addEventListener('mousedown', ev => { if (ev.target.closest('.energy-choose button, .energy-level')) ev.preventDefault(); });
+    document.addEventListener('pointerdown', ev => {
+      const box = el.isConnected && energyBox();
+      if (box?.classList.contains('editing') && !box.contains(ev.target)) closeEnergy();
+    }, true);
     document.addEventListener('pointerdown', ev => {
       if (!editing || !el.isConnected) return;
       const t = ev.target;
@@ -310,6 +335,14 @@ export default {
         ? `${WEEKDAYS[d.getDay()]} is a down day. Pick one or two things; rest counts as part of the plan.` : '';
       $('#focus').value = day.focus || '';
       for (const b of el.querySelectorAll('[data-energy]')) b.setAttribute('aria-pressed', b.dataset.energy === day.energy);
+      const lvl = ENERGY.find(e => e.id === day.energy);
+      const lvlBtn = $('.energy-level');
+      lvlBtn.hidden = !lvl;
+      lvlBtn.textContent = lvl?.bolts || '';
+      lvlBtn.title = lvl ? `${lvl.label}: ${lvl.hint}. Click to change` : '';
+      $('.energy').classList.toggle('has-level', !!lvl);
+      $('.energy [data-energy="none"]').hidden = !lvl;
+      if (document.activeElement !== $('#energy-note')) $('#energy-note').value = day.energy_note || '';
       // Never replace the note you're writing in (that put the cursor back at the start
       // and could show older text); only when the day shown changes or you're not in it.
       if (notesDate !== date || !$('#notes').contains(document.activeElement)) notes.setValue(day.notes || '');
@@ -804,10 +837,14 @@ export default {
         energyMenu(t, it?.energy || null, e => change(id, { energy: e }, e ? 'Energy saved' : 'Energy cleared'));
         return;
       }
+      if (act === 'energy-edit') { openEnergy(); return; }
       if (t.dataset.energy) {
-        const energy = day.energy === t.dataset.energy ? null : t.dataset.energy;
-        day = await saveDay(date, { energy });
+        const old = day.energy || null;
+        const energy = t.dataset.energy === 'none' || day.energy === t.dataset.energy ? null : t.dataset.energy;
+        const forDate = date;
+        day = await saveDay(forDate, { energy });
         header();
+        undoable(energy ? 'Energy saved' : 'Energy cleared', async () => { const d = await saveDay(forDate, { energy: old }); if (forDate === date) { day = d; header(); renderTasks(); } });
         renderTasks();
       } else if (act === 'prev') go(addDays(date, -1));
       else if (act === 'next') go(addDays(date, 1));
@@ -912,6 +949,12 @@ export default {
         renderLines();
         renderPile();
         undoable('Paper changed for this day', async () => { day = await saveDay(date, { paper: old }); applyPaper(); renderLines(); renderPile(); });
+      } else if (t.id === 'energy-note') {
+        const old = day.energy_note || '';
+        if (t.value.trim() === old) return;
+        const forDate = date;
+        day = await saveDay(forDate, { energy_note: t.value.trim() });
+        undoable('Saved', async () => { const d = await saveDay(forDate, { energy_note: old }); if (forDate === date) { day = d; header(); } });
       } else if (t.id === 'focus') {
         const old = day.focus || '';
         if (t.value.trim() === old) return;
@@ -1430,7 +1473,7 @@ export default {
       const energy = ENERGY.find(e => e.id === day.energy);
       const out = [bold(shareTitle())];
       if (day.focus) out.push(`Focus: ${day.focus}`);
-      if (energy) out.push(`Energy: ${energy.bolts} ${energy.label}`);
+      if (energy || day.energy_note) out.push(`Energy: ${[energy && `${energy.bolts} ${energy.label}`, day.energy_note].filter(Boolean).join(' – ')}`);
       const section = (title, list) => { if (list.length) out.push('', bold(title), ...list.map(line)); };
       section('Plan', inDay);
       section(settings.evening_label || 'Evening plans', evening);
@@ -1446,7 +1489,7 @@ export default {
       const energy = ENERGY.find(e => e.id === day.energy);
       return `<h3>${esc(shareTitle())}</h3>`
         + (day.focus ? `<p><b>Focus:</b> ${esc(day.focus)}</p>` : '')
-        + (energy ? `<p><b>Energy:</b> ${energy.bolts} ${energy.label}</p>` : '')
+        + (energy || day.energy_note ? `<p><b>Energy:</b> ${esc([energy && `${energy.bolts} ${energy.label}`, day.energy_note].filter(Boolean).join(' – '))}</p>` : '')
         + groups.filter(([, l]) => l.length).map(([t, l]) => `<h4>${esc(t)}</h4><ul style="list-style:none;padding-left:0">${l.map(li).join('')}</ul>`).join('')
         + ((day.notes || '').trim() ? `<h4>Notes</h4>${toHtml(unlink(day.notes))}` : '');
     }

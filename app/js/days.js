@@ -143,7 +143,7 @@ export async function unfinishedBefore(date, days = 7) {
 export async function datesWithContent(from, to) {
   const out = new Set();
   for (const i of await store.list('day_items', { filter: i => i.date >= from && i.date <= to })) out.add(i.date);
-  for (const d of await store.list('days', { filter: d => d.date >= from && d.date <= to && (d.focus || d.notes || d.energy) })) out.add(d.date);
+  for (const d of await store.list('days', { filter: d => d.date >= from && d.date <= to && (d.focus || d.notes || d.energy || d.energy_note) })) out.add(d.date);
   return out;
 }
 
