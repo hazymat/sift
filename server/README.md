@@ -13,7 +13,7 @@ Copy this `server/` folder to the machine, then, as root:
 
 ```bash
 # Home network (use the machine's address, an IP or a name like sift.lan):
-sudo ./install.sh home 192.168.1.20
+sudo ./install.sh home sift.lan
 
 # Internet (the domain must already point at the machine; ports 80 and 443 open):
 sudo ./install.sh public sift.example.com

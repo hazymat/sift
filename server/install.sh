@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Install or update the Sift server on Ubuntu / Debian (run as root, from this folder).
 #
-#   sudo ./install.sh home   192.168.1.20     # LAN: HTTPS from Caddy's own certificate authority
+#   sudo ./install.sh home   sift.lan         # LAN: HTTPS from Caddy's own certificate authority
 #   sudo ./install.sh public sift.example.com # internet: automatic Let's Encrypt certificate
 #   sudo ./install.sh update                  # after `git pull`: refresh the code, keep settings and data
 #
