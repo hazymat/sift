@@ -9,6 +9,7 @@
 import * as store from './store.js';
 import { summarise } from './summary.js';
 import { linkMd } from './refs.js';
+import { word } from './words.js';
 
 const BLOCK = 'li, div, p, h3, h4';
 
@@ -90,7 +91,7 @@ export async function makeFromLines(edit, kind, origin) {
       made.push({ collection: 'tasks', id: task.id });
       linkLine(b, `tasks/${task.id}`, 'task');
     }
-    return { made, label: `${made.length} task${made.length === 1 ? '' : 's'} in the Inbox` };
+    return { made, label: `${made.length} task${made.length === 1 ? '' : 's'} in ${word('list_inbox')}` };
   }
 
   // One contact from all the lines. If they already link a contact (a number

@@ -3,7 +3,7 @@
 // word you've changed is kept in the synced settings under its key (empty =
 // the default), so it follows you to your other devices.
 //
-//   word('list_inbox')  → "Inbox", or what you called it
+//   word('list_inbox')  → "Task Dump", or what you called it
 //   dumpTypes()         → [{ id, label }] in your order
 //   applyWords()        → reload both from the settings (start-up, and when they change)
 
@@ -20,7 +20,7 @@ export const WORDS = [
   { group: 'Areas', key: 'area_contracts', default: 'Contracts', hint: 'Insurance, utilities, subscriptions: "Bills", "Policies"…' },
   { group: 'Areas', key: 'area_recipes', default: 'Batch Book', hint: 'Recipes and batches: "Recipes", "Brewing"…' },
 
-  { group: 'Task lists', key: 'list_inbox', default: 'Inbox', hint: "Where new tasks land before you've decided when to do them." },
+  { group: 'Task lists', key: 'list_inbox', default: 'Task Dump', hint: "Where new tasks land before you've decided when to do them: \"Inbox\", \"To sort\"…" },
   { group: 'Task lists', key: 'list_now', default: 'Now', hint: 'What you are working on these days: "This week", "Doing"…' },
   { group: 'Task lists', key: 'list_next', default: 'Next', hint: 'What comes after: "Soon", "Next week"…' },
   { group: 'Task lists', key: 'list_later', default: 'Later', hint: 'One day: "Someday", "Maybe"…' },

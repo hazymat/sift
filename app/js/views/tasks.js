@@ -23,7 +23,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
 const VIEWS = [...HORIZONS, { id: 'done', label: 'Done' }];
 const LISTS = ['inbox', 'now', 'next', 'later'];   // where a task lives
-const EMPTY = { inbox: 'Inbox is empty.', now: 'Nothing for now.', next: 'Nothing lined up next.', later: 'Nothing for later.' };
+const EMPTY = { get inbox() { return `${word('list_inbox')} is empty.`; }, now: 'Nothing for now.', next: 'Nothing lined up next.', later: 'Nothing for later.' };
 const COLOURS = ['#6fb0ff', '#7dd3a8', '#f5a66a', '#e58fd0', '#f0d264', '#a99cff', '#ff8a8a'];
 
 function shortDate(iso) {

@@ -613,7 +613,7 @@ export default {
         <p class="muted hint">Claim what you'll do ${date === isoDate() ? 'today' : 'on this day'}. Push the rest to Now, Next or Later, or archive what's no longer needed.</p>
         ${section('For this day', top, aimNote)}
         ${energy ? section(`Ideas for ${energy.bolts} energy`, ideas) : ''}
-        ${section('Inbox', by('inbox'))}
+        ${section(esc(word('list_inbox')), by('inbox'))}
         ${section('Now', by('now'))}
         ${section('Next', by('next'))}
         ${section('Later', by('later'))}
