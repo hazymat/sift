@@ -16,6 +16,7 @@ import { richText, toHtml, previewLine, inlineAll } from '../richtext.js';
 import { loadContacts } from '../contacts.js';
 import * as att from '../attachments.js';
 import { editPills, selectPill, datePill } from '../editpills.js';
+import { ask, askText } from '../ask.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -555,7 +556,7 @@ export default {
     }
 
     async function newProject() {
-      const name = prompt('Project name:');
+      const name = await askText('New project', { ok: 'Add' });
       if (!name?.trim()) return null;
       return store.create('projects', {
         name: name.trim(), description: '', status: 'active', colour: COLOURS[data.projects.length % COLOURS.length],
@@ -591,7 +592,7 @@ export default {
         const p = await newProject();
         if (p) await change(id, { project_id: p.id, milestone_id: null }, `Moved to ${p.name}`); else render();
       } else if (t.name === 'milestone_id' && t.value === '__new') {
-        const name = prompt('Milestone name:');
+        const name = await askText('New milestone', { placeholder: 'e.g. First draft done', ok: 'Add' });
         if (!name?.trim()) { render(); return; }
         const m = await store.create('milestones', { project_id: task.project_id, name: name.trim(), due_date: null, done_at: null, sort_order: data.milestones.length });
         await change(id, { milestone_id: m.id });
@@ -662,9 +663,10 @@ export default {
         const p = await newProject();
         if (p) go('list', p.id);
       } else if (act === 'new-milestone') {
-        const name = prompt('Milestone name (e.g. "First draft done"):');
+        const r = await ask({ title: 'New milestone', ok: 'Add', fields: [{ name: 'name', label: 'Name', placeholder: 'e.g. First draft done' }, { name: 'due', label: 'Aim date (optional)', type: 'date' }] });
+        const name = r?.name;
         if (!name?.trim()) return;
-        const due = prompt('Aim date for this milestone (YYYY-MM-DD), or leave blank:') || null;
+        const due = r.due || null;
         await store.create('milestones', { project_id: state.project, name: name.trim(), due_date: /^\d{4}-\d{2}-\d{2}$/.test(due || '') ? due : null, done_at: null, sort_order: data.milestones.length });
         render();
       } else if (act === 'add-sub' && task) {

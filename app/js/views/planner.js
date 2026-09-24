@@ -18,6 +18,7 @@ import { summarise } from '../summary.js';
 import { loadAll as loadTasks, forDay, suggestions, doneFields, aimDate, addTask, horizonOf } from '../tasks.js';
 import * as att from '../attachments.js';
 import { editPills, selectPill, datePill } from '../editpills.js';
+import { askYes } from '../ask.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -1424,7 +1425,7 @@ export default {
     async function clearDay() {
       const all = await itemsFor(date);
       if (!all.length) return toast('Nothing on this day to clear');
-      if (!confirm(`Remove all ${all.length} item${all.length === 1 ? '' : 's'} from this day? They go to the Bin, and you can undo.`)) return;
+      if (!await askYes(`Remove all ${all.length} item${all.length === 1 ? '' : 's'} from this day?`, { text: 'They go to the Bin, and you can undo.', ok: 'Clear the day', danger: true })) return;
       const now = new Date().toISOString();
       await store.updateMany('day_items', all.map(i => [i.id, { deleted_at: now }]));
       editing = null;
@@ -1448,12 +1449,12 @@ export default {
         paper = day.paper || null;
         const monday = addDays(date, -((parseDate(date).getDay() + 6) % 7));
         dates = Array.from({ length: 7 }, (_, n) => addDays(monday, n));
-        if (!confirm(`Give every day this week (${monday} to ${dates[6]}) ${name(paper)} paper?`)) return;
+        if (!await askYes(`Give every day this week ${name(paper)} paper?`, { text: `${monday} to ${dates[6]}.`, ok: 'Change the week' })) return;
       } else {
         paper = (await getDay(isoDate()))?.paper || null;
         dates = (await store.list('days')).map(d => d.date);
         if (!dates.includes(isoDate())) dates.push(isoDate());
-        if (!confirm(`Give every page ${name(paper)} paper, the same as today? Days you haven't opened yet use the default paper from Settings.`)) return;
+        if (!await askYes(`Give every page ${name(paper)} paper, the same as today?`, { text: "Days you haven't opened yet use the default paper from Settings.", ok: 'Change every page' })) return;
       }
       const before = [];
       for (const d of dates) {

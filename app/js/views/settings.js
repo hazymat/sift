@@ -1,5 +1,6 @@
 import { sortable } from '../sortable.js';
 import { toast } from '../toast.js';
+import { ask, askText, askYes } from '../ask.js';
 
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
 
@@ -279,7 +280,7 @@ export default {
         try {
           if (what === 'now') return sync.syncNow();
           if (what === 'out') {
-            if (!confirm('Sign out of sync on this device? Everything stays on this device; it just stops syncing.')) return;
+            if (!await askYes('Sign out of sync on this device?', { text: 'Everything stays on this device; it just stops syncing.', ok: 'Sign out' })) return;
             await sync.signOut();
             return draw();
           }
@@ -386,15 +387,15 @@ export default {
       if (kind === 'drafts') {
         const keys = siftKeys('sift:draft:');
         if (!keys.length) return toast('No unsaved drafts');
-        if (!confirm(`Clear ${keys.length} unsaved draft${keys.length === 1 ? '' : 's'} (text typed into "add" boxes but not added)?`)) return;
+        if (!await askYes(`Clear ${keys.length} unsaved draft${keys.length === 1 ? '' : 's'}?`, { text: 'Text typed into "add" boxes but not added.', ok: 'Clear', danger: true })) return;
         keys.forEach(k => localStorage.removeItem(k));
         toast('Drafts cleared');
       } else if (kind === 'history') {
-        if (!confirm('Clear the undo history? Your data stays; you just can\'t undo past changes any more.')) return;
+        if (!await askYes('Clear the undo history?', { text: "Your data stays; you just can't undo past changes any more.", ok: 'Clear', danger: true })) return;
         await store.clearHistory();
         toast('Undo history cleared');
       } else if (kind === 'all') {
-        const typed = prompt('⚠️ ERASE ALL DATA ON THIS DEVICE ⚠️\n\nThis deletes every task, plan, note, contact, box, list and setting stored here. It cannot be undone.\n\nIf you use Sync: this only clears THIS device and signs it out of Sync. Your server and other devices keep their copies (sign in again to get it all back), but anything not yet synced is lost.\n\nBack up first if you might want it.\n\nType DELETE (in capitals) to erase everything:');
+        const typed = await askText('⚠️ Erase all data on this device', { text: 'This deletes every task, plan, note, contact, box, list and setting stored here. It cannot be undone.\n\nIf you use Sync: this only clears THIS device and signs it out of Sync. Your server and other devices keep their copies (sign in again to get it all back), but anything not yet synced is lost.\n\nBack up first if you might want it.', label: 'Type DELETE (in capitals) to erase everything', ok: 'Erase everything' });
         if (typed === null) return;
         if (typed.trim() !== 'DELETE') return toast('Not erased: you have to type DELETE exactly');
         await store.eraseAll();
@@ -585,9 +586,10 @@ export default {
       if (!ev.target.closest('[data-act="backup"]')) return;
       let passphrase = null;
       if (el.querySelector('#backup-lock').checked) {
-        passphrase = prompt('Passphrase for this backup (you will need it to restore; it cannot be recovered):');
-        if (!passphrase) return;
-        if (prompt('Type the passphrase again:') !== passphrase) { toast("Passphrases didn't match"); return; }
+        const r = await ask({ title: 'Lock this backup', text: "You'll need the passphrase to restore it. It can't be recovered.", ok: 'Make the backup', fields: [{ name: 'a', label: 'Passphrase', type: 'password' }, { name: 'b', label: 'Type it again', type: 'password' }] });
+        if (!r?.a) return;
+        if (r.a !== r.b) { toast("Passphrases didn't match"); return; }
+        passphrase = r.a;
       }
       toast('Making a backup…');
       const made = await backup.makeBackup({ passphrase });
@@ -607,7 +609,7 @@ export default {
         try { data = await backup.readBackup(file); }
         catch (err) {
           if (!(err instanceof backup.NeedsPassphrase)) throw err;
-          const pass = prompt('This backup is locked. Passphrase:');
+          const pass = await askText('This backup is locked', { label: 'Passphrase', type: 'password', ok: 'Open it' });
           if (!pass) return;
           data = await backup.readBackup(file, pass);
         }

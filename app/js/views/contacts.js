@@ -18,6 +18,7 @@ import { keepDraft, draftCleared } from '../drafts.js';
 import { addTask } from '../tasks.js';
 import { isoDate } from '../days.js';
 import { createListKit } from '../listkit.js';
+import { askText } from '../ask.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -379,13 +380,13 @@ export default {
     }
 
     async function newCategory() {
-      const name = prompt('Category name (e.g. Plumbers, Painters, Pub mates, Call centres):');
+      const name = await askText('New category', { placeholder: 'e.g. Plumbers, Painters, Pub mates, Call centres', ok: 'Add' });
       if (!name?.trim()) return null;
       return store.create('contact_categories', { name: name.trim(), colour: null, sort_order: data.categories.length });
     }
 
     async function newCase() {
-      const title = prompt('Case title (e.g. Broadband complaint, Insurance claim):');
+      const title = await askText('New case', { placeholder: 'e.g. Broadband complaint, Insurance claim', ok: 'Add' });
       if (!title?.trim()) return;
       const k = await store.create('cases', { title: title.trim(), status: 'open', summary: '', references: [], contact_ids: [], project_id: null, opened_at: new Date().toISOString(), closed_at: null });
       go(`#/contacts/cases/${k.id}`);
@@ -498,7 +499,7 @@ export default {
           return;
         }
         if (act === 'case-task') {
-          const title = prompt('Task:');
+          const title = await askText('New task', { placeholder: 'What needs doing?', ok: 'Add' });
           if (!title?.trim()) return;
           const t = await addTask({ title: title.trim(), case_id: k.id, contact_ids: k.contact_ids || [] });
           await render();

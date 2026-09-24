@@ -10,6 +10,7 @@ import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import * as att from '../attachments.js';
 import { editPills, selectPill } from '../editpills.js';
+import { askText, askYes } from '../ask.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -545,7 +546,7 @@ export default {
         const all = tree.flatMap(e => e.sections.flatMap(s => s.boxes.flatMap(b => b.items)));
         const changes = all.map(i => [i, splitQuantity(i.name)]).filter(([i, s]) => s.quantity && !i.quantity);
         if (!changes.length) return toast('No names start with a quantity like "3x"');
-        if (!confirm(`Move the quantity out of ${changes.length} name${changes.length === 1 ? '' : 's'} (e.g. "3x AA batteries" → "AA batteries", quantity 3)?`)) return;
+        if (!await askYes(`Move the quantity out of ${changes.length} name${changes.length === 1 ? '' : 's'}?`, { text: 'For example "3x AA batteries" becomes "AA batteries" with quantity 3.', ok: 'Move them' })) return;
         await store.updateMany('items', changes.map(([i, s]) => [i.id, { name: s.name, quantity: s.quantity }]));
         await reload();
         undoable(`Quantities split out of ${changes.length} name${changes.length === 1 ? '' : 's'}`, async () => {
@@ -589,17 +590,17 @@ export default {
         a.click();
         setTimeout(() => URL.revokeObjectURL(a.href), 1000);
       } else if (name === 'add-edition') {
-        const n = prompt('Name for the new life area (e.g. Home, Garage, Allotment):');
+        const n = await askText('New life area', { placeholder: 'e.g. Home, Garage, Allotment', ok: 'Add' });
         if (!n?.trim()) return;
         const e = await store.create('places', { kind: 'edition', name: n.trim(), parent_place_id: null, notes: '', sort_order: tree.length });
         editionId = e.id; remember(EDITION_KEY, e.id);
         await reload();
       } else if (name === 'rename-edition' && current) {
-        const n = prompt('Rename life area:', current.name);
+        const n = await askText('Rename life area', { value: current.name, ok: 'Rename' });
         if (n?.trim()) { await store.update('places', current.id, { name: n.trim() }); await reload(); }
       } else if (name === 'add-section') {
         const ed = current || await store.create('places', { kind: 'edition', name: 'Standard', parent_place_id: null, notes: '', sort_order: 0 });
-        const n = prompt(`${GROUP.One} name (e.g. Wardrobe, Shed shelves):`);
+        const n = await askText(`New ${GROUP.one || GROUP.One.toLowerCase()}`, { placeholder: 'e.g. Wardrobe, Shed shelves', ok: 'Add' });
         if (!n?.trim()) return;
         await store.create('places', { kind: 'section', name: n.trim(), parent_place_id: ed.id, location_note: '', notes: '', sort_order: current?.sections.length || 0 });
         await reload();
