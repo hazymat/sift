@@ -42,9 +42,17 @@ function ago(iso) {
   return new Date(iso).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
+// When a note's text was last changed: the sync clock of its body (so notes
+// edited before this was added get the right time too), else when it was made.
+export function editedAt(t) {
+  const wall = t._field_clocks?.body ? store.parseHlc(t._field_clocks.body).wall : 0;
+  return new Date(Math.max(wall || 0, Date.parse(t.created_at) || 0)).toISOString();
+}
+
 // Pinned first, then the order you dragged them into; ones you haven't placed
-// yet (new thoughts) come first, newest on top.
-const orderKey = t => t.sort_order ?? -Date.parse(t.created_at) / 1e12;
+// (new notes, and any note whose text you've changed since) come first, most
+// recently edited on top.
+const orderKey = t => t.sort_order ?? -Date.parse(editedAt(t)) / 1e12;
 const byOrder = (a, b) => Number(!!b.pinned) - Number(!!a.pinned) || orderKey(a) - orderKey(b);
 
 export default {
@@ -183,7 +191,7 @@ export default {
           <div class="thought-head">
             <button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button>
             <select class="kind-select" aria-label="Kind">${KINDS.map(k => `<option value="${k.id}" ${k.id === t.kind ? 'selected' : ''}>${k.label}</option>`).join('')}</select>
-            <span class="muted">${ago(t.created_at)}</span>
+            <span class="muted" title="Edited ${esc(new Date(editedAt(t)).toLocaleString())} · made ${esc(new Date(t.created_at).toLocaleString())}">${ago(editedAt(t))}</span>
             ${conv ? `<a class="chip" href="${href}" data-focus="${t.converted_to.collection}:${t.converted_to.id}">→ ${conv[0]}</a>` : ''}
             ${att.countChip(atts.get(t.id))}
             <span class="spacer"></span>
@@ -364,7 +372,7 @@ export default {
             const body = box._editor?.value.trim();
             if (!body || body === box._saved) return showSaved(line, 'saved');
             try {
-              await store.update('thoughts', t.id, { body, title: titleFrom(body) });
+              await store.update('thoughts', t.id, { body, title: titleFrom(body), sort_order: null }); // edited: goes to the top
               box._saved = body;
               showSaved(line, 'saved');
             } catch { showSaved(line, 'failed'); }
@@ -437,7 +445,7 @@ export default {
       box._editor = null;
       editing = null;
       // It has been saving as you typed; this puts the last bit in (or, after Esc, the original back).
-      if (body && body !== (box._saved ?? t.body)) await store.update('thoughts', t.id, { body, title: titleFrom(body) });
+      if (body && body !== (box._saved ?? t.body)) await store.update('thoughts', t.id, { body, title: titleFrom(body), sort_order: null });
       if (body && body !== orig) {
         undoable('Saved', async () => { await store.update('thoughts', t.id, { body: orig, title: titleFrom(orig) }); render(); });
       }
