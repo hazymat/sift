@@ -2446,3 +2446,15 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 .focus input { border-radius: 0 !important; }
 .focus input:hover { background: color-mix(in srgb, var(--text) 5%, transparent) !important; }
 .focus input:focus { border-color: transparent !important; background: color-mix(in srgb, var(--text) 7%, transparent) !important; box-shadow: none; }
+
+/* Energy: on a narrow screen it follows Day focus and, when there isn't room,
+   wraps underneath at the left (not pushed to the right). On a wide screen,
+   with Tasks and Notes beside the schedule, the header uses the same two
+   columns so Energy starts exactly where Tasks starts. */
+.focus-row .energy { margin-left: 0; }
+.planner.docked > .day-head { margin-inline: 0; }
+.planner.docked .focus-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 30%); column-gap: 44px; align-items: center; }
+.planner.docked.tasks-first .focus-row { grid-template-columns: minmax(300px, 30%) minmax(0, 1fr); }
+.planner.docked .focus-row .focus { padding-left: 4px; }
+.planner.docked .focus-row .energy { padding-left: 4px; flex-wrap: nowrap; }
+.planner.docked .focus-row .energy .view-menu { margin-left: auto; }
