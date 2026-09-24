@@ -326,7 +326,7 @@ export default {
     ];
     function subLine(i) {
       const pills = PILLS.filter(p => p.when(i)).map(p => `<button type="button" class="pill-act" data-act="${p.act}" title="${esc(p.hover)}"><span class="pill-now">${esc(p.label)}</span><span class="pill-hover">${esc(p.hover)}</span></button>`).join('');
-      const note = i.notes ? noteHtml(i) : '';
+      const note = i.notes && editing !== i.id ? noteHtml(i) : ''; // the open panel already shows the whole note
       return pills || note ? `<div class="item-sub">${pills}${note}</div>` : '';
     }
 

@@ -138,7 +138,7 @@ export default {
       const h = horizonOf(t);
       const pills = (e ? `<button type="button" class="pill-act bolts" data-act="energy-pill" title="Energy: ${e.label}. Click to change" aria-label="Energy ${e.label}, change">${e.bolts}</button>` : '')
         + (h !== 'now' && state.view !== h && !isDone(t) ? `<button type="button" class="pill-act" data-act="horizon-pill" title="For ${h}. Click to change">${h}</button>` : '');
-      const note = t.notes ? noteHtml(t) : '';
+      const note = t.notes && open !== t.id ? noteHtml(t) : ''; // the open panel already shows the whole note
       const c = chips(t);
       return pills || c || note ? `<div class="item-sub">${pills}${c ? `<span class="chips">${c}</span>` : ''}${note}</div>` : '';
     }

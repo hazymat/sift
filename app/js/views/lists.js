@@ -70,7 +70,7 @@ export default {
     // Under the item: the note's first line; clicking it opens the panel.
     function noteLine(i) {
       const { html, more } = previewLine(i.notes || '');
-      if (!html) return '';
+      if (!html || openItem === i.id) return ''; // the open panel already shows the whole note
       return `<div class="item-sub"><span class="item-note task-note" data-act="item-details" role="button" tabindex="0" title="${openItem === i.id ? 'Close' : 'Open to read or edit'}"><span class="note-emoji" aria-hidden="true">📝</span>${html}${more ? ` <span class="more-lines">+${more} more</span>` : ''}</span></div>`;
     }
     async function flushNote() {
