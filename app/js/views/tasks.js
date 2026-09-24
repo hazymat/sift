@@ -146,9 +146,8 @@ export default {
       const { html } = previewLine(t.notes);
       if (!html) return '';
       // All three spacings are drawn; the page's spacing shows one (CSS):
-      // tight = just 📝, medium = every line run together, loose = the note as written.
+      // tight = the start of it on the task's line, medium = every line run together, loose = the note as written. No icon.
       return `<span class="item-note task-note" data-act="toggle-note" role="button" tabindex="0" aria-expanded="${open === t.id}" title="${open === t.id ? 'Close' : 'Open to read or edit'}">`
-        + `<span class="note-emoji" aria-hidden="true">📝</span>`
         + `<span class="note-medium">${inlineAll(t.notes)}</span>`
         + `<span class="note-loose">${toHtml(t.notes)}</span></span>`;
     }
@@ -716,7 +715,9 @@ export default {
         const t = data.tasks.find(x => x.id === id);
         if (!t) return '';
         const aim = t.aim_at ? t.aim_at.slice(0, 10) : '';
-        return selectPill('energy', 'Energy', v => ENERGY.find(e => e.id === v)?.bolts || '⚡', [['', 'No energy set'], ...ENERGY.map(e => [e.id, e.label])], t.energy)
+        // No note yet: an "Add note" line under the title, like adding a new task.
+        const addNote = (t.notes || '').trim() ? '' : `<textarea class="entry-note pill-note no-inline" data-pill="notes" rows="1" placeholder="Add note" aria-label="Note"></textarea>`;
+        return addNote + selectPill('energy', 'Energy', v => ENERGY.find(e => e.id === v)?.bolts || '⚡', [['', 'No energy set'], ...ENERGY.map(e => [e.id, e.label])], t.energy)
           + selectPill('estimate_min', 'Time needed', '⏱', [['', 'Time not set'], ...hours], t.estimate_min)
           + datePill('start_date', 'Plan for day', '📅', t.start_date, shortDate)
           + datePill('aim_date', 'Aim to finish', '⚑', aim, shortDate)
@@ -729,6 +730,7 @@ export default {
           const time = t.aim_at?.length > 10 ? t.aim_at.slice(10) : '';
           return change(id, { aim_at: value ? `${value}${time}` : null }, value ? `Aim: ${shortDate(value)}` : 'Aim cleared');
         }
+        if (name === 'notes') { if (value.trim()) await change(id, { notes: value.trim() }, 'Note saved'); return; }
         const v = name === 'estimate_min' ? (value ? Number(value) : null) : value || null;
         await change(id, { [name]: v }, name === 'start_date' && v ? `Planned for ${shortDate(v)}` : name === 'horizon' ? `In ${HORIZONS.find(x => x.id === v)?.label || v}` : 'Saved');
       },

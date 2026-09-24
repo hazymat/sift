@@ -258,7 +258,7 @@ export default {
     function thingSub(i) {
       const tags = (i.tags || []).map(t => `<button type="button" class="pill-act tag-pill" data-act="tag-search" data-tag="${esc(t)}" title="Find everything tagged ${esc(t)}">#${esc(t)}</button>`).join('');
       const { html, more } = previewLine(i.notes || '');
-      const note = html && openItem !== i.id ? `<span class="item-note" data-act="item-details" role="button" tabindex="0" title="${openItem === i.id ? 'Close' : 'Open to read or edit'}"><span class="note-emoji" aria-hidden="true">📝</span>${html}${more ? ` <span class="more-lines">+${more} more</span>` : ''}</span>` : '';
+      const note = html && openItem !== i.id ? `<span class="item-note" data-act="item-details" role="button" tabindex="0" title="${openItem === i.id ? 'Close' : 'Open to read or edit'}">${html}${more ? ` <span class="more-lines">+${more} more</span>` : ''}</span>` : '';
       return tags || note ? `<div class="item-sub">${tags}${note}</div>` : '';
     }
 

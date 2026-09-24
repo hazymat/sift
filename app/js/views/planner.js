@@ -343,7 +343,6 @@ export default {
       if (!html) return '';
       const open = openNotes.has(i.id);
       return `<div class="item-note${open ? ' open' : ''}" data-act="toggle-note" role="button" tabindex="0" aria-expanded="${editing === i.id}" title="${editing === i.id ? 'Close' : 'Open to read or edit'}">`
-        + `<span class="note-emoji" aria-hidden="true">📝</span>`
         + `${open ? `<div class="note-body">${toHtml(i.notes)}</div>` : html}${!open && more > 0 ? ` <span class="more-lines">+${more} more</span>` : ''}</div>`;
     }
 
@@ -594,7 +593,7 @@ export default {
               ${aim ? `<span class="span-tag" title="Completion aim">⚑ ${esc(aim)}</span>` : ''}
               ${t.start_date && t.start_date !== date ? `<span class="span-tag" title="Planned for">📅 ${esc(t.start_date)}</span>` : ''}
             </span>
-            ${first ? `<span class="bring-note muted">📝 ${esc(first.replace(/\[([^\]]*)\]\(sift:[^)]*\)/g, '$1'))}</span>` : ''}
+            ${first ? `<span class="bring-note muted">${esc(first.replace(/\[([^\]]*)\]\(sift:[^)]*\)/g, '$1'))}</span>` : ''}
           </div>
           <span class="review-actions">
             ${onDay.has(t.id) ? '<span class="span-tag">on this day</span>' : `<button type="button" class="primary" data-bring-act="claim">Claim for ${date === isoDate() ? 'today' : 'this day'}</button>`}

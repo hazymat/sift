@@ -1927,8 +1927,10 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 #main[data-density="tight"] .task-list > li[data-task] > .item-sub { flex: 0 1 auto; margin: 0; order: 1; min-width: 0; overflow: hidden; white-space: nowrap; }
 #main[data-density="tight"] .task-list > li[data-task] > .chips { order: 2; flex-wrap: nowrap; overflow: hidden; }
 #main[data-density="tight"] .task-list > li[data-task] > .more { order: 3; }
-#main[data-density="tight"] .task-note .note-medium, #main[data-density="tight"] .task-note .note-loose { display: none; }
-#main[data-density="tight"] .task-note { flex: none; }
+#main[data-density="tight"] .task-note .note-loose { display: none; }
+/* Tight: the start of the note on the task's own line (no icon). */
+#main[data-density="tight"] .task-note { flex: 0 1 auto; min-width: 0; overflow: hidden; }
+#main[data-density="tight"] .task-note .note-medium { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--muted); font-size: .85em; }
 
 /* Medium: the note under the task, every line run together on one line. */
 #main:not([data-density="tight"]):not([data-density="loose"]) .task-note .note-loose { display: none; }
@@ -2302,3 +2304,11 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
 /* Text size choices, each written at its own size, lined up in one row. */
 #text-size { align-items: center; }
 #text-size button { min-height: 2.4rem; line-height: 1.1; }
+
+/* "Add note" under a task being edited in place (js/editpills.js, tasks). */
+.edit-pills .pill-note { flex-basis: 100%; order: -1; margin: -4px 0 2px; padding: 2px 0; border: 0; background: transparent; resize: none; font-size: .9rem; line-height: 1.4; color: var(--text); field-sizing: content; min-height: 1.4em; }
+.edit-pills .pill-note::placeholder { color: var(--muted); opacity: .7; }
+/* "Add note" lines up with the task's text (the pills sit further left on phones). */
+@media (max-width: 700px) { .task-list .edit-pills .pill-note { margin-left: 48px; flex-basis: calc(100% - 48px); } }
+/* Task list tabs stay on one line each ("Task Dump"). */
+.tasks-head .segmented button { white-space: nowrap; flex: 1 1 auto; }
