@@ -19,6 +19,12 @@
 // Typing "- " or "* " at the start of a line starts a bulleted list; Enter on
 // an empty bullet ends it, so you carry on writing underneath. The toolbar also
 // inserts a few emoji.
+//
+// Two toolbars: compact (bold, italic, cross out, list, emoji) and full, which
+// adds Smaller / Bigger text for the line you're on. "Aa" switches, and the
+// choice is remembered on this device. Sizes are kept in the note as "# " (bigger)
+// and "-# " (smaller) at the start of a line. They are relative to the app's own
+// Text size setting, which they don't change.
 
 export const EMOJI = [
   ['📝', 'Note'],
@@ -30,7 +36,7 @@ export const EMOJI = [
 // A note as plain lines for one-line previews: no markdown marks, bullets as "•".
 export function plainLines(md) {
   return (md || '').split('\n')
-    .map(l => l.replace(LINK_RE, '$1').replace(/^#{1,6}\s+/, '').replace(/^\s*[-*]\s+/, '• ').replace(/\*\*|~~/g, '').replace(/(^|\s)_(\S.*?)_(?=$|[\s).,!?:;])/g, '$1$2').trim())
+    .map(l => l.replace(LINK_RE, '$1').replace(/^(?:#{1,6}|-#)\s+/, '').replace(/^\s*[-*]\s+/, '• ').replace(/\*\*|~~/g, '').replace(/(^|\s)_(\S.*?)_(?=$|[\s).,!?:;])/g, '$1$2').trim())
     .filter(Boolean);
 }
 
@@ -46,13 +52,13 @@ const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&
 // A note's first line as HTML for one-line previews (links stay clickable),
 // and how many more lines there are.
 export function previewLine(md) {
-  const lines = (md || '').split('\n').map(l => l.replace(/^#{1,6}\s+/, '').replace(/^\s*[-*]\s+/, '• ').trim()).filter(Boolean);
+  const lines = (md || '').split('\n').map(l => l.replace(/^(?:#{1,6}|-#)\s+/, '').replace(/^\s*[-*]\s+/, '• ').trim()).filter(Boolean);
   return { html: lines.length ? inline(lines[0]) : '', more: Math.max(0, lines.length - 1) };
 }
 
 // All of a note's lines run together on one line ("a · b · c"), as HTML.
 export function inlineAll(md) {
-  return (md || '').split('\n').map(l => l.replace(/^#{1,6}\s+/, '').replace(/^\s*[-*]\s+/, '• ').trim()).filter(Boolean).map(inline).join(' <span class="sep">·</span> ');
+  return (md || '').split('\n').map(l => l.replace(/^(?:#{1,6}|-#)\s+/, '').replace(/^\s*[-*]\s+/, '• ').trim()).filter(Boolean).map(inline).join(' <span class="sep">·</span> ');
 }
 
 function inline(text) {
@@ -67,10 +73,13 @@ export function toHtml(md) {
   const out = [];
   let list = null;
   for (const line of (md || '').split('\n')) {
-    const heading = line.match(/^#{1,6}\s+(.*)$/);
+    const big = line.match(/^#\s+(.*)$/);
+    const small = line.match(/^-#\s+(.*)$/);
+    const heading = big || small || line.match(/^#{2,6}\s+(.*)$/);
     if (heading) {
       if (list) { out.push(`<ul>${list.join('')}</ul>`); list = null; }
-      out.push(`<h4>${inline(heading[1])}</h4>`);
+      const text = inline(heading[1]) || '<br>';
+      out.push(big ? `<h3>${text}</h3>` : small ? `<div data-sz="s">${text}</div>` : `<h4>${text}</h4>`);
       continue;
     }
     const item = line.match(/^\s*[-*]\s+(.*)$/);
@@ -98,7 +107,9 @@ export function toMarkdown(root) {
     if (tag === 'B' || tag === 'STRONG' || style.fontWeight === 'bold' || Number(style.fontWeight) >= 600) return wrap(inner(), '**');
     if (tag === 'I' || tag === 'EM' || style.fontStyle === 'italic') return wrap(inner(), '_');
     if (tag === 'S' || tag === 'STRIKE' || tag === 'DEL' || /line-through/.test(style.textDecoration || '')) return wrap(inner(), '~~');
+    if (tag === 'H3') return `# ${inner().replace(/\n+$/, '')}\n`;
     if (/^H[1-6]$/.test(tag)) return `## ${inner().replace(/\n+$/, '')}\n`;
+    if (node.dataset?.sz === 's') return `-# ${inner().replace(/\n+$/, '')}\n`;
     if (tag === 'UL' || tag === 'OL') {
       return [...node.children].map(li => `- ${[...li.childNodes].map(walk).join('').replace(/\n+$/, '')}`).join('\n') + '\n';
     }
@@ -184,15 +195,26 @@ export function richText(container, { value = '', onChange, placeholder = '', or
   container.classList.add('rich');
   container.innerHTML = `
     <div class="md-bar" role="toolbar" aria-label="Formatting">
+      <button type="button" class="md-mode" aria-pressed="false" title="Full toolbar: text size">Aa</button>
       <button type="button" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
       <button type="button" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
       <button type="button" data-cmd="strikeThrough" title="Cross out"><s>S</s></button>
       <button type="button" data-cmd="insertUnorderedList" title="List (or type - at the start of a line)">• List</button>
+      <span class="md-sizes"><button type="button" data-size="-1" title="Smaller text (this line)" aria-label="Smaller text">A<small>−</small></button><button type="button" data-size="1" title="Bigger text (this line)" aria-label="Bigger text">A<sup>+</sup></button></span>
       <span class="md-emoji">${EMOJI.map(([e, name]) => `<button type="button" data-emoji="${e}" title="${name}" aria-label="Insert ${name.toLowerCase()} emoji">${e}</button>`).join('')}</span>
       <button type="button" class="md-toggle" aria-pressed="false" title="Show the raw markdown">Markdown</button>
     </div>
     <div class="rich-edit hand" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="${esc(placeholder)}"></div>
     <textarea class="rich-raw hand" hidden spellcheck="true"></textarea>`;
+
+  // Compact or full toolbar, remembered on this device.
+  const FULL_KEY = 'sift:notes-toolbar';
+  const setFull = (full, keep = true) => {
+    container.classList.toggle('bar-full', full);
+    container.querySelector('.md-mode').setAttribute('aria-pressed', full);
+    if (keep) try { localStorage.setItem(FULL_KEY, full ? 'full' : 'compact'); } catch { /* not kept */ }
+  };
+  try { setFull(localStorage.getItem(FULL_KEY) === 'full', false); } catch { setFull(false, false); }
 
   const edit = container.querySelector('.rich-edit');
   const raw = container.querySelector('.rich-raw');
@@ -404,12 +426,43 @@ export function richText(container, { value = '', onChange, placeholder = '', or
     document.execCommand('insertText', false, ev.clipboardData.getData('text/plain'));
   });
 
+  // Bigger / Smaller for the lines the selection touches: -1 small, 0 normal, 1 big.
+  function setSize(dir) {
+    const sel = getSelection();
+    if (!sel.rangeCount || !edit.contains(sel.anchorNode)) placeCaretAtEnd();
+    const range = getSelection().getRangeAt(0);
+    const blocks = [...edit.children].filter(b => range.intersectsNode(b) && b.tagName !== 'UL');
+    if (!blocks.length) return;
+    const levelOf = b => (b.tagName === 'H3' ? 1 : b.dataset?.sz === 's' ? -1 : 0);
+    let touched = false;
+    for (const b of blocks) {
+      if (b.tagName === 'H4') continue; // a label line keeps its own look
+      const level = levelOf(b);
+      const next = Math.max(-1, Math.min(1, level + dir));
+      if (next === level) continue;
+      const nb = document.createElement(next === 1 ? 'h3' : 'div');
+      if (next === -1) nb.dataset.sz = 's';
+      nb.append(...b.childNodes);
+      if (!nb.childNodes.length) nb.innerHTML = '<br>';
+      for (const edge of ['start', 'end']) if (range[`${edge}Container`] === b) range[edge === 'start' ? 'setStart' : 'setEnd'](nb, range[`${edge}Offset`]);
+      b.replaceWith(nb);
+      touched = true;
+    }
+    if (!touched) return;
+    const after = getSelection();
+    after.removeAllRanges();
+    after.addRange(range);
+    changed(toMarkdown(edit));
+  }
+
   container.querySelector('.md-bar').addEventListener('mousedown', ev => {
-    if (ev.target.closest('[data-cmd], [data-emoji]')) ev.preventDefault(); // keep the selection in the editor
+    if (ev.target.closest('[data-cmd], [data-emoji], [data-size]')) ev.preventDefault(); // keep the selection in the editor
   });
   container.querySelector('.md-bar').addEventListener('click', ev => {
     const b = ev.target.closest('button');
     if (!b) return;
+    if (b.classList.contains('md-mode')) { setFull(!container.classList.contains('bar-full')); return; }
+    if (b.dataset.size) { if (!rawMode) { edit.focus(); setSize(Number(b.dataset.size)); } return; }
     if (b === toggle) {
       rawMode = !rawMode;
       toggle.setAttribute('aria-pressed', rawMode);

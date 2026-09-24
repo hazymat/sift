@@ -2002,3 +2002,14 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 .save-state[data-state="saving"] { opacity: .6; }
 .save-state[data-state="failed"] { color: #ff8a8a; opacity: 1; }
 .save-state[hidden] { display: none; }
+
+/* Notes: full toolbar (text size) and sized lines */
+.rich .md-sizes { display: none; gap: 2px; }
+.rich.bar-full .md-sizes { display: inline-flex; }
+.md-sizes button { padding: 3px 8px; }
+.md-sizes small { font-size: .8em; }
+.md-sizes sup { font-size: .7em; }
+.md-bar .md-mode { font-size: .78rem; }
+.md-bar .md-mode[aria-pressed="true"] { background: var(--active-bg); border-color: var(--active-border); }
+.rich-edit h3, .thought-body h3, .note-body h3, .item-note h3 { margin: .35em 0 .15em; font-size: 1.35em; font-weight: 700; line-height: 1.25; text-transform: none; letter-spacing: 0; color: inherit; }
+.rich-edit [data-sz="s"], .thought-body [data-sz="s"], .note-body [data-sz="s"], .item-note [data-sz="s"] { font-size: .82em; }
