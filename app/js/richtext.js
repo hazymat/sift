@@ -63,8 +63,13 @@ export function inlineAll(md) {
   return (md || '').split('\n').map(l => l.replace(/^(?:#{1,6}|-#)\s+/, '').replace(/^\s*[-*]\s+/, '• ').trim()).filter(Boolean).map(inline).join(' <span class="sep">·</span> ');
 }
 
+// A link chip carries its own icon (CSS: ☑️ task, 📞 contact, 📝 note …), so a
+// 📞 or 📝 typed just before a link (to open the search) isn't shown twice.
+const TRIGGER_BEFORE_LINK = /(?:📞|📝)[\s\u00a0]*(?=\[[^\]]+\]\(sift:)/gu;
+
 function inline(text) {
   return esc(text)
+    .replace(TRIGGER_BEFORE_LINK, '')
     .replace(LINK_RE, (m, label, c, id) => `<span class="ref" data-ref="${c}/${id}" contenteditable="false">${label}</span>`)
     .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
     .replace(/~~(.+?)~~/g, '<s>$1</s>')
@@ -309,6 +314,12 @@ export function richText(container, { value = '', onChange, placeholder = '', or
     const sel = getSelection();
     const range = sel.getRangeAt(0);
     range.deleteContents();
+    // The 📞 / 📝 that opened the search goes: the chip shows its own icon.
+    const at = range.startContainer;
+    if (at.nodeType === Node.TEXT_NODE) {
+      const m = at.nodeValue.slice(0, range.startOffset).match(/(?:📞|📝)[\s\u00a0]*$/u);
+      if (m) at.deleteData(range.startOffset - m[0].length, m[0].length);
+    }
     const frag = document.createDocumentFragment();
     frag.append(' ');
     list.forEach((t, n) => {

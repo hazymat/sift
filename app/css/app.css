@@ -2246,3 +2246,13 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
 /* Phones always edit notes full screen, so no ⤢. */
 @media (pointer: coarse) and (max-width: 760px) { .md-full { display: none !important; } }
 .note-full-backdrop { position: fixed; inset: 0; z-index: 999; background: rgba(0, 0, 0, .55); }
+
+/* Link chips carry their icon: it is part of the chip, so they go together. */
+.ref::before { margin-right: .25em; font-style: normal; text-decoration: none; display: inline-block; font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif; }
+.ref[data-ref^="tasks/"]::before { content: '☑️'; }
+.ref[data-ref^="contacts/"]::before { content: '📞'; }
+.ref[data-ref^="thoughts/"]::before { content: '📝'; }
+.ref[data-ref^="day_items/"]::before, .ref[data-ref^="days/"]::before { content: '🗓️'; }
+.ref[data-ref^="cases/"]::before { content: '📁'; }
+.ref[data-ref^="items/"]::before, .ref[data-ref^="places/"]::before { content: '📦'; }
+.ref[data-ref^="lists/"]::before, .ref[data-ref^="list_items/"]::before { content: '📋'; }
