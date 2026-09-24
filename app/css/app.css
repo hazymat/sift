@@ -2279,7 +2279,7 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
 .types-add input { flex: 1; min-width: 0; box-sizing: border-box; font-size: 16px; color: var(--text); }
 
 /* The version, after the sync state and at the top of Settings (js/version.js). */
-.pill-version { margin-left: .35em; opacity: .7; font-size: .9em; }
+.app-version-top { flex: none; margin-left: 8px; font-size: .68rem; color: var(--muted); opacity: .55; letter-spacing: .02em; }
 .app-version { margin: 0 0 6px; font-size: .78rem; }
 
 /* Touch screens: no ✕ on sheets (drag the handle down or tap outside), and a

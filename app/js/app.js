@@ -180,8 +180,6 @@ async function renderSyncStatus() {
   const pill = $('#sync-status');
   const text = { off: 'Local only', idle: 'Sync on', syncing: 'Syncing…', ok: 'In sync', offline: 'Offline', error: 'Sync problem' }[status.state] || 'Local only';
   pill.textContent = status.state === 'ok' && status.pending ? `${status.pending} to sync` : text;
-  // Which version this is, after the sync state (laptop top bar).
-  pill.insertAdjacentHTML('beforeend', `<span class="pill-version">· ${versionText()}</span>`);
   pill.dataset.state = status.state;
   pill.title = status.state === 'off' ? `${await store.outboxSize()} changes stored on this device only` : status.error || text;
 }
@@ -239,6 +237,7 @@ async function boot() {
   installSheets();
   installSearchClear();
   installFlash();
+  $('#app-version').textContent = versionText(); // quietly, at the end of the laptop top bar
   applyDensity = installViewCog(() => current);
   // A dropdown menu opens inside the screen: flipped to the other side if
   // it would run off the left or right edge.
