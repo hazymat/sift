@@ -212,16 +212,21 @@ export default {
     // Notes save as you type (debounced); the date is captured so a quick
     // day change can't write one day's notes into another.
     let notesTimer;
+    let notesDate = null; // the day whose notes the editor shows
+    let notesPending = null; // { forDate, md } not saved yet
+    const flushDayNotes = async () => {
+      clearTimeout(notesTimer);
+      const p = notesPending;
+      notesPending = null;
+      if (p) { const saved = await saveDay(p.forDate, { notes: p.md }); if (p.forDate === date) day = saved; }
+    };
     const notes = richText($('#notes'), {
       placeholder: word('ph_day_notes'),
       origin: () => ({ collection: 'days', id: date, title: `Notes for ${date}`, field: 'notes' }),
       onChange: md => {
         clearTimeout(notesTimer);
-        const forDate = date;
-        notesTimer = setTimeout(async () => {
-          const saved = await saveDay(forDate, { notes: md });
-          if (forDate === date) day = saved;
-        }, 600);
+        notesPending = { forDate: date, md };
+        notesTimer = setTimeout(flushDayNotes, 600);
       },
     });
     const planner = $('.planner');
@@ -306,7 +311,10 @@ export default {
         ? `${WEEKDAYS[d.getDay()]} is a down day. Pick one or two things; rest counts as part of the plan.` : '';
       $('#focus').value = day.focus || '';
       for (const b of el.querySelectorAll('[data-energy]')) b.setAttribute('aria-pressed', b.dataset.energy === day.energy);
-      notes.setValue(day.notes || '');
+      // Never replace the note you're writing in (that put the cursor back at the start
+      // and could show older text); only when the day shown changes or you're not in it.
+      if (notesDate !== date || !$('#notes').contains(document.activeElement)) notes.setValue(day.notes || '');
+      notesDate = date;
       el.classList.toggle('is-down-day', down);
     }
 
@@ -1519,6 +1527,7 @@ export default {
     const go = d => { location.hash = `#/planner/${d}`; };
 
     this.show = async d => {
+      await flushDayNotes(); // the last few words typed are saved before the page changes
       date = /^\d{4}-\d{2}-\d{2}$/.test(d || '') ? d : isoDate();
       editing = null;
       selected.clear();
@@ -1528,7 +1537,9 @@ export default {
     };
 
     this.onKey = ev => {
-      if (ev.target.closest('input, textarea, select') || $('#cal').open) return;
+      // Never while typing (a note is a contenteditable box, not an input) or with Ctrl/Alt/Shift/⌘ held:
+      // ← and → move the cursor there, they don't change the day.
+      if (ev.target.closest?.('input, textarea, select, [contenteditable]') || ev.ctrlKey || ev.altKey || ev.metaKey || ev.shiftKey || $('#cal').open || document.querySelector('dialog[open]')) return;
       if (ev.key === 'Escape' && selected.size) { clearSelection(); return; }
       if (ev.key === 'ArrowLeft') go(addDays(date, -1));
       if (ev.key === 'ArrowRight') go(addDays(date, 1));

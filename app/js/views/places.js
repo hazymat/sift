@@ -684,10 +684,10 @@ export default {
     });
 
     this.onKey = ev => {
-      if (ev.key === '/' && !openId && !ev.target.closest('input, textarea, select')) { ev.preventDefault(); q.focus(); }
+      if (ev.key === '/' && !openId && !ev.target.closest('input, textarea, select, [contenteditable]')) { ev.preventDefault(); q.focus(); }
       if (ev.key === 'Escape' && openItem && !ev.defaultPrevented) { ev.preventDefault(); toggleThing(openItem); return; }
       if (ev.key === 'Escape' && ev.target.id === 'box-q' && ev.target.value) { ev.preventDefault(); ev.target.value = ''; query = ''; q.value = ''; markHits(); return; }
-      if (ev.key === 'Escape' && openId && !ev.target.closest('input, textarea') && kit.escape()) { ev.preventDefault(); return; }
+      if (ev.key === 'Escape' && openId && !ev.target.closest('input, textarea, select, [contenteditable]') && kit.escape()) { ev.preventDefault(); return; }
       if (ev.key === 'Escape' && openId && !importSheet.open) { ev.preventDefault(); saveAndClose(); return; }
       if (ev.key === 'Escape' && document.activeElement === q && q.value) { q.value = ''; query = ''; renderGrid(); }
     };

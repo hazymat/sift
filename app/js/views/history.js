@@ -78,7 +78,7 @@ export default {
 
     // New changes (made in another tab, or by undoing) show up here.
     this.unsubscribe = store.subscribe(ch => { if (ch.collection === 'history') { clearTimeout(this.rt); this.rt = setTimeout(render, 200); } });
-    this.onKey = ev => { if (ev.key === 'Escape' && !ev.target.closest('input, textarea')) kit.escape(); };
+    this.onKey = ev => { if (ev.key === 'Escape' && !ev.target.closest('input, textarea, select, [contenteditable]')) kit.escape(); };
     addEventListener('keydown', this.onKey);
     await render();
   },

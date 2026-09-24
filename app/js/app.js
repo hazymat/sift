@@ -328,7 +328,8 @@ async function boot() {
     if (sig === wordsSig) return;
     wordsSig = sig;
     renderNav();
-    if (!location.hash.startsWith('#/settings')) route(true);
+    // (not while you're typing: redrawing the page would take the cursor away)
+    if (!location.hash.startsWith('#/settings') && !document.activeElement?.closest('input, textarea, [contenteditable]')) route(true);
   });
 
   await route();
@@ -340,7 +341,7 @@ async function boot() {
     let was = null;
     sync.onStatus(st => {
       renderSyncStatus();
-      if (was === 'syncing' && st.state === 'ok' && st.changed && !document.activeElement?.closest('input, textarea, [contenteditable="true"]')) route(true);
+      if (was === 'syncing' && st.state === 'ok' && st.changed && !document.activeElement?.closest('input, textarea, [contenteditable]')) route(true);
       was = st.state;
     });
     sync.init();

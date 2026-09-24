@@ -370,7 +370,7 @@ export default {
 
     this.onKey = ev => {
       if (ev.key === 'Escape' && openItem && !ev.defaultPrevented && !document.querySelector('.ref-picker')) { ev.preventDefault(); toggleItem(openItem); return; }
-      if (ev.key === 'Escape' && !ev.target.closest('input, textarea') && kit.escape()) ev.preventDefault();
+      if (ev.key === 'Escape' && !ev.target.closest('input, textarea, select, [contenteditable]') && kit.escape()) ev.preventDefault();
     };
     addEventListener('keydown', this.onKey);
     await render();
