@@ -68,7 +68,7 @@ export default {
 
     const byId = id => data.contacts.find(c => c.id === id);
     // First real line of the notes, for cards (not the "Captured" heading).
-    const noteLine = c => (c.notes || '').split('\n').map(l => l.replace(/[*_~#]/g, '').trim()).find(l => l && !CAPTURED_HEADING.includes(l))?.slice(0, 90) || '';
+    const noteLine = c => (c.notes || '').split('\n').map(l => l.replace(/[*_~#]/g, '').trim()).find(l => l && !CAPTURED_HEADING.includes(l) && !(c.body || '').includes(l))?.slice(0, 90) || ''; // not the captured text again
     const catName = id => data.categories.find(k => k.id === id)?.name || '';
 
     // ---------- shared bits ----------
@@ -82,13 +82,19 @@ export default {
       }).join('');
     }
 
+    // A contact can be just a bit of text with a number ("man about the van
+    // 07…"): the text is its name. "What was this?" only asks when there is no
+    // text at all, just a number.
+    const label = c => c.name?.trim() || (c.body || '').split('\n').map(l => l.trim()).find(Boolean) || '(no name)';
+    const needsLabel = c => c.status === 'transient' && !c.about && !/\p{L}/u.test(c.name || '');
+
     function contactCard(c) {
       return `
         <li class="c-card${c.pinned ? ' pinned' : ''}" data-contact-card="${c.id}" data-id="${c.id}">
           <button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button>
           <a class="c-main" href="#/contacts/c/${c.id}">
-            <span class="c-name">${esc(c.name || '(no name)')}</span>
-            ${c.about ? `<span class="muted c-about">${esc(c.about)}</span>` : c.status === 'transient' ? '<span class="what-was-this">What was this?</span>' : ''}
+            <span class="c-name">${esc(label(c))}</span>
+            ${c.about ? `<span class="muted c-about">${esc(c.about)}</span>` : needsLabel(c) ? '<span class="what-was-this">What was this?</span>' : ''}
             ${c.category_ids?.length ? `<span class="muted c-about">${c.category_ids.map(catName).filter(Boolean).map(esc).join(' · ')}</span>` : ''}
             ${noteLine(c) ? `<span class="muted c-about c-note">${esc(noteLine(c))}</span>` : ''}
           </a>
@@ -108,7 +114,7 @@ export default {
       const older = sorted.filter(c => !recent.includes(c));
       return `
         <div class="c-capture">
-          <textarea id="c-new" rows="2" placeholder="Paste or type a number, email, name… (one contact)"></textarea>
+          <textarea id="c-new" rows="2" placeholder="A number and a few words about it, e.g. Window cleaner 07700 900123"></textarea>
           <button type="button" class="primary" data-act="capture">Save <kbd>${SHORTCUT}</kbd></button>
         </div>
         <input type="search" id="c-q" class="search" placeholder="Search contacts…" value="${esc(state.q)}" autocomplete="off">
@@ -192,7 +198,7 @@ export default {
       return `
         <div class="project-head">
           <button type="button" class="back" data-act="back">‹ Back</button>
-          <input class="project-name" name="name" value="${esc(c.name)}" placeholder="Who is this?" data-edit="${c.id}" aria-label="Name">
+          <input class="project-name" name="name" value="${esc(c.name)}" placeholder="Name, or what this number is for" data-edit="${c.id}" aria-label="Name">
           <button type="button" class="pin" data-act="pin-contact" aria-pressed="${!!c.pinned}" title="Pin">${c.pinned ? '★' : '☆'}</button>
         </div>
         <div class="c-page" data-contact="${c.id}">
