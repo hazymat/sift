@@ -45,7 +45,7 @@ export default {
           <label>Day starts<input type="time" name="day_start"></label>
           <label>Day ends<input type="time" name="day_end"></label>
           <label>Each line<select name="slot_min">${[15, 20, 30, 45, 60].map(m => `<option value="${m}">${m} min</option>`).join('')}</select></label>
-          <label>Longest duration<select name="duration_max_min">${[120, 180, 240, 300, 360, 480].map(m => `<option value="${m}">${m / 60} hours</option>`).join('')}</select></label>
+          <label>Longest estimate<select name="duration_max_min">${[120, 180, 240, 300, 360, 480].map(m => `<option value="${m}">${m / 60} hours</option>`).join('')}</select></label>
         </div>
         <h3>Down days</h3>
         <p class="muted">${esc(word('ph_set_down'))}</p>

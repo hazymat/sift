@@ -217,7 +217,7 @@ export default {
         return `<div class="thought-panel">
           <label>Day<input type="date" name="plan_date" value="${isoDate()}"></label>
           <label>Time (optional)<input type="time" name="plan_time" value="${p.time || ''}"></label>
-          <label>Duration<select name="plan_est"><option value="">Pick a duration</option><option value="unsure">Not sure yet</option>${durationChoices(maxDuration).map(m => `<option value="${m}">${durationLabel(m)}</option>`).join('')}</select></label>
+          <label>Estimated time<select name="plan_est"><option value="">Not estimated</option><option value="unsure">Not sure yet</option>${durationChoices(maxDuration).map(m => `<option value="${m}">${durationLabel(m)}</option>`).join('')}</select></label>
           <button type="button" class="primary" data-act="plan-go">Add to the day</button>
         </div>`;
       }

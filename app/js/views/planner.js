@@ -326,7 +326,7 @@ export default {
     // is; hovering shows what clicking it does (e.g. "let go" → "take back?").
     const PILLS = [
       { when: i => i.dropped_at, label: 'let go', hover: 'take back?', act: 'take-back' },
-      { when: i => i.estimate_unsure && !i.estimate_min && !i.end_time, label: 'duration?', hover: 'set it?', act: 'details' },
+      { when: i => i.estimate_unsure && !i.estimate_min && !i.end_time, label: 'estimate?', hover: 'set it?', act: 'details' },
     ];
     function subLine(i) {
       const pills = PILLS.filter(p => p.when(i)).map(p => `<button type="button" class="pill-act" data-act="${p.act}" title="${esc(p.hover)}"><span class="pill-now">${esc(p.label)}</span><span class="pill-hover">${esc(p.hover)}</span></button>`).join('');
@@ -361,8 +361,8 @@ export default {
         <div class="item-details" data-for="${i.id}">
           <label>Time<input type="time" name="time" value="${i.time || ''}"></label>
           <label>Until<input type="time" name="end_time" value="${i.end_time || ''}"></label>
-          <label>Duration<select name="estimate_min">
-            <option value="" ${!i.estimate_min && !i.estimate_unsure ? 'selected' : ''}>Pick a duration</option>
+          <label>Estimated time<select name="estimate_min">
+            <option value="" ${!i.estimate_min && !i.estimate_unsure ? 'selected' : ''}>Not estimated</option>
             <option value="unsure" ${i.estimate_unsure && !i.estimate_min ? 'selected' : ''}>Not sure yet</option>
             ${[...new Set([...durationChoices(settings.duration_max_min), ...(i.estimate_min ? [Number(i.estimate_min)] : [])])].sort((a, b) => a - b)
               .map(m => `<option value="${m}" ${Number(i.estimate_min) === m ? 'selected' : ''}>${durationLabel(m)}</option>`).join('')}
@@ -692,14 +692,14 @@ export default {
         if (!i) return '';
         const mins = [...new Set([...durationChoices(settings.duration_max_min), ...(i.estimate_min ? [Number(i.estimate_min)] : [])])].sort((a, b) => a - b);
         return selectPill('energy', 'Energy', v => ENERGY.find(e => e.id === v)?.bolts || '⚡', [['', 'No energy set'], ...ENERGY.map(e => [e.id, e.label])], i.energy)
-          + selectPill('estimate_min', 'Duration', '⏱', [['', 'No duration'], ['unsure', 'Not sure yet'], ...mins.map(m => [m, durationLabel(m)])], i.estimate_min || (i.estimate_unsure ? 'unsure' : ''))
+          + selectPill('estimate_min', 'Estimated time', '⏱', [['', 'Not estimated'], ['unsure', 'Not sure yet'], ...mins.map(m => [m, durationLabel(m)])], i.estimate_min || (i.estimate_unsure ? 'unsure' : ''))
           + datePill('date', 'Day', '📅', i.date, d => (d === isoDate() ? 'Today' : new Date(`${d}T12:00`).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })));
       },
       change: async (id, name, v) => {
         if (name === 'energy') return change(id, { energy: v || null }, v ? 'Energy saved' : 'Energy cleared');
         if (name === 'estimate_min') {
           return change(id, v === 'unsure' ? { estimate_min: null, estimate_unsure: true } : { estimate_min: v ? Number(v) : null, estimate_unsure: false },
-            v === 'unsure' ? 'Duration: not sure yet' : v ? `Duration: ${durationLabel(Number(v))}` : 'Duration cleared');
+            v === 'unsure' ? 'Estimate: not sure yet' : v ? `Estimate: ${durationLabel(Number(v))}` : 'Estimate cleared');
         }
         if (name === 'date' && v && v !== date) { this.pills.close(); return change(id, { date: v }, `Moved to ${v}`); }
       },
@@ -849,7 +849,7 @@ export default {
       } else if (t.name === 'estimate_min' && id) {
         const v = t.value;
         await change(id, v === 'unsure' ? { estimate_min: null, estimate_unsure: true } : { estimate_min: v ? Number(v) : null, estimate_unsure: false },
-          v === 'unsure' ? 'Duration: not sure yet' : v ? `Duration: ${durationLabel(Number(v))}` : 'Duration cleared');
+          v === 'unsure' ? 'Estimate: not sure yet' : v ? `Estimate: ${durationLabel(Number(v))}` : 'Estimate cleared');
       } else if (t.name && id) {
         const value = t.name === 'estimate_min' ? (t.value ? Number(t.value) : null) : (t.value || null);
         if (t.name === 'date' && !value) return;

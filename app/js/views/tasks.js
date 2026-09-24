@@ -97,7 +97,7 @@ export default {
       if (t.start_date) out.push(`<span class="chip" title="Planned for">📅 ${shortDate(t.start_date)}</span>`);
       const aim = aimDate(t);
       if (aim) out.push(`<span class="chip${!isDone(t) && aim < isoDate() ? ' late' : ''}" title="Completion aim">⚑ ${shortDate(aim)}${t.aim_at.length > 10 ? ` ${t.aim_at.slice(11, 16)}` : ''}</span>`);
-      if (t.estimate_min) out.push(`<span class="chip" title="Time needed">⏱ ${durationLabel(t.estimate_min)}</span>`);
+      if (t.estimate_min) out.push(`<span class="chip" title="Estimated time">⏱ ${durationLabel(t.estimate_min)}</span>`);
       if (t.priority && t.priority < 3) out.push(`<span class="chip pri-${t.priority}">${PRIORITIES.find(p => p.id === t.priority)?.label}</span>`);
       if (t.status === 'doing' || t.status === 'waiting') out.push(`<span class="chip">${STATUSES.find(s => s.id === t.status)?.label}</span>`);
       const kids = kidsOf(t);
@@ -168,7 +168,7 @@ export default {
         </div>
         <div class="detail-grid">
           <label>List<select name="horizon">${HORIZONS.map(x => `<option value="${x.id}" ${horizonOf(t) === x.id ? 'selected' : ''}>${x.label}</option>`).join('')}</select></label>
-          <label>Time needed<select name="estimate_min"><option value="">Not set</option>${durationChoices(480).map(m => `<option value="${m}" ${Number(t.estimate_min) === m ? 'selected' : ''}>${durationLabel(m)}</option>`).join('')}</select></label>
+          <label>Estimated time<select name="estimate_min"><option value="">Not estimated</option>${durationChoices(480).map(m => `<option value="${m}" ${Number(t.estimate_min) === m ? 'selected' : ''}>${durationLabel(m)}</option>`).join('')}</select></label>
           <label>Plan for day<input type="date" name="start_date" value="${t.start_date || ''}"></label>
           <label>Aim to finish by<input type="date" name="aim_date" value="${aim}"></label>
           ${aim && showTime ? `<label>…at<input type="time" name="aim_time" value="${aimTime}"></label>` : ''}
@@ -216,8 +216,8 @@ export default {
                 <select data-entry="energy" aria-label="Energy"><option value="">No energy set</option>${ENERGY.map(e => opt(e.id, `${e.bolts} ${e.label}`)).join('')}</select></label>
               ${dateChip('start_date', 'Plan for day', '📅')}
               ${dateChip('aim_date', 'Aim to finish', '⚑')}
-              <label class="entry-chip" data-chip="estimate_min">⏱ <span class="chip-text" data-empty="Time needed">Time needed</span>
-                <select data-entry="estimate_min" aria-label="Time needed"><option value="">Time not set</option>${durationChoices(480).map(m => opt(m, durationLabel(m))).join('')}</select></label>
+              <label class="entry-chip" data-chip="estimate_min">⏱ <span class="chip-text" data-empty="Estimated time">Estimated time</span>
+                <select data-entry="estimate_min" aria-label="Estimated time"><option value="">Not estimated</option>${durationChoices(480).map(m => opt(m, durationLabel(m))).join('')}</select></label>
               <label class="entry-chip" data-chip="horizon">📥 <span class="chip-text" data-empty="${esc(listName || word('list_inbox'))}">${esc(listName || word('list_inbox'))}</span>
                 <select data-entry="horizon" aria-label="Which list">${HORIZONS.map(x => opt(x.id, x.label, x.label === (listName || word('list_inbox')))).join('')}</select></label>
             </div>
@@ -718,7 +718,7 @@ export default {
         // No note yet: an "Add note" line under the title, like adding a new task.
         const addNote = (t.notes || '').trim() ? '' : `<textarea class="entry-note pill-note no-inline" data-pill="notes" rows="1" placeholder="Add note" aria-label="Note"></textarea>`;
         return addNote + selectPill('energy', 'Energy', v => ENERGY.find(e => e.id === v)?.bolts || '⚡', [['', 'No energy set'], ...ENERGY.map(e => [e.id, e.label])], t.energy)
-          + selectPill('estimate_min', 'Time needed', '⏱', [['', 'Time not set'], ...hours], t.estimate_min)
+          + selectPill('estimate_min', 'Estimated time', '⏱', [['', 'Not estimated'], ...hours], t.estimate_min)
           + datePill('start_date', 'Plan for day', '📅', t.start_date, shortDate)
           + datePill('aim_date', 'Aim to finish', '⚑', aim, shortDate)
           + selectPill('horizon', 'List', '📥', HORIZONS.map(h => [h.id, h.label]), horizonOf(t));
