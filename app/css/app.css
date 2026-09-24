@@ -2013,3 +2013,10 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 .md-bar .md-mode[aria-pressed="true"] { background: var(--active-bg); border-color: var(--active-border); }
 .rich-edit h3, .thought-body h3, .note-body h3, .item-note h3 { margin: .35em 0 .15em; font-size: 1.35em; font-weight: 700; line-height: 1.25; text-transform: none; letter-spacing: 0; color: inherit; }
 .rich-edit [data-sz="s"], .thought-body [data-sz="s"], .note-body [data-sz="s"], .item-note [data-sz="s"] { font-size: .82em; }
+
+/* Notes: normal text a touch softer than the full text colour, so bold stands out */
+:is(.rich-edit, .rich-raw, .thought-body, .note-body, .note-medium, .note-loose, .item-note) { color: color-mix(in srgb, var(--text) 86%, transparent); }
+:is(.rich-edit, .thought-body, .note-body, .note-medium, .note-loose, .item-note) :is(b, strong) { color: var(--text); font-weight: 800; }
+
+/* Long notes: the editor scrolls inside itself, so the toolbar stays on the page */
+.rich-edit, .rich-raw { max-height: min(50vh, 32rem); overflow-y: auto; overscroll-behavior: contain; }
