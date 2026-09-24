@@ -2380,8 +2380,7 @@ input[type="checkbox"]:checked { background: #6fb0ff; border-color: #6fb0ff; }
 input[type="checkbox"]:checked::after { opacity: 1; }
 input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); outline-offset: 2px; }
 
-/* Tasks, compact spacing: no note at all (Mat). */
-#main[data-density="tight"] .task-list .task-note { display: none; }
+/* Tasks, compact spacing: no note text, just 📝 (Mat; see the end of this file). */
 /* Tasks, expanded spacing: the note as written, up to about 8 lines, fading
    out at the bottom if there's more (tap it to open the task and read it all). */
 #main[data-density="loose"] .task-note .note-loose { max-height: 10.5em; overflow: hidden; }
@@ -2774,3 +2773,12 @@ select.dd-open, .dd-open > select { outline: none; }
 .pile h2 .bring-link { margin-left: auto; align-self: center; padding: 3px 10px; border: 1px solid transparent; border-radius: 999px; background: transparent; box-shadow: none; font-family: var(--font); font-weight: 500; font-size: .82rem; color: var(--muted); white-space: nowrap; cursor: pointer; }
 .pile h2 .bring-link:hover, .pile h2 .bring-link:focus-visible { color: var(--text); background: var(--glass-hover, var(--glass-track)); border-color: var(--glass-border); outline: none; }
 .pile > .hint { margin-top: 8px; }
+
+/* Notes under tasks (Tasks page and the Day Planner): on their own line under
+   the pills. Tasks page in tight spacing: just a 📝 beside the pills. */
+.task-list .item-sub .task-note { flex-basis: 100%; }
+.planner .item-sub > .item-note { flex-basis: 100%; }
+.task-note .note-icon { display: none; }
+#main[data-density="tight"] .task-list .item-sub .task-note { flex: none; }
+#main[data-density="tight"] .task-note .note-icon { display: inline-block; font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif; font-size: .85rem; opacity: .8; cursor: pointer; }
+#main[data-density="tight"] .task-note :is(.note-medium, .note-loose, .note-more) { display: none !important; }
