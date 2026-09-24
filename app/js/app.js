@@ -6,7 +6,6 @@ import { installSheets } from './sheets.js';
 import { installSearchClear } from './searchclear.js';
 import { installFlash } from './flash.js';
 import { mountSearch } from './search.js';
-import { versionText } from './version.js';
 import { installViewCog } from './viewcog.js';
 import { word, applyWords } from './words.js';
 
@@ -267,6 +266,11 @@ async function boot() {
     const topBox = $('#top-results');
     const topSearch = mountSearch(top, topBox, { onOpen: () => { topBox.hidden = true; top.blur(); } });
     document.addEventListener('pointerdown', ev => { if (!ev.target.closest('.top-search')) topBox.hidden = true; });
+    // Clicking away shrinks it back to the round button, empty.
+    $('.top-search').addEventListener('focusout', ev => {
+      if (ev.relatedTarget && ev.currentTarget.contains(ev.relatedTarget)) return;
+      setTimeout(() => { if (!$('.top-search').contains(document.activeElement)) { top.value = ''; topBox.hidden = true; topBox.innerHTML = ''; } }, 150);
+    });
     const more = $('#more-search');
     const moreBox = $('#more-results');
     mountSearch(more, moreBox, {
@@ -286,7 +290,6 @@ async function boot() {
       else { openMoreSheet(); more.focus(); }
     });
   }
-  $('#app-version').textContent = versionText(); // quietly, at the end of the laptop top bar
   applyDensity = installViewCog(() => current);
   // A dropdown menu opens inside the screen: flipped to the other side if
   // it would run off the left or right edge.
@@ -307,6 +310,9 @@ async function boot() {
   }, true);
   addEventListener('hashchange', route);
   addEventListener('resize', fitTopNav);
+  // Fit the areas again whenever the bar's room changes (fonts arriving, the search box settling).
+  new ResizeObserver(() => fitTopNav()).observe($('.topnav'));
+  document.fonts?.ready.then(fitTopNav);
   store.subscribe(renderSyncStatus);
 
   // What each energy level means (Settings → Your words → Dictionary) feeds the hover text everywhere.

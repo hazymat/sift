@@ -2510,3 +2510,16 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
   .line .drag-grip:hover, .line .drag-grip:focus-visible, .line.selected .drag-grip, .line.dragging .drag-grip, body.is-dragging .line .drag-grip { opacity: .9; }
 }
 @media (hover: none) { .line .drag-grip { opacity: .35; } }
+
+/* Laptop top bar: search is a round button with a magnifying glass; clicking
+   it opens a box over the bar (the areas keep their room), and clicking away
+   or Esc shrinks it back. */
+.top-search { flex: none; width: 40px; height: 40px; position: relative; min-width: 0; }
+.top-search .search-wrap { position: absolute; right: 0; top: 0; width: 40px; height: 40px; flex: none; transition: width .18s ease; z-index: 31; }
+.top-search .search-wrap > .search { height: 40px; width: 100%; padding: 0 12px 0 36px !important; border-radius: 20px !important; font-size: .9rem; cursor: pointer; }
+.top-search:not(:focus-within) .search-wrap > .search::placeholder { color: transparent; }
+.top-search:not(:focus-within) .search-x { display: none; }
+.top-search:focus-within .search-wrap { width: 320px; }
+.top-search:focus-within .search-wrap > .search { cursor: text; background: var(--glass-strong) !important; }
+.top-search-icon { position: absolute; left: 11px; top: 11px; width: 18px; height: 18px; z-index: 32; pointer-events: none; color: var(--muted); }
+.top-search:focus-within .top-search-icon { color: var(--text); }
