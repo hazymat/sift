@@ -2312,3 +2312,14 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
 @media (max-width: 700px) { .task-list .edit-pills .pill-note { margin-left: 48px; flex-basis: calc(100% - 48px); } }
 /* Task list tabs stay on one line each ("Task Dump"). */
 .tasks-head .segmented button { white-space: nowrap; flex: 1 1 auto; }
+
+/* Tasks and list items: the note under an item starts where the title's text
+   starts (the title has 8px of padding and a 1px border). */
+.task-list .item-sub { margin-left: 72px; }
+.task-list .item-sub { max-width: calc(100% - 72px); }
+.task-list .edit-pills .pill-note { margin-left: 8px; flex-basis: calc(100% - 8px); }
+@media (max-width: 700px) { .task-list .edit-pills .pill-note { margin-left: 56px; flex-basis: calc(100% - 56px); } }
+/* Typing a note in place: square corners, so the cursor isn't clipped by a rounded edge. */
+.edit-pills .pill-note, .edit-pills .pill-note:focus { border-radius: 0; border: 0; outline: none; box-shadow: none; }
+/* Editing a title in place: no border or rounded box, just the line lit up a little. */
+.task-title:focus { border-color: transparent; border-radius: 0; background: color-mix(in srgb, var(--text) 7%, transparent); box-shadow: none; }
