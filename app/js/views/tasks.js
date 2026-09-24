@@ -3,6 +3,7 @@
 // Every extra (day, aim, energy, project, milestone, notes) lives behind a
 // task's ⋯ so the list stays simple until you want more.
 
+import { keepDraft, draftCleared } from '../drafts.js';
 import { cogHtml } from '../viewcog.js';
 import * as store from '../store.js';
 import { loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES, HORIZONS, horizonOf } from '../tasks.js';
@@ -10,7 +11,6 @@ import { ENERGY, isoDate, addDays, parseDate, addItem } from '../days.js';
 import { pillMenu } from '../pillmenu.js';
 import { summarise } from '../summary.js';
 import { createListKit } from '../listkit.js';
-import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import { richText, toHtml, previewLine, inlineAll } from '../richtext.js';
 import { loadContacts } from '../contacts.js';
@@ -180,13 +180,15 @@ export default {
         </div>`;
     }
 
+    // New tasks are typed on a line at the end of the list (like Reminders):
+    // Enter adds it and leaves the line ready for the next one.
     function addBox(placeholder) {
       return `
-        <div class="task-add">
-          <textarea id="task-new" class="list-entry" rows="1" placeholder="${esc(placeholder)}"></textarea>
-          <button type="button" data-act="add">Add <kbd>${SHORTCUT}</kbd></button>
+        <div class="task-add-line">
+          <span class="add-mark" aria-hidden="true">＋</span>
+          <input id="task-new" class="new-task-line no-inline" placeholder="${esc(placeholder)}" autocomplete="off" enterkeyhint="done" aria-label="New task">
         </div>
-        <p class="muted hint">${listHint()} Tap ⋯ on a task for a day, an aim, energy, a project and more.</p>`;
+        <p class="muted hint">Enter adds it. Start with "- " to make it a sub-task of the one you just added. Tap ⋯ on a task for a day, an aim, energy, a project and more.</p>`;
     }
 
     // Views render one <ul> with heading rows between groups, so selection
@@ -235,7 +237,7 @@ export default {
             <button type="button" data-act="new-milestone">+ Milestone</button>
           </div>`;
       }
-      html += addBox(project ? `Add to ${project.name}…` : 'Add a task…');
+      const entry = addBox(project ? `New task in ${project.name}` : 'New task');
       if (project) {
         const ms = data.milestones.filter(m => m.project_id === project.id);
         const groups = [{ id: null, name: ms.length ? 'No milestone' : '' }, ...ms];
@@ -258,6 +260,7 @@ export default {
         const tasks = visible(scoped);
         html += listOf(rowsOf(tasks), '<div class="empty"><h2>Nothing to do. Add something above.</h2></div>');
       }
+      html += entry;
       const doneCount = scoped.filter(isDone).length;
       if (doneCount) html += `<p class="muted done-toggle"><button type="button" data-act="toggle-done">${state.showDone ? 'Hide' : 'Show'} ${doneCount} done</button></p>`;
       return html;
@@ -273,8 +276,8 @@ export default {
       const rest = open.filter(t => !urgent.includes(t));
       const body = (urgent.length ? head('Due or planned') + flat(urgent) + (rest.length ? head('Everything else') : '') : '') + flat(rest);
       const empty = { now: 'Nothing for now. Add something above.', next: 'Nothing lined up next.', later: 'Nothing for later.' }[h];
-      return addBox({ now: 'Add tasks for now…', next: 'Add tasks for next…', later: 'Add tasks for later…' }[h])
-        + listOf(open.length ? body : '', `<div class="empty"><h2>${empty}</h2></div>`);
+      return listOf(open.length ? body : '', `<div class="empty"><h2>${empty}</h2></div>`)
+        + addBox({ now: 'New task for now', next: 'New task for next', later: 'New task for later' }[h]);
     }
 
     function viewProjects() {
@@ -314,7 +317,21 @@ export default {
       for (const b of el.querySelectorAll('[data-view]')) b.setAttribute('aria-pressed', b.dataset.view === state.view);
       body.innerHTML = { list: viewList, now: () => viewHorizon('now'), next: () => viewHorizon('next'), later: () => viewHorizon('later'), projects: viewProjects, done: viewDone }[state.view]();
       const ta = body.querySelector('#task-new');
-      if (ta) listEntry(ta, addLines, { draft: `tasks:${state.view}:${state.project || ''}` });
+      if (ta) {
+        keepDraft(ta, `tasks:${state.view}:${state.project || ''}`);
+        ta.addEventListener('keydown', ev => {
+          if (ev.key === 'Escape' && ta.value) { ev.preventDefault(); ev.stopPropagation(); ta.value = ''; draftCleared(ta); return; }
+          if (ev.key !== 'Enter' || ev.isComposing) return;
+          ev.preventDefault();
+          const raw = ta.value;
+          const text = raw.replace(/^[\s\-*•]+/, '').trim();
+          if (!text) return;
+          const sub = /^(\s|[-*•])/.test(raw);
+          ta.value = '';
+          draftCleared(ta);
+          addLines([{ text, sub }], { parent: sub ? lastTop : null });
+        });
+      }
       const ul = body.querySelector('.task-list');
       const ordered = state.view === 'list';
       kitOrdered.attach(ordered ? ul : null);
@@ -338,9 +355,10 @@ export default {
 
     // ---------- adding ----------
 
-    async function addLines(lines) {
+    let lastTop = null; // the last top-level task added here ("- " lines go under it)
+    async function addLines(lines, { parent: startParent = null } = {}) {
       const made = [];
-      let parent = null;
+      let parent = startParent;
       const base = { project_id: state.project || null };
       if (['next', 'later'].includes(state.view)) base.horizon = state.view;
       let shortened = 0;
@@ -350,7 +368,7 @@ export default {
         if (notes) shortened++;
         const t = await addTask({ ...base, title, notes, parent_task_id: line.sub && parent ? parent : null });
         made.push(t.id);
-        if (!line.sub) parent = t.id;
+        if (!line.sub) { parent = t.id; lastTop = t.id; }
       }
       await render();
       body.querySelector('#task-new')?.focus();

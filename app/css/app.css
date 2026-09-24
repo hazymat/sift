@@ -1940,3 +1940,10 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 
 /* Blue glass: section titles white, their underline yellow. */
 :root:not([data-theme="light"]) .planner[data-paper="glass"] :is(.schedule-title, .pile h2, .day-notes h2) { color: #fff; border-bottom-color: #f2d35b; }
+
+/* Tasks: the "New task" line at the end of the list, shaped like a task. */
+.task-add-line { display: flex; align-items: center; gap: 10px; margin: var(--row-gap, 6px) 0 4px; padding: var(--row-pad, 6px) 8px var(--row-pad, 6px) 16px; min-height: 42px; border-radius: 14px; border: 1px dashed var(--glass-border); }
+.task-add-line:focus-within { border-style: solid; border-color: var(--active-border); background: var(--glass-track); }
+.task-add-line .add-mark { width: 22px; text-align: center; color: var(--muted); font-size: 1.1rem; }
+.task-add-line .new-task-line { flex: 1; min-width: 0; background: transparent; border: 0; padding: 4px 6px; font-size: 1rem; color: var(--text); box-shadow: none; }
+.task-add-line .new-task-line:focus { outline: none; }
