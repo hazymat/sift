@@ -16,6 +16,7 @@ import { keepDraft, draftCleared } from '../drafts.js';
 import { autosizeAll } from '../inline.js';
 import { summarise } from '../summary.js';
 import { loadAll as loadTasks, forDay, suggestions, doneFields, aimDate, addTask, horizonOf } from '../tasks.js';
+import * as att from '../attachments.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -365,6 +366,7 @@ export default {
           </select></label>
           <label>Day<input type="date" name="date" value="${i.date}"></label>
           <div class="wide detail-note"><span class="field-label">Note</span><div class="detail-notes" data-note-for="${i.id}"></div></div>
+          <div class="wide">${att.rowHtml(atts.get(i.id))}</div>
           <div class="detail-actions">
             <button type="button" class="close-details" data-act="close-details" title="Close (or click anywhere outside, or Esc)">Close</button>
             ${i.time ? '<button type="button" data-act="unschedule" title="Remove the start and end time and put it back in To place">Unallocate time</button>' : ''}
@@ -643,9 +645,11 @@ export default {
       });
     });
 
+    let atts = new Map(); // day item id → its attachments
     async function render() {
       settings = await daySettings();
       [day, items] = await Promise.all([getDay(date), itemsFor(date)]);
+      atts = await att.byParent();
       applyPaper();
       header();
       renderLines();
@@ -656,6 +660,7 @@ export default {
 
     async function refresh() {
       items = await itemsFor(date);
+      atts = await att.byParent();
       renderLines();
       renderPile();
       paintSelection?.();
@@ -704,7 +709,9 @@ export default {
       input.addEventListener('blur', () => finish(true), { once: true });
     }
 
+    att.enableDrop(el, '.item-details[data-for]', node => ({ collection: 'day_items', id: node.dataset.for }), () => refresh());
     el.addEventListener('click', async ev => {
+      if (att.onClick(ev, b => { const id = b.closest('[data-for]')?.dataset.for; return id ? { collection: 'day_items', id } : null; }, () => refresh())) return;
       const t = ev.target.closest('[data-act], [data-energy]');
       if (!t) return;
       if (t.closest('.item-details') && !t.closest('.rich')) await flushNote(t.closest('.item-details'));

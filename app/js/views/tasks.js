@@ -14,6 +14,7 @@ import { createListKit } from '../listkit.js';
 import { toast, undoable } from '../toast.js';
 import { richText, toHtml, previewLine, inlineAll } from '../richtext.js';
 import { loadContacts } from '../contacts.js';
+import * as att from '../attachments.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -44,6 +45,7 @@ export default {
     let aimTimeFor = null; // a task whose panel is showing the aim time field
     let data = { tasks: [], projects: [], milestones: [] };
     let people = { contacts: [], cases: [] };
+    let atts = new Map(); // task id → its attachments
     let open = null; // task id with details open
     // Notes typed in the panel save shortly after typing stops, or at once
     // when the panel closes.
@@ -106,6 +108,8 @@ export default {
         const pr = progress(kids);
         out.push(`<button type="button" class="chip kids" data-act="collapse" aria-expanded="${!collapsed.has(t.id)}">${collapsed.has(t.id) ? '▸' : '▾'} ${pr.done}/${pr.total}</button>`);
       }
+      const files = atts.get(t.id)?.length;
+      if (files) out.push(`<span class="chip" title="Attachments">📎 ${files}</span>`);
       for (const cid of t.contact_ids || []) {
         const c = people.contacts.find(x => x.id === cid);
         if (c) out.push(`<a class="chip" href="#/contacts/c/${c.id}" title="Contact">👤 ${esc(c.name || '?')}</a>`);
@@ -162,6 +166,7 @@ export default {
       const moreSet = t.project_id || (t.contact_ids || []).length || t.case_id || (t.priority && Number(t.priority) !== 3) || (t.status && t.status !== 'todo');
       return `
         <div class="task-notes"></div>
+        ${att.rowHtml(atts.get(t.id))}
         <div class="energy-pick" role="group" aria-label="Energy"><span>Energy</span>
           ${ENERGY.map(e => `<button type="button" class="bolts" data-energy="${e.id}" aria-pressed="${t.energy === e.id}" title="${esc(`${e.label}: ${e.hint}`)}" aria-label="${e.label}">${e.bolts}</button>`).join('')}
         </div>
@@ -349,6 +354,7 @@ export default {
     const render = this.render = async () => {
       data = await loadAll();
       people = await loadContacts();
+      atts = await att.byParent();
       for (const b of el.querySelectorAll('[data-view]')) b.setAttribute('aria-pressed', b.dataset.view === state.view);
       body.innerHTML = { list: viewList, inbox: () => viewHorizon('inbox'), now: () => viewHorizon('now'), next: () => viewHorizon('next'), later: () => viewHorizon('later'), projects: viewProjects, done: viewDone }[state.view]();
       wireEntry();
@@ -588,7 +594,11 @@ export default {
       }
     });
 
+    const attParent = b => { const id = b.closest('[data-for]')?.dataset.for; return id ? { collection: 'tasks', id } : null; };
+    const attDone = async () => { await flushNote(); await render(); };
+    att.enableDrop(el, '.task-details[data-for], li[data-task]', node => ({ collection: 'tasks', id: node.dataset.for || node.dataset.task }), attDone);
     el.addEventListener('click', async ev => {
+      if (att.onClick(ev, attParent, attDone)) return;
       const b = ev.target.closest('[data-act], [data-view], [data-energy], [data-horizon], [data-open-project]');
       if (!b) return;
       if (b.dataset.view) { b.closest('details')?.removeAttribute('open'); state.project = null; go(b.dataset.view, null); return; }

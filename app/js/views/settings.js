@@ -611,11 +611,17 @@ export default {
 
     const storage = el.querySelector('#storage');
     const est = await navigator.storage?.estimate?.();
-    const persisted = await navigator.storage?.persisted?.();
+    const install = await import('../install.js');
+    let persisted = await navigator.storage?.persisted?.();
+    if (!persisted) { try { persisted = await navigator.storage?.persist?.(); } catch { /* not supported */ } } // ask again
+    // Only an iPhone/iPad is at real risk (7 days); elsewhere the browser rarely clears a site's data.
+    const protection = persisted ? 'Yes'
+      : install.isIOS() ? '⚠️ No. Add Sift to your Home Screen (see the top of this page) to protect your data.'
+      : "Not guaranteed. Your browser could clear this site's data if the computer ran very low on space (it rarely does). Sync or a backup covers you; installing Sift as an app (browser menu → Install) also helps.";
     storage.innerHTML = `
       <dt>Used</dt><dd>${formatBytes(est?.usage)}</dd>
       <dt>Available</dt><dd>${formatBytes(est?.quota)}</dd>
-      <dt>Protected from clean-up</dt><dd>${persisted ? 'Yes' : '⚠️ No. Install Sift to your Home Screen to protect your data.'}</dd>
+      <dt>Protected from clean-up</dt><dd>${protection}</dd>
       <dt>Unsynced changes</dt><dd>${await store.outboxSize()}</dd>
     `;
   },

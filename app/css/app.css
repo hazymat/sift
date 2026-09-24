@@ -2119,3 +2119,16 @@ li.flash { animation: row-flash 2.4s ease-out; border-radius: 12px; }
 .task-details .detail-grid > * { min-width: 0; }
 .task-details .md-bar { max-width: 100%; }
 @media (min-width: 700px) { .tasks-head .segmented { flex: 0 1 460px; } .tasks-head .segmented button { padding: 7px 14px; } .tasks-head { justify-content: flex-start; } .tasks-head .page-cog { margin-left: auto; } }
+.task-list > li.task-details, .task-details { margin-left: 0; }
+
+/* A task and its open panel read as one card */
+.task-list > li:has(+ li.task-details) { border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom-color: transparent; }
+.task-list > li.task-details { margin-top: calc(-1 * var(--row-gap, 2px)); margin-bottom: 8px; border-top-left-radius: 0; border-top-right-radius: 0; border-top-color: transparent; background: var(--glass-track); }
+
+/* iPhone Safari: date, time and select fields must shrink to their column and match each other */
+.detail-grid input, .detail-grid select, .task-entry-more input, .task-entry-more select { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
+.detail-grid input[type="date"], .detail-grid input[type="time"] { -webkit-appearance: none; appearance: none; min-height: 2.4rem; text-align: left; display: block; }
+.detail-grid input[type="date"]::-webkit-date-and-time-value, .detail-grid input[type="time"]::-webkit-date-and-time-value { text-align: left; }
+.detail-actions button { white-space: nowrap; }
+.task-details, .task-details * { max-width: 100%; }
+.task-details .md-bar { max-width: 100%; overflow-x: auto; }

@@ -8,6 +8,7 @@ import { createListKit } from '../listkit.js';
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import { richText, previewLine } from '../richtext.js';
+import * as att from '../attachments.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -16,6 +17,7 @@ const shortDate = iso => new Date(iso).toLocaleDateString(undefined, { day: 'num
 export default {
   async mount(el) {
     let nameNext = null; // a list just made: select its name for typing
+    let atts = new Map(); // list item id → its attachments
     let focusAdd = false; // Enter or Tab from the list name carries on into "Add items"
     const state = this.state = { id: null, hideTicked: false };
     let data = { lists: [], items: [] };
@@ -142,6 +144,7 @@ export default {
           </li>
           ${openItem === i.id ? `<li class="task-details list-panel" data-for="${i.id}">
             <div class="list-notes"></div>
+            ${att.rowHtml(atts.get(i.id))}
             <div class="detail-actions">
               <button type="button" class="close-details" data-act="close-item">Close</button>
               <span class="spacer"></span>
@@ -163,8 +166,10 @@ export default {
     // ---------- render ----------
 
     const body = el;
+    att.enableDrop(el, 'li.list-panel[data-for], ul.checklist > li[data-id]', node => ({ collection: 'list_items', id: node.dataset.for || node.dataset.id }), () => render());
     const render = this.render = async () => {
       data = await loadLists();
+      atts = await att.byParent();
       const l = state.id && listOf(state.id);
       body.innerHTML = state.id ? page() : overview();
       kit = l?.kind === 'template' ? kitTemplate : kitChecklist;
@@ -285,6 +290,7 @@ export default {
     });
 
     el.addEventListener('click', async ev => {
+      if (att.onClick(ev, b => { const id = b.closest('[data-for]')?.dataset.for; return id ? { collection: 'list_items', id } : null; }, () => render())) return;
       const b = ev.target.closest('[data-act]');
       if (!b) return;
       b.closest('details')?.removeAttribute('open');

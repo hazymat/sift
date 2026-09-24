@@ -8,6 +8,7 @@ import { richText, previewLine } from '../richtext.js';
 import { createListKit } from '../listkit.js';
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
+import * as att from '../attachments.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -238,6 +239,12 @@ export default {
 
     // ---------- a thing's panel: note, quantity, tags ----------
 
+    let atts = new Map(); // thing id → its attachments
+    // The tree, plus the attachments each open panel shows.
+    async function loadTreeA() {
+      atts = await att.byParent();
+      return loadTree();
+    }
     let openItem = null; // thing whose panel is open
     let pendingNote = null;
     let noteTimer;
@@ -261,6 +268,7 @@ export default {
             <input class="tag-add no-inline" list="thing-tags" placeholder="+ tag (Enter)" aria-label="Add a tag" autocomplete="off">
           </div>
           <div class="wide"><span class="field-label">Note</span><div class="thing-notes"></div></div>
+          <div class="wide">${att.rowHtml(atts.get(i.id))}</div>
         </div>
         <div class="detail-actions">
           <button type="button" class="close-details" data-act="close-item">Close</button>
@@ -285,7 +293,7 @@ export default {
       clearTimeout(noteTimer);
       const p = pendingNote;
       pendingNote = null;
-      if (p) { await store.update('items', p.id, { notes: p.md }); tree = await loadTree(); }
+      if (p) { await store.update('items', p.id, { notes: p.md }); tree = await loadTreeA(); }
     }
     async function toggleThing(id) {
       await flushThingNote();
@@ -373,7 +381,7 @@ export default {
         return [r.id, { sort_order: n, parent_item_id: sub ? parent : null }];
       });
       await store.updateMany('items', changes);
-      tree = await loadTree();
+      tree = await loadTreeA();
       undoable(label, async () => {
         await store.updateMany('items', before);
         await reload();
@@ -442,7 +450,7 @@ export default {
     }
 
     async function reload() {
-      tree = await loadTree();
+      tree = await loadTreeA();
       if (openId && !findBox(openId)) openId = null;
       openId ? renderPage() : renderGrid();
     }
@@ -457,7 +465,7 @@ export default {
       if (value === (old ?? '') || (t.name === 'quantity' && value === (old ?? null))) return false;
       await store.update(collection, id, { [t.name]: value });
       if (t.name === 'parent_place_id') await reload();
-      tree = await loadTree(); // keep the grid behind in step
+      tree = await loadTreeA(); // keep the grid behind in step
       undoable('Saved', async () => {
         await store.update(collection, id, { [t.name]: old });
         await reload();
@@ -490,7 +498,7 @@ export default {
         const { b: box } = findBox(openId);
         const boxId = openId;
         await store.update('places', boxId, { archived_at: new Date().toISOString() });
-        tree = await loadTree();
+        tree = await loadTreeA();
         location.hash = '#/find-things';
         undoable(`Archived box ${box.label_code || box.name || ''}`.trim(), async () => {
           await store.update('places', boxId, { archived_at: null });
@@ -539,7 +547,7 @@ export default {
         const itemIds = box.items.map(i => i.id);
         await store.updateMany('items', itemIds.map(i => [i, { deleted_at: new Date().toISOString() }]));
         await store.remove('places', boxId);
-        tree = await loadTree();
+        tree = await loadTreeA();
         location.hash = '#/find-things';
         undoable(`Deleted box ${box.label_code || box.name || ''}`.trim(), async () => {
           await store.restore('places', boxId);
@@ -581,7 +589,7 @@ export default {
         }
         const count = tree.flatMap(e => e.sections).find(s => s.id === sectionId)?.boxes.length || 0;
         const box = await store.create('places', { kind: 'box', name: '', label_code: '', parent_place_id: sectionId, location_note: '', notes: '', sort_order: count });
-        tree = await loadTree();
+        tree = await loadTreeA();
         location.hash = `#/find-things/${box.id}`;
       }
     }
@@ -595,7 +603,7 @@ export default {
         const boxId = input.dataset.add;
         const count = findBox(boxId)?.b.items.length || 0;
         const made = await store.create('items', { ...splitQuantity(input.value), place_id: boxId, notes: '', sort_order: count, last_moved_at: null });
-        tree = await loadTree();
+        tree = await loadTreeA();
         undoable(`Added "${made.name}"`, async () => { await store.remove('items', made.id); await reload(); });
         input.closest('.box-card').outerHTML = card(findBox(boxId).b);
         const fresh = body.querySelector(`.box-card[data-box="${boxId}"]`);
@@ -607,7 +615,9 @@ export default {
       if (c && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); c.click(); }
     });
 
+    att.enableDrop(el, '.thing-panel[data-for]', node => ({ collection: 'items', id: node.dataset.for }), () => reload());
     el.addEventListener('click', ev => {
+      if (att.onClick(ev, b => { const id = b.closest('[data-for]')?.dataset.for; return id ? { collection: 'items', id } : null; }, () => reload())) return;
       if (ev.target.closest('.quick-add')) return;
       const t = ev.target.closest('[data-act], [data-box], [data-edition]');
       if (!t || importSheet.contains(t)) return;
@@ -661,7 +671,7 @@ export default {
     this.onResize = () => { if (!openId) fitPills(); };
     addEventListener('resize', this.onResize);
     this.openBox = openBox;
-    tree = await loadTree();
+    tree = await loadTreeA();
     show();
   },
 
