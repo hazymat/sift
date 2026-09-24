@@ -2337,3 +2337,10 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
   font-size: .93em;
   color: color-mix(in srgb, var(--text) 78%, transparent);
 }
+
+/* Settings fields: time and date boxes shrink to their column on iPhone
+   (Safari won't narrow them with its own look on), and every field in a
+   settings grid is the same height, dropdowns included. */
+.settings-grid input[type="time"], .settings-grid input[type="date"] { -webkit-appearance: none; appearance: none; display: block; text-align: left; }
+.settings-grid input[type="time"]::-webkit-date-and-time-value, .settings-grid input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+.settings-grid :is(input, select) { height: 46px; line-height: normal; }
