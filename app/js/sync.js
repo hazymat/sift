@@ -257,7 +257,7 @@ export async function syncNow() {
       await syncFiles();
       setStatus({ state: 'ok', last: new Date().toISOString(), pending: await store.outboxSize(), error: null, changed });
     } catch (e) {
-      const offline = !navigator.onLine || e instanceof TypeError; // fetch failed: no network / not on VPN
+      const offline = !navigator.onLine || e instanceof TypeError; // fetch failed: no network, or the server can't be reached
       setStatus({ state: offline ? 'offline' : 'error', error: offline ? null : e.message, pending: await store.outboxSize() });
       if (e.status === 401) { await store.metaSet('sync_account', undefined); account = null; setStatus({ state: 'off', error: `The server signed this device out (${e.message}). Sign in again.` }); }
     } finally {

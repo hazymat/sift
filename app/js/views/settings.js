@@ -48,7 +48,7 @@ export default {
         <label class="check-row"><input type="checkbox" name="show_now_marker"> Show a ▶ in the margin at the current time</label>
         <label class="check-row"><input type="checkbox" name="show_evening"> Show a section after the day ends, called <input name="evening_label" class="inline-text" placeholder="Evening plans" autocomplete="off" aria-label="Name of the section after the day ends"></label>
         <label class="check-row"><input type="checkbox" name="hint_down_day"> Remind me to do less on down days</label>
-        <label class="check-row"><input type="checkbox" name="hint_walk_breaks"> Build in walking breaks during laptop work <span class="muted">(with the focus timer, coming later)</span></label>
+        <label class="check-row"><input type="checkbox" name="hint_walk_breaks"> Build in short breaks during long stretches of work <span class="muted">(with the focus timer, coming later)</span></label>
       </section>
 
       <section class="card" id="energy-settings">
@@ -184,7 +184,7 @@ export default {
         if (acct) {
           box.innerHTML = `
             <p><b>Signed in</b> as ${acct.email} on <code>${acct.server.replace(/^https?:\/\//, '')}</code></p>
-            <p class="muted" id="sync-line">${{ syncing: 'Syncing…', ok: `In sync · last ${ago(st.last)}`, offline: 'Offline: changes wait on this device and sync when the server is reachable (e.g. on the VPN)', error: `Couldn't sync: ${st.error}`, idle: 'Waiting to sync…' }[st.state] || ''}${st.pending ? ` · ${st.pending} change${st.pending === 1 ? '' : 's'} to send` : ''}</p>
+            <p class="muted" id="sync-line">${{ syncing: 'Syncing…', ok: `In sync · last ${ago(st.last)}`, offline: 'Offline: changes wait on this device and sync when the server can be reached', error: `Couldn't sync: ${st.error}`, idle: 'Waiting to sync…' }[st.state] || ''}${st.pending ? ` · ${st.pending} change${st.pending === 1 ? '' : 's'} to send` : ''}</p>
             <div class="backup-row">
               <button type="button" class="primary" data-sync="now">Sync now</button>
               <button type="button" data-sync="devices">Devices</button>
@@ -258,7 +258,7 @@ export default {
             create.hidden = info.registration !== 'open';
             note.textContent = info.registration === 'open' ? 'This server has no account yet: create yours.' : '';
           }).catch(() => {
-            note.textContent = "Can't reach the server from here (VPN on, and its certificate trusted?)";
+            note.textContent = "Can't reach the server from here (on the right network, and its certificate trusted?)";
             try {
               const host = new URL(server).hostname;
               help.querySelector('.trust-link').href = `http://${host}/sift-ca.crt`;
@@ -342,7 +342,7 @@ export default {
           draw();
         } catch (e) {
           b.disabled = false;
-          msg(e instanceof TypeError ? "Can't reach the server from here (VPN on?)" : e.message);
+          msg(e instanceof TypeError ? "Can't reach the server from here (on the right network?)" : e.message);
         }
       });
       draw();

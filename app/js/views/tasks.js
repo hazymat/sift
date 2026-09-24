@@ -662,7 +662,7 @@ export default {
         const p = await newProject();
         if (p) go('list', p.id);
       } else if (act === 'new-milestone') {
-        const name = prompt('Milestone name (e.g. "Walls done"):');
+        const name = prompt('Milestone name (e.g. "First draft done"):');
         if (!name?.trim()) return;
         const due = prompt('Aim date for this milestone (YYYY-MM-DD), or leave blank:') || null;
         await store.create('milestones', { project_id: state.project, name: name.trim(), due_date: /^\d{4}-\d{2}-\d{2}$/.test(due || '') ? due : null, done_at: null, sort_order: data.milestones.length });

@@ -140,7 +140,7 @@ export default {
           <details class="research" ${inCat.length ? '' : 'open'}>
             <summary>Research mode: add lots at once</summary>
             <p class="muted hint">One per line: name, number, website, a note, in any order. Numbers, emails and links are recognised. Each becomes a candidate in ${esc(cat.name)}. ${SHORTCUT} to add.</p>
-            <textarea id="research-new" rows="4" placeholder="Smith Plumbing 0161 555 0101 smithplumbing.co.uk good reviews&#10;Dave (Anna's plumber) 07700 900123 not sure he'll do it, but maybe"></textarea>
+            <textarea id="research-new" rows="4" placeholder="Smith Plumbing 0161 555 0101 smithplumbing.co.uk good reviews&#10;Joe (a neighbour's plumber) 07700 900123 maybe"></textarea>
           </details>
           <ul class="c-list research-list kit-list">${inCat.map(c => `
             ${contactCard(c)}
@@ -159,7 +159,7 @@ export default {
           }).join('')}
           <button type="button" class="project-card add-card" data-act="new-category">+ New category</button>
         </div>
-        <p class="muted hint">Categories are anything you like: Plumber, Sparky, Carers, Mum Care…</p>
+        <p class="muted hint">Categories are anything you like: Plumbers, Painters, Pub mates, Call centres…</p>
         ${uncategorised.length ? `<h3 class="milestone">Stored, no category</h3><ul class="c-list">${uncategorised.map(contactCard).join('')}</ul>` : ''}`;
     }
 
@@ -203,7 +203,7 @@ export default {
         </div>
         <div class="c-page" data-contact="${c.id}">
           <div class="detail-grid">
-            <label class="wide">What was this? / who are they<input name="about" value="${esc(c.about)}" data-edit="${c.id}" placeholder="e.g. The plumber Anna recommended" autocomplete="off"></label>
+            <label class="wide">What was this? / who are they<input name="about" value="${esc(c.about)}" data-edit="${c.id}" placeholder="e.g. The plumber a friend recommended" autocomplete="off"></label>
             <label>Kind<select name="kind" data-edit="${c.id}"><option value="person" ${c.kind === 'person' ? 'selected' : ''}>Person</option><option value="organisation" ${c.kind === 'organisation' ? 'selected' : ''}>Organisation</option></select></label>
             <div class="energy-pick"><span>Keep as</span>
               <button type="button" data-act="status" data-value="transient" aria-pressed="${c.status !== 'stored'}">Transient</button>
@@ -257,7 +257,7 @@ export default {
           </a><span class="muted c-when">${ago(k.updated_at)}</span></li>`).join('') || '<li class="empty"><h2>No cases.</h2></li>'}
         </ul>
         <button type="button" data-act="new-case">+ New case</button>
-        <p class="muted hint">A case is an ongoing saga (e.g. care funding with the council): references, people, calls, letters, tasks and notes in one timeline.</p>`;
+        <p class="muted hint">A case is an ongoing saga (e.g. a complaint or an insurance claim): references, people, calls, letters, tasks and notes in one timeline.</p>`;
     }
 
     async function viewCase() {
@@ -294,7 +294,7 @@ export default {
           </div>
           <h3 class="milestone">Timeline</h3>
           ${logForm('case')}
-          <div class="case-note"><input id="case-note" placeholder="Add a note (e.g. letter received: they want bank statements)" autocomplete="off"><button type="button" data-act="case-note">Add note</button>
+          <div class="case-note"><input id="case-note" placeholder="Add a note (e.g. letter received: they want more details)" autocomplete="off"><button type="button" data-act="case-note">Add note</button>
             <button type="button" data-act="case-task">+ Task</button></div>
           <ul class="timeline">${events.map(e => `<li class="${e.type}"><span class="muted">${when(e.at)}</span> ${e.html}</li>`).join('') || '<li class="muted">Nothing yet.</li>'}</ul>
           <p class="muted hint">Letters: scans linked to this case will show here once Scans is built.</p>
@@ -379,13 +379,13 @@ export default {
     }
 
     async function newCategory() {
-      const name = prompt('Category name (e.g. Plumber, Carers, Mum Care):');
+      const name = prompt('Category name (e.g. Plumbers, Painters, Pub mates, Call centres):');
       if (!name?.trim()) return null;
       return store.create('contact_categories', { name: name.trim(), colour: null, sort_order: data.categories.length });
     }
 
     async function newCase() {
-      const title = prompt('Case title (e.g. Mum\'s care funding: council):');
+      const title = prompt('Case title (e.g. Broadband complaint, Insurance claim):');
       if (!title?.trim()) return;
       const k = await store.create('cases', { title: title.trim(), status: 'open', summary: '', references: [], contact_ids: [], project_id: null, opened_at: new Date().toISOString(), closed_at: null });
       go(`#/contacts/cases/${k.id}`);

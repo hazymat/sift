@@ -76,7 +76,7 @@ export default {
         <p class="muted">One row per item. Columns: <code>life_area, group, box_code, box_name, box_location, box_notes, item, item_notes</code>. Only a box name or code is required. Anything already here is kept; importing the same file twice won't duplicate it.</p>
         <p><input type="file" id="import-file" accept=".csv,text/csv"></p>
         <p class="muted">or paste it:</p>
-        <textarea id="import-text" rows="6" placeholder="box_code,box_name,item&#10;A,Electronics,555 timers"></textarea>
+        <textarea id="import-text" rows="6" placeholder="box_code,box_name,item&#10;A,Kitchen,Spare batteries"></textarea>
         <p id="import-result" class="muted"></p>
         <div class="sheet-actions">
           <button type="button" data-close>Close</button>
@@ -197,12 +197,12 @@ export default {
         </div>
         <article class="box-page">
           <header class="box-page-head">
-            <input class="box-code-input" name="label_code" value="${esc(b.label_code)}" placeholder="Label" aria-label="Label (what is written on it, e.g. BB)" title="Label: what is written on it, e.g. BB" autocomplete="off">
+            <input class="box-code-input" name="label_code" value="${esc(b.label_code)}" placeholder="Label" aria-label="Label (what is written on it, e.g. A1)" title="Label: what is written on it, e.g. A1" autocomplete="off">
             <input class="box-name-input" name="name" value="${esc(b.name)}" placeholder="Box name" aria-label="Name" autocomplete="off">
           </header>
           <div class="box-fields">
-            <label>Where it lives<input name="location_note" value="${esc(b.location_note)}" placeholder="e.g. Under desk back" autocomplete="off"></label>
-            <label>Notes<input name="notes" value="${esc(b.notes)}" placeholder="e.g. 9L Really Useful" autocomplete="off"></label>
+            <label>Where it lives<input name="location_note" value="${esc(b.location_note)}" placeholder="e.g. Top shelf, garage" autocomplete="off"></label>
+            <label>Notes<input name="notes" value="${esc(b.notes)}" placeholder="e.g. Clear 10-litre box" autocomplete="off"></label>
           </div>
           <h3>Contents <span class="muted">${b.items.length}</span></h3>
           <ul class="item-list">${b.items.map(i => `
@@ -545,7 +545,7 @@ export default {
         const all = tree.flatMap(e => e.sections.flatMap(s => s.boxes.flatMap(b => b.items)));
         const changes = all.map(i => [i, splitQuantity(i.name)]).filter(([i, s]) => s.quantity && !i.quantity);
         if (!changes.length) return toast('No names start with a quantity like "3x"');
-        if (!confirm(`Move the quantity out of ${changes.length} name${changes.length === 1 ? '' : 's'} (e.g. "3x Ethernet kits" → "Ethernet kits", quantity 3)?`)) return;
+        if (!confirm(`Move the quantity out of ${changes.length} name${changes.length === 1 ? '' : 's'} (e.g. "3x AA batteries" → "AA batteries", quantity 3)?`)) return;
         await store.updateMany('items', changes.map(([i, s]) => [i.id, { name: s.name, quantity: s.quantity }]));
         await reload();
         undoable(`Quantities split out of ${changes.length} name${changes.length === 1 ? '' : 's'}`, async () => {
@@ -589,7 +589,7 @@ export default {
         a.click();
         setTimeout(() => URL.revokeObjectURL(a.href), 1000);
       } else if (name === 'add-edition') {
-        const n = prompt('Name for the new life area (e.g. Home, Build, Garage):');
+        const n = prompt('Name for the new life area (e.g. Home, Garage, Allotment):');
         if (!n?.trim()) return;
         const e = await store.create('places', { kind: 'edition', name: n.trim(), parent_place_id: null, notes: '', sort_order: tree.length });
         editionId = e.id; remember(EDITION_KEY, e.id);
@@ -599,7 +599,7 @@ export default {
         if (n?.trim()) { await store.update('places', current.id, { name: n.trim() }); await reload(); }
       } else if (name === 'add-section') {
         const ed = current || await store.create('places', { kind: 'edition', name: 'Standard', parent_place_id: null, notes: '', sort_order: 0 });
-        const n = prompt(`${GROUP.One} name (e.g. Wardrobe, Garage shelves):`);
+        const n = prompt(`${GROUP.One} name (e.g. Wardrobe, Shed shelves):`);
         if (!n?.trim()) return;
         await store.create('places', { kind: 'section', name: n.trim(), parent_place_id: ed.id, location_note: '', notes: '', sort_order: current?.sections.length || 0 });
         await reload();
