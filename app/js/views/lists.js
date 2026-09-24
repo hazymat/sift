@@ -10,6 +10,7 @@ import { toast, undoable } from '../toast.js';
 import { richText, previewLine } from '../richtext.js';
 import * as att from '../attachments.js';
 import { editPills } from '../editpills.js';
+import { word } from '../words.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -57,10 +58,10 @@ export default {
           </details>
         </div>
         <h3 class="milestone">Templates</h3>
-        <p class="muted hint">A template is the list you reuse (holiday packing, the weekly shop). Open one and "Use this template" to get a fresh copy to tick off.</p>
-        <div class="project-grid">${templates.map(card).join('') || '<p class="muted">No templates yet.</p>'}</div>
+        <p class="muted hint">${esc(word('ph_lists_templates'))}</p>
+        <div class="project-grid">${templates.map(card).join('') || '<p class="muted">' + esc(word('ph_lists_no_templates')) + '</p>'}</div>
         <h3 class="milestone">Lists</h3>
-        <div class="project-grid">${inUse.map(card).join('') || '<p class="muted">No lists yet.</p>'}</div>`;
+        <div class="project-grid">${inUse.map(card).join('') || '<p class="muted">' + esc(word('ph_lists_none')) + '</p>'}</div>`;
     }
 
     // ---------- an item's note and panel ----------
@@ -92,7 +93,7 @@ export default {
       const it = data.items.find(x => x.id === id);
       richText(box, {
         value: it?.notes || '',
-        placeholder: 'Notes…',
+        placeholder: word('ph_notes'),
         origin: () => ({ collection: 'list_items', id, title: it?.text, field: 'notes' }),
         onChange: md => { clearTimeout(noteTimer); pendingNote = { id, md }; noteTimer = setTimeout(flushNote, 600); },
       });
@@ -119,7 +120,7 @@ export default {
       return `
         <div class="project-head">
           <button type="button" class="back" data-act="home">‹ Lists</button>
-          <input class="project-name" name="name" value="${esc(l.name)}" data-list-name="${l.id}" aria-label="List name" placeholder="List name">
+          <input class="project-name" name="name" value="${esc(l.name)}" data-list-name="${l.id}" aria-label="List name" placeholder="${esc(word('ph_list_name'))}">
           <span class="chip">${isTemplate ? 'Template' : template ? 'From a template' : 'List'}</span>
         </div>
         ${isTemplate ? `
@@ -154,7 +155,7 @@ export default {
           </li>` : ''}`).join('')}
         </ul>
         ${state.hideTicked && pr.done ? `<p class="muted hint">${pr.done} ticked item${pr.done === 1 ? '' : 's'} hidden.</p>` : ''}
-        <textarea id="list-new" class="list-entry" rows="2" placeholder="Add items"></textarea>
+        <textarea id="list-new" class="list-entry" rows="2" placeholder="${esc(word('ph_add_items'))}"></textarea>
         <p class="muted hint">${listHint({ enterAdds: true })}</p>
         <div class="detail-actions">
           <button type="button" data-act="add">Add items <kbd>${SHORTCUT}</kbd></button>

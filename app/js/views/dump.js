@@ -101,13 +101,13 @@ export default {
             </div>
           </details>
         </div>
-        <input type="search" id="dump-q" class="search" placeholder="Search your notes…" autocomplete="off">
+        <input type="search" id="dump-q" class="search" placeholder="${esc(word('ph_dump_search'))}" autocomplete="off">
         <div class="dump-filter" id="dump-filter" role="group" aria-label="Show">
           <button type="button" data-filter="all">All</button>
           ${dumpTypes().map(k => `<button type="button" data-filter="${esc(k.id)}">${esc(k.label)}</button>`).join('')}
           <button type="button" data-filter="pinned">★ Pinned</button>
         </div>
-        <p class="muted hint">Select any text in a note to make it a contact.</p>
+        <p class="muted hint">${esc(word('ph_dump_select'))}</p>
       </section>
       <ul id="thoughts" class="thought-list"></ul>
       <button type="button" class="make-contact" hidden>Make contact</button>`;
@@ -122,7 +122,7 @@ export default {
     const captureBox = $('#dump-body');
     const input = richText(captureBox, {
       value: readDraft('dump'),
-      placeholder: "What's on your mind?",
+      placeholder: word('ph_dump_new'),
       origin: () => ({ collection: 'thoughts', id: captureId, title: titleFrom(input?.value || '') || 'Brain dump', field: 'body' }),
       onChange: md => { writeDraft('dump', md); showSaved($('#dump-save'), md.trim() ? 'saved' : 'clear', 'Draft saved ✓'); },
     });

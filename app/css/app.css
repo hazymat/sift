@@ -2266,12 +2266,17 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
 /* Settings → Your words: the Dictionary and Brain Dump types (words.js). */
 .words-sheet { max-width: 640px; }
 @media (min-width: 768px) { .words-sheet { margin: auto; border-radius: var(--radius-card); border-bottom: 1px solid var(--glass-border); } }
-.dict-row { padding: 8px 0; border-bottom: 1px solid var(--glass-border); }
-.dict-row label { gap: 4px; }
-.dict-name { font-weight: 600; color: var(--text); font-size: .85rem; }
-.dict-row input { box-sizing: border-box; font-size: 16px; color: var(--text); }
-.dict-row .hint { margin: 4px 2px 0; }
-.dict-reset { margin-top: 6px; padding: 3px 10px; font-size: .8rem; }
+.dict-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 3px 0; border-bottom: 1px solid var(--glass-border); }
+.dict-row input { flex: 1 1 0; min-width: 0; box-sizing: border-box; font-size: 16px; padding: 5px 8px; border-color: transparent; background: transparent; color: var(--text); text-overflow: ellipsis; }
+.dict-row input:focus { border-color: var(--active-border); background: var(--glass-track); }
+.dict-row.custom input { color: var(--accent); }
+.dict-row .icon-btn.small { width: 28px; height: 28px; font-size: .95rem; box-shadow: none; }
+.dict-info[aria-expanded="true"] { background: var(--active-bg); }
+.dict-reset:disabled { opacity: .3; }
+.dict-hint { flex-basis: 100%; margin: 0 8px 6px; }
+.dict-default { display: block; margin-top: 2px; opacity: .8; }
+.dict-search { width: 100%; box-sizing: border-box; margin: 6px 0 4px; }
+.dict-group h3 { margin: 14px 0 2px; }
 .types-list { list-style: none; margin: 10px 0; padding: 0; display: grid; gap: 6px; }
 .types-list li { display: flex; gap: 6px; align-items: center; }
 .types-list input { flex: 1; min-width: 0; box-sizing: border-box; font-size: 16px; color: var(--text); }
@@ -2293,3 +2298,6 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
 /* The empty page's ＋ is drawn (a text ＋ never sits exactly in the middle). */
 .entry-plus { padding: 0; }
 .entry-plus .icon { width: 28px; height: 28px; display: block; }
+
+.dict-row .icon-btn.small { display: grid; place-items: center; padding: 0; }
+.dict-row .icon-btn.small .icon { width: 17px; height: 17px; }

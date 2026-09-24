@@ -19,6 +19,7 @@ import { addTask } from '../tasks.js';
 import { isoDate } from '../days.js';
 import { createListKit } from '../listkit.js';
 import { askText } from '../ask.js';
+import { word } from '../words.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -115,10 +116,10 @@ export default {
       const older = sorted.filter(c => !recent.includes(c));
       return `
         <div class="c-capture">
-          <textarea id="c-new" rows="2" placeholder="A number and a few words about it, e.g. Window cleaner 07700 900123"></textarea>
+          <textarea id="c-new" rows="2" placeholder="${esc(word('ph_contact_capture'))}"></textarea>
           <button type="button" class="primary" data-act="capture">Save <kbd>${SHORTCUT}</kbd></button>
         </div>
-        <input type="search" id="c-q" class="search" placeholder="Search contacts…" value="${esc(state.q)}" autocomplete="off">
+        <input type="search" id="c-q" class="search" placeholder="${esc(word('ph_contact_search'))}" value="${esc(state.q)}" autocomplete="off">
         <ul class="c-list kit-list">${recent.map(contactCard).join('') || (older.length ? '' : '<li class="empty"><h2>No contacts yet. Paste a number above.</h2></li>')}
           ${older.length ? `<li class="list-head older-head">Older <span class="muted">(untouched for ${OLDER_DAYS} days)</span></li>${older.map(contactCard).join('')}` : ''}
         </ul>`;
@@ -148,7 +149,7 @@ export default {
             <li class="research-row" data-research="${c.id}">
               ${RESEARCH.map(r => `<button type="button" data-status="${r.id}" aria-pressed="${c.research_status === r.id}">${r.label}</button>`).join('')}
               <span class="stars">${[1, 2, 3, 4, 5].map(n => `<button type="button" data-rate="${n}" aria-pressed="${(c.rating || 0) >= n}">★</button>`).join('')}</span>
-            </li>`).join('') || '<li class="muted hint">Nobody here yet.</li>'}
+            </li>`).join('') || '<li class="muted hint">' + esc(word('ph_contact_none')) + '</li>'}
           </ul>`;
       }
       const uncategorised = stored.filter(c => !c.category_ids?.length);
@@ -160,7 +161,7 @@ export default {
           }).join('')}
           <button type="button" class="project-card add-card" data-act="new-category">+ New category</button>
         </div>
-        <p class="muted hint">Categories are anything you like: Plumbers, Painters, Pub mates, Call centres…</p>
+        <p class="muted hint">${esc(word('ph_categories'))}</p>
         ${uncategorised.length ? `<h3 class="milestone">Stored, no category</h3><ul class="c-list">${uncategorised.map(contactCard).join('')}</ul>` : ''}`;
     }
 
@@ -178,7 +179,7 @@ export default {
         <div class="log-form" data-log-form="${prefix}">
           <select name="how">${HOW.map(h => `<option value="${h.id}">${h.icon} ${h.label}</option>`).join('')}</select>
           <select name="direction"><option value="out">I contacted them</option><option value="in">They contacted me</option></select>
-          <input name="summary" placeholder="What happened? (optional)" autocomplete="off">
+          <input name="summary" placeholder="${esc(word('ph_log_what'))}" autocomplete="off">
           <button type="button" data-act="log-${prefix}">Log it</button>
         </div>`;
     }
@@ -199,12 +200,12 @@ export default {
       return `
         <div class="project-head">
           <button type="button" class="back" data-act="back">‹ Back</button>
-          <input class="project-name" name="name" value="${esc(c.name)}" placeholder="Name, or what this number is for" data-edit="${c.id}" aria-label="Name">
+          <input class="project-name" name="name" value="${esc(c.name)}" placeholder="${esc(word('ph_contact_name'))}" data-edit="${c.id}" aria-label="Name">
           <button type="button" class="pin" data-act="pin-contact" aria-pressed="${!!c.pinned}" title="Pin">${c.pinned ? '★' : '☆'}</button>
         </div>
         <div class="c-page" data-contact="${c.id}">
           <div class="detail-grid">
-            <label class="wide">What was this? / who are they<input name="about" value="${esc(c.about)}" data-edit="${c.id}" placeholder="e.g. The plumber a friend recommended" autocomplete="off"></label>
+            <label class="wide">What was this? / who are they<input name="about" value="${esc(c.about)}" data-edit="${c.id}" placeholder="${esc(word('ph_contact_about'))}" autocomplete="off"></label>
             <label>Kind<select name="kind" data-edit="${c.id}"><option value="person" ${c.kind === 'person' ? 'selected' : ''}>Person</option><option value="organisation" ${c.kind === 'organisation' ? 'selected' : ''}>Organisation</option></select></label>
             <div class="energy-pick"><span>Keep as</span>
               <button type="button" data-act="status" data-value="transient" aria-pressed="${c.status !== 'stored'}">Transient</button>
@@ -258,7 +259,7 @@ export default {
           </a><span class="muted c-when">${ago(k.updated_at)}</span></li>`).join('') || '<li class="empty"><h2>No cases.</h2></li>'}
         </ul>
         <button type="button" data-act="new-case">+ New case</button>
-        <p class="muted hint">A case is an ongoing saga (e.g. a complaint or an insurance claim): references, people, calls, letters, tasks and notes in one timeline.</p>`;
+        <p class="muted hint">${esc(word('ph_cases'))}</p>`;
     }
 
     async function viewCase() {
@@ -281,7 +282,7 @@ export default {
         </div>
         <div class="c-page" data-case-page="${k.id}">
           <div class="energy-pick"><span>Status</span>${CASE_STATUS.map(s => `<button type="button" data-act="case-status" data-value="${s.id}" aria-pressed="${k.status === s.id}">${s.label}</button>`).join('')}</div>
-          <label class="wide">Summary<input name="summary" value="${esc(k.summary)}" data-case="${k.id}" placeholder="What is this about?" autocomplete="off"></label>
+          <label class="wide">Summary<input name="summary" value="${esc(k.summary)}" data-case="${k.id}" placeholder="${esc(word('ph_case_summary'))}" autocomplete="off"></label>
           <h3 class="milestone">References</h3>
           <ul class="detail-rows">${(k.references || []).map((r, n) => `
             <li data-ref="${n}"><input name="label" value="${esc(r.label)}" class="d-label" aria-label="Label"><input name="value" value="${esc(r.value)}" aria-label="Value">
@@ -295,10 +296,10 @@ export default {
           </div>
           <h3 class="milestone">Timeline</h3>
           ${logForm('case')}
-          <div class="case-note"><input id="case-note" placeholder="Add a note (e.g. letter received: they want more details)" autocomplete="off"><button type="button" data-act="case-note">Add note</button>
+          <div class="case-note"><input id="case-note" placeholder="${esc(word('ph_case_note'))}" autocomplete="off"><button type="button" data-act="case-note">Add note</button>
             <button type="button" data-act="case-task">+ Task</button></div>
           <ul class="timeline">${events.map(e => `<li class="${e.type}"><span class="muted">${when(e.at)}</span> ${e.html}</li>`).join('') || '<li class="muted">Nothing yet.</li>'}</ul>
-          <p class="muted hint">Letters: scans linked to this case will show here once Scans is built.</p>
+          <p class="muted hint">${esc(word('ph_case_letters'))}</p>
           <div class="detail-actions"><span class="spacer"></span>
             <button type="button" data-act="archive-case">Archive</button>
             <button type="button" class="danger" data-act="delete-case">Delete</button>
@@ -327,7 +328,7 @@ export default {
       if (notesBox) {
         const c = byId(state.id);
         let t;
-        richText(notesBox, { value: c.notes || '', placeholder: 'Record contact notes here', spot: false, origin: () => ({ collection: 'contacts', id: c.id, title: c.name, field: 'notes' }), onChange: md => { clearTimeout(t); t = setTimeout(() => store.update('contacts', c.id, { notes: md }), 600); } });
+        richText(notesBox, { value: c.notes || '', placeholder: word('ph_contact_notes'), spot: false, origin: () => ({ collection: 'contacts', id: c.id, title: c.name, field: 'notes' }), onChange: md => { clearTimeout(t); t = setTimeout(() => store.update('contacts', c.id, { notes: md }), 600); } });
       }
     };
 
@@ -380,13 +381,13 @@ export default {
     }
 
     async function newCategory() {
-      const name = await askText('New category', { placeholder: 'e.g. Plumbers, Painters, Pub mates, Call centres', ok: 'Add' });
+      const name = await askText('New category', { placeholder: word('ph_new_category'), ok: 'Add' });
       if (!name?.trim()) return null;
       return store.create('contact_categories', { name: name.trim(), colour: null, sort_order: data.categories.length });
     }
 
     async function newCase() {
-      const title = await askText('New case', { placeholder: 'e.g. Broadband complaint, Insurance claim', ok: 'Add' });
+      const title = await askText('New case', { placeholder: word('ph_new_case'), ok: 'Add' });
       if (!title?.trim()) return;
       const k = await store.create('cases', { title: title.trim(), status: 'open', summary: '', references: [], contact_ids: [], project_id: null, opened_at: new Date().toISOString(), closed_at: null });
       go(`#/contacts/cases/${k.id}`);
@@ -499,7 +500,7 @@ export default {
           return;
         }
         if (act === 'case-task') {
-          const title = await askText('New task', { placeholder: 'What needs doing?', ok: 'Add' });
+          const title = await askText('New task', { placeholder: word('ph_new_task'), ok: 'Add' });
           if (!title?.trim()) return;
           const t = await addTask({ title: title.trim(), case_id: k.id, contact_ids: k.contact_ids || [] });
           await render();

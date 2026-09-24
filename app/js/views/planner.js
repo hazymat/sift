@@ -77,7 +77,7 @@ export default {
           <div class="pile-foot">
             <button type="button" data-act="bring-in">Bring in from tasks…</button>
           </div>
-          <p class="muted hint">Enter adds a task. Start with a time (12.45) to put it straight on the plan. Drag ⠿ to reorder, or onto a time.</p>
+          <p class="muted hint">${esc(word('ph_day_tasks'))}</p>
         </section>
         <section class="day-notes">
           <h2>${esc(word('day_notes'))}</h2>
@@ -93,7 +93,7 @@ export default {
         <div class="hk-actions">
           <button type="button" class="danger" data-act="clear-day">Clear this day…</button>
         </div>
-        <p class="muted hint">Paper, timeslots and layout for a single day are in the view menu (the eye) by the energy level; the defaults are in Settings.</p>
+        <p class="muted hint">${esc(word('ph_day_view'))}</p>
       </section>
       </div>
       <dialog class="sheet cal-sheet" id="cal" aria-label="Pick a date"></dialog>
@@ -204,7 +204,7 @@ export default {
     // day change can't write one day's notes into another.
     let notesTimer;
     const notes = richText($('#notes'), {
-      placeholder: 'Anything about today…',
+      placeholder: word('ph_day_notes'),
       origin: () => ({ collection: 'days', id: date, title: `Notes for ${date}`, field: 'notes' }),
       onChange: md => {
         clearTimeout(notesTimer);
@@ -617,7 +617,7 @@ export default {
         ${section('Now', by('now'))}
         ${section('Next', by('next'))}
         ${section('Later', by('later'))}
-        ${open.length ? '' : '<p class="muted">No open tasks. Add some in Tasks.</p>'}
+        ${open.length ? '' : '<p class="muted">' + esc(word('ph_day_bring_empty')) + '</p>'}
         <div class="review-all"><button type="button" data-bring-act="close" class="primary">Done</button></div>`;
     }
 
@@ -1196,7 +1196,7 @@ export default {
       dlg.innerHTML = `
         <div class="sheet-handle"></div>
         <h2>Unfinished from earlier days</h2>
-        <p class="muted hint">For each one: did you do it, do you still want to, or can it go? Letting go is fine; some things just stop mattering. Let-go items wait in the Archive in case you want them back; Delete gets rid of them.</p>
+        <p class="muted hint">${esc(word('ph_day_review'))}</p>
         ${[...byDay].map(([d, list]) => `
           <h3 class="milestone">${esc(dayName(d))}</h3>
           <ul class="review-list">${list.map(i => `

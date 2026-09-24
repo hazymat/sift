@@ -222,7 +222,7 @@ export default {
               <label class="entry-chip" data-chip="horizon">📥 <span class="chip-text" data-empty="${esc(listName || word('list_inbox'))}">${esc(listName || word('list_inbox'))}</span>
                 <select data-entry="horizon" aria-label="Which list">${HORIZONS.map(x => opt(x.id, x.label, x.label === (listName || word('list_inbox')))).join('')}</select></label>
             </div>
-            <p class="muted hint">Enter adds it. Start a line with "- " for a sub-task.</p>
+            <p class="muted hint">${esc(word('ph_tasks_entry'))}</p>
           </div>
         </div>`;
     }
@@ -331,7 +331,7 @@ export default {
           </button>`;
       }).join('');
       return `<div class="project-grid">${cards}<button type="button" class="project-card add-card" data-act="new-project">+ New project</button></div>
-        <p class="muted hint">A project is just a group of tasks. Give it milestones to see progress in stages.</p>`;
+        <p class="muted hint">${esc(word('ph_tasks_projects'))}</p>`;
     }
 
     function viewDone() {
@@ -365,7 +365,7 @@ export default {
         const t = data.tasks.find(x => x.id === id);
         notesEditor = richText(notesBox, {
           value: t?.notes || '',
-          placeholder: 'Notes…',
+          placeholder: word('ph_notes'),
           origin: () => ({ collection: 'tasks', id, title: t?.title, field: 'notes' }),
           onChange: md => {
             clearTimeout(noteTimer);
@@ -587,7 +587,7 @@ export default {
         const p = await newProject();
         if (p) await change(id, { project_id: p.id, milestone_id: null }, `Moved to ${p.name}`); else render();
       } else if (t.name === 'milestone_id' && t.value === '__new') {
-        const name = await askText('New milestone', { placeholder: 'e.g. First draft done', ok: 'Add' });
+        const name = await askText('New milestone', { placeholder: word('ph_milestone'), ok: 'Add' });
         if (!name?.trim()) { render(); return; }
         const m = await store.create('milestones', { project_id: task.project_id, name: name.trim(), due_date: null, done_at: null, sort_order: data.milestones.length });
         await change(id, { milestone_id: m.id });
@@ -658,7 +658,7 @@ export default {
         const p = await newProject();
         if (p) go('list', p.id);
       } else if (act === 'new-milestone') {
-        const r = await ask({ title: 'New milestone', ok: 'Add', fields: [{ name: 'name', label: 'Name', placeholder: 'e.g. First draft done' }, { name: 'due', label: 'Aim date (optional)', type: 'date' }] });
+        const r = await ask({ title: 'New milestone', ok: 'Add', fields: [{ name: 'name', label: 'Name', placeholder: word('ph_milestone') }, { name: 'due', label: 'Aim date (optional)', type: 'date' }] });
         const name = r?.name;
         if (!name?.trim()) return;
         const due = r.due || null;

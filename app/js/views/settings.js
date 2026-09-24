@@ -1,6 +1,7 @@
 import { sortable } from '../sortable.js';
 import { toast } from '../toast.js';
 import { ask, askText, askYes } from '../ask.js';
+import { word } from '../words.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
@@ -34,7 +35,7 @@ export default {
         <div class="segmented" id="text-size" role="group" aria-label="Text size">
           ${[[87.5, 'Smaller'], [100, 'Normal'], [112.5, 'Larger'], [125, 'Largest']].map(([v, l]) => `<button type="button" data-size="${v}">${l}</button>`).join('')}
         </div>
-        <p class="muted">For this device only. Smaller fits more on the page.</p>
+        <p class="muted">${esc(word('ph_set_size'))}</p>
       </section>
 
       <section class="card" id="planner-settings">
@@ -47,18 +48,18 @@ export default {
           <label>Longest duration<select name="duration_max_min">${[120, 180, 240, 300, 360, 480].map(m => `<option value="${m}">${m / 60} hours</option>`).join('')}</select></label>
         </div>
         <h3>Down days</h3>
-        <p class="muted">Days to go easy. The planner nudges you to do less.</p>
+        <p class="muted">${esc(word('ph_set_down'))}</p>
         <div class="segmented" id="down-days">${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d, n) => `<button type="button" data-dow="${(n + 1) % 7}">${d}</button>`).join('')}</div>
         <h3>Nudges</h3>
         <label class="check-row"><input type="checkbox" name="show_now_marker"> Show a ▶ in the margin at the current time</label>
-        <label class="check-row"><input type="checkbox" name="show_evening"> Show a section after the day ends, called <input name="evening_label" class="inline-text" placeholder="Evening plans" autocomplete="off" aria-label="Name of the section after the day ends"></label>
+        <label class="check-row"><input type="checkbox" name="show_evening"> Show a section after the day ends, called <input name="evening_label" class="inline-text" placeholder="${esc(word('ph_set_evening'))}" autocomplete="off" aria-label="Name of the section after the day ends"></label>
         <label class="check-row"><input type="checkbox" name="hint_down_day"> Remind me to do less on down days</label>
         <label class="check-row"><input type="checkbox" name="hint_walk_breaks"> Build in short breaks during long stretches of work <span class="muted">(with the focus timer, coming later)</span></label>
       </section>
 
       <section class="card" id="words-card">
         <h2>Your words</h2>
-        <p class="muted">Call things what you call them: the names of the areas, the task lists and headings, and what each energy level means for you. (Energy helps you fit the day to how you feel: pick a level for the day, mark tasks with the level they need, and Sift can suggest tasks that match. The meanings show when you hover over or hold the ⚡.)</p>
+        <p class="muted">${esc(word('ph_set_words'))}</p>
         <div class="backup-row">
           <button type="button" data-words="dict">Dictionary…</button>
           <button type="button" data-words="types">Brain Dump types…</button>
@@ -67,7 +68,7 @@ export default {
 
       <section class="card" id="notes-settings">
         <h2>Notes</h2>
-        <p class="muted">In any note, 📞 links a contact, 📝 links anything, ⚠️ links something important. Or just keep the emoji.</p>
+        <p class="muted">${esc(word('ph_set_notes'))}</p>
         <label class="check-row"><input type="checkbox" name="spot_details"> Turn phone numbers and emails typed into notes into contacts (with Undo)</label>
         <div class="settings-grid">
           <label>Phone numbers without a country code are from<select name="phone_country"></select></label>
@@ -90,18 +91,18 @@ export default {
         <div class="backup-row">
           <label class="file-btn">Restore from a backup…<input type="file" id="restore-file" accept=".sift,application/json,application/gzip,application/octet-stream" hidden></label>
         </div>
-        <p class="muted hint">Backups are a single .sift file. On iPhone, save it to Files or iCloud Drive. Restoring merges: nothing on this device is lost, and the newest edit of each field wins.</p>
+        <p class="muted hint">${esc(word('ph_set_backup'))}</p>
       </section>
 
       <section class="card">
         <h2>History</h2>
-        <p class="muted">Every change on this device, newest first. Undo any of them individually, in any order.</p>
+        <p class="muted">${esc(word('ph_set_history'))}</p>
         <a class="seg-link" href="#/history">Open history</a>
       </section>
 
       <section class="card">
         <h2>Archive &amp; Bin</h2>
-        <p class="muted">Archived things are hidden but still searchable. Deleted things stay in the bin for 30 days.</p>
+        <p class="muted">${esc(word('ph_set_bin'))}</p>
         <div class="segmented"><a class="seg-link" href="#/bin/archive/all">Archive <span id="count-archive" class="muted"></span></a><a class="seg-link" href="#/bin/bin/all">Bin <span id="count-bin" class="muted"></span></a></div>
       </section>
 
@@ -117,7 +118,7 @@ export default {
 
       <section class="card" id="exchange-card">
         <h2>Data exchange</h2>
-        <p class="muted">Days from the Day Planner as plain text: each day's tasks (done and not done) with their notes, and the day's notes.</p>
+        <p class="muted">${esc(word('ph_set_exchange'))}</p>
         <div class="settings-grid">
           <label>From<input type="date" name="ex_from"></label>
           <label>To<input type="date" name="ex_to"></label>
@@ -140,7 +141,7 @@ export default {
 
       <section class="card danger-zone" id="erase-card">
         <h2>Clear and erase</h2>
-        <p class="muted">These can't be undone. Back up first if you might want anything back.</p>
+        <p class="muted">${esc(word('ph_set_clear'))}</p>
         <div class="backup-row">
           <button type="button" data-erase="drafts">Clear unsaved drafts</button>
           <button type="button" data-erase="history">Clear the undo history</button>
@@ -148,7 +149,7 @@ export default {
         <div class="backup-row">
           <button type="button" class="danger" data-erase="all">Erase all data on this device…</button>
         </div>
-        <p class="muted hint">Erasing removes every task, plan, note, contact, box and setting stored here. The app itself stays installed.</p>
+        <p class="muted hint">${esc(word('ph_set_erase'))}</p>
       </section>
     `;
 
@@ -204,9 +205,9 @@ export default {
                 <button type="button" class="primary" data-sync="pw">Change password</button>
                 <span class="muted" id="sync-msg"></span>
               </div>
-              <p class="muted hint">Your other devices are signed out and sign in again with the new password. Your data doesn't change.</p>
+              <p class="muted hint">${esc(word('ph_sync_pw'))}</p>
             </div>
-            <p class="muted hint">Your data is encrypted on this device before it's sent; the server can't read it. Signing out keeps everything on this device.</p>`;
+            <p class="muted hint">${esc(word('ph_sync_signed_in'))}</p>`;
           return;
         }
         const remembered = (await store.getDeviceSettings()).server_url;
@@ -214,7 +215,7 @@ export default {
         if (sync.signedIn()) return draw();
         box.innerHTML = `
           <p class="sync-out-reason" hidden></p>
-          <p class="muted">Sync keeps your phone and laptop in step through your own server. Everything is encrypted here first; the server only stores scrambled copies.</p>
+          <p class="muted">${esc(word('ph_sync_intro'))}</p>
           <div class="settings-grid sync-form">
             <label class="wide">Server<input name="server" value="${remembered || ''}" placeholder="https://your-server" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" class="no-inline"></label>
             <label>Email<input name="email" type="email" autocomplete="username" class="no-inline"></label>
@@ -227,7 +228,7 @@ export default {
             <span class="muted" id="sync-msg"></span>
           </div>
           <div class="trust-cert" hidden>
-            <p class="muted">A server at home makes its own security certificate, and each device has to trust it once. (A server with a proper web address doesn't need this.)</p>
+            <p class="muted">${esc(word('ph_sync_cert'))}</p>
             <div class="trust-row">
               <a class="button trust-link" target="_blank" rel="noopener">Get the certificate</a>
               <code class="trust-url"></code>
@@ -242,10 +243,10 @@ export default {
               <li><b>Windows:</b> download it, double-click → Install Certificate → Local Machine → "Trusted Root Certification Authorities". Restart the browser.</li>
               <li><b>Mac:</b> download it, double-click → Keychain Access; open it, choose Trust → "Always Trust".</li>
             </ul>
-            <p class="muted">Then reload this page and check the address again.</p>
+            <p class="muted">${esc(word('ph_sync_cert_then'))}</p>
           </details>
           <div class="sync-recover" hidden>
-            <p class="muted">Enter your email above, the recovery code you saved when you made the account, and a new password. Your other devices are signed out.</p>
+            <p class="muted">${esc(word('ph_sync_recover'))}</p>
             <div class="settings-grid sync-form">
               <label class="wide">Recovery code<input name="code" autocomplete="off" autocapitalize="characters" spellcheck="false" class="no-inline"></label>
               <label>New password<input name="newpw" type="password" autocomplete="new-password" class="no-inline"></label>
@@ -497,30 +498,52 @@ export default {
       dlg.addEventListener('close', () => dlg.remove());
       if (b.dataset.words === 'dict') {
         // Every word, grouped, with a hint and "Reset to default".
+        // One line per word or phrase: the text itself (edit it in place), ⓘ for
+        // what it is and where it shows, reset back to the default. Changed ones are marked.
         const row = x => `
-          <div class="dict-row" data-key="${esc(x.key)}">
-            <label><span class="dict-name">${esc(x.default)}</span>
-              <input data-word="${esc(x.key)}" value="${esc(w.isCustom(x.key) ? w.word(x.key) : '')}" placeholder="${esc(x.default)}" autocomplete="off"></label>
-            <p class="muted hint">${esc(x.hint)}</p>
-            <button type="button" class="dict-reset" data-reset="${esc(x.key)}" ${w.isCustom(x.key) ? '' : 'hidden'}>Reset to default</button>
+          <div class="dict-row${w.isCustom(x.key) ? ' custom' : ''}" data-key="${esc(x.key)}" data-find="${esc(`${x.default} ${w.word(x.key)} ${x.hint} ${x.group}`.toLowerCase())}">
+            <input data-word="${esc(x.key)}" value="${esc(w.word(x.key))}" aria-label="${esc(x.default)}" title="Default: ${esc(x.default)}" autocomplete="off">
+            <button type="button" class="icon-btn small dict-info" data-info="${esc(x.key)}" aria-label="What is this?" aria-expanded="false"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg></button>
+            <button type="button" class="icon-btn small dict-reset" data-reset="${esc(x.key)}" aria-label="Reset to default" title="Reset to default: ${esc(x.default)}" ${w.isCustom(x.key) ? '' : 'disabled'}><svg class="icon" aria-hidden="true"><use href="#i-reset"/></svg></button>
+            <p class="muted hint dict-hint" hidden>${esc(x.hint)} <span class="dict-default">Default: “${esc(x.default)}”</span></p>
           </div>`;
         const groups = [...new Set(w.WORDS.map(x => x.group))];
         dlg.innerHTML = `<div class="sheet-handle"></div><h2>Dictionary</h2>
-          <p class="muted">Your own words for what Sift shows. Leave a box empty to keep the word in grey. Changes save as you go and follow you to your other devices.</p>
-          ${groups.map(g => `<h3 class="milestone">${esc(g)}</h3>${w.WORDS.filter(x => x.group === g).map(row).join('')}`).join('')}`;
+          <p class="muted">${esc(word('ph_set_dictionary'))}</p>
+          <input type="search" class="search dict-search" placeholder="Find a word or phrase…" autocomplete="off">
+          ${groups.map(g => `<section class="dict-group"><h3 class="milestone">${esc(g)}</h3>${w.WORDS.filter(x => x.group === g).map(row).join('')}</section>`).join('')}`;
+        const mark = key => {
+          const r = dlg.querySelector(`.dict-row[data-key="${key}"]`);
+          r.classList.toggle('custom', w.isCustom(key));
+          r.querySelector('[data-reset]').disabled = !w.isCustom(key);
+        };
+        dlg.addEventListener('input', e2 => {
+          if (!e2.target.matches('.dict-search')) return;
+          const words = e2.target.value.toLowerCase().split(/\s+/).filter(Boolean);
+          for (const r of dlg.querySelectorAll('.dict-row')) r.hidden = !words.every(x => r.dataset.find.includes(x));
+          for (const g of dlg.querySelectorAll('.dict-group')) g.hidden = ![...g.querySelectorAll('.dict-row')].some(r => !r.hidden);
+        });
         dlg.addEventListener('change', async e2 => {
           const key = e2.target.dataset?.word;
           if (!key) return;
           await w.setWord(key, e2.target.value);
-          dlg.querySelector(`[data-reset="${key}"]`).hidden = !w.isCustom(key);
+          if (!e2.target.value.trim()) e2.target.value = w.word(key); // emptied: the default comes back
+          mark(key);
           toast('✓ Saved');
         });
         dlg.addEventListener('click', async e2 => {
+          const info = e2.target.closest('[data-info]');
+          if (info) {
+            const hint = info.closest('.dict-row').querySelector('.dict-hint');
+            hint.hidden = !hint.hidden;
+            info.setAttribute('aria-expanded', !hint.hidden);
+            return;
+          }
           const r = e2.target.closest('[data-reset]');
           if (!r) return;
           await w.setWord(r.dataset.reset, '');
-          dlg.querySelector(`[data-word="${r.dataset.reset}"]`).value = '';
-          r.hidden = true;
+          dlg.querySelector(`[data-word="${r.dataset.reset}"]`).value = w.word(r.dataset.reset);
+          mark(r.dataset.reset);
           toast('✓ Back to the default');
         });
       } else {
@@ -529,7 +552,7 @@ export default {
         const save = async () => { await w.setDumpTypes(list); draw(); };
         const draw = () => {
           dlg.innerHTML = `<div class="sheet-handle"></div><h2>Brain Dump types</h2>
-            <p class="muted">What a note can be marked as, to filter by later. They are just labels: none of them changes what Sift does. Removing one keeps its notes; they show the old name until you pick another.</p>
+            <p class="muted">${esc(word('ph_set_types'))}</p>
             <ul class="types-list">${list.map((t, n) => `
               <li data-n="${n}">
                 <input data-type-label value="${esc(t.label)}" aria-label="Type name" autocomplete="off">
@@ -538,7 +561,7 @@ export default {
                 <button type="button" class="icon-btn small" data-type="remove" ${list.length > 1 ? '' : 'disabled'} aria-label="Remove">×</button>
               </li>`).join('')}
             </ul>
-            <form class="types-add"><input name="new" placeholder="A new type, e.g. Recipe" autocomplete="off"><button type="submit">Add</button></form>
+            <form class="types-add"><input name="new" placeholder="${esc(word('ph_set_new_type'))}" autocomplete="off"><button type="submit">Add</button></form>
             <div class="backup-row"><button type="button" data-type="defaults">Put back the defaults</button></div>`;
         };
         draw();

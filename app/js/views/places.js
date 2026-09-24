@@ -11,6 +11,7 @@ import { toast, undoable } from '../toast.js';
 import * as att from '../attachments.js';
 import { editPills, selectPill } from '../editpills.js';
 import { askText, askYes } from '../ask.js';
+import { word } from '../words.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -46,7 +47,7 @@ export default {
     el.innerHTML = `
       <div id="find-grid">
         <div class="find-bar">
-          <input type="search" id="find-q" class="search" placeholder="Find anything… (press /)" autocomplete="off" enterkeyhint="search">
+          <input type="search" id="find-q" class="search" placeholder="${esc(word('ph_find_search'))}" autocomplete="off" enterkeyhint="search">
         </div>
         <div class="find-tools">
           <div class="segmented" id="editions" role="tablist" aria-label="Life areas"></div>
@@ -144,7 +145,7 @@ export default {
                path: `${r.edition.name} › ${r.section.name}`,
                highlight: r.boxMatch && !r.items.length ? null : r.items,
              })).join('')}</div>`
-          : `<div class="empty"><h2>Nothing found</h2><p class="muted">Try fewer or different words.</p></div>`;
+          : `<div class="empty"><h2>Nothing found</h2><p class="muted">${esc(word('ph_find_nothing'))}</p></div>`;
         body.insertAdjacentHTML('beforeend', '<p class="archive-hint" hidden></p>');
         const asked = query;
         archivedMatchCount(query).then(n => {
@@ -159,7 +160,7 @@ export default {
       if (!current) {
         body.innerHTML = `<div class="empty">
           <h2>Where is everything?</h2>
-          <p class="muted">Import a CSV of your boxes, or start adding them.</p>
+          <p class="muted">${esc(word('ph_find_empty'))}</p>
           <p><button type="button" class="primary" data-act="import">Import CSV</button>
              <button type="button" data-act="add-box">Add a box</button></p>
         </div>`;
@@ -171,7 +172,7 @@ export default {
           <div class="box-grid">${s.boxes.map(b => card(b)).join('')}
             <button type="button" class="box-card add-card" data-act="add-box" data-section="${s.id}">+ Add box</button>
           </div>
-        </section>`).join('') || '<div class="empty"><p class="muted">No boxes in this life area yet.</p></div>';
+        </section>`).join('') || '<div class="empty"><p class="muted">' + esc(word('ph_find_area_empty')) + '</p></div>';
       requestAnimationFrame(() => fitPills());
     }
 
@@ -193,7 +194,7 @@ export default {
           <span class="muted box-path">${esc(e.name)}</span>
         </div>
         <div class="find-bar box-find">
-          <input type="search" id="box-q" class="search" placeholder="Search in this box…" value="${esc(query)}" autocomplete="off" enterkeyhint="search">
+          <input type="search" id="box-q" class="search" placeholder="${esc(word('ph_find_box_search'))}" value="${esc(query)}" autocomplete="off" enterkeyhint="search">
           <span class="muted box-hits" aria-live="polite"></span>
         </div>
         <article class="box-page">
@@ -202,8 +203,8 @@ export default {
             <input class="box-name-input" name="name" value="${esc(b.name)}" placeholder="Box name" aria-label="Name" autocomplete="off">
           </header>
           <div class="box-fields">
-            <label>Where it lives<input name="location_note" value="${esc(b.location_note)}" placeholder="e.g. Top shelf, garage" autocomplete="off"></label>
-            <label>Notes<input name="notes" value="${esc(b.notes)}" placeholder="e.g. Clear 10-litre box" autocomplete="off"></label>
+            <label>Where it lives<input name="location_note" value="${esc(b.location_note)}" placeholder="${esc(word('ph_box_where'))}" autocomplete="off"></label>
+            <label>Notes<input name="notes" value="${esc(b.notes)}" placeholder="${esc(word('ph_box_notes'))}" autocomplete="off"></label>
           </div>
           <h3>Contents <span class="muted">${b.items.length}</span></h3>
           <ul class="item-list">${b.items.map(i => `
@@ -217,7 +218,7 @@ export default {
             ${openItem === i.id ? thingPanel(i) : ''}`).join('')}
           </ul>
           <datalist id="thing-tags">${allTags().map(t => `<option value="${esc(t)}">`).join('')}</datalist>
-          <textarea id="new-items" class="list-entry" rows="2" placeholder="Add items"></textarea>
+          <textarea id="new-items" class="list-entry" rows="2" placeholder="${esc(word('ph_add_items'))}"></textarea>
           <p class="muted hint">${listHint({ enterAdds: true })} ≡: tap to select, swipe down the ≡ column to select several, press and hold to drag (sideways to indent; or Tab / Shift+Tab). Changes save as you go; Esc closes.</p>
           <div class="sheet-actions">
             <button type="button" data-act="add-items">Add items <kbd>${SHORTCUT}</kbd></button>
@@ -590,7 +591,7 @@ export default {
         a.click();
         setTimeout(() => URL.revokeObjectURL(a.href), 1000);
       } else if (name === 'add-edition') {
-        const n = await askText('New life area', { placeholder: 'e.g. Home, Garage, Allotment', ok: 'Add' });
+        const n = await askText('New life area', { placeholder: word('ph_new_area'), ok: 'Add' });
         if (!n?.trim()) return;
         const e = await store.create('places', { kind: 'edition', name: n.trim(), parent_place_id: null, notes: '', sort_order: tree.length });
         editionId = e.id; remember(EDITION_KEY, e.id);
@@ -600,7 +601,7 @@ export default {
         if (n?.trim()) { await store.update('places', current.id, { name: n.trim() }); await reload(); }
       } else if (name === 'add-section') {
         const ed = current || await store.create('places', { kind: 'edition', name: 'Standard', parent_place_id: null, notes: '', sort_order: 0 });
-        const n = await askText(`New ${GROUP.one || GROUP.One.toLowerCase()}`, { placeholder: 'e.g. Wardrobe, Shed shelves', ok: 'Add' });
+        const n = await askText(`New ${GROUP.one || GROUP.One.toLowerCase()}`, { placeholder: word('ph_new_group'), ok: 'Add' });
         if (!n?.trim()) return;
         await store.create('places', { kind: 'section', name: n.trim(), parent_place_id: ed.id, location_note: '', notes: '', sort_order: current?.sections.length || 0 });
         await reload();
