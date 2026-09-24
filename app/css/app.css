@@ -773,7 +773,8 @@ kbd { font: inherit; font-size: .72em; padding: 1px 5px; margin-left: 4px; borde
 }
 .line .content { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 0 10px 0 8px; }
 .line.blank .content { cursor: text; }
-.line.blank:hover .content::before { content: "+"; color: var(--muted); opacity: .5; font-size: .9rem; }
+/* An empty slot you can write on lights up a little under the pointer (no "+", so nothing moves). */
+.line.blank:not(.covered):hover .content { background: color-mix(in srgb, var(--text) 5%, transparent); }
 .line.blank .content:has(input)::before { content: none; }
 .line.section-label .content { font-family: var(--hand); color: var(--muted); font-size: .95rem; }
 .line .item-title { flex: 1; min-width: 0; font-family: var(--hand); font-size: 1.1rem; padding: 4px 6px; background: transparent; border-color: transparent; color: var(--text); }
