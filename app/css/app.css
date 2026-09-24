@@ -776,7 +776,7 @@ kbd { font: inherit; font-size: .72em; padding: 1px 5px; margin-left: 4px; borde
 .line .content { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 0 10px 0 8px; }
 .line.blank .content { cursor: text; }
 /* An empty slot you can write on lights up a little under the pointer (no "+", so nothing moves). */
-.line.blank:not(.covered):hover .content { background: color-mix(in srgb, var(--text) 5%, transparent); }
+.line.blank:not(.covered):hover .content { background: color-mix(in srgb, var(--text) var(--line-hover), transparent); }
 .line.blank .content:has(input)::before { content: none; }
 .line.section-label .content { font-family: var(--hand); color: var(--muted); font-size: .95rem; }
 .line .item-title { flex: 1; min-width: 0; font-family: var(--hand); font-size: 1.1rem; padding: 4px 6px; background: transparent; border-color: transparent; color: var(--text); }
@@ -2329,12 +2329,12 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
 /* Typing a note in place: square corners, so the cursor isn't clipped by a rounded edge. */
 .edit-pills .pill-note, .edit-pills .pill-note:focus { border-radius: 0; border: 0; outline: none; box-shadow: none; }
 /* Editing a title in place: no border or rounded box, just the line lit up a little. */
-.task-title:focus { border-color: transparent; border-radius: 0; background: color-mix(in srgb, var(--text) 7%, transparent); box-shadow: none; }
+.task-title:focus { border-color: transparent; border-radius: 0; background: color-mix(in srgb, var(--text) var(--line-lit), transparent); box-shadow: none; }
 
 .link-btn { padding: 0; margin-left: 6px; border: 0; background: none; box-shadow: none; color: var(--accent); font-size: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
 /* Day Planner lines: typing on a line (a new one or an item's text) shows no
    border or rounded box, just the line lit up a little, like task titles. */
-.line .item-title:focus { border-color: transparent; border-radius: 0; background: color-mix(in srgb, var(--text) 7%, transparent); box-shadow: none; }
+.line .item-title:focus { border-color: transparent; border-radius: 0; background: color-mix(in srgb, var(--text) var(--line-lit), transparent); box-shadow: none; }
 
 /* Glass: a note shown under an item (tasks, Day Planner items, list items,
    things in Find Things; medium and loose spacing) in italics, a touch smaller
@@ -2441,11 +2441,15 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 12' preserveAspectRatio='none'%3E%3Cpath d='M1 3.6 C 22 2.2, 48 2.4, 70 2.9 S 92 3.8, 99 3.1' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M4 9.8 C 26 8.3, 52 8.6, 74 8.4 S 90 7.9, 94 8.6' fill='none' stroke='black' stroke-width='1.4' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E") no-repeat 0 0 / 100% 100%;
 }
 .planner:is([data-paper="techie"], [data-paper="minimal"]) .hand-label::before { display: none; }
+/* Lines on ruled paper (schedule, Day Planner and Tasks page tasks, Day focus,
+   Notes) share two faint shades of the text colour: under the pointer, and
+   while you're writing in them. */
+:root { --line-hover: 3.5%; --line-lit: 5%; }
 /* The focus line types like a schedule line: lit up a little under the
    pointer and while typing, no border or rounded box. */
 .focus input { border-radius: 0 !important; }
-.focus input:hover { background: color-mix(in srgb, var(--text) 5%, transparent) !important; }
-.focus input:focus { border-color: transparent !important; background: color-mix(in srgb, var(--text) 7%, transparent) !important; box-shadow: none; }
+.focus input:hover { background: color-mix(in srgb, var(--text) var(--line-hover), transparent) !important; }
+.focus input:focus { border-color: transparent !important; background: color-mix(in srgb, var(--text) var(--line-lit), transparent) !important; box-shadow: none; }
 
 /* Energy: on a narrow screen it follows Day focus and, when there isn't room,
    wraps underneath at the left (not pushed to the right). On a wide screen,
@@ -2462,9 +2466,9 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 /* Day Planner Tasks: the same as the schedule's lines. Each line lights up a
    little under the pointer; typing on the New task line (or a task's text)
    shows no border or rounded box, just the line lit up. */
-.pile-paper .line:hover > .content { background: color-mix(in srgb, var(--text) 5%, transparent); }
+.pile-paper .line:hover > .content { background: color-mix(in srgb, var(--text) var(--line-hover), transparent); }
 .pile-new .new-task { border-radius: 0; border-color: transparent; background: transparent; box-shadow: none; }
-.pile-new .new-task:focus { border-color: transparent; border-radius: 0; background: color-mix(in srgb, var(--text) 7%, transparent); box-shadow: none; }
+.pile-new .new-task:focus { border-color: transparent; border-radius: 0; background: color-mix(in srgb, var(--text) var(--line-lit), transparent); box-shadow: none; }
 
 .pile-blank { cursor: text; }
 .pile-paper .pile-blank { border-bottom: 1px solid var(--rule); }
@@ -2500,8 +2504,8 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
   background-attachment: local;
 }
 #notes .rich-edit :is(ul, ol, p, div, h3, h4) { margin-top: 0; margin-bottom: 0; line-height: var(--note-line); }
-#notes .rich-edit:hover { background-color: color-mix(in srgb, var(--text) 4%, transparent); }
-#notes .rich-edit:focus, #notes .rich-raw:focus { background-color: color-mix(in srgb, var(--text) 6%, transparent); }
+#notes .rich-edit:hover { background-color: color-mix(in srgb, var(--text) var(--line-hover), transparent); }
+#notes .rich-edit:focus, #notes .rich-raw:focus { background-color: color-mix(in srgb, var(--text) var(--line-lit), transparent); }
 
 /* The ⠿ handle on Day Planner items and tasks: hidden until the pointer is
    over it (or it's in use). Touch screens, which have no hover, keep it faint. */
@@ -2532,7 +2536,7 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 /* "Add note" under a line you're writing or editing (Tasks, the Day Planner's
    schedule and tasks): small capitals, italic and faint, like a pencilled hint. */
 .add-note { display: block; width: 100%; box-sizing: border-box; min-height: 1.5em; margin: 0; padding: 2px 6px; border: 0 !important; border-radius: 0; background: transparent; box-shadow: none; resize: none; overflow: hidden; font-family: var(--font); font-size: .85rem; line-height: 1.4; color: var(--text); field-sizing: content; }
-.add-note:focus { outline: none; background: color-mix(in srgb, var(--text) 5%, transparent); }
+.add-note:focus { outline: none; background: color-mix(in srgb, var(--text) var(--line-lit), transparent); }
 .add-note::placeholder { font-style: italic; font-variant: small-caps; letter-spacing: .06em; font-size: 1.05em; color: color-mix(in srgb, var(--text) 30%, transparent) !important; opacity: 1; }
 /* Day Planner: the note line sits under the title, only while you're on that line. */
 .line .content > .add-note { flex-basis: 100%; margin: -2px 0 4px; }
@@ -2542,7 +2546,7 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 /* Tasks page: the new-task line is ruled paper, not a box; an empty list shows
    a few more ruled lines under it, with the first task on the first line. */
 .task-add-line, .task-add-line:focus-within { border: 0; border-bottom: 1px solid var(--glass-border); border-radius: 0; background: transparent; margin: 0; }
-.task-add-line:focus-within { background: color-mix(in srgb, var(--text) 5%, transparent); }
+.task-add-line:focus-within { background: color-mix(in srgb, var(--text) var(--line-lit), transparent); }
 .task-entry.is-empty { display: block; min-height: 0; }
 .task-entry.is-empty .entry-plus { display: none; }
 .task-entry.is-empty:not(.open) .task-add-line { display: flex; }
@@ -2558,7 +2562,7 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
    and its text starts where a task's text does. */
 .task-list > li[data-task] { background: transparent; border: 0; border-radius: 0; box-shadow: none; position: relative; }
 .task-list > li[data-task]::after { content: ''; position: absolute; left: 74px; right: 0; bottom: 0; height: 1px; background: var(--glass-border); pointer-events: none; }
-.task-list > li[data-task]:hover, .task-list > li[data-task]:focus-within { background: color-mix(in srgb, var(--text) 4%, transparent); border-color: transparent; }
+.task-list > li[data-task]:hover, .task-list > li[data-task]:focus-within { background: color-mix(in srgb, var(--text) var(--line-hover), transparent); border-color: transparent; }
 .task-list > li.group-top, .task-list > li.group-kid, .task-list > li.group-kid.group-end { border-radius: 0; }
 .task-list { gap: 0; }
 .task-add-line, .task-add-line:focus-within { padding-left: 40px; gap: 8px; }
