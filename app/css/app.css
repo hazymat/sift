@@ -2797,3 +2797,9 @@ select.dd-open, .dd-open > select { outline: none; }
 #main .thought .thought-body { font-size: .95rem; }
 #main[data-density="tight"] .thought .thought-body > .thought-flat,
 #main[data-density="tight"] .thought .thought-title { font-size: .8rem; }
+
+/* Day Planner ‹ ›: drawn chevrons, so they sit exactly in the middle of their buttons. */
+.day-nav .day-step { display: inline-grid; place-items: center; padding: 6px 12px; }
+.day-nav .day-step .icon { width: 18px; height: 18px; stroke-width: 2.2; }
+.pile h2 .bring-link .bring-arrow { color: var(--energy-ink, #4caf7a); font-weight: 800; font-size: 1.1em; }
+.day-nav :is(.day-step, .cal-icon) { align-self: stretch; }

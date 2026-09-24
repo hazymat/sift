@@ -36,10 +36,10 @@ export default {
 
     el.innerHTML = `<div class="planner" data-paper="notebook">
       <div class="day-nav">
-        <button type="button" data-act="prev" aria-label="Previous day">‹</button>
+        <button type="button" data-act="prev" class="day-step" aria-label="Previous day"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg></button>
         <button type="button" data-act="calendar" class="cal-icon" aria-label="Pick a date" title="Pick a date"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg></button>
         <button type="button" data-act="today">Today</button>
-        <button type="button" data-act="next" aria-label="Next day">›</button>
+        <button type="button" data-act="next" class="day-step" aria-label="Next day"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
         <details class="tool-menu share-menu">
           <summary class="share-btn" role="button"><svg class="icon" aria-hidden="true"><use href="#i-share"/></svg> Share</summary>
           <div class="menu">
@@ -76,7 +76,7 @@ export default {
       <section class="paper" aria-label="Plan"><div id="lines"></div></section>
       <div class="day-bottom">
         <section class="pile">
-          <h2>${esc(word('day_tasks'))} <span class="task-count" hidden></span><button type="button" class="bring-link" data-act="bring-in" title="Claim tasks from the Tasks page for this day">↓ Bring in from tasks</button></h2>
+          <h2>${esc(word('day_tasks'))} <span class="task-count" hidden></span><button type="button" class="bring-link" data-act="bring-in" title="Claim tasks from the Tasks page for this day"><span class="bring-arrow" aria-hidden="true">↓</span> Bring in from tasks</button></h2>
           <div class="pile-paper">
             <ul id="pile" class="pile-list"></ul>
             <div class="line pile-new"><span class="margin"></span><span class="content"><input id="dump" class="new-task hand no-inline" placeholder="New task" autocomplete="off" enterkeyhint="done" aria-label="New task"><textarea id="dump-note" class="add-note no-inline" rows="1" placeholder="Add note" aria-label="Note"></textarea><div class="new-pills"></div></span></div>
