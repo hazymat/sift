@@ -75,6 +75,7 @@ export default {
             <ul id="pile" class="pile-list"></ul>
             <div class="line pile-new"><span class="margin"></span><span class="content"><input id="dump" class="new-task hand" placeholder="New task" autocomplete="off" enterkeyhint="done" aria-label="New task"></span></div>
             <ul id="pile-done" class="pile-list pile-done"></ul>
+            <div id="pile-blank" aria-hidden="true"></div>
           </div>
           <div class="pile-foot">
             <button type="button" data-act="bring-in">Bring in from tasks…</button>
@@ -104,6 +105,7 @@ export default {
 
     const $ = s => el.querySelector(s);
     const linesEl = $('#lines');
+    $('#pile-blank').addEventListener('click', () => $('#dump').focus());
 
     // Shift+Enter in an item's title: save the title, then type its notes.
     el.addEventListener('keydown', async ev => {
@@ -544,6 +546,8 @@ export default {
           <button type="button" class="done-toggle" data-act="toggle-done" aria-expanded="${doneOpen}">${doneOpen ? '▾' : '▸'} Done <span class="task-count">${done.length}</span></button>
         </span></li>
         ${doneOpen ? done.map(i => `<li data-pile="${i.id}">${itemRow(i, '')}</li>`).join('') : ''}` : '';
+      // A short list gets a few empty ruled lines under it, like a page (tap one to add a task).
+      $('#pile-blank').innerHTML = '<div class="line pile-blank"><span class="margin"></span><span class="content"></span></div>'.repeat(Math.max(0, 4 - todo.length));
       const count = $('.pile .task-count');
       count.hidden = !all.length;
       count.textContent = `${all.filter(i => i.done_at).length}/${all.length}`;
