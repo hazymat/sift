@@ -2494,11 +2494,11 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
    New task line show a faint empty tick box in the same place, so every line
    reads as a task line. */
 .pile-paper .line { position: relative; }
-.pile-paper .line.has-item > .content > .tick { position: absolute; left: 38px; top: 7px; margin: 0; }
-.pile-paper .line.has-item > .content > .drag-grip { position: absolute; left: 12px; top: 6px; }
+.pile-paper .line.has-item > .content > .tick { position: absolute; left: 30px; top: 7px; margin: 0; }
+.pile-paper .line.has-item > .content > .drag-grip { position: absolute; left: 6px; top: 6px; }
 .pile-paper :is(.pile-new, .pile-blank) > .margin { position: relative; }
 .pile-paper :is(.pile-new, .pile-blank) > .margin::after {
-  content: ''; position: absolute; left: 38px; top: 7px; width: 18px; height: 18px; box-sizing: border-box;
+  content: ''; position: absolute; left: 30px; top: 7px; width: 18px; height: 18px; box-sizing: border-box;
   border: 1.5px solid color-mix(in srgb, var(--text) 55%, transparent); border-radius: 5px; opacity: .35;
 }
 .pile-new > .margin { cursor: text; }
