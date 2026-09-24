@@ -2490,3 +2490,11 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 #notes .rich-edit, #notes .rich-raw { border-color: transparent !important; background: transparent; border-radius: 0; box-shadow: none; }
 #notes .rich-edit:hover { background: color-mix(in srgb, var(--text) 4%, transparent); }
 #notes .rich-edit:focus, #notes .rich-raw:focus { background: color-mix(in srgb, var(--text) 6%, transparent); }
+
+/* The ⠿ handle on Day Planner items and tasks: hidden until the pointer is
+   over it (or it's in use). Touch screens, which have no hover, keep it faint. */
+@media (hover: hover) {
+  .line .drag-grip, .line:hover .drag-grip, .line:focus-within .drag-grip { opacity: 0; transition: opacity .12s; }
+  .line .drag-grip:hover, .line .drag-grip:focus-visible, .line.selected .drag-grip, .line.dragging .drag-grip, body.is-dragging .line .drag-grip { opacity: .9; }
+}
+@media (hover: none) { .line .drag-grip { opacity: .35; } }
