@@ -1015,6 +1015,12 @@ export default {
     }
     const closeNew = () => pileNew.classList.remove('open');
     pileNew.addEventListener('focusin', () => { if (!pileNew.classList.contains('open')) { paintNewPills(); pileNew.classList.add('open'); } });
+    // Leaving by keyboard (Tab / Shift+Tab) closes it too, if nothing's typed or set.
+    pileNew.addEventListener('focusout', ev => {
+      const to = ev.relatedTarget;
+      if (!to || pileNew.contains(to) || to.closest?.('.pill-menu, .dd-menu')) return;
+      if (newIdle()) { resetNew(); closeNew(); }
+    });
     document.addEventListener('pointerdown', ev => {
       if (!el.isConnected || !pileNew.classList.contains('open')) return;
       if (pileNew.contains(ev.target) || ev.target.closest?.('.pill-menu')) return;

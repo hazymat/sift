@@ -2763,3 +2763,8 @@ select.dd-open, .dd-open > select { outline: none; }
    (no extra gap under the list). */
 .task-list:has(+ #task-entry) { margin-bottom: 0; }
 #task-entry { margin-top: 0; }
+
+/* Day Planner Tasks: the tick box is in the margin, so an item's Add note and
+   pills start where its text starts, like the New task line's (not indented
+   like the schedule's, which have the tick box in the line). */
+.pile-paper .line .content > .edit-pills { margin-left: 6px !important; flex-basis: calc(100% - 6px); }

@@ -80,6 +80,8 @@ export function editPills(root, spec) {
   const onFocus = ev => {
     const title = ev.target.closest?.(spec.title);
     const row = title?.closest(spec.row);
+    // The cursor moved somewhere else on the page (Tab, Shift+Tab): put the pills away.
+    if (!row && editing && !rowOf(editing)?.contains(ev.target) && !ev.target.closest?.('.edit-pills, .pill-menu, .ref-picker, dialog')) { close(); return; }
     if (!row || !root.contains(row)) return;
     const key = spec.key(row);
     if (key !== editing) { close(); open(key); }
