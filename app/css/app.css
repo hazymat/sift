@@ -2547,3 +2547,7 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 .task-entry.is-empty .entry-plus { display: none; }
 .task-entry.is-empty:not(.open) .task-add-line { display: flex; }
 .task-entry.is-empty::after { content: ''; display: block; height: calc(43px * 3); background: repeating-linear-gradient(to bottom, transparent 0, transparent 42px, var(--glass-border) 42px, var(--glass-border) 43px); pointer-events: none; }
+/* Tasks page ruled lines start where the text starts, not under the tick box. */
+.task-add-line, .task-add-line:focus-within { border-bottom: 0; position: relative; }
+.task-add-line::after { content: ''; position: absolute; left: 52px; right: 0; bottom: 0; height: 1px; background: var(--glass-border); }
+.task-entry.is-empty::after { margin-left: 52px; }
