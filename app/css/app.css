@@ -714,6 +714,7 @@ kbd { font: inherit; font-size: .72em; padding: 1px 5px; margin-left: 4px; borde
   --rule: rgba(140, 180, 255, .16);
   --margin-rule: rgba(255, 120, 130, .45);
   --focus-ink: #ff8a8a;
+  --energy-ink: #8fdcaa;
   --calm: rgba(120, 220, 170, .14);
 }
 :root[data-theme="light"] {
@@ -721,6 +722,7 @@ kbd { font: inherit; font-size: .72em; padding: 1px 5px; margin-left: 4px; borde
   --rule: rgba(70, 120, 200, .22);
   --margin-rule: rgba(220, 60, 70, .45);
   --focus-ink: #c62828;
+  --energy-ink: #2f8f5b;
   --calm: rgba(40, 160, 110, .12);
 }
 .hand { font-family: var(--hand); }
@@ -882,6 +884,7 @@ kbd { font: inherit; font-size: .72em; padding: 1px 5px; margin-left: 4px; borde
   --rule: rgba(95, 110, 130, .26);
   --margin-rule: rgba(214, 60, 60, .65);
   --focus-ink: #c62828;
+  --energy-ink: #2f8f5b;
   --glass: rgba(0, 0, 0, .06);
   --glass-hover: rgba(0, 0, 0, .1);
   --glass-track: rgba(0, 0, 0, .05);
@@ -907,6 +910,7 @@ kbd { font: inherit; font-size: .72em; padding: 1px 5px; margin-left: 4px; borde
   --rule: rgba(79, 209, 197, .14);
   --margin-rule: rgba(79, 209, 197, .55);
   --focus-ink: #f6c177;
+  --energy-ink: #9be3b4;
   --glass: rgba(79, 209, 197, .05);
   --glass-hover: rgba(79, 209, 197, .12);
   --glass-track: rgba(79, 209, 197, .06);
@@ -944,6 +948,7 @@ kbd { font: inherit; font-size: .72em; padding: 1px 5px; margin-left: 4px; borde
   --rule: transparent;
   --margin-rule: transparent;
   --focus-ink: #d9480f;
+  --energy-ink: #2f8f5b;
   --glass: rgba(0, 0, 0, .025);
   --glass-hover: rgba(0, 0, 0, .06);
   --glass-track: rgba(255, 255, 255, .7);
@@ -972,6 +977,7 @@ kbd { font: inherit; font-size: .72em; padding: 1px 5px; margin-left: 4px; borde
   --rule: rgba(0, 0, 0, .06);
   --margin-rule: transparent;
   --focus-ink: #15171a;
+  --energy-ink: #2f6f4b;
   --glass: rgba(0, 0, 0, .025);
   --glass-hover: rgba(0, 0, 0, .05);
   --glass-track: rgba(0, 0, 0, .03);
@@ -2418,3 +2424,25 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 .search-results mark { background: color-mix(in srgb, #f2d35b 45%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; }
 .sr-more { margin: 2px 8px; padding: 2px 8px; font-size: .8rem; border: 0; background: none; box-shadow: none; color: var(--accent); cursor: pointer; }
 .sr-empty { margin: 10px; }
+
+/* Day Planner: Day focus and Energy on one line (Energy to the right; they
+   wrap on a narrow screen). Both labels in handwriting with a double underline
+   drawn by hand, Day focus in red and Energy in a pastel green. */
+.focus-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; margin-bottom: 10px; }
+.focus-row .focus { flex: 1 1 300px; min-width: 0; margin-bottom: 0; align-items: center; }
+.focus-row .energy { flex: none; margin-left: auto; }
+.focus-row .energy .view-menu { margin-left: 4px; }
+.hand-label { position: relative; font-family: var(--hand); font-size: 1.05rem; text-transform: uppercase; letter-spacing: .04em; line-height: 1.2; border-bottom: 0 !important; padding-bottom: 7px; }
+.energy .energy-label { color: var(--energy-ink); margin-right: 6px; }
+.hand-label::before {
+  content: ''; position: absolute; left: -3px; right: -6px; bottom: -3px; height: 9px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 12' preserveAspectRatio='none'%3E%3Cpath d='M1 3.6 C 22 2.2, 48 2.4, 70 2.9 S 92 3.8, 99 3.1' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M4 9.8 C 26 8.3, 52 8.6, 74 8.4 S 90 7.9, 94 8.6' fill='none' stroke='black' stroke-width='1.4' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E") no-repeat 0 0 / 100% 100%;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 12' preserveAspectRatio='none'%3E%3Cpath d='M1 3.6 C 22 2.2, 48 2.4, 70 2.9 S 92 3.8, 99 3.1' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M4 9.8 C 26 8.3, 52 8.6, 74 8.4 S 90 7.9, 94 8.6' fill='none' stroke='black' stroke-width='1.4' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E") no-repeat 0 0 / 100% 100%;
+}
+.planner:is([data-paper="techie"], [data-paper="minimal"]) .hand-label::before { display: none; }
+/* The focus line types like a schedule line: lit up a little under the
+   pointer and while typing, no border or rounded box. */
+.focus input { border-radius: 0 !important; }
+.focus input:hover { background: color-mix(in srgb, var(--text) 5%, transparent) !important; }
+.focus input:focus { border-color: transparent !important; background: color-mix(in srgb, var(--text) 7%, transparent) !important; box-shadow: none; }

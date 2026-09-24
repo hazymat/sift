@@ -30,6 +30,7 @@ export const WORDS = [
   { group: 'Energy levels', key: 'energy_high', default: 'Physically active work, starting new projects', hint: 'What ⚡⚡⚡ high energy means for you.' },
 
   { group: 'Day Planner', key: 'day_focus', default: 'Day focus', hint: 'The line at the top of each day for what matters most: "Main thing", "Intention"…' },
+  { group: 'Day Planner', key: 'day_energy', default: 'Energy', hint: 'The word before the ⚡ buttons for how much energy you have today.' },
   { group: 'Day Planner', key: 'day_focus_prompt', default: 'What matters today?', hint: 'The grey prompt in that line before you type.' },
   { group: 'Day Planner', key: 'day_schedule', default: 'Schedule', hint: 'The heading over the timed plan: "Plan", "Timeline"…' },
   { group: 'Day Planner', key: 'day_tasks', default: 'Tasks', hint: 'The heading over the day\'s own tasks: "To do today"…' },

@@ -54,13 +54,15 @@ export default {
         <h1 class="day-title"><span class="weekday"></span> <span class="date"></span></h1>
         <p class="day-rel muted"></p>
         <div class="down-day" hidden></div>
-        <label class="focus"><span>${esc(word('day_focus'))}</span><input id="focus" placeholder="${esc(word('day_focus_prompt'))}" autocomplete="off"></label>
-        <div class="energy" role="group" aria-label="Today's energy level"><span>Today's Energy Level</span>
+        <div class="focus-row">
+        <label class="focus"><span class="hand-label">${esc(word('day_focus'))}</span><input id="focus" placeholder="${esc(word('day_focus_prompt'))}" autocomplete="off"></label>
+        <div class="energy" role="group" aria-label="Today's energy level"><span class="hand-label energy-label">${esc(word('day_energy'))}</span>
           ${ENERGY.map(e => `<button type="button" class="bolts" data-energy="${e.id}" title="${esc(`${e.label}: ${e.hint}`)}" aria-label="${e.label}">${e.bolts}</button>`).join('')}
           <details class="tool-menu view-menu">
             <summary class="icon-btn" aria-label="View settings for this day" title="View settings for this day"><svg class="icon" aria-hidden="true"><use href="#i-view"/></svg></summary>
             <div class="menu view-settings"></div>
           </details>
+        </div>
         </div>
       </header>
       <div class="carry" hidden></div>
