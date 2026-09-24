@@ -1,3 +1,10 @@
+# HTTP/3 (UDP) is switched off: phones on a VPN or home network sometimes fail to connect once a server advertises it.
+{
+	servers {
+		protocols h1 h2
+	}
+}
+
 {$SIFT_DOMAIN} {
 	encode zstd gzip
 	reverse_proxy sift:8787

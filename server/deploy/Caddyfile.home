@@ -1,3 +1,10 @@
+# HTTP/3 (UDP) is switched off: phones on a VPN or home network sometimes fail to connect once a server advertises it.
+{
+	servers {
+		protocols h1 h2
+	}
+}
+
 # Home network: Caddy runs its own small certificate authority ("tls internal")
 # and issues a certificate for the server's address. Each device trusts that
 # authority once (see README). Nothing goes in public DNS.
