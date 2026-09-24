@@ -235,7 +235,8 @@ export function richText(container, { value = '', onChange, placeholder = '', or
 
   edit.addEventListener('input', ev => {
     // Just after this input event: the browser ignores edits made during one.
-    if (ev.inputType === 'insertText' && ev.data === ' ') queueMicrotask(() => { if (autoList()) changed(toMarkdown(edit)); });
+    // (Any typed input, not just a space: phone keyboards don't always send the space on its own.)
+    if (/^insert(Text|CompositionText|ReplacementText)$/.test(ev.inputType)) queueMicrotask(() => { if (autoList()) changed(toMarkdown(edit)); });
     const trigger = ev.inputType === 'insertText' && triggerFor(ev.data);
     if (trigger) queueMicrotask(() => pick(trigger));
     else if (ev.inputType === 'insertParagraph' || ev.inputType === 'insertText' && /^[\s\u00a0,;:!?)]$/.test(ev.data || '')) queueMicrotask(() => spotNow(false));
@@ -402,22 +403,38 @@ export function richText(container, { value = '', onChange, placeholder = '', or
     unspotlight(container);
   });
 
+  // What has been typed on the caret's line so far (a line starts at the block's
+  // start or after a line break).
+  function lineBefore(node, offset) {
+    let text = node.nodeValue.slice(0, offset);
+    let n = node;
+    while (n && n !== edit) {
+      for (let prev = n.previousSibling; prev; prev = prev.previousSibling) {
+        if (/^(BR|DIV|P|UL|OL|H[1-6])$/.test(prev.nodeName)) return text;
+        text = prev.textContent + text;
+      }
+      n = n.parentNode;
+      if (n === edit || /^(DIV|P)$/.test(n.nodeName)) break;
+    }
+    return text;
+  }
+
   // "- " or "* " typed at the start of a line (not already in a list) → bullet.
   function autoList() {
     const sel = getSelection();
     const node = sel.anchorNode;
-    if (!sel.isCollapsed || node?.nodeType !== Node.TEXT_NODE || node.parentElement.closest('li')) return;
-    if (!/^[-*][\s\u00a0]$/.test(node.nodeValue.slice(0, sel.anchorOffset))) return;
-    // Must be the first thing on its line.
-    for (let n = node; n && n !== edit && !/^(DIV|P)$/.test(n.tagName || ''); n = n.parentNode) {
-      const prev = n.previousSibling;
-      if (prev && !(prev.nodeType === Node.ELEMENT_NODE && /^(DIV|P|UL|H4|BR)$/.test(prev.tagName))) return;
-    }
+    if (!sel.rangeCount || !sel.isCollapsed || node?.nodeType !== Node.TEXT_NODE || !edit.contains(node) || node.parentElement.closest('li')) return;
+    if (!/^[-*][  ]$/.test(lineBefore(node, sel.anchorOffset))) return;
     document.execCommand('delete');
     document.execCommand('delete');
     document.execCommand('insertUnorderedList');
     return true;
   }
+
+  // Leaving the box: a "- " line that never became a bullet (however it was typed) does now.
+  edit.addEventListener('blur', () => {
+    if ([...edit.children].some(c => c.tagName !== 'UL' && /^[-*][  ]/.test(c.textContent))) { md = toMarkdown(edit); paint(); }
+  });
   raw.addEventListener('input', () => changed(raw.value));
 
   // Paste as plain text so web pages don't bring their styling along.
