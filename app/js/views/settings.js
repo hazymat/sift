@@ -504,7 +504,7 @@ export default {
           <div class="dict-row${w.isCustom(x.key) ? ' custom' : ''}" data-key="${esc(x.key)}" data-find="${esc(`${x.default} ${w.word(x.key)} ${x.hint} ${x.group}`.toLowerCase())}">
             <input data-word="${esc(x.key)}" value="${esc(w.word(x.key))}" aria-label="${esc(x.default)}" title="Default: ${esc(x.default)}" autocomplete="off">
             <button type="button" class="icon-btn small dict-reset" data-reset="${esc(x.key)}" aria-label="Reset to default" title="Reset to default: ${esc(x.default)}" ${w.isCustom(x.key) ? '' : 'disabled'}><svg class="icon" aria-hidden="true"><use href="#i-reset"/></svg></button>
-            <p class="dict-hint"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg><span>${esc(x.hint)}</span></p>
+            <p class="dict-hint">${esc(x.hint)}</p>
           </div>`;
         const groups = [...new Set(w.WORDS.map(x => x.group))];
         dlg.innerHTML = `<div class="sheet-handle"></div><h2>Dictionary</h2>

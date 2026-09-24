@@ -29,8 +29,24 @@ async function keyFrom(passphrase, salt, iterations) {
   return crypto.subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
 }
 
+// This device's own preferences (not synced): text size, notes toolbar,
+// each page's spacing, the theme, Find Things' last life area, and the sync
+// server's address. Not drafts, sign-ins or reminders.
+const DEVICE_KEYS = /^(sift-text-size|sift-theme|sift-find-edition|sift:notes-toolbar|sift-density:.+)$/;
+function devicePrefs() {
+  const local = {};
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (DEVICE_KEYS.test(k)) local[k] = localStorage.getItem(k);
+    }
+  } catch { /* none */ }
+  return local;
+}
+
 export async function makeBackup({ passphrase } = {}) {
   const data = await store.exportAll();
+  const device = { local: devicePrefs(), server_url: (await store.getDeviceSettings()).server_url || null };
   const files = {};
   for (const a of data.attachments || []) {
     if (a.deleted_at) continue;
@@ -38,7 +54,7 @@ export async function makeBackup({ passphrase } = {}) {
     if (blob) files[a.blob_id] = { type: blob.type || a.mime, data: b64(await blob.arrayBuffer()) };
   }
   const created_at = new Date().toISOString();
-  const inner = JSON.stringify({ format: 'sift-backup', version: 1, created_at, device_id: store.getDeviceId(), data, files });
+  const inner = JSON.stringify({ format: 'sift-backup', version: 1, created_at, device_id: store.getDeviceId(), data, files, device });
   let file;
   if (passphrase) {
     const salt = crypto.getRandomValues(new Uint8Array(16));
@@ -108,7 +124,15 @@ export async function restoreBackup(backup) {
     await store.putBlob(id, new Blob([unb64(f.data)], { type: f.type }));
     filesRestored++;
   }
-  return { added, updated, files: filesRestored };
+  // This device's own preferences: only the ones it hasn't set itself, so a
+  // restore never undoes choices made on this device.
+  let prefs = 0;
+  const dev = backup.device || {};
+  for (const [k, v] of Object.entries(dev.local || {})) {
+    try { if (DEVICE_KEYS.test(k) && localStorage.getItem(k) === null) { localStorage.setItem(k, v); prefs++; } } catch { /* fine */ }
+  }
+  if (dev.server_url && !(await store.getDeviceSettings()).server_url) { await store.updateDeviceSettings({ server_url: dev.server_url }); prefs++; }
+  return { added, updated, files: filesRestored, prefs };
 }
 
 // ---------- reminders ----------

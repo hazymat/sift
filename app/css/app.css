@@ -2273,8 +2273,7 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
 .dict-row .icon-btn.small { width: 26px; height: 26px; font-size: .95rem; box-shadow: none; }
 .dict-reset:disabled { opacity: .3; }
 /* What it is and where it shows: small, grey, under the text. */
-.dict-hint { flex-basis: 100%; display: flex; align-items: baseline; gap: 4px; margin: -2px 34px 0 8px; font-size: .7rem; line-height: 1.3; color: var(--muted); opacity: .75; }
-.dict-hint .icon { flex: none; width: 10px; height: 10px; position: relative; top: 1px; }
+.dict-hint { flex-basis: 100%; margin: -2px 34px 0 8px; font-size: .7rem; font-style: italic; line-height: 1.3; color: var(--muted); opacity: .75; }
 .dict-search { width: 100%; box-sizing: border-box; margin: 6px 0 4px; }
 .dict-group h3 { margin: 14px 0 2px; }
 .types-list { list-style: none; margin: 10px 0; padding: 0; display: grid; gap: 6px; }
