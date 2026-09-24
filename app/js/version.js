@@ -1,5 +1,5 @@
-// Which version of Sift this is. The deploy (.github/workflows/pages.yml)
-// stamps the commit and the day it was built; running from a laptop it says "dev".
-export const VERSION = 'dev';
-export const BUILT = '';
-export const versionText = () => (VERSION === 'dev' ? 'dev' : `${BUILT} · ${VERSION}`);
+// Sift's version: major.minor.fix, e.g. 1.4.07 (see "Versions" in docs/implementation.md).
+// Bumped by hand when publishing: new features → the middle number goes up
+// (and the last goes back to 00); fixes and small changes → the last goes up.
+export const VERSION = '1.0.00';
+export const versionText = () => `v${VERSION}`;
