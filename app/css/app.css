@@ -2262,3 +2262,18 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
    on a phone and over the schedule on a laptop). */
 .day-bottom, .day-bottom > *, .planner.docked > *, .rich, .rich > * { min-width: 0; }
 .day-bottom > * { max-width: 100%; }
+
+/* Settings → Your words: the Dictionary and Brain Dump types (words.js). */
+.words-sheet { max-width: 640px; }
+@media (min-width: 768px) { .words-sheet { margin: auto; border-radius: var(--radius-card); border-bottom: 1px solid var(--glass-border); } }
+.dict-row { padding: 8px 0; border-bottom: 1px solid var(--glass-border); }
+.dict-row label { gap: 4px; }
+.dict-name { font-weight: 600; color: var(--text); font-size: .85rem; }
+.dict-row input { box-sizing: border-box; font-size: 16px; color: var(--text); }
+.dict-row .hint { margin: 4px 2px 0; }
+.dict-reset { margin-top: 6px; padding: 3px 10px; font-size: .8rem; }
+.types-list { list-style: none; margin: 10px 0; padding: 0; display: grid; gap: 6px; }
+.types-list li { display: flex; gap: 6px; align-items: center; }
+.types-list input { flex: 1; min-width: 0; box-sizing: border-box; font-size: 16px; color: var(--text); }
+.types-add { display: flex; gap: 6px; margin: 8px 0; }
+.types-add input { flex: 1; min-width: 0; box-sizing: border-box; font-size: 16px; color: var(--text); }

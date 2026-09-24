@@ -6,19 +6,21 @@ import { installSheets } from './sheets.js';
 import { installSearchClear } from './searchclear.js';
 import { installFlash } from './flash.js';
 import { installViewCog } from './viewcog.js';
+import { word, applyWords } from './words.js';
 
-// Adding an area is one entry here plus a view module (spec §5.1).
+// Adding an area is one entry here plus a view module (spec §5.1). Names come
+// from the Dictionary (words.js), so people can call them what they like.
 export const AREAS = [
-  { id: 'dump', label: 'Brain Dump', icon: 'i-dump', view: './views/dump.js' },
-  { id: 'tasks', label: 'Tasks', icon: 'i-tasks', view: './views/tasks.js' },
-  { id: 'planner', label: 'Day Planner', icon: 'i-planner', view: './views/planner.js' },
-  { id: 'lists', label: 'Lists', icon: 'i-lists', view: './views/lists.js' },
+  { id: 'dump', get label() { return word('area_dump'); }, icon: 'i-dump', view: './views/dump.js' },
+  { id: 'tasks', get label() { return word('area_tasks'); }, icon: 'i-tasks', view: './views/tasks.js' },
+  { id: 'planner', get label() { return word('area_planner'); }, icon: 'i-planner', view: './views/planner.js' },
+  { id: 'lists', get label() { return word('area_lists'); }, icon: 'i-lists', view: './views/lists.js' },
   // Internally "places" (saved nav order etc. use it); the address is #/find-things.
-  { id: 'places', slug: 'find-things', label: 'Find Things', icon: 'i-places', view: './views/places.js' },
-  { id: 'contacts', label: 'Contacts', icon: 'i-contacts', view: './views/contacts.js' },
-  { id: 'scans', label: 'Scans', icon: 'i-scans', view: './views/scans.js' },
-  { id: 'contracts', label: 'Contracts', icon: 'i-contracts', view: './views/contracts.js' },
-  { id: 'recipes', label: 'Batch Book', icon: 'i-recipes', view: './views/recipes.js' },
+  { id: 'places', slug: 'find-things', get label() { return word('area_places'); }, icon: 'i-places', view: './views/places.js' },
+  { id: 'contacts', get label() { return word('area_contacts'); }, icon: 'i-contacts', view: './views/contacts.js' },
+  { id: 'scans', get label() { return word('area_scans'); }, icon: 'i-scans', view: './views/scans.js' },
+  { id: 'contracts', get label() { return word('area_contracts'); }, icon: 'i-contracts', view: './views/contracts.js' },
+  { id: 'recipes', get label() { return word('area_recipes'); }, icon: 'i-recipes', view: './views/recipes.js' },
   { id: 'settings', label: 'Settings', icon: 'i-settings', view: './views/settings.js', pinnable: false },
   // Not in the nav: reached from each area's ⋯ menu and from Settings.
   { id: 'bin', label: 'Archive & Bin', icon: 'i-archive', view: './views/bin.js', pinnable: false, hidden: true },
@@ -256,11 +258,21 @@ async function boot() {
   addEventListener('resize', fitTopNav);
   store.subscribe(renderSyncStatus);
 
-  // What each energy level means (Settings → Energy levels) feeds the hover text everywhere.
+  // What each energy level means (Settings → Your words → Dictionary) feeds the hover text everywhere.
   const days = await import('./days.js');
   await days.applyEnergyMeanings();
+  let wordsSig = JSON.stringify(await applyWords());
   import('./link.js').then(m => m.installMirror()); // a task and its day items share title, note, energy, time, people, case
-  store.subscribe(change => { if (change?.collection === 'settings') days.applyEnergyMeanings(); });
+  // Words changed (Settings → Dictionary, or on another device): names and headings follow.
+  store.subscribe(async change => {
+    if (change?.collection !== 'settings') return;
+    days.applyEnergyMeanings();
+    const sig = JSON.stringify(await applyWords());
+    if (sig === wordsSig) return;
+    wordsSig = sig;
+    renderNav();
+    if (!location.hash.startsWith('#/settings')) route(true);
+  });
 
   await route();
   renderSyncStatus();

@@ -19,6 +19,7 @@ import { loadAll as loadTasks, forDay, suggestions, doneFields, aimDate, addTask
 import * as att from '../attachments.js';
 import { editPills, selectPill, datePill } from '../editpills.js';
 import { askYes } from '../ask.js';
+import { word } from '../words.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -53,7 +54,7 @@ export default {
         <h1 class="day-title"><span class="weekday"></span> <span class="date"></span></h1>
         <p class="day-rel muted"></p>
         <div class="down-day" hidden></div>
-        <label class="focus"><span>Day focus</span><input id="focus" placeholder="What matters today?" autocomplete="off"></label>
+        <label class="focus"><span>${esc(word('day_focus'))}</span><input id="focus" placeholder="${esc(word('day_focus_prompt'))}" autocomplete="off"></label>
         <div class="energy" role="group" aria-label="Today's energy level"><span>Today's Energy Level</span>
           ${ENERGY.map(e => `<button type="button" class="bolts" data-energy="${e.id}" title="${esc(`${e.label}: ${e.hint}`)}" aria-label="${e.label}">${e.bolts}</button>`).join('')}
           <details class="tool-menu view-menu">
@@ -63,11 +64,11 @@ export default {
         </div>
       </header>
       <div class="carry" hidden></div>
-      <h2 class="schedule-title section-title">Schedule</h2>
+      <h2 class="schedule-title section-title">${esc(word('day_schedule'))}</h2>
       <section class="paper" aria-label="Plan"><div id="lines"></div></section>
       <div class="day-bottom">
         <section class="pile">
-          <h2>Tasks <span class="task-count" hidden></span></h2>
+          <h2>${esc(word('day_tasks'))} <span class="task-count" hidden></span></h2>
           <div class="pile-paper">
             <ul id="pile" class="pile-list"></ul>
             <div class="line pile-new"><span class="margin"></span><span class="content"><input id="dump" class="new-task hand" placeholder="New task" autocomplete="off" enterkeyhint="done" aria-label="New task"></span></div>
@@ -79,7 +80,7 @@ export default {
           <p class="muted hint">Enter adds a task. Start with a time (12.45) to put it straight on the plan. Drag ⠿ to reorder, or onto a time.</p>
         </section>
         <section class="day-notes">
-          <h2>Notes</h2>
+          <h2>${esc(word('day_notes'))}</h2>
           <div id="notes"></div>
         </section>
       </div>

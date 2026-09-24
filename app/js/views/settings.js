@@ -2,6 +2,8 @@ import { sortable } from '../sortable.js';
 import { toast } from '../toast.js';
 import { ask, askText, askYes } from '../ask.js';
 
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
 
 function formatBytes(n) {
@@ -52,15 +54,13 @@ export default {
         <label class="check-row"><input type="checkbox" name="hint_walk_breaks"> Build in short breaks during long stretches of work <span class="muted">(with the focus timer, coming later)</span></label>
       </section>
 
-      <section class="card" id="energy-settings">
-        <h2>Energy levels</h2>
-        <p class="muted">Energy is here to help you stay mindful of how your choices for the day fit how you feel. Pick a level for the day in the Day Planner, mark tasks with the level they need, and Sift can suggest tasks that match. Say what each level means for you; it shows when you hover over (or hold) the ⚡.</p>
-        <div class="settings-grid">
-          <label class="wide">⚡ Low<input name="energy_low" autocomplete="off"></label>
-          <label class="wide">⚡⚡ Medium<input name="energy_medium" autocomplete="off"></label>
-          <label class="wide">⚡⚡⚡ High<input name="energy_high" autocomplete="off"></label>
+      <section class="card" id="words-card">
+        <h2>Your words</h2>
+        <p class="muted">Call things what you call them: the names of the areas, the task lists and headings, and what each energy level means for you. (Energy helps you fit the day to how you feel: pick a level for the day, mark tasks with the level they need, and Sift can suggest tasks that match. The meanings show when you hover over or hold the ⚡.)</p>
+        <div class="backup-row">
+          <button type="button" data-words="dict">Dictionary…</button>
+          <button type="button" data-words="types">Brain Dump types…</button>
         </div>
-        <div class="backup-row"><button type="button" data-energy-reset>Put back the suggestions</button></div>
       </section>
 
       <section class="card" id="notes-settings">
@@ -483,31 +483,95 @@ export default {
     });
     drawPlanner();
 
-    // Energy levels: what each one means to you.
-    {
-      const card = el.querySelector('#energy-settings');
-      const days = await import('../days.js');
-      const draw = async () => {
-        await days.applyEnergyMeanings();
-        for (const e of days.ENERGY) card.querySelector(`[name="energy_${e.id}"]`).value = e.hint;
-      };
-      card.addEventListener('change', async ev => {
-        const t = ev.target;
-        if (!t.name?.startsWith('energy_')) return;
-        const id = t.name.slice(7);
-        const text = t.value.trim();
-        await store.updateSettings({ [t.name]: !text || text === days.ENERGY_DEFAULTS[id] ? null : text });
-        await draw();
-        toast('✓ Saved');
-      });
-      card.addEventListener('click', async ev => {
-        if (!ev.target.closest('[data-energy-reset]')) return;
-        await store.updateSettings({ energy_low: null, energy_medium: null, energy_high: null });
-        await draw();
-        toast('✓ Back to the suggestions');
-      });
-      await draw();
-    }
+    // Your words: the Dictionary and the Brain Dump types, each in a sheet.
+    el.querySelector('#words-card').addEventListener('click', async ev => {
+      const b = ev.target.closest('[data-words]');
+      if (!b) return;
+      const w = await import('../words.js');
+      await w.applyWords();
+      const dlg = document.createElement('dialog');
+      dlg.className = 'sheet words-sheet';
+      document.body.append(dlg);
+      dlg.addEventListener('close', () => dlg.remove());
+      if (b.dataset.words === 'dict') {
+        // Every word, grouped, with a hint and "Reset to default".
+        const row = x => `
+          <div class="dict-row" data-key="${esc(x.key)}">
+            <label><span class="dict-name">${esc(x.default)}</span>
+              <input data-word="${esc(x.key)}" value="${esc(w.isCustom(x.key) ? w.word(x.key) : '')}" placeholder="${esc(x.default)}" autocomplete="off"></label>
+            <p class="muted hint">${esc(x.hint)}</p>
+            <button type="button" class="dict-reset" data-reset="${esc(x.key)}" ${w.isCustom(x.key) ? '' : 'hidden'}>Reset to default</button>
+          </div>`;
+        const groups = [...new Set(w.WORDS.map(x => x.group))];
+        dlg.innerHTML = `<div class="sheet-handle"></div><h2>Dictionary</h2>
+          <p class="muted">Your own words for what Sift shows. Leave a box empty to keep the word in grey. Changes save as you go and follow you to your other devices.</p>
+          ${groups.map(g => `<h3 class="milestone">${esc(g)}</h3>${w.WORDS.filter(x => x.group === g).map(row).join('')}`).join('')}`;
+        dlg.addEventListener('change', async e2 => {
+          const key = e2.target.dataset?.word;
+          if (!key) return;
+          await w.setWord(key, e2.target.value);
+          dlg.querySelector(`[data-reset="${key}"]`).hidden = !w.isCustom(key);
+          toast('✓ Saved');
+        });
+        dlg.addEventListener('click', async e2 => {
+          const r = e2.target.closest('[data-reset]');
+          if (!r) return;
+          await w.setWord(r.dataset.reset, '');
+          dlg.querySelector(`[data-word="${r.dataset.reset}"]`).value = '';
+          r.hidden = true;
+          toast('✓ Back to the default');
+        });
+      } else {
+        // Brain Dump types: add, rename, move, remove. They are labels for filtering only.
+        let list = w.dumpTypes().map(t => ({ ...t }));
+        const save = async () => { await w.setDumpTypes(list); draw(); };
+        const draw = () => {
+          dlg.innerHTML = `<div class="sheet-handle"></div><h2>Brain Dump types</h2>
+            <p class="muted">What a note can be marked as, to filter by later. They are just labels: none of them changes what Sift does. Removing one keeps its notes; they show the old name until you pick another.</p>
+            <ul class="types-list">${list.map((t, n) => `
+              <li data-n="${n}">
+                <input data-type-label value="${esc(t.label)}" aria-label="Type name" autocomplete="off">
+                <button type="button" class="icon-btn small" data-type="up" ${n ? '' : 'disabled'} aria-label="Move up">↑</button>
+                <button type="button" class="icon-btn small" data-type="down" ${n < list.length - 1 ? '' : 'disabled'} aria-label="Move down">↓</button>
+                <button type="button" class="icon-btn small" data-type="remove" ${list.length > 1 ? '' : 'disabled'} aria-label="Remove">×</button>
+              </li>`).join('')}
+            </ul>
+            <form class="types-add"><input name="new" placeholder="A new type, e.g. Recipe" autocomplete="off"><button type="submit">Add</button></form>
+            <div class="backup-row"><button type="button" data-type="defaults">Put back the defaults</button></div>`;
+        };
+        draw();
+        dlg.addEventListener('change', async e2 => {
+          if (!e2.target.matches('[data-type-label]')) return;
+          const n = Number(e2.target.closest('li').dataset.n);
+          const label = e2.target.value.trim();
+          if (!label) { e2.target.value = list[n].label; return; }
+          list[n].label = label;
+          await save();
+          toast('✓ Saved');
+        });
+        dlg.addEventListener('click', async e2 => {
+          const act = e2.target.closest('[data-type]')?.dataset.type;
+          if (!act) return;
+          if (act === 'defaults') { list = w.DEFAULT_TYPES.map(t => ({ ...t })); await save(); toast('✓ Back to the defaults'); return; }
+          const n = Number(e2.target.closest('li').dataset.n);
+          if (act === 'up' && n > 0) [list[n - 1], list[n]] = [list[n], list[n - 1]];
+          if (act === 'down' && n < list.length - 1) [list[n + 1], list[n]] = [list[n], list[n + 1]];
+          if (act === 'remove' && list.length > 1) list.splice(n, 1);
+          await save();
+        });
+        dlg.addEventListener('submit', async e2 => {
+          e2.preventDefault();
+          const label = e2.target.elements.new.value.trim();
+          if (!label) return;
+          const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') || 'type';
+          const id = list.some(t => t.id === slug) ? `${slug}_${Math.random().toString(36).slice(2, 6)}` : slug;
+          list.push({ id, label });
+          await save();
+          dlg.querySelector('.types-add input')?.focus();
+        });
+      }
+      dlg.showModal();
+    });
 
     // Text size: kept on this device, applied before first paint (index.html).
     const sizeBox = el.querySelector('#text-size');

@@ -17,16 +17,11 @@ import { loadContacts } from '../contacts.js';
 import * as att from '../attachments.js';
 import { editPills, selectPill, datePill } from '../editpills.js';
 import { ask, askText } from '../ask.js';
+import { word } from '../words.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
-const VIEWS = [
-  { id: 'inbox', label: 'Inbox' },
-  { id: 'now', label: 'Now' },
-  { id: 'next', label: 'Next' },
-  { id: 'later', label: 'Later' },
-  { id: 'done', label: 'Done' },
-];
+const VIEWS = [...HORIZONS, { id: 'done', label: 'Done' }];
 const LISTS = ['inbox', 'now', 'next', 'later'];   // where a task lives
 const EMPTY = { inbox: 'Inbox is empty.', now: 'Nothing for now.', next: 'Nothing lined up next.', later: 'Nothing for later.' };
 const COLOURS = ['#6fb0ff', '#7dd3a8', '#f5a66a', '#e58fd0', '#f0d264', '#a99cff', '#ff8a8a'];
@@ -224,8 +219,8 @@ export default {
               ${dateChip('aim_date', 'Aim to finish', '⚑')}
               <label class="entry-chip" data-chip="estimate_min">⏱ <span class="chip-text" data-empty="Time needed">Time needed</span>
                 <select data-entry="estimate_min" aria-label="Time needed"><option value="">Time not set</option>${durationChoices(480).map(m => opt(m, durationLabel(m))).join('')}</select></label>
-              <label class="entry-chip" data-chip="horizon">📥 <span class="chip-text" data-empty="${esc(listName || 'Inbox')}">${esc(listName || 'Inbox')}</span>
-                <select data-entry="horizon" aria-label="Which list">${HORIZONS.map(x => opt(x.id, x.label, x.label === (listName || 'Inbox'))).join('')}</select></label>
+              <label class="entry-chip" data-chip="horizon">📥 <span class="chip-text" data-empty="${esc(listName || word('list_inbox'))}">${esc(listName || word('list_inbox'))}</span>
+                <select data-entry="horizon" aria-label="Which list">${HORIZONS.map(x => opt(x.id, x.label, x.label === (listName || word('list_inbox')))).join('')}</select></label>
             </div>
             <p class="muted hint">Enter adds it. Start a line with "- " for a sub-task.</p>
           </div>
@@ -279,7 +274,7 @@ export default {
           </div>`;
       }
       const ph = project ? `New task in ${project.name}` : 'New task';
-      let entry = addBox(ph, false, 'Inbox');
+      let entry = addBox(ph, false, word('list_inbox'));
       if (project) {
         const ms = data.milestones.filter(m => m.project_id === project.id);
         const groups = [{ id: null, name: ms.length ? 'No milestone' : '' }, ...ms];
@@ -301,7 +296,7 @@ export default {
       } else {
         const tasks = visible(scoped);
         html += listOf(rowsOf(tasks));
-        entry = addBox(ph, !tasks.length, 'Inbox');
+        entry = addBox(ph, !tasks.length, word('list_inbox'));
       }
       html += entry;
       const doneCount = scoped.filter(isDone).length;
@@ -319,7 +314,7 @@ export default {
       const rest = open.filter(t => !urgent.includes(t));
       const body = (urgent.length ? head('Due or planned') + flat(urgent) + (rest.length ? head('Everything else') : '') : '') + flat(rest);
       const label = HORIZONS.find(x => x.id === h).label;
-      return listOf(open.length ? body : '') + addBox(h === 'inbox' ? 'New task' : `New task for ${h}`, !open.length, label);
+      return listOf(open.length ? body : '') + addBox(h === 'inbox' ? 'New task' : `New task for ${word(`list_${h}`)}`, !open.length, label);
     }
 
     function viewProjects() {
@@ -400,7 +395,7 @@ export default {
       }
       await render();
       body.querySelector('#task-new')?.focus();
-      undoable(`Added ${made.length} task${made.length === 1 ? '' : 's'} to ${HORIZONS.find(x => x.id === base.horizon)?.label || 'Inbox'}${shortened ? ` (${shortened} long one${shortened === 1 ? '' : 's'} shortened, full text in the note)` : ''}`, async () => {
+      undoable(`Added ${made.length} task${made.length === 1 ? '' : 's'} to ${HORIZONS.find(x => x.id === base.horizon)?.label || word('list_inbox')}${shortened ? ` (${shortened} long one${shortened === 1 ? '' : 's'} shortened, full text in the note)` : ''}`, async () => {
         await store.updateMany('tasks', made.map(id => [id, { deleted_at: new Date().toISOString() }]));
         await render();
       });

@@ -19,19 +19,15 @@ import { contactFromText } from '../contacts.js';
 import { createListKit } from '../listkit.js';
 import * as att from '../attachments.js';
 import { pointTo } from '../flash.js';
+import { word, dumpTypes } from '../words.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
 
-export const KINDS = [
-  { id: 'thought', label: 'Thought' },
-  { id: 'idea', label: 'Idea' },
-  { id: 'task', label: 'Task' },
-  { id: 'shopping', label: 'Shopping' },
-  { id: 'journal', label: 'Journal' },
-  { id: 'place_item', label: 'Thing to store' },
-];
-const kindLabel = id => KINDS.find(k => k.id === id)?.label || 'Thought';
+// The types are yours (Settings → Brain Dump types; words.js). They are only
+// labels to filter by: none of them changes what the app does. A note whose
+// type was removed keeps it, and shows it by its id until you pick another.
+const kindLabel = id => dumpTypes().find(k => k.id === id)?.label || (id ? id.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase()) : dumpTypes()[0]?.label || 'Thought');
 const TARGET = { tasks: ['Task', 'tasks/list'], day_items: ['Day plan', 'planner'], items: ['Find Things', 'find-things'], contacts: ['Contact', 'contacts'] };
 
 function ago(iso) {
@@ -59,7 +55,7 @@ const byOrder = (a, b) => Number(!!b.pinned) - Number(!!a.pinned) || orderKey(a)
 export default {
   async mount(el) {
     const state = this.state = { filter: 'all', q: '' };
-    let kind = 'thought';
+    let kind = dumpTypes()[0]?.id || 'thought';
     let thoughts = [];
     let panel = null; // { id, type: 'plan' | 'store' }
     let editing = null;
@@ -75,15 +71,15 @@ export default {
     el.innerHTML = `
       <section class="dump-capture card" aria-labelledby="dump-new-h">
         <div class="dump-h-row">
-          <h2 class="dump-h" id="dump-new-h">New note</h2>
+          <h2 class="dump-h" id="dump-new-h">${esc(word('dump_new'))}</h2>
           <div class="save-state" id="dump-save" aria-live="polite" hidden></div>
         </div>
         <div id="dump-body"></div>
         <div id="dump-att"></div>
         <div class="dump-kinds-row">
-          <span class="dump-caption" id="dump-kinds-cap">This is a:</span>
+          <span class="dump-caption" id="dump-kinds-cap">${esc(word('dump_kind'))}</span>
           <div class="dump-kinds" id="dump-kinds" role="group" aria-labelledby="dump-kinds-cap">
-            ${KINDS.map(k => `<button type="button" data-kind="${k.id}">${k.label}</button>`).join('')}
+            ${dumpTypes().map(k => `<button type="button" data-kind="${esc(k.id)}">${esc(k.label)}</button>`).join('')}
           </div>
         </div>
         <div class="dump-foot">
@@ -94,7 +90,7 @@ export default {
       </section>
       <section class="dump-find" aria-labelledby="dump-notes-h">
         <div class="dump-h-row">
-          <h2 class="dump-h" id="dump-notes-h">Your notes</h2>
+          <h2 class="dump-h" id="dump-notes-h">${esc(word('dump_mine'))}</h2>
           <span class="spacer"></span>
           ${cogHtml('dump')}
           <details class="tool-menu">
@@ -108,7 +104,7 @@ export default {
         <input type="search" id="dump-q" class="search" placeholder="Search your notes…" autocomplete="off">
         <div class="dump-filter" id="dump-filter" role="group" aria-label="Show">
           <button type="button" data-filter="all">All</button>
-          ${KINDS.map(k => `<button type="button" data-filter="${k.id}">${k.label}</button>`).join('')}
+          ${dumpTypes().map(k => `<button type="button" data-filter="${esc(k.id)}">${esc(k.label)}</button>`).join('')}
           <button type="button" data-filter="pinned">★ Pinned</button>
         </div>
         <p class="muted hint">Select any text in a note to make it a contact.</p>
@@ -188,7 +184,7 @@ export default {
           ${editing === t.id && el.dataset.density === 'tight' ? '<div class="zoom-back">‹ Back to notes <span class="muted">(click anywhere outside the note, or Esc)</span></div>' : ''}
           <div class="thought-head">
             <button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button>
-            <select class="kind-select" aria-label="Kind">${KINDS.map(k => `<option value="${k.id}" ${k.id === t.kind ? 'selected' : ''}>${k.label}</option>`).join('')}</select>
+            <select class="kind-select" aria-label="Kind">${[...dumpTypes(), ...(dumpTypes().some(k => k.id === t.kind) || !t.kind ? [] : [{ id: t.kind, label: kindLabel(t.kind) }])].map(k => `<option value="${esc(k.id)}" ${k.id === t.kind ? 'selected' : ''}>${esc(k.label)}</option>`).join('')}</select>
             <span class="muted" title="Edited ${esc(new Date(editedAt(t)).toLocaleString())} · made ${esc(new Date(t.created_at).toLocaleString())}">${ago(editedAt(t))}</span>
             ${conv ? `<a class="chip" href="${href}" data-focus="${t.converted_to.collection}:${t.converted_to.id}">→ ${conv[0]}</a>` : ''}
             ${att.countChip(atts.get(t.id))}

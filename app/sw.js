@@ -29,6 +29,7 @@ const SHELL = [
   'js/linemake.js',
   'js/ask.js',
   'js/flash.js',
+  'js/words.js',
   'js/refs.js',
   'js/drafts.js',
   'js/pillmenu.js',

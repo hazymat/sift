@@ -42,7 +42,7 @@ export function durationLabel(m) {
 }
 
 // Energy is shown as lightning: ⚡ low, ⚡⚡ medium, ⚡⚡⚡ high (low first).
-// What each level means is yours to set (Settings → Energy levels); these are the suggestions.
+// What each level means is yours to set (Settings → Your words → Dictionary); these are the suggestions.
 export const ENERGY_DEFAULTS = {
   low: 'Desk work, small tasks, admin',
   medium: 'Meetings, some project work',

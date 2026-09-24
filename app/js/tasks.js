@@ -3,6 +3,7 @@
 // aim_at (completion aim) while not done.
 
 import * as store from './store.js';
+import { word } from './words.js';
 
 export const STATUSES = [
   { id: 'todo', label: 'To do' },
@@ -93,12 +94,8 @@ export function forDay(tasks, date) {
 }
 
 // When a task is for: now (the default), next, or later.
-export const HORIZONS = [
-  { id: 'inbox', label: 'Inbox' },
-  { id: 'now', label: 'Now' },
-  { id: 'next', label: 'Next' },
-  { id: 'later', label: 'Later' },
-];
+// The names are yours (Settings → Dictionary).
+export const HORIZONS = ['inbox', 'now', 'next', 'later'].map(id => ({ id, get label() { return word(`list_${id}`); } }));
 export const horizonOf = t => t.horizon || 'now';
 
 // Unplanned, unfinished tasks matching an energy level (for "adopt").
