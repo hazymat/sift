@@ -224,11 +224,18 @@ export default {
             <button type="button" data-sync="forgot">Forgot password?</button>
             <span class="muted" id="sync-msg"></span>
           </div>
+          <div class="trust-cert" hidden>
+            <p class="muted">A server at home makes its own security certificate, and each device has to trust it once. (A server with a proper web address doesn't need this.)</p>
+            <div class="trust-row">
+              <a class="button trust-link" target="_blank" rel="noopener">Get the certificate</a>
+              <code class="trust-url"></code>
+              <button type="button" data-sync="copy-cert">Copy</button>
+            </div>
+          </div>
           <details class="trust-help" hidden>
-            <summary>Trust this server (home servers with their own certificate)</summary>
-            <p class="muted">A server at home makes its own security certificate, so each device has to trust it once. Open <a class="trust-link" target="_blank" rel="noopener">the certificate</a> on the device, then follow the steps for it. (A server with a proper web address doesn't need this.)</p>
+            <summary>Trust this server: the steps for each device</summary>
             <ul class="trust-steps">
-              <li><b>iPhone / iPad:</b> open the link in <b>Safari</b> (not another app) and allow the download. Then Settings → Profile Downloaded → Install. Then Settings → General → About → Certificate Trust Settings → switch it on.</li>
+              <li><b>iPhone / iPad:</b> open the certificate address in <b>Safari</b> (not another app; copy it and paste it into Safari's address bar) and allow the download. Then Settings → Profile Downloaded → Install. Then Settings → General → About → Certificate Trust Settings → switch it on. <b>After an iOS update, check that switch again</b>: it can be turned off, and then the app can't reach the server.</li>
               <li><b>Android:</b> download it, then Settings → Security → Encryption &amp; credentials → Install a certificate → CA certificate.</li>
               <li><b>Windows:</b> download it, double-click → Install Certificate → Local Machine → "Trusted Root Certification Authorities". Restart the browser.</li>
               <li><b>Mac:</b> download it, double-click → Keychain Access; open it, choose Trust → "Always Trust".</li>
@@ -252,22 +259,34 @@ export default {
           const note = box.querySelector('#sync-msg');
           const help = box.querySelector('.trust-help');
           create.hidden = true;
+          const cert = box.querySelector('.trust-cert');
           help.hidden = true;
+          help.open = false;
+          cert.hidden = true;
           note.textContent = '';
           if (!/^https?:\/\/.+/i.test(server)) return;
+          // The certificate's address, from what was typed, shown as soon as there is one.
+          try {
+            const url = `http://${new URL(server).hostname}/sift-ca.crt`;
+            cert.querySelector('.trust-link').href = url;
+            cert.querySelector('.trust-url').textContent = url;
+            cert.hidden = false;
+            help.hidden = false;
+          } catch { /* not a web address yet */ }
           sync.serverInfo(server).then(info => {
             create.hidden = info.registration !== 'open';
             note.textContent = info.registration === 'open' ? 'This server has no account yet: create yours.' : '';
           }).catch(() => {
             note.textContent = "Can't reach the server from here (on the right network, and its certificate trusted?)";
-            try {
-              const host = new URL(server).hostname;
-              help.querySelector('.trust-link').href = `http://${host}/sift-ca.crt`;
-              help.hidden = false;
-            } catch { /* not a web address yet */ }
+            help.open = true;
           });
         };
         serverInput.addEventListener('change', check);
+        serverInput.addEventListener('input', () => { clearTimeout(serverInput._t); serverInput._t = setTimeout(check, 600); });
+        box.querySelector('[data-sync="copy-cert"]').addEventListener('click', async () => {
+          const url = box.querySelector('.trust-url').textContent;
+          try { await navigator.clipboard.writeText(url); toast('Copied: paste it into Safari'); } catch { toast(url); }
+        });
         check();
       };
       sync.onStatus(() => { if (el.isConnected) draw(); });

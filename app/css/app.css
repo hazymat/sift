@@ -2226,3 +2226,9 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
 @media (min-width: 768px) { .ask-sheet { margin: auto; border-radius: var(--radius-card); border-bottom: 1px solid var(--glass-border); } }
 .ask-field { display: grid; gap: 4px; margin: 10px 0 0; font-size: .85rem; color: var(--muted); }
 .ask-field input { width: 100%; box-sizing: border-box; font-size: 16px; color: var(--text); }
+
+/* Settings → Sync: the home server's certificate (backlog 67). */
+.trust-cert { margin: 10px 0 0; }
+.trust-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.trust-row .button { display: inline-flex; align-items: center; padding: 7px 14px; border-radius: var(--radius-pill); background: var(--active-bg); border: 1px solid var(--active-border); color: var(--text); text-decoration: none; }
+.trust-url { font-size: .82rem; overflow-wrap: anywhere; }
