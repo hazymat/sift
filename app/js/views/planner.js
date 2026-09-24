@@ -11,7 +11,7 @@ import {
 } from '../days.js';
 import { listEntry, listHint } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
-import { richText, toHtml, previewLine } from '../richtext.js';
+import { richText, toHtml, previewLine, inlineAll } from '../richtext.js';
 import { keepDraft, draftCleared } from '../drafts.js';
 import { autosizeAll } from '../inline.js';
 import { summarise } from '../summary.js';
@@ -170,7 +170,7 @@ export default {
     // Pressing a ⚡ keeps the cursor in the words.
     el.addEventListener('mousedown', ev => { if (ev.target.closest('.energy-choose button, .energy-level')) ev.preventDefault(); });
     document.addEventListener('pointerdown', ev => {
-      const box = el.isConnected && energyBox();
+      const box = el.isConnected ? energyBox() : null;
       if (box?.classList.contains('editing') && !box.contains(ev.target)) closeEnergy();
     }, true);
     document.addEventListener('pointerdown', ev => {
@@ -385,6 +385,7 @@ export default {
             <textarea class="item-title one-line hand" rows="1" aria-label="Item" spellcheck="false">${esc(i.title)}</textarea>
             ${span ? `<span class="span-tag">${span}</span>` : i.estimate_min ? `<span class="span-tag">~${durationLabel(Number(i.estimate_min))}</span>` : ''}
             ${i.energy ? `<button type="button" class="span-tag bolts" data-act="energy-pill" title="Energy: ${esc(ENERGY.find(e => e.id === i.energy)?.label || '')}. Click to change" aria-haspopup="menu">${ENERGY.find(e => e.id === i.energy)?.bolts || ''}</button>` : ''}
+            ${noteTag(i)}
             <button type="button" class="more" data-act="details" aria-label="Details" aria-expanded="${editing === i.id}">⋯</button>
             ${noteEditing === i.id
               ? `<div class="note-edit" data-note-for="${i.id}"></div>`
@@ -407,17 +408,17 @@ export default {
       return pills || note ? `<div class="item-sub">${pills}${note}</div>` : '';
     }
 
-    // Notes under items: first line only until clicked; clicking toggles.
-    // Which ones are open is forgotten when you change day or leave the page.
-    const openNotes = new Set();
+    // Notes under items: clicking one opens the item's panel.
     let noteEditing = null; // item whose notes are being typed (Shift+Enter)
+    // Like Tasks, by the page's spacing (CSS): tight = no note here, just 📝 on
+    // the item's line; medium = one line; loose = up to three lines.
     function noteHtml(i) {
-      const { html, more } = previewLine(i.notes);
+      const { html } = previewLine(i.notes);
       if (!html) return '';
-      const open = openNotes.has(i.id);
-      return `<div class="item-note${open ? ' open' : ''}" data-act="toggle-note" role="button" tabindex="0" aria-expanded="${editing === i.id}" title="${editing === i.id ? 'Close' : 'Open to read or edit'}">`
-        + `${open ? `<div class="note-body">${toHtml(i.notes)}</div>` : html}${!open && more > 0 ? ` <span class="more-lines">+${more} more</span>` : ''}</div>`;
+      return `<div class="item-note plan-note" data-act="toggle-note" role="button" tabindex="0" aria-expanded="${editing === i.id}" title="${editing === i.id ? 'Close' : 'Open to read or edit'}">${inlineAll(i.notes)}</div>`;
     }
+    const noteTag = i => ((i.notes || '').trim() && editing !== i.id
+      ? `<button type="button" class="span-tag note-tag" data-act="toggle-note" title="${esc(i.notes.split('\n').map(l => l.trim()).find(Boolean)?.slice(0, 120) || 'Note')}">📝</button>` : '');
 
     // Mount the notes editor wherever a row or details panel asked for one.
     function mountNoteEditors() {
@@ -1665,7 +1666,6 @@ export default {
       date = /^\d{4}-\d{2}-\d{2}$/.test(d || '') ? d : isoDate();
       editing = null;
       selected.clear();
-      openNotes.clear();
       dumpDraft.restore(); // each day keeps its own unsaved "to place" text
       await render();
     };

@@ -2782,3 +2782,18 @@ select.dd-open, .dd-open > select { outline: none; }
 #main[data-density="tight"] .task-list .item-sub .task-note { flex: none; }
 #main[data-density="tight"] .task-note .note-icon { display: inline-block; font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif; font-size: .85rem; opacity: .8; cursor: pointer; }
 #main[data-density="tight"] .task-note :is(.note-medium, .note-loose, .note-more) { display: none !important; }
+
+/* Day Planner notes by spacing, like Tasks: tight = just 📝 on the item's
+   line; medium = one line under it; loose = up to three lines. */
+.note-tag { display: none; font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif; cursor: pointer; }
+#main[data-density="tight"] .planner .note-tag { display: inline-block; }
+#main[data-density="tight"] .planner .item-sub > .plan-note { display: none; }
+.planner .plan-note { white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+#main[data-density="loose"] .planner .plan-note { white-space: normal; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+#main[data-density="tight"] .planner .item-sub:not(:has(> :not(.plan-note))) { display: none; }
+
+/* Brain Dump: the text of saved notes (not while writing) is a little smaller
+   in every spacing; compact smallest, medium and expanded a little bigger. */
+#main .thought .thought-body { font-size: .95rem; }
+#main[data-density="tight"] .thought .thought-body > .thought-flat,
+#main[data-density="tight"] .thought .thought-title { font-size: .8rem; }
