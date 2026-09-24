@@ -2330,11 +2330,13 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
    border or rounded box, just the line lit up a little, like task titles. */
 .line .item-title:focus { border-color: transparent; border-radius: 0; background: color-mix(in srgb, var(--text) 7%, transparent); box-shadow: none; }
 
-/* Glass: a task's note under it (medium and loose spacing) in italics, a touch
-   smaller and a touch fainter than the note text elsewhere. */
-:root[data-theme="blue"] #main:not([data-density="tight"]) .task-list:not(.checklist) .task-note :is(.note-medium, .note-loose) {
+/* Glass: a note shown under an item (tasks, Day Planner items, list items,
+   things in Find Things; medium and loose spacing) in italics, a touch smaller
+   and a touch fainter than the text of the item. */
+:root[data-theme="blue"] #main:not([data-density="tight"]) .item-note { font-size: calc(.78rem * .93); } /* 7% under the usual note size */
+:root[data-theme="blue"] #main:not([data-density="tight"]) .item-note,
+:root[data-theme="blue"] #main:not([data-density="tight"]) .item-note :is(.note-medium, .note-loose, .note-body, .more-lines) {
   font-style: italic;
-  font-size: .93em;
   color: color-mix(in srgb, var(--text) 78%, transparent);
 }
 

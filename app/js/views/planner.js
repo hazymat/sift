@@ -466,6 +466,14 @@ export default {
     removeEventListener('resize', this.onRefit || (() => {}));
     this.onRefit = () => { clearTimeout(this.refitTimer); this.refitTimer = setTimeout(refit, 150); };
     addEventListener('resize', this.onRefit);
+    // A block over several lines grows as its title grows while you type, and
+    // when the pills open under it, so nothing spills over the lines around it.
+    let refitFrame = 0;
+    const refitSoon = () => { cancelAnimationFrame(refitFrame); refitFrame = requestAnimationFrame(() => { if (linesEl.isConnected) { fitSpanBlocks(); placeNowMarker(); } }); };
+    linesEl.addEventListener('input', ev => { if (ev.target.closest?.('.span-block')) refitSoon(); });
+    new MutationObserver(muts => {
+      if (muts.some(m => m.target.closest?.('.span-block') && [...m.addedNodes, ...m.removedNodes].some(n => n.classList?.contains('edit-pills')))) refitSoon();
+    }).observe(linesEl, { childList: true, subtree: true });
 
     // A block over several lines whose text needs more room than those lines
     // give it grows: its last line gets taller.
