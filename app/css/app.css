@@ -798,7 +798,7 @@ kbd { font: inherit; font-size: .72em; padding: 1px 5px; margin-left: 4px; borde
 .item-details .wide { grid-column: 1 / -1; }
 .item-details textarea { font-size: .9rem; padding: 6px 8px; color: var(--text); line-height: 1.4; resize: vertical; }
 .item-details input, .item-details select { font-size: .9rem; padding: 6px 8px; color: var(--text); }
-.detail-actions { grid-column: 1 / -1; display: flex; gap: 8px; justify-content: flex-end; }
+.detail-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 .detail-actions button { padding: 5px 12px; font-size: .85rem; }
 .detail-actions .close-details { margin-right: auto; }
 
