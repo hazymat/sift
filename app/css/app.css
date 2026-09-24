@@ -1928,3 +1928,12 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 .task-list > li.group-kid.group-end { border-bottom-left-radius: 14px; border-bottom-right-radius: 14px; }
 .task-list > li.group-kid::before { content: ""; position: absolute; left: 22px; top: 0; bottom: 0; width: 1px; background: var(--glass-border); }
 .task-list > li.group-kid { position: relative; }
+
+/* Page tabs wrap onto a second row rather than hide under the ⚙ / ⋯. */
+.tasks-head .segmented { flex-wrap: wrap; overflow: visible; }
+.tasks-head { align-items: flex-start; }
+.tasks-head .page-cog, .tasks-head .page-cog + .tool-menu { flex: none; }
+/* Tight: the title keeps its room; chips and pills shrink (and clip) first. */
+#main[data-density="tight"] .task-list > li[data-task] > .task-title { flex: 1 1 55%; min-width: 45%; }
+#main[data-density="tight"] .task-list > li[data-task] > .chips { flex: 0 1 auto; min-width: 0; max-width: none; }
+#main[data-density="tight"] .task-list > li[data-task] > .item-sub { flex: 0 1 auto; }
