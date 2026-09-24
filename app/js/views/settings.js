@@ -46,6 +46,17 @@ export default {
         <label class="check-row"><input type="checkbox" name="hint_walk_breaks"> Build in walking breaks during laptop work <span class="muted">(with the focus timer, coming later)</span></label>
       </section>
 
+      <section class="card" id="energy-settings">
+        <h2>Energy levels</h2>
+        <p class="muted">Energy is here to help you stay mindful of how your choices for the day fit how you feel. Pick a level for the day in the Day Planner, mark tasks with the level they need, and Sift can suggest tasks that match. Say what each level means for you; it shows when you hover over (or hold) the ⚡.</p>
+        <div class="settings-grid">
+          <label class="wide">⚡ Low<input name="energy_low" autocomplete="off"></label>
+          <label class="wide">⚡⚡ Medium<input name="energy_medium" autocomplete="off"></label>
+          <label class="wide">⚡⚡⚡ High<input name="energy_high" autocomplete="off"></label>
+        </div>
+        <div class="backup-row"><button type="button" data-energy-reset>Put back the suggestions</button></div>
+      </section>
+
       <section class="card" id="notes-settings">
         <h2>Notes</h2>
         <p class="muted">In any note, 📞 links a contact, 📝 links anything, ⚠️ links something important. Or just keep the emoji.</p>
@@ -422,6 +433,32 @@ export default {
       toast('✓ Saved');
     });
     drawPlanner();
+
+    // Energy levels: what each one means to you.
+    {
+      const card = el.querySelector('#energy-settings');
+      const days = await import('../days.js');
+      const draw = async () => {
+        await days.applyEnergyMeanings();
+        for (const e of days.ENERGY) card.querySelector(`[name="energy_${e.id}"]`).value = e.hint;
+      };
+      card.addEventListener('change', async ev => {
+        const t = ev.target;
+        if (!t.name?.startsWith('energy_')) return;
+        const id = t.name.slice(7);
+        const text = t.value.trim();
+        await store.updateSettings({ [t.name]: !text || text === days.ENERGY_DEFAULTS[id] ? null : text });
+        await draw();
+        toast('✓ Saved');
+      });
+      card.addEventListener('click', async ev => {
+        if (!ev.target.closest('[data-energy-reset]')) return;
+        await store.updateSettings({ energy_low: null, energy_medium: null, energy_high: null });
+        await draw();
+        toast('✓ Back to the suggestions');
+      });
+      await draw();
+    }
 
     // Text size: kept on this device, applied before first paint (index.html).
     const sizeBox = el.querySelector('#text-size');

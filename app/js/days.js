@@ -42,11 +42,25 @@ export function durationLabel(m) {
 }
 
 // Energy is shown as lightning: ⚡ low, ⚡⚡ medium, ⚡⚡⚡ high (low first).
+// What each level means is yours to set (Settings → Energy levels); these are the suggestions.
+export const ENERGY_DEFAULTS = {
+  low: 'Desk work, small tasks, admin',
+  medium: 'Meetings, some project work',
+  high: 'Physically active work, starting new projects',
+};
 export const ENERGY = [
-  { id: 'low', label: 'Low', bolts: '⚡', hint: 'Laptop work: coding, accounts, design' },
-  { id: 'medium', label: 'Medium', bolts: '⚡⚡', hint: 'Pottering jobs' },
-  { id: 'high', label: 'High', bolts: '⚡⚡⚡', hint: 'Big tidy-ups, starting big projects' },
+  { id: 'low', label: 'Low', bolts: '⚡', hint: ENERGY_DEFAULTS.low },
+  { id: 'medium', label: 'Medium', bolts: '⚡⚡', hint: ENERGY_DEFAULTS.medium },
+  { id: 'high', label: 'High', bolts: '⚡⚡⚡', hint: ENERGY_DEFAULTS.high },
 ];
+
+// Put the saved meanings into ENERGY (the hover text everywhere is read from it).
+// Called at start-up and whenever the settings change.
+export async function applyEnergyMeanings() {
+  const s = await store.getSettings();
+  for (const e of ENERGY) e.hint = String(s[`energy_${e.id}`] || '').trim() || ENERGY_DEFAULTS[e.id];
+  return ENERGY;
+}
 
 export async function daySettings() {
   const s = await store.getSettings();

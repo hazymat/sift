@@ -247,6 +247,11 @@ async function boot() {
   addEventListener('resize', fitTopNav);
   store.subscribe(renderSyncStatus);
 
+  // What each energy level means (Settings → Energy levels) feeds the hover text everywhere.
+  const days = await import('./days.js');
+  await days.applyEnergyMeanings();
+  store.subscribe(change => { if (change?.collection === 'settings') days.applyEnergyMeanings(); });
+
   await route();
   renderSyncStatus();
   // Sync: runs in the background once signed in. When another device's
