@@ -2329,3 +2329,11 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
 /* Day Planner lines: typing on a line (a new one or an item's text) shows no
    border or rounded box, just the line lit up a little, like task titles. */
 .line .item-title:focus { border-color: transparent; border-radius: 0; background: color-mix(in srgb, var(--text) 7%, transparent); box-shadow: none; }
+
+/* Glass: a task's note under it (medium and loose spacing) in italics, a touch
+   smaller and a touch fainter than the note text elsewhere. */
+:root[data-theme="blue"] #main:not([data-density="tight"]) .task-list:not(.checklist) .task-note :is(.note-medium, .note-loose) {
+  font-style: italic;
+  font-size: .93em;
+  color: color-mix(in srgb, var(--text) 78%, transparent);
+}
