@@ -5,6 +5,7 @@ import { installHoldToOpen } from './holdopen.js';
 import { installSheets } from './sheets.js';
 import { installSearchClear } from './searchclear.js';
 import { installFlash } from './flash.js';
+import { versionText } from './version.js';
 import { installViewCog } from './viewcog.js';
 import { word, applyWords } from './words.js';
 
@@ -179,6 +180,8 @@ async function renderSyncStatus() {
   const pill = $('#sync-status');
   const text = { off: 'Local only', idle: 'Sync on', syncing: 'Syncing…', ok: 'In sync', offline: 'Offline', error: 'Sync problem' }[status.state] || 'Local only';
   pill.textContent = status.state === 'ok' && status.pending ? `${status.pending} to sync` : text;
+  // Which version this is, after the sync state (laptop top bar).
+  pill.insertAdjacentHTML('beforeend', `<span class="pill-version">· ${versionText()}</span>`);
   pill.dataset.state = status.state;
   pill.title = status.state === 'off' ? `${await store.outboxSize()} changes stored on this device only` : status.error || text;
 }

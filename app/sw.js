@@ -30,6 +30,7 @@ const SHELL = [
   'js/ask.js',
   'js/flash.js',
   'js/words.js',
+  'js/version.js',
   'js/refs.js',
   'js/drafts.js',
   'js/pillmenu.js',

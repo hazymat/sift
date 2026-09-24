@@ -16,8 +16,10 @@ function formatBytes(n) {
 
 export default {
   async mount(el, { store, app }) {
+    const { versionText } = await import('../version.js');
     el.innerHTML = `
       <section class="card" id="install-card">
+        <p class="muted app-version">Sift version ${versionText()}</p>
         <h2>Home Screen and your data</h2>
         <div id="install-body"></div>
       </section>

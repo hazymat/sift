@@ -2277,3 +2277,7 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
 .types-list input { flex: 1; min-width: 0; box-sizing: border-box; font-size: 16px; color: var(--text); }
 .types-add { display: flex; gap: 6px; margin: 8px 0; }
 .types-add input { flex: 1; min-width: 0; box-sizing: border-box; font-size: 16px; color: var(--text); }
+
+/* The version, after the sync state and at the top of Settings (js/version.js). */
+.pill-version { margin-left: .35em; opacity: .7; font-size: .9em; }
+.app-version { margin: 0 0 6px; font-size: .78rem; }

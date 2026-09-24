@@ -24,7 +24,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Stamp service worker version
-        run: sed -i "s/^const VERSION = 'dev';/const VERSION = '${GITHUB_SHA::7}';/" app/sw.js
+        run: |
+          sed -i "s/^const VERSION = 'dev';/const VERSION = '${GITHUB_SHA::7}';/" app/sw.js
+          sed -i -e "s/^export const VERSION = 'dev';/export const VERSION = '${GITHUB_SHA::7}';/" -e "s/^export const BUILT = '';/export const BUILT = '$(date -u +%Y-%m-%d)';/" app/js/version.js
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
