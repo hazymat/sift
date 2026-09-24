@@ -18,6 +18,7 @@ import { loadTree } from '../places.js';
 import { contactFromText } from '../contacts.js';
 import { createListKit } from '../listkit.js';
 import * as att from '../attachments.js';
+import { pointTo } from '../flash.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -343,7 +344,7 @@ export default {
       if (att.onClick(ev, parentOf, attachedDone)) return;
       // "→ Task" chips go to the task and light it up when you get there.
       const jump = ev.target.closest('a[data-focus]');
-      if (jump) { try { sessionStorage.setItem('sift:focus', jump.dataset.focus); } catch { /* fine */ } return; }
+      if (jump) { const [c, id] = jump.dataset.focus.split(':'); pointTo(c, id); return; }
       const b = ev.target.closest('[data-act], [data-kind], [data-filter]');
       if (!b) return;
       // Choosing the kind doesn't go back into the note (on a phone that would open it full screen).

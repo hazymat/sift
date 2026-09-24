@@ -6,6 +6,8 @@
 
 import * as store from './store.js';
 import { createContact, CAPTURED_HEADING } from './contacts.js';
+import { readDraft } from './drafts.js';
+import { pointTo } from './flash.js';
 
 const firstLine = s => (s || '').split('\n').map(l => l.trim()).find(Boolean) || '';
 const niceDate = d => (d ? new Date(`${d}T12:00`).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }) : '');
@@ -108,8 +110,17 @@ export async function openRef(ref) {
   const [collection, id] = ref.split('/');
   const kind = KINDS[collection];
   const r = kind && await store.get(collection, id, { includeDeleted: true });
-  if (!r || r.purged_at) return (await import('./toast.js')).toast('That has been deleted');
-  if (r.deleted_at) return (await import('./toast.js')).toast('That is in the Bin');
+  const say = async text => (await import('./toast.js')).toast(text);
+  // A Brain Dump note still being typed in the New note box (not saved yet).
+  if (!r && collection === 'thoughts' && readDraft('dump:id') === id) {
+    pointTo('capture', id);
+    location.hash = '#/dump';
+    return;
+  }
+  const what = collection === 'thoughts' ? 'The note this came from' : 'That';
+  if (!r || r.purged_at) return say(`${what} was deleted (it's no longer in the Bin)`);
+  if (r.deleted_at) return say(`${what} is in the Bin`);
+  pointTo(collection, id); // it pulses when you get there (flash.js)
   location.hash = kind.route(r);
 }
 

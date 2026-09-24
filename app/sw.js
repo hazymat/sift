@@ -28,6 +28,7 @@ const SHELL = [
   'js/fullnote.js',
   'js/linemake.js',
   'js/ask.js',
+  'js/flash.js',
   'js/refs.js',
   'js/drafts.js',
   'js/pillmenu.js',
