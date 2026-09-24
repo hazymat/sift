@@ -2559,7 +2559,11 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 /* Day Planner: the note line sits under the title, only while you're on that line. */
 .line .content > .add-note { flex-basis: 100%; margin: -2px 0 4px; }
 .pile-new .content { flex-wrap: wrap; }
-.pile-new:not(:focus-within) #dump-note:placeholder-shown { display: none; }
+.pile-new:not(.open) #dump-note:placeholder-shown { display: none; }
+/* Pills under the Day Planner's New task line while you're on it (like .edit-pills). */
+.pile-new .new-pills { display: none; flex-basis: 100%; flex-wrap: wrap; gap: 6px; margin: 2px 0 6px 6px; }
+.pile-new.open .new-pills { display: flex; }
+.new-pills .pill-more { color: var(--text); }
 
 /* Tasks page: the new-task line is ruled paper, not a box; an empty list shows
    a few more ruled lines under it, with the first task on the first line. */
