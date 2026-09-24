@@ -62,6 +62,10 @@
         <div id="topnav-more-menu" class="menu"></div>
       </details>
     </nav>
+    <div class="top-search">
+      <input type="search" id="top-search" class="search" placeholder="Search everything… (Ctrl+K)" autocomplete="off" aria-label="Search everything">
+      <div id="top-results" class="menu search-results" hidden></div>
+    </div>
     <span id="sync-status" class="pill">Local only</span>
     <span id="app-version" class="app-version-top" aria-label="Version"></span>
   </header>
@@ -76,6 +80,8 @@
 
   <dialog id="more-sheet" class="sheet" aria-label="More areas">
     <div class="sheet-handle"></div>
+    <input type="search" id="more-search" class="search" placeholder="Search everything…" autocomplete="off" aria-label="Search everything">
+    <div id="more-results" class="search-results" hidden></div>
     <nav id="more-list" class="sheet-list"></nav>
   </dialog>
 </body>

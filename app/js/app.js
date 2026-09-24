@@ -5,6 +5,7 @@ import { installHoldToOpen } from './holdopen.js';
 import { installSheets } from './sheets.js';
 import { installSearchClear } from './searchclear.js';
 import { installFlash } from './flash.js';
+import { mountSearch } from './search.js';
 import { versionText } from './version.js';
 import { installViewCog } from './viewcog.js';
 import { word, applyWords } from './words.js';
@@ -260,6 +261,31 @@ async function boot() {
   installSheets();
   installSearchClear();
   installFlash();
+  // Search everything: the laptop's top bar, and the top of the phone's More list.
+  {
+    const top = $('#top-search');
+    const topBox = $('#top-results');
+    const topSearch = mountSearch(top, topBox, { onOpen: () => { topBox.hidden = true; top.blur(); } });
+    document.addEventListener('pointerdown', ev => { if (!ev.target.closest('.top-search')) topBox.hidden = true; });
+    const more = $('#more-search');
+    const moreBox = $('#more-results');
+    mountSearch(more, moreBox, {
+      onShow: () => { $('#more-list').hidden = true; },
+      onClear: () => { $('#more-list').hidden = false; },
+      onOpen: () => { $('#more-sheet').close(); },
+    });
+    $('#more-sheet').addEventListener('close', () => { more.value = ''; moreBox.hidden = true; moreBox.innerHTML = ''; $('#more-list').hidden = false; });
+    // Ctrl+K (⌘K) anywhere, or / when not typing (Find Things keeps its own /).
+    addEventListener('keydown', ev => {
+      const typing = ev.target.closest?.('input, textarea, select, [contenteditable="true"]');
+      const k = (ev.key === 'k' || ev.key === 'K') && (ev.ctrlKey || ev.metaKey);
+      const slash = ev.key === '/' && !typing && !location.hash.startsWith('#/find-things');
+      if (!k && !slash) return;
+      ev.preventDefault();
+      if (top.offsetParent) { top.focus(); top.select(); topSearch.show(); }
+      else { openMoreSheet(); more.focus(); }
+    });
+  }
   $('#app-version').textContent = versionText(); // quietly, at the end of the laptop top bar
   applyDensity = installViewCog(() => current);
   // A dropdown menu opens inside the screen: flipped to the other side if
