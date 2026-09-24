@@ -11,7 +11,7 @@ import { titleFrom, cleanLine } from '../summary.js';
 import { SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import { toHtml, richText } from '../richtext.js';
-import { addTask } from '../tasks.js';
+import { addTaskFirst } from '../tasks.js';
 import { addItem, isoDate, parseTimed, daySettings, durationChoices, durationLabel } from '../days.js';
 import { loadTree } from '../places.js';
 import { contactFromText } from '../contacts.js';
@@ -173,7 +173,7 @@ export default {
             <button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button>
             <select class="kind-select" aria-label="Kind">${KINDS.map(k => `<option value="${k.id}" ${k.id === t.kind ? 'selected' : ''}>${k.label}</option>`).join('')}</select>
             <span class="muted">${ago(t.created_at)}</span>
-            ${conv ? `<a class="chip" href="${href}">→ ${conv[0]}</a>` : ''}
+            ${conv ? `<a class="chip" href="${href}" data-focus="${t.converted_to.collection}:${t.converted_to.id}">→ ${conv[0]}</a>` : ''}
             ${att.countChip(atts.get(t.id))}
             <span class="spacer"></span>
             <button type="button" class="pin" data-act="pin" aria-pressed="${!!t.pinned}" title="Pin">${t.pinned ? '★' : '☆'}</button>
@@ -245,7 +245,7 @@ export default {
             const t = thoughts.find(x => x.id === id);
             if (!t || t.converted_to) continue;
             const [first, ...rest] = t.body.split('\n');
-            const task = await addTask({ title: first.trim().slice(0, 200), notes: rest.join('\n').trim(), source_thought_id: t.id });
+            const task = await addTaskFirst({ title: first.trim().slice(0, 200), notes: rest.join('\n').trim(), source_thought_id: t.id });
             await store.update('thoughts', t.id, { converted_to: { collection: 'tasks', id: task.id } });
             made.push([t.id, task.id]);
           }
@@ -325,6 +325,9 @@ export default {
 
     el.addEventListener('click', async ev => {
       if (att.onClick(ev, parentOf, attachedDone)) return;
+      // "→ Task" chips go to the task and light it up when you get there.
+      const jump = ev.target.closest('a[data-focus]');
+      if (jump) { try { sessionStorage.setItem('sift:focus', jump.dataset.focus); } catch { /* fine */ } return; }
       const b = ev.target.closest('[data-act], [data-kind], [data-filter]');
       if (!b) return;
       if (b.dataset.kind) { kind = b.dataset.kind; paintKinds(); input.focus(); return; }
@@ -370,8 +373,8 @@ export default {
         render();
       } else if (act === 'to-task') {
         const [first, ...rest] = t.body.split('\n');
-        const task = await addTask({ title: first.trim().slice(0, 200), notes: rest.join('\n').trim(), source_thought_id: t.id });
-        await convert(t, { collection: 'tasks', id: task.id }, `Now a task: ${task.title}`);
+        const task = await addTaskFirst({ title: first.trim().slice(0, 200), notes: rest.join('\n').trim(), source_thought_id: t.id });
+        await convert(t, { collection: 'tasks', id: task.id }, `Now a task, at the top of Tasks: ${task.title}`);
       } else if (act === 'plan' || act === 'store') {
         if (act === 'store') {
           boxes = [];

@@ -616,13 +616,22 @@ export default {
     await render();
   },
 
-  route([view, project]) {
+  async route([view, project]) {
     // Old links to Today / Upcoming land on Now.
     const v = { today: 'now', upcoming: 'now' }[view] || view;
     this.state.view = ['list', 'now', 'next', 'later', 'projects', 'done'].includes(v) ? v : 'list';
     this.state.project = view === 'list' ? project || null : null;
     this.closeDetails?.();
-    return this.render();
+    await this.render();
+    // Sent here from a Brain Dump note: scroll to that task and light it up.
+    try {
+      const focus = sessionStorage.getItem('sift:focus');
+      if (focus?.startsWith('tasks:')) {
+        sessionStorage.removeItem('sift:focus');
+        const row = document.querySelector(`#main li[data-task="${CSS.escape(focus.slice(6))}"]`);
+        if (row) { row.scrollIntoView({ block: 'center' }); row.classList.add('flash'); setTimeout(() => row.classList.remove('flash'), 2500); }
+      }
+    } catch { /* fine */ }
   },
 
   unmount() {

@@ -2044,3 +2044,7 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 #main[data-density="tight"] .thought-list { gap: 10px; }
 #main[data-density="tight"] .thought .thought-title { font-size: .88rem; }
 #main[data-density="tight"] .thought .thought-head { font-size: .72rem; }
+
+/* A row you were sent to lights up for a moment */
+@keyframes row-flash { 0%, 60% { background: color-mix(in srgb, var(--accent, #f2d35b) 35%, transparent); } 100% { background: transparent; } }
+li.flash { animation: row-flash 2.4s ease-out; border-radius: 12px; }

@@ -71,6 +71,13 @@ export async function addTask(fields) {
   });
 }
 
+// A new task at the top of the list (where you'll see it), e.g. one made from a
+// Brain Dump note.
+export async function addTaskFirst(fields) {
+  const first = (await store.list('tasks')).reduce((m, t) => Math.min(m, t.sort_order ?? 0), 0);
+  return addTask({ ...fields, sort_order: first - 1 });
+}
+
 // Tick / untick: done_at is set when ticked and cleared when unticked.
 export function doneFields(done) {
   return done ? { done_at: new Date().toISOString(), status: 'done' } : { done_at: null, status: 'todo' };
