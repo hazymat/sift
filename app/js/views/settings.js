@@ -185,6 +185,17 @@ export default {
             <button type="button" data-sync="forgot">Forgot password?</button>
             <span class="muted" id="sync-msg"></span>
           </div>
+          <details class="trust-help" hidden>
+            <summary>Trust this server (home servers with their own certificate)</summary>
+            <p class="muted">A server at home makes its own security certificate, so each device has to trust it once. Open <a class="trust-link" target="_blank" rel="noopener">the certificate</a> on the device, then follow the steps for it. (A server with a proper web address doesn't need this.)</p>
+            <ul class="trust-steps">
+              <li><b>iPhone / iPad:</b> open the link in <b>Safari</b> (not another app) and allow the download. Then Settings → Profile Downloaded → Install. Then Settings → General → About → Certificate Trust Settings → switch it on.</li>
+              <li><b>Android:</b> download it, then Settings → Security → Encryption &amp; credentials → Install a certificate → CA certificate.</li>
+              <li><b>Windows:</b> download it, double-click → Install Certificate → Local Machine → "Trusted Root Certification Authorities". Restart the browser.</li>
+              <li><b>Mac:</b> download it, double-click → Keychain Access; open it, choose Trust → "Always Trust".</li>
+            </ul>
+            <p class="muted">Then reload this page and check the address again.</p>
+          </details>
           <div class="sync-recover" hidden>
             <p class="muted">Enter your email above, the recovery code you saved when you made the account, and a new password. Your other devices are signed out.</p>
             <div class="settings-grid sync-form">
@@ -198,13 +209,22 @@ export default {
           const server = serverInput.value.trim();
           const create = box.querySelector('[data-sync="create"]');
           const note = box.querySelector('#sync-msg');
+          const help = box.querySelector('.trust-help');
           create.hidden = true;
+          help.hidden = true;
           note.textContent = '';
           if (!/^https?:\/\/.+/i.test(server)) return;
           sync.serverInfo(server).then(info => {
             create.hidden = info.registration !== 'open';
             note.textContent = info.registration === 'open' ? 'This server has no account yet: create yours.' : '';
-          }).catch(() => { note.textContent = "Can't reach the server from here (VPN on, and its certificate trusted?)"; });
+          }).catch(() => {
+            note.textContent = "Can't reach the server from here (VPN on, and its certificate trusted?)";
+            try {
+              const host = new URL(server).hostname;
+              help.querySelector('.trust-link').href = `http://${host}/sift-ca.crt`;
+              help.hidden = false;
+            } catch { /* not a web address yet */ }
+          });
         };
         serverInput.addEventListener('change', check);
         check();

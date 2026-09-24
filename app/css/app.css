@@ -2048,3 +2048,7 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 /* A row you were sent to lights up for a moment */
 @keyframes row-flash { 0%, 60% { background: color-mix(in srgb, var(--accent, #f2d35b) 35%, transparent); } 100% { background: transparent; } }
 li.flash { animation: row-flash 2.4s ease-out; border-radius: 12px; }
+
+.trust-help { margin: 8px 0; font-size: .9rem; }
+.trust-help summary { cursor: pointer; color: var(--muted); }
+.trust-steps { margin: 6px 0; padding-left: 1.2em; display: grid; gap: 6px; }
