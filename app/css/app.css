@@ -2676,5 +2676,7 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
    rounded box that starts where the task's text starts (just right of the red
    line); the tick box and handle stay in the margin. */
 .pile-paper .line.has-item:has(+ .item-details) { border-bottom: 0; }
-.pile-paper .line.has-item:has(+ .item-details) > .content { border: 1px solid var(--glass-border); border-bottom: 0; border-radius: 14px 14px 0 0; background: var(--glass-track); }
-.pile-paper .line.has-item + .item-details { margin: 0 0 10px 64px; padding: 10px 12px 12px; border: 1px solid var(--glass-border); border-top: 0; border-radius: 0 0 14px 14px; background: var(--glass-track); }
+.pile-paper .line.has-item:has(+ .item-details) > .content { margin-left: 8px; border: 1px solid var(--glass-border); border-bottom: 0; border-radius: 14px 14px 0 0; background: var(--glass-track); }
+.pile-paper .line.has-item + .item-details { position: relative; margin: 0 0 10px 72px; padding: 10px 12px 12px; border: 1px solid var(--glass-border); border-top: 0; border-radius: 0 0 14px 14px; background: var(--glass-track); }
+/* The red margin line carries on down beside the panel (and its gap below). */
+.pile-paper .line.has-item + .item-details::before { content: ''; position: absolute; left: -11px; top: 0; bottom: -11px; width: 2px; background: var(--margin-rule); pointer-events: none; }
