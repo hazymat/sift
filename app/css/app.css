@@ -351,7 +351,6 @@ main {
   opacity: .5;
 }
 .sheet-handle::before { content: ''; position: absolute; inset: -14px -70px; } /* a bigger area to grab */
-.sheet-close { position: sticky; top: 0; z-index: 3; float: right; width: 34px; height: 34px; margin: -30px -6px 0 0; padding: 0; border-radius: 50%; font-size: 1rem; line-height: 1; display: grid; place-items: center; background: var(--glass-strong); border: 1px solid var(--glass-border); box-shadow: var(--shadow-sm); }
 .sheet-list { display: grid; gap: 6px; }
 .sheet-list a {
   display: flex;
@@ -2289,7 +2288,6 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
 /* Touch screens: no ✕ on sheets (drag the handle down or tap outside), and a
    thicker handle that's easier to grab. */
 @media (pointer: coarse) {
-  .sheet-close { display: none; }
   .sheet-handle { width: 56px; height: 7px; border-radius: 4px; opacity: .65; margin: 6px auto 14px; }
   .sheet-handle::before { inset: -18px -90px; }
 }

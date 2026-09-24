@@ -1,20 +1,8 @@
 // Bottom sheets (<dialog class="sheet">), the same everywhere: close one by
-// dragging its handle down, tapping outside it, its ✕ (always in view at the
-// top), or Esc. Views that need to know listen for the dialog's `close` event.
+// dragging its handle down, tapping outside it, or Esc (no ✕, by request).
+// Views that need to know listen for the dialog's `close` event.
 
 const DRAG_CLOSE = 110; // px pulled down that closes it (or a quick flick)
-
-function addClose(dlg) {
-  if (dlg.querySelector(':scope > .sheet-close')) return;
-  const b = document.createElement('button');
-  b.type = 'button';
-  b.className = 'sheet-close';
-  b.setAttribute('aria-label', 'Close');
-  b.dataset.reviewClose = ''; // the Day Planner's review sheet closes itself on this too
-  b.textContent = '✕';
-  const handle = dlg.querySelector(':scope > .sheet-handle');
-  if (handle) handle.after(b); else dlg.prepend(b);
-}
 
 function drag(ev) {
   const handle = ev.target.closest('dialog.sheet[open] > .sheet-handle');
@@ -51,12 +39,8 @@ let installed = false;
 export function installSheets() {
   if (installed) return;
   installed = true;
-  // Sheets are often redrawn while open, so the ✕ is put back whenever needed.
-  const check = () => { for (const dlg of document.querySelectorAll('dialog.sheet[open]')) addClose(dlg); };
-  new MutationObserver(check).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['open'] });
   document.addEventListener('pointerdown', drag);
   document.addEventListener('click', ev => {
-    if (ev.target.closest?.('.sheet-close')) { ev.target.closest('dialog')?.close(); return; }
     const dlg = ev.target;
     if (!(dlg instanceof HTMLDialogElement) || !dlg.matches('.sheet[open]')) return;
     const r = dlg.getBoundingClientRect();
