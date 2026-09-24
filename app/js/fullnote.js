@@ -2,19 +2,20 @@
 //
 // On a phone, tapping into any note opens it like this: the note fills the
 // screen and nothing scrolls behind it, "Done" is at the top, and the
-// formatting toolbar sits just above the keyboard. Done (or leaving the note)
-// zooms it back into its place on the page. On a laptop the ⤢ button on the
-// toolbar does the same, for when you want to focus on one note.
+// formatting toolbar sits just above the keyboard. Only Done (or Esc) closes
+// it: taps outside it and putting the keyboard away don't. On a laptop the ⤢
+// button on the toolbar does the same, for when you want to focus on one note.
 //
 // The editor isn't moved in the page (the view that owns it keeps working as
-// before, including saving when you leave it); it is just shown fixed on top.
+// before); it is just shown fixed on top. While it's open, the cursor leaving
+// the note is kept from the page (so the page doesn't finish editing and
+// redraw it away); on Done the page gets its usual "left the note" and saves.
 // Following the visible part of the screen (visualViewport) also stops iPhone
-// drawing the note's shading out of line with its text when the keyboard
-// scrolls the page.
+// drawing the note out of line when the keyboard scrolls the page.
 
 export const PHONE = matchMedia('(pointer: coarse) and (max-width: 760px)');
 
-let current = null; // { box, follow, done }
+let current = null; // { box, backdrop, left: element the cursor left, or null }
 
 function follow() {
   if (!current) return;
@@ -29,7 +30,21 @@ function follow() {
   }
 }
 
+// The cursor leaving a full-screen note: the page isn't told (yet).
+function holdFocusOut(ev) {
+  if (!current?.box.contains(ev.target)) return;
+  if (ev.relatedTarget && current.box.contains(ev.relatedTarget)) return;
+  ev.stopImmediatePropagation();
+  current.left = ev.target;
+}
+
 export function isFull(box) { return current?.box === box; }
+
+export function setFullLabel(box, label) {
+  if (current?.box !== box) return;
+  const el = box.querySelector(':scope > .note-full-head .note-full-label');
+  if (el && el.textContent !== label) el.textContent = label;
+}
 
 export function openFull(box, { label = 'Note' } = {}) {
   if (current?.box === box) return;
@@ -42,9 +57,15 @@ export function openFull(box, { label = 'Note' } = {}) {
     box.prepend(head);
   }
   head.querySelector('.note-full-label').textContent = label;
+  // Behind the note: catches taps so nothing on the page reacts to them.
+  const backdrop = document.createElement('div');
+  backdrop.className = 'note-full-backdrop';
+  backdrop.addEventListener('pointerdown', ev => ev.preventDefault());
+  document.body.append(backdrop);
   box.classList.add('is-full');
   document.documentElement.classList.add('note-full');
-  current = { box };
+  current = { box, backdrop, left: null };
+  addEventListener('focusout', holdFocusOut, true);
   follow();
   window.visualViewport?.addEventListener('resize', follow);
   window.visualViewport?.addEventListener('scroll', follow);
@@ -55,10 +76,12 @@ export function openFull(box, { label = 'Note' } = {}) {
 // takes the cursor out of it (so the page saves it the usual way).
 export function closeFull({ animate = true, blur = true } = {}) {
   if (!current) return;
-  const { box } = current;
+  const { box, backdrop, left } = current;
   current = null;
+  removeEventListener('focusout', holdFocusOut, true);
   window.visualViewport?.removeEventListener('resize', follow);
   window.visualViewport?.removeEventListener('scroll', follow);
+  backdrop.remove();
   let done = false;
   const finish = () => {
     if (done) return;
@@ -67,7 +90,10 @@ export function closeFull({ animate = true, blur = true } = {}) {
     box.style.top = '';
     box.style.height = '';
     document.documentElement.classList.remove('note-full');
-    if (blur && box.contains(document.activeElement)) document.activeElement.blur();
+    if (!blur) return;
+    if (box.contains(document.activeElement)) document.activeElement.blur();
+    // The cursor had already left (keyboard put away): tell the page now.
+    else if (left?.isConnected) left.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
   };
   if (!animate || !box.animate || !box.isConnected) { finish(); return; }
   const a = box.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(.9)' }], { duration: 170, easing: 'ease-in' });

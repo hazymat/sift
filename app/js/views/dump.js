@@ -346,7 +346,8 @@ export default {
       if (jump) { try { sessionStorage.setItem('sift:focus', jump.dataset.focus); } catch { /* fine */ } return; }
       const b = ev.target.closest('[data-act], [data-kind], [data-filter]');
       if (!b) return;
-      if (b.dataset.kind) { kind = b.dataset.kind; paintKinds(); input.focus(); return; }
+      // Choosing the kind doesn't go back into the note (on a phone that would open it full screen).
+      if (b.dataset.kind) { kind = b.dataset.kind; paintKinds(); return; }
       if (b.dataset.filter) { state.filter = b.dataset.filter; render(); return; }
       b.closest('details')?.removeAttribute('open');
       const li = b.closest('[data-id]');

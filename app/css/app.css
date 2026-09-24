@@ -2235,3 +2235,10 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
 .trust-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .trust-row .button { display: inline-flex; align-items: center; padding: 7px 14px; border-radius: var(--radius-pill); background: var(--active-bg); border: 1px solid var(--active-border); color: var(--text); text-decoration: none; }
 .trust-url { font-size: .82rem; overflow-wrap: anywhere; }
+
+/* Notes toolbar in sections: text style | Make | links | Markdown. */
+.md-sep { flex: none; align-self: stretch; width: 1px; margin: 3px 5px; background: var(--glass-border); }
+
+/* Phones always edit notes full screen, so no ⤢. */
+@media (pointer: coarse) and (max-width: 760px) { .md-full { display: none !important; } }
+.note-full-backdrop { position: fixed; inset: 0; z-index: 999; background: rgba(0, 0, 0, .55); }

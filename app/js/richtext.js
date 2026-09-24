@@ -44,7 +44,8 @@ import { openPicker } from './linkpicker.js';
 import { openRef, findDetails, detailKey, loadDetailIndex, createDetailContact, spotSettings, attachContact, detachContact, unlinkInRecord } from './refs.js';
 import * as store from './store.js';
 import { toast } from './toast.js';
-import { openFull, closeFull, isFull, PHONE } from './fullnote.js';
+import { openFull, closeFull, isFull, setFullLabel, PHONE } from './fullnote.js';
+import { titleFrom } from './summary.js';
 
 const LINK_RE = /\[([^\]]+)\]\(sift:([a-z_]+)\/([\w-]+)\)/g;
 
@@ -242,9 +243,12 @@ export function richText(container, { value = '', onChange, placeholder = '', or
       <button type="button" data-cmd="strikeThrough" title="Cross out"><s>S</s></button>
       <button type="button" data-cmd="insertUnorderedList" title="List (or type - at the start of a line)">• List</button>
       <button type="button" data-cmd="insertOrderedList" title="Numbered list (or type 1. at the start of a line)">1. List</button>
-      <button type="button" class="md-make" title="Make this line (or the selected lines) into tasks or a contact; the text stays here, linked" aria-haspopup="menu">↗ Make</button>
       <span class="md-sizes"><button type="button" data-size="-1" title="Smaller text (this line)" aria-label="Smaller text">A<small>−</small></button><button type="button" data-size="1" title="Bigger text (this line)" aria-label="Bigger text">A<sup>+</sup></button></span>
+      <span class="md-sep" aria-hidden="true"></span>
+      <button type="button" class="md-make" title="Make this line (or the selected lines) into tasks or a contact; the text stays here, linked" aria-haspopup="menu">↗ Make</button>
+      <span class="md-sep" aria-hidden="true"></span>
       <span class="md-emoji">${EMOJI.map(([e, name]) => `<button type="button" data-emoji="${e}" title="${name}" aria-label="Insert ${name.toLowerCase()} emoji">${e}</button>`).join('')}</span>
+      <span class="md-sep" aria-hidden="true"></span>
       <button type="button" class="md-toggle" aria-pressed="false" title="Show the raw markdown">Markdown</button>
     </div>
     <div class="rich-edit hand" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="${esc(placeholder)}"></div>
@@ -445,17 +449,20 @@ export function richText(container, { value = '', onChange, placeholder = '', or
     if (PHONE.matches && !isFull(container)) openFull(container, { label: fullLabel() });
     if (!isFull(container)) spotlight(container);
   });
-  let pressing = false;
-  container.addEventListener('pointerdown', () => { pressing = true; });
-  addEventListener('pointerup', () => setTimeout(() => { pressing = false; }, 300), { passive: true });
   container.addEventListener('focusout', ev => {
     if (container.contains(ev.relatedTarget)) return;
     spotNow(true);
     unspotlight(container);
-    // Leaving a full-screen note (the keyboard's ✓, say) puts it back in its place.
-    if (isFull(container)) setTimeout(() => { if (!pressing && !container.contains(document.activeElement)) closeFull({ blur: false }); }, 250);
   });
-  const fullLabel = () => { const o = from(); return o?.title && o.title !== 'Brain dump' ? o.title : 'Note'; };
+  // The name at the top of a full-screen note: a note's own title (worked out
+  // from what is typed, so it changes as you write), or what the note belongs to.
+  const fullLabel = () => {
+    const o = from();
+    if (o?.field === 'body') return titleFrom(md) || 'New note';
+    return o?.title && o.title !== 'Brain dump' ? o.title : 'Note';
+  };
+  edit.addEventListener('input', () => { if (isFull(container)) setFullLabel(container, fullLabel()); });
+  raw.addEventListener('input', () => { if (isFull(container)) setFullLabel(container, fullLabel()); });
   container.addEventListener('click', ev => {
     if (ev.target.closest('.note-full-done')) closeFull();
   });
