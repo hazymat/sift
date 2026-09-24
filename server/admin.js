@@ -4,6 +4,7 @@
 //   sift-admin users                    list accounts (email, devices, stored size)
 //   sift-admin devices [email]          list devices and when each was last seen
 //   sift-admin revoke <device id>       sign one device out
+//   sift-admin rename-user <old email> <new email>
 //   sift-admin delete-user <email>      remove an account and everything stored for it
 //   sift-admin registration [first|open|closed]
 //                                       show or change who can create accounts
@@ -18,7 +19,7 @@ import { DatabaseSync } from 'node:sqlite';
 
 const DATA_DIR = process.env.DATA_DIR || '/var/lib/sift';
 const ENV_FILE = process.env.SIFT_ENV || '/etc/sift/sift.env';
-const [cmd, arg] = process.argv.slice(2);
+const [cmd, arg, arg2] = process.argv.slice(2);
 
 const dbFile = path.join(DATA_DIR, 'sift.db');
 const open = () => {
@@ -43,6 +44,10 @@ if (cmd === 'users') {
   if (!arg) { console.error('Usage: sift-admin revoke <device id>'); process.exit(1); }
   const r = open().prepare('DELETE FROM devices WHERE id = ?').run(arg);
   console.log(r.changes ? 'Device signed out. It must sign in again to sync.' : 'No device with that id.');
+} else if (cmd === 'rename-user') {
+  if (!arg || !arg2) { console.error('Usage: sift-admin rename-user <old email> <new email>'); process.exit(1); }
+  const r = open().prepare('UPDATE users SET email = ? WHERE email = ?').run(arg2.trim().toLowerCase(), arg.trim().toLowerCase());
+  console.log(r.changes ? 'Email changed. Sign out and back in on each device (the recovery code still works).' : 'No account with that email.');
 } else if (cmd === 'delete-user') {
   if (!arg) { console.error('Usage: sift-admin delete-user <email>'); process.exit(1); }
   const r = open().prepare('DELETE FROM users WHERE email = ?').run(arg);   // devices and records cascade
@@ -57,5 +62,5 @@ if (cmd === 'users') {
   try { execFileSync('systemctl', ['restart', 'sift-server'], { stdio: 'inherit' }); console.log(`Registration is now "${arg}".`); }
   catch { console.log(`Saved "${arg}" in ${ENV_FILE}. Restart the server to apply it.`); }
 } else {
-  console.log(fs.readFileSync(new URL(import.meta.url), 'utf8').split('\n').slice(1, 12).map(l => l.replace(/^\/\/ ?/, '')).join('\n'));
+  console.log(fs.readFileSync(new URL(import.meta.url), 'utf8').split('\n').slice(1, 13).map(l => l.replace(/^\/\/ ?/, '')).join('\n'));
 }

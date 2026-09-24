@@ -9,3 +9,17 @@ https://__ADDRESS__ {
 	reverse_proxy 127.0.0.1:8787
 	header -Server
 }
+
+# Phones can download the authority's certificate from here (only this one
+# file is served over plain http; everything else goes to https). The file is
+# the public root certificate, never a key.
+http://__ADDRESS__ {
+	handle /sift-ca.crt {
+		root * /etc/caddy
+		header Content-Type application/x-x509-ca-cert
+		file_server
+	}
+	handle {
+		redir https://{host}{uri} permanent
+	}
+}

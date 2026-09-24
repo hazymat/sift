@@ -62,13 +62,18 @@ if [ "$MODE" != update ]; then
   sed "s/__ADDRESS__/$ADDRESS/" "$HERE/deploy/Caddyfile.$MODE" > /etc/caddy/Caddyfile
   systemctl enable caddy
   systemctl restart caddy
+  if [ "$MODE" = home ]; then
+    # Publish the root certificate at http://<address>/sift-ca.crt for phones to download.
+    ROOT=/var/lib/caddy/.local/share/caddy/pki/authorities/local/root.crt
+    for _ in $(seq 1 20); do [ -f "$ROOT" ] && break; sleep 1; done
+    [ -f "$ROOT" ] && install -m 644 "$ROOT" /etc/caddy/sift-ca.crt
+  fi
 fi
 
 sleep 1
 systemctl is-active sift-server >/dev/null && echo "sift-server is running."
 if [ "$MODE" = home ]; then
-  echo "Devices must trust Caddy's certificate authority once. Copy it with:"
-  echo "  scp root@$ADDRESS:/var/lib/caddy/.local/share/caddy/pki/authorities/local/root.crt ./sift-home-ca.crt"
-  echo "and see README.md (\"Trusting the home certificate\")."
+  echo "Devices must trust Caddy's certificate authority once: on a phone, open http://$ADDRESS/sift-ca.crt in Safari;"
+  echo "see README.md (\"Trusting the home certificate\")."
 fi
 [ "$MODE" = update ] || echo "Check: https://$ADDRESS/api/health   Then in Sift: Settings -> Sync -> server https://$ADDRESS"

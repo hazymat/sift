@@ -43,7 +43,7 @@ scp root@<address>:/var/lib/caddy/.local/share/caddy/pki/authorities/local/root.
 ```
 
 - **Windows**: double-click the file → Install Certificate → Local Machine → "Trusted Root Certification Authorities".
-- **iPhone**: AirDrop or email the file, then Settings → Profile Downloaded → Install; then Settings → General → About → Certificate Trust Settings → switch it on.
+- **iPhone**: open `http://<address>/sift-ca.crt` in **Safari** (not WhatsApp or Files; those can't install it) and allow the download. Then Settings → Profile Downloaded → Install; then Settings → General → About → Certificate Trust Settings → switch it on.
 - **Mac**: double-click → Keychain Access → set "Always Trust".
 
 Keep this certificate out of any public repository.
@@ -59,6 +59,7 @@ sift-admin users                    # accounts, devices, stored size
 sift-admin devices [email]          # devices and when each last synced
 sift-admin revoke <device id>       # sign one device out (a lost phone)
 sift-admin registration [first|open|closed]
+sift-admin rename-user <old email> <new email>
 sift-admin delete-user <email>
 ```
 
