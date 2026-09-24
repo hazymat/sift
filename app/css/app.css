@@ -2616,3 +2616,26 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
    where the item's text starts (after the handle and tick box), as in Tasks. */
 .line .content > .edit-pills { margin-left: 56px !important; flex-basis: calc(100% - 56px); }
 .line .content > .edit-pills .pill-note { margin-left: 0; flex-basis: 100%; }
+
+/* Link pull-down (📞 📝 ⚠️ in a note) and the chip menu follow the Glass and
+   Dark themes: the theme's menu colour with its own fixed light text, so it
+   stays readable on every Day Planner paper. The Light theme keeps the white card. */
+:root:not([data-theme="light"]) :is(.ref-picker, .ref-menu) {
+  --text: #e8eefc;
+  --muted: rgba(232, 238, 252, .62);
+  --accent: #78c8ff;
+  --glass-border: rgba(255, 255, 255, .14);
+  --glass-track: rgba(255, 255, 255, .06);
+  --active-bg: rgba(100, 180, 255, .24);
+  --active-border: rgba(100, 180, 255, .5);
+  background: var(--menu-bg, #1a2444);
+  color: var(--text);
+  border-color: rgba(255, 255, 255, .16);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, .5);
+  scrollbar-color: rgba(255, 255, 255, .25) transparent;
+}
+:root:not([data-theme="light"]) .ref-picker .ref-q { background: rgba(255, 255, 255, .07); color: var(--text); border-color: rgba(255, 255, 255, .16); }
+:root:not([data-theme="light"]) .ref-picker .ref-q::placeholder { color: rgba(232, 238, 252, .45); }
+:root:not([data-theme="light"]) :is(.ref-picker, .ref-menu) button { color: var(--text); background: rgba(255, 255, 255, .08); border-color: rgba(255, 255, 255, .16); }
+:root:not([data-theme="light"]) .ref-picker .ref-go { background: #2f6fe0; color: #fff; border-color: #2f6fe0; }
+:root:not([data-theme="light"]) .ref-list { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .25) transparent; }
