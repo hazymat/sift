@@ -1,5 +1,6 @@
 // Brain Dump: get it out of your head, sort it later. #/dump/<kind>
-// Capture box (focused on open) with kind pills; the list below can be
+// A "New note" card (editor, kind, Attach, Save), then "Your notes" with
+// search and filter tabs; the list below can be
 // filtered, searched, edited, pinned, and converted into a task, a day plan
 // item, a Find Things item or (select text) a contact.
 
@@ -63,38 +64,48 @@ export default {
     };
 
     el.innerHTML = `
-      <section class="dump-capture">
-        <div class="save-state" id="dump-save" aria-live="polite" hidden></div>
+      <section class="dump-capture card" aria-labelledby="dump-new-h">
+        <div class="dump-h-row">
+          <h2 class="dump-h" id="dump-new-h">New note</h2>
+          <div class="save-state" id="dump-save" aria-live="polite" hidden></div>
+        </div>
         <div id="dump-body"></div>
         <div id="dump-att"></div>
-        <div class="dump-row">
-          <div class="segmented" id="dump-kinds" role="group" aria-label="Kind">
+        <div class="dump-kinds-row">
+          <span class="dump-caption" id="dump-kinds-cap">This is a:</span>
+          <div class="dump-kinds" id="dump-kinds" role="group" aria-labelledby="dump-kinds-cap">
             ${KINDS.map(k => `<button type="button" data-kind="${k.id}">${k.label}</button>`).join('')}
           </div>
+        </div>
+        <div class="dump-foot">
+          <button type="button" class="att-add" data-att-add title="Attach photos, PDFs or text files (or drop them onto the box)">${icon('i-clip')}<span>Attach</span></button>
           <span class="spacer"></span>
-          <button type="button" data-act="save-lines" title="Each line becomes its own thought">Save lines separately</button>
           <button type="button" class="primary" data-act="save">Save <kbd>${SHORTCUT}</kbd></button>
         </div>
       </section>
-      <div class="dump-tools">
-        <input type="search" id="dump-q" class="search" placeholder="Search thoughts…" autocomplete="off">
-        <div class="segmented" id="dump-filter" aria-label="Show">
+      <section class="dump-find" aria-labelledby="dump-notes-h">
+        <div class="dump-h-row">
+          <h2 class="dump-h" id="dump-notes-h">Your notes</h2>
+          <span class="spacer"></span>
+          ${cogHtml('dump')}
+          <details class="tool-menu">
+            <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
+            <div class="menu">
+              <button type="button" data-act="toggle-converted">Show / hide converted</button>
+              <hr>
+              <a href="#/bin/archive/dump">Archive</a>
+              <a href="#/bin/bin/dump">Bin</a>
+            </div>
+          </details>
+        </div>
+        <input type="search" id="dump-q" class="search" placeholder="Search your notes…" autocomplete="off">
+        <div class="dump-filter" id="dump-filter" role="group" aria-label="Show">
           <button type="button" data-filter="all">All</button>
           ${KINDS.map(k => `<button type="button" data-filter="${k.id}">${k.label}</button>`).join('')}
           <button type="button" data-filter="pinned">★ Pinned</button>
         </div>
-        ${cogHtml('dump')}
-        <details class="tool-menu">
-          <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
-          <div class="menu">
-            <button type="button" data-act="toggle-converted">Show / hide converted</button>
-            <hr>
-            <a href="#/bin/archive/dump">Archive</a>
-            <a href="#/bin/bin/dump">Bin</a>
-          </div>
-        </details>
-      </div>
-      <p class="muted hint">Select any text in a thought to make it a contact.</p>
+        <p class="muted hint">Select any text in a note to make it a contact.</p>
+      </section>
       <ul id="thoughts" class="thought-list"></ul>
       <button type="button" class="make-contact" hidden>Make contact</button>`;
 
@@ -114,7 +125,7 @@ export default {
     });
     const list = $('#thoughts');
     // Files attached to what's being typed belong to the thought it will become.
-    const paintCapture = () => { $('#dump-att').innerHTML = att.rowHtml(atts.get(captureId)); };
+    const paintCapture = () => { const a = atts.get(captureId); $('#dump-att').innerHTML = a?.length ? att.rowHtml(a, { addButton: false }) : ''; };
 
     function paintKinds() {
       for (const b of el.querySelectorAll('[data-kind]')) b.setAttribute('aria-pressed', b.dataset.kind === kind);
@@ -264,10 +275,10 @@ export default {
 
     // ---------- capture ----------
 
-    async function save(splitLines) {
+    async function save() {
       const text = input.value.trim();
       if (!text) return;
-      const bodies = splitLines ? text.split('\n').map(l => l.replace(/^[\s\-*•]+/, '').trim()).filter(Boolean) : [text];
+      const bodies = [text];
       const made = [];
       const contacts = [];
       for (const body of bodies) {
@@ -294,7 +305,7 @@ export default {
     }
 
     captureBox.addEventListener('keydown', ev => {
-      if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey) && !ev.target.closest('.ref-picker')) { ev.preventDefault(); save(ev.shiftKey); }
+      if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey) && !ev.target.closest('.ref-picker')) { ev.preventDefault(); save(); }
     });
 
     // ---------- converting ----------
@@ -336,8 +347,7 @@ export default {
       const li = b.closest('[data-id]');
       const t = li && thoughts.find(x => x.id === li.dataset.id);
       const act = b.dataset.act;
-      if (act === 'save') return save(false);
-      if (act === 'save-lines') return save(true);
+      if (act === 'save') return save();
       if (act === 'toggle-converted') { state.showConverted = !state.showConverted; return render(); }
       if (!t) return;
       if (act === 'edit') {

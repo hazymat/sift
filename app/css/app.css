@@ -1138,14 +1138,28 @@ a.chip { color: var(--text); text-decoration: none; }
 
 
 /* ---------- Brain Dump ---------- */
-.dump-capture { margin-bottom: 18px; }
+/* Three parts: the "New note" card, "Your notes" (search + filter tabs), then the notes. */
+.dump-capture.card { padding: 12px 14px 12px; margin-bottom: 26px; }
+.dump-h-row { display: flex; align-items: center; gap: 8px; min-height: 32px; margin-bottom: 8px; }
+.dump-h { margin: 0; font-size: .8rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.dump-h-row .save-state { margin: 0 0 0 auto; }
 #dump-body .rich-edit, #dump-body .rich-raw { font-size: 1.15rem; line-height: 1.5; min-height: 7em; }
-.dump-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
-.dump-row .segmented button, #dump-filter button { padding: 5px 12px; font-size: .85rem; }
-.dump-row .segmented button[aria-pressed="true"], #dump-filter button[aria-pressed="true"] { background: var(--active-bg); border-color: var(--active-border); }
-.dump-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.dump-tools .search { flex: 1 1 200px; }
-#dump-filter { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+#dump-att:empty { display: none; }
+/* Kind of the new note: small filled pills inside the card. */
+.dump-kinds-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 10px; }
+.dump-caption { font-size: .8rem; color: var(--muted); }
+.dump-kinds { display: flex; flex-wrap: wrap; gap: 5px; }
+.dump-kinds button { padding: 4px 11px; font-size: .82rem; line-height: 1.3; border-radius: 999px; box-shadow: none; }
+.dump-kinds button[aria-pressed="true"] { background: var(--active-bg); border-color: var(--active-border); }
+.dump-foot { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--glass-border); }
+.dump-foot .primary { padding-inline: 18px; }
+/* Filter: plain text tabs with an underline, one row, so it doesn't look like the kind pills. */
+.dump-find { margin-bottom: 6px; }
+.dump-find .search { width: 100%; }
+.dump-filter { display: flex; gap: 2px; margin-top: 6px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--glass-border); }
+.dump-filter::-webkit-scrollbar { display: none; }
+.dump-filter button { flex: none; background: none; border: 0; border-bottom: 2px solid transparent; border-radius: 0; box-shadow: none; padding: 6px 9px 5px; font-size: .85rem; line-height: 1.2; color: var(--muted); }
+.dump-filter button[aria-pressed="true"] { color: inherit; border-bottom-color: currentColor; font-weight: 600; }
 .thought-list { list-style: none; margin: 10px 0; padding: 0; display: grid; gap: 10px; }
 .thought { padding: 10px 14px 10px; border-radius: 20px; background: var(--glass); border: 1px solid var(--glass-border); }
 .thought.pinned { border-color: var(--active-border); }
@@ -2031,7 +2045,7 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 :is(.rich-edit, .thought-body, .note-body, .note-loose, .item-note) li::marker { font-family: system-ui, sans-serif; }
 
 /* Compact spacing: editing a note takes the whole page */
-#main[data-zoom] :is(.dump-capture, .dump-tools, .make-contact, .converted-note) { display: none; }
+#main[data-zoom] :is(.dump-capture, .dump-find, .make-contact, .converted-note) { display: none; }
 #main[data-zoom] > .hint { display: none; }
 #main[data-zoom] .thought:not(.zoomed) { display: none; }
 #main[data-zoom] .thought-list { grid-template-columns: 1fr; }
