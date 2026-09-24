@@ -8,14 +8,14 @@ import { cogHtml } from '../viewcog.js';
 import * as store from '../store.js';
 import { loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES, HORIZONS, horizonOf } from '../tasks.js';
 import { ENERGY, isoDate, addDays, parseDate, addItem, durationChoices, durationLabel } from '../days.js';
-import { pillMenu } from '../pillmenu.js';
+import { pillMenu, energyMenu } from '../pillmenu.js';
 import { summarise } from '../summary.js';
 import { createListKit } from '../listkit.js';
 import { toast, undoable } from '../toast.js';
 import { richText, toHtml, previewLine, inlineAll } from '../richtext.js';
 import { loadContacts } from '../contacts.js';
 import * as att from '../attachments.js';
-import { editPills, selectPill, datePill } from '../editpills.js';
+import { editPills, selectPill, datePill, energyPill } from '../editpills.js';
 import { ask, askText } from '../ask.js';
 import { word } from '../words.js';
 
@@ -214,8 +214,8 @@ export default {
           <div class="task-entry-more">
             <textarea id="task-new-note" class="entry-note add-note no-inline" rows="1" placeholder="Add note" aria-label="Note"></textarea>
             <div class="entry-actions">
-              <label class="entry-chip" data-chip="energy">⚡ <span class="chip-text" data-empty="Energy">Energy</span>
-                <select data-entry="energy" aria-label="Energy"><option value="">No energy set</option>${ENERGY.map(e => opt(e.id, `${e.bolts} ${e.label}`)).join('')}</select></label>
+              <button type="button" class="entry-chip" data-chip="energy" aria-haspopup="menu"><span class="chip-glyph">⚡</span> <span class="chip-text" data-empty="Energy">Energy</span></button>
+              <input type="hidden" data-entry="energy" value="">
               ${dateChip('start_date', 'Plan for day', '📅')}
               ${dateChip('aim_date', 'Aim to finish', '⚑')}
               <label class="entry-chip" data-chip="estimate_min">⏱ <span class="chip-text" data-empty="Estimated time">Estimated time</span>
@@ -423,7 +423,8 @@ export default {
         const f = field(name);
         const text = c.querySelector('.chip-text');
         let shown = '';
-        if (f.tagName === 'SELECT') shown = f.value ? f.selectedOptions[0].textContent : '';
+        if (name === 'energy') { const e = ENERGY.find(x => x.id === f.value); shown = e ? e.label : ''; c.querySelector('.chip-glyph').textContent = e ? e.bolts : '⚡'; }
+        else if (f.tagName === 'SELECT') shown = f.value ? f.selectedOptions[0].textContent : '';
         else shown = f.value ? shortDate(f.value) : '';
         if (name === 'horizon' && f.value === defaultList()) shown = '';
         text.textContent = shown || text.dataset.empty;
@@ -432,6 +433,9 @@ export default {
       const defaultList = () => (LISTS.includes(state.view) ? state.view : 'inbox');
       field('horizon').value = defaultList();
       entry.addEventListener('change', ev => { const n = ev.target.dataset?.entry; if (n) paint(n); });
+      chipOf('energy').addEventListener('click', ev => {
+        energyMenu(ev.currentTarget, field('energy').value || null, v => { field('energy').value = v || ''; paint('energy'); ta.focus(); });
+      });
       for (const d of entry.querySelectorAll('input[type="date"]')) d.addEventListener('click', () => { try { d.showPicker(); } catch { /* not supported: the tap opens it */ } });
       const reset = () => {
         noteEl.value = '';
@@ -633,8 +637,7 @@ export default {
         return;
       }
       if (act === 'energy-pill' && id) {
-        pillMenu(b, ENERGY.map(e => ({ value: e.id, label: e.bolts, title: `${e.label}${task.energy === e.id ? ' (click to clear)' : ''}`, current: task.energy === e.id })),
-          v => change(id, { energy: task.energy === v ? null : v }, 'Energy saved'));
+        energyMenu(b, task.energy, v => change(id, { energy: v }, v ? 'Energy saved' : 'Energy cleared'));
         return;
       }
       if (b.dataset.energy && id) {
@@ -719,7 +722,7 @@ export default {
         const aim = t.aim_at ? t.aim_at.slice(0, 10) : '';
         // No note yet: an "Add note" line under the title, like adding a new task.
         const addNote = (t.notes || '').trim() ? '' : `<textarea class="entry-note add-note pill-note no-inline" data-pill="notes" rows="1" placeholder="Add note" aria-label="Note"></textarea>`;
-        return addNote + selectPill('energy', 'Energy', v => ENERGY.find(e => e.id === v)?.bolts || '⚡', [['', 'No energy set'], ...ENERGY.map(e => [e.id, e.label])], t.energy)
+        return addNote + energyPill(t.energy)
           + selectPill('estimate_min', 'Estimated time', '⏱', [['', 'Not estimated'], ...hours], t.estimate_min)
           + datePill('start_date', 'Plan for day', '📅', t.start_date, shortDate)
           + datePill('aim_date', 'Aim to finish', '⚑', aim, shortDate)
@@ -733,6 +736,10 @@ export default {
           return change(id, { aim_at: value ? `${value}${time}` : null }, value ? `Aim: ${shortDate(value)}` : 'Aim cleared');
         }
         if (name === 'notes') { if (value.trim()) await change(id, { notes: value.trim() }, 'Note saved'); return; }
+        if (name === 'energy') {
+          energyMenu(body.querySelector('.edit-pills [data-pill-act="energy"]'), t.energy, v => change(id, { energy: v }, v ? 'Energy saved' : 'Energy cleared'));
+          return;
+        }
         const v = name === 'estimate_min' ? (value ? Number(value) : null) : value || null;
         await change(id, { [name]: v }, name === 'start_date' && v ? `Planned for ${shortDate(v)}` : name === 'horizon' ? `In ${HORIZONS.find(x => x.id === v)?.label || v}` : 'Saved');
       },

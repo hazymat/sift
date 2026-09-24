@@ -3,6 +3,9 @@
 // elsewhere closes it.
 //
 //   pillMenu(anchorEl, [{ value, label, title?, current? }], onPick)
+//   energyMenu(anchorEl, currentEnergy, onPick)   the energy picker used everywhere
+
+import { ENERGY } from './days.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
@@ -43,4 +46,13 @@ export function pillMenu(anchor, options, onPick) {
   });
   (menu.querySelector('[aria-checked="true"]') || menu.querySelector('button'))?.focus();
   return { close };
+}
+
+// Energy, everywhere it can be changed: ⚡ ⚡⚡ ⚡⚡⚡ side by side (the chosen
+// one outlined) and, when one is set, ✕ to clear it. Picking the chosen one
+// again also clears it. onPick gets the level's id, or null.
+export function energyMenu(anchor, current, onPick) {
+  const options = ENERGY.map(e => ({ value: e.id, label: e.bolts, title: `${e.label}: ${e.hint}`, current: current === e.id }));
+  if (current) options.push({ value: null, label: '✕', title: 'No energy' });
+  return pillMenu(anchor, options, v => onPick(v === current ? null : v));
 }

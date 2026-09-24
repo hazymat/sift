@@ -17,7 +17,8 @@ import { autosizeAll } from '../inline.js';
 import { summarise } from '../summary.js';
 import { loadAll as loadTasks, forDay, suggestions, doneFields, aimDate, addTask, horizonOf } from '../tasks.js';
 import * as att from '../attachments.js';
-import { editPills, selectPill, datePill } from '../editpills.js';
+import { editPills, selectPill, datePill, energyPill } from '../editpills.js';
+import { energyMenu } from '../pillmenu.js';
 import { askYes } from '../ask.js';
 import { word } from '../words.js';
 
@@ -326,7 +327,7 @@ export default {
             <input type="checkbox" class="tick" aria-label="Done" ${i.done_at ? 'checked' : ''}>
             <textarea class="item-title one-line hand" rows="1" aria-label="Item" spellcheck="false">${esc(i.title)}</textarea>
             ${span ? `<span class="span-tag">${span}</span>` : i.estimate_min ? `<span class="span-tag">~${durationLabel(Number(i.estimate_min))}</span>` : ''}
-            ${i.energy ? `<span class="span-tag bolts" title="Energy: ${esc(ENERGY.find(e => e.id === i.energy)?.label || '')}">${ENERGY.find(e => e.id === i.energy)?.bolts || ''}</span>` : ''}
+            ${i.energy ? `<button type="button" class="span-tag bolts" data-act="energy-pill" title="Energy: ${esc(ENERGY.find(e => e.id === i.energy)?.label || '')}. Click to change" aria-haspopup="menu">${ENERGY.find(e => e.id === i.energy)?.bolts || ''}</button>` : ''}
             <button type="button" class="more" data-act="details" aria-label="Details" aria-expanded="${editing === i.id}">⋯</button>
             ${noteEditing === i.id
               ? `<div class="note-edit" data-note-for="${i.id}"></div>`
@@ -717,13 +718,17 @@ export default {
         if (!i) return '';
         const mins = [...new Set([...durationChoices(settings.duration_max_min), ...(i.estimate_min ? [Number(i.estimate_min)] : [])])].sort((a, b) => a - b);
         const addNote = (i.notes || '').trim() ? '' : '<textarea class="add-note pill-note no-inline" data-pill="notes" rows="1" placeholder="Add note" aria-label="Note"></textarea>';
-        return addNote + selectPill('energy', 'Energy', v => ENERGY.find(e => e.id === v)?.bolts || '⚡', [['', 'No energy set'], ...ENERGY.map(e => [e.id, e.label])], i.energy)
+        return addNote + energyPill(i.energy)
           + selectPill('estimate_min', 'Estimated time', '⏱', [['', 'Not estimated'], ['unsure', 'Not sure yet'], ...mins.map(m => [m, durationLabel(m)])], i.estimate_min || (i.estimate_unsure ? 'unsure' : ''))
           + datePill('date', 'Day', '📅', i.date, d => (d === isoDate() ? 'Today' : new Date(`${d}T12:00`).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })));
       },
       change: async (id, name, v) => {
         if (name === 'notes') { if (v.trim()) await change(id, { notes: v.trim() }, 'Note saved'); return; }
-        if (name === 'energy') return change(id, { energy: v || null }, v ? 'Energy saved' : 'Energy cleared');
+        if (name === 'energy') {
+          const i = items.find(x => x.id === id);
+          energyMenu(planner.querySelector('.edit-pills [data-pill-act="energy"]'), i?.energy || null, e => change(id, { energy: e }, e ? 'Energy saved' : 'Energy cleared'));
+          return;
+        }
         if (name === 'estimate_min') {
           return change(id, v === 'unsure' ? { estimate_min: null, estimate_unsure: true } : { estimate_min: v ? Number(v) : null, estimate_unsure: false },
             v === 'unsure' ? 'Estimate: not sure yet' : v ? `Estimate: ${durationLabel(Number(v))}` : 'Estimate cleared');
@@ -794,6 +799,11 @@ export default {
       const itemEl = t.closest('[data-item], [data-for]');
       const id = itemEl?.dataset.item || itemEl?.dataset.for;
       const act = t.dataset.act;
+      if (act === 'energy-pill' && id) {
+        const it = items.find(x => x.id === id);
+        energyMenu(t, it?.energy || null, e => change(id, { energy: e }, e ? 'Energy saved' : 'Energy cleared'));
+        return;
+      }
       if (t.dataset.energy) {
         const energy = day.energy === t.dataset.energy ? null : t.dataset.energy;
         day = await saveDay(date, { energy });

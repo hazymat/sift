@@ -21,6 +21,8 @@
 // data-pill-act="<name>" (sent to change() with value null). "More" is added by
 // this module: it clicks the row's own details (⋯) button.
 
+import { ENERGY } from './days.js';
+
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 export { esc as escPill };
 
@@ -31,6 +33,12 @@ export function selectPill(name, label, glyph, options, value) {
   const g = typeof glyph === 'function' ? glyph(set ? value : null) : glyph;
   return `<label class="entry-chip${set ? ' set' : ''}" data-chip="${name}">${g} <span class="chip-text">${esc(set ? cur[1] : label)}</span>`
     + `<select data-pill="${name}" aria-label="${esc(label)}">${options.map(([v, t]) => `<option value="${esc(v)}"${String(v) === String(value ?? '') ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>`;
+}
+// Energy: a button (not a dropdown) that opens the ⚡ picker (pillmenu.js
+// energyMenu); change() gets ('energy', null) and opens it.
+export function energyPill(value) {
+  const e = ENERGY.find(x => x.id === value);
+  return `<button type="button" class="entry-chip${e ? ' set' : ''}" data-chip="energy" data-pill-act="energy" aria-haspopup="menu">${e ? e.bolts : '⚡'} <span class="chip-text">${esc(e ? e.label : 'Energy')}</span></button>`;
 }
 export function datePill(name, label, glyph, value, shown) {
   return `<label class="entry-chip${value ? ' set' : ''}" data-chip="${name}">${glyph} <span class="chip-text">${esc(value ? shown(value) : label)}</span>`
