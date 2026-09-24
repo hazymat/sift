@@ -2666,3 +2666,10 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 :root:not([data-theme="light"]) :is(.ref-picker, .ref-menu) button { color: var(--text); background: rgba(255, 255, 255, .08); border-color: rgba(255, 255, 255, .16); }
 :root:not([data-theme="light"]) .ref-picker .ref-go { background: #2f6fe0; color: #fff; border-color: #2f6fe0; }
 :root:not([data-theme="light"]) .ref-list { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .25) transparent; }
+
+/* Day Planner Tasks: like the Tasks page, an open task and its panel are one
+   rounded box that starts where the task's text starts (just right of the red
+   line); the tick box and handle stay in the margin. */
+.pile-paper .line.has-item:has(+ .item-details) { border-bottom: 0; }
+.pile-paper .line.has-item:has(+ .item-details) > .content { border: 1px solid var(--glass-border); border-bottom: 0; border-radius: 14px 14px 0 0; background: var(--glass-track); }
+.pile-paper .line.has-item + .item-details { margin: 0 0 10px 64px; padding: 10px 12px 12px; border: 1px solid var(--glass-border); border-top: 0; border-radius: 0 0 14px 14px; background: var(--glass-track); }
