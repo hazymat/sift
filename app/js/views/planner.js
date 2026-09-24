@@ -161,6 +161,7 @@ export default {
     const energyBox = () => el.querySelector('.focus-row .energy');
     function openEnergy() {
       energyBox().classList.add('editing');
+      $('.energy-choose').style.left = `${$('#energy-note').offsetLeft}px`;
       if (document.activeElement !== $('#energy-note')) $('#energy-note').focus();
     }
     const closeEnergy = () => energyBox()?.classList.remove('editing');
@@ -341,7 +342,6 @@ export default {
       lvlBtn.textContent = lvl?.bolts || '';
       lvlBtn.title = lvl ? `${lvl.label}: ${lvl.hint}. Click to change` : '';
       $('.energy').classList.toggle('has-level', !!lvl);
-      $('.energy [data-energy="none"]').hidden = !lvl;
       if (document.activeElement !== $('#energy-note')) $('#energy-note').value = day.energy_note || '';
       // Never replace the note you're writing in (that put the cursor back at the start
       // and could show older text); only when the day shown changes or you're not in it.

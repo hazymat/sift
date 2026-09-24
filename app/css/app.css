@@ -1590,7 +1590,7 @@ main:has(> .planner), main:has(.planner) { max-width: 1600px; }
 .bolts { font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif; letter-spacing: -2px; }
 .task-list .item-sub { margin: -6px 0 6px 64px; }
 .item-sub .task-note { margin: 0; }
-.pill-menu {
+.pill-menu, .energy .energy-choose {
   position: fixed;
   z-index: 950;
   display: flex;
@@ -1601,7 +1601,7 @@ main:has(> .planner), main:has(.planner) { max-width: 1600px; }
   border-radius: 999px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, .35);
 }
-.pill-menu button {
+.pill-menu button, .energy .energy-choose button {
   padding: 2px 10px;
   border-radius: 999px;
   border: 1px solid rgba(0, 0, 0, .14);
@@ -1610,8 +1610,8 @@ main:has(> .planner), main:has(.planner) { max-width: 1600px; }
   letter-spacing: -2px;
   cursor: pointer;
 }
-.pill-menu button[aria-checked="true"] { background: #dde8fb; border-color: #1f5fd1; }
-.pill-menu button:hover, .pill-menu button:focus-visible { border-color: #1f5fd1; outline: none; }
+.pill-menu button[aria-checked="true"], .energy .energy-choose button[aria-pressed="true"] { background: #dde8fb; border-color: #1f5fd1; }
+.pill-menu button:hover, .pill-menu button:focus-visible, .energy .energy-choose button:hover { border-color: #1f5fd1; outline: none; }
 
 /* Day name colour per paper: white on Techie (like Glass), black on Dot journal. */
 .planner[data-paper="techie"] .day-title .weekday { color: #fff; }
@@ -2182,10 +2182,10 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 select option, select optgroup { background-color: var(--paper-bg, var(--menu-bg)); color: var(--text); }
 select:focus option:checked { background-color: var(--active-border, #35507a); }
 /* The small pop-up for energy and lists */
-.pill-menu { background: var(--menu-bg); border: 1px solid var(--active-border); }
-.pill-menu button { background: var(--glass); border: 1px solid var(--glass-border); color: var(--text); }
-.pill-menu button[aria-checked="true"] { background: var(--active-bg); border-color: var(--active-border); }
-.pill-menu button:hover, .pill-menu button:focus-visible { border-color: var(--accent, var(--active-border)); background: var(--glass-hover); outline: none; }
+.pill-menu, .energy .energy-choose { background: var(--menu-bg); border: 1px solid var(--active-border); }
+.pill-menu button, .energy .energy-choose button { background: var(--glass); border: 1px solid var(--glass-border); color: var(--text); }
+.pill-menu button[aria-checked="true"], .energy .energy-choose button[aria-pressed="true"] { background: var(--active-bg); border-color: var(--active-border); }
+.pill-menu button:hover, .pill-menu button:focus-visible, .energy .energy-choose button:hover { border-color: var(--accent, var(--active-border)); background: var(--glass-hover); outline: none; }
 
 /* Numbered lists */
 .rich-edit ol, .thought-body ol, .note-body ol, .note-loose ol { margin: 0; padding-left: 1.6em; }
@@ -2451,7 +2451,11 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 .energy #energy-note:hover { background: color-mix(in srgb, var(--text) var(--line-hover), transparent) !important; }
 .energy #energy-note:focus { background: color-mix(in srgb, var(--text) var(--line-lit), transparent) !important; }
 .energy.has-level #energy-note:not(:focus)::placeholder { color: transparent; }
-.energy .energy-choose { display: none; order: 5; flex-basis: 100%; gap: 6px; align-items: center; }
+/* The ⚡ pills look like the small pop-up on Tasks (pillmenu.js) and float
+   under the words, starting where they start, so nothing on the line moves. */
+.focus-row .energy { position: relative; }
+.energy .energy-choose { display: none; position: absolute; top: calc(100% + 4px); left: 0; font-size: 1rem; }
+.energy .energy-choose button { padding: 2px 10px; font-size: inherit; }
 .energy.editing .energy-choose { display: flex; }
 .energy .view-menu { order: 4; margin-left: auto; }
 
