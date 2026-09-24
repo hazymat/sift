@@ -5,7 +5,7 @@
 //
 // For each shared field the more recently edited copy wins and the other side
 // follows (by each field's own clock, so it is "last edit wins", not "whoever
-// saved last"). Ticking a task also ticks its day items. Day-only things (which
+// saved last"). Ticking (or unticking) either side ticks the other. Day-only things (which
 // day, start and end time, order, let go, carried over) and task-only things
 // (project, dates, list, priority) are not touched.
 //
@@ -48,11 +48,14 @@ async function reconcile(change) {
     const task = await store.get('tasks', item.task_id);
     if (!task || task.archived_at) return;
     const diff = follow(item, task);
+    // Ticked (or unticked) on the Day Planner: the task follows.
+    if (newer(item, task, 'done_at') && !same(item.done_at, task.done_at)) Object.assign(diff, { done_at: item.done_at ?? null, status: item.done_at ? 'done' : 'todo' });
     if (Object.keys(diff).length) await store.update('tasks', task.id, diff);
     // …and on to the task's other day items.
     const fresh = await store.get('tasks', task.id);
     for (const other of await store.list('day_items', { filter: i => i.task_id === task.id && i.id !== item.id && !i.archived_at })) {
       const d = follow(fresh, other);
+      if (newer(fresh, other, 'done_at') && !same(fresh.done_at, other.done_at)) d.done_at = fresh.done_at ?? null;
       if (Object.keys(d).length) await store.update('day_items', other.id, d);
     }
   }

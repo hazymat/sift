@@ -799,18 +799,8 @@ export default {
         renderTasks();
         undoable(t.checked ? 'Task done' : 'Task not done', async () => { await store.update('tasks', taskId, doneFields(!t.checked)); renderTasks(); });
       } else if (t.classList.contains('tick') && id) {
-        const item = items.find(i => i.id === id);
+        // A plan item that came from a task ticks the task too (js/link.js).
         await change(id, { done_at: t.checked ? new Date().toISOString() : null }, t.checked ? 'Done' : 'Not done');
-        // A plan item that came from a task offers to tick the task too.
-        if (t.checked && item?.task_id) {
-          const task = await store.get('tasks', item.task_id);
-          if (task && !task.done_at) {
-            toast(`Done. Tick off the task "${task.title}" too?`, {
-              action: 'Tick task',
-              onAction: async () => { await store.update('tasks', task.id, doneFields(true)); renderTasks(); toast('✓ Task done'); },
-            });
-          }
-        }
       } else if (t.classList.contains('item-title') && id) {
         if (t.value.trim()) await change(id, { title: t.value.trim() });
       } else if (t.classList.contains('margin-time')) {
