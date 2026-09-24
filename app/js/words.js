@@ -14,7 +14,7 @@ export const WORDS = [
   { group: 'Areas', key: 'area_tasks', default: 'Tasks', hint: 'Things to do: "To do", "Jobs"…' },
   { group: 'Areas', key: 'area_planner', default: 'Day Planner', hint: 'The page for one day: "Today", "My day"…' },
   { group: 'Areas', key: 'area_lists', default: 'Lists', hint: 'Packing lists, the weekly shop, checklists.' },
-  { group: 'Areas', key: 'area_places', default: 'Find Things', hint: 'Where things are kept: "Storage", "Boxes"…' },
+  { group: 'Areas', key: 'area_places', default: 'Find Things', hint: 'Where things are kept: "Storage", "Boxes", "Shelves", "Where things are"' },
   { group: 'Areas', key: 'area_contacts', default: 'Contacts', hint: 'People, numbers and cases: "People", "Numbers"…' },
   { group: 'Areas', key: 'area_scans', default: 'Scans', hint: 'Photos of letters, receipts and documents.' },
   { group: 'Areas', key: 'area_contracts', default: 'Contracts', hint: 'Insurance, utilities, subscriptions: "Bills", "Policies"…' },
