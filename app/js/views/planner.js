@@ -1201,9 +1201,11 @@ export default {
     };
     const reviewLabel = { done: 'Marked done', letgo: 'Let go (in the Archive)', bring: 'Brought here', delete: 'Deleted' };
 
+    // Closed by dragging the handle, the ✕ or a tap outside (js/sheets.js): redraw the day.
+    $('#review').addEventListener('close', () => render());
     $('#review').addEventListener('click', async ev => {
       const dlg = $('#review');
-      if (ev.target === dlg || ev.target.closest('[data-review-close]')) { dlg.close(); return render(); }
+      if (ev.target === dlg || ev.target.closest('[data-review-close]')) { dlg.close(); return; }
       const b = ev.target.closest('[data-review], [data-review-all]');
       if (!b) return;
       const left = await unfinishedBefore(date);

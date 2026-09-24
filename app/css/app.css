@@ -338,6 +338,11 @@ main {
 }
 .sheet::backdrop { background: rgba(0, 0, 0, .35); }
 .sheet-handle {
+  position: sticky;
+  top: -4px;
+  z-index: 2;
+  touch-action: none;
+  cursor: grab;
   width: 40px;
   height: 5px;
   margin: 4px auto 12px;
@@ -345,6 +350,8 @@ main {
   background: var(--muted);
   opacity: .5;
 }
+.sheet-handle::before { content: ''; position: absolute; inset: -14px -70px; } /* a bigger area to grab */
+.sheet-close { position: sticky; top: 0; z-index: 3; float: right; width: 34px; height: 34px; margin: -30px -6px 0 0; padding: 0; border-radius: 50%; font-size: 1rem; line-height: 1; display: grid; place-items: center; background: var(--glass-strong); border: 1px solid var(--glass-border); box-shadow: var(--shadow-sm); }
 .sheet-list { display: grid; gap: 6px; }
 .sheet-list a {
   display: flex;
