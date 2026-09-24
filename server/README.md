@@ -12,7 +12,8 @@ You need one of:
 Copy this `server/` folder to the machine, then, as root:
 
 ```bash
-# Home network (use the machine's address, an IP or a name like sift.lan):
+# Home network (use the machine's address: a name like sift.lan, an IP, or both
+# separated by a comma, e.g. sift.lan,<ip>):
 sudo ./install.sh home sift.lan
 
 # Internet (the domain must already point at the machine; ports 80 and 443 open):
@@ -36,14 +37,19 @@ Caddy gets a real certificate for the domain. Settings (`REGISTRATION`, `ALLOWED
 
 ## Trusting the home certificate
 
-A home server has no public domain, so Caddy makes its own certificate authority and each device trusts it once. Get its root certificate from the machine:
+**Only home installs (`install.sh home`) need this.** A server installed with `install.sh public <domain>` gets a real certificate from Let's Encrypt, which every device already trusts; skip this section.
+
+A home server has no public domain, so Caddy makes its own certificate authority and each device trusts it once. The easiest way is from the device itself: in Sift, Settings → Sync, type the server's address and use **Get the certificate** (it opens `http://<address>/sift-ca.crt`). A name such as `sift.lan` works only if your router (or each device) knows it; otherwise use the IP, or install with both (`sift.lan,<ip>`). If the download says the file isn't there, Caddy hadn't finished making its certificate when you installed: run `sudo ./install.sh update`.
+
+Or get the root certificate from the machine:
 
 ```bash
 scp root@<address>:/var/lib/caddy/.local/share/caddy/pki/authorities/local/root.crt sift-home-ca.crt
 ```
 
 - **Windows**: double-click the file → Install Certificate → Local Machine → "Trusted Root Certification Authorities".
-- **iPhone**: open `http://<address>/sift-ca.crt` in **Safari** (not WhatsApp or Files; those can't install it) and allow the download. Then Settings → Profile Downloaded → Install; then Settings → General → About → Certificate Trust Settings → switch it on.
+- **iPhone**: open `http://<address>/sift-ca.crt` in **Safari** (not WhatsApp or Files; those can't install it) and allow the download. Then Settings → Profile Downloaded → Install; then Settings → General → About → Certificate Trust Settings → switch it on. After an iOS update, check that switch again: it can be turned off.
+- **Android**: download it, then Settings → Security → Encryption & credentials → Install a certificate → CA certificate.
 - **Mac**: double-click → Keychain Access → set "Always Trust".
 
 Keep this certificate out of any public repository.

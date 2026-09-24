@@ -2,6 +2,7 @@
 # Install or update the Sift server on Ubuntu / Debian (run as root, from this folder).
 #
 #   sudo ./install.sh home   sift.lan         # LAN: HTTPS from Caddy's own certificate authority
+#                                              (a name, an IP, or both: sift.lan,<ip>)
 #   sudo ./install.sh public sift.example.com # internet: automatic Let's Encrypt certificate
 #   sudo ./install.sh update                  # after `git pull`: refresh the code, keep settings and data
 #
@@ -59,21 +60,41 @@ if [ "$MODE" != update ]; then
     apt-get update -qq
     apt-get install -y -qq caddy
   fi
-  sed "s/__ADDRESS__/$ADDRESS/" "$HERE/deploy/Caddyfile.$MODE" > /etc/caddy/Caddyfile
+  if [ "$MODE" = home ]; then
+    # One or more addresses (a local name and/or an IP, comma separated): each
+    # gets a certificate, and the certificate download works on each.
+    HTTPS_SITES=""; HTTP_SITES=""
+    for a in $(echo "$ADDRESS" | tr ',' ' '); do
+      HTTPS_SITES="${HTTPS_SITES:+$HTTPS_SITES, }https://$a"
+      HTTP_SITES="${HTTP_SITES:+$HTTP_SITES, }http://$a"
+    done
+    sed -e "s|https://__ADDRESS__|$HTTPS_SITES|" -e "s|http://__ADDRESS__|$HTTP_SITES|" "$HERE/deploy/Caddyfile.home" > /etc/caddy/Caddyfile
+  else
+    sed "s/__ADDRESS__/$ADDRESS/" "$HERE/deploy/Caddyfile.$MODE" > /etc/caddy/Caddyfile
+  fi
   systemctl enable caddy
   systemctl restart caddy
-  if [ "$MODE" = home ]; then
-    # Publish the root certificate at http://<address>/sift-ca.crt for phones to download.
-    ROOT=/var/lib/caddy/.local/share/caddy/pki/authorities/local/root.crt
-    for _ in $(seq 1 20); do [ -f "$ROOT" ] && break; sleep 1; done
-    [ -f "$ROOT" ] && install -m 644 "$ROOT" /etc/caddy/sift-ca.crt
+fi
+
+# --- Home servers: publish Caddy's root certificate at http://<address>/sift-ca.crt ---
+# Caddy makes its certificate authority on its first start, which can take a
+# moment; `install.sh update` copies it too, so running that later fixes a
+# first start that was too slow.
+if grep -q 'tls internal' /etc/caddy/Caddyfile 2>/dev/null; then
+  ROOT=/var/lib/caddy/.local/share/caddy/pki/authorities/local/root.crt
+  for _ in $(seq 1 30); do [ -f "$ROOT" ] && break; sleep 1; done
+  if [ -f "$ROOT" ]; then
+    install -m 644 "$ROOT" /etc/caddy/sift-ca.crt
+  else
+    echo "Caddy hasn't made its certificate yet. In a minute, run: sudo ./install.sh update"
   fi
 fi
 
 sleep 1
 systemctl is-active sift-server >/dev/null && echo "sift-server is running."
+FIRST="${ADDRESS%%,*}"
 if [ "$MODE" = home ]; then
-  echo "Devices must trust Caddy's certificate authority once: on a phone, open http://$ADDRESS/sift-ca.crt in Safari;"
+  echo "Devices must trust Caddy's certificate authority once: on a phone, open http://$FIRST/sift-ca.crt in Safari;"
   echo "see README.md (\"Trusting the home certificate\")."
 fi
-[ "$MODE" = update ] || echo "Check: https://$ADDRESS/api/health   Then in Sift: Settings -> Sync -> server https://$ADDRESS"
+[ "$MODE" = update ] || echo "Check: https://$FIRST/api/health   Then in Sift: Settings -> Sync -> server https://$FIRST"
