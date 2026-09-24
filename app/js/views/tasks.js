@@ -350,7 +350,7 @@ export default {
       data = await loadAll();
       people = await loadContacts();
       for (const b of el.querySelectorAll('[data-view]')) b.setAttribute('aria-pressed', b.dataset.view === state.view);
-      body.innerHTML = { list: viewList, now: () => viewHorizon('now'), next: () => viewHorizon('next'), later: () => viewHorizon('later'), projects: viewProjects, done: viewDone }[state.view]();
+      body.innerHTML = { list: viewList, inbox: () => viewHorizon('inbox'), now: () => viewHorizon('now'), next: () => viewHorizon('next'), later: () => viewHorizon('later'), projects: viewProjects, done: viewDone }[state.view]();
       wireEntry();
       const ul = body.querySelector('.task-list');
       const ordered = state.view === 'list';
@@ -392,7 +392,7 @@ export default {
       }
       await render();
       body.querySelector('#task-new')?.focus();
-      undoable(`Added ${made.length} task${made.length === 1 ? '' : 's'}${shortened ? ` (${shortened} long one${shortened === 1 ? '' : 's'} shortened, full text in the note)` : ''}`, async () => {
+      undoable(`Added ${made.length} task${made.length === 1 ? '' : 's'} to ${HORIZONS.find(x => x.id === base.horizon)?.label || 'Inbox'}${shortened ? ` (${shortened} long one${shortened === 1 ? '' : 's'} shortened, full text in the note)` : ''}`, async () => {
         await store.updateMany('tasks', made.map(id => [id, { deleted_at: new Date().toISOString() }]));
         await render();
       });

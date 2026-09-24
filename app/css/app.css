@@ -2108,3 +2108,14 @@ li.flash { animation: row-flash 2.4s ease-out; border-radius: 12px; }
 .install-banner { display: flex; align-items: flex-start; gap: 10px; margin: 0; padding: 8px 14px; background: #b3261e; color: #fff; font-size: .85rem; line-height: 1.35; }
 .install-banner a { color: #fff; text-decoration: underline; font-weight: 600; }
 .install-banner button { margin-left: auto; flex: none; background: none; border: 0; box-shadow: none; color: #fff; font-size: 1rem; padding: 0 4px; }
+.task-entry.is-empty .add-mark { width: 20px; height: 20px; border: 2px solid var(--glass-border); border-radius: 5px; }
+
+/* Rows must be able to shrink to the phone's width */
+.task-list { grid-template-columns: minmax(0, 1fr); }
+.task-list > li { min-width: 0; }
+.task-list > li[data-task] > .task-title { min-width: 0; }
+.task-list .item-sub { min-width: 0; max-width: calc(100% - 64px); }
+.task-details { min-width: 0; }
+.task-details .detail-grid > * { min-width: 0; }
+.task-details .md-bar { max-width: 100%; }
+@media (min-width: 700px) { .tasks-head .segmented { flex: 0 1 460px; } .tasks-head .segmented button { padding: 7px 14px; } .tasks-head { justify-content: flex-start; } .tasks-head .page-cog { margin-left: auto; } }
