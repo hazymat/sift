@@ -481,6 +481,14 @@ export default {
       };
       entry.addEventListener('keydown', ev => {
         if (ev.target === ta && ev.key === 'Escape' && ta.value) { ev.preventDefault(); ev.stopPropagation(); ta.value = ''; draftCleared(ta); return; }
+        // Esc on an empty line (or its empty note) closes the entry: the extras go away, unset.
+        if ((ev.target === ta || (ev.target === noteEl && !noteEl.value.trim())) && ev.key === 'Escape' && !ta.value) {
+          ev.preventDefault(); ev.stopPropagation();
+          reset();
+          entry.classList.remove('open');
+          ev.target.blur();
+          return;
+        }
         if (ev.key !== 'Enter' || ev.isComposing || ev.shiftKey) return;
         if (ev.target !== ta && ev.target !== noteEl) return;
         ev.preventDefault();
