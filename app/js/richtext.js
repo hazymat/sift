@@ -463,6 +463,7 @@ export function richText(container, { value = '', onChange, placeholder = '', or
   });
   container.addEventListener('focusout', ev => {
     if (container.contains(ev.relatedTarget)) return;
+    closeMakeMenu();
     spotNow(true);
     unspotlight(container);
   });
@@ -633,9 +634,15 @@ export function richText(container, { value = '', onChange, placeholder = '', or
     const s = getSelection();
     if (s.rangeCount && edit.contains(s.anchorNode)) makeRange = s.getRangeAt(0).cloneRange();
   });
+  // It closes again when you leave the note or click anywhere outside it.
+  const outsideMake = ev => { if (!container.contains(ev.target)) closeMakeMenu(); };
+  function closeMakeMenu() {
+    container.querySelector('.md-make-menu')?.remove();
+    document.removeEventListener('pointerdown', outsideMake, true);
+  }
   function toggleMakeMenu(btn) {
-    const old = container.querySelector('.md-make-menu');
-    if (old) { old.remove(); return; }
+    if (container.querySelector('.md-make-menu')) { closeMakeMenu(); return; }
+    document.addEventListener('pointerdown', outsideMake, true);
     const m = document.createElement('div');
     m.className = 'md-make-menu';
     m.setAttribute('role', 'menu');
@@ -648,7 +655,7 @@ export function richText(container, { value = '', onChange, placeholder = '', or
   container.addEventListener('click', async ev => {
     const b = ev.target.closest('[data-make]');
     if (!b) return;
-    b.closest('.md-make-menu').remove();
+    closeMakeMenu();
     if (rawMode) { toast('Switch off Markdown first'); return; }
     if (makeRange && edit.contains(makeRange.startContainer)) restoreRange(makeRange);
     const before = md;
