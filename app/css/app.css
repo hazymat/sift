@@ -2613,7 +2613,8 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 /* Day Planner housekeeping: a quiet footer of text links under everything,
    across the whole page, after a full-width rule. */
 .day-housekeeping { margin-top: 40px; padding: 12px 4px 0; border-top: 1px solid var(--rule, var(--glass-border)); font-size: .8rem; color: var(--muted); display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 6px; }
-.planner.docked > .day-housekeeping { grid-area: auto; grid-column: 1 / -1; }
+/* After every row of the layout (a named area would put it in one column). */
+.planner.docked > .day-housekeeping { grid-area: auto; grid-column: 1 / -1; grid-row: 99; }
 .hk-title { font-weight: 600; }
 .hk-link { padding: 0; border: 0; background: none; box-shadow: none; font-size: inherit; color: var(--muted); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--muted) 50%, transparent); text-underline-offset: 3px; cursor: pointer; }
 .hk-link:hover { color: var(--text); }
