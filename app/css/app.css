@@ -2256,3 +2256,9 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
 .ref[data-ref^="cases/"]::before { content: '📁'; }
 .ref[data-ref^="items/"]::before, .ref[data-ref^="places/"]::before { content: '📦'; }
 .ref[data-ref^="lists/"]::before, .ref[data-ref^="list_items/"]::before { content: '📋'; }
+
+/* Day Planner: Tasks and Notes keep to their column (a notes toolbar that
+   scrolls sideways had made them as wide as the whole toolbar, off the screen
+   on a phone and over the schedule on a laptop). */
+.day-bottom, .day-bottom > *, .planner.docked > *, .rich, .rich > * { min-width: 0; }
+.day-bottom > * { max-width: 100%; }
