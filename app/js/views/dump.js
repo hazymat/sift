@@ -16,6 +16,7 @@ import { addItem, isoDate, parseTimed, daySettings, durationChoices, durationLab
 import { loadTree } from '../places.js';
 import { contactFromText } from '../contacts.js';
 import { createListKit } from '../listkit.js';
+import * as att from '../attachments.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -47,10 +48,12 @@ export default {
     let thoughts = [];
     let panel = null; // { id, type: 'plan' | 'store' }
     let editing = null;
+    let atts = new Map(); // note id → its attachments
 
     el.innerHTML = `
       <section class="dump-capture">
         <div id="dump-body"></div>
+        <div id="dump-att"></div>
         <div class="dump-row">
           <div class="segmented" id="dump-kinds" role="group" aria-label="Kind">
             ${KINDS.map(k => `<button type="button" data-kind="${k.id}">${k.label}</button>`).join('')}
@@ -97,6 +100,8 @@ export default {
       onChange: md => writeDraft('dump', md),
     });
     const list = $('#thoughts');
+    // Files attached to what's being typed belong to the thought it will become.
+    const paintCapture = () => { $('#dump-att').innerHTML = att.rowHtml(atts.get(captureId)); };
 
     function paintKinds() {
       for (const b of el.querySelectorAll('[data-kind]')) b.setAttribute('aria-pressed', b.dataset.kind === kind);
@@ -106,6 +111,8 @@ export default {
     const render = this.render = async () => {
       thoughts = (await store.list('thoughts', { filter: t => !t.archived_at }))
         .sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned) || b.created_at.localeCompare(a.created_at));
+      atts = await att.byParent();
+      paintCapture();
       paintKinds();
       const words = state.q.toLowerCase().split(/\s+/).filter(Boolean);
       const shown = thoughts.filter(t =>
@@ -151,16 +158,19 @@ export default {
             <select class="kind-select" aria-label="Kind">${KINDS.map(k => `<option value="${k.id}" ${k.id === t.kind ? 'selected' : ''}>${k.label}</option>`).join('')}</select>
             <span class="muted">${ago(t.created_at)}</span>
             ${conv ? `<a class="chip" href="${href}">→ ${conv[0]}</a>` : ''}
+            ${att.countChip(atts.get(t.id))}
             <span class="spacer"></span>
             <button type="button" class="pin" data-act="pin" aria-pressed="${!!t.pinned}" title="Pin">${t.pinned ? '★' : '☆'}</button>
           </div>
           ${editing === t.id
             ? `<div class="thought-edit" data-thought="${t.id}"></div>`
             : thoughtBody(t)}
+          ${atts.get(t.id)?.length ? att.rowHtml(atts.get(t.id), { addButton: false }) : ''}
           <div class="thought-actions">
             <button type="button" data-act="to-task">→ Task</button>
             <button type="button" data-act="plan">Plan it</button>
             <button type="button" data-act="store">→ Find Things</button>
+            <button type="button" data-att-add title="Attach photos, PDFs or text files (or drop them onto the note)">${icon('i-clip')} Attach</button>
             <span class="spacer"></span>
             <button type="button" data-act="archive">Archive</button>
             <button type="button" class="danger" data-act="delete">Delete</button>
@@ -274,7 +284,17 @@ export default {
       });
     }
 
+    const parentOf = node => {
+      if (node.closest('.dump-capture')) return { collection: 'thoughts', id: captureId };
+      const li = node.closest('li[data-id]');
+      return li ? { collection: 'thoughts', id: li.dataset.id } : null;
+    };
+    // While a note is being edited its box isn't redrawn; the files show when you finish.
+    const attachedDone = () => (editing ? paintCapture() : render());
+    att.enableDrop(el, 'li.thought[data-id], .dump-capture', parentOf, attachedDone);
+
     el.addEventListener('click', async ev => {
+      if (att.onClick(ev, parentOf, attachedDone)) return;
       const b = ev.target.closest('[data-act], [data-kind], [data-filter]');
       if (!b) return;
       if (b.dataset.kind) { kind = b.dataset.kind; paintKinds(); input.focus(); return; }

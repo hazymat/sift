@@ -15,11 +15,12 @@ export const COLLECTIONS = [
   'contacts', 'contact_categories', 'contact_jobs', 'interactions', 'cases', 'case_notes',
   'lists', 'list_items',
   'scans',
+  'attachments',
   'contracts',
   'settings',
 ];
 
-const DB_VERSION = 7; // bump when adding object stores; onupgradeneeded only adds what's missing
+const DB_VERSION = 8; // bump when adding object stores; onupgradeneeded only adds what's missing
 const LOCAL_DB = 'sift_local';
 const SYSTEM_FIELDS = new Set(['id', '_field_clocks', '_dirty_fields', '_server_seq']);
 const SETTINGS_ID = 'settings'; // fixed id so every device edits the same record
@@ -482,6 +483,20 @@ export async function updateDeviceSettings(changes) {
   const tx = db.transaction('sync_meta', 'readwrite');
   tx.objectStore('sync_meta').put({ ...current, ...changes }, 'device_settings');
   await done(tx);
+}
+
+// ---------- attachment files (this device; the record is what syncs) ----------
+
+export async function putBlob(blobId, data) {
+  await open();
+  const tx = db.transaction('blobs', 'readwrite');
+  tx.objectStore('blobs').put({ blob_id: blobId, data, saved_at: new Date().toISOString() });
+  await done(tx);
+}
+
+export async function getBlob(blobId) {
+  await open();
+  return (await promisify(db.transaction('blobs').objectStore('blobs').get(blobId)))?.data || null;
 }
 
 // ---------- sync support (js/sync.js) ----------

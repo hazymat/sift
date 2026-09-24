@@ -149,8 +149,11 @@ async function route(force = false) {
   $('#page-title').textContent = next.label;
 
   currentView?.unmount?.();
-  const main = $('#main');
-  main.innerHTML = '';
+  // A fresh #main for each page: the old one still carries the click handlers
+  // of every page shown in it before, which would all fire again.
+  const stale = $('#main');
+  const main = stale.cloneNode(false);
+  stale.replaceWith(main);
   main.dataset.area = next.id;
   applyDensity();
   const module = await import(next.view);

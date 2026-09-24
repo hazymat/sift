@@ -31,6 +31,7 @@ const SHELL = [
   'js/summary.js',
   'js/exporttext.js',
   'js/holdopen.js',
+  'js/attachments.js',
   'js/viewcog.js',
   'js/crypto.js',
   'js/sync.js',

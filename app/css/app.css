@@ -1978,3 +1978,23 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 #sync-status[data-state="ok"] { color: #7dd3a8; border-color: rgba(125, 211, 168, .4); }
 #sync-status[data-state="offline"] { color: var(--muted); }
 #sync-status[data-state="error"] { color: #f5a66a; border-color: rgba(245, 166, 106, .5); }
+
+/* Attachments on notes */
+.att-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 2px; }
+#dump-att { margin: 2px 2px 6px; }
+.att { position: relative; display: inline-flex; }
+.att-open { display: inline-flex; align-items: center; gap: 5px; padding: 0; border: 1px solid var(--glass-border); border-radius: 10px; background: var(--glass-track, transparent); color: inherit; font-size: .78rem; cursor: pointer; overflow: hidden; box-shadow: none; }
+.att-img .att-open img { display: block; height: 64px; max-width: 120px; object-fit: cover; }
+.att-file .att-open { padding: 5px 9px; }
+.att-file .icon { width: 1.1em; height: 1.1em; flex: none; }
+.att-name { max-width: 15ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.att-x { position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; padding: 0; border-radius: 50%; font-size: .8rem; line-height: 1; display: none; place-items: center; box-shadow: none; }
+.att:hover .att-x, .att:focus-within .att-x { display: grid; }
+@media (hover: none) { .att-x { display: grid; opacity: .75; } }
+.att-add { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; font-size: .78rem; box-shadow: none; background: transparent; border: 1px dashed var(--glass-border); border-radius: 10px; }
+.att-add .icon { width: 1.1em; height: 1.1em; }
+.att-count { display: none; }
+#main[data-density="tight"] .att-count { display: inline-flex; gap: 3px; align-items: center; }
+#main[data-density="tight"] .thought .att-row { display: none; }
+.drop-over { outline: 2px dashed var(--active-border, currentColor); outline-offset: 2px; }
+.thought-actions .icon { width: 1.05em; height: 1.05em; vertical-align: -.15em; }
