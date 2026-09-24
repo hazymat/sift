@@ -200,18 +200,19 @@ export default {
             <button type="button" data-act="to-task">→ Task</button>
             <button type="button" data-act="plan">Plan it</button>
             <button type="button" data-act="store">→ Find Things</button>
-            <details class="tool-menu share-note">
-              <summary role="button">${icon('i-share')} Share</summary>
+            <span class="spacer"></span>
+            <details class="tool-menu share-note note-more">
+              <summary role="button" aria-label="More: share, attach, archive, delete" title="Share, attach, archive, delete">⋯</summary>
               <div class="menu">
-                <button type="button" data-act="copy-plain">Copy to clipboard – plain text</button>
-                <button type="button" data-act="copy-rich">Copy to clipboard – with formatting</button>
-                ${navigator.share ? '<button type="button" data-act="share-sheet">Share…</button>' : ''}
+                <button type="button" data-act="copy-plain">${icon('i-share')} Copy – plain text</button>
+                <button type="button" data-act="copy-rich">${icon('i-share')} Copy – with formatting</button>
+                ${navigator.share ? `<button type="button" data-act="share-sheet">${icon('i-share')} Share…</button>` : ''}
+                <button type="button" data-att-add title="Attach photos, PDFs or text files (or drop them onto the note)">${icon('i-clip')} Attach…</button>
+                <hr>
+                <button type="button" data-act="archive">Archive</button>
+                <button type="button" class="danger" data-act="delete">Delete</button>
               </div>
             </details>
-            <button type="button" data-att-add title="Attach photos, PDFs or text files (or drop them onto the note)">${icon('i-clip')} Attach</button>
-            <span class="spacer"></span>
-            <button type="button" data-act="archive">Archive</button>
-            <button type="button" class="danger" data-act="delete">Delete</button>
           </div>
           ${panel?.id === t.id ? panelHtml(t) : ''}
         </li>`;
@@ -346,6 +347,7 @@ export default {
     att.enableDrop(el, 'li.thought[data-id], .dump-capture', parentOf, attachedDone);
 
     el.addEventListener('click', async ev => {
+      if (ev.target.closest('.note-more [data-att-add]')) ev.target.closest('details')?.removeAttribute('open');
       if (att.onClick(ev, parentOf, attachedDone)) return;
       // "→ Task" chips go to the task and light it up when you get there.
       const jump = ev.target.closest('a[data-focus]');
