@@ -7,7 +7,8 @@
 //   data key (random, 32 bytes) ──HKDF──▶ record key (AES-GCM) + id key (HMAC)
 //
 // The data key never changes; a new password just re-wraps it. The recovery
-// code is the data key itself, shown once when the account is made.
+// code is the data key itself, shown once when the account is made; the
+// server keeps only a one-way hash of it (recoveryHash) to check a code.
 
 const enc = new TextEncoder();
 const dec = new TextDecoder();
@@ -55,6 +56,13 @@ export async function wrapDataKey(master, dataKeyRaw) {
 
 export async function unwrapDataKey(master, wrapped) {
   return openBytes(await hkdf(master, 'wrap', { name: 'AES-GCM', length: 256 }, ['decrypt']), wrapped);
+}
+
+// What the server keeps to check a recovery code: a one-way value made from
+// the data key, so the server can't use it to read anything.
+export async function recoveryHash(dataKeyRaw) {
+  const base = await subtle.importKey('raw', dataKeyRaw, 'HKDF', false, ['deriveBits']);
+  return b64(await subtle.deriveBits({ name: 'HKDF', hash: 'SHA-256', salt: enc.encode('sift'), info: enc.encode('recovery') }, base, 256));
 }
 
 export const newDataKey = () => crypto.getRandomValues(new Uint8Array(32));

@@ -153,9 +153,21 @@ export default {
             <div class="backup-row">
               <button type="button" class="primary" data-sync="now">Sync now</button>
               <button type="button" data-sync="devices">Devices</button>
+              <button type="button" data-sync="pwform">Change password</button>
               <button type="button" data-sync="out">Sign out on this device</button>
             </div>
             <ul class="sync-devices" hidden></ul>
+            <div class="sync-pw" hidden>
+              <div class="settings-grid sync-form">
+                <label>Current password<input name="oldpw" type="password" autocomplete="current-password" class="no-inline"></label>
+                <label>New password<input name="newpw" type="password" autocomplete="new-password" class="no-inline"></label>
+              </div>
+              <div class="backup-row">
+                <button type="button" class="primary" data-sync="pw">Change password</button>
+                <span class="muted" id="sync-msg"></span>
+              </div>
+              <p class="muted hint">Your other devices are signed out and sign in again with the new password. Your data doesn't change.</p>
+            </div>
             <p class="muted hint">Your data is encrypted on this device before it's sent; the server can't read it. Signing out keeps everything on this device.</p>`;
           return;
         }
@@ -170,7 +182,16 @@ export default {
           <div class="backup-row">
             <button type="button" class="primary" data-sync="in">Sign in</button>
             <button type="button" data-sync="create" hidden>Create account</button>
+            <button type="button" data-sync="forgot">Forgot password?</button>
             <span class="muted" id="sync-msg"></span>
+          </div>
+          <div class="sync-recover" hidden>
+            <p class="muted">Enter your email above, the recovery code you saved when you made the account, and a new password. Your other devices are signed out.</p>
+            <div class="settings-grid sync-form">
+              <label class="wide">Recovery code<input name="code" autocomplete="off" autocapitalize="characters" spellcheck="false" class="no-inline"></label>
+              <label>New password<input name="newpw" type="password" autocomplete="new-password" class="no-inline"></label>
+            </div>
+            <div class="backup-row"><button type="button" class="primary" data-sync="recover">Set new password</button></div>
           </div>`;
         const serverInput = box.querySelector('[name="server"]');
         const check = () => {
@@ -208,8 +229,32 @@ export default {
             if (!ul.hidden) ul.innerHTML = (await sync.devices()).map(d => `<li>${d.name}${d.this ? ' <span class="muted">(this one)</span>' : ''} <span class="muted">· last seen ${ago(d.last_seen)}</span></li>`).join('');
             return;
           }
+          if (what === 'pwform') { const f = box.querySelector('.sync-pw'); f.hidden = !f.hidden; return; }
+          if (what === 'pw') {
+            const oldpw = box.querySelector('[name="oldpw"]').value;
+            const newpw = box.querySelector('[name="newpw"]').value;
+            if (!oldpw || !newpw) return msg('Enter your current and new password');
+            if (newpw.length < 10) return msg('Use at least 10 characters');
+            b.disabled = true;
+            msg('Changing…');
+            await sync.changePassword(oldpw, newpw);
+            toast('Password changed');
+            return draw();
+          }
+          if (what === 'forgot') { const f = box.querySelector('.sync-recover'); f.hidden = !f.hidden; return; }
           const server = val('server');
           const email = val('email');
+          if (what === 'recover') {
+            const newpw = box.querySelector('[name="newpw"]').value;
+            if (!server || !email || !val('code') || !newpw) return msg('Enter the server, your email, the recovery code and a new password');
+            if (newpw.length < 10) return msg('Use at least 10 characters');
+            b.disabled = true;
+            msg('Setting your new password…');
+            await sync.recover(server, email, val('code'), newpw);
+            await sync.start();
+            toast('New password set');
+            return draw();
+          }
           const password = box.querySelector('[name="password"]').value;
           if (!email || !password) return msg('Enter your email and password');
           if (what === 'create') {

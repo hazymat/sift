@@ -26,7 +26,7 @@ try {
   let r = await call('GET', '/api/health');
   assert.equal(r.json.registration, 'open');
 
-  r = await call('POST', '/api/register', { email: 'Mat@Example.com', auth_hash: 'a'.repeat(44), kdf: { name: 'PBKDF2-SHA256', iterations: 600000, salt: 's' }, wrapped_data_key: 'wrapped', device_name: 'Laptop' });
+  r = await call('POST', '/api/register', { email: 'Mat@Example.com', auth_hash: 'a'.repeat(44), kdf: { name: 'PBKDF2-SHA256', iterations: 600000, salt: 's' }, wrapped_data_key: 'wrapped', recovery_hash: 'r'.repeat(44), device_name: 'Laptop' });
   assert.equal(r.status, 200, JSON.stringify(r.json));
   assert.equal(r.cors, 'http://localhost:5173');
   const laptop = r.json.token;
@@ -75,6 +75,36 @@ try {
 
   r = await call('GET', '/api/sync/pull?since=0', null, 'nonsense');
   assert.equal(r.status, 401);
+
+  r = await call('GET', '/api/me', null, laptop);
+  assert.equal(r.json.wrapped_data_key, 'wrapped');
+
+  // change the password: needs the old one; other devices are signed out
+  r = await call('POST', '/api/password', { old_auth_hash: 'nope'.repeat(11), auth_hash: 'c'.repeat(44), kdf: { salt: 's2' }, wrapped_data_key: 'wrapped2' }, laptop);
+  assert.equal(r.status, 401);
+  r = await call('POST', '/api/password', { old_auth_hash: 'a'.repeat(44), auth_hash: 'c'.repeat(44), kdf: { salt: 's2' }, wrapped_data_key: 'wrapped2' }, laptop);
+  assert.equal(r.status, 200, JSON.stringify(r.json));
+  r = await call('GET', '/api/sync/pull?since=0', null, phone);
+  assert.equal(r.status, 401, 'other devices signed out');
+  r = await call('GET', '/api/sync/pull?since=0', null, laptop);
+  assert.equal(r.status, 200, 'this device stays signed in');
+  r = await call('POST', '/api/login', { email: 'mat@example.com', auth_hash: 'a'.repeat(44) });
+  assert.equal(r.status, 401, 'old password no longer works');
+  r = await call('POST', '/api/login', { email: 'mat@example.com', auth_hash: 'c'.repeat(44) });
+  assert.equal(r.json.wrapped_data_key, 'wrapped2');
+
+  // forgot the password: the recovery code sets a new one and signs everything else out
+  r = await call('POST', '/api/recover', { email: 'mat@example.com', recovery_hash: 'x'.repeat(44), auth_hash: 'd'.repeat(44), kdf: {}, wrapped_data_key: 'w3' });
+  assert.equal(r.status, 401);
+  r = await call('POST', '/api/recover', { email: 'mat@example.com', recovery_hash: 'r'.repeat(44), auth_hash: 'd'.repeat(44), kdf: { salt: 's3' }, wrapped_data_key: 'w3', device_name: 'Recovered' });
+  assert.equal(r.status, 200, JSON.stringify(r.json));
+  const recovered = r.json.token;
+  r = await call('GET', '/api/sync/pull?since=0', null, laptop);
+  assert.equal(r.status, 401, 'recovery signs out every other device');
+  r = await call('GET', '/api/sync/pull?since=0', null, recovered);
+  assert.equal(r.json.records.length, 2, 'data is still there');
+  r = await call('POST', '/api/login', { email: 'mat@example.com', auth_hash: 'd'.repeat(44) });
+  assert.equal(r.json.wrapped_data_key, 'w3');
 
   console.log('all server checks passed');
 } finally {

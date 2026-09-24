@@ -72,10 +72,38 @@ export async function register(server, email, password) {
     email, kdf,
     auth_hash: await cx.loginHash(master, password),
     wrapped_data_key: await cx.wrapDataKey(master, dataKeyRaw),
+    recovery_hash: await cx.recoveryHash(dataKeyRaw),
     device_name: deviceName(),
   }, server);
   await keep(server, email, login, dataKeyRaw);
   return cx.recoveryCode(dataKeyRaw);
+}
+
+// A new password, and the data key wrapped by it, for recover / changePassword.
+async function newPassword(password, dataKeyRaw) {
+  const kdf = cx.newKdf();
+  const master = await cx.deriveMaster(password, kdf);
+  return { kdf, auth_hash: await cx.loginHash(master, password), wrapped_data_key: await cx.wrapDataKey(master, dataKeyRaw) };
+}
+
+// Forgot the password: the recovery code opens the data; every other device is
+// signed out and this one signs in with the new password.
+export async function recover(server, email, code, password) {
+  server = server.replace(/\/+$/, '');
+  const dataKeyRaw = cx.fromRecoveryCode(code);
+  const login = await api('POST', '/api/recover', {
+    email, recovery_hash: await cx.recoveryHash(dataKeyRaw), device_name: deviceName(), ...await newPassword(password, dataKeyRaw),
+  }, server);
+  await keep(server, email, login, dataKeyRaw);
+}
+
+// While signed in: the old password must be right; other devices are signed out.
+export async function changePassword(oldPassword, password) {
+  const me = await api('GET', '/api/me');
+  const oldMaster = await cx.deriveMaster(oldPassword, me.kdf);
+  let dataKeyRaw;
+  try { dataKeyRaw = await cx.unwrapDataKey(oldMaster, me.wrapped_data_key); } catch { throw new Error('The current password is wrong'); }
+  await api('POST', '/api/password', { old_auth_hash: await cx.loginHash(oldMaster, oldPassword), ...await newPassword(password, dataKeyRaw) });
 }
 
 export async function signIn(server, email, password) {

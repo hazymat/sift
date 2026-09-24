@@ -60,6 +60,9 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS records_by_seq ON records (user_id, seq);
 `);
+for (const col of ['recovery_hash', 'recovery_salt']) {
+  if (!db.prepare('PRAGMA table_info(users)').all().some(c => c.name === col)) db.exec(`ALTER TABLE users ADD COLUMN ${col} TEXT`);
+}
 
 // A per-install secret so unknown emails get stable made-up KDF salts
 // (the answer doesn't reveal whether an account exists).
@@ -136,6 +139,18 @@ function newDevice(userId, name) {
   return { token, device_id: deviceId };
 }
 
+// Swap in a new password: the app's new login hash, key settings and the data
+// key wrapped by the new password. Uses the synchronous scrypt: it is one
+// short call and keeps the swap in a single step.
+function replacePassword(userId, body) {
+  if (typeof body.auth_hash !== 'string' || body.auth_hash.length < 32) throw new HttpError(400, 'Missing auth_hash');
+  if (typeof body.wrapped_data_key !== 'string' || !body.kdf) throw new HttpError(400, 'Missing keys');
+  const salt = b64url(crypto.randomBytes(16));
+  const hash = crypto.scryptSync(body.auth_hash, salt, 64, { N: 16384, r: 8, p: 1 }).toString('hex');
+  db.prepare('UPDATE users SET auth_hash = ?, auth_salt = ?, kdf = ?, wrapped_data_key = ? WHERE id = ?')
+    .run(hash, salt, JSON.stringify(body.kdf), body.wrapped_data_key, userId);
+}
+
 const usage = userId => db.prepare('SELECT COALESCE(SUM(size_bytes), 0) AS bytes FROM records WHERE user_id = ?').get(userId).bytes;
 
 // ---------- endpoints ----------
@@ -158,11 +173,13 @@ const routes = {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new HttpError(400, 'Enter a valid email address');
     if (typeof body.auth_hash !== 'string' || body.auth_hash.length < 32) throw new HttpError(400, 'Missing auth_hash');
     if (typeof body.wrapped_data_key !== 'string' || !body.kdf) throw new HttpError(400, 'Missing keys');
+    if (typeof body.recovery_hash !== 'string' || body.recovery_hash.length < 32) throw new HttpError(400, 'Missing recovery_hash');
     if (db.prepare('SELECT 1 FROM users WHERE email = ?').get(email)) throw new HttpError(409, 'That email already has an account');
     const salt = b64url(crypto.randomBytes(16));
+    const rsalt = b64url(crypto.randomBytes(16));
     const userId = id();
-    db.prepare('INSERT INTO users (id, email, auth_hash, auth_salt, kdf, wrapped_data_key, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
-      .run(userId, email, await scrypt(body.auth_hash, salt), salt, JSON.stringify(body.kdf), body.wrapped_data_key, now());
+    db.prepare('INSERT INTO users (id, email, auth_hash, auth_salt, kdf, wrapped_data_key, recovery_hash, recovery_salt, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(userId, email, await scrypt(body.auth_hash, salt), salt, JSON.stringify(body.kdf), body.wrapped_data_key, await scrypt(body.recovery_hash, rsalt), rsalt, now());
     return { user_id: userId, ...newDevice(userId, body.device_name) };
   },
 
@@ -175,6 +192,44 @@ const routes = {
     if (!ok) { fail(`e:${email}`); fail(`i:${ip}`); throw new HttpError(401, 'Email or password is wrong'); }
     failures.delete(`e:${email}`);
     return { user_id: user.id, wrapped_data_key: user.wrapped_data_key, kdf: JSON.parse(user.kdf), ...newDevice(user.id, body.device_name) };
+  },
+
+  // Forgot the password: the recovery code (which the app turns into
+  // recovery_hash) proves it's you. The app sends a new password's hash and
+  // the data key wrapped by it; every other device is signed out.
+  'POST /api/recover': async ({ body, ip }) => {
+    const email = String(body.email || '').trim().toLowerCase();
+    checkLimit(`e:${email}`);
+    checkLimit(`i:${ip}`);
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+    const ok = user?.recovery_hash && typeof body.recovery_hash === 'string' && same(await scrypt(body.recovery_hash, user.recovery_salt), user.recovery_hash);
+    if (!ok) { fail(`e:${email}`); fail(`i:${ip}`); throw new HttpError(401, 'Email or recovery code is wrong'); }
+    failures.delete(`e:${email}`);
+    replacePassword(user.id, body);
+    db.prepare('DELETE FROM devices WHERE user_id = ?').run(user.id);
+    return { user_id: user.id, ...newDevice(user.id, body.device_name) };
+  },
+
+  // What a signed-in device needs to change the password.
+  'GET /api/me': ({ req }) => {
+    const dev = authed(req);
+    const u = db.prepare('SELECT email, kdf, wrapped_data_key FROM users WHERE id = ?').get(dev.user_id);
+    return { email: u.email, kdf: JSON.parse(u.kdf), wrapped_data_key: u.wrapped_data_key };
+  },
+
+  // Change the password while signed in (the old one must be right).
+  'POST /api/password': async ({ req, body, ip }) => {
+    const dev = authed(req);
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(dev.user_id);
+    checkLimit(`e:${user.email}`);
+    checkLimit(`i:${ip}`);
+    if (typeof body.old_auth_hash !== 'string' || !same(await scrypt(body.old_auth_hash, user.auth_salt), user.auth_hash)) {
+      fail(`e:${user.email}`); fail(`i:${ip}`);
+      throw new HttpError(401, 'The current password is wrong');
+    }
+    replacePassword(user.id, body);
+    db.prepare('DELETE FROM devices WHERE user_id = ? AND id != ?').run(user.id, dev.id);
+    return { ok: true };
   },
 
   'POST /api/logout': ({ req }) => {
