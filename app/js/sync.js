@@ -259,7 +259,7 @@ export async function syncNow() {
     } catch (e) {
       const offline = !navigator.onLine || e instanceof TypeError; // fetch failed: no network / not on VPN
       setStatus({ state: offline ? 'offline' : 'error', error: offline ? null : e.message, pending: await store.outboxSize() });
-      if (e.status === 401) { await store.metaSet('sync_account', undefined); account = null; setStatus({ state: 'off', error: 'This device was signed out of sync' }); }
+      if (e.status === 401) { await store.metaSet('sync_account', undefined); account = null; setStatus({ state: 'off', error: `The server signed this device out (${e.message}). Sign in again.` }); }
     } finally {
       running = null;
     }
@@ -283,8 +283,14 @@ function wire() {
   setInterval(() => syncNow(), 5 * 60 * 1000);
 }
 
-// Called once from app.js.
+// Called once from app.js. `ready` settles once the saved sign-in has been
+// read, so pages don't show "Sign in" to a device that is signed in.
+let markReady;
+export const ready = new Promise(ok => { markReady = ok; });
 export async function init() {
+  try { await load(); } finally { markReady(); }
+}
+async function load() {
   account = await store.metaGet('sync_account');
   keys = await store.metaGet('sync_keys');
   if (!account || !keys) { setStatus({ state: 'off', pending: await store.outboxSize() }); return; }

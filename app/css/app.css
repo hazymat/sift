@@ -1237,6 +1237,7 @@ a.chip { color: var(--text); text-decoration: none; }
 .file-btn { display: inline-flex; padding: 6px 14px; border-radius: var(--radius-pill); background: var(--glass); border: 1px solid var(--glass-border); color: var(--text); font-size: 1rem; cursor: pointer; }
 .file-btn:hover { background: var(--glass-hover); }
 #backup-status.warn { color: var(--place); }
+.sync-out-reason { color: var(--place); font-weight: 600; margin: 0 0 8px; }
 
 /* ---------- Shared list behaviour (listkit.js) in every list ---------- */
 li[data-id].selected { background: var(--active-bg) !important; box-shadow: inset 0 0 0 1px var(--active-border); }

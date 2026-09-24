@@ -173,7 +173,12 @@ export default {
         const s = Math.round((Date.now() - Date.parse(iso)) / 1000);
         return s < 60 ? 'just now' : s < 3600 ? `${Math.round(s / 60)} min ago` : new Date(iso).toLocaleString();
       };
+      // Draws can overlap (status changes while one is waiting): only the latest one writes.
+      let drawing = 0;
       const draw = async () => {
+        const mine = ++drawing;
+        await sync.ready;
+        if (mine !== drawing) return;
         const acct = sync.signedIn();
         const st = sync.status;
         if (acct) {
@@ -202,7 +207,10 @@ export default {
           return;
         }
         const remembered = (await store.getDeviceSettings()).server_url;
+        if (mine !== drawing) return;
+        if (sync.signedIn()) return draw();
         box.innerHTML = `
+          <p class="sync-out-reason" hidden></p>
           <p class="muted">Sync keeps your phone and laptop in step through your own server. Everything is encrypted here first; the server only stores scrambled copies.</p>
           <div class="settings-grid sync-form">
             <label class="wide">Server<input name="server" value="${remembered || ''}" placeholder="https://your-server" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" class="no-inline"></label>
@@ -234,6 +242,8 @@ export default {
             </div>
             <div class="backup-row"><button type="button" class="primary" data-sync="recover">Set new password</button></div>
           </div>`;
+        const reason = box.querySelector('.sync-out-reason');
+        if (st.error) { reason.textContent = st.error; reason.hidden = false; }
         const serverInput = box.querySelector('[name="server"]');
         const check = () => {
           const server = serverInput.value.trim();
