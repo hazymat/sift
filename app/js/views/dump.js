@@ -164,7 +164,9 @@ export default {
       // Only when the title is the whole first line is that line left out below.
       const whole = cleanLine(lines[firstAt] || '').toLowerCase() === title.toLowerCase();
       const rest = whole ? lines.slice(firstAt + 1).join('\n') : t.body;
-      return `<div class="thought-body hand" data-act="edit"><div class="thought-title">${esc(title)}</div>${rest.trim() ? toHtml(rest) : ''}</div>`;
+      // Compact spacing shows the whole note run together, filling its square (CSS picks).
+      const flat = t.body.split('\n').map(l => cleanLine(l).replace(/\*\*|~~/g, '')).filter(Boolean).join(' ');
+      return `<div class="thought-body hand" data-act="edit"><div class="thought-title">${esc(title)}</div>${rest.trim() ? toHtml(rest) : ''}<div class="thought-flat">${esc(flat)}</div></div>`;
     }
 
     // How much is in a note decides its card size: s (a jotted number or one

@@ -2215,3 +2215,8 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
 .md-make-menu { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 6px; padding: 6px 8px; border-radius: 12px; background: var(--menu-bg, var(--glass-strong)); border: 1px solid var(--glass-border); font-size: .85rem; }
 .md-make-menu button { padding: 4px 12px; font-size: .85rem; }
 .rich.is-full > .md-make-menu { order: 8; margin: 0; }
+
+/* Compact Brain Dump cards: the note's whole text run together, filling the square. */
+.thought-flat { display: none; }
+#main[data-density="tight"] .thought .thought-body > .thought-title { display: none; }
+#main[data-density="tight"] .thought .thought-body > .thought-flat { display: block; height: 100%; overflow: hidden; font-size: .88rem; line-height: 1.35; overflow-wrap: anywhere; -webkit-mask-image: linear-gradient(to bottom, #000 80%, transparent); mask-image: linear-gradient(to bottom, #000 80%, transparent); }
