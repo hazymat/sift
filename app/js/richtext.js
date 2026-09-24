@@ -16,7 +16,7 @@
 // a linked contact (a new transient one unless it's already known), with Undo.
 // While you're in a note, the rest of the page dims.
 //
-// Typing "- " or "* " at the start of a line starts a bulleted list; Enter on
+// Typing "- " or "* " at the start of a line starts a bulleted list, and "1. " a numbered one; Enter on
 // an empty bullet ends it, so you carry on writing underneath. The toolbar also
 // inserts a few emoji.
 //
@@ -69,22 +69,27 @@ function inline(text) {
     .replace(/(^|[\s(])_(.+?)_(?=$|[\s).,!?:;])/g, '$1<i>$2</i>');
 }
 
-// Bullet lines as nested lists. `items` are { d: depth, html }; a line can only
-// sit one level deeper than the one before it.
+// Bullet and numbered lines as nested lists. `items` are { d: depth, ordered, html };
+// a line can only sit one level deeper than the one before it, and a list is
+// numbered or bulleted by the line that opens it.
 function listHtml(items) {
   let html = '';
-  let depth = -1;
-  for (const { d: want, html: text } of items) {
-    const d = Math.max(0, Math.min(want, depth + 1));
-    if (depth === -1) { html += '<ul>'; depth = 0; }
-    else if (d > depth) { html += '<ul>'; depth = d; }
+  const open = []; // the list tags open now, one per depth
+  for (const { d: want, ordered, html: text } of items) {
+    const tag = ordered ? 'ol' : 'ul';
+    const d = Math.max(0, Math.min(want, open.length));
+    if (!open.length || d >= open.length) { html += `<${tag}>`; open.push(tag); }
     else {
       html += '</li>';
-      for (; depth > d; depth--) html += '</ul></li>';
+      while (open.length - 1 > d) html += `</${open.pop()}></li>`;
+      // Bulleted after numbered (or the other way round) at the same level: a new list.
+      if (open[d] !== tag) { html += `</${open.pop()}><${tag}>`; open.push(tag); }
     }
     html += `<li>${text}`;
   }
-  return `${html}</li>${'</ul></li>'.repeat(Math.max(0, depth))}</ul>`;
+  html += '</li>';
+  while (open.length > 1) html += `</${open.pop()}></li>`;
+  return `${html}</${open.pop()}>`;
 }
 
 export function toHtml(md) {
@@ -101,10 +106,12 @@ export function toHtml(md) {
       out.push(big ? `<h3>${text}</h3>` : small ? `<div data-sz="s">${text}</div>` : `<h4>${text}</h4>`);
       continue;
     }
-    const item = line.match(/^(\s*)[-*]\s+(.*)$/);
+    const bullet = line.match(/^(\s*)[-*]\s+(.*)$/);
+    const numbered = !bullet && line.match(/^(\s*)\d{1,3}[.)]\s+(.*)$/);
+    const item = bullet || numbered;
     if (item) {
       list ??= [];
-      list.push({ d: Math.floor(item[1].replace(/\t/g, '  ').length / 2), html: inline(item[2]) || '<br>' });
+      list.push({ d: Math.floor(item[1].replace(/\t/g, '  ').length / 2), ordered: !!numbered, html: inline(item[2]) || '<br>' });
       continue;
     }
     flush();
@@ -117,13 +124,17 @@ export function toHtml(md) {
 export function toMarkdown(root) {
   // A list's lines, two spaces of indent per level. (The browser nests a list either
   // inside an <li> or straight inside the <ul>; both come out the same.)
-  const listLines = (ul, depth) => [...ul.children].flatMap(child => {
-    if (child.tagName === 'UL' || child.tagName === 'OL') return listLines(child, depth + 1);
-    if (child.tagName !== 'LI') return [];
-    const own = [...child.childNodes].filter(n => n.nodeName !== 'UL' && n.nodeName !== 'OL').map(walk).join('').replace(/\n+$/, '');
-    const nested = [...child.children].filter(n => n.tagName === 'UL' || n.tagName === 'OL').flatMap(n => listLines(n, depth + 1));
-    return [`${'  '.repeat(depth)}- ${own}`, ...nested];
-  });
+  const listLines = (ul, depth) => {
+    let n = 0;
+    return [...ul.children].flatMap(child => {
+      if (child.tagName === 'UL' || child.tagName === 'OL') return listLines(child, depth + 1);
+      if (child.tagName !== 'LI') return [];
+      n++;
+      const own = [...child.childNodes].filter(x => x.nodeName !== 'UL' && x.nodeName !== 'OL').map(walk).join('').replace(/\n+$/, '');
+      const nested = [...child.children].filter(x => x.tagName === 'UL' || x.tagName === 'OL').flatMap(x => listLines(x, depth + 1));
+      return [`${'  '.repeat(depth)}${ul.tagName === 'OL' ? `${n}.` : '-'} ${own}`, ...nested];
+    });
+  };
   const walk = node => {
     if (node.nodeType === Node.TEXT_NODE) return node.nodeValue.replace(/ /g, ' ');
     if (node.nodeType !== Node.ELEMENT_NODE) return '';
@@ -226,6 +237,7 @@ export function richText(container, { value = '', onChange, placeholder = '', or
       <button type="button" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
       <button type="button" data-cmd="strikeThrough" title="Cross out"><s>S</s></button>
       <button type="button" data-cmd="insertUnorderedList" title="List (or type - at the start of a line)">• List</button>
+      <button type="button" data-cmd="insertOrderedList" title="Numbered list (or type 1. at the start of a line)">1. List</button>
       <span class="md-sizes"><button type="button" data-size="-1" title="Smaller text (this line)" aria-label="Smaller text">A<small>−</small></button><button type="button" data-size="1" title="Bigger text (this line)" aria-label="Bigger text">A<sup>+</sup></button></span>
       <span class="md-emoji">${EMOJI.map(([e, name]) => `<button type="button" data-emoji="${e}" title="${name}" aria-label="Insert ${name.toLowerCase()} emoji">${e}</button>`).join('')}</span>
       <button type="button" class="md-toggle" aria-pressed="false" title="Show the raw markdown">Markdown</button>
@@ -450,16 +462,18 @@ export function richText(container, { value = '', onChange, placeholder = '', or
     const sel = getSelection();
     const node = sel.anchorNode;
     if (!sel.rangeCount || !sel.isCollapsed || node?.nodeType !== Node.TEXT_NODE || !edit.contains(node) || node.parentElement.closest('li')) return;
-    if (!/^[-*][  ]$/.test(lineBefore(node, sel.anchorOffset))) return;
-    document.execCommand('delete');
-    document.execCommand('delete');
-    document.execCommand('insertUnorderedList');
+    const typed = lineBefore(node, sel.anchorOffset);
+    const bullet = /^[-*][ \u00a0]$/.test(typed);
+    const number = !bullet && /^\d{1,3}[.)][ \u00a0]$/.exec(typed);
+    if (!bullet && !number) return;
+    for (let k = 0; k < typed.length; k++) document.execCommand('delete');
+    document.execCommand(number ? 'insertOrderedList' : 'insertUnorderedList');
     return true;
   }
 
   // Leaving the box: a "- " line that never became a bullet (however it was typed) does now.
   edit.addEventListener('blur', () => {
-    if ([...edit.children].some(c => c.tagName !== 'UL' && /^[-*][  ]/.test(c.textContent))) { md = toMarkdown(edit); paint(); }
+    if ([...edit.children].some(c => c.tagName !== 'UL' && c.tagName !== 'OL' && /^([-*]|\d{1,3}[.)])[ \u00a0]/.test(c.textContent))) { md = toMarkdown(edit); paint(); }
   });
   raw.addEventListener('input', () => changed(raw.value));
 

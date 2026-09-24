@@ -2144,3 +2144,9 @@ select:focus option:checked { background-color: var(--active-border, #35507a); }
 .pill-menu button { background: var(--glass); border: 1px solid var(--glass-border); color: var(--text); }
 .pill-menu button[aria-checked="true"] { background: var(--active-bg); border-color: var(--active-border); }
 .pill-menu button:hover, .pill-menu button:focus-visible { border-color: var(--accent, var(--active-border)); background: var(--glass-hover); outline: none; }
+
+/* Numbered lists */
+.rich-edit ol, .thought-body ol, .note-body ol, .note-loose ol { margin: 0; padding-left: 1.6em; }
+:is(.rich-edit, .thought-body, .note-body, .note-medium, .note-loose, .item-note, .detail-notes, .task-notes, .list-notes, .thing-notes) ol { list-style-type: decimal; }
+:is(.rich-edit, .thought-body, .note-body, .note-loose) ol ol, :is(.rich-edit, .thought-body, .note-body, .note-loose) ul ol, :is(.rich-edit, .thought-body, .note-body, .note-loose) ol ul { margin: 0; padding-left: 1.4em; }
+:is(.rich-edit, .thought-body, .note-body, .note-loose) ol li::marker { font-family: system-ui, sans-serif; }
