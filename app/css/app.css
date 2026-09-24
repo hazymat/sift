@@ -2227,7 +2227,7 @@ html.note-full, html.note-full body { overflow: hidden; }
 html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { transform: none !important; filter: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; contain: none !important; }
 
 /* ↗ Make: lines of a note into tasks or a contact (js/linemake.js). */
-.md-make-menu { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 6px; padding: 6px 8px; border-radius: 12px; background: var(--menu-bg, var(--glass-strong)); border: 1px solid var(--glass-border); font-size: .85rem; }
+.md-make-menu { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 6px; padding: 6px 8px; border-radius: 12px; background: var(--glass-track); border: 1px solid var(--glass-border); font-size: .85rem; }
 .md-make-menu button { padding: 4px 12px; font-size: .85rem; }
 .rich.is-full > .md-make-menu { order: 8; margin: 0; }
 
