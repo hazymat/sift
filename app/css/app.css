@@ -2344,3 +2344,31 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
 .settings-grid input[type="time"], .settings-grid input[type="date"] { -webkit-appearance: none; appearance: none; display: block; text-align: left; }
 .settings-grid input[type="time"]::-webkit-date-and-time-value, .settings-grid input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .settings-grid :is(input, select) { height: 46px; line-height: normal; }
+
+/* Day Planner item panel on iPhone: time and date boxes fit their column
+   (Safari's own look kept them too wide), and all its fields are one height. */
+.item-details > * { min-width: 0; }
+.item-details input, .item-details select { box-sizing: border-box; min-width: 0; max-width: 100%; width: 100%; height: 40px; line-height: normal; }
+.item-details input[type="time"], .item-details input[type="date"] { -webkit-appearance: none; appearance: none; display: block; text-align: left; }
+.item-details input[type="time"]::-webkit-date-and-time-value, .item-details input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+@media (max-width: 560px) { .item-details { padding-left: 16px; } }
+
+/* Touch screens: an item's resize bar only shows while its panel is open
+   (it sat over the text of every item). */
+@media (hover: none) {
+  .resize-grip { opacity: 0; pointer-events: none; }
+  .line.has-item:has(+ .item-details) .resize-grip, .line.resizing .resize-grip { opacity: .6; pointer-events: auto; }
+}
+
+/* Tick boxes drawn the same everywhere (iPhone filled empty ones in black). */
+input[type="checkbox"] {
+  -webkit-appearance: none; appearance: none;
+  width: 18px; height: 18px; margin: 0; flex: none;
+  border: 1.5px solid color-mix(in srgb, var(--text) 55%, transparent);
+  border-radius: 5px; background: transparent;
+  display: inline-grid; place-content: center; cursor: pointer;
+}
+input[type="checkbox"]::after { content: ''; width: 5px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); opacity: 0; }
+input[type="checkbox"]:checked { background: #6fb0ff; border-color: #6fb0ff; }
+input[type="checkbox"]:checked::after { opacity: 1; }
+input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); outline-offset: 2px; }
