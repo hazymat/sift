@@ -100,7 +100,7 @@ export const WORDS = [
   { group: "Phrases: Sync", key: 'ph_sync_cert', default: "A server at home makes its own security certificate, and each device has to trust it once. (A server with a proper web address doesn't need this.)", hint: "Over the Get the certificate button." },
   { group: "Phrases: Sync", key: 'ph_sync_cert_then', default: "Then reload this page and check the address again.", hint: "After the steps for trusting the certificate." },
   { group: "Phrases: Sync", key: 'ph_sync_recover', default: "Enter your email above, the recovery code you saved when you made the account, and a new password. Your other devices are signed out.", hint: "Under Forgot password." },
-  { group: "Phrases: Settings", key: 'ph_set_dictionary', default: "Your own words for what Sift shows, one per line. Tap one to change it; the (i) says where it shows, and the reset button puts it back. Changes save as you go and follow you to your other devices.", hint: "At the top of this Dictionary." },
+  { group: "Phrases: Settings", key: 'ph_set_dictionary', default: "Your own words for what Sift shows, one per line. Tap one to change it; the small grey line under it says where it shows, and the reset button puts it back. Changes save as you go and follow you to your other devices.", hint: "At the top of this Dictionary." },
   { group: "Phrases: Settings", key: 'ph_set_types', default: "What a note can be marked as, to filter by later. They are just labels: none of them changes what Sift does. Removing one keeps its notes; they show the old name until you pick another.", hint: "At the top of Brain Dump types." },
   { group: "Phrases: Settings", key: 'ph_set_new_type', default: "A new type, e.g. Recipe", hint: "The grey prompt for a new Brain Dump type." },
 ];

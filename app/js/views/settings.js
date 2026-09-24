@@ -498,14 +498,13 @@ export default {
       dlg.addEventListener('close', () => dlg.remove());
       if (b.dataset.words === 'dict') {
         // Every word, grouped, with a hint and "Reset to default".
-        // One line per word or phrase: the text itself (edit it in place), ⓘ for
-        // what it is and where it shows, reset back to the default. Changed ones are marked.
+        // Each word or phrase: the text itself (edit it in place) and its reset
+        // button, with a small grey line under it saying what it is and where it shows. Changed ones are marked.
         const row = x => `
           <div class="dict-row${w.isCustom(x.key) ? ' custom' : ''}" data-key="${esc(x.key)}" data-find="${esc(`${x.default} ${w.word(x.key)} ${x.hint} ${x.group}`.toLowerCase())}">
             <input data-word="${esc(x.key)}" value="${esc(w.word(x.key))}" aria-label="${esc(x.default)}" title="Default: ${esc(x.default)}" autocomplete="off">
-            <button type="button" class="icon-btn small dict-info" data-info="${esc(x.key)}" aria-label="What is this?" aria-expanded="false"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg></button>
             <button type="button" class="icon-btn small dict-reset" data-reset="${esc(x.key)}" aria-label="Reset to default" title="Reset to default: ${esc(x.default)}" ${w.isCustom(x.key) ? '' : 'disabled'}><svg class="icon" aria-hidden="true"><use href="#i-reset"/></svg></button>
-            <p class="muted hint dict-hint" hidden>${esc(x.hint)} <span class="dict-default">Default: “${esc(x.default)}”</span></p>
+            <p class="dict-hint"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg><span>${esc(x.hint)}</span></p>
           </div>`;
         const groups = [...new Set(w.WORDS.map(x => x.group))];
         dlg.innerHTML = `<div class="sheet-handle"></div><h2>Dictionary</h2>
@@ -532,13 +531,6 @@ export default {
           toast('✓ Saved');
         });
         dlg.addEventListener('click', async e2 => {
-          const info = e2.target.closest('[data-info]');
-          if (info) {
-            const hint = info.closest('.dict-row').querySelector('.dict-hint');
-            hint.hidden = !hint.hidden;
-            info.setAttribute('aria-expanded', !hint.hidden);
-            return;
-          }
           const r = e2.target.closest('[data-reset]');
           if (!r) return;
           await w.setWord(r.dataset.reset, '');
