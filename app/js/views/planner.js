@@ -275,6 +275,14 @@ export default {
       const en = $('.energy .energy-label');
       if (!fl || !en) return;
       fl.style.marginLeft = en.style.marginLeft = '';
+      // Side by side only while both texts fit; otherwise Energy goes under Day focus.
+      const row = $('.focus-row');
+      row.classList.remove('stacked');
+      if (!planner.classList.contains('docked')) {
+        const cut = i => i.scrollWidth > i.clientWidth + 1;
+        const sideBySide = en.getBoundingClientRect().top <= fl.getBoundingClientRect().top + 4;
+        if (sideBySide && (cut($('#focus')) || cut($('#energy-note')))) row.classList.add('stacked');
+      }
       if (en.getBoundingClientRect().top <= fl.getBoundingClientRect().top + 4) return; // side by side
       const d = fl.getBoundingClientRect().width - en.getBoundingClientRect().width;
       if (d) (d > 0 ? en : fl).style.marginLeft = `${Math.abs(d)}px`;
@@ -282,6 +290,7 @@ export default {
     this.headWatch?.disconnect();
     this.headWatch = new ResizeObserver(() => alignHeads());
     this.headWatch.observe($('.focus-row'));
+    for (const i of [$('#focus'), $('#energy-note')]) i.addEventListener('input', alignHeads);
     document.fonts?.ready.then(alignHeads);
     let fmt = showTime; // 8.30, or 08:30 on techie paper
 
@@ -360,6 +369,7 @@ export default {
       lvlBtn.title = lvl ? `${lvl.label}: ${lvl.hint}. Click to change` : '';
       $('.energy').classList.toggle('has-level', !!lvl);
       if (document.activeElement !== $('#energy-note')) $('#energy-note').value = day.energy_note || '';
+      alignHeads();
       // Never replace the note you're writing in (that put the cursor back at the start
       // and could show older text); only when the day shown changes or you're not in it.
       if (notesDate !== date || !$('#notes').contains(document.activeElement)) notes.setValue(day.notes || '');

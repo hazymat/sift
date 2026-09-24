@@ -2709,3 +2709,6 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 .dd-open:not(.dd-up) { border-bottom-color: transparent !important; }
 .dd-open.dd-up { border-top-color: transparent !important; }
 select.dd-open, .dd-open > select { outline: none; }
+
+/* Day focus and Energy side by side only while both texts fit (planner.js alignHeads). */
+.focus-row.stacked .energy { flex-basis: 100%; }
