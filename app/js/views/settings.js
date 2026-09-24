@@ -159,10 +159,11 @@ export default {
             <p class="muted hint">Your data is encrypted on this device before it's sent; the server can't read it. Signing out keeps everything on this device.</p>`;
           return;
         }
+        const remembered = (await store.getDeviceSettings()).server_url;
         box.innerHTML = `
           <p class="muted">Sync keeps your phone and laptop in step through your own server. Everything is encrypted here first; the server only stores scrambled copies.</p>
           <div class="settings-grid sync-form">
-            <label class="wide">Server<input name="server" value="${sync.DEFAULT_SERVER}" autocomplete="off" class="no-inline"></label>
+            <label class="wide">Server<input name="server" value="${remembered || ''}" placeholder="https://your-server" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" class="no-inline"></label>
             <label>Email<input name="email" type="email" autocomplete="username" class="no-inline"></label>
             <label>Password<input name="password" type="password" autocomplete="current-password" class="no-inline"></label>
           </div>
@@ -171,11 +172,21 @@ export default {
             <button type="button" data-sync="create" hidden>Create account</button>
             <span class="muted" id="sync-msg"></span>
           </div>`;
-        const server = box.querySelector('[name="server"]').value;
-        sync.serverInfo(server).then(info => {
-          box.querySelector('[data-sync="create"]').hidden = info.registration !== 'open';
-          box.querySelector('#sync-msg').textContent = info.registration === 'open' ? 'This server has no account yet: create yours.' : '';
-        }).catch(() => { box.querySelector('#sync-msg').textContent = "Can't reach the server from here (VPN on?)"; });
+        const serverInput = box.querySelector('[name="server"]');
+        const check = () => {
+          const server = serverInput.value.trim();
+          const create = box.querySelector('[data-sync="create"]');
+          const note = box.querySelector('#sync-msg');
+          create.hidden = true;
+          note.textContent = '';
+          if (!/^https?:\/\/.+/i.test(server)) return;
+          sync.serverInfo(server).then(info => {
+            create.hidden = info.registration !== 'open';
+            note.textContent = info.registration === 'open' ? 'This server has no account yet: create yours.' : '';
+          }).catch(() => { note.textContent = "Can't reach the server from here (VPN on, and its certificate trusted?)"; });
+        };
+        serverInput.addEventListener('change', check);
+        check();
       };
       sync.onStatus(() => { if (el.isConnected) draw(); });
       box.addEventListener('click', async ev => {

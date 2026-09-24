@@ -10,8 +10,6 @@
 import * as store from './store.js';
 import * as cx from './crypto.js';
 
-export const DEFAULT_SERVER = 'https://sift.hazymat.co.uk';
-
 let keys = null;       // { records, ids } CryptoKeys
 let account = null;    // { server, email, user_id, token, device_id }
 let running = null;
@@ -50,6 +48,7 @@ const deviceName = () => {
 // ---------- account ----------
 
 export async function serverInfo(server) {
+  server = server.trim().replace(/\/+$/, '');
   const res = await fetch(`${server}/api/health`);
   if (!res.ok) throw new Error(`Server said ${res.status}`);
   return res.json();
@@ -60,6 +59,7 @@ async function keep(server, email, login, dataKeyRaw) {
   account = { server, email, user_id: login.user_id, token: login.token, device_id: login.device_id };
   await store.metaSet('sync_keys', keys);
   await store.metaSet('sync_account', account);
+  await store.updateDeviceSettings({ server_url: server });
 }
 
 // New account: returns the recovery code to show once.
