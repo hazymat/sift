@@ -2579,3 +2579,11 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 /* "New task" is a hint, never mistaken for a task's name: italic and very faint
    (the Tasks page and the Day Planner's Tasks). */
 .task-add-line .new-task-line::placeholder, .planner .pile-new .new-task::placeholder { font-style: italic; color: color-mix(in srgb, var(--text) 22%, transparent) !important; opacity: 1; }
+
+/* Tasks page: an open task and its panel are one box that starts where the
+   task's text starts (in line with the ruled lines); the tick box and handle
+   stay outside it. Closed again, it's back to a plain ruled line. */
+.task-list > li[data-task]:has(+ li.task-details) { background: transparent !important; z-index: 0; }
+.task-list > li[data-task]:has(+ li.task-details)::before { content: ''; position: absolute; z-index: -1; left: 65px; right: 0; top: 0; bottom: 0; border: 1px solid var(--glass-border); border-bottom: 0; border-radius: 14px 14px 0 0; background: var(--glass-track); pointer-events: none; }
+.task-list > li[data-task]:has(+ li.task-details)::after { display: none; }
+.task-list > li.task-details { margin: 0 0 10px 65px !important; border-top: 0; border-radius: 0 0 14px 14px; }

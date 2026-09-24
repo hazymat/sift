@@ -206,6 +206,19 @@ function stamp(existing, changes) {
   return record;
 }
 
+// Ticking and unticking are logged on tasks and day items (the task list,
+// the Day Planner's tasks and its schedule): done_log keeps each change as
+// { at, done }, oldest first (the last 50). done_at is always the latest tick,
+// so ticking again after unticking just moves it.
+const LOGS_DONE = new Set(['tasks', 'day_items']);
+function withDoneLog(collection, existing, changes) {
+  if (!LOGS_DONE.has(collection) || !existing || !('done_at' in changes)) return changes;
+  const was = !!existing.done_at;
+  const now = !!changes.done_at;
+  if (was === now) return changes;
+  return { ...changes, done_log: [...(existing.done_log || []), { at: changes.done_at || new Date().toISOString(), done: now }].slice(-50) };
+}
+
 async function write(collection, id, changes, { mustExist }) {
   assertCollection(collection);
   await open();
@@ -215,7 +228,7 @@ async function write(collection, id, changes, { mustExist }) {
     tx.abort();
     throw new Error(`${collection}/${id} not found`);
   }
-  const record = stamp(existing, existing ? changes : { ...changes, id });
+  const record = stamp(existing, existing ? withDoneLog(collection, existing, changes) : { ...changes, id });
   if (record) {
     record.id = id;
     tx.objectStore(collection).put(record);
@@ -266,7 +279,7 @@ export async function updateMany(collection, changes) {
   const befores = [];
   for (const [id, fields] of changes) {
     const existing = await promisify(records.get(id));
-    const record = existing && stamp(existing, fields);
+    const record = existing && stamp(existing, withDoneLog(collection, existing, fields));
     if (!record) continue;
     records.put(record);
     tx.objectStore('outbox').put({ id, collection, queued_at: Date.now() });
