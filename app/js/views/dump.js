@@ -131,11 +131,21 @@ export default {
       return `<div class="thought-body hand" data-act="edit"><div class="thought-title">${esc(title)}</div>${rest.trim() ? toHtml(rest) : ''}</div>`;
     }
 
+    // How much is in a note decides its card size: s (a jotted number or one
+    // short line), m, or l (lots of text).
+    function sizeOf(t) {
+      const text = (t.body || '').trim();
+      const lines = text.split('\n').filter(l => l.trim()).length;
+      if (text.length <= 60 && lines <= 1) return 's';
+      if (text.length <= 320 && lines <= 6) return 'm';
+      return 'l';
+    }
+
     function card(t) {
       const conv = t.converted_to && TARGET[t.converted_to.collection];
       const href = conv && (t.converted_to.collection === 'day_items' ? `#/planner/${t.converted_to.date || ''}` : t.converted_to.collection === 'contacts' ? `#/contacts/c/${t.converted_to.id}` : `#/${conv[1]}`);
       return `
-        <li class="thought${t.converted_to ? ' converted' : ''}${t.pinned ? ' pinned' : ''}" data-id="${t.id}">
+        <li class="thought size-${sizeOf(t)}${t.converted_to ? ' converted' : ''}${t.pinned ? ' pinned' : ''}" data-id="${t.id}">
           <div class="thought-head">
             <button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button>
             <select class="kind-select" aria-label="Kind">${KINDS.map(k => `<option value="${k.id}" ${k.id === t.kind ? 'selected' : ''}>${k.label}</option>`).join('')}</select>

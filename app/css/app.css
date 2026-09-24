@@ -1947,3 +1947,26 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 .task-add-line .add-mark { width: 22px; text-align: center; color: var(--muted); font-size: 1.1rem; }
 .task-add-line .new-task-line { flex: 1; min-width: 0; background: transparent; border: 0; padding: 4px 6px; font-size: 1rem; color: var(--text); box-shadow: none; }
 .task-add-line .new-task-line:focus { outline: none; }
+
+/* Brain Dump cards: sized by how much is in them, laid out by spacing.
+   Tight: small squares, title only. Medium: a mix of sizes (short notes
+   small, long notes wide), text cut after a few lines. Loose: everything
+   shown; long notes full width, short ones narrower. */
+#main .thought-list { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); grid-auto-flow: dense; align-items: start; }
+#main .thought { min-width: 0; }
+#main .thought.size-m { grid-column: span 2; }
+#main .thought.size-l { grid-column: 1 / -1; }
+@media (max-width: 560px) { #main .thought.size-m { grid-column: 1 / -1; } }
+#main:not([data-density="loose"]):not([data-density="tight"]) .thought .thought-body {
+  display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+#main[data-density="tight"] .thought-list { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+#main[data-density="tight"] .thought, #main[data-density="tight"] .thought.size-m, #main[data-density="tight"] .thought.size-l { grid-column: auto; aspect-ratio: 1; display: flex; flex-direction: column; overflow: hidden; padding: 10px 12px; }
+#main[data-density="tight"] .thought .thought-body { flex: 1; overflow: hidden; margin: 4px 0 0; }
+#main[data-density="tight"] .thought .thought-body > :not(.thought-title) { display: none; }
+#main[data-density="tight"] .thought .thought-title { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; font-size: 1rem; }
+#main[data-density="tight"] .thought .thought-actions, #main[data-density="tight"] .thought .kind-select { display: none; }
+
+#main[data-density="loose"] .thought-list { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+#main[data-density="loose"] .thought.size-m, #main[data-density="loose"] .thought.size-l { grid-column: 1 / -1; }
