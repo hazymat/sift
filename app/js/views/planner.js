@@ -266,6 +266,23 @@ export default {
       else if (w < 960) planner.classList.remove('docked');
     });
     this.dockWatch.observe(planner);
+    // When Energy sits under Day focus (a narrow screen), the two labels end
+    // at the same place and what's written after them starts at the same place:
+    // the shorter label is pushed right by the difference (the words can be
+    // changed in the Dictionary, so it's measured, not fixed).
+    const alignHeads = () => {
+      const fl = $('.focus .hand-label');
+      const en = $('.energy .energy-label');
+      if (!fl || !en) return;
+      fl.style.marginLeft = en.style.marginLeft = '';
+      if (en.getBoundingClientRect().top <= fl.getBoundingClientRect().top + 4) return; // side by side
+      const d = fl.getBoundingClientRect().width - en.getBoundingClientRect().width;
+      if (d) (d > 0 ? en : fl).style.marginLeft = `${Math.abs(d)}px`;
+    };
+    this.headWatch?.disconnect();
+    this.headWatch = new ResizeObserver(() => alignHeads());
+    this.headWatch.observe($('.focus-row'));
+    document.fonts?.ready.then(alignHeads);
     let fmt = showTime; // 8.30, or 08:30 on techie paper
 
     function applyPaper() {
