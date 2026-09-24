@@ -10,7 +10,7 @@
 //   DATA_DIR          default ./data  (sift.db lives here)
 //   ALLOWED_ORIGINS   comma list, e.g. https://hazymat.github.io,http://localhost:5173
 //   REGISTRATION      first (default: only while there are no users) | open | closed
-//   QUOTA_MB          default 1024 per user
+//   QUOTA_MB          default 1024 per user (records and files together)
 
 import http from 'node:http';
 import crypto from 'node:crypto';
@@ -25,6 +25,7 @@ const ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://hazymat.github.io,http:
 const REGISTRATION = process.env.REGISTRATION || 'first';
 const QUOTA = Number(process.env.QUOTA_MB || 1024) * 1024 * 1024;
 const MAX_BODY = 20 * 1024 * 1024;
+const MAX_BLOB = 30 * 1024 * 1024; // an encrypted attachment (the app allows 25 MB files)
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
 const db = new DatabaseSync(path.join(DATA_DIR, 'sift.db'));
@@ -59,6 +60,13 @@ db.exec(`
     PRIMARY KEY (user_id, record_id)
   );
   CREATE INDEX IF NOT EXISTS records_by_seq ON records (user_id, seq);
+  CREATE TABLE IF NOT EXISTS blobs (
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    blob_id TEXT NOT NULL,            -- opaque (keyed hash made by the app)
+    size_bytes INTEGER NOT NULL,
+    data BLOB NOT NULL,               -- encrypted by the app
+    PRIMARY KEY (user_id, blob_id)
+  );
 `);
 for (const col of ['recovery_hash', 'recovery_salt']) {
   if (!db.prepare('PRAGMA table_info(users)').all().some(c => c.name === col)) db.exec(`ALTER TABLE users ADD COLUMN ${col} TEXT`);
@@ -99,6 +107,20 @@ function readJson(req) {
       if (!chunks.length) return resolve({});
       try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8'))); } catch { reject(new HttpError(400, 'Bad JSON')); }
     });
+    req.on('error', reject);
+  });
+}
+
+function readRaw(req, limit) {
+  return new Promise((resolve, reject) => {
+    let size = 0;
+    const chunks = [];
+    req.on('data', c => {
+      size += c.length;
+      if (size > limit) { reject(new HttpError(413, 'Too large')); req.destroy(); return; }
+      chunks.push(c);
+    });
+    req.on('end', () => resolve(Buffer.concat(chunks)));
     req.on('error', reject);
   });
 }
@@ -151,7 +173,8 @@ function replacePassword(userId, body) {
     .run(hash, salt, JSON.stringify(body.kdf), body.wrapped_data_key, userId);
 }
 
-const usage = userId => db.prepare('SELECT COALESCE(SUM(size_bytes), 0) AS bytes FROM records WHERE user_id = ?').get(userId).bytes;
+const usage = userId => db.prepare('SELECT COALESCE(SUM(size_bytes), 0) AS bytes FROM records WHERE user_id = ?').get(userId).bytes
+  + db.prepare('SELECT COALESCE(SUM(size_bytes), 0) AS bytes FROM blobs WHERE user_id = ?').get(userId).bytes;
 
 // ---------- endpoints ----------
 
@@ -313,17 +336,57 @@ function match(method, pathname) {
   return null;
 }
 
+// Attachment files: encrypted bytes under an opaque id. PUT stores (or replaces),
+// GET returns them, GET /api/blobs lists what is held, DELETE removes one.
+async function blobs(req, res, url, origin) {
+  const dev = authed(req);
+  const m = /^\/api\/blobs(?:\/([0-9a-f]{40}))?$/.exec(url.pathname);
+  if (!m) throw new HttpError(400, 'Bad file id');
+  const id = m[1];
+  const cors = origin && ORIGINS.includes(origin) ? { 'Access-Control-Allow-Origin': origin, Vary: 'Origin' } : {};
+  if (!id) {
+    if (req.method !== 'GET') throw new HttpError(405, 'Not allowed');
+    return send(res, 200, { blobs: db.prepare('SELECT blob_id AS id, size_bytes AS size FROM blobs WHERE user_id = ?').all(dev.user_id) }, origin);
+  }
+  if (req.method === 'PUT') {
+    const data = await readRaw(req, MAX_BLOB);
+    if (!data.length) throw new HttpError(400, 'Empty file');
+    const had = db.prepare('SELECT size_bytes FROM blobs WHERE user_id = ? AND blob_id = ?').get(dev.user_id, id)?.size_bytes || 0;
+    if (usage(dev.user_id) - had + data.length > QUOTA) throw new HttpError(507, 'Storage quota reached');
+    db.prepare('INSERT OR REPLACE INTO blobs (user_id, blob_id, size_bytes, data) VALUES (?, ?, ?, ?)').run(dev.user_id, id, data.length, data);
+    return send(res, 200, { ok: true, size: data.length }, origin);
+  }
+  if (req.method === 'GET') {
+    const row = db.prepare('SELECT data FROM blobs WHERE user_id = ? AND blob_id = ?').get(dev.user_id, id);
+    if (!row) throw new HttpError(404, 'No such file');
+    res.writeHead(200, { 'Content-Type': 'application/octet-stream', 'Content-Length': row.data.length, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', ...cors });
+    return res.end(Buffer.from(row.data));
+  }
+  if (req.method === 'DELETE') {
+    db.prepare('DELETE FROM blobs WHERE user_id = ? AND blob_id = ?').run(dev.user_id, id);
+    return send(res, 200, { ok: true }, origin);
+  }
+  throw new HttpError(405, 'Not allowed');
+}
+
 const server = http.createServer(async (req, res) => {
   const origin = req.headers.origin;
   if (req.method === 'OPTIONS') {
     // Chrome asks before a public site (the app on github.io) talks to a
     // server on a private network; this says it may.
-    const headers = { 'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS', 'Access-Control-Allow-Headers': 'Authorization, Content-Type', 'Access-Control-Max-Age': '600', 'Access-Control-Allow-Private-Network': 'true' };
+    const headers = { 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Access-Control-Allow-Headers': 'Authorization, Content-Type', 'Access-Control-Max-Age': '600', 'Access-Control-Allow-Private-Network': 'true' };
     if (origin && ORIGINS.includes(origin)) Object.assign(headers, { 'Access-Control-Allow-Origin': origin, Vary: 'Origin' });
     res.writeHead(204, headers);
     return res.end();
   }
   const url = new URL(req.url, 'http://x');
+  if (url.pathname.startsWith('/api/blobs')) {
+    try { return await blobs(req, res, url, origin); } catch (e) {
+      const status = e.status || 500;
+      if (status === 500) console.error(e);
+      return send(res, status, { error: status === 500 ? 'Server error' : e.message }, origin);
+    }
+  }
   const route = match(req.method, url.pathname);
   if (!route) return send(res, 404, { error: 'Not found' }, origin);
   try {

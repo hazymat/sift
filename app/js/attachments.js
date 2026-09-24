@@ -98,8 +98,15 @@ export function rowHtml(atts = [], { addButton = true } = {}) {
 export const countChip = atts => (atts?.length ? `<span class="chip att-count" title="${atts.length} attached">${icon('i-clip')} ${atts.length}</span>` : '');
 
 async function openFile(a) {
-  const blob = await store.getBlob(a.blob_id);
-  if (!blob) { toast("That file isn't on this device yet"); return; }
+  let blob = await store.getBlob(a.blob_id);
+  if (!blob) {
+    // Added on another device: fetch it from the sync server.
+    try {
+      const sync = await import('./sync.js');
+      if (sync.signedIn()) { toast('Fetching the file…'); blob = await sync.downloadFile(a); }
+    } catch { /* offline: falls through to the message */ }
+  }
+  if (!blob) { toast("That file isn't on this device yet (open Sift there and let it sync)"); return; }
   const url = URL.createObjectURL(blob.type ? blob : new Blob([blob], { type: a.mime }));
   window.open(url, '_blank', 'noopener');
   setTimeout(() => URL.revokeObjectURL(url), 5 * 60 * 1000);

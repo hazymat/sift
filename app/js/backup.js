@@ -1,6 +1,8 @@
 // Backup / restore (spec §10). A .sift file is JSON, gzipped, and optionally
 // encrypted with a passphrase (PBKDF2-SHA256 → AES-GCM, all WebCrypto).
-//   { format: 'sift-backup', version: 1, created_at, encrypted: false, data }
+//   { format: 'sift-backup', version: 1, created_at, encrypted: false, data, files }
+// `files` holds each attachment's file as base64, keyed by its id (a backup with lots of
+// big attachments is big; it is all held in memory while it is made).
 //   { format: 'sift-backup', version: 1, created_at, encrypted: true, salt, iv, iterations, ciphertext }
 // Restore merges field by field (later edit wins), so it's a full restore on
 // an empty device and a safe merge on one that already has data.
@@ -29,8 +31,14 @@ async function keyFrom(passphrase, salt, iterations) {
 
 export async function makeBackup({ passphrase } = {}) {
   const data = await store.exportAll();
+  const files = {};
+  for (const a of data.attachments || []) {
+    if (a.deleted_at) continue;
+    const blob = await store.getBlob(a.blob_id);
+    if (blob) files[a.blob_id] = { type: blob.type || a.mime, data: b64(await blob.arrayBuffer()) };
+  }
   const created_at = new Date().toISOString();
-  const inner = JSON.stringify({ format: 'sift-backup', version: 1, created_at, device_id: store.getDeviceId(), data });
+  const inner = JSON.stringify({ format: 'sift-backup', version: 1, created_at, device_id: store.getDeviceId(), data, files });
   let file;
   if (passphrase) {
     const salt = crypto.getRandomValues(new Uint8Array(16));
@@ -42,6 +50,7 @@ export async function makeBackup({ passphrase } = {}) {
     file = new Blob([await gzip(inner)], { type: 'application/gzip' });
   }
   const counts = Object.fromEntries(Object.entries(data).map(([k, v]) => [k, v.length]).filter(([, n]) => n));
+  if (Object.keys(files).length) counts.files = Object.keys(files).length;
   return { blob: file, name: `sift-backup-${created_at.slice(0, 10)}.sift`, counts };
 }
 
@@ -92,7 +101,14 @@ export async function restoreBackup(backup) {
     added += r.added;
     updated += r.updated;
   }
-  return { added, updated };
+  // Attachment files this device doesn't have yet (they upload on the next sync).
+  let filesRestored = 0;
+  for (const [id, f] of Object.entries(backup.files || {})) {
+    if (await store.hasBlob(id)) continue;
+    await store.putBlob(id, new Blob([unb64(f.data)], { type: f.type }));
+    filesRestored++;
+  }
+  return { added, updated, files: filesRestored };
 }
 
 // ---------- reminders ----------

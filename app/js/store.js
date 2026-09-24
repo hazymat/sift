@@ -487,16 +487,36 @@ export async function updateDeviceSettings(changes) {
 
 // ---------- attachment files (this device; the record is what syncs) ----------
 
-export async function putBlob(blobId, data) {
+export async function putBlob(blobId, data, { uploaded = false } = {}) {
   await open();
   const tx = db.transaction('blobs', 'readwrite');
-  tx.objectStore('blobs').put({ blob_id: blobId, data, saved_at: new Date().toISOString() });
+  tx.objectStore('blobs').put({ blob_id: blobId, data, saved_at: new Date().toISOString(), uploaded_at: uploaded ? new Date().toISOString() : null });
   await done(tx);
 }
 
 export async function getBlob(blobId) {
   await open();
   return (await promisify(db.transaction('blobs').objectStore('blobs').get(blobId)))?.data || null;
+}
+
+export async function hasBlob(blobId) {
+  await open();
+  return !!(await promisify(db.transaction('blobs').objectStore('blobs').getKey(blobId)));
+}
+
+// Files made here that haven't gone to the server yet.
+export async function blobsToUpload() {
+  await open();
+  return (await promisify(db.transaction('blobs').objectStore('blobs').getAll())).filter(r => !r.uploaded_at);
+}
+
+export async function markBlobUploaded(blobId) {
+  await open();
+  const tx = db.transaction('blobs', 'readwrite');
+  const os = tx.objectStore('blobs');
+  const row = await promisify(os.get(blobId));
+  if (row) os.put({ ...row, uploaded_at: new Date().toISOString() });
+  await done(tx);
 }
 
 // ---------- sync support (js/sync.js) ----------

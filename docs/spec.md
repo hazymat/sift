@@ -11,14 +11,6 @@
 - **Free forever**: no paid services, no vendor lock-in. Anyone can run their own server.
 - v2: sync via storage the user already owns (Google Drive app folder, Dropbox, WebDAV, S3-compatible) using the same protocol.
 
-## 2. Non-goals (v1)
-
-- Sharing data between users / households.
-- File management: no folders, no file browser, no arbitrary file types, no annotation or versioning. Scans are capture-and-find, nothing more.
-- User-defined tables / spreadsheet builder. Contracts use a fixed core schema plus free custom fields (§9).
-- Photos on places/items (v2; reuses the Scans pipeline).
-- Server-side search or processing of user data (server only ever holds ciphertext).
-
 ## 3. Architecture
 
 ```

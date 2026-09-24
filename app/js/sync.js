@@ -187,6 +187,65 @@ async function push() {
   }
 }
 
+// ---------- attachment files ----------
+// The records (name, type, thumbnail) sync like everything else; the files
+// travel separately, encrypted with the same key, under opaque ids.
+
+const MAX_AUTO_DOWNLOAD = 5 * 1024 * 1024; // bigger files are fetched when you open them
+
+async function fileRequest(method, id, body) {
+  const res = await fetch(`${account.server}/api/blobs/${await cx.opaqueId(keys, 'blobs', id)}`, {
+    method, headers: { Authorization: `Bearer ${account.token}` }, body,
+  });
+  if (res.status === 401 || (!res.ok && res.status !== 404)) {
+    const err = new Error(res.status === 507 ? 'Storage quota reached on the server' : `Server said ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
+  return res;
+}
+
+async function pushFiles() {
+  for (const row of await store.blobsToUpload()) {
+    const att = await store.get('attachments', row.blob_id, { includeDeleted: true });
+    if (!att || att.deleted_at) continue; // removed again: nothing to send
+    const sealed = await cx.sealBlob(keys, new Uint8Array(await row.data.arrayBuffer()));
+    await fileRequest('PUT', row.blob_id, sealed);
+    await store.markBlobUploaded(row.blob_id);
+  }
+}
+
+// Fetch one attachment's file from the server (null if it isn't there yet).
+export async function downloadFile(a) {
+  if (!account || !keys) return null;
+  const res = await fileRequest('GET', a.blob_id);
+  if (res.status === 404) return null;
+  const plain = await cx.openBlob(keys, new Uint8Array(await res.arrayBuffer()));
+  const blob = new Blob([plain], { type: a.mime });
+  await store.putBlob(a.blob_id, blob, { uploaded: true });
+  return blob;
+}
+
+async function pullFiles() {
+  for (const a of await store.list('attachments')) {
+    if (a.size > MAX_AUTO_DOWNLOAD || await store.hasBlob(a.blob_id)) continue;
+    await downloadFile(a);
+  }
+}
+
+async function syncFiles() {
+  try {
+    await pushFiles();
+    await pullFiles();
+  } catch (e) {
+    if (e.status === 401 || e instanceof TypeError) throw e; // signed out, or offline: same handling as records
+    console.warn('Files not synced:', e.message);
+    setStatus({ fileError: e.message });
+    return;
+  }
+  if (status.fileError) setStatus({ fileError: null });
+}
+
 export async function syncNow() {
   if (!account || !keys) return;
   if (running) return running;
@@ -195,6 +254,7 @@ export async function syncNow() {
     try {
       const changed = await pull();
       await push();
+      await syncFiles();
       setStatus({ state: 'ok', last: new Date().toISOString(), pending: await store.outboxSize(), error: null, changed });
     } catch (e) {
       const offline = !navigator.onLine || e instanceof TypeError; // fetch failed: no network / not on VPN

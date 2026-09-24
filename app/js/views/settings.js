@@ -566,7 +566,7 @@ export default {
       if (how === 'cancelled') return;
       await backup.noteBackup();
       backupStatus();
-      const n = Object.entries(made.counts).filter(([k]) => k !== 'settings').reduce((a, [, v]) => a + v, 0);
+      const n = Object.entries(made.counts).filter(([k]) => k !== 'settings' && k !== 'files').reduce((a, [, v]) => a + v, 0);
       toast(`✓ Backed up ${n} record${n === 1 ? '' : 's'}${passphrase ? ' (locked)' : ''}`);
     });
     el.querySelector('#restore-file').addEventListener('change', async ev => {

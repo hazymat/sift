@@ -106,6 +106,29 @@ try {
   r = await call('POST', '/api/login', { email: 'mat@example.com', auth_hash: 'd'.repeat(44) });
   assert.equal(r.json.wrapped_data_key, 'w3');
 
+  // attachment files: raw encrypted bytes under an opaque id
+  const fid = 'ab'.repeat(20);
+  const raw = (method, path, body, token) => fetch(base + path, { method, headers: { Origin: 'http://localhost:5173', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body });
+  let f = await raw('PUT', `/api/blobs/${fid}`, Buffer.from([1, 2, 3, 4, 5]), 'nonsense');
+  assert.equal(f.status, 401, 'files need a signed-in device');
+  f = await raw('PUT', `/api/blobs/${fid}`, Buffer.from([1, 2, 3, 4, 5]), recovered);
+  assert.equal(f.status, 200);
+  f = await raw('PUT', '/api/blobs/not-an-id', Buffer.from([1]), recovered);
+  assert.equal(f.status, 400, 'ids are 40 hex characters');
+  f = await raw('GET', `/api/blobs/${fid}`, undefined, recovered);
+  assert.deepEqual([...new Uint8Array(await f.arrayBuffer())], [1, 2, 3, 4, 5]);
+  assert.equal(f.headers.get('access-control-allow-origin'), 'http://localhost:5173');
+  f = await raw('GET', '/api/blobs', undefined, recovered);
+  assert.deepEqual((await f.json()).blobs, [{ id: fid, size: 5 }]);
+  r = await call('GET', '/api/usage', null, recovered);
+  assert.ok(r.json.bytes >= 5 + 'c2'.length, 'files count towards the quota');
+  f = await raw('GET', `/api/blobs/${'cd'.repeat(20)}`, undefined, recovered);
+  assert.equal(f.status, 404);
+  f = await raw('DELETE', `/api/blobs/${fid}`, undefined, recovered);
+  assert.equal(f.status, 200);
+  f = await raw('GET', `/api/blobs/${fid}`, undefined, recovered);
+  assert.equal(f.status, 404, 'deleted');
+
   console.log('all server checks passed');
 } finally {
   child.kill();

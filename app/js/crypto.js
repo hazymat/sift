@@ -50,6 +50,20 @@ async function openBytes(key, text) {
   return new Uint8Array(await subtle.decrypt({ name: 'AES-GCM', iv: all.slice(0, 12) }, key, all.slice(12)));
 }
 
+// Attachment files: iv + ciphertext as raw bytes (no base64, so a 10 MB photo stays about 10 MB).
+export async function sealBlob(keys, bytes) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await subtle.encrypt({ name: 'AES-GCM', iv }, keys.records, bytes));
+  const out = new Uint8Array(iv.length + ct.length);
+  out.set(iv);
+  out.set(ct, iv.length);
+  return out;
+}
+
+export async function openBlob(keys, all) {
+  return new Uint8Array(await subtle.decrypt({ name: 'AES-GCM', iv: all.slice(0, 12) }, keys.records, all.slice(12)));
+}
+
 export async function wrapDataKey(master, dataKeyRaw) {
   return sealBytes(await hkdf(master, 'wrap', { name: 'AES-GCM', length: 256 }, ['encrypt']), dataKeyRaw);
 }

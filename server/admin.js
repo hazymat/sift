@@ -34,7 +34,7 @@ if (cmd === 'users') {
     SELECT u.email, u.created_at AS created,
            (SELECT COUNT(*) FROM devices d WHERE d.user_id = u.id) AS devices,
            (SELECT COUNT(*) FROM records r WHERE r.user_id = u.id) AS records,
-           (SELECT COALESCE(SUM(size_bytes), 0) FROM records r WHERE r.user_id = u.id) AS bytes
+           (SELECT COALESCE(SUM(size_bytes), 0) FROM records r WHERE r.user_id = u.id) + (SELECT COALESCE(SUM(size_bytes), 0) FROM blobs b WHERE b.user_id = u.id) AS bytes
     FROM users u ORDER BY u.created_at`).all().map(({ bytes, ...u }) => ({ ...u, stored: mb(bytes) })));
 } else if (cmd === 'devices') {
   const sql = `SELECT d.id, u.email, d.name, d.created_at AS created, d.last_seen
