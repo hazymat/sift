@@ -84,6 +84,10 @@ Common fields on every record: `id (UUIDv7), created_at, updated_at, deleted_at,
 7. **Tasks**: Tasks whose **start date** is this day, plus unfinished Tasks whose **completion aim** falls on this day. Multi-day tasks (start and aim on different days) show in their own strip ("ongoing: day 2 of 5"). Other undated Tasks and Brain Dump items can be **adopted** into the day, which sets their start date.
 8. **Notes**: free text for the day (the notes editor, §4.7), which can reference other things (see mentions).
 
+**Day-only tasks** (Mat, 2026-09-24, a requirement): a task typed into a day's Tasks (or onto its schedule) belongs to **that day only**. It never appears on the Tasks page and doesn't need to. This lets a day hold work that isn't part of your own task list: for example, open a day in the future when you'll be onsite for a client (a customer) and jot down what needs doing there, confined to that day, without polluting your personal task list. So Sift organises your own life and also individual casework for individual clients, based on the day you work for them. A day-only task becomes a real task only if you send it there (**→ Tasks**).
+- Tasks brought in from the Tasks page (**Bring in from tasks… → Claim**, or a task's **Put on today's plan**) are **linked copies**, peers rather than master and copy: title, note, energy, estimate, people, case and the tick stay the same on both; the day keeps its own time, order and let go, the task its own list, project, dates and sub-tasks. Moving a linked copy to another day moves the task's Plan for day with it.
+- Remote work for many clients at once isn't covered by this (it isn't tied to a day); see §13, "More lists".
+
 **Now marker**: on today's page a small ▶ in the margin marks the current time, placed proportionally between the written times and moving every 30 s (Settings → Day Planner → Nudges; on by default).
 
 **Getting around**: ‹ Today › buttons (and ← → / T on a keyboard), plus a **Calendar** popup: a month grid where days that have anything planned or written are marked with a dot and down days are dimmed. Any date, past or future, opens the same page (look back at last Thursday; plan next week).
@@ -412,6 +416,8 @@ Single-page app, hash routing, top nav on laptop, bottom tab bar on iPhone. Glob
 16. Adapter interface + Google Drive app-data adapter first.
 
 ## 13. Future
+
+- **More lists** (Mat, 2026-09-24): lists beside Now / Next / Later / Done on the Tasks page, e.g. **Someday**, or one per client, for remote work for many clients that isn't tied to a day (day-only tasks, §4.2a, cover onsite work).
 
 - Photos on places/items (reuse `files.js`).
 - OCR + edge detection for scans.
