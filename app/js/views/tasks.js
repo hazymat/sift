@@ -205,7 +205,7 @@ export default {
       const opt = (v, t, sel) => `<option value="${v}"${sel ? ' selected' : ''}>${t}</option>`;
       return `
         <div class="task-entry${empty ? ' is-empty' : ''}" id="task-entry">
-          ${empty ? `<button type="button" class="entry-plus" data-act="focus-entry" aria-label="New task">＋</button>` : ''}
+          ${empty ? `<button type="button" class="entry-plus" data-act="focus-entry" aria-label="New task"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg></button>` : ''}
           <div class="task-add-line">
             <span class="add-mark" aria-hidden="true">${empty ? '' : '＋'}</span>
             <input id="task-new" class="new-task-line no-inline" placeholder="${esc(placeholder)}" autocomplete="off" enterkeyhint="done" aria-label="New task">

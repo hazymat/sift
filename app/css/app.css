@@ -2289,3 +2289,7 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
   .sheet-handle { width: 56px; height: 7px; border-radius: 4px; opacity: .65; margin: 6px auto 14px; }
   .sheet-handle::before { inset: -18px -90px; }
 }
+
+/* The empty page's ＋ is drawn (a text ＋ never sits exactly in the middle). */
+.entry-plus { padding: 0; }
+.entry-plus .icon { width: 28px; height: 28px; display: block; }
