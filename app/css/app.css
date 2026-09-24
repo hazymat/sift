@@ -2298,3 +2298,7 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
 
 .dict-row .icon-btn.small { display: grid; place-items: center; padding: 0; }
 .dict-row .icon-btn.small .icon { width: 17px; height: 17px; }
+
+/* Text size choices, each written at its own size, lined up in one row. */
+#text-size { align-items: center; }
+#text-size button { min-height: 2.4rem; line-height: 1.1; }

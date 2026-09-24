@@ -33,7 +33,7 @@ export default {
         <p class="muted" id="theme-note"></p>
         <h3>Text size</h3>
         <div class="segmented" id="text-size" role="group" aria-label="Text size">
-          ${[[87.5, 'Smaller'], [100, 'Normal'], [112.5, 'Larger'], [125, 'Largest']].map(([v, l]) => `<button type="button" data-size="${v}">${l}</button>`).join('')}
+          ${[[87.5, 'Smaller'], [100, 'Normal'], [112.5, 'Larger'], [125, 'Largest']].map(([v, l]) => `<button type="button" data-size="${v}" style="font-size:${v / 100}em">${l}</button>`).join('')}
         </div>
         <p class="muted">${esc(word('ph_set_size'))}</p>
       </section>
