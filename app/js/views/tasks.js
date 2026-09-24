@@ -208,7 +208,7 @@ export default {
         <div class="task-entry${empty ? ' is-empty' : ''}" id="task-entry">
           ${empty ? `<button type="button" class="entry-plus" data-act="focus-entry" aria-label="New task"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg></button>` : ''}
           <div class="task-add-line">
-            <span class="add-mark" aria-hidden="true">${empty ? '' : '＋'}</span>
+            <span class="add-mark" aria-hidden="true"></span>
             <input id="task-new" class="new-task-line no-inline" placeholder="${esc(placeholder)}" autocomplete="off" enterkeyhint="done" aria-label="New task">
           </div>
           <div class="task-entry-more">

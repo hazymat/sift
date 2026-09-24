@@ -2551,3 +2551,27 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 .task-add-line, .task-add-line:focus-within { border-bottom: 0; position: relative; }
 .task-add-line::after { content: ''; position: absolute; left: 52px; right: 0; bottom: 0; height: 1px; background: var(--glass-border); }
 .task-entry.is-empty::after { margin-left: 52px; }
+
+/* Tasks page as ruled paper, with or without tasks: no cards, a line under
+   each task starting where its text starts, a little light under the pointer.
+   The new-task line has a faint empty tick box where a task's tick box is,
+   and its text starts where a task's text does. */
+.task-list > li[data-task] { background: transparent; border: 0; border-radius: 0; box-shadow: none; position: relative; }
+.task-list > li[data-task]::after { content: ''; position: absolute; left: 74px; right: 0; bottom: 0; height: 1px; background: var(--glass-border); pointer-events: none; }
+.task-list > li[data-task]:hover, .task-list > li[data-task]:focus-within { background: color-mix(in srgb, var(--text) 4%, transparent); border-color: transparent; }
+.task-list > li.group-top, .task-list > li.group-kid, .task-list > li.group-kid.group-end { border-radius: 0; }
+.task-list { gap: 0; }
+.task-add-line, .task-add-line:focus-within { padding-left: 40px; gap: 8px; }
+.task-add-line .add-mark, .task-entry.is-empty .add-mark { width: 18px; height: 18px; flex: none; box-sizing: border-box; border: 1.5px solid color-mix(in srgb, var(--text) 55%, transparent); border-radius: 5px; opacity: .35; }
+.task-add-line::after { left: 74px; }
+.task-entry.is-empty::after { margin-left: 74px; }
+/* (ruled Tasks: the note and "Add note" start where the title's text starts) */
+.task-list .item-sub { margin-left: 67px; max-width: calc(100% - 67px); }
+.task-list > li[data-task]::after, .task-add-line::after { left: 73px; }
+.task-entry.is-empty::after { margin-left: 73px; }
+/* Compact spacing: a task being edited still gets its pills on the line below. */
+#main[data-density="tight"] .task-list > li.pills-open { flex-wrap: wrap; }
+.task-list > li.pills-open > .edit-pills { order: 9; }
+.task-list .item-sub { margin-left: 65px; max-width: calc(100% - 65px); }
+.task-list .edit-pills .pill-note { margin-left: 1px; flex-basis: calc(100% - 1px); }
+@media (max-width: 700px) { .task-list .edit-pills .pill-note { margin-left: 49px; flex-basis: calc(100% - 49px); } }
