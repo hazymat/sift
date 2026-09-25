@@ -2943,3 +2943,19 @@ html:not(.show-hints) #main:not([data-area="settings"]) .hint { display: none; }
 /* A small dot that pulses each time the connection is checked. */
 .sync-pulse { display: inline-block; width: 8px; height: 8px; margin-right: 7px; border-radius: 50%; background: #4cc27a; vertical-align: 1px; animation: sync-pulse 1.2s ease-out; }
 @keyframes sync-pulse { from { box-shadow: 0 0 0 0 rgba(76, 194, 122, .7); } to { box-shadow: 0 0 0 9px rgba(76, 194, 122, 0); } }
+
+/* Comments on a task (comments.js): a dated record in the task's panel only. */
+.comments { margin: 4px 0 10px; }
+.comments .field-label { display: block; font-size: .85rem; color: var(--muted); margin-bottom: 4px; }
+.comment-list { list-style: none; margin: 0 0 4px; padding: 0; }
+.comment { display: grid; grid-template-columns: auto 1fr auto; gap: 2px 10px; align-items: baseline; padding: 4px 0; border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent); }
+.comment-when { font-size: .78rem; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.comment-body { min-width: 0; font-size: .9rem; line-height: 1.4; overflow-wrap: anywhere; }
+.comment-body > :first-child { margin-top: 0; }
+.comment-body > :last-child { margin-bottom: 0; }
+.comment-more { background: none; border: 0; padding: 0 4px; color: var(--muted); cursor: pointer; font-size: 1rem; line-height: 1; opacity: .6; }
+.comment-more:hover, .comment-more:focus-visible { opacity: 1; }
+.comment-add, .comment-edit { display: block; width: 100%; box-sizing: border-box; min-height: 1.6em; margin: 0; padding: 3px 6px; border: 0 !important; border-radius: 0; background: transparent; box-shadow: none; resize: none; overflow: hidden; font-family: var(--font); font-size: .9rem; line-height: 1.4; color: var(--text); field-sizing: content; border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent) !important; }
+.comment-add::placeholder { color: var(--muted); opacity: .8; }
+.comment-add:focus, .comment-edit:focus { outline: none; background: color-mix(in srgb, var(--text) var(--line-lit), transparent); }
+@media (max-width: 700px) { .comment { grid-template-columns: 1fr auto; } .comment-when { grid-column: 1; } .comment-body { grid-column: 1 / -1; grid-row: 2; } .comment-more { grid-column: 2; grid-row: 1; } }

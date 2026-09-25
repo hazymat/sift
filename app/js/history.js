@@ -6,7 +6,7 @@ import * as store from './store.js';
 
 export const AREA_OF = {
   places: 'Find Things', items: 'Find Things',
-  tasks: 'Tasks', projects: 'Tasks', milestones: 'Tasks',
+  tasks: 'Tasks', comments: 'Tasks', projects: 'Tasks', milestones: 'Tasks',
   day_items: 'Day Planner', days: 'Day Planner',
   thoughts: 'Brain Dump',
   contacts: 'Contacts', contact_categories: 'Contacts', contact_jobs: 'Contacts', interactions: 'Contacts', cases: 'Contacts', case_notes: 'Contacts',

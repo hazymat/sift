@@ -19,6 +19,7 @@ import * as att from '../attachments.js';
 import { editPills, selectPill, datePill, energyPill } from '../editpills.js';
 import { ask, askText } from '../ask.js';
 import { word } from '../words.js';
+import { commentsHtml, mountComments } from '../comments.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -181,6 +182,7 @@ export default {
       return `
         <div class="task-notes"></div>
         ${att.rowHtml(atts.get(t.id))}
+        ${commentsHtml({ task_id: t.id })}
         <div class="energy-pick" role="group" aria-label="Energy"><span>Energy</span>
           ${ENERGY.map(e => `<button type="button" class="bolts" data-energy="${e.id}" aria-pressed="${t.energy === e.id}" title="${esc(`${e.label}: ${e.hint}`)}" aria-label="${e.label}">${e.bolts}</button>`).join('')}
         </div>
@@ -381,6 +383,7 @@ export default {
       kitOrdered.attach(ordered ? ul : null);
       kitFlat.attach(flatOrder ? ul : null);
       kitPlain.attach(ordered || flatOrder ? null : ul);
+      mountComments(body);
       const notesBox = body.querySelector('.task-notes');
       if (notesBox && open) {
         const id = open;

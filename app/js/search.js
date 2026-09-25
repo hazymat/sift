@@ -8,6 +8,7 @@
 
 import * as store from './store.js';
 import { KINDS, unlinkText, openRef } from './refs.js';
+import { commentTexts } from './comments.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const PER_GROUP = 6;
@@ -19,11 +20,13 @@ store.subscribe(() => { cache = null; });
 async function load() {
   if (cache) return cache;
   const out = [];
+  const said = await commentTexts(); // a task's comments are searched with it
   for (const [collection, kind] of Object.entries(KINDS)) {
     for (const r of await store.list(collection, { filter: x => !x.archived_at && !x.purged_at })) {
       if (kind.only && !kind.only(r)) continue;
       const title = kind.title(r);
-      let text = unlinkText(kind.text(r)).replace(/\s+/g, ' ').trim();
+      const own = collection === 'tasks' ? said.get(`task_id:${r.id}`) : collection === 'day_items' && !r.task_id ? said.get(`item_id:${r.id}`) : '';
+      let text = unlinkText(`${kind.text(r)} ${own || ''}`).replace(/\s+/g, ' ').trim();
       if (text.toLowerCase().startsWith(title.toLowerCase())) text = text.slice(title.length).trim(); // a note's text starts with its title
       out.push({ collection, id: r.id, icon: kind.icon, label: kind.label, title, sub: kind.sub(r), text, at: r.updated_at || r.created_at || '', hay: `${title} ${text}`.toLowerCase() });
     }

@@ -22,6 +22,7 @@ import { energyMenu } from '../pillmenu.js';
 import { byRank, rankOf, reorderWrites, lastKey } from '../order.js';
 import { askYes } from '../ask.js';
 import { word } from '../words.js';
+import { commentsHtml, mountComments, moveComments } from '../comments.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -183,7 +184,7 @@ export default {
     document.addEventListener('pointerdown', ev => {
       if (!editing || !el.isConnected) return;
       const t = ev.target;
-      if (t.closest(`.item-details[data-for="${editing}"], [data-item="${editing}"], dialog, .toast, #toasts`)) return;
+      if (t.closest(`.item-details[data-for="${editing}"], [data-item="${editing}"], dialog, .toast, #toasts, .pill-menu`)) return;
       closeDetails();
     }, pageCapture);
     el.addEventListener('keydown', ev => {
@@ -435,6 +436,7 @@ export default {
         if (!it) continue;
         box._editor = richText(box, { value: it.notes || '', origin: () => ({ collection: 'day_items', id: it.id, title: it.title, field: 'notes' }) });
       }
+      mountComments(el);
     }
 
     function details(i) {
@@ -454,6 +456,7 @@ export default {
           </div>
           <div class="wide detail-note"><span class="field-label">Note</span><div class="detail-notes" data-note-for="${i.id}"></div></div>
           <div class="wide">${att.rowHtml(atts.get(i.id))}</div>
+          <div class="wide">${commentsHtml(i.task_id ? { task_id: i.task_id } : { item_id: i.id })}</div>
           <div class="detail-actions">
             <button type="button" class="close-details" data-act="close-details" title="Close (or click anywhere outside, or Esc)">Close</button>
             ${i.time ? '<button type="button" data-act="unschedule" title="Remove the start and end time and put it back in To place">Unallocate time</button>' : ''}
@@ -1528,7 +1531,8 @@ export default {
           estimate_min: it.estimate_min ?? null, estimate_unsure: !!it.estimate_unsure,
           from_day: { date: it.date, time: it.time || null, end_time: it.end_time || null },
         });
-        undo = () => store.remove('tasks', made.id);
+        await moveComments({ item_id: it.id }, { task_id: made.id });
+        undo = async () => { await store.remove('tasks', made.id); await moveComments({ task_id: made.id }, { item_id: it.id }); };
       }
       await store.remove('day_items', it.id);
       await refresh();
