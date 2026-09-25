@@ -188,11 +188,16 @@ export default {
       return 'l';
     }
 
+    // Each note has its own soft pastel tint, picked from its id, so it never
+    // changes and is the same on every device.
+    const TINTS = ['#ff9aa2', '#ffb870', '#ffe27a', '#9be7a8', '#8fd3ff', '#b8a6ff', '#f4a6e0'];
+    const tintOf = id => { let h = 5381; for (const ch of String(id)) h = ((h << 5) + h + ch.charCodeAt(0)) >>> 0; return TINTS[h % TINTS.length]; };
+
     function card(t) {
       const conv = t.converted_to && TARGET[t.converted_to.collection];
       const href = conv && (t.converted_to.collection === 'day_items' ? `#/planner/${t.converted_to.date || ''}` : t.converted_to.collection === 'contacts' ? `#/contacts/c/${t.converted_to.id}` : `#/${conv[1]}`);
       return `
-        <li class="thought size-${sizeOf(t)}${t.converted_to ? ' converted' : ''}${t.pinned ? ' pinned' : ''}${editing === t.id && el.dataset.density === 'tight' ? ' zoomed' : ''}" data-id="${t.id}">
+        <li class="thought size-${sizeOf(t)}${t.converted_to ? ' converted' : ''}${t.pinned ? ' pinned' : ''}${editing === t.id && el.dataset.density === 'tight' ? ' zoomed' : ''}" data-id="${t.id}" style="--tint: ${tintOf(t.id)}">
           ${editing === t.id && el.dataset.density === 'tight' ? '<div class="zoom-back">‹ Back to notes <span class="muted">(click anywhere outside the note, or Esc)</span></div>' : ''}
           <div class="thought-head">
             <button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button>
