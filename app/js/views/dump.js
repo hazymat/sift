@@ -101,18 +101,29 @@ export default {
             </div>
           </details>
         </div>
+        <p class="muted hint">${esc(word('ph_dump_select'))}</p>
+      </section>
+      <div class="dump-bar-mark" aria-hidden="true"></div>
+      <div class="dump-bar">
         <input type="search" id="dump-q" class="search" placeholder="${esc(word('ph_dump_search'))}" autocomplete="off">
         <div class="dump-filter" id="dump-filter" role="group" aria-label="Show">
           <button type="button" data-filter="all">All</button>
           ${dumpTypes().map(k => `<button type="button" data-filter="${esc(k.id)}">${esc(k.label)}</button>`).join('')}
           <button type="button" data-filter="pinned">★ Pinned</button>
         </div>
-        <p class="muted hint">${esc(word('ph_dump_select'))}</p>
-      </section>
+      </div>
       <ul id="thoughts" class="thought-list"></ul>
       <button type="button" class="make-contact" hidden>Make contact</button>`;
 
     const $ = s => el.querySelector(s);
+    // Search and the kinds stay at the top while you scroll through the notes;
+    // once they're stuck there they get a glass background and a shadow, so
+    // it's clear the list carries on above.
+    this.barWatch?.disconnect();
+    this.barWatch = new IntersectionObserver(([e]) => {
+      $('.dump-bar')?.classList.toggle('stuck', !e.isIntersecting && e.boundingClientRect.top < 200);
+    }, { rootMargin: `-${parseFloat(getComputedStyle($('.dump-bar')).top) || 0}px 0px 0px 0px` });
+    this.barWatch.observe($('.dump-bar-mark'));
     // The capture box is the notes editor (toolbar, emoji links, numbers and
     // emails become contacts). What you're typing is kept as a draft until
     // it's saved, and the thought it will become already has its id, so
@@ -525,6 +536,7 @@ export default {
   },
 
   unmount() {
+    this.barWatch?.disconnect();
     this.kit?.destroy();
     removeEventListener('keydown', this.onKey);
     document.removeEventListener('selectionchange', this.onSelect);

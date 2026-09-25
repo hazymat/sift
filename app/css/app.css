@@ -1177,7 +1177,7 @@ a.chip { color: var(--text); text-decoration: none; }
 .dump-foot .primary { padding-inline: 18px; }
 /* Filter: plain text tabs with an underline, one row, so it doesn't look like the kind pills. */
 .dump-find { margin-bottom: 6px; }
-.dump-find .search { width: 100%; }
+.dump-bar .search { width: 100%; }
 .dump-filter { display: flex; gap: 2px; margin-top: 6px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--glass-border); }
 .dump-filter::-webkit-scrollbar { display: none; }
 .dump-filter button { flex: none; background: none; border: 0; border-bottom: 2px solid transparent; border-radius: 0; box-shadow: none; padding: 6px 9px 5px; font-size: .85rem; line-height: 1.2; color: var(--muted); }
@@ -2068,7 +2068,7 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 :is(.rich-edit, .thought-body, .note-body, .note-loose, .item-note) li::marker { font-family: system-ui, sans-serif; }
 
 /* Compact spacing: editing a note takes the whole page */
-#main[data-zoom] :is(.dump-capture, .dump-find, .make-contact, .converted-note) { display: none; }
+#main[data-zoom] :is(.dump-capture, .dump-find, .dump-bar, .make-contact, .converted-note) { display: none; }
 #main[data-zoom] > .hint { display: none; }
 #main[data-zoom] .thought:not(.zoomed) { display: none; }
 #main[data-zoom] .thought-list { grid-template-columns: 1fr; }
@@ -2820,3 +2820,12 @@ html:not(.show-hints) #main:not([data-area="settings"]) .hint { display: none; }
   .planner.docked > .day-head > .focus-row { grid-column: 2; grid-row: 1; align-self: center; display: grid; grid-template-columns: minmax(0, 1fr); row-gap: 6px; margin: 0; }
   .planner.docked > .day-head > .focus-row .energy { padding-left: 4px; }
 }
+
+/* Brain Dump: search and kinds stick under the top bar while you scroll the
+   notes (same place as Find Things' search); stuck, they get a glass
+   background and a soft shadow underneath. */
+.dump-bar { position: sticky; top: calc(var(--safe-top) + 62px); z-index: 5; margin: 0 -10px 10px; padding: 0 10px; border-radius: 0 0 16px 16px; transition: box-shadow .15s, background-color .15s; }
+.dump-bar-mark { height: 1px; margin-bottom: -1px; }
+.dump-bar.stuck { padding-top: 8px; padding-bottom: 2px; background: var(--glass-strong); -webkit-backdrop-filter: blur(18px) saturate(1.3); backdrop-filter: blur(18px) saturate(1.3); box-shadow: 0 10px 18px -10px rgba(0, 0, 0, .55); }
+@media (min-width: 768px) { .dump-bar { top: 62px; } .dump-bar.stuck { padding-top: 14px; } } /* tucked just under the top bar, no gap */
+@media (max-width: 767px) { .dump-bar { top: 0; } .dump-bar.stuck { padding-top: calc(var(--safe-top) + 8px); } }
