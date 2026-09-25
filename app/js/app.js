@@ -8,6 +8,7 @@ import { installFlash } from './flash.js';
 import { mountSearch } from './search.js';
 import { installViewCog } from './viewcog.js';
 import { installDropdowns } from './dropdown.js';
+import { installFileDrop } from './attachments.js';
 import { word, applyWords } from './words.js';
 
 // Adding an area is one entry here plus a view module (spec §5.1). Names come
@@ -271,6 +272,7 @@ async function boot() {
   installSearchClear();
   installFlash();
   installDropdowns();
+  installFileDrop();
   // Search everything: the laptop's top bar, and the top of the phone's More list.
   {
     const top = $('#top-search');

@@ -182,3 +182,36 @@ export function enableDrop(root, selector, parentOf, done) {
     if (made.length) afterAdd(made, done);
   });
 }
+
+// Files dragged over the page anywhere else: a hint at the bottom says where
+// they can go, and a drop that lands elsewhere says so (rather than the browser
+// opening the file in place of Sift). Drop areas (enableDrop) handle their own
+// drops first and mark the event as taken.
+export function installFileDrop() {
+  const hasFiles = ev => [...(ev.dataTransfer?.types || [])].includes('Files');
+  let hint = null;
+  let timer;
+  const show = on => {
+    if (on && !hint) {
+      hint = document.createElement('div');
+      hint.className = 'file-drop-hint';
+      hint.textContent = 'Drop onto a note or item to attach it';
+      document.body.append(hint);
+    }
+    hint?.classList.toggle('show', on);
+  };
+  addEventListener('dragover', ev => {
+    if (!hasFiles(ev)) return;
+    clearTimeout(timer);
+    show(true);
+    if (!ev.defaultPrevented) ev.preventDefault(); // so a drop here reaches us (and doesn't open the file)
+    timer = setTimeout(() => show(false), 300); // dragover repeats while over the page
+  });
+  addEventListener('drop', ev => {
+    if (!hasFiles(ev)) return;
+    show(false);
+    if (ev.defaultPrevented) return;
+    ev.preventDefault();
+    toast('Not attached: drop it onto a note or item (or its open panel)');
+  });
+}

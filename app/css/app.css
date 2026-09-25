@@ -2973,3 +2973,5 @@ a.comment-mark:hover { color: var(--text); }
 /* Five text sizes: -# smaller, +# a bit bigger, # big (h3), #+ biggest. */
 .rich-edit [data-sz="m"], .thought-body [data-sz="m"], .note-body [data-sz="m"], .item-note [data-sz="m"] { font-size: 1.15em; font-weight: 600; }
 .rich-edit [data-sz="xl"], .thought-body [data-sz="xl"], .note-body [data-sz="xl"], .item-note [data-sz="xl"] { font-size: 1.7em; font-weight: 700; line-height: 1.2; margin: .3em 0 .15em; }
+.file-drop-hint { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translate(-50%, 20px); padding: 10px 16px; border-radius: 999px; background: var(--glass); border: 2px dashed var(--active-border, var(--muted)); color: var(--text); font-size: .9rem; opacity: 0; pointer-events: none; transition: opacity .15s, transform .15s; z-index: 50; backdrop-filter: blur(12px); }
+.file-drop-hint.show { opacity: 1; transform: translate(-50%, 0); }

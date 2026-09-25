@@ -858,7 +858,7 @@ export default {
       });
     }
 
-    att.enableDrop(el, '.item-details[data-for]', node => ({ collection: 'day_items', id: node.dataset.for }), () => refresh());
+    att.enableDrop(el, '.item-details[data-for], .line.has-item[data-item]', node => ({ collection: 'day_items', id: node.dataset.for || node.dataset.item }), () => refresh());
     el.addEventListener('click', async ev => {
       if (att.onClick(ev, b => { const id = b.closest('[data-for]')?.dataset.for; return id ? { collection: 'day_items', id } : null; }, () => refresh())) return;
       const t = ev.target.closest('[data-act], [data-energy], [data-item-energy]');
