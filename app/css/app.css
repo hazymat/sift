@@ -2809,3 +2809,14 @@ html:not(.show-hints) #main:not([data-area="settings"]) .hint { display: none; }
 /* "Bring in from tasks": a small pill, always, faintly green. */
 .pile h2 .bring-link { color: var(--text); border-color: color-mix(in srgb, var(--energy-ink, #4caf7a) 35%, transparent); background: color-mix(in srgb, var(--energy-ink, #4caf7a) 10%, transparent); }
 .pile h2 .bring-link:hover, .pile h2 .bring-link:focus-visible { border-color: color-mix(in srgb, var(--energy-ink, #4caf7a) 60%, transparent); background: color-mix(in srgb, var(--energy-ink, #4caf7a) 20%, transparent); }
+
+/* Very wide screens: the day and date on the left; Day focus and Energy on two
+   lines to the right of it, centred on the date line (labels lined up as on a
+   phone, planner.js alignHeads). */
+@media (min-width: 1400px) {
+  .planner.docked > .day-head { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 56px; align-items: center; }
+  .planner.docked > .day-head > .day-title { grid-column: 1; grid-row: 1; }
+  .planner.docked > .day-head > :is(.day-rel, .down-day) { grid-column: 1; }
+  .planner.docked > .day-head > .focus-row { grid-column: 2; grid-row: 1; align-self: center; display: grid; grid-template-columns: minmax(0, 1fr); row-gap: 6px; margin: 0; }
+  .planner.docked > .day-head > .focus-row .energy { padding-left: 4px; }
+}
