@@ -2893,3 +2893,32 @@ html:not(.show-hints) #main:not([data-area="settings"]) .hint { display: none; }
 #main[data-shade="alt"] .list-card:nth-child(even of .list-card) { box-shadow: inset 0 0 0 999px color-mix(in srgb, var(--text) 5%, transparent); }
 .project-head .list-colour { display: inline-flex; opacity: 1; padding: 4px; }
 .project-head .list-colour .swatch { width: 18px; height: 18px; }
+
+/* Contacts: cards in a grid, never full-width panels. Spacing: tight = small
+   cards with just the name and when; medium = the usual card; loose = roomier
+   cards. Look → Multicolour: each contact in its own colour (set from the
+   selection bar); Alternate shading: every other card. */
+.c-list { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; align-items: stretch; }
+.c-list > :is(.list-head, .empty) { grid-column: 1 / -1; }
+.c-card { flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 6px; padding: 12px 14px; }
+.c-card > .kit-grip { position: absolute; top: 8px; right: 8px; }
+.c-card { position: relative; }
+.c-card .c-main { flex: none; padding-right: 22px; }
+.c-card .c-when { margin-left: 0; margin-top: auto; }
+#main[data-density="tight"] .c-list { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px; }
+#main[data-density="tight"] .c-card { padding: 8px 12px; gap: 2px; border-radius: 14px; }
+#main[data-density="tight"] .c-card :is(.c-about, .c-details, .what-was-this) { display: none; }
+#main[data-density="tight"] .c-card .c-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#main[data-density="loose"] .c-list { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+#main[data-density="loose"] .c-card { padding: 16px 18px; gap: 10px; border-radius: 22px; }
+#main[data-density="loose"] .c-card .c-name { font-size: 1.1rem; }
+#main[data-shade="colour"] .c-card[style*="--tint"] {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--tint) 17%, transparent), color-mix(in srgb, var(--tint) 5%, transparent) 70%), var(--glass);
+  border-color: color-mix(in srgb, var(--tint) 32%, var(--glass-border));
+}
+#main[data-shade="alt"] .c-card:nth-child(even of .c-card) { box-shadow: inset 0 0 0 999px color-mix(in srgb, var(--text) 5%, transparent); }
+@media (max-width: 560px) {
+  .c-list, #main[data-density="tight"] .c-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .c-card .c-details { flex-wrap: wrap; }
+  #main[data-density="loose"] .c-list { grid-template-columns: minmax(0, 1fr); }
+}

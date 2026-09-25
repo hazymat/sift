@@ -20,6 +20,7 @@ import { isoDate } from '../days.js';
 import { createListKit } from '../listkit.js';
 import { askText } from '../ask.js';
 import { word } from '../words.js';
+import { tintHex, colourMenu } from '../colours.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -92,7 +93,7 @@ export default {
 
     function contactCard(c) {
       return `
-        <li class="c-card${c.pinned ? ' pinned' : ''}" data-contact-card="${c.id}" data-id="${c.id}">
+        <li class="c-card${c.pinned ? ' pinned' : ''}" data-contact-card="${c.id}" data-id="${c.id}" style="--tint: ${tintHex(c)}">
           <button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button>
           <a class="c-main" href="#/contacts/c/${c.id}">
             <span class="c-name">${esc(label(c))}</span>
@@ -344,6 +345,7 @@ export default {
       reorder: false,
       noun: 'contact',
       actions: [
+        { id: 'colour', label: 'Colour…', run: ids => { colourMenu(document.querySelector('[data-kit-action="colour"]'), null, v => batch(ids, { colour: v }, 'Colour of')); } },
         { id: 'store', label: 'Store', run: ids => batch(ids, { status: 'stored' }, 'Stored') },
         { id: 'pin', label: 'Pin', run: ids => batch(ids, { pinned: true }, 'Pinned') },
         { id: 'archive', label: 'Archive', run: ids => batch(ids, { archived_at: new Date().toISOString() }, 'Archived') },

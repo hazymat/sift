@@ -222,6 +222,17 @@ A recipe book that also records every time a recipe is **made**: a batch of wine
 
 Single-page app, hash routing, top nav on laptop, bottom tab bar on iPhone. Global search always available (`/` on laptop, pull-down on phone).
 
+### 5.0a Visual interest, in moderation
+
+The interface stays calm and consistent, but long lists of identical items are hard to scan. Sift adds a measured amount of visual variety to help the eye find and group things, never as decoration for its own sake.
+- **Optional, per page, per device.** Each page's view menu (👁) has a **Look**: *Original* (the default, uniform), *Multicolour* and/or *Alternate shading*. Spacing (tight / medium / loose) sits beside it.
+- **Multicolour** gives each item a soft colour from a fixed palette of twelve hues of equal lightness, applied as a faint wash over the glass (and a matching border or accent). Colours never compete with the content or with the app's own signals (the accent colour, warnings, selection).
+- **Colours belong to the item.** An item keeps its colour whatever the Look, so switching back and forth never shuffles them; until one is chosen, it's derived from the item itself (stable, and the same on every device). Users can choose an item's colour from the palette where they already act on it (the selection bar, the item's menu or panel, the note toolbar).
+- **Alternate shading** darkens every other item or ruled line slightly, for pages where colour would be distracting (Tasks, the Day Planner).
+- **Restraint:** one palette, low saturation, no gradients beyond a faint wash, no more than one colour per item. New pages adopt the same Look options rather than inventing their own.
+
+Where it applies (2026-09-25): Brain Dump notes, Find Things boxes and things, Lists (per list), Contacts (Multicolour and Alternate shading); Tasks and the Day Planner (Alternate shading only).
+
 ### 5.1 Navigation
 
 - Areas registered in one list (`id, label, icon, view_module`); adding an area is a single entry.
