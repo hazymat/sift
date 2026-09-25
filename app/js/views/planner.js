@@ -1556,8 +1556,8 @@ export default {
     const unlink = s => (s || '').replace(/\[([^\]]*)\]\(sift:[^)]*\)/g, '$1');
     function mdTo(kind, s) {
       const t = unlink(s);
-      if (kind === 'whatsapp') return t.replace(/\*\*(.+?)\*\*/g, '*$1*').replace(/~~(.+?)~~/g, '~$1~').replace(/^(?:#{1,6}|-#)\s+(.*)$/gm, '*$1*');
-      return t.replace(/\*\*(.+?)\*\*/g, '$1').replace(/~~(.+?)~~/g, '$1').replace(/(^|\s)_(\S.*?)_(?=$|[\s).,!?:;])/g, '$1$2').replace(/^(?:#{1,6}|-#)\s+/gm, '');
+      if (kind === 'whatsapp') return t.replace(/\*\*(.+?)\*\*/g, '*$1*').replace(/~~(.+?)~~/g, '~$1~').replace(/^(?:#{1,6}|-#|\+#|#\+)\s+(.*)$/gm, '*$1*');
+      return t.replace(/\*\*(.+?)\*\*/g, '$1').replace(/~~(.+?)~~/g, '$1').replace(/(^|\s)_(\S.*?)_(?=$|[\s).,!?:;])/g, '$1$2').replace(/^(?:#{1,6}|-#|\+#|#\+)\s+/gm, '');
     }
     const shareTitle = () => parseDate(date).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     function dayText(kind) {

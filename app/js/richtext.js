@@ -22,8 +22,9 @@
 //
 // Two toolbars: compact (bold, italic, cross out, list, emoji) and full, which
 // adds Smaller / Bigger text for the line you're on. "Aa" switches, and the
-// choice is remembered on this device. Sizes are kept in the note as "# " (bigger)
-// and "-# " (smaller) at the start of a line. They are relative to the app's own
+// choice is remembered on this device. Five sizes, kept in the note at the start
+// of a line: "-# " smaller, (nothing) normal, "+# " a bit bigger, "# " big and
+// "#+ " biggest. They are relative to the app's own
 // Text size setting, which they don't change.
 
 export const EMOJI = [
@@ -36,7 +37,7 @@ export const EMOJI = [
 // A note as plain lines for one-line previews: no markdown marks, bullets as "•".
 export function plainLines(md) {
   return (md || '').split('\n')
-    .map(l => l.replace(LINK_RE, '$1').replace(/^(?:#{1,6}|-#)\s+/, '').replace(/^\s*[-*]\s+/, '• ').replace(/\*\*|~~/g, '').replace(/(^|\s)_(\S.*?)_(?=$|[\s).,!?:;])/g, '$1$2').trim())
+    .map(l => l.replace(LINK_RE, '$1').replace(/^(?:#{1,6}|-#|\+#|#\+)\s+/, '').replace(/^\s*[-*]\s+/, '• ').replace(/\*\*|~~/g, '').replace(/(^|\s)_(\S.*?)_(?=$|[\s).,!?:;])/g, '$1$2').trim())
     .filter(Boolean);
 }
 
@@ -55,13 +56,13 @@ const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&
 // A note's first line as HTML for one-line previews (links stay clickable),
 // and how many more lines there are.
 export function previewLine(md) {
-  const lines = (md || '').split('\n').map(l => l.replace(/^(?:#{1,6}|-#)\s+/, '').replace(/^\s*[-*]\s+/, '• ').trim()).filter(Boolean);
+  const lines = (md || '').split('\n').map(l => l.replace(/^(?:#{1,6}|-#|\+#|#\+)\s+/, '').replace(/^\s*[-*]\s+/, '• ').trim()).filter(Boolean);
   return { html: lines.length ? inline(lines[0]) : '', more: Math.max(0, lines.length - 1) };
 }
 
 // All of a note's lines run together on one line ("a · b · c"), as HTML.
 export function inlineAll(md) {
-  return (md || '').split('\n').map(l => l.replace(/^(?:#{1,6}|-#)\s+/, '').replace(/^\s*[-*]\s+/, '• ').trim()).filter(Boolean).map(inline).join(' <span class="sep">·</span> ');
+  return (md || '').split('\n').map(l => l.replace(/^(?:#{1,6}|-#|\+#|#\+)\s+/, '').replace(/^\s*[-*]\s+/, '• ').trim()).filter(Boolean).map(inline).join(' <span class="sep">·</span> ');
 }
 
 // A link chip carries its own icon (CSS: ☑️ task, 📞 contact, 📝 note …), so a
@@ -106,12 +107,12 @@ export function toHtml(md) {
   const flush = () => { if (list) { out.push(listHtml(list)); list = null; } };
   for (const line of (md || '').split('\n')) {
     const big = line.match(/^#\s+(.*)$/);
-    const small = line.match(/^-#\s+(.*)$/);
-    const heading = big || small || line.match(/^#{2,6}\s+(.*)$/);
-    if (heading) {
+    const sized = line.match(/^(-#|\+#|#\+)\s+(.*)$/);
+    const label = line.match(/^#{2,6}\s+(.*)$/);
+    if (big || sized || label) {
       flush();
-      const text = inline(heading[1]) || '<br>';
-      out.push(big ? `<h3>${text}</h3>` : small ? `<div data-sz="s">${text}</div>` : `<h4>${text}</h4>`);
+      const text = inline(sized ? sized[2] : (big || label)[1]) || '<br>';
+      out.push(big ? `<h3>${text}</h3>` : sized ? `<div data-sz="${{ '-#': 's', '+#': 'm', '#+': 'xl' }[sized[1]]}">${text}</div>` : `<h4>${text}</h4>`);
       continue;
     }
     const bullet = line.match(/^(\s*)[-*]\s+(.*)$/);
@@ -156,7 +157,8 @@ export function toMarkdown(root) {
     if (tag === 'S' || tag === 'STRIKE' || tag === 'DEL' || /line-through/.test(style.textDecoration || '')) return wrap(inner(), '~~');
     if (tag === 'H3') return `# ${inner().replace(/\n+$/, '')}\n`;
     if (/^H[1-6]$/.test(tag)) return `## ${inner().replace(/\n+$/, '')}\n`;
-    if (node.dataset?.sz === 's') return `-# ${inner().replace(/\n+$/, '')}\n`;
+    const mark = { s: '-#', m: '+#', xl: '#+' }[node.dataset?.sz];
+    if (mark) return `${mark} ${inner().replace(/\n+$/, '')}\n`;
     if (tag === 'UL' || tag === 'OL') return `${listLines(node, 0).join('\n')}\n`;
     if (tag === 'DIV' || tag === 'P') {
       const text = inner();
@@ -240,6 +242,9 @@ function unspotlight(host) {
 
 // colour: { get() → colour id, set(id) } adds a colour button (the note's own
 // colour, colours.js) at the start of the formatting buttons.
+const SZ = { '-1': 's', 1: 'm', 3: 'xl' };
+const SIZE_OF = b => (b.tagName === 'H3' ? 2 : { s: -1, m: 1, xl: 3 }[b.dataset?.sz] ?? 0);
+
 export function richText(container, { value = '', onChange, placeholder = '', origin = null, spot = true, colour = null } = {}) {
   container.classList.add('rich');
   container.innerHTML = `
@@ -541,22 +546,23 @@ export function richText(container, { value = '', onChange, placeholder = '', or
     document.execCommand('insertText', false, ev.clipboardData.getData('text/plain'));
   });
 
-  // Bigger / Smaller for the lines the selection touches: -1 small, 0 normal, 1 big.
+  // Bigger / Smaller for the lines the selection touches: -1 small, 0 normal,
+  // 1 a bit bigger, 2 big, 3 biggest.
   function setSize(dir) {
     const sel = getSelection();
     if (!sel.rangeCount || !edit.contains(sel.anchorNode)) placeCaretAtEnd();
     const range = getSelection().getRangeAt(0);
     const blocks = [...edit.children].filter(b => range.intersectsNode(b) && b.tagName !== 'UL');
     if (!blocks.length) return;
-    const levelOf = b => (b.tagName === 'H3' ? 1 : b.dataset?.sz === 's' ? -1 : 0);
+    const levelOf = SIZE_OF;
     let touched = false;
     for (const b of blocks) {
       if (b.tagName === 'H4') continue; // a label line keeps its own look
       const level = levelOf(b);
-      const next = Math.max(-1, Math.min(1, level + dir));
+      const next = Math.max(-1, Math.min(3, level + dir));
       if (next === level) continue;
-      const nb = document.createElement(next === 1 ? 'h3' : 'div');
-      if (next === -1) nb.dataset.sz = 's';
+      const nb = document.createElement(next === 2 ? 'h3' : 'div');
+      if (SZ[next]) nb.dataset.sz = SZ[next];
       nb.append(...b.childNodes);
       if (!nb.childNodes.length) nb.innerHTML = '<br>';
       for (const edge of ['start', 'end']) if (range[`${edge}Container`] === b) range[edge === 'start' ? 'setStart' : 'setEnd'](nb, range[`${edge}Offset`]);
@@ -568,7 +574,36 @@ export function richText(container, { value = '', onChange, placeholder = '', or
     after.removeAllRanges();
     after.addRange(range);
     changed(toMarkdown(edit));
+    showState();
   }
+
+  // The toolbar shows what's on where the cursor is: Bold / Italic / Cross out
+  // and the lists look pressed; Smaller / Bigger grey out at the ends.
+  const bar = container.querySelector('.md-bar');
+  function showState() {
+    const sel = getSelection();
+    const inside = !rawMode && sel.rangeCount && edit.contains(sel.anchorNode);
+    const at = inside ? (sel.anchorNode.nodeType === Node.TEXT_NODE ? sel.anchorNode.parentElement : sel.anchorNode) : null;
+    const inList = tag => { const l = at?.closest?.(tag); return !!l && edit.contains(l); };
+    for (const b of bar.querySelectorAll('[data-cmd]')) {
+      let on = false;
+      if (inside) {
+        if (b.dataset.cmd === 'insertUnorderedList') on = inList('ul');
+        else if (b.dataset.cmd === 'insertOrderedList') on = inList('ol');
+        else try { on = document.queryCommandState(b.dataset.cmd); } catch { on = false; }
+      }
+      b.setAttribute('aria-pressed', on);
+    }
+    const block = inside ? [...edit.children].find(c => c === at || c.contains(at)) : null;
+    const level = block && !/^(UL|OL|H4)$/.test(block.tagName) ? SIZE_OF(block) : null;
+    bar.querySelector('[data-size="-1"]').disabled = level === -1;
+    bar.querySelector('[data-size="1"]').disabled = level === 3;
+  }
+  // One listener while the editor is on the page; it goes when the editor does
+  // and comes back if the editor is used again.
+  const onSelection = () => { if (container.isConnected) showState(); else document.removeEventListener('selectionchange', onSelection); };
+  document.addEventListener('selectionchange', onSelection);
+  edit.addEventListener('focus', () => document.addEventListener('selectionchange', onSelection));
 
   // Tab / Shift+Tab in a bullet indents / outdents it (elsewhere Tab moves on as usual).
   edit.addEventListener('keydown', ev => {
@@ -630,6 +665,7 @@ export function richText(container, { value = '', onChange, placeholder = '', or
     edit.focus();
     document.execCommand(b.dataset.cmd);
     changed(toMarkdown(edit));
+    showState();
   });
 
   // ↗ Make: the line the cursor is on (or the selected lines) becomes tasks in

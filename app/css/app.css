@@ -2966,3 +2966,10 @@ a.comment-mark:hover { color: var(--text); }
 .comment-body .att-row { margin-top: 4px; }
 .comment-pending { font-size: .78rem; padding: 2px 6px; }
 .comments.drop-over, .comment.drop-over { outline: 2px dashed var(--muted); }
+
+/* Notes toolbar shows what's on (155): pressed formatting, size ends greyed. */
+.md-bar [data-cmd][aria-pressed="true"] { background: var(--active-bg); border-color: var(--active-border); }
+.md-bar [data-size]:disabled { opacity: .35; cursor: default; }
+/* Five text sizes: -# smaller, +# a bit bigger, # big (h3), #+ biggest. */
+.rich-edit [data-sz="m"], .thought-body [data-sz="m"], .note-body [data-sz="m"], .item-note [data-sz="m"] { font-size: 1.15em; font-weight: 600; }
+.rich-edit [data-sz="xl"], .thought-body [data-sz="xl"], .note-body [data-sz="xl"], .item-note [data-sz="xl"] { font-size: 1.7em; font-weight: 700; line-height: 1.2; margin: .3em 0 .15em; }
