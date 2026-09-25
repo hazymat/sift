@@ -11,6 +11,7 @@ import { richText, previewLine } from '../richtext.js';
 import * as att from '../attachments.js';
 import { editPills } from '../editpills.js';
 import { word } from '../words.js';
+import { tintHex, tintId, colourMenu } from '../colours.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -35,7 +36,7 @@ export default {
       const pr = progress(items);
       const copies = data.lists.filter(x => x.template_id === l.id).length;
       return `
-        <a class="project-card list-card" href="#/lists/${l.id}">
+        <a class="project-card list-card" href="#/lists/${l.id}" style="--tint: ${tintHex(l)}">
           <span class="project-title">${esc(l.name || 'Untitled')}</span>
           ${l.kind === 'template'
             ? `<span class="muted">${items.length} item${items.length === 1 ? '' : 's'}${copies ? ` · used ${copies}×` : ''}${l.used_at ? ` · last ${shortDate(l.used_at)}` : ''}</span>`
@@ -120,6 +121,7 @@ export default {
       return `
         <div class="project-head">
           <button type="button" class="back" data-act="home">‹ Lists</button>
+          <button type="button" class="note-dot list-colour" data-act="list-colour" title="List colour" aria-label="List colour"><span class="swatch" style="--sw:${tintHex(l)}"></span></button>
           <input class="project-name" name="name" value="${esc(l.name)}" data-list-name="${l.id}" aria-label="List name" placeholder="${esc(word('ph_list_name'))}">
           <span class="chip">${isTemplate ? 'Template' : template ? 'From a template' : 'List'}</span>
         </div>
@@ -136,7 +138,7 @@ export default {
             ${template ? `<span class="muted">from <a href="#/lists/${template.id}">${esc(template.name)}</a></span>` : ''}
             ${missing.length ? `<button type="button" data-act="add-missing">Add ${missing.length} missing from template</button>` : ''}
           </div>`}
-        <ul class="task-list checklist">${shown.map(i => `
+        <ul class="task-list checklist" style="--tint: ${tintHex(l)}">${shown.map(i => `
           <li data-id="${i.id}" data-depth="${i.depth}" class="${i.checked_at ? 'done' : ''}">
             <button type="button" class="drag-handle" aria-label="Select or move">${icon('i-grip')}</button>
             ${isTemplate ? '' : `<input type="checkbox" class="tick" ${i.checked_at ? 'checked' : ''} aria-label="Ticked">`}
@@ -301,6 +303,17 @@ export default {
       const l = listOf(state.id);
       const act = b.dataset.act;
       if (act === 'home') return go('#/lists');
+      if (act === 'list-colour') {
+        // The list's colour (colours.js): kept whatever the Look, shown in Multicolour.
+        const l = listOf(state.id);
+        const old = l.colour ?? null;
+        colourMenu(b, tintId(l), async v => {
+          await store.update('lists', l.id, { colour: v });
+          await render();
+          undoable('List colour', async () => { await store.update('lists', l.id, { colour: old }); await render(); });
+        });
+        return;
+      }
       // New ones are made straight away and opened with the name selected:
       // just type to name it (no pop-up box).
       if (act === 'new-template' || act === 'new-list') {

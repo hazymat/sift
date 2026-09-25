@@ -2880,3 +2880,16 @@ html:not(.show-hints) #main:not([data-area="settings"]) .hint { display: none; }
 .box-page-head .box-colour { display: inline-flex; opacity: 1; padding: 4px; }
 .box-page-head .box-colour .swatch { width: 18px; height: 18px; }
 .thing-colour { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; font-size: .9rem; }
+
+/* Lists, Look → Multicolour: each list in its own colour: its card washed in
+   it, and in the open list a coloured strip down the left of the items.
+   Alternate shading: every other item (and card) a touch darker. */
+#main[data-shade="colour"] .list-card[style*="--tint"] {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--tint) 17%, transparent), color-mix(in srgb, var(--tint) 5%, transparent) 70%), var(--glass);
+  border-color: color-mix(in srgb, var(--tint) 32%, var(--glass-border));
+}
+#main[data-shade="colour"] .checklist[style*="--tint"] > li[data-id] { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--tint) 75%, transparent); background: color-mix(in srgb, var(--tint) 5%, transparent); }
+#main[data-shade="alt"] .checklist > li[data-id]:nth-child(even of li[data-id]),
+#main[data-shade="alt"] .list-card:nth-child(even of .list-card) { box-shadow: inset 0 0 0 999px color-mix(in srgb, var(--text) 5%, transparent); }
+.project-head .list-colour { display: inline-flex; opacity: 1; padding: 4px; }
+.project-head .list-colour .swatch { width: 18px; height: 18px; }
