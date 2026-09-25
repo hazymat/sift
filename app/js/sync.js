@@ -27,13 +27,55 @@ function setStatus(next) {
 }
 export const onStatus = fn => { listeners.add(fn); fn(status); return () => listeners.delete(fn); };
 
+// ---------- how the connection is doing ----------
+// Every request is timed; the last few (from the past minute) say whether the
+// connection is good, slow or failing. A request that takes longer than its
+// limit is given up (and tried again soon), so a poor signal can't leave sync
+// stuck on "Syncing…".
+const samples = []; // { at, ms, ok }
+function sample(ms, ok) {
+  samples.push({ at: Date.now(), ms, ok });
+  while (samples.length > 20 || (samples.length && Date.now() - samples[0].at > 60000)) samples.shift();
+  setStatus({ link: linkQuality(), checked: new Date().toISOString(), ...(ok ? { reached: new Date().toISOString() } : {}) });
+}
+// good | slow | weak | down | unknown
+export function linkQuality() {
+  const recent = samples.filter(s => Date.now() - s.at < 60000);
+  if (!recent.length) return 'unknown';
+  const last = recent.at(-1);
+  if (!last.ok && recent.slice(-3).every(s => !s.ok)) return 'down';
+  if (recent.some(s => !s.ok)) return 'weak';
+  const okMs = recent.filter(s => s.ok).map(s => s.ms);
+  const avg = okMs.reduce((a, b) => a + b, 0) / okMs.length;
+  return avg > 1500 ? 'slow' : 'good';
+}
+async function timedFetch(url, opts = {}, limit = 20000) {
+  const ctl = new AbortController();
+  const t0 = performance.now();
+  const timer = setTimeout(() => ctl.abort(), limit);
+  try {
+    const res = await fetch(url, { ...opts, signal: ctl.signal });
+    sample(performance.now() - t0, true);
+    return res;
+  } catch (e) {
+    sample(performance.now() - t0, false);
+    throw e.name === 'AbortError' ? new TypeError('The server took too long to answer') : e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+// A quick "are you there?" (Settings asks every 10 s while it's open).
+export async function checkLink() {
+  if (!account) return;
+  try { await timedFetch(`${account.server}/api/health`, {}, 8000); } catch { /* counted */ }
+}
+
 async function api(method, path, body, server = account?.server) {
-  const res = await fetch(`${server}${path}`, {
+  const res = await timedFetch(`${server}${path}`, {
     method,
     headers: { 'Content-Type': 'application/json', ...(account?.token ? { Authorization: `Bearer ${account.token}` } : {}) },
     body: body ? JSON.stringify(body) : undefined,
   });
-  setStatus({ reached: new Date().toISOString() });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
     const err = new Error(json.error || `Server said ${res.status}`);
@@ -199,9 +241,9 @@ async function push() {
 const MAX_AUTO_DOWNLOAD = 5 * 1024 * 1024; // bigger files are fetched when you open them
 
 async function fileRequest(method, id, body) {
-  const res = await fetch(`${account.server}/api/blobs/${await cx.opaqueId(keys, 'blobs', id)}`, {
+  const res = await timedFetch(`${account.server}/api/blobs/${await cx.opaqueId(keys, 'blobs', id)}`, {
     method, headers: { Authorization: `Bearer ${account.token}` }, body,
-  });
+  }, 5 * 60 * 1000); // files may be big: up to 5 minutes
   if (res.status === 401 || (!res.ok && res.status !== 404)) {
     const err = new Error(res.status === 507 ? 'Storage quota reached on the server' : `Server said ${res.status}`);
     err.status = res.status;
@@ -256,10 +298,10 @@ function syncFiles() {
   if (filesRunning) return filesRunning;
   filesRunning = (async () => {
     try {
-      setStatus({ files: 'syncing', filesWaiting: await filesWaiting() });
+      setStatus({ files: 'syncing', filesWaiting: await filesWaiting(), filesWaitingUp: (await store.blobsToUpload()).length });
       await pushFiles();
       const arrived = await pullFiles();
-      setStatus({ files: 'idle', fileError: null, filesWaiting: await filesWaiting(), filesArrived: arrived });
+      setStatus({ files: 'idle', fileError: null, filesWaiting: await filesWaiting(), filesWaitingUp: (await store.blobsToUpload()).length, filesArrived: arrived });
     } catch (e) {
       console.warn('Files not synced:', e.message);
       setStatus({ files: 'error', fileError: e.message });
@@ -279,17 +321,23 @@ export async function syncNow() {
       const changed = await pull();
       await push();
       setStatus({ state: 'ok', last: new Date().toISOString(), pending: await store.outboxSize(), error: null, changed, received: changed });
+      failures = 0;
       syncFiles(); // in the background: doesn't hold up the records
     } catch (e) {
       const offline = !navigator.onLine || e instanceof TypeError; // fetch failed: no network, or the server can't be reached
       setStatus({ state: offline ? 'offline' : 'error', error: offline ? null : e.message, pending: await store.outboxSize() });
+      failures++;
       if (e.status === 401) { await store.metaSet('sync_account', undefined); account = null; setStatus({ state: 'off', error: `The server signed this device out (${e.message}). Sign in again.` }); }
     } finally {
       running = null;
+      // Next try: every 30 s while the app is on screen (5 min when it isn't);
+      // after a failure sooner: 10, 20, 40, then every 60 s.
+      if (account) schedule(failures ? Math.min(60000, 10000 * 2 ** (failures - 1)) : document.visibilityState === 'visible' ? 30000 : 300000);
     }
   })();
   return running;
 }
+let failures = 0;
 
 function schedule(ms) {
   clearTimeout(timer);
@@ -304,7 +352,7 @@ function wire() {
   store.subscribe(ch => { if (!ch.remote && account) { setStatus({ pending: status.pending + 1 }); schedule(4000); } });
   addEventListener('online', () => schedule(500));
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') schedule(500); });
-  setInterval(() => syncNow(), 5 * 60 * 1000);
+  // (the next try is scheduled after each one: see syncNow)
 }
 
 // Called once from app.js. `ready` settles once the saved sign-in has been

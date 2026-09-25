@@ -187,13 +187,15 @@ export default {
         error: `Couldn't sync: ${st.error}`,
         idle: 'Waiting to sync…',
       }[st.state] || '');
-      const reachText = st => (st.state === 'offline' ? `can't reach it${st.reached ? ` (last reached ${ago(st.reached)})` : ''}`
-        : st.reached ? `reached ${ago(st.reached)}` : 'not reached yet');
+      const LINK = { good: 'Connected', slow: 'Connected, slow', weak: 'Weak connection: some requests failing, retrying', down: "Can't reach the server: retrying", unknown: 'Checking…' };
+      const reachText = st => `<span class="sync-pulse" data-at="${st.checked || ''}"></span>${LINK[st.link || 'unknown']}${st.reached ? ` · last answered ${ago(st.reached)}` : ''}`;
+      // Everything made on this device is on the server.
+      const allUp = st => st.state === 'ok' && !st.pending && !st.filesWaitingUp;
       const filesText = st => (st.files === 'error' ? `couldn't sync files: ${st.fileError}`
         : st.filesWaiting ? `${st.filesWaiting} still to arrive or send${st.files === 'syncing' ? ' (sending now)' : ''}` : 'all here');
       const factsHtml = st => `
               <dt>Now</dt><dd>${stateText(st)}</dd>
-              <dt>Waiting to send</dt><dd>${st.pending ? `${st.pending} change${st.pending === 1 ? '' : 's'}` : 'nothing'}</dd>
+              <dt>Waiting to send</dt><dd>${st.pending ? `${st.pending} change${st.pending === 1 ? '' : 's'}` : allUp(st) ? '<span class="sync-tick">✓</span> nothing: everything on this device is on the server' : 'nothing'}</dd>
               <dt>Last tried</dt><dd>${ago(st.tried)}</dd>
               <dt>Last finished</dt><dd>${ago(st.last)}${st.last ? ` (${st.received || 0} change${st.received === 1 ? '' : 's'} came in)` : ''}</dd>
               <dt>Server</dt><dd>${reachText(st)}</dd>
@@ -220,7 +222,7 @@ export default {
         const top = el.querySelector('#sync-top');
         if (!top) return;
         top.hidden = !sync.signedIn();
-        top.textContent = `Sync: ${st.state === 'ok' && !st.pending ? 'in step' : stateText(st).split('.')[0].toLowerCase()} · last finished ${ago(st.last)}`;
+        top.innerHTML = `${allUp(st) ? '<span class="sync-tick">✓</span> ' : ''}Sync: ${st.state === 'ok' && !st.pending ? 'in step' : stateText(st).split('.')[0].toLowerCase()} · ${LINK[st.link || 'unknown'].split(':')[0].toLowerCase()} · last finished ${ago(st.last)}`;
       };
       // Draws can overlap (status changes while one is waiting): only the latest one writes.
       let drawing = 0;
@@ -341,6 +343,9 @@ export default {
       sync.onStatus(st => { if (el.isConnected) { paintFacts(st); paintTop(st); } });
       // Keep "… seconds ago" current while Settings is open.
       this.syncTick = setInterval(() => { if (!el.isConnected) return clearInterval(this.syncTick); if (sync.signedIn()) { paintFacts(sync.status); paintTop(sync.status); } }, 5000);
+      // While Settings is open, a quick check of the connection every 10 s (each shows as a pulse).
+      this.linkTick = setInterval(() => { if (!el.isConnected) return clearInterval(this.linkTick); if (sync.signedIn()) sync.checkLink(); }, 10000);
+      if (sync.signedIn()) sync.checkLink();
       box.addEventListener('click', async ev => {
         const b = ev.target.closest('[data-sync]');
         if (!b) return;

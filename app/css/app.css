@@ -2939,3 +2939,7 @@ html:not(.show-hints) #main:not([data-area="settings"]) .hint { display: none; }
 /* A file whose details have synced but the file itself hasn't yet. */
 .att.att-arriving { position: relative; opacity: .7; }
 .att-wait { position: absolute; left: 4px; bottom: 4px; z-index: 1; padding: 1px 6px; border-radius: 999px; font-size: .68rem; background: color-mix(in srgb, var(--bg, #000) 70%, transparent); color: var(--text); pointer-events: none; white-space: nowrap; }
+.sync-tick { color: #4cc27a; font-weight: 800; }
+/* A small dot that pulses each time the connection is checked. */
+.sync-pulse { display: inline-block; width: 8px; height: 8px; margin-right: 7px; border-radius: 50%; background: #4cc27a; vertical-align: 1px; animation: sync-pulse 1.2s ease-out; }
+@keyframes sync-pulse { from { box-shadow: 0 0 0 0 rgba(76, 194, 122, .7); } to { box-shadow: 0 0 0 9px rgba(76, 194, 122, 0); } }
