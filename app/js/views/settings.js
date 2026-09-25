@@ -592,7 +592,7 @@ export default {
           toast('✓ Back to the default');
         });
       } else {
-        // Brain Dump types: add, rename, move, remove. They are labels for filtering only.
+        // Brain Dump types: add, rename, drag to reorder, remove. They are labels for filtering only.
         let list = w.dumpTypes().map(t => ({ ...t }));
         const save = async () => { await w.setDumpTypes(list); draw(); };
         const draw = () => {
@@ -600,14 +600,22 @@ export default {
             <p class="muted">${esc(word('ph_set_types'))}</p>
             <ul class="types-list">${list.map((t, n) => `
               <li data-n="${n}">
+                <button type="button" class="drag-handle" aria-label="Move ${esc(t.label)}">${icon('i-grip')}</button>
                 <input data-type-label value="${esc(t.label)}" aria-label="Type name" autocomplete="off">
-                <button type="button" class="icon-btn small" data-type="up" ${n ? '' : 'disabled'} aria-label="Move up">↑</button>
-                <button type="button" class="icon-btn small" data-type="down" ${n < list.length - 1 ? '' : 'disabled'} aria-label="Move down">↓</button>
                 <button type="button" class="icon-btn small" data-type="remove" ${list.length > 1 ? '' : 'disabled'} aria-label="Remove">×</button>
               </li>`).join('')}
             </ul>
             <form class="types-add"><input name="new" placeholder="${esc(word('ph_set_new_type'))}" autocomplete="off"><button type="submit">Add</button></form>
             <div class="backup-row"><button type="button" data-type="defaults">Put back the defaults</button></div>`;
+          // Drag a type by its grip (or focus the grip and use the arrow keys).
+          sortable(dlg.querySelector('.types-list'), {
+            async onEnd({ item }) {
+              const moved = list[Number(item.dataset.n)].id;
+              list = [...dlg.querySelectorAll('.types-list > li')].map(li => list[Number(li.dataset.n)]);
+              await save();
+              dlg.querySelector(`.types-list > li:nth-child(${list.findIndex(t => t.id === moved) + 1}) .drag-handle`)?.focus();
+            },
+          });
         };
         draw();
         dlg.addEventListener('change', async e2 => {
@@ -624,8 +632,6 @@ export default {
           if (!act) return;
           if (act === 'defaults') { list = w.DEFAULT_TYPES.map(t => ({ ...t })); await save(); toast('✓ Back to the defaults'); return; }
           const n = Number(e2.target.closest('li').dataset.n);
-          if (act === 'up' && n > 0) [list[n - 1], list[n]] = [list[n], list[n - 1]];
-          if (act === 'down' && n < list.length - 1) [list[n + 1], list[n]] = [list[n], list[n + 1]];
           if (act === 'remove' && list.length > 1) list.splice(n, 1);
           await save();
         });
