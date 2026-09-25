@@ -21,7 +21,7 @@ import { pillMenu } from './pillmenu.js';
 import { undoable } from './toast.js';
 import { addTask } from './tasks.js';
 import { addItem, isoDate } from './days.js';
-import { ask, askText } from './ask.js';
+import { ask, askText, askEmptied } from './ask.js';
 import * as att from './attachments.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -105,6 +105,14 @@ function edit(box, li, c) {
     if (done) return;
     done = true;
     const text = ta.value.trim();
+    if (save && !text && c.body) {
+      await draw(box);
+      if (await askEmptied('comment')) {
+        await store.remove('comments', c.id);
+        undoable('Comment deleted', async () => { await store.restore('comments', c.id); await draw(box); });
+      }
+      return draw(box);
+    }
     if (save && text && text !== c.body) {
       await store.update('comments', c.id, { body: text });
       undoable('Comment saved', async () => { await store.update('comments', c.id, { body: c.body }); await draw(box); });

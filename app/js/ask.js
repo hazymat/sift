@@ -47,3 +47,13 @@ export async function askText(title, { value = '', placeholder = '', label = '',
 export async function askYes(title, { text = '', ok = 'Yes', cancel = 'Cancel', danger = false } = {}) {
   return !!(await ask({ title, text, ok, cancel, danger }));
 }
+
+// All the text of a note (or an item's name) was removed, e.g. select all and
+// cut, then you left it. Rather than quietly keeping the old text, ask:
+// true → delete it (the caller offers Undo), false → leave it as it was.
+export function askEmptied(what = 'note') {
+  return askYes(`Did you mean to save an empty ${what}?`, {
+    text: `Yes: delete the ${what}.\n\nNo: leave the ${what} as it was.`,
+    ok: `Yes, delete it`, cancel: 'No, keep it', danger: true,
+  });
+}

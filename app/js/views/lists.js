@@ -286,7 +286,9 @@ export default {
       const t = ev.target;
       if (t.dataset.listName) {
         const l = listOf(t.dataset.listName);
-        if (!t.value.trim() || t.value.trim() === l.name) return;
+        // A list's name removed: put it back (deleting a whole list stays a deliberate act).
+        if (!t.value.trim()) { t.value = l.name; toast('A list needs a name, so it was put back'); return; }
+        if (t.value.trim() === l.name) return;
         const old = l.name;
         await store.update('lists', l.id, { name: t.value.trim() });
         data = await loadLists();
@@ -301,7 +303,13 @@ export default {
         await store.update('list_items', item.id, { checked_at: t.checked ? new Date().toISOString() : null });
         await render();
         undoable(t.checked ? `Ticked "${item.text}"` : `Unticked "${item.text}"`, async () => { await store.update('list_items', item.id, { checked_at: old }); render(); });
-      } else if (t.name === 'text' && t.value.trim() && t.value.trim() !== item.text) {
+      } else if (t.name === 'text' && !t.value.trim()) {
+        if (await askEmptied('item')) {
+          await store.remove('list_items', item.id);
+          await render();
+          undoable(`Deleted "${item.text}"`, async () => { await store.restore('list_items', item.id); render(); });
+        } else t.value = item.text;
+      } else if (t.name === 'text' && t.value.trim() !== item.text) {
         const old = item.text;
         await store.update('list_items', item.id, { text: t.value.trim() });
         data = await loadLists();

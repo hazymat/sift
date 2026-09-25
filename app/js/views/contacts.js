@@ -558,6 +558,8 @@ export default {
       if (t.dataset.case && t.name) {
         const k = data.cases.find(x => x.id === t.dataset.case);
         const old = k?.[t.name] ?? '';
+        // A case's title removed: put it back (deleting a case stays a deliberate act).
+        if (t.name === 'title' && !t.value.trim() && old) { t.value = old; toast('A case needs a title, so it was put back'); return; }
         if (t.value.trim() === old) return;
         await store.update('cases', k.id, { [t.name]: t.value.trim() });
         data = await loadContacts();

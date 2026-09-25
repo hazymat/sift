@@ -17,7 +17,7 @@ import { richText, toHtml, previewLine, inlineAll } from '../richtext.js';
 import { loadContacts } from '../contacts.js';
 import * as att from '../attachments.js';
 import { editPills, selectPill, datePill, energyPill } from '../editpills.js';
-import { ask, askText } from '../ask.js';
+import { ask, askText, askEmptied } from '../ask.js';
 import { word } from '../words.js';
 import { commentsHtml, mountComments, closingComment } from '../comments.js';
 
@@ -619,7 +619,9 @@ export default {
       const id = li?.dataset.task || li?.dataset.for;
       if (t.dataset.project) {
         const p = data.projects.find(x => x.id === t.dataset.project);
-        if (!t.value.trim() || t.value.trim() === p?.name) return;
+        // A project's name removed: put it back (deleting a project stays a deliberate act).
+        if (!t.value.trim()) { t.value = p?.name || ''; toast('A project needs a name, so it was put back'); return; }
+        if (t.value.trim() === p?.name) return;
         const old = p.name;
         await store.update('projects', p.id, { name: t.value.trim() });
         undoable('Saved', async () => { await store.update('projects', p.id, { name: old }); render(); });
@@ -630,7 +632,12 @@ export default {
       if (t.classList.contains('tick')) {
         await change(id, doneFields(t.checked), t.checked ? `Done: ${task.title}` : 'Not done', t.checked ? { more: closingComment({ task_id: id }) } : undefined);
       } else if (t.classList.contains('task-title')) {
-        if (t.value.trim() && t.value.trim() !== task.title) await change(id, { title: t.value.trim() });
+        if (!t.value.trim()) {
+          // The whole title removed: delete the task, or put the title back.
+          if (await askEmptied('task')) await retire(task, 'delete'); else t.value = task.title;
+          return;
+        }
+        if (t.value.trim() !== task.title) await change(id, { title: t.value.trim() });
       } else if (t.name === 'aim_date' || t.name === 'aim_time') {
         const d = body.querySelector(`[data-for="${id}"] [name="aim_date"]`).value;
         const tm = body.querySelector(`[data-for="${id}"] [name="aim_time"]`).value;
@@ -736,20 +743,25 @@ export default {
           await render();
         });
       } else if ((act === 'delete' || act === 'archive') && task) {
-        const field = act === 'delete' ? 'deleted_at' : 'archived_at';
-        const ids = [task.id];
-        const collect = pid => data.tasks.filter(k => k.parent_task_id === pid).forEach(k => { ids.push(k.id); collect(k.id); });
-        collect(task.id);
-        const now = new Date().toISOString();
-        await store.updateMany('tasks', ids.map(x => [x, { [field]: now }]));
-        open = null;
-        await render();
-        undoable(`${act === 'delete' ? 'Deleted' : 'Archived'} "${task.title}"${ids.length > 1 ? ` and ${ids.length - 1} sub-task${ids.length > 2 ? 's' : ''}` : ''}`, async () => {
-          await store.updateMany('tasks', ids.map(x => [x, { [field]: null }]));
-          await render();
-        });
+        await retire(task, act);
       }
     });
+
+    // Delete or archive a task, with its sub-tasks.
+    async function retire(task, act) {
+      const field = act === 'delete' ? 'deleted_at' : 'archived_at';
+      const ids = [task.id];
+      const collect = pid => data.tasks.filter(k => k.parent_task_id === pid).forEach(k => { ids.push(k.id); collect(k.id); });
+      collect(task.id);
+      const now = new Date().toISOString();
+      await store.updateMany('tasks', ids.map(x => [x, { [field]: now }]));
+      open = null;
+      await render();
+      undoable(`${act === 'delete' ? 'Deleted' : 'Archived'} "${task.title}"${ids.length > 1 ? ` and ${ids.length - 1} sub-task${ids.length > 2 ? 's' : ''}` : ''}`, async () => {
+        await store.updateMany('tasks', ids.map(x => [x, { [field]: null }]));
+        await render();
+      });
+    }
 
     // Tap on the empty part of the page (like Reminders): a new task line opens.
     body.addEventListener('click', ev => {

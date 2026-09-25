@@ -20,7 +20,7 @@ import * as att from '../attachments.js';
 import { editPills, selectPill, energyPill } from '../editpills.js';
 import { energyMenu } from '../pillmenu.js';
 import { byRank, rankOf, reorderWrites, lastKey } from '../order.js';
-import { askYes } from '../ask.js';
+import { askYes, askEmptied } from '../ask.js';
 import { word } from '../words.js';
 import { commentsHtml, mountComments, moveComments, closingComment } from '../comments.js';
 
@@ -958,7 +958,13 @@ export default {
         await change(id, { done_at: t.checked ? new Date().toISOString() : null }, t.checked ? 'Done' : 'Not done',
           t.checked && it ? { more: closingComment(it.task_id ? { task_id: it.task_id } : { item_id: it.id }) } : undefined);
       } else if (t.classList.contains('item-title') && id) {
+        const it = items.find(i => i.id === id);
         if (t.value.trim()) await change(id, { title: t.value.trim() });
+        else if (it && await askEmptied('item')) {
+          await store.remove('day_items', id);
+          await refresh();
+          undoable(`Deleted "${it.title}"`, async () => { await store.restore('day_items', id); await refresh(); });
+        } else if (it) t.value = it.title;
       } else if (t.classList.contains('margin-time')) {
         // Typed start time in the margin: 12.45, 12:45, 1245 or 14
         const m = t.value.trim().match(/^(\d{1,2})(?:[.:\s]?(\d{2}))?$/);

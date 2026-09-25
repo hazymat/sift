@@ -12,7 +12,7 @@ import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import * as att from '../attachments.js';
 import { editPills, selectPill } from '../editpills.js';
-import { askText, askYes } from '../ask.js';
+import { askText, askYes, askEmptied } from '../ask.js';
 import { word } from '../words.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -485,6 +485,19 @@ export default {
       const [collection, id] = itemLi ? ['items', itemLi.dataset.item] : ['places', openId];
       const old = (await store.get(collection, id))?.[t.name] ?? '';
       const value = t.name === 'quantity' ? (t.value.trim() === '' ? null : Math.max(0, Math.round(Number(t.value)))) : t.value.trim();
+      if (t.name === 'name' && !value && old) {
+        // A thing's name removed: delete it or put the name back. A box keeps
+        // its name (deleting a box, with what's in it, stays a deliberate act).
+        if (collection === 'items' && await askEmptied('thing')) {
+          await store.remove('items', id);
+          await reload();
+          undoable(`Deleted "${old}"`, async () => { await store.restore('items', id); await reload(); });
+          return true;
+        }
+        t.value = old;
+        if (collection === 'places') toast('A box needs a name, so it was put back');
+        return false;
+      }
       if (value === (old ?? '') || (t.name === 'quantity' && value === (old ?? null))) return false;
       await store.update(collection, id, { [t.name]: value });
       if (t.name === 'parent_place_id') await reload();

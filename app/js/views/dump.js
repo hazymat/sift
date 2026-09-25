@@ -13,6 +13,7 @@ import { SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import { toHtml, richText } from '../richtext.js';
 import { addTaskFirst } from '../tasks.js';
+import { askEmptied } from '../ask.js';
 import { tintHex, tintId, colourMenu } from '../colours.js';
 import { rankOf, byRank, keyBetween, reorderWrites } from '../order.js';
 import { addItem, isoDate, parseTimed, daySettings, durationChoices, durationLabel } from '../days.js';
@@ -546,6 +547,16 @@ export default {
       const body = box.dataset.cancel ? orig : box._editor.value.trim();
       box._editor = null;
       editing = null;
+      // Everything cut or deleted, then left: ask, rather than quietly keeping
+      // the old text (it was never saved empty).
+      if (!body) {
+        await render();
+        if (!(await askEmptied('note'))) return;
+        await store.update('thoughts', t.id, { deleted_at: new Date().toISOString() });
+        await render();
+        undoable('Deleted', async () => { await store.update('thoughts', t.id, { deleted_at: null }); render(); });
+        return;
+      }
       // It has been saving as you typed; this puts the last bit in (or, after Esc, the original back).
       if (body && body !== (box._saved ?? t.body)) await store.update('thoughts', t.id, { body, title: titleFrom(body), ...toTop(t) });
       if (body && body !== orig) {
