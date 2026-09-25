@@ -182,7 +182,8 @@ export default {
       const head = title.replace(/…$/, '').trim();
       const starts = head && first.toLowerCase().startsWith(head.toLowerCase());
       const after = starts ? first.slice(head.length).replace(/^[\s.,:;!?–—-]+/, '') : '';
-      const rest = starts ? [after, ...lines.slice(firstAt + 1)].join('\n') : t.body;
+      // (When the title is the whole first line, nothing is left of it: no empty line either.)
+      const rest = starts ? [...(after ? [after] : []), ...lines.slice(firstAt + 1)].join('\n') : t.body;
       // Compact spacing shows the whole note run together, filling its square (CSS picks).
       const flat = t.body.split('\n').map(l => cleanLine(l).replace(/\*\*|~~/g, '')).filter(Boolean).join(' ');
       return `<div class="thought-body hand" data-act="edit"><div class="thought-title">${esc(title)}</div>${rest.trim() ? toHtml(rest) : ''}<div class="thought-flat">${esc(flat)}</div></div>`;
