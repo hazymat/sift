@@ -74,7 +74,7 @@ export default {
     };
 
     el.innerHTML = `
-      <section class="dump-capture card" aria-labelledby="dump-new-h">
+      <section class="dump-capture card" aria-labelledby="dump-new-h" data-sync-safe>
         <div class="dump-h-row">
           <h2 class="dump-h" id="dump-new-h">${esc(word('dump_new'))}</h2>
           <div class="save-state" id="dump-save" aria-live="polite" hidden></div>
@@ -110,7 +110,7 @@ export default {
       </section>
       <div class="dump-bar-mark" aria-hidden="true"></div>
       <div class="dump-bar">
-        <input type="search" id="dump-q" class="search" placeholder="${esc(word('ph_dump_search'))}" autocomplete="off">
+        <input type="search" id="dump-q" data-sync-safe class="search" placeholder="${esc(word('ph_dump_search'))}" autocomplete="off">
         <div class="dump-filter" id="dump-filter" role="group" aria-label="Show">
           <button type="button" data-filter="all">All</button>
           ${dumpTypes().map(k => `<button type="button" data-filter="${esc(k.id)}">${esc(k.label)}</button>`).join('')}

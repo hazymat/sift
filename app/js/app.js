@@ -361,13 +361,27 @@ async function boot() {
   import('./sync.js').then(sync => {
     let was = null;
     let wasFiles = null;
+    // Typing somewhere the page would redraw (a note being edited, a task's
+    // title…): the update waits until you leave that box. Boxes the redraw
+    // doesn't touch (the Brain Dump's new-note box, search, anything outside
+    // the page) don't hold it up.
+    const typing = () => {
+      const a = document.activeElement?.closest('input, textarea, [contenteditable]');
+      return !!a && !!a.closest('#main') && !a.closest('[data-sync-safe]');
+    };
+    let waiting = false;
+    const update = () => {
+      if (typing()) { waiting = true; return; }
+      waiting = false;
+      refreshPage().catch(err => console.warn('Refresh after sync failed:', err));
+    };
+    document.addEventListener('focusout', () => setTimeout(() => { if (waiting) update(); }, 50));
     sync.onStatus(st => {
       renderSyncStatus();
-      const typing = document.activeElement?.closest('input, textarea, [contenteditable]');
       // New records, or files that were "still arriving" now here: update the page.
       const records = was === 'syncing' && st.state === 'ok' && st.changed;
       const files = wasFiles === 'syncing' && st.files === 'idle' && st.filesArrived;
-      if ((records || files) && !typing) refreshPage().catch(err => console.warn('Refresh after sync failed:', err));
+      if (records || files) update();
       was = st.state;
       wasFiles = st.files;
     });
