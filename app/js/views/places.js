@@ -6,8 +6,7 @@ import { cogHtml } from '../viewcog.js';
 import { loadTree, search, importCsv, exportCsv, archivedMatchCount, splitQuantity } from '../places.js';
 import { richText, previewLine } from '../richtext.js';
 import { createListKit } from '../listkit.js';
-import { tintHex, tintId, colourMenu, TINTS } from '../colours.js';
-const TINT_LABEL = rec => TINTS.find(c => c.id === tintId(rec)).label;
+import { tintHex, tintId, colourMenu } from '../colours.js';
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import * as att from '../attachments.js';
@@ -273,13 +272,14 @@ export default {
             <span class="tag-list">${(i.tags || []).map(t => `<span class="chip">#${esc(t)} <button type="button" class="chip-x" data-act="remove-tag" data-tag="${esc(t)}" aria-label="Remove tag ${esc(t)}">×</button></span>`).join('')}</span>
             <input class="tag-add no-inline" list="thing-tags" placeholder="+ tag (Enter)" aria-label="Add a tag" autocomplete="off">
           </div></div>
-          <div class="wide thing-colour-row"><span class="field-label">Colour</span><button type="button" class="thing-colour" data-act="thing-colour"><span class="swatch" style="--sw:${tintHex(i)}"></span> ${esc(TINT_LABEL(i))}</button></div>
           <div class="wide"><span class="field-label">Note</span><div class="thing-notes"></div></div>
           <div class="wide">${att.rowHtml(atts.get(i.id))}</div>
         </div>
         <div class="detail-actions">
           <button type="button" class="close-details" data-act="close-item">Close</button>
           <span class="spacer"></span>
+          <button type="button" class="thing-colour" data-act="thing-colour"><span class="swatch" style="--sw:${tintHex(i)}"></span> Colour</button>
+          <button type="button" data-act="archive-item">Archive</button>
           <button type="button" class="danger" data-act="delete-item">Delete</button>
         </div>
       </li>`;
@@ -576,6 +576,9 @@ export default {
           await store.updateMany('items', changes.map(([i]) => [i.id, { name: i.name, quantity: i.quantity ?? null }]));
           await reload();
         });
+      } else if (name === 'archive-item') {
+        if (openItem) { await flushThingNote(); openItem = null; }
+        await batch([target.closest('[data-item]').dataset.item], 'archived_at', 'Archived');
       } else if (name === 'delete-item') {
         if (openItem) { await flushThingNote(); openItem = null; }
         const id = target.closest('[data-item]').dataset.item;

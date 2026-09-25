@@ -152,7 +152,8 @@ export default {
             <div class="detail-actions">
               <button type="button" class="close-details" data-act="close-item">Close</button>
               <span class="spacer"></span>
-              <button type="button" class="danger" data-act="remove">Remove</button>
+              <button type="button" data-act="archive-item">Archive</button>
+              <button type="button" class="danger" data-act="remove">Delete</button>
             </div>
           </li>` : ''}`).join('')}
         </ul>
@@ -361,6 +362,12 @@ export default {
       }
       if (act === 'item-details') return toggleItem(b.closest('li[data-id], li[data-for]').dataset.id || b.closest('li[data-for]').dataset.for);
       if (act === 'close-item') return toggleItem(openItem);
+      if (act === 'archive-item') {
+        const row = b.closest('li[data-id], li[data-for]');
+        const id = row.dataset.id || row.dataset.for;
+        if (openItem === id) { await flushNote(); openItem = null; }
+        return batch([id], { archived_at: new Date().toISOString() }, 'Archived');
+      }
       if (act === 'remove') {
         const row = b.closest('li[data-id], li[data-for]');
         const id = row.dataset.id || row.dataset.for;

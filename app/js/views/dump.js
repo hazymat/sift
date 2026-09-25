@@ -223,11 +223,11 @@ export default {
             <details class="tool-menu share-note note-more">
               <summary role="button" aria-label="More: share, attach, archive, delete" title="Share, attach, archive, delete">⋯</summary>
               <div class="menu">
+                <button type="button" data-act="colour"><span class="swatch" style="--sw:${tintHex(t)}"></span> Colour…</button>
+                <button type="button" data-att-add title="Attach photos, PDFs or text files (or drop them onto the note)">${icon('i-clip')} Attach…</button>
                 <button type="button" data-act="copy-plain">${icon('i-share')} Copy – plain text</button>
                 <button type="button" data-act="copy-rich">${icon('i-share')} Copy – with formatting</button>
                 ${navigator.share ? `<button type="button" data-act="share-sheet">${icon('i-share')} Share…</button>` : ''}
-                <button type="button" data-att-add title="Attach photos, PDFs or text files (or drop them onto the note)">${icon('i-clip')} Attach…</button>
-                <button type="button" data-act="colour"><span class="swatch" style="--sw:${tintHex(t)}"></span> Colour…</button>
                 <hr>
                 <button type="button" data-act="archive">Archive</button>
                 <button type="button" class="danger" data-act="delete">Delete</button>

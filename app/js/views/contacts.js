@@ -20,7 +20,7 @@ import { isoDate } from '../days.js';
 import { createListKit } from '../listkit.js';
 import { askText } from '../ask.js';
 import { word } from '../words.js';
-import { tintHex, colourMenu } from '../colours.js';
+import { tintHex, tintId, colourMenu } from '../colours.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -241,6 +241,7 @@ export default {
           <div class="detail-actions">
             <button type="button" data-act="contact-task">+ Task with this contact</button>
             <span class="spacer"></span>
+            <button type="button" class="thing-colour" data-act="colour-contact"><span class="swatch" style="--sw:${tintHex(c)}"></span> Colour</button>
             <button type="button" data-act="archive-contact">Archive</button>
             <button type="button" class="danger" data-act="delete-contact">Delete</button>
           </div>
@@ -464,6 +465,15 @@ export default {
           const t = await addTask({ title: `Contact ${c.name || 'them'}`, contact_ids: [c.id] });
           toast('Task added', { action: 'Open', onAction: () => go('#/tasks/list') });
           return void t;
+        }
+        if (act === 'colour-contact') {
+          const old = c.colour ?? null;
+          colourMenu(b, tintId(c), async v => {
+            await store.update('contacts', c.id, { colour: v });
+            await render();
+            undoable('Contact colour', async () => { await store.update('contacts', c.id, { colour: old }); await render(); });
+          });
+          return;
         }
         if (act === 'archive-contact' || act === 'delete-contact') {
           const field = act === 'delete-contact' ? 'deleted_at' : 'archived_at';
