@@ -457,6 +457,7 @@ export default {
       el.querySelectorAll('[style*="view-transition-name"]').forEach(n => { n.style.viewTransitionName = ''; });
     }
 
+    this.refresh = () => reload(); // after a sync: fresh data, same box open
     async function reload() {
       tree = await loadTreeA();
       if (openId && !findBox(openId)) openId = null;

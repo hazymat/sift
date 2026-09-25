@@ -38,6 +38,13 @@ function shortDate(iso) {
 
 export default {
   async mount(el) {
+    // Page-wide listeners are tied to this signal and removed in unmount().
+    this.gone?.abort();
+    const gone = this.gone = new AbortController();
+    // Whether a press on the new-task entry is under way (one page-wide listener,
+    // not one per redraw of the list).
+    let pressing = false;
+    addEventListener('pointerup', () => setTimeout(() => { pressing = false; }, 400), { passive: true, signal: gone.signal });
     const state = this.state = { view: 'now', project: null, showDone: false };
     let aimTimeFor = null; // a task whose panel is showing the aim time field
     let data = { tasks: [], projects: [], milestones: [] };
@@ -351,7 +358,8 @@ export default {
 
     // ---------- render ----------
 
-    const render = this.render = async () => {
+    // After a sync the app calls refresh(): redraw from fresh data, keeping what's open.
+    const render = this.render = this.refresh = async () => {
       data = await loadAll();
       people = await loadContacts();
       atts = await att.byParent();
@@ -452,9 +460,7 @@ export default {
       // .open class, not by focus: on an iPhone a tap takes the focus away
       // before it lands, so focus-based showing hid them under your finger.
       entry.addEventListener('focusin', () => entry.classList.add('open'));
-      let pressing = false;
       entry.addEventListener('pointerdown', () => { pressing = true; });
-      addEventListener('pointerup', () => setTimeout(() => { pressing = false; }, 400), { passive: true });
       // Leaving it with nothing typed or set puts the extras away.
       const idle = () => !ta.value.trim() && !noteEl.value.trim() && ![...entry.querySelectorAll('[data-entry]')].some(f => f.value && !(f.dataset.entry === 'horizon' && f.value === defaultList()));
       entry.addEventListener('focusout', () => {
@@ -813,6 +819,7 @@ export default {
     this.kitOrdered?.destroy();
     this.kitPlain?.destroy();
     this.kitFlat?.destroy();
+    this.gone?.abort();
     removeEventListener('keydown', this.onKey);
     document.removeEventListener('pointerdown', this.onPointer, true);
     this.pills?.destroy();

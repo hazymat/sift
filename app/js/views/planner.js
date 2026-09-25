@@ -27,6 +27,12 @@ const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frida
 
 export default {
   async mount(el) {
+    // Page-wide listeners are all tied to this signal and removed in unmount(),
+    // so redrawing the page (after a sync, a words change) doesn't pile them up.
+    this.gone?.abort();
+    const gone = this.gone = new AbortController();
+    const page = { signal: gone.signal };
+    const pageCapture = { capture: true, signal: gone.signal };
     let date = isoDate();
     let settings = await daySettings();
     let items = [];
@@ -172,13 +178,13 @@ export default {
     document.addEventListener('pointerdown', ev => {
       const box = el.isConnected ? energyBox() : null;
       if (box?.classList.contains('editing') && !box.contains(ev.target)) closeEnergy();
-    }, true);
+    }, pageCapture);
     document.addEventListener('pointerdown', ev => {
       if (!editing || !el.isConnected) return;
       const t = ev.target;
       if (t.closest(`.item-details[data-for="${editing}"], [data-item="${editing}"], dialog, .toast, #toasts`)) return;
       closeDetails();
-    }, true);
+    }, pageCapture);
     el.addEventListener('keydown', ev => {
       if (ev.key !== 'Escape' || !editing || ev.defaultPrevented) return;
       ev.preventDefault();
@@ -544,9 +550,8 @@ export default {
     // window changes width: fit again, then put the ▶ back in place.
     const refit = () => { if (!linesEl.isConnected) return; autosizeAll(linesEl); fitSpanBlocks(); placeNowMarker(); };
     document.fonts?.ready.then(refit);
-    removeEventListener('resize', this.onRefit || (() => {}));
     this.onRefit = () => { clearTimeout(this.refitTimer); this.refitTimer = setTimeout(refit, 150); };
-    addEventListener('resize', this.onRefit);
+    addEventListener('resize', this.onRefit, page);
     // A block over several lines grows as its title grows while you type, and
     // when the pills open under it, so nothing spills over the lines around it.
     let refitFrame = 0;
@@ -1031,7 +1036,7 @@ export default {
       if (!el.isConnected || !pileNew.classList.contains('open')) return;
       if (pileNew.contains(ev.target) || ev.target.closest?.('.pill-menu')) return;
       if (newIdle()) { resetNew(); closeNew(); }
-    }, true);
+    }, pageCapture);
     $('.new-pills').addEventListener('click', ev => {
       const d = ev.target.closest('input[type="date"]');
       if (d) { try { d.showPicker(); } catch { /* the tap opens it */ } return; }
@@ -1669,6 +1674,9 @@ export default {
 
     const go = d => { location.hash = `#/planner/${d}`; };
 
+    // After a sync: redraw this day from fresh data, keeping what's open.
+    this.refresh = () => render();
+
     this.show = async d => {
       await flushDayNotes(); // the last few words typed are saved before the page changes
       date = /^\d{4}-\d{2}-\d{2}$/.test(d || '') ? d : isoDate();
@@ -1687,7 +1695,7 @@ export default {
       if (ev.key === 'ArrowRight') go(addDays(date, 1));
       if (ev.key === 't') go(isoDate());
     };
-    addEventListener('keydown', this.onKey);
+    addEventListener('keydown', this.onKey, page);
 
     await render();
   },
@@ -1697,12 +1705,12 @@ export default {
   },
 
   unmount() {
+    this.gone?.abort();
     this.pills?.destroy();
     this.dockWatch?.disconnect();
-    removeEventListener('resize', this.onRefit);
+    this.headWatch?.disconnect();
     clearInterval(this.nowTimer);
     this.bar?.remove();
     document.body.classList.remove('has-select-bar', 'is-dragging');
-    removeEventListener('keydown', this.onKey);
   },
 };

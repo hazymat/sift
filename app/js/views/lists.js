@@ -173,7 +173,8 @@ export default {
     // Tap an item to edit it: More (its note and files) opens under it (js/editpills.js).
     this.pills = editPills(body, { title: '.checklist .task-title', row: '.checklist > li[data-id]', key: r => r.dataset.id, html: () => '', change: () => {} });
     att.enableDrop(el, 'li.list-panel[data-for], ul.checklist > li[data-id]', node => ({ collection: 'list_items', id: node.dataset.for || node.dataset.id }), () => render());
-    const render = this.render = async () => {
+    // After a sync the app calls refresh(): redraw from fresh data, keeping what's open.
+    const render = this.render = this.refresh = async () => {
       data = await loadLists();
       atts = await att.byParent();
       const l = state.id && listOf(state.id);

@@ -43,7 +43,8 @@ export default {
     const body = el.querySelector('#bin-body');
     const q = el.querySelector('#bin-q');
 
-    const render = this.render = async () => {
+    // After a sync the app calls refresh(): redraw from fresh data, keeping what's open.
+    const render = this.render = this.refresh = async () => {
       q.value = state.q;
       for (const b of el.querySelectorAll('#bin-tabs button')) b.setAttribute('aria-pressed', b.dataset.tab === state.tab);
       const providers = binProviders();

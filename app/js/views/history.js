@@ -36,7 +36,8 @@ export default {
       actions: [{ id: 'undo', label: 'Undo', run: ids => run(entries.filter(e => ids.includes(e.id))) }],
     });
 
-    const render = this.render = async () => {
+    // After a sync the app calls refresh(): redraw from fresh data, keeping what's open.
+    const render = this.render = this.refresh = async () => {
       entries = await store.historyList();
       const undone = new Set(entries.flatMap(e => e.undo_of || []));
       const words = q.toLowerCase().split(/\s+/).filter(Boolean);

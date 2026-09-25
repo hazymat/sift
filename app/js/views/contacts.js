@@ -310,7 +310,8 @@ export default {
 
     // ---------- render ----------
 
-    const render = this.render = async () => {
+    // After a sync the app calls refresh(): redraw from fresh data, keeping what's open.
+    const render = this.render = this.refresh = async () => {
       data = await loadContacts();
       for (const b of el.querySelectorAll('[data-tab]')) b.setAttribute('aria-pressed', b.dataset.tab === (state.tab === 'contact' ? '' : state.tab));
       body.innerHTML = state.tab === 'directory' ? viewDirectory()

@@ -342,17 +342,25 @@ async function boot() {
     // (not while you're typing: redrawing the page would take the cursor away)
     if (!location.hash.startsWith('#/settings') && !document.activeElement?.closest('input, textarea, [contenteditable]')) route(true);
   });
+  // Another device's changes arrived: the page you're on is updated in place
+  // (what's open stays open, the page stays where it was scrolled to). Pages
+  // without a refresh() are drawn again.
+  const refreshPage = async () => {
+    const y = scrollY;
+    if (currentView?.refresh) await currentView.refresh(); else await route(true);
+    requestAnimationFrame(() => scrollTo(0, y));
+  };
 
   await route();
   renderSyncStatus();
   import('./install.js').then(m => m.showBanner());
   // Sync: runs in the background once signed in. When another device's
-  // changes arrive, the page you're on is redrawn (unless you're typing).
+  // changes arrive, the page you're on is updated (unless you're typing).
   import('./sync.js').then(sync => {
     let was = null;
     sync.onStatus(st => {
       renderSyncStatus();
-      if (was === 'syncing' && st.state === 'ok' && st.changed && !document.activeElement?.closest('input, textarea, [contenteditable]')) route(true);
+      if (was === 'syncing' && st.state === 'ok' && st.changed && !document.activeElement?.closest('input, textarea, [contenteditable]')) refreshPage().catch(err => console.warn('Refresh after sync failed:', err));
       was = st.state;
     });
     sync.init();

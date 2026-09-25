@@ -148,7 +148,8 @@ export default {
       for (const b of el.querySelectorAll('[data-filter]')) b.setAttribute('aria-pressed', b.dataset.filter === state.filter);
     }
 
-    const render = this.render = async () => {
+    // After a sync the app calls refresh(): redraw from fresh data, keeping what's open.
+    const render = this.render = this.refresh = async () => {
       thoughts = (await store.list('thoughts', { filter: t => !t.archived_at })).sort(byOrder);
       atts = await att.byParent();
       paintCapture();
