@@ -2922,3 +2922,10 @@ html:not(.show-hints) #main:not([data-area="settings"]) .hint { display: none; }
   .c-card .c-details { flex-wrap: wrap; }
   #main[data-density="loose"] .c-list { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Tasks on a phone: all five list tabs fit beside 👁 and ⋯ (smaller, closer);
+   if renamed ones still don't, the row fades at the edge to show it scrolls. */
+@media (max-width: 420px) {
+  #task-views button { font-size: .85rem; padding: 8px 5px 6px !important; }
+}
+#task-views.overflows { -webkit-mask-image: linear-gradient(to right, #000 85%, transparent); mask-image: linear-gradient(to right, #000 85%, transparent); }

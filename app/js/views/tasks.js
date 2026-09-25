@@ -364,6 +364,8 @@ export default {
       people = await loadContacts();
       atts = await att.byParent();
       for (const b of el.querySelectorAll('[data-view]')) b.setAttribute('aria-pressed', b.dataset.view === state.view);
+      const tabs = el.querySelector('#task-views');
+      tabs.classList.toggle('overflows', tabs.scrollWidth > tabs.clientWidth + 1);
       body.innerHTML = { list: viewList, inbox: () => viewHorizon('inbox'), now: () => viewHorizon('now'), next: () => viewHorizon('next'), later: () => viewHorizon('later'), projects: viewProjects, done: viewDone }[state.view]();
       wireEntry();
       const ul = body.querySelector('.task-list');
