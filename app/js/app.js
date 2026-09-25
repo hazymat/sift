@@ -358,10 +358,16 @@ async function boot() {
   // changes arrive, the page you're on is updated (unless you're typing).
   import('./sync.js').then(sync => {
     let was = null;
+    let wasFiles = null;
     sync.onStatus(st => {
       renderSyncStatus();
-      if (was === 'syncing' && st.state === 'ok' && st.changed && !document.activeElement?.closest('input, textarea, [contenteditable]')) refreshPage().catch(err => console.warn('Refresh after sync failed:', err));
+      const typing = document.activeElement?.closest('input, textarea, [contenteditable]');
+      // New records, or files that were "still arriving" now here: update the page.
+      const records = was === 'syncing' && st.state === 'ok' && st.changed;
+      const files = wasFiles === 'syncing' && st.files === 'idle' && st.filesArrived;
+      if ((records || files) && !typing) refreshPage().catch(err => console.warn('Refresh after sync failed:', err));
       was = st.state;
+      wasFiles = st.files;
     });
     sync.init();
   });

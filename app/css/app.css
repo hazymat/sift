@@ -2929,3 +2929,13 @@ html:not(.show-hints) #main:not([data-area="settings"]) .hint { display: none; }
   #task-views button { font-size: .85rem; padding: 8px 5px 6px !important; }
 }
 #task-views.overflows { -webkit-mask-image: linear-gradient(to right, #000 85%, transparent); mask-image: linear-gradient(to right, #000 85%, transparent); }
+
+/* Settings → Sync: what this device knows about being in step. */
+.sync-facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 6px 0 12px; font-size: .9rem; }
+.sync-facts dt { color: var(--muted); }
+.sync-facts dd { margin: 0; }
+.sync-top { margin-top: -6px; }
+#main .sync-code-hint { display: block; }
+/* A file whose details have synced but the file itself hasn't yet. */
+.att.att-arriving { position: relative; opacity: .7; }
+.att-wait { position: absolute; left: 4px; bottom: 4px; z-index: 1; padding: 1px 6px; border-radius: 999px; font-size: .68rem; background: color-mix(in srgb, var(--bg, #000) 70%, transparent); color: var(--text); pointer-events: none; white-space: nowrap; }

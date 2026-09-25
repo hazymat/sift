@@ -21,6 +21,7 @@ export default {
     el.innerHTML = `
       <section class="card" id="install-card">
         <p class="muted app-version">Sift ${versionText()} <button type="button" class="link-btn" data-act="check-update">Check for updates</button></p>
+        <p class="muted sync-top" id="sync-top" hidden></p>
         <h2>Home Screen and your data</h2>
         <div id="install-body"></div>
       </section>
@@ -176,7 +177,50 @@ export default {
       const ago = iso => {
         if (!iso) return 'not yet';
         const s = Math.round((Date.now() - Date.parse(iso)) / 1000);
-        return s < 60 ? 'just now' : s < 3600 ? `${Math.round(s / 60)} min ago` : new Date(iso).toLocaleString();
+        return s < 5 ? 'just now' : s < 60 ? `${s} seconds ago` : s < 3600 ? `${Math.round(s / 60)} min ago` : new Date(iso).toLocaleString();
+      };
+      // In plain words: is this device in step, and can it reach the server?
+      const stateText = st => ({
+        syncing: 'Syncing…',
+        ok: st.pending ? `Waiting to send ${st.pending} change${st.pending === 1 ? '' : 's'}` : 'In step, as far as this device knows',
+        offline: "Can't reach the server (no signal, or it's down). Changes wait here and go when it can be reached.",
+        error: `Couldn't sync: ${st.error}`,
+        idle: 'Waiting to sync…',
+      }[st.state] || '');
+      const reachText = st => (st.state === 'offline' ? `can't reach it${st.reached ? ` (last reached ${ago(st.reached)})` : ''}`
+        : st.reached ? `reached ${ago(st.reached)}` : 'not reached yet');
+      const filesText = st => (st.files === 'error' ? `couldn't sync files: ${st.fileError}`
+        : st.filesWaiting ? `${st.filesWaiting} still to arrive or send${st.files === 'syncing' ? ' (sending now)' : ''}` : 'all here');
+      const factsHtml = st => `
+              <dt>Now</dt><dd>${stateText(st)}</dd>
+              <dt>Waiting to send</dt><dd>${st.pending ? `${st.pending} change${st.pending === 1 ? '' : 's'}` : 'nothing'}</dd>
+              <dt>Last tried</dt><dd>${ago(st.tried)}</dd>
+              <dt>Last finished</dt><dd>${ago(st.last)}${st.last ? ` (${st.received || 0} change${st.received === 1 ? '' : 's'} came in)` : ''}</dd>
+              <dt>Server</dt><dd>${reachText(st)}</dd>
+              <dt>Files</dt><dd>${filesText(st)}</dd>
+              <dt>Data code</dt><dd id="sync-code">${code ? `<b>${code.words}</b> <span class="muted">(${code.records} records)</span>` : '…'}</dd>`;
+      // Only the facts are redrawn as sync moves on (not the forms in the box).
+      let wasSignedIn = null;
+      const paintFacts = st => {
+        const dl = el.querySelector('#sync-line');
+        if (!dl || wasSignedIn !== !!sync.signedIn()) { wasSignedIn = !!sync.signedIn(); return draw().then(paintCode); }
+        dl.innerHTML = factsHtml(st);
+        return paintCode();
+      };
+      // The data code: worked out when Settings is open, at most every few seconds.
+      let code = null;
+      let codeAt = 0;
+      const paintCode = async () => {
+        const out = el.querySelector('#sync-code');
+        if (!out) return;
+        if (!code || Date.now() - codeAt > 4000) { code = await sync.dataCode(); codeAt = Date.now(); }
+        out.innerHTML = `<b>${code.words}</b> <span class="muted">(${code.records} records)</span>`;
+      };
+      const paintTop = st => {
+        const top = el.querySelector('#sync-top');
+        if (!top) return;
+        top.hidden = !sync.signedIn();
+        top.textContent = `Sync: ${st.state === 'ok' && !st.pending ? 'in step' : stateText(st).split('.')[0].toLowerCase()} · last finished ${ago(st.last)}`;
       };
       // Draws can overlap (status changes while one is waiting): only the latest one writes.
       let drawing = 0;
@@ -189,7 +233,8 @@ export default {
         if (acct) {
           box.innerHTML = `
             <p><b>Signed in</b> as ${acct.email} on <code>${acct.server.replace(/^https?:\/\//, '')}</code></p>
-            <p class="muted" id="sync-line">${{ syncing: 'Syncing…', ok: `In sync · last ${ago(st.last)}`, offline: 'Offline: changes wait on this device and sync when the server can be reached', error: `Couldn't sync: ${st.error}`, idle: 'Waiting to sync…' }[st.state] || ''}${st.pending ? ` · ${st.pending} change${st.pending === 1 ? '' : 's'} to send` : ''}</p>
+            <dl class="sync-facts" id="sync-line">${factsHtml(st)}</dl>
+            <p class="muted hint sync-code-hint">Two devices showing the same three words hold the same data. Different words: one of them is still catching up (or can't reach the server).</p>
             <div class="backup-row">
               <button type="button" class="primary" data-sync="now">Sync now</button>
               <button type="button" data-sync="devices">Devices</button>
@@ -293,7 +338,9 @@ export default {
         });
         check();
       };
-      sync.onStatus(() => { if (el.isConnected) draw(); });
+      sync.onStatus(st => { if (el.isConnected) { paintFacts(st); paintTop(st); } });
+      // Keep "… seconds ago" current while Settings is open.
+      this.syncTick = setInterval(() => { if (!el.isConnected) return clearInterval(this.syncTick); if (sync.signedIn()) { paintFacts(sync.status); paintTop(sync.status); } }, 5000);
       box.addEventListener('click', async ev => {
         const b = ev.target.closest('[data-sync]');
         if (!b) return;

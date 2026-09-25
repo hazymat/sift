@@ -73,19 +73,22 @@ export async function byParent() {
   const map = new Map();
   for (const a of (await store.list('attachments')).sort((x, y) => x.created_at.localeCompare(y.created_at))) {
     if (!map.has(a.parent_id)) map.set(a.parent_id, []);
-    map.get(a.parent_id).push(a);
+    // Is the file itself on this device yet? (Its details arrive first; the
+    // file follows through sync, and shows "still arriving" until then.)
+    map.get(a.parent_id).push({ ...a, here: await store.hasBlob(a.blob_id) });
   }
   return map;
 }
 
 export function rowHtml(atts = [], { addButton = true } = {}) {
   const items = atts.map(a => {
-    const label = `${a.name} (${sizeLabel(a.size)})`;
+    const arriving = a.here === false;
+    const label = `${a.name} (${sizeLabel(a.size)})${arriving ? ' — still arriving on this device through sync' : ''}`;
     const asPhoto = a.kind === 'image' && a.thumb;
     const body = asPhoto
       ? `<img src="${a.thumb}" alt="" loading="lazy">`
       : `${icon('i-note')}<span class="att-name">${a.kind === 'pdf' ? 'PDF · ' : ''}${esc(shortName(a.name))}</span>`;
-    return `<span class="att att-${asPhoto ? 'img' : 'file'}">
+    return `<span class="att att-${asPhoto ? 'img' : 'file'}${arriving ? ' att-arriving' : ''}">${arriving ? `<span class="att-wait">still arriving · ${sizeLabel(a.size)}</span>` : ''}
       <button type="button" class="att-open" data-att-open="${a.id}" title="${esc(label)}" aria-label="Open ${esc(a.name)}">${body}</button>
       <button type="button" class="att-x" data-att-remove="${a.id}" title="Remove" aria-label="Remove ${esc(a.name)}">×</button>
     </span>`;

@@ -15,7 +15,11 @@ let account = null;    // { server, email, user_id, token, device_id }
 let running = null;
 let timer = null;
 const listeners = new Set();
-export let status = { state: 'off', pending: 0, last: null, error: null };
+// state: off | idle | syncing | ok | offline | error. last = when the records
+// last finished syncing; tried = when a sync last started; reached = when the
+// server last answered; received = records that came in last time; files =
+// the separate file queue (idle | syncing | error) and how many are waiting.
+export let status = { state: 'off', pending: 0, last: null, tried: null, reached: null, received: 0, files: 'idle', filesWaiting: 0, error: null };
 
 function setStatus(next) {
   status = { ...status, ...next };
@@ -29,6 +33,7 @@ async function api(method, path, body, server = account?.server) {
     headers: { 'Content-Type': 'application/json', ...(account?.token ? { Authorization: `Bearer ${account.token}` } : {}) },
     body: body ? JSON.stringify(body) : undefined,
   });
+  setStatus({ reached: new Date().toISOString() });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
     const err = new Error(json.error || `Server said ${res.status}`);
@@ -227,35 +232,54 @@ export async function downloadFile(a) {
 }
 
 async function pullFiles() {
+  let arrived = 0;
   for (const a of await store.list('attachments')) {
     if (a.size > MAX_AUTO_DOWNLOAD || await store.hasBlob(a.blob_id)) continue;
     await downloadFile(a);
+    arrived++;
+    setStatus({ filesWaiting: Math.max(0, status.filesWaiting - 1) });
   }
+  return arrived;
+}
+// How many files are still to go up or come down to this device.
+async function filesWaiting() {
+  let n = (await store.blobsToUpload()).length;
+  for (const a of await store.list('attachments')) if (a.size <= MAX_AUTO_DOWNLOAD && !await store.hasBlob(a.blob_id)) n++;
+  return n;
 }
 
-async function syncFiles() {
-  try {
-    await pushFiles();
-    await pullFiles();
-  } catch (e) {
-    if (e.status === 401 || e instanceof TypeError) throw e; // signed out, or offline: same handling as records
-    console.warn('Files not synced:', e.message);
-    setStatus({ fileError: e.message });
-    return;
-  }
-  if (status.fileError) setStatus({ fileError: null });
+// Files (photos, PDFs…) go in their own queue after the records, so a big or
+// slow file never holds up the text: new tasks and notes show as soon as
+// they arrive, and a file shows "still arriving" until it's here.
+let filesRunning = null;
+function syncFiles() {
+  if (filesRunning) return filesRunning;
+  filesRunning = (async () => {
+    try {
+      setStatus({ files: 'syncing', filesWaiting: await filesWaiting() });
+      await pushFiles();
+      const arrived = await pullFiles();
+      setStatus({ files: 'idle', fileError: null, filesWaiting: await filesWaiting(), filesArrived: arrived });
+    } catch (e) {
+      console.warn('Files not synced:', e.message);
+      setStatus({ files: 'error', fileError: e.message });
+    } finally {
+      filesRunning = null;
+    }
+  })();
+  return filesRunning;
 }
 
 export async function syncNow() {
   if (!account || !keys) return;
   if (running) return running;
   running = (async () => {
-    setStatus({ state: 'syncing', error: null });
+    setStatus({ state: 'syncing', error: null, tried: new Date().toISOString() });
     try {
       const changed = await pull();
       await push();
-      await syncFiles();
-      setStatus({ state: 'ok', last: new Date().toISOString(), pending: await store.outboxSize(), error: null, changed });
+      setStatus({ state: 'ok', last: new Date().toISOString(), pending: await store.outboxSize(), error: null, changed, received: changed });
+      syncFiles(); // in the background: doesn't hold up the records
     } catch (e) {
       const offline = !navigator.onLine || e instanceof TypeError; // fetch failed: no network, or the server can't be reached
       setStatus({ state: offline ? 'offline' : 'error', error: offline ? null : e.message, pending: await store.outboxSize() });
@@ -297,4 +321,47 @@ async function load() {
   setStatus({ state: 'idle', pending: await store.outboxSize() });
   wire();
   schedule(300);
+}
+
+// ---------- is this device in step? ----------
+
+// A short code for all the records on this device (every record's id and
+// the time each of its fields last changed), shown as three words. Two devices
+// with the same words hold the same data. Device settings and files aren't in
+// it (they differ between devices on purpose).
+const CODE_WORDS = [
+  'apple', 'arrow', 'badge', 'baker', 'bamboo', 'banjo', 'beach', 'beacon', 'berry', 'bison', 'blaze', 'bloom',
+  'bottle', 'bramble', 'breeze', 'brick', 'bridge', 'brook', 'bucket', 'butter', 'cabin', 'cactus', 'camel', 'candle',
+  'canyon', 'carpet', 'castle', 'cedar', 'chalk', 'cherry', 'chimney', 'cinder', 'circus', 'citrus', 'clover', 'cobalt',
+  'comet', 'copper', 'coral', 'cotton', 'cradle', 'crane', 'crater', 'cricket', 'crystal', 'cupboard', 'dagger', 'daisy',
+  'dancer', 'delta', 'desert', 'diamond', 'dolphin', 'dragon', 'drum', 'eagle', 'ember', 'engine', 'falcon', 'feather',
+  'fern', 'fiddle', 'flame', 'flute', 'forest', 'fossil', 'fountain', 'fox', 'galaxy', 'garden', 'garnet', 'ginger',
+  'glacier', 'globe', 'goose', 'granite', 'grape', 'gravel', 'harbour', 'harvest', 'hazel', 'hedge', 'helmet', 'heron',
+  'hollow', 'honey', 'horizon', 'island', 'ivory', 'jacket', 'jasmine', 'jelly', 'jungle', 'kettle', 'kite', 'ladder',
+  'lagoon', 'lantern', 'lemon', 'lily', 'linen', 'lizard', 'lobster', 'magnet', 'mango', 'maple', 'marble', 'meadow',
+  'melon', 'meteor', 'mint', 'mirror', 'monkey', 'moss', 'mountain', 'mushroom', 'needle', 'nest', 'nickel', 'oasis',
+  'ocean', 'olive', 'onion', 'orchard', 'otter', 'oyster', 'paddle', 'palace', 'panda', 'paper', 'parrot', 'pebble',
+  'pepper', 'pickle', 'pigeon', 'pillow', 'pine', 'planet', 'plum', 'pocket', 'pony', 'poppy', 'puddle', 'pumpkin',
+  'quartz', 'quill', 'rabbit', 'radar', 'raven', 'reef', 'ribbon', 'river', 'robin', 'rocket', 'rose', 'ruby',
+  'saddle', 'salmon', 'sandal', 'satin', 'scarf', 'shadow', 'shell', 'shovel', 'silver', 'sketch', 'sledge', 'slipper',
+  'spark', 'sparrow', 'spider', 'spoon', 'spruce', 'squirrel', 'stable', 'star', 'stone', 'storm', 'sugar', 'summit',
+  'sunset', 'swan', 'table', 'tangle', 'temple', 'thistle', 'thunder', 'tiger', 'timber', 'toast', 'topaz', 'torch',
+  'tower', 'trumpet', 'tulip', 'tunnel', 'turtle', 'umbrella', 'valley', 'velvet', 'violet', 'volcano', 'wagon', 'walnut',
+  'walrus', 'wand', 'whale', 'wheat', 'whistle', 'willow', 'window', 'winter', 'wizard', 'wolf', 'yacht', 'zebra',
+  'acorn', 'anchor', 'atlas', 'basket', 'beetle', 'blossom', 'button', 'canoe', 'carrot', 'cello', 'cobweb', 'compass',
+  'cookie', 'dune', 'easel', 'falafel', 'ferry', 'fig', 'goblet', 'hammock', 'igloo', 'jigsaw', 'kayak', 'koala',
+  'lemur', 'locket', 'marsh', 'mitten', 'muffin', 'nutmeg', 'orbit', 'paprika', 'pelican', 'pixel', 'prism', 'quiver',
+  'raisin', 'rhubarb', 'sapphire', 'scooter',
+];
+export async function dataCode() {
+  const parts = [];
+  for (const c of store.COLLECTIONS) {
+    for (const r of await store.list(c, { includeDeleted: true })) {
+      const clocks = r._field_clocks || {};
+      parts.push(`${c}/${r.id}/${Object.keys(clocks).sort().map(k => `${k}=${clocks[k]}`).join(',')}`);
+    }
+  }
+  parts.sort();
+  const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(parts.join('\n'))));
+  return { words: [hash[0], hash[1], hash[2]].map(b => CODE_WORDS[b]).join(' '), records: parts.length };
 }
