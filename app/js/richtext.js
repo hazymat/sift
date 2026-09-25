@@ -520,24 +520,65 @@ export function richText(container, { value = '', onChange, placeholder = '', or
     return text;
   }
 
-  // "- " or "* " typed at the start of a line (not already in a list) → bullet.
+  // "- " or "* " at the start of a line (not already in a list) → bullet, and
+  // "1. " a numbered one. Usually that's just after the space, but the marker
+  // may have arrived with more text in one go (fast typing, a phone keyboard's
+  // suggestion, autocorrect), so any line that starts with one is converted,
+  // keeping the cursor where it was in the text.
   function autoList() {
     const sel = getSelection();
     const node = sel.anchorNode;
     if (!sel.rangeCount || !sel.isCollapsed || node?.nodeType !== Node.TEXT_NODE || !edit.contains(node) || node.parentElement.closest('li')) return;
     const typed = lineBefore(node, sel.anchorOffset);
-    const bullet = /^[-*][ \u00a0]$/.test(typed);
-    const number = !bullet && /^\d{1,3}[.)][ \u00a0]$/.exec(typed);
-    if (!bullet && !number) return;
-    for (let k = 0; k < typed.length; k++) document.execCommand('delete');
-    document.execCommand(number ? 'insertOrderedList' : 'insertUnorderedList');
+    const m = /^(?:([-*])|\d{1,3}[.)])[ \u00a0]/.exec(typed);
+    if (!m) return;
+    const list = m[1] ? 'insertUnorderedList' : 'insertOrderedList';
+    if (typed.length === m[0].length) {
+      for (let k = 0; k < typed.length; k++) document.execCommand('delete');
+      document.execCommand(list);
+      return true;
+    }
+    // More was typed after the marker: only when the marker starts this bit of
+    // text (otherwise it's left for leaving the box, below).
+    if (!node.nodeValue.startsWith(m[0]) || typed.length > sel.anchorOffset) return;
+    const keep = sel.anchorOffset - m[0].length;
+    const r = document.createRange();
+    r.setStart(node, 0);
+    r.setEnd(node, m[0].length);
+    sel.removeAllRanges();
+    sel.addRange(r);
+    document.execCommand('delete');
+    document.execCommand(list);
+    // The cursor is now at the start of the new bullet: back to where it was.
+    const now = getSelection();
+    if (node.isConnected && now.anchorNode === node) now.collapse(node, Math.min(keep, node.nodeValue.length));
+    else for (let k = 0; k < keep; k++) now.modify('move', 'forward', 'character');
     return true;
   }
 
-  // Leaving the box: a "- " line that never became a bullet (however it was typed) does now.
+  // Leaving the box: a "- " line that never became a bullet (however it was
+  // typed, and however deep the browser tucked the line inside others) does
+  // now; so does any styling the browser slipped in (see unstyle).
+  const markerLine = /^([-*]|\d{1,3}[.)])[ \u00a0]/;
+  const lineBlocks = root => [...root.children].flatMap(c => (/^(UL|OL)$/.test(c.tagName) ? []
+    : c.tagName === 'DIV' && [...c.children].some(k => /^(DIV|P|UL|OL)$/.test(k.tagName)) ? lineBlocks(c) : [c]));
   edit.addEventListener('blur', () => {
-    if ([...edit.children].some(c => c.tagName !== 'UL' && c.tagName !== 'OL' && /^([-*]|\d{1,3}[.)])[ \u00a0]/.test(c.textContent))) { md = toMarkdown(edit); paint(); }
+    if (lineBlocks(edit).some(c => markerLine.test(c.textContent)) || edit.querySelector('span[style], font')) { md = toMarkdown(edit); paint(); }
   });
+
+  // The browser sometimes wraps text in its own styling when lines are joined
+  // or moved (e.g. Backspace from a list or a big line into a plain one), which
+  // shows as two text sizes in one note. Sizes are per line, so that styling is
+  // never wanted: it's taken out as you type, keeping the cursor in place.
+  function unstyle() {
+    const odd = edit.querySelectorAll('span[style], font');
+    if (!odd.length) return;
+    const sel = getSelection();
+    const at = sel.rangeCount && edit.contains(sel.anchorNode) ? [sel.anchorNode, sel.anchorOffset] : null;
+    for (const s of odd) s.replaceWith(...s.childNodes);
+    if (at && at[0].isConnected) sel.collapse(at[0], at[1]);
+  }
+  edit.addEventListener('input', () => queueMicrotask(unstyle));
   raw.addEventListener('input', () => changed(raw.value));
 
   // Paste as plain text so web pages don't bring their styling along.
