@@ -238,11 +238,14 @@ function unspotlight(host) {
   beamHost = null;
 }
 
-export function richText(container, { value = '', onChange, placeholder = '', origin = null, spot = true } = {}) {
+// colour: { get() → colour id, set(id) } adds a colour button (the note's own
+// colour, colours.js) at the start of the formatting buttons.
+export function richText(container, { value = '', onChange, placeholder = '', origin = null, spot = true, colour = null } = {}) {
   container.classList.add('rich');
   container.innerHTML = `
     <div class="md-bar" role="toolbar" aria-label="Formatting">
       <button type="button" class="md-full" title="Full screen: just this note" aria-label="Edit full screen">⤢</button>
+      ${colour ? '<button type="button" class="md-colour" title="Note colour" aria-label="Note colour" aria-haspopup="menu"><span class="swatch"></span></button>' : ''}
       <button type="button" class="md-mode" aria-pressed="false" title="Full toolbar: text size">Aa</button>
       <button type="button" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
       <button type="button" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
@@ -584,13 +587,17 @@ export function richText(container, { value = '', onChange, placeholder = '', or
   });
 
   container.querySelector('.md-bar').addEventListener('mousedown', ev => {
-    if (ev.target.closest('[data-cmd], [data-emoji], [data-size], .md-full, .md-make')) ev.preventDefault(); // keep the selection in the editor
+    if (ev.target.closest('[data-cmd], [data-emoji], [data-size], .md-full, .md-make, .md-colour')) ev.preventDefault(); // keep the selection in the editor
   });
   container.querySelector('.md-bar').addEventListener('click', ev => {
     const b = ev.target.closest('button');
     if (!b) return;
     if (b.classList.contains('md-mode')) { setFull(!container.classList.contains('bar-full')); return; }
     if (b.classList.contains('md-make')) { toggleMakeMenu(b); return; }
+    if (b.classList.contains('md-colour')) {
+      import('./colours.js').then(({ colourMenu }) => colourMenu(b, colour.get(), id => { Promise.resolve(colour.set(id)).then(paintColour); }));
+      return;
+    }
     if (b.classList.contains('md-full')) {
       if (isFull(container)) { closeFull({ blur: false }); spotlight(container); edit.focus(); }
       else { unspotlight(container); openFull(container, { label: fullLabel() }); if (!container.contains(document.activeElement)) placeCaretAtEnd(); }
@@ -683,6 +690,13 @@ export function richText(container, { value = '', onChange, placeholder = '', or
     sel.removeAllRanges();
     sel.addRange(r);
   }
+
+  // The colour button shows the note's colour.
+  function paintColour() {
+    const sw = container.querySelector('.md-colour .swatch');
+    if (sw) import('./colours.js').then(({ TINTS }) => { sw.style.setProperty('--sw', TINTS.find(c => c.id === colour.get())?.hex || 'transparent'); });
+  }
+  if (colour) paintColour();
 
   paint();
   return {

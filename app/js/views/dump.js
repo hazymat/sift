@@ -13,6 +13,7 @@ import { SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import { toHtml, richText } from '../richtext.js';
 import { addTaskFirst } from '../tasks.js';
+import { tintHex, tintId, colourMenu } from '../colours.js';
 import { addItem, isoDate, parseTimed, daySettings, durationChoices, durationLabel } from '../days.js';
 import { loadTree } from '../places.js';
 import { contactFromText } from '../contacts.js';
@@ -188,19 +189,16 @@ export default {
       return 'l';
     }
 
-    // Each note has its own soft pastel tint, picked from its id, so it never
-    // changes and is the same on every device.
-    const TINTS = ['#ff9aa2', '#ffb870', '#ffe27a', '#9be7a8', '#8fd3ff', '#b8a6ff', '#f4a6e0'];
-    const tintOf = id => { let h = 5381; for (const ch of String(id)) h = ((h << 5) + h + ch.charCodeAt(0)) >>> 0; return TINTS[h % TINTS.length]; };
-
+    // Each note has its own colour (colours.js), shown when the Look is Multicolour.
     function card(t) {
       const conv = t.converted_to && TARGET[t.converted_to.collection];
       const href = conv && (t.converted_to.collection === 'day_items' ? `#/planner/${t.converted_to.date || ''}` : t.converted_to.collection === 'contacts' ? `#/contacts/c/${t.converted_to.id}` : `#/${conv[1]}`);
       return `
-        <li class="thought size-${sizeOf(t)}${t.converted_to ? ' converted' : ''}${t.pinned ? ' pinned' : ''}${editing === t.id && el.dataset.density === 'tight' ? ' zoomed' : ''}" data-id="${t.id}" style="--tint: ${tintOf(t.id)}">
+        <li class="thought size-${sizeOf(t)}${t.converted_to ? ' converted' : ''}${t.pinned ? ' pinned' : ''}${editing === t.id && el.dataset.density === 'tight' ? ' zoomed' : ''}" data-id="${t.id}" style="--tint: ${tintHex(t)}">
           ${editing === t.id && el.dataset.density === 'tight' ? '<div class="zoom-back">‹ Back to notes <span class="muted">(click anywhere outside the note, or Esc)</span></div>' : ''}
           <div class="thought-head">
             <button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button>
+            <button type="button" class="note-dot" data-act="colour" title="Note colour" aria-label="Note colour"><span class="swatch" style="--sw:${tintHex(t)}"></span></button>
             <select class="kind-select" aria-label="Kind">${[...dumpTypes(), ...(dumpTypes().some(k => k.id === t.kind) || !t.kind ? [] : [{ id: t.kind, label: kindLabel(t.kind) }])].map(k => `<option value="${esc(k.id)}" ${k.id === t.kind ? 'selected' : ''}>${esc(k.label)}</option>`).join('')}</select>
             <span class="muted" title="Edited ${esc(new Date(editedAt(t)).toLocaleString())} · made ${esc(new Date(t.created_at).toLocaleString())}">${ago(editedAt(t))}</span>
             ${conv ? `<a class="chip" href="${href}" data-focus="${t.converted_to.collection}:${t.converted_to.id}">→ ${conv[0]}</a>` : ''}
@@ -224,6 +222,7 @@ export default {
                 <button type="button" data-act="copy-rich">${icon('i-share')} Copy – with formatting</button>
                 ${navigator.share ? `<button type="button" data-act="share-sheet">${icon('i-share')} Share…</button>` : ''}
                 <button type="button" data-att-add title="Attach photos, PDFs or text files (or drop them onto the note)">${icon('i-clip')} Attach…</button>
+                <button type="button" data-act="colour"><span class="swatch" style="--sw:${tintHex(t)}"></span> Colour…</button>
                 <hr>
                 <button type="button" data-act="archive">Archive</button>
                 <button type="button" class="danger" data-act="delete">Delete</button>
@@ -261,6 +260,24 @@ export default {
       await render();
       undoable(`${label} ${ids.length} thought${ids.length === 1 ? '' : 's'}`, async () => { await store.updateMany('thoughts', before); await render(); });
     }
+    // A note's colour: saved on the note (so it stays whatever the Look), shown
+    // at once without redrawing (a note may be open for writing).
+    const paintTint = id => {
+      const t = thoughts.find(x => x.id === id);
+      const li = el.querySelector(`li.thought[data-id="${id}"]`);
+      if (!t || !li) return;
+      li.style.setProperty('--tint', tintHex(t));
+      for (const sw of li.querySelectorAll('.note-dot .swatch, .note-more .swatch')) sw.style.setProperty('--sw', tintHex(t));
+    };
+    async function setColour(ids, colour) {
+      const before = ids.map(id => [id, { colour: thoughts.find(x => x.id === id)?.colour ?? null }]);
+      await store.updateMany('thoughts', ids.map(id => [id, { colour }]));
+      for (const id of ids) { const t = thoughts.find(x => x.id === id); if (t) t.colour = colour; paintTint(id); }
+      undoable(ids.length > 1 ? `Colour of ${ids.length} notes` : 'Note colour', async () => {
+        await store.updateMany('thoughts', before);
+        for (const [id, f] of before) { const t = thoughts.find(x => x.id === id); if (t) t.colour = f.colour; paintTint(id); }
+      });
+    }
     // Dragging cards (hold ⠿, then move) saves the new order. Notes hidden by the
     // filter keep their places among the others.
     async function persistOrder(order) {
@@ -278,6 +295,7 @@ export default {
       onReorder: persistOrder,
       noun: 'thought',
       actions: [
+        { id: 'colour', label: 'Colour…', run: ids => { colourMenu(document.querySelector('[data-kit-action="colour"]'), null, v => setColour(ids, v)); } },
         { id: 'tasks', label: '→ Tasks', run: async ids => {
           const made = [];
           for (const id of ids) {
@@ -403,9 +421,14 @@ export default {
             value: t.body,
             origin: () => ({ collection: 'thoughts', id: t.id, title: t.body.split('\n')[0].slice(0, 60), field: 'body' }),
             onChange: () => { showSaved(line, 'saving'); clearTimeout(timer); timer = setTimeout(flush, 700); },
+            colour: { get: () => tintId(t), set: v => setColour([t.id], v) },
           });
           box._editor.focus();
         }
+      }
+      else if (act === 'colour') {
+        const anchor = b.closest('.note-more')?.querySelector('summary') || b;
+        colourMenu(anchor, tintId(t), v => setColour([t.id], v));
       }
       else if (act === 'pin') {
         await store.update('thoughts', t.id, { pinned: !t.pinned });

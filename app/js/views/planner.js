@@ -3,7 +3,7 @@
 // odd time slotted in as its own line; evening below; a pile for things not
 // yet given a time (fed by the dump box); notes. Calendar popup for any date.
 
-import { spacingHtml } from '../viewcog.js';
+import { spacingHtml, lookHtml } from '../viewcog.js';
 import * as store from '../store.js';
 import {
   daySettings, ENERGY, PAPERS, durationChoices, durationLabel, isoDate, parseDate, addDays, toMin, fromMin, showTime, parseTimed,
@@ -327,7 +327,7 @@ export default {
           ${opt('data-view-layout', 'plan-first', 'Timed plan first', day.layout !== 'tasks-first')}
           ${opt('data-view-layout', 'tasks-first', 'Tasks &amp; notes first', day.layout === 'tasks-first')}
         </div>
-        ${spacingHtml('planner')}`;
+        ${lookHtml('planner')}${spacingHtml('planner')}`;
     }
     $('.view-menu').addEventListener('click', async ev => {
       const b = ev.target.closest('[data-view-paper], [data-view-slot], [data-view-layout]');

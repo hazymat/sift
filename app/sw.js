@@ -12,6 +12,7 @@ const SHELL = [
   'js/store.js',
   'js/sortable.js',
   'js/dropdown.js',
+  'js/colours.js',
   'js/listentry.js',
   'js/toast.js',
   'js/bin.js',

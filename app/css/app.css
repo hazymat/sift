@@ -2830,8 +2830,27 @@ html:not(.show-hints) #main:not([data-area="settings"]) .hint { display: none; }
 @media (min-width: 768px) { .dump-bar { top: 62px; } .dump-bar.stuck { padding-top: 14px; } } /* tucked just under the top bar, no gap */
 @media (max-width: 767px) { .dump-bar { top: 0; } .dump-bar.stuck { padding-top: calc(var(--safe-top) + 8px); } }
 
-/* Brain Dump: each note has its own soft pastel tint over the glass (dump.js tintOf). */
-.thought[style*="--tint"] {
+/* Brain Dump, Look → Multicolour: each note's own soft colour over the glass (colours.js). */
+#main[data-shade="colour"] .thought[style*="--tint"] {
   background: linear-gradient(135deg, color-mix(in srgb, var(--tint) 17%, transparent), color-mix(in srgb, var(--tint) 5%, transparent) 70%), var(--glass);
   border-color: color-mix(in srgb, var(--tint) 32%, var(--glass-border));
 }
+
+/* Colour swatches and the colour picker (colours.js). */
+.swatch { display: inline-block; flex: none; width: 14px; height: 14px; border-radius: 50%; background: var(--sw, transparent); border: 1px solid color-mix(in srgb, var(--text) 35%, transparent); vertical-align: -2px; }
+.pill-menu.colour-menu { flex-wrap: wrap; width: 232px; gap: 4px; padding: 6px; border-radius: 16px; }
+.pill-menu.colour-menu button { padding: 5px; line-height: 0; }
+.pill-menu.colour-menu .swatch { width: 20px; height: 20px; }
+.pill-menu.colour-menu button[aria-checked="true"] .swatch { box-shadow: 0 0 0 2px var(--text); }
+.md-colour { display: inline-grid; place-items: center; }
+
+/* Brain Dump, Look → Alternate shading: every other note a touch darker (or lighter). */
+#main[data-shade="alt"] .thought-list > .thought:nth-child(even) { background: linear-gradient(color-mix(in srgb, var(--text) 7%, transparent), color-mix(in srgb, var(--text) 7%, transparent)), var(--glass); }
+
+/* The note's colour dot in its heading: Loose spacing only, showing under the pointer. */
+.note-dot { display: none; padding: 2px 4px; background: none; border: 0; box-shadow: none; opacity: 0; transition: opacity .12s; cursor: pointer; }
+#main[data-density="loose"] .note-dot { display: inline-flex; align-items: center; }
+.thought:hover .note-dot, .note-dot:focus-visible { opacity: 1; }
+@media (hover: none) { .note-dot { opacity: .7; } }
+/* Full-screen writing: a note in Multicolour keeps its colour as the background. */
+#main[data-shade="colour"] .thought[style*="--tint"] .rich.is-full { background-image: linear-gradient(135deg, color-mix(in srgb, var(--tint) 20%, transparent), color-mix(in srgb, var(--tint) 9%, transparent)); }

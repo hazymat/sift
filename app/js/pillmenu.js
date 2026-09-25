@@ -2,17 +2,18 @@
 // ⚡ ⚡⚡ ⚡⚡⚡ for energy). Picking one calls onPick(value); Esc or clicking
 // elsewhere closes it.
 //
-//   pillMenu(anchorEl, [{ value, label, title?, current? }], onPick)
+//   pillMenu(anchorEl, [{ value, label, title?, current? }], onPick, { focus?, className? })
+//     focus: false leaves the cursor where it is (e.g. in a note being written)
 //   energyMenu(anchorEl, currentEnergy, onPick)   the energy picker used everywhere
 
 import { ENERGY } from './days.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-export function pillMenu(anchor, options, onPick) {
+export function pillMenu(anchor, options, onPick, { focus = true, className = '' } = {}) {
   document.querySelector('.pill-menu')?.remove();
   const menu = document.createElement('div');
-  menu.className = 'pill-menu';
+  menu.className = `pill-menu ${className}`.trim();
   menu.setAttribute('role', 'menu');
   menu.innerHTML = options.map((o, n) => `<button type="button" role="menuitemradio" aria-checked="${!!o.current}" data-n="${n}" title="${esc(o.title || '')}" aria-label="${esc(o.title || o.label)}">${o.label}</button>`).join('');
   document.body.append(menu);
@@ -33,7 +34,7 @@ export function pillMenu(anchor, options, onPick) {
     ev.preventDefault();
     ev.stopPropagation();
     close();
-    anchor.focus();
+    if (focus) anchor.focus();
   };
   addEventListener('pointerdown', outside, true);
   addEventListener('keydown', keys, true);
@@ -44,7 +45,8 @@ export function pillMenu(anchor, options, onPick) {
     close();
     onPick(options[Number(b.dataset.n)].value);
   });
-  (menu.querySelector('[aria-checked="true"]') || menu.querySelector('button'))?.focus();
+  if (!focus) menu.addEventListener('mousedown', ev => ev.preventDefault());
+  else (menu.querySelector('[aria-checked="true"]') || menu.querySelector('button'))?.focus();
   return { close };
 }
 
