@@ -467,6 +467,12 @@ export default {
     }
 
     // `list` lets a drag or resize draw how the day would look before it's saved.
+    // Look → Alternate shading (👁): every other line of the ruled paper is
+    // marked, counting down the page whatever group a line sits in (CSS shades it).
+    function markAlt(root) {
+      [...root.querySelectorAll('.line')].forEach((l, n) => l.classList.toggle('alt-row', n % 2 === 1));
+    }
+
     function renderLines(list = items) {
       const start = toMin(settings.day_start);
       const end = toMin(settings.day_end);
@@ -524,6 +530,7 @@ export default {
       mountNoteEditors();
       autosizeAll(linesEl); // long titles wrap onto more lines…
       fitSpanBlocks();
+      markAlt(linesEl);
       placeNowMarker(); // …so the ▶ is measured after that
     }
 
@@ -622,6 +629,7 @@ export default {
       count.hidden = !all.length;
       count.textContent = `${all.filter(i => i.done_at).length}/${all.length}`;
       autosizeAll($('.pile-paper'));
+      markAlt($('.pile-paper'));
       mountNoteEditors();
     }
 

@@ -2854,3 +2854,13 @@ html:not(.show-hints) #main:not([data-area="settings"]) .hint { display: none; }
 @media (hover: none) { .note-dot { opacity: .7; } }
 /* Full-screen writing: a note in Multicolour keeps its colour as the background. */
 #main[data-shade="colour"] .thought[style*="--tint"] .rich.is-full { background-image: linear-gradient(135deg, color-mix(in srgb, var(--tint) 20%, transparent), color-mix(in srgb, var(--tint) 9%, transparent)); }
+
+/* Look → Alternate shading on ruled paper: every other line a touch darker
+   (or lighter), as an inset shade so the hover and writing shades still show. */
+#main[data-shade="alt"] .task-list > li[data-task]:nth-child(even of li[data-task]),
+#main[data-shade="alt"] .planner .line.alt-row { box-shadow: inset 0 0 0 999px color-mix(in srgb, var(--text) 4.5%, transparent); }
+#main[data-shade="alt"] #notes :is(.rich-edit, .rich-raw) {
+  background-image:
+    repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--note-line) - 1px), var(--rule) calc(var(--note-line) - 1px), var(--rule) var(--note-line)),
+    repeating-linear-gradient(to bottom, transparent 0, transparent var(--note-line), color-mix(in srgb, var(--text) 4.5%, transparent) var(--note-line), color-mix(in srgb, var(--text) 4.5%, transparent) calc(var(--note-line) * 2));
+}
