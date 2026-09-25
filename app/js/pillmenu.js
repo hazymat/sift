@@ -20,7 +20,11 @@ export function pillMenu(anchor, options, onPick, { focus = true, className = ''
 
   const r = anchor.getBoundingClientRect();
   menu.style.left = `${Math.max(8, Math.min(r.left, innerWidth - menu.offsetWidth - 8))}px`;
-  menu.style.top = `${r.bottom + 4}px`;
+  // Under the anchor, or above it when there's no room below (e.g. from the
+  // selection bar at the bottom of the screen).
+  const below = r.bottom + 4;
+  const room = (visualViewport?.height ?? innerHeight) - 8;
+  menu.style.top = `${below + menu.offsetHeight <= room ? below : Math.max(8, r.top - 4 - menu.offsetHeight)}px`;
 
   const close = () => {
     menu.remove();
