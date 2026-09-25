@@ -6,6 +6,8 @@ import { cogHtml } from '../viewcog.js';
 import { loadTree, search, importCsv, exportCsv, archivedMatchCount, splitQuantity } from '../places.js';
 import { richText, previewLine } from '../richtext.js';
 import { createListKit } from '../listkit.js';
+import { tintHex, tintId, colourMenu, TINTS } from '../colours.js';
+const TINT_LABEL = rec => TINTS.find(c => c.id === tintId(rec)).label;
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import * as att from '../attachments.js';
@@ -101,7 +103,7 @@ export default {
     // clipped to a few lines and fitPills() fills in "+ n more".
     function card(box, { path, highlight } = {}) {
       const items = highlight ?? box.items;
-      return `<div class="box-card${box.label_code ? '' : ' no-code'}" data-box="${box.id}" role="button" tabindex="0" aria-label="${esc(box.label_code ? `${box.label_code} ${box.name}` : box.name)}">
+      return `<div class="box-card${box.label_code ? '' : ' no-code'}" data-box="${box.id}" style="--tint: ${tintHex(box)}" role="button" tabindex="0" aria-label="${esc(box.label_code ? `${box.label_code} ${box.name}` : box.name)}">
         ${path ? `<span class="box-path">${esc(path)}</span>` : ''}
         <span class="box-head">
           ${box.label_code ? `<span class="box-code">${esc(box.label_code)}</span>` : ''}
@@ -197,8 +199,9 @@ export default {
           <input type="search" id="box-q" class="search" placeholder="${esc(word('ph_find_box_search'))}" value="${esc(query)}" autocomplete="off" enterkeyhint="search">
           <span class="muted box-hits" aria-live="polite"></span>
         </div>
-        <article class="box-page">
+        <article class="box-page" style="--tint: ${tintHex(b)}">
           <header class="box-page-head">
+            <button type="button" class="note-dot box-colour" data-act="box-colour" title="Box colour" aria-label="Box colour"><span class="swatch" style="--sw:${tintHex(b)}"></span></button>
             <input class="box-code-input" name="label_code" value="${esc(b.label_code)}" placeholder="Label" aria-label="Label (what is written on it, e.g. A1)" title="Label: what is written on it, e.g. A1" autocomplete="off">
             <input class="box-name-input" name="name" value="${esc(b.name)}" placeholder="Box name" aria-label="Name" autocomplete="off">
           </header>
@@ -208,7 +211,7 @@ export default {
           </div>
           <h3>Contents <span class="muted">${b.items.length}</span></h3>
           <ul class="item-list">${b.items.map(i => `
-            <li data-id="${i.id}" data-item="${i.id}" data-depth="${i.depth}">
+            <li data-id="${i.id}" data-item="${i.id}" data-depth="${i.depth}" style="--tint: ${tintHex(i)}">
               <button type="button" class="drag-handle thing-grip" aria-label="Select or move ${esc(i.name)}" title="Tap to select, hold to drag">${icon('i-places')}</button>
               <input name="name" value="${esc(i.name)}" aria-label="Item">
               ${i.quantity ? `<span class="span-tag qty" title="Quantity">×${i.quantity}</span>` : ''}
@@ -270,6 +273,7 @@ export default {
             <span class="tag-list">${(i.tags || []).map(t => `<span class="chip">#${esc(t)} <button type="button" class="chip-x" data-act="remove-tag" data-tag="${esc(t)}" aria-label="Remove tag ${esc(t)}">×</button></span>`).join('')}</span>
             <input class="tag-add no-inline" list="thing-tags" placeholder="+ tag (Enter)" aria-label="Add a tag" autocomplete="off">
           </div></div>
+          <div class="wide thing-colour-row"><span class="field-label">Colour</span><button type="button" class="thing-colour" data-act="thing-colour"><span class="swatch" style="--sw:${tintHex(i)}"></span> ${esc(TINT_LABEL(i))}</button></div>
           <div class="wide"><span class="field-label">Note</span><div class="thing-notes"></div></div>
           <div class="wide">${att.rowHtml(atts.get(i.id))}</div>
         </div>
@@ -414,6 +418,7 @@ export default {
       noun: 'item',
       onReorder: (rows, label) => persistOrder(rows, label),
       actions: [
+        { id: 'colour', label: 'Colour…', run: ids => { colourMenu(document.querySelector('[data-kit-action="colour"]'), null, v => setColour('items', ids, v)); } },
         { id: 'archive', label: 'Archive', run: ids => batch(ids, 'archived_at', 'Archived') },
         { id: 'delete', label: 'Delete', danger: true, run: ids => batch(ids, 'deleted_at', 'Removed') },
       ],
@@ -513,6 +518,15 @@ export default {
 
     // ---------- actions ----------
 
+    // A box's or thing's colour (colours.js): kept on it whatever the Look,
+    // shown in Multicolour (👁 → Look).
+    async function setColour(collection, ids, colour) {
+      const before = await Promise.all(ids.map(async id => [id, { colour: (await store.get(collection, id))?.colour ?? null }]));
+      await store.updateMany(collection, ids.map(id => [id, { colour }]));
+      await reload();
+      undoable(ids.length > 1 ? `Colour of ${ids.length} things` : 'Colour changed', async () => { await store.updateMany(collection, before); await reload(); });
+    }
+
     async function act(name, target) {
       const current = edition();
       if (name === 'back') {
@@ -533,6 +547,13 @@ export default {
         await toggleThing(target.closest('[data-item]').dataset.item);
       } else if (name === 'close-item') {
         await toggleThing(openItem);
+      } else if (name === 'box-colour') {
+        const { b: box } = findBox(openId);
+        colourMenu(target, tintId(box), v => setColour('places', [box.id], v));
+      } else if (name === 'thing-colour') {
+        const id = target.closest('[data-item]').dataset.item;
+        const it = findBox(openId)?.b.items.find(x => x.id === id);
+        colourMenu(target, tintId(it), v => setColour('items', [id], v));
       } else if (name === 'remove-tag') {
         const id = target.closest('[data-item]').dataset.item;
         const it = findBox(openId)?.b.items.find(x => x.id === id);
