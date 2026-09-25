@@ -171,9 +171,13 @@ export default {
       const title = t.title || titleFrom(t.body);
       const lines = t.body.split('\n');
       const firstAt = lines.findIndex(l => l.trim());
-      // Only when the title is the whole first line is that line left out below.
-      const whole = cleanLine(lines[firstAt] || '').toLowerCase() === title.toLowerCase();
-      const rest = whole ? lines.slice(firstAt + 1).join('\n') : t.body;
+      // The title is how the first line starts (often its first sentence): below
+      // it, the note carries on from where the title stops, so nothing shows twice.
+      const first = cleanLine(lines[firstAt] || '');
+      const head = title.replace(/…$/, '').trim();
+      const starts = head && first.toLowerCase().startsWith(head.toLowerCase());
+      const after = starts ? first.slice(head.length).replace(/^[\s.,:;!?–—-]+/, '') : '';
+      const rest = starts ? [after, ...lines.slice(firstAt + 1)].join('\n') : t.body;
       // Compact spacing shows the whole note run together, filling its square (CSS picks).
       const flat = t.body.split('\n').map(l => cleanLine(l).replace(/\*\*|~~/g, '')).filter(Boolean).join(' ');
       return `<div class="thought-body hand" data-act="edit"><div class="thought-title">${esc(title)}</div>${rest.trim() ? toHtml(rest) : ''}<div class="thought-flat">${esc(flat)}</div></div>`;
