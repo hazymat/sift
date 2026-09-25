@@ -3,13 +3,14 @@ import { labelHistory } from './store.js';
 // Brief message pill above the tab bar.
 //   toast('✓ Saved')
 //   toast('Removed "Jumpers"', { action: 'Undo', onAction: () => … })
+//   toast(…, { action, onAction, more: { label, onAction } })   a second button
 // With an action it stays a little longer (like "Undo send") and the button
 // runs once, then the toast goes.
 
 let el = null;
 let timer = null;
 
-export function toast(message, { action, onAction, ms = action ? 6000 : 1600 } = {}) {
+export function toast(message, { action, onAction, more, ms = action ? 6000 : 1600 } = {}) {
   if (!el) {
     el = document.createElement('div');
     el.className = 'toast';
@@ -26,6 +27,14 @@ export function toast(message, { action, onAction, ms = action ? 6000 : 1600 } =
     }, { once: true });
     el.append(btn);
   }
+  if (more) {
+    const btn = Object.assign(document.createElement('button'), { type: 'button', textContent: more.label });
+    btn.addEventListener('click', async () => {
+      hide();
+      await more.onAction?.();
+    }, { once: true });
+    el.append(btn);
+  }
   el.classList.toggle('has-action', !!action);
   el.classList.add('show');
   clearTimeout(timer);
@@ -39,9 +48,10 @@ function hide() {
 
 // Show an undo toast for a change that has just been made. The change is
 // also named in History under the same message.
-export function undoable(message, undo) {
+export function undoable(message, undo, { more } = {}) {
   labelHistory(message);
   toast(message, {
+    more,
     action: 'Undo',
     onAction: async () => {
       await undo();

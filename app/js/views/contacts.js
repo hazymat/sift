@@ -175,12 +175,15 @@ export default {
       };
     }
 
-    function logForm(prefix) {
+    // openTasks: the contact's open tasks; when there are any, the log can also
+    // go on one of them as a comment (js/comments.js).
+    function logForm(prefix, openTasks = []) {
       return `
         <div class="log-form" data-log-form="${prefix}">
           <select name="how">${HOW.map(h => `<option value="${h.id}">${h.icon} ${h.label}</option>`).join('')}</select>
           <select name="direction"><option value="out">I contacted them</option><option value="in">They contacted me</option></select>
           <input name="summary" placeholder="${esc(word('ph_log_what'))}" autocomplete="off">
+          ${openTasks.length ? `<select name="task_id" aria-label="Also a comment on a task"><option value="">Not about a task</option>${openTasks.map(t => `<option value="${t.id}">💬 ${esc(t.title)}</option>`).join('')}</select>` : ''}
           <button type="button" data-act="log-${prefix}">Log it</button>
         </div>`;
     }
@@ -230,7 +233,7 @@ export default {
           <h3 class="milestone">Notes</h3>
           <div id="c-notes"></div>
           <h3 class="milestone">Log</h3>
-          ${logForm('contact')}
+          ${logForm('contact', tasks.filter(t => !t.done_at))}
           <ul class="timeline">${timeline.map(e => `<li class="${e.kind}"><span class="muted">${when(e.at)}</span> ${esc(e.text)}</li>`).join('')}</ul>
           ${cases.length || tasks.length || dayItems.length || mentions.length ? `<h3 class="milestone">Connected</h3><ul class="links">
             ${cases.map(k => `<li><a href="#/contacts/cases/${k.id}">Case: ${esc(k.title)}</a></li>`).join('')}
@@ -271,10 +274,14 @@ export default {
       const notes = await store.list('case_notes', { filter: n => n.case_id === k.id });
       const tasks = await store.list('tasks', { filter: t => t.case_id === k.id && !t.archived_at });
       const scans = await store.list('scans', { filter: s => s.linked?.collection === 'cases' && s.linked.id === k.id });
+      // Comments on the case's tasks (js/comments.js), each under its task's name.
+      const taskIds = new Map(tasks.map(t => [t.id, t]));
+      const comments = await store.list('comments', { filter: c => taskIds.has(c.task_id) });
       const events = [
         ...log.map(i => ({ at: i.at, type: 'log', html: `${HOW.find(h => h.id === i.how)?.icon || ''} <b>${i.direction === 'in' ? 'In' : 'Out'}</b>${i.contact_id ? ` · ${esc(byId(i.contact_id)?.name || '')}` : ''}${i.detail_used ? ` · ${esc(i.detail_used)}` : ''}${i.summary ? `: ${esc(i.summary)}` : ''}` })),
         ...notes.map(n => ({ at: n.at, type: 'note', html: `✎ ${esc(n.body)}` })),
         ...tasks.map(t => ({ at: t.created_at, type: 'task', html: `☐ Task: <a href="#/tasks/list">${esc(t.title)}</a>${t.done_at ? ' (done)' : ''}` })),
+        ...comments.map(c => ({ at: c.at, type: 'comment', html: `💬 <a href="#/tasks/list">${esc(taskIds.get(c.task_id).title)}</a>: ${esc(c.body || "📎")}` })),
         ...scans.map(sc => ({ at: sc.letter_date || sc.created_at, type: 'letter', html: `📄 ${esc(sc.title)}${sc.summary ? `: ${esc(sc.summary)}` : ''}` })),
       ].sort((a, b) => b.at.localeCompare(a.at));
       return `
@@ -456,9 +463,13 @@ export default {
         if (act === 'del-detail') { const n = Number(b.closest('[data-n]').dataset.n); return updateContact(c.id, { details: c.details.filter((_, i) => i !== n) }, 'Removed'); }
         if (act === 'log-contact') {
           const f = b.closest('.log-form');
-          const made = await logInteraction({ contact_id: c.id, how: f.querySelector('[name="how"]').value, direction: f.querySelector('[name="direction"]').value, summary: f.querySelector('[name="summary"]').value.trim() });
+          const taskId = f.querySelector('[name="task_id"]')?.value || null;
+          const made = await logInteraction({ contact_id: c.id, how: f.querySelector('[name="how"]').value, direction: f.querySelector('[name="direction"]').value, summary: f.querySelector('[name="summary"]').value.trim(), task_id: taskId });
+          // On a task too: a comment in words ("I called Sam: left a message").
+          const how = made.how === 'call' ? 'called' : made.how === 'email' ? 'emailed' : made.how === 'text' ? 'texted' : made.how;
+          const said = taskId && await store.create('comments', { task_id: taskId, at: made.at, body: `${HOW.find(h => h.id === made.how)?.icon || ''} ${made.direction === 'in' ? `${c.name || 'They'} ${how} me` : `I ${how} ${c.name || 'them'}`}${made.summary ? `: ${made.summary}` : ''}`.trim(), from_interaction_id: made.id });
           await render();
-          undoable('Logged', async () => { await store.remove('interactions', made.id); render(); });
+          undoable(said ? 'Logged, and on the task' : 'Logged', async () => { await store.remove('interactions', made.id); if (said) await store.remove('comments', said.id); render(); });
           return;
         }
         if (act === 'contact-task') {

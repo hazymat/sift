@@ -7,6 +7,7 @@
 //   addFiles({ collection, id }, files) → the new records (other kinds of file are skipped)
 //   enableDrop(root, selector, parentOf, done) → drop files onto matching elements
 //   onClick(ev, parentOf, done)        → handles the row's buttons; true if it did
+//   pick(parent, done)                 → the file chooser, then attach
 //
 // Rows are plain HTML, so a view just re-renders in `done()`.
 
@@ -124,7 +125,7 @@ function afterAdd(made, done) {
 }
 
 let picker = null;
-function pick(parent, done) {
+export function pick(parent, done) {
   picker?.remove();
   picker = document.createElement('input');
   Object.assign(picker, { type: 'file', multiple: true, accept: ACCEPT, hidden: true });

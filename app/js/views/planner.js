@@ -22,7 +22,7 @@ import { energyMenu } from '../pillmenu.js';
 import { byRank, rankOf, reorderWrites, lastKey } from '../order.js';
 import { askYes } from '../ask.js';
 import { word } from '../words.js';
-import { commentsHtml, mountComments, moveComments } from '../comments.js';
+import { commentsHtml, mountComments, moveComments, closingComment } from '../comments.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -436,7 +436,7 @@ export default {
         if (!it) continue;
         box._editor = richText(box, { value: it.notes || '', origin: () => ({ collection: 'day_items', id: it.id, title: it.title, field: 'notes' }) });
       }
-      mountComments(el);
+      mountComments(el, refresh);
     }
 
     function details(i) {
@@ -811,12 +811,12 @@ export default {
       },
     });
 
-    async function change(id, fields, label = 'Saved') {
+    async function change(id, fields, label = 'Saved', opts) {
       const before = await store.get('day_items', id);
       const old = Object.fromEntries(Object.keys(fields).map(k => [k, before[k] ?? null]));
       await store.update('day_items', id, fields);
       await refresh();
-      undoable(label, async () => { await store.update('day_items', id, old); await refresh(); });
+      undoable(label, async () => { await store.update('day_items', id, old); await refresh(); }, opts);
     }
 
     // Inline input on an empty line: Enter adds an item at that time.
@@ -951,10 +951,12 @@ export default {
         const taskId = t.closest('[data-task]').dataset.task;
         await store.update('tasks', taskId, doneFields(t.checked));
         renderTasks();
-        undoable(t.checked ? 'Task done' : 'Task not done', async () => { await store.update('tasks', taskId, doneFields(!t.checked)); renderTasks(); });
+        undoable(t.checked ? 'Task done' : 'Task not done', async () => { await store.update('tasks', taskId, doneFields(!t.checked)); renderTasks(); }, t.checked ? { more: closingComment({ task_id: taskId }) } : undefined);
       } else if (t.classList.contains('tick') && id) {
         // A plan item that came from a task ticks the task too (js/link.js).
-        await change(id, { done_at: t.checked ? new Date().toISOString() : null }, t.checked ? 'Done' : 'Not done');
+        const it = items.find(i => i.id === id);
+        await change(id, { done_at: t.checked ? new Date().toISOString() : null }, t.checked ? 'Done' : 'Not done',
+          t.checked && it ? { more: closingComment(it.task_id ? { task_id: it.task_id } : { item_id: it.id }) } : undefined);
       } else if (t.classList.contains('item-title') && id) {
         if (t.value.trim()) await change(id, { title: t.value.trim() });
       } else if (t.classList.contains('margin-time')) {

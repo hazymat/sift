@@ -30,7 +30,7 @@ const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></s
 // labels to filter by: none of them changes what the app does. A note whose
 // type was removed keeps it, and shows it by its id until you pick another.
 const kindLabel = id => dumpTypes().find(k => k.id === id)?.label || (id ? id.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase()) : dumpTypes()[0]?.label || 'Thought');
-const TARGET = { tasks: ['Task', 'tasks/list'], day_items: ['Day plan', 'planner'], items: ['Find Things', 'find-things'], contacts: ['Contact', 'contacts'] };
+const TARGET = { tasks: ['Task', 'tasks/list'], day_items: ['Day plan', 'planner'], items: ['Find Things', 'find-things'], contacts: ['Contact', 'contacts'], comments: ['Comment on a task', 'tasks/list'] };
 
 function ago(iso) {
   const mins = Math.round((Date.now() - Date.parse(iso)) / 60000);
@@ -228,6 +228,7 @@ export default {
               <summary role="button" aria-label="More: share, attach, archive, delete" title="Share, attach, archive, delete">⋯</summary>
               <div class="menu">
                 <button type="button" data-act="colour"><span class="swatch" style="--sw:${tintHex(t)}"></span> Colour…</button>
+                <button type="button" data-act="comment" title="Add this note to a task, as a dated comment">💬 Add to a task…</button>
                 <button type="button" data-att-add title="Attach photos, PDFs or text files (or drop them onto the note)">${icon('i-clip')} Attach…</button>
                 <button type="button" data-act="copy-plain">${icon('i-share')} Copy – plain text</button>
                 <button type="button" data-act="copy-rich">${icon('i-share')} Copy – with formatting</button>
@@ -243,6 +244,7 @@ export default {
     }
 
     let boxes = [];
+    let openTasks = [];
     let maxDuration = 240;
     daySettings().then(d => { maxDuration = d.duration_max_min; });
     function panelHtml(t) {
@@ -253,6 +255,12 @@ export default {
           <label>Time (optional)<input type="time" name="plan_time" value="${p.time || ''}"></label>
           <label>Estimated time<select name="plan_est"><option value="">Not estimated</option><option value="unsure">Not sure yet</option>${durationChoices(maxDuration).map(m => `<option value="${m}">${durationLabel(m)}</option>`).join('')}</select></label>
           <button type="button" class="primary" data-act="plan-go">Add to the day</button>
+        </div>`;
+      }
+      if (panel.type === 'comment') {
+        return `<div class="thought-panel">
+          <label class="wide">Task<select name="comment_task">${openTasks.map(x => `<option value="${x.id}">${esc(x.title)}</option>`).join('')}</select></label>
+          <button type="button" class="primary" data-act="comment-go">Add as a comment</button>
         </div>`;
       }
       return `<div class="thought-panel">
@@ -478,6 +486,16 @@ export default {
         const parsed = parseTimed(t.body.split('\n')[0]);
         const item = await addItem(date, { title: parsed.title.slice(0, 200), time: time || parsed.time, end_time: parsed.end_time, estimate_min: est, estimate_unsure: estRaw === 'unsure', source_thought_id: t.id });
         await convert(t, { collection: 'day_items', id: item.id, date }, `On the plan for ${date === isoDate() ? 'today' : date}`);
+      } else if (act === 'comment') {
+        li.querySelector('details.note-more')?.removeAttribute('open');
+        openTasks = (await store.list('tasks', { filter: x => !x.done_at && !x.archived_at })).sort((a, b) => a.title.localeCompare(b.title));
+        if (!openTasks.length) { toast('No open tasks to add it to'); return; }
+        panel = panel?.id === t.id && panel.type === act ? null : { id: t.id, type: act };
+        render();
+      } else if (act === 'comment-go') {
+        const taskId = li.querySelector('[name="comment_task"]').value;
+        const made = await store.create('comments', { task_id: taskId, at: new Date().toISOString(), body: t.body.trim(), from_thought_id: t.id });
+        await convert(t, { collection: 'comments', id: made.id }, `Added to "${openTasks.find(x => x.id === taskId)?.title || 'the task'}" as a comment`);
       } else if (act === 'store-go') {
         const boxId = li.querySelector('[name="box"]').value;
         const count = (await store.list('items', { filter: i => i.place_id === boxId })).length;

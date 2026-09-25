@@ -2959,3 +2959,10 @@ html:not(.show-hints) #main:not([data-area="settings"]) .hint { display: none; }
 .comment-add::placeholder { color: var(--muted); opacity: .8; }
 .comment-add:focus, .comment-edit:focus { outline: none; background: color-mix(in srgb, var(--text) var(--line-lit), transparent); }
 @media (max-width: 700px) { .comment { grid-template-columns: 1fr auto; } .comment-when { grid-column: 1; } .comment-body { grid-column: 1 / -1; grid-row: 2; } .comment-more { grid-column: 2; grid-row: 1; } }
+.comment-marks { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 2px; }
+.comment-mark { font-size: .78rem; color: var(--muted); text-decoration: none; }
+a.comment-mark:hover { color: var(--text); }
+.comment-mark.due { color: var(--accent, #f5a66a); }
+.comment-body .att-row { margin-top: 4px; }
+.comment-pending { font-size: .78rem; padding: 2px 6px; }
+.comments.drop-over, .comment.drop-over { outline: 2px dashed var(--muted); }

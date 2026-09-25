@@ -19,7 +19,7 @@ import * as att from '../attachments.js';
 import { editPills, selectPill, datePill, energyPill } from '../editpills.js';
 import { ask, askText } from '../ask.js';
 import { word } from '../words.js';
-import { commentsHtml, mountComments } from '../comments.js';
+import { commentsHtml, mountComments, closingComment } from '../comments.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -383,7 +383,7 @@ export default {
       kitOrdered.attach(ordered ? ul : null);
       kitFlat.attach(flatOrder ? ul : null);
       kitPlain.attach(ordered || flatOrder ? null : ul);
-      mountComments(body);
+      mountComments(body, render);
       const notesBox = body.querySelector('.task-notes');
       if (notesBox && open) {
         const id = open;
@@ -596,12 +596,12 @@ export default {
 
         // ---------- editing ----------
 
-    async function change(id, fields, label = 'Saved') {
+    async function change(id, fields, label = 'Saved', opts) {
       const before = data.tasks.find(t => t.id === id);
       const old = Object.fromEntries(Object.keys(fields).map(k => [k, before?.[k] ?? null]));
       await store.update('tasks', id, fields);
       await render();
-      undoable(label, async () => { await store.update('tasks', id, old); await render(); });
+      undoable(label, async () => { await store.update('tasks', id, old); await render(); }, opts);
     }
 
     async function newProject() {
@@ -628,7 +628,7 @@ export default {
       if (!id) return;
       const task = data.tasks.find(x => x.id === id);
       if (t.classList.contains('tick')) {
-        await change(id, doneFields(t.checked), t.checked ? `Done: ${task.title}` : 'Not done');
+        await change(id, doneFields(t.checked), t.checked ? `Done: ${task.title}` : 'Not done', t.checked ? { more: closingComment({ task_id: id }) } : undefined);
       } else if (t.classList.contains('task-title')) {
         if (t.value.trim() && t.value.trim() !== task.title) await change(id, { title: t.value.trim() });
       } else if (t.name === 'aim_date' || t.name === 'aim_time') {
