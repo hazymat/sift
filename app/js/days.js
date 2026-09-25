@@ -2,6 +2,7 @@
 // the date so every device edits the same record) and `day_items`.
 
 import * as store from './store.js';
+import { byRank } from './order.js';
 
 export const DAY_DEFAULTS = {
   day_start: '08:00',
@@ -116,7 +117,8 @@ export function saveDay(date, fields) {
   return next;
 }
 
-const byTime = (a, b) => (a.time || '99:99').localeCompare(b.time || '99:99') || (a.sort_order ?? 0) - (b.sort_order ?? 0);
+const byPlace = byRank();
+const byTime = (a, b) => (a.time || '99:99').localeCompare(b.time || '99:99') || byPlace(a, b);
 
 export async function itemsFor(date) {
   return (await store.list('day_items', { filter: i => i.date === date && !i.archived_at })).sort(byTime);

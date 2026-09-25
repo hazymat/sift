@@ -19,6 +19,7 @@ import { loadAll as loadTasks, forDay, suggestions, doneFields, aimDate, addTask
 import * as att from '../attachments.js';
 import { editPills, selectPill, energyPill } from '../editpills.js';
 import { energyMenu } from '../pillmenu.js';
+import { byRank, rankOf, reorderWrites, lastKey } from '../order.js';
 import { askYes } from '../ask.js';
 import { word } from '../words.js';
 
@@ -615,7 +616,7 @@ export default {
     // away under "Done (n)". While dragging over the list, a gap opens where
     // the item would land and the others shuffle round it.
     let doneOpen = false;
-    const pileOrder = (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0);
+    const pileOrder = byRank(); // order.js: merges cleanly across devices
     function renderPile(gapAt = null) {
       const all = items.filter(i => !i.time);
       const todo = all.filter(i => !i.done_at && !lifted.has(i.id)).sort(pileOrder);
@@ -1063,8 +1064,7 @@ export default {
       const p = parseTimed(text);
       const { title, notes: longText } = summarise(p.title); // long ones: short title, full text in the note
       const notes = [longText, $('#dump-note').value.trim()].filter(Boolean).join('\n\n');
-      const last = items.filter(i => !i.time).reduce((m, i) => Math.max(m, i.sort_order ?? 0), -1);
-      const made = await addItem(date, { title, notes, time: p.time, end_time: p.end_time, sort_order: last + 1, energy: draft.energy, estimate_min: draft.estimate_min });
+      const made = await addItem(date, { title, notes, time: p.time, end_time: p.end_time, rank: lastKey(items.filter(i => !i.time)), energy: draft.energy, estimate_min: draft.estimate_min });
       resetNew();
       if (open) { closeNew(); input.blur(); editing = made.id; }
       await refresh();
@@ -1208,18 +1208,20 @@ export default {
       return out;
     }
 
-    // Dropped into the tasks at `index`: no time, and the list renumbered.
+    // Dropped into the tasks at `index`: no time, and a new place (order.js)
+    // for just the dropped items.
     function pileChanges(index) {
       const rest = items.filter(i => !i.time && !i.done_at && !press.ids.includes(i.id)).sort(pileOrder);
       const carried = press.ids.map(id => items.find(i => i.id === id)).filter(Boolean);
       const order = [...rest.slice(0, index), ...carried, ...rest.slice(index)];
+      const places = new Map(reorderWrites(order, i => rankOf(i), press.ids).map(([i, k]) => [i.id, k]));
       const out = new Map();
-      order.forEach((i, n) => {
+      for (const i of order) {
         const f = {};
         if (i.time) { f.time = null; f.end_time = null; }
-        if ((i.sort_order ?? null) !== n) f.sort_order = n;
+        if (places.has(i.id)) f.rank = places.get(i.id);
         if (Object.keys(f).length) out.set(i.id, f);
-      });
+      }
       return out;
     }
 

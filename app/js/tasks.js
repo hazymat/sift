@@ -3,6 +3,7 @@
 // aim_at (completion aim) while not done.
 
 import * as store from './store.js';
+import { byRank, firstKey } from './order.js';
 import { word } from './words.js';
 
 export const STATUSES = [
@@ -19,7 +20,7 @@ export const PRIORITIES = [
   { id: 4, label: 'Low' },
 ];
 
-const byOrder = (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.created_at.localeCompare(b.created_at);
+const byOrder = byRank(); // order.js: merges cleanly across devices
 export const aimDate = t => (t.aim_at ? t.aim_at.slice(0, 10) : null);
 export const isDone = t => !!t.done_at;
 
@@ -76,8 +77,7 @@ export async function addTask(fields) {
 // A new task at the top of the list (where you'll see it), e.g. one made from a
 // Brain Dump note.
 export async function addTaskFirst(fields) {
-  const first = (await store.list('tasks')).reduce((m, t) => Math.min(m, t.sort_order ?? 0), 0);
-  return addTask({ ...fields, sort_order: first - 1 });
+  return addTask({ ...fields, rank: firstKey(await store.list('tasks')) });
 }
 
 // Tick / untick: done_at is set when ticked and cleared when unticked.

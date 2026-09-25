@@ -12,6 +12,7 @@ import * as att from '../attachments.js';
 import { editPills } from '../editpills.js';
 import { word } from '../words.js';
 import { tintHex, tintId, colourMenu } from '../colours.js';
+import { rankOf, reorderWrites } from '../order.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -207,15 +208,26 @@ export default {
       });
     }
 
-    async function persistOrder(rows, label) {
-      const before = rows.map(r => { const i = data.items.find(x => x.id === r.id); return [r.id, { sort_order: i.sort_order, parent_id: i.parent_id || null }]; });
+    // Only the moved items get a new place (order.js) and only changed parents
+    // are written, so moves on two devices merge.
+    async function persistOrder(rows, label, ul, moved) {
+      const item = id => data.items.find(x => x.id === id);
+      const places = new Map(reorderWrites(rows, r => rankOf(item(r.id)), moved).map(([r, k]) => [r.id, k]));
       let parent = null;
-      const changes = rows.map((r, n) => {
+      const changes = [];
+      const before = [];
+      for (const r of rows) {
         const sub = r.depth > 0 && parent;
         if (!sub) parent = r.id;
-        return [r.id, { sort_order: n, parent_id: sub ? parent : null }];
-      });
-      await store.updateMany('list_items', changes);
+        const i = item(r.id);
+        const fields = {};
+        if (places.has(r.id)) fields.rank = places.get(r.id);
+        if ((sub ? parent : null) !== (i.parent_id || null)) fields.parent_id = sub ? parent : null;
+        if (!Object.keys(fields).length) continue;
+        changes.push([r.id, fields]);
+        before.push([r.id, Object.fromEntries(Object.keys(fields).map(k => [k, i[k] ?? null]))]);
+      }
+      if (changes.length) await store.updateMany('list_items', changes);
       await render();
       undoable(label, async () => { await store.updateMany('list_items', before); render(); });
     }

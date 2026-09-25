@@ -11,6 +11,7 @@ import { ENERGY, isoDate, addDays, parseDate, addItem, durationChoices, duration
 import { pillMenu, energyMenu } from '../pillmenu.js';
 import { summarise } from '../summary.js';
 import { createListKit } from '../listkit.js';
+import { rankOf, reorderWrites, keyBetween } from '../order.js';
 import { toast, undoable } from '../toast.js';
 import { richText, toHtml, previewLine, inlineAll } from '../richtext.js';
 import { loadContacts } from '../contacts.js';
@@ -96,6 +97,12 @@ export default {
 
     const projectOf = t => data.projects.find(p => p.id === t.project_id);
     const kidsOf = t => data.tasks.filter(k => k.parent_task_id === t.id);
+    // A place just after a task and its sub-tasks (for a new sub-task at the end).
+    const afterFamily = t => {
+      const after = [t, ...kidsOf(t)].map(x => rankOf(x)).sort().at(-1);
+      const next = data.tasks.map(x => rankOf(x)).filter(k => k > after).sort()[0] || null;
+      return keyBetween(after, next);
+    };
 
     function chips(t) {
       const out = [];
@@ -511,14 +518,13 @@ export default {
 
     // ---------- reorder, nest, select (shared list behaviour) ----------
 
-    // Persist what the kit reports: order, parents from depth, and in a
-    // project the milestone of the heading a top-level task sits under.
-    async function persistOrder(rows, label, ul) {
-      const before = rows.map(r => {
-        const t = data.tasks.find(x => x.id === r.id);
-        return [t.id, { sort_order: t.sort_order, parent_task_id: t.parent_task_id || null, milestone_id: t.milestone_id || null }];
-      });
-      const minOrder = Math.min(...before.map(b => b[1].sort_order ?? 0));
+    // Persist what the kit reports: a new place (order.js) for just the moved
+    // tasks, parents from depth, and in a project the milestone of the heading a
+    // top-level task sits under. Only what changed is written, so moves made on
+    // two devices merge.
+    async function persistOrder(rows, label, ul, moved) {
+      const task = id => data.tasks.find(x => x.id === id);
+      const places = new Map(reorderWrites(rows, r => rankOf(task(r.id)), moved).map(([r, k]) => [r.id, k]));
       const milestoneOf = new Map();
       let current = null;
       for (const li of ul.children) {
@@ -526,16 +532,26 @@ export default {
         else if (li.dataset.id) milestoneOf.set(li.dataset.id, current);
       }
       const stack = [];
-      const changes = rows.map((r, n) => {
+      const changes = [];
+      const before = [];
+      for (const r of rows) {
         const depth = Math.min(r.depth, stack.length);
         const parent = depth ? stack[depth - 1] : null;
         stack.length = depth;
         stack.push(r.id);
-        const fields = { sort_order: minOrder + n, parent_task_id: parent };
-        if (state.project && !parent && ul.querySelector('.list-head[data-milestone]')) fields.milestone_id = milestoneOf.get(r.id) ?? null;
-        return [r.id, fields];
-      });
-      await store.updateMany('tasks', changes);
+        const t = task(r.id);
+        const fields = {};
+        if (places.has(r.id)) fields.rank = places.get(r.id);
+        if (parent !== (t.parent_task_id || null)) fields.parent_task_id = parent;
+        if (state.project && !parent && ul.querySelector('.list-head[data-milestone]')) {
+          const m = milestoneOf.get(r.id) ?? null;
+          if (m !== (t.milestone_id || null)) fields.milestone_id = m;
+        }
+        if (!Object.keys(fields).length) continue;
+        changes.push([r.id, fields]);
+        before.push([r.id, Object.fromEntries(Object.keys(fields).map(k => [k, t[k] ?? null]))]);
+      }
+      if (changes.length) await store.updateMany('tasks', changes);
       await render();
       undoable(label, async () => { await store.updateMany('tasks', before); await render(); });
     }
@@ -564,13 +580,13 @@ export default {
     ];
     const kitOrdered = this.kitOrdered = createListKit({ reorder: true, indent: true, maxDepth: 4, noun: 'task', actions: taskActions, onReorder: persistOrder });
     const kitPlain = this.kitPlain = createListKit({ reorder: false, noun: 'task', actions: taskActions });
-    // In Task Dump / Now / Next / Later only the order changes: the moved tasks
-    // swap their places among themselves, so tasks on other lists keep theirs.
-    const kitFlat = this.kitFlat = createListKit({ reorder: true, noun: 'task', actions: taskActions, onReorder: async (rows, label) => {
-      const before = rows.map(r => [r.id, { sort_order: data.tasks.find(x => x.id === r.id)?.sort_order ?? 0 }]);
-      let orders = before.map(b => b[1].sort_order).sort((a, b) => a - b);
-      if (new Set(orders).size < orders.length) orders = orders.map((_, n) => orders[0] + n);
-      await store.updateMany('tasks', rows.map((r, n) => [r.id, { sort_order: orders[n] }]));
+    // In Task Dump / Now / Next / Later only the order changes: just the moved
+    // tasks get a new place (order.js), so tasks on other lists keep theirs.
+    const kitFlat = this.kitFlat = createListKit({ reorder: true, noun: 'task', actions: taskActions, onReorder: async (rows, label, ul, moved) => {
+      const task = id => data.tasks.find(x => x.id === id);
+      const writes = reorderWrites(rows, r => rankOf(task(r.id)), moved);
+      const before = writes.map(([r]) => [r.id, { rank: task(r.id)?.rank ?? null }]);
+      await store.updateMany('tasks', writes.map(([r, k]) => [r.id, { rank: k }]));
       await render();
       undoable(label, async () => { await store.updateMany('tasks', before); await render(); });
     } });
@@ -699,7 +715,7 @@ export default {
         await store.create('milestones', { project_id: state.project, name: name.trim(), due_date: /^\d{4}-\d{2}-\d{2}$/.test(due || '') ? due : null, done_at: null, sort_order: data.milestones.length });
         render();
       } else if (act === 'add-sub' && task) {
-        const sub = await addTask({ title: 'New sub-task', parent_task_id: task.id, project_id: task.project_id, milestone_id: task.milestone_id, sort_order: task.sort_order + 0.5 });
+        const sub = await addTask({ title: 'New sub-task', parent_task_id: task.id, project_id: task.project_id, milestone_id: task.milestone_id, rank: afterFamily(task) });
         open = null;
         collapsed.delete(task.id);
         await render();

@@ -14,6 +14,7 @@ import { toast, undoable } from '../toast.js';
 import { toHtml, richText } from '../richtext.js';
 import { addTaskFirst } from '../tasks.js';
 import { tintHex, tintId, colourMenu } from '../colours.js';
+import { rankOf, byRank, keyBetween, reorderWrites } from '../order.js';
 import { addItem, isoDate, parseTimed, daySettings, durationChoices, durationLabel } from '../days.js';
 import { loadTree } from '../places.js';
 import { contactFromText } from '../contacts.js';
@@ -47,11 +48,14 @@ export function editedAt(t) {
   return new Date(Math.max(wall || 0, Date.parse(t.created_at) || 0)).toISOString();
 }
 
-// Pinned first, then the order you dragged them into; ones you haven't placed
-// (new notes, and any note whose text you've changed since) come first, most
-// recently edited on top.
-const orderKey = t => t.sort_order ?? -Date.parse(editedAt(t)) / 1e12;
-const byOrder = (a, b) => Number(!!b.pinned) - Number(!!a.pinned) || orderKey(a) - orderKey(b);
+// Pinned first, then the order you dragged them into (order.js: a note's
+// `rank`). A new note, or one whose text you change, goes to the top. Notes
+// from before ranks sort by their old order number, or if they never had one,
+// most recently edited first (in hundredths of a second).
+const orderKey = t => t.sort_order ?? -Date.parse(editedAt(t)) / 1e4;
+const byPlace = byRank(orderKey);
+const byOrder = (a, b) => Number(!!b.pinned) - Number(!!a.pinned) || byPlace(a, b);
+const rankOfNote = t => rankOf(t, orderKey);
 
 export default {
   async mount(el) {
@@ -265,6 +269,15 @@ export default {
       await render();
       undoable(`${label} ${ids.length} thought${ids.length === 1 ? '' : 's'}`, async () => { await store.updateMany('thoughts', before); await render(); });
     }
+    // A place at the top of all notes (for a new or just-edited note), or
+    // nothing if it's already there.
+    function toTop(t) {
+      const first = thoughts.filter(x => x !== t && x.id !== t?.id).map(rankOfNote).sort()[0] || null;
+      if (t && first && rankOfNote(t) < first) return {};
+      const rank = keyBetween(null, first);
+      if (t) t.rank = rank;
+      return { rank };
+    }
     // A note's colour: saved on the note (so it stays whatever the Look), shown
     // at once without redrawing (a note may be open for writing).
     const paintTint = id => {
@@ -283,14 +296,19 @@ export default {
         for (const [id, f] of before) { const t = thoughts.find(x => x.id === id); if (t) t.colour = f.colour; paintTint(id); }
       });
     }
-    // Dragging cards (hold ⠿, then move) saves the new order. Notes hidden by the
-    // filter keep their places among the others.
-    async function persistOrder(order) {
-      const shown = new Set(order.map(r => r.id));
-      const before = thoughts.map(t => [t.id, { sort_order: t.sort_order ?? null }]);
-      let next = 0;
-      const merged = thoughts.map(t => (shown.has(t.id) ? order[next++].id : t.id));
-      await store.updateMany('thoughts', merged.map((id, i) => [id, { sort_order: i }]));
+    // Dragging cards (hold ⠿, then move): only the moved notes get a new place,
+    // between their new neighbours (order.js), so moves on two devices merge.
+    // Pinned and unpinned notes are placed separately (pinned always come first).
+    async function persistOrder(order, label, ul, moved) {
+      const note = id => thoughts.find(x => x.id === id);
+      const writes = [];
+      for (const pinned of [true, false]) {
+        const group = order.filter(r => !!note(r.id)?.pinned === pinned);
+        writes.push(...reorderWrites(group, r => rankOfNote(note(r.id)), moved));
+      }
+      if (!writes.length) return;
+      const before = writes.map(([r]) => [r.id, { rank: note(r.id)?.rank ?? null }]);
+      await store.updateMany('thoughts', writes.map(([r, k]) => [r.id, { rank: k }]));
       await render();
       undoable('Moved a note', async () => { await store.updateMany('thoughts', before); await render(); });
     }
@@ -333,7 +351,8 @@ export default {
       const made = [];
       const contacts = [];
       for (const body of bodies) {
-        const t = await store.create('thoughts', { ...(made.length ? {} : { id: captureId }), title: titleFrom(body), body, kind, pinned: false, converted_to: null });
+        const t = await store.create('thoughts', { ...(made.length ? {} : { id: captureId }), title: titleFrom(body), body, kind, pinned: false, converted_to: null, ...toTop(null) });
+        thoughts.push(t);
         // Phone numbers and emails become linked contacts.
         const linked = await linkDetailsInText(body, { collection: 'thoughts', id: t.id, title: body.split('\n')[0].slice(0, 60) });
         if (linked.linked) await store.update('thoughts', t.id, { body: linked.text, title: titleFrom(linked.text) });
@@ -416,7 +435,7 @@ export default {
             const body = box._editor?.value.trim();
             if (!body || body === box._saved) return showSaved(line, 'saved');
             try {
-              await store.update('thoughts', t.id, { body, title: titleFrom(body), sort_order: null }); // edited: goes to the top
+              await store.update('thoughts', t.id, { body, title: titleFrom(body), ...toTop(t) }); // edited: goes to the top
               box._saved = body;
               showSaved(line, 'saved');
             } catch { showSaved(line, 'failed'); }
@@ -509,7 +528,7 @@ export default {
       box._editor = null;
       editing = null;
       // It has been saving as you typed; this puts the last bit in (or, after Esc, the original back).
-      if (body && body !== (box._saved ?? t.body)) await store.update('thoughts', t.id, { body, title: titleFrom(body), sort_order: null });
+      if (body && body !== (box._saved ?? t.body)) await store.update('thoughts', t.id, { body, title: titleFrom(body), ...toTop(t) });
       if (body && body !== orig) {
         undoable('Saved', async () => { await store.update('thoughts', t.id, { body: orig, title: titleFrom(orig) }); render(); });
       }

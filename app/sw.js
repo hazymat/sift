@@ -13,6 +13,7 @@ const SHELL = [
   'js/sortable.js',
   'js/dropdown.js',
   'js/colours.js',
+  'js/order.js',
   'js/listentry.js',
   'js/toast.js',
   'js/bin.js',

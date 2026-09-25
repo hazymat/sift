@@ -13,7 +13,8 @@
 //   const kit = createListKit({ reorder, indent, maxDepth, actions, onReorder, noun, grid })
 //   grid: true for cards laid out in rows and columns (drag follows the pointer both ways)
 //   after each render: kit.attach(ul)        on leaving the view: kit.destroy()
-//   onReorder(rows, label): rows = [{ id, depth }] in the new order; persist them
+//   onReorder(rows, label, ul, moved): rows = [{ id, depth }] in the new order; moved =
+//     the ids that were moved (so only they need a new place: order.js); persist them
 //   actions: [{ id, label, danger?, run(ids) }]; ids are in list order
 
 import { sortable } from './sortable.js';
@@ -75,7 +76,7 @@ export function createListKit({
   }
 
   // Current order and (valid) depths, handed to the caller to persist.
-  function commit(label) {
+  function commit(label, moved = []) {
     let prev = -1;
     const out = rows().map((r, i) => {
       let d = indent ? Math.min(depthOf(r), maxDepth, prev + 1) : 0;
@@ -85,7 +86,7 @@ export function createListKit({
       prev = d;
       return { id: r.dataset.id, depth: d };
     });
-    return onReorder?.(out, label, ul);
+    return onReorder?.(out, label, ul, moved);
   }
 
   function shiftDepth(targets, by) {
@@ -194,7 +195,7 @@ export function createListKit({
         carried = [];
         const by = indent ? (dx > 30 ? 1 : dx < -30 ? -1 : 0) : 0;
         if (by) shiftDepth(group, by);
-        commit(by ? (by > 0 ? 'Indented' : 'Outdented') : 'Moved');
+        commit(by ? (by > 0 ? 'Indented' : 'Outdented') : 'Moved', group.map(r => r.dataset.id));
       },
     });
     ul.addEventListener('pointerup', () => { paintBase = null; });
@@ -247,7 +248,7 @@ export function createListKit({
         const block = withChildren(next);
         block.at(-1).after(...group);
       }
-      await commit(`Moved ${selected.size}`);
+      await commit(`Moved ${selected.size}`, group.map(r => r.dataset.id));
       return paint();
     }
     const action = actions.find(a => a.id === b.dataset.kitAction);

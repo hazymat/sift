@@ -7,6 +7,7 @@ import { loadTree, search, importCsv, exportCsv, archivedMatchCount, splitQuanti
 import { richText, previewLine } from '../richtext.js';
 import { createListKit } from '../listkit.js';
 import { tintHex, tintId, colourMenu } from '../colours.js';
+import { rankOf, reorderWrites } from '../order.js';
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import * as att from '../attachments.js';
@@ -379,15 +380,28 @@ export default {
 
     // Persist the list as the kit reports it: order, and each sub-item's
     // parent (the nearest top-level item above it).
-    async function persistOrder(rows, label = 'Moved') {
-      const before = (findBox(openId)?.b.items || []).map(i => [i.id, { sort_order: i.sort_order, parent_item_id: i.parent_item_id || null }]);
+    // Only the moved things get a new place (order.js) and only changed
+    // parents are written, so moves on two devices merge.
+    async function persistOrder(rows, label = 'Moved', ul, moved) {
+      const items = findBox(openId)?.b.items || [];
+      const item = id => items.find(x => x.id === id);
+      const places = new Map(reorderWrites(rows, r => rankOf(item(r.id)), moved).map(([r, k]) => [r.id, k]));
       let parent = null;
-      const changes = rows.map((r, n) => {
+      const changes = [];
+      const before = [];
+      for (const r of rows) {
         const sub = r.depth > 0 && parent;
         if (!sub) parent = r.id;
-        return [r.id, { sort_order: n, parent_item_id: sub ? parent : null }];
-      });
-      await store.updateMany('items', changes);
+        const i = item(r.id);
+        if (!i) continue;
+        const fields = {};
+        if (places.has(r.id)) fields.rank = places.get(r.id);
+        if ((sub ? parent : null) !== (i.parent_item_id || null)) fields.parent_item_id = sub ? parent : null;
+        if (!Object.keys(fields).length) continue;
+        changes.push([r.id, fields]);
+        before.push([r.id, Object.fromEntries(Object.keys(fields).map(k => [k, i[k] ?? null]))]);
+      }
+      if (changes.length) await store.updateMany('items', changes);
       tree = await loadTreeA();
       undoable(label, async () => {
         await store.updateMany('items', before);
@@ -416,7 +430,7 @@ export default {
       indent: true,
       maxDepth: 1,
       noun: 'item',
-      onReorder: (rows, label) => persistOrder(rows, label),
+      onReorder: (rows, label, ul, moved) => persistOrder(rows, label, ul, moved),
       actions: [
         { id: 'colour', label: 'Colour…', run: ids => { colourMenu(document.querySelector('[data-kit-action="colour"]'), null, v => setColour('items', ids, v)); } },
         { id: 'archive', label: 'Archive', run: ids => batch(ids, 'archived_at', 'Archived') },
