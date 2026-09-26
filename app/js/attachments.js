@@ -15,6 +15,8 @@ import * as store from './store.js';
 import { toast, undoable } from './toast.js';
 
 const MAX_BYTES = 25 * 1024 * 1024;
+// What files can be attached to (a pasted screenshot in any other note is refused).
+export const ATTACHABLE = ['thoughts', 'tasks', 'day_items', 'list_items', 'items', 'comments'];
 const THUMB = 240;
 export const ACCEPT = 'image/*,application/pdf,text/plain,text/markdown,text/csv,.txt,.md,.csv,.pdf';
 
@@ -160,6 +162,8 @@ export function onClick(ev, parentOf, done) {
 // Dropping files on an element matching `selector` inside `root` attaches
 // them to the note `parentOf(element)` names.
 export function enableDrop(root, selector, parentOf, done) {
+  // A note inside says it has attached a pasted file (richtext.js): redraw.
+  root.addEventListener('attached', () => done?.());
   const hasFiles = ev => [...(ev.dataTransfer?.types || [])].includes('Files');
   let over = null;
   const clear = () => { over?.classList.remove('drop-over'); over = null; };

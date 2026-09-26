@@ -631,9 +631,26 @@ export function richText(container, { value = '', onChange, placeholder = '', or
   edit.addEventListener('input', () => queueMicrotask(unstyle));
   raw.addEventListener('input', () => changed(raw.value));
 
-  // Paste as plain text so web pages don't bring their styling along.
-  edit.addEventListener('paste', ev => {
+  // Paste as plain text so web pages don't bring their styling along. A pasted
+  // picture (a screenshot) or file is attached to the note instead, like one
+  // dropped on it (attachments.js); the page redraws its files on "attached".
+  edit.addEventListener('paste', async ev => {
     ev.preventDefault();
+    const files = [...(ev.clipboardData?.files || [])];
+    if (files.length) {
+      const o = origin?.();
+      const { addFiles, ATTACHABLE } = await import('./attachments.js');
+      if (!o?.id || !ATTACHABLE.includes(o.collection)) { toast("Files can't be attached here"); return; }
+      const made = await addFiles({ collection: o.collection, id: o.id }, files);
+      if (!made.length) return;
+      container.dispatchEvent(new CustomEvent('attached', { bubbles: true }));
+      const { undoable } = await import('./toast.js');
+      undoable(`Attached ${made.length === 1 ? made[0].name : `${made.length} files`} to the note`, async () => {
+        for (const m of made) await store.remove('attachments', m.id);
+        container.dispatchEvent(new CustomEvent('attached', { bubbles: true }));
+      });
+      return;
+    }
     document.execCommand('insertText', false, ev.clipboardData.getData('text/plain'));
   });
 

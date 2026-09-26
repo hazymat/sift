@@ -407,7 +407,18 @@ export default {
       return li ? { collection: 'thoughts', id: li.dataset.id } : null;
     };
     // While a note is being edited its box isn't redrawn; the files show when you finish.
-    const attachedDone = () => (editing ? paintCapture() : render());
+    // Files attached: while a note is being written in, only its files row
+    // (and the new-note box's) is redrawn, so the writing isn't disturbed.
+    const attachedDone = async () => {
+      if (!editing) return render();
+      atts = await att.byParent();
+      paintCapture();
+      const li = list.querySelector(`li.thought[data-id="${editing}"]`);
+      if (!li) return;
+      li.querySelector(':scope > .att-row')?.remove();
+      const a = atts.get(editing);
+      if (a?.length) li.querySelector('.thought-edit')?.insertAdjacentHTML('afterend', att.rowHtml(a, { addButton: false }));
+    };
     att.enableDrop(el, 'li.thought[data-id], .dump-capture', parentOf, attachedDone);
 
     el.addEventListener('click', async ev => {
