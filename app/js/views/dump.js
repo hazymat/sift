@@ -196,7 +196,7 @@ export default {
       list.innerHTML = shown.map(t => card(t)).join('')
         || `<li class="empty"><h2>${thoughts.length ? 'Nothing matches.' : 'Empty head. Nice.'}</h2></li>`;
       // Compact spacing: the note you're editing fills the page (like opening a box in Find Things).
-      el.dataset.zoom = editing && el.dataset.density === 'tight' ? editing : '';
+      el.dataset.zoom = zoomId() || '';
       if (!el.dataset.zoom) delete el.dataset.zoom;
       kit.attach(list);
     };
@@ -228,13 +228,17 @@ export default {
       return 'l';
     }
 
+    // Compact spacing: the note being edited, or whose Plan it / → Find Things
+    // panel is open, fills the page (a square card has no room for either).
+    const zoomId = () => (el.dataset.density === 'tight' ? editing || panel?.id || null : null);
+
     // Each note has its own colour (colours.js), shown when the Look is Multicolour.
     function card(t) {
       const conv = t.converted_to && TARGET[t.converted_to.collection];
       const href = conv && (t.converted_to.collection === 'day_items' ? `#/planner/${t.converted_to.date || ''}` : t.converted_to.collection === 'contacts' ? `#/contacts/c/${t.converted_to.id}` : `#/${conv[1]}`);
       return `
-        <li class="thought size-${sizeOf(t)}${t.converted_to ? ' converted' : ''}${t.pinned ? ' pinned' : ''}${editing === t.id && el.dataset.density === 'tight' ? ' zoomed' : ''}" data-id="${t.id}" style="--tint: ${tintHex(t)}">
-          ${editing === t.id && el.dataset.density === 'tight' ? '<div class="zoom-back">‹ Back to notes <span class="muted">(click anywhere outside the note, or Esc)</span></div>' : ''}
+        <li class="thought size-${sizeOf(t)}${t.converted_to ? ' converted' : ''}${t.pinned ? ' pinned' : ''}${zoomId() === t.id ? ' zoomed' : ''}" data-id="${t.id}" style="--tint: ${tintHex(t)}">
+          ${zoomId() === t.id ? '<div class="zoom-back" data-act="unzoom">‹ Back to notes <span class="muted">(click anywhere outside the note, or Esc)</span></div>' : ''}
           <div class="thought-head">
             <button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button>
             <button type="button" class="note-dot" data-act="colour" title="Note colour" aria-label="Note colour"><span class="swatch" style="--sw:${tintHex(t)}"></span></button>
@@ -449,6 +453,14 @@ export default {
     };
     att.enableDrop(el, 'li.thought[data-id], .dump-capture', parentOf, attachedDone);
 
+    // Compact spacing with a note's panel open (not writing in it): a click
+    // outside the note goes back to the notes.
+    el.addEventListener('click', ev => {
+      if (!panel || editing || !el.dataset.zoom || ev.target.closest('.thought.zoomed')) return;
+      ev.stopImmediatePropagation();
+      panel = null;
+      render();
+    }, { capture: true });
     el.addEventListener('click', async ev => {
       if (ev.target.closest('.note-more [data-att-add]')) ev.target.closest('details')?.removeAttribute('open');
       if (att.onClick(ev, parentOf, attachedDone)) return;
@@ -466,6 +478,7 @@ export default {
       const t = li && (thoughts.find(x => x.id === li.dataset.id) && await store.get('thoughts', li.dataset.id));
       const act = b.dataset.act;
       if (act === 'save') return save();
+      if (act === 'unzoom' && !editing) { panel = null; render(); return; }
       if (act === 'new-kind') {
         // A new type of note, picked for the note being written.
         const name = await askText('New type of note', { placeholder: word('ph_set_new_type'), ok: 'Add' });
@@ -484,6 +497,7 @@ export default {
       if (!t) return;
       if (act === 'edit') {
         editing = t.id;
+        panel = null; // going back into a note closes its Plan it / → Find Things panel
         await render();
         const box = list.querySelector(`[data-id="${t.id}"] .thought-edit`);
         if (box) {
@@ -642,6 +656,7 @@ export default {
       const timer = setTimeout(go, 800);
     });
     this.onKey = ev => {
+      if (ev.key === 'Escape' && panel && !editing) { panel = null; render(); return; }
       if (ev.key === 'Escape' && !ev.target.closest('input, textarea, select, [contenteditable]')) kit.escape();
     };
     addEventListener('keydown', this.onKey);

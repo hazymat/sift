@@ -69,6 +69,11 @@ export function createListKit({
     paint();
   }
 
+  // How far sideways a drag must go to indent / outdent. With drop-onto (onNest)
+  // it takes a clear move, so drifting right while aiming at a row and
+  // missing its middle doesn't make a sub-item.
+  const sideStep = onNest ? 70 : 30;
+
   // A row plus everything nested under it.
   function withChildren(r) {
     const out = [r];
@@ -178,7 +183,7 @@ export function createListKit({
       // and says so ("sub-item" / "top level").
       onDrag: ({ item, dx }) => {
         if (!indent) return 0;
-        const by = dx > 30 ? 1 : dx < -30 ? -1 : 0;
+        const by = dx > sideStep ? 1 : dx < -sideStep ? -1 : 0;
         const from = depthOf(item);
         const prev = item.previousElementSibling?.matches('li[data-id]') ? item.previousElementSibling : null;
         const limit = prev ? Math.min(maxDepth, depthOf(prev) + 1) : 0;
@@ -219,7 +224,7 @@ export function createListKit({
           carried.slice(at + 1).reverse().forEach(r => item.after(r));
         }
         carried = [];
-        let by = indent ? (dx > 30 ? 1 : dx < -30 ? -1 : 0) : 0;
+        let by = indent ? (dx > sideStep ? 1 : dx < -sideStep ? -1 : 0) : 0;
         if (by) shiftDepth(group, by);
         // A nested row dropped between two top-level rows (and not back under
         // the row it came from) comes out to the top level: dragged out.

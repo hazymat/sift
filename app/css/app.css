@@ -3151,3 +3151,4 @@ a.comment-mark:hover { color: var(--text); }
 .task-entry .task-add-line { min-height: var(--task-row-h, 42px); box-sizing: border-box; }
 /* 210: a task's note edited in place, under its title. */
 .task-list .item-sub .note-in-place { flex-basis: 100%; margin: 4px 0 2px; }
+.task-list > li > .tree { display: contents; }
