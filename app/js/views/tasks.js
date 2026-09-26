@@ -404,6 +404,61 @@ export default {
       return listOf([...byDay].map(([d, list]) => head(`${shortDate(d)} <span class="muted">${list.length}</span>`) + rowsOf(list, { draggable: false })).join(''));
     }
 
+    // ---------- Enter in a task's title: a new one below ----------
+    // Enter saves the title (inline.js) and opens a new line just below the
+    // task and its sub-tasks, at the same level: a new sub-task under the same
+    // task, or a new task. Enter there adds it and opens the next; Esc or
+    // leaving it empty drops the line.
+    let nextAfter = null; // open a new line after this task once the list is drawn
+    body.addEventListener('keydown', ev => {
+      const t = ev.target;
+      if (ev.key !== 'Enter' || ev.shiftKey || ev.ctrlKey || ev.metaKey || ev.isComposing) return;
+      if (!t.classList?.contains('task-title') || !t.closest('.task-list > li[data-task]')) return;
+      if (!LISTS.includes(state.view) && state.view !== 'list') return;
+      const id = t.closest('li[data-task]').dataset.task;
+      const task = data.tasks.find(x => x.id === id);
+      if (!task || !t.value.trim()) return;
+      if (t.value.trim() === task.title) setTimeout(() => openNewAfter(id), 0); // nothing to save: no redraw
+      else nextAfter = id; // opens once the saved title is redrawn
+    }, { capture: true });
+
+    function openNewAfter(id) {
+      const task = data.tasks.find(x => x.id === id);
+      const li = body.querySelector(`.task-list > li[data-task="${id}"]`);
+      if (!task || !li) return;
+      const d = Number(li.dataset.depth || 0);
+      let last = li;
+      while (last.nextElementSibling?.matches('li[data-task]') && Number(last.nextElementSibling.dataset.depth || 0) > d) last = last.nextElementSibling;
+      const row = document.createElement('li');
+      row.className = `task-new-row${d ? ' group-kid' : ''}`;
+      row.dataset.depth = d;
+      row.innerHTML = `<span class="drag-handle" aria-hidden="true" style="visibility:hidden">${icon('i-grip')}</span>
+        <input type="checkbox" class="tick" disabled tabindex="-1" aria-hidden="true">
+        <input class="task-title no-inline" placeholder="${d ? 'New sub-task' : 'New task'}" aria-label="${d ? 'New sub-task' : 'New task'}" autocomplete="off">`;
+      last.after(row);
+      const input = row.querySelector('.task-title');
+      let done = false;
+      const finish = async chain => {
+        if (done) return;
+        done = true;
+        const title = input.value.trim();
+        if (!title) { row.remove(); return; }
+        // Just after the task and everything under it.
+        const fam = withSubs([id]).map(x => data.tasks.find(y => y.id === x)).filter(Boolean).map(x => rankOf(x)).sort();
+        const next = data.tasks.map(x => rankOf(x)).filter(k => k > fam.at(-1)).sort()[0] || null;
+        const made = await addTask({ title, parent_task_id: task.parent_task_id || null, horizon: task.horizon || null, project_id: task.project_id || null, milestone_id: task.milestone_id || null, rank: keyBetween(fam.at(-1), next) });
+        if (chain) nextAfter = made.id;
+        await render();
+        undoable(`Added ${d ? 'sub-task' : 'task'}: ${title}`, async () => { await store.remove('tasks', made.id); await render(); });
+      };
+      input.addEventListener('keydown', ev => {
+        if (ev.key === 'Enter' && !ev.isComposing) { ev.preventDefault(); ev.stopPropagation(); finish(true); }
+        else if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); finish(false); }
+      });
+      input.addEventListener('blur', () => finish(false));
+      input.focus();
+    }
+
     // ---------- render ----------
 
     // After a sync the app calls refresh(): redraw from fresh data, keeping what's open.
@@ -433,6 +488,7 @@ export default {
       kitFlat.attach(flatOrder ? ul : null);
       kitPlain.attach(ordered || flatOrder ? null : ul);
       mountComments(body, render);
+      if (nextAfter) { const id = nextAfter; nextAfter = null; openNewAfter(id); }
       const notesBox = body.querySelector('.task-notes');
       if (notesBox && open) {
         const id = open;

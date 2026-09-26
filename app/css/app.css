@@ -3169,3 +3169,15 @@ dialog.att-view .att-view-name { color: #fff; margin: 8px 0 0; font-size: .9rem;
    (and over the dimming while a note is being written). */
 .thought-pop { position: fixed; z-index: 950; width: min(340px, calc(100vw - 16px)); padding: 4px; border-radius: 16px; box-shadow: 0 12px 34px rgba(0, 0, 0, .45); }
 .thought-pop .thought-panel { margin: 0; }
+/* Sub-tasks: the ruled line, Alternate shading, and the pills and "Add note"
+   line while editing all start where the sub-task's text starts (one step,
+   28px, per level), clear of the lines joining it to its task. */
+.task-list > li[data-depth="1"] { --ind: 28px; }
+.task-list > li[data-depth="2"] { --ind: 56px; }
+.task-list > li[data-task]::after { left: calc(73px + var(--ind, 0px)); }
+#main[data-shade="alt"] .task-list > li[data-task]:nth-child(even of li[data-task]) {
+  background-image: linear-gradient(to right, transparent calc(73px + var(--ind, 0px)), color-mix(in srgb, var(--text) 4.5%, transparent) calc(73px + var(--ind, 0px)));
+}
+.task-list > li[data-task] > .edit-pills { padding-left: var(--ind, 0px); box-sizing: border-box; }
+/* The lines joining sub-tasks to their task: fainter. */
+.task-list .tree-v, .task-list .tree-h { background: color-mix(in srgb, var(--text) 13%, transparent); }
