@@ -22,7 +22,7 @@ import { loadTree } from '../places.js';
 import { contactFromText } from '../contacts.js';
 import { createListKit } from '../listkit.js';
 import * as att from '../attachments.js';
-import { pointTo } from '../flash.js';
+import { pointTo, flash } from '../flash.js';
 import { word, dumpTypes } from '../words.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -404,6 +404,9 @@ export default {
       writeDraft('dump:id', captureId);
       input.focus();
       await render();
+      // Where it went: the new note pulses in the list (showing through the
+      // dimming, as you carry on writing the next one).
+      for (const m of made) flash(list.querySelector(`li.thought[data-id="${m.id}"]`), { scroll: false });
       const extra = contacts.length ? `, ${contacts.length} new contact${contacts.length === 1 ? '' : 's'}` : '';
       undoable(`Saved ${made.length > 1 ? `${made.length} thoughts` : kindLabel(kind).toLowerCase()}${extra}`, async () => {
         await store.updateMany('thoughts', made.map(m => [m.id, { deleted_at: new Date().toISOString() }]));
@@ -645,6 +648,9 @@ export default {
       if (pressingIn(box.closest('[data-id]'))) await afterPress();
       render();
     });
+    // The ⋯ of the note being written in opens its menu without taking the
+    // cursor out of the note (which would close the note, and the menu with it).
+    list.addEventListener('mousedown', ev => { if (editing && ev.target.closest('.note-more > summary')) ev.preventDefault(); });
     // Is a press (mouse or finger) under way inside this element right now?
     let pressedOn = null;
     addEventListener('pointerdown', ev => { pressedOn = ev.target; }, { capture: true, signal: gone.signal });

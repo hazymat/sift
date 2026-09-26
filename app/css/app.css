@@ -3163,3 +3163,5 @@ dialog.att-view .att-view-name { color: #fff; margin: 8px 0 0; font-size: .9rem;
 .task-list > li.ticked-away .task-title { text-decoration: line-through; }
 .task-list > li.ticked-away.fading { opacity: 0; }
 .task-list > li.ticked-away.closing { transition: height .26s ease, padding .26s ease, margin .26s ease, border-width .26s ease; height: 0 !important; padding-top: 0; padding-bottom: 0; margin-top: 0; margin-bottom: 0; border-width: 0; }
+/* A Brain Dump note just saved pulses above the dimming while the next is written. */
+.thought.flash { z-index: 901; }

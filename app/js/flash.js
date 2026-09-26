@@ -3,7 +3,8 @@
 // times, then stops. One look, used everywhere.
 //
 //   pointTo(collection, id)   before changing page: which item to show
-//   flash(el)                 pulse an element now (and scroll it into view)
+//   flash(el, { scroll })     pulse an element now (and scroll it into view,
+//                             unless scroll: false)
 //
 // installFlash() (from app.js) watches for the item to appear after the page
 // changes, since views draw a moment after the address changes.
@@ -23,12 +24,12 @@ const FIND = {
   contacts: id => `#main [data-contact-card="${id}"], #main .c-page[data-contact="${id}"]`,
 };
 
-export function flash(el) {
+export function flash(el, { scroll = true } = {}) {
   if (!el) return;
   el.classList.remove('flash');
   void el.offsetWidth; // restart the animation
   el.classList.add('flash');
-  el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  if (scroll) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
   clearTimeout(el._flashT);
   el._flashT = setTimeout(() => el.classList.remove('flash'), PULSE_MS * PULSES + 100);
 }
