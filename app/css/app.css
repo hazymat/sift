@@ -3181,3 +3181,10 @@ dialog.att-view .att-view-name { color: #fff; margin: 8px 0 0; font-size: .9rem;
 .task-list > li[data-task] > .edit-pills { padding-left: var(--ind, 0px); box-sizing: border-box; }
 /* The lines joining sub-tasks to their task: fainter. */
 .task-list .tree-v, .task-list .tree-h { background: color-mix(in srgb, var(--text) 13%, transparent); }
+/* A task's pills and "Add note" line while editing, and the New task line's,
+   start exactly where the task's text starts, at any width (measured:
+   --title-x / --entry-x from views/tasks.js). */
+.task-list > li[data-task] > .edit-pills { margin-left: var(--title-x, 64px) !important; }
+.task-list > li[data-task] > .edit-pills .pill-note { margin-left: 0 !important; flex-basis: 100% !important; padding-left: 0; }
+.task-entry-more { padding-left: var(--entry-x, 54px) !important; }
+.task-entry-more .entry-note { padding-left: 0; }

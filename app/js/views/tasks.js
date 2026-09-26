@@ -507,6 +507,16 @@ export default {
         const top = t.top - tk.closest('li').getBoundingClientRect().top;
         if (t.height > 0 && top >= 0) { ul.style.setProperty('--tick-top', `${top}px`); ul.style.setProperty('--tick-h', `${t.height}px`); }
       }
+      // Where a task's text starts, so its pills and "Add note" line (while
+      // editing) start there too, at any width (CSS --title-x, --entry-x).
+      const textX = (input, box) => {
+        const b = box.getBoundingClientRect(), cs = getComputedStyle(box);
+        return input.getBoundingClientRect().left + parseFloat(getComputedStyle(input).paddingLeft) - b.left - parseFloat(cs.paddingLeft) - parseFloat(cs.borderLeftWidth);
+      };
+      const ti = ul?.querySelector(':scope > li[data-task][data-depth="0"] > .task-title');
+      if (ti) { const x = textX(ti, ti.closest('li')); if (x > 0) body.style.setProperty('--title-x', `${x}px`); }
+      const nt = body.querySelector('#task-new'), en = nt?.closest('.task-entry');
+      if (nt && en) { const x = textX(nt, en); if (x > 0) body.style.setProperty('--entry-x', `${x}px`); }
       // Every line the same height: the New task line matches a plain task row (CSS --task-row-h).
       const plain = [...(ul?.querySelectorAll(':scope > li[data-task]') || [])].map(li => li.getBoundingClientRect().height).filter(h => h > 0);
       if (plain.length) body.style.setProperty('--task-row-h', `${Math.min(...plain)}px`);
