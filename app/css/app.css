@@ -3374,3 +3374,8 @@ dialog.att-view::backdrop { background: rgb(0 0 0 / .82); }
 .scan-card.is-id .scan-thumb img, .scan-pages.is-id .att img { filter: blur(14px) saturate(.6); }
 .scan-card.is-id .scan-thumb::after { content: 'ID'; position: absolute; inset: auto auto 6px 6px; padding: 1px 8px; border-radius: 999px; font-size: .72rem; background: color-mix(in srgb, #000 55%, transparent); color: #fff; }
 .scan-pages .panel-h .linklike { margin-left: 8px; font-size: .8rem; padding: 0; }
+/* Brain Dump: a note's colour can only be picked while the Look is Multicolour,
+   the only Look that shows it (the dot on a card, ⋯ → Colour…, the toolbar's
+   swatch and the selection bar's Colour…). */
+#main[data-area="dump"]:not([data-shade="colour"]) :is(.note-dot, .md-colour, .note-more [data-act="colour"]) { display: none !important; }
+body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-kit-action="colour"] { display: none; }
