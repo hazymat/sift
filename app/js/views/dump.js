@@ -144,6 +144,11 @@ export default {
     writeDraft('dump:id', captureId);
     const captureBox = $('#dump-body');
     captureBox.dataset.ctrlEnter = 'keep'; // Ctrl+Enter saves the note and you carry on writing
+    // Its toolbar shows only once you click or type in it (the cursor is put
+    // there when the page opens, which doesn't count), and goes again when you
+    // leave it empty (CSS: #dump-body.in-use).
+    for (const type of ['pointerdown', 'keydown']) captureBox.addEventListener(type, () => captureBox.classList.add('in-use'));
+    captureBox.addEventListener('focusout', ev => { if (!captureBox.contains(ev.relatedTarget) && !input?.value.trim()) captureBox.classList.remove('in-use'); });
     const input = richText(captureBox, {
       value: readDraft('dump'),
       placeholder: word('ph_dump_new'),
