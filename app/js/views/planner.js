@@ -17,6 +17,7 @@ import { autosizeAll } from '../inline.js';
 import { summarise } from '../summary.js';
 import { loadAll as loadTasks, forDay, suggestions, doneFields, aimDate, addTask, horizonOf, planDay } from '../tasks.js';
 import * as att from '../attachments.js';
+import { typingIn } from '../listkit.js';
 import { editPills, selectPill, energyPill } from '../editpills.js';
 import { energyMenu } from '../pillmenu.js';
 import { byRank, rankOf, reorderWrites, lastKey } from '../order.js';
@@ -1129,6 +1130,14 @@ export default {
       <button type="button" data-sel="clear" aria-label="Clear selection">✕</button>`;
     document.body.append(bar);
     this.bar = bar;
+
+    // Delete / Backspace with items selected: the bar's Delete (not while typing).
+    document.addEventListener('keydown', ev => {
+      if ((ev.key !== 'Delete' && ev.key !== 'Backspace') || ev.defaultPrevented || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+      if (!selected.size || !el.isConnected || typingIn(ev.target) || document.querySelector('dialog[open]')) return;
+      ev.preventDefault();
+      bar.querySelector('[data-sel="delete"]').click();
+    }, { signal: gone.signal });
 
     function paintSelection() {
       for (const id of [...selected]) if (!items.some(i => i.id === id)) selected.delete(id);

@@ -7,6 +7,7 @@
 //                        carries its children); sideways = indent / outdent
 //   Tab / Shift+Tab      indent / outdent the row being edited
 //   Esc                  clear the selection
+//   Delete / Backspace   the bar's Delete (not while typing; Undo in the message)
 // A bar appears while anything is selected: built-in Indent / Outdent / ↑ / ↓
 // (when enabled) plus the caller's actions.
 //
@@ -22,6 +23,9 @@
 
 import { sortable } from './sortable.js';
 import { toast } from './toast.js';
+
+// Is the keyboard busy with text (so Delete / Backspace edit it, not the list)?
+export const typingIn = el => !!el?.closest?.('input:not([type="checkbox"]):not([type="radio"]):not([type="button"]), textarea, select, [contenteditable]:not([contenteditable="false"])');
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
@@ -283,6 +287,19 @@ export function createListKit({
     paint();
   }
 
+  // Delete / Backspace with rows selected does what the bar's Delete does: no
+  // "are you sure", the message's Undo is the safety net. Not while typing,
+  // and never "Delete forever".
+  const onKey = ev => {
+    if ((ev.key !== 'Delete' && ev.key !== 'Backspace') || ev.defaultPrevented || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    if (!selected.size || !ul?.isConnected || typingIn(ev.target) || document.querySelector('dialog[open]')) return;
+    const del = actions.find(a => a.id === 'delete' || a.id === 'to-bin');
+    if (!del) return;
+    ev.preventDefault();
+    bar.querySelector(`[data-kit-action="${del.id}"]`)?.click();
+  };
+  document.addEventListener('keydown', onKey);
+
   // ---------- the bar ----------
   bar.addEventListener('click', async ev => {
     const b = ev.target.closest('button');
@@ -330,6 +347,7 @@ export function createListKit({
     // Call from the view's Escape handler; returns true if it cleared something.
     escape() { if (!selected.size) return false; clear(); return true; },
     destroy() {
+      document.removeEventListener('keydown', onKey);
       bar.remove();
       document.body.classList.remove('has-select-bar', 'is-dragging');
     },
