@@ -67,7 +67,7 @@ export default {
     const state = this.state = { filter: 'all', q: '' };
     let kind = dumpTypes()[0]?.id || 'thought';
     let thoughts = [];
-    let panel = null; // { id, type: 'plan' | 'store' }
+    let pop = null; // the Plan it / → Find Things pop-up, when open
     let editing = null;
     let atts = new Map(); // note id → its attachments
     // The little "Saved ✓ / Saving… / Not saved" line above an editor.
@@ -228,9 +228,8 @@ export default {
       return 'l';
     }
 
-    // Compact spacing: the note being edited, or whose Plan it / → Find Things
-    // panel is open, fills the page (a square card has no room for either).
-    const zoomId = () => (el.dataset.density === 'tight' ? editing || panel?.id || null : null);
+    // Compact spacing: the note being edited fills the page.
+    const zoomId = () => (el.dataset.density === 'tight' ? editing : null);
 
     // Each note has its own colour (colours.js), shown when the Look is Multicolour.
     function card(t) {
@@ -238,7 +237,7 @@ export default {
       const href = conv && (t.converted_to.collection === 'day_items' ? `#/planner/${t.converted_to.date || ''}` : t.converted_to.collection === 'contacts' ? `#/contacts/c/${t.converted_to.id}` : `#/${conv[1]}`);
       return `
         <li class="thought size-${sizeOf(t)}${t.converted_to ? ' converted' : ''}${t.pinned ? ' pinned' : ''}${zoomId() === t.id ? ' zoomed' : ''}" data-id="${t.id}" style="--tint: ${tintHex(t)}">
-          ${zoomId() === t.id ? '<div class="zoom-back" data-act="unzoom">‹ Back to notes <span class="muted">(click anywhere outside the note, or Esc)</span></div>' : ''}
+          ${zoomId() === t.id ? '<div class="zoom-back">‹ Back to notes <span class="muted">(click anywhere outside the note, or Esc)</span></div>' : ''}
           <div class="thought-head">
             <button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button>
             <button type="button" class="note-dot" data-act="colour" title="Note colour" aria-label="Note colour"><span class="swatch" style="--sw:${tintHex(t)}"></span></button>
@@ -276,15 +275,14 @@ export default {
             </details>
             </span>
           </div>
-          ${panel?.id === t.id ? panelHtml(t) : ''}
         </li>`;
     }
 
     let boxes = [];
     let maxDuration = 240;
     daySettings().then(d => { maxDuration = d.duration_max_min; });
-    function panelHtml(t) {
-      if (panel.type === 'plan') {
+    function panelHtml(t, type) {
+      if (type === 'plan') {
         const p = parseTimed(t.body.split('\n')[0]);
         return `<div class="thought-panel">
           <label>Day<input type="date" name="plan_date" value="${isoDate()}"></label>
@@ -424,7 +422,7 @@ export default {
     async function convert(t, target, label) {
       const before = t.converted_to || null;
       await store.update('thoughts', t.id, { converted_to: target });
-      panel = null;
+      closePop();
       await render();
       toast(`${label}`, {
         action: 'Undo',
@@ -456,14 +454,39 @@ export default {
     };
     att.enableDrop(el, 'li.thought[data-id], .dump-capture', parentOf, attachedDone);
 
-    // Compact spacing with a note's panel open (not writing in it): a click
-    // outside the note goes back to the notes.
-    el.addEventListener('click', ev => {
-      if (!panel || editing || !el.dataset.zoom || ev.target.closest('.thought.zoomed')) return;
-      ev.stopImmediatePropagation();
-      panel = null;
-      render();
-    }, { capture: true });
+    // Plan it / → Find Things: a small pop-up by the button, over the page. The
+    // note stays as it is (still open for writing, if it was); Esc or a click
+    // elsewhere closes the pop-up.
+    function openPop(anchor, t, type) {
+      const again = pop?.dataset.id === t.id && pop.dataset.type === type;
+      closePop();
+      if (again) return;
+      pop = document.createElement('div');
+      pop.className = 'thought-pop glass';
+      pop.dataset.id = t.id;
+      pop.dataset.type = type;
+      pop.setAttribute('role', 'dialog');
+      pop.setAttribute('aria-label', type === 'plan' ? 'Plan it' : 'Add to a box');
+      pop.innerHTML = panelHtml(t, type);
+      el.append(pop);
+      const r = anchor.getBoundingClientRect();
+      const w = pop.offsetWidth, h = pop.offsetHeight;
+      const room = (visualViewport?.height ?? innerHeight) - 8;
+      pop.style.left = `${Math.max(8, Math.min(r.left, document.documentElement.clientWidth - w - 8))}px`;
+      pop.style.top = `${r.bottom + 6 + h <= room ? r.bottom + 6 : Math.max(8, r.top - 6 - h)}px`;
+      pop._anchor = anchor;
+    }
+    function closePop() { pop?.remove(); pop = null; }
+    // Leave the note being written in, as clicking away would (it saves).
+    const noteEditor = () => list.querySelector('.thought-edit [contenteditable]');
+    const leaveNote = () => new Promise(done => { const e = noteEditor(); if (!e) return done(); e.focus(); e.blur(); setTimeout(done, 60); });
+    addEventListener('pointerdown', ev => {
+      if (!pop || pop.contains(ev.target) || pop._anchor?.contains(ev.target)) return;
+      closePop();
+      // Clicked away from the note too: it closes, as it would have.
+      if (editing && !ev.target.closest('.thought-edit')) leaveNote();
+    }, { capture: true, signal: gone.signal });
+    addEventListener('scroll', ev => { if (pop && !pop.contains(ev.target)) closePop(); }, { capture: true, signal: gone.signal });
     el.addEventListener('click', async ev => {
       if (ev.target.closest('.note-more [data-att-add]')) ev.target.closest('details')?.removeAttribute('open');
       if (att.onClick(ev, parentOf, attachedDone)) return;
@@ -481,7 +504,6 @@ export default {
       const t = li && (thoughts.find(x => x.id === li.dataset.id) && await store.get('thoughts', li.dataset.id));
       const act = b.dataset.act;
       if (act === 'save') return save();
-      if (act === 'unzoom' && !editing) { panel = null; render(); return; }
       if (act === 'new-kind') {
         // A new type of note, picked for the note being written.
         const name = await askText('New type of note', { placeholder: word('ph_set_new_type'), ok: 'Add' });
@@ -500,7 +522,7 @@ export default {
       if (!t) return;
       if (act === 'edit') {
         editing = t.id;
-        panel = null; // going back into a note closes its Plan it / → Find Things panel
+        closePop();
         await render();
         const box = list.querySelector(`[data-id="${t.id}"] .thought-edit`);
         if (box) {
@@ -545,9 +567,9 @@ export default {
           for (const e of await loadTree()) for (const s of e.sections) for (const bx of s.boxes) boxes.push({ id: bx.id, label: `${bx.label_code ? `${bx.label_code} · ` : ''}${bx.name} (${e.name} › ${s.name})` });
           if (!boxes.length) { toast('Add a box in Find Things first'); return; }
         }
-        panel = panel?.id === t.id && panel.type === act ? null : { id: t.id, type: act };
-        render();
+        openPop(b, t, act);
       } else if (act === 'plan-go') {
+        if (editing) await leaveNote();
         const p = li.querySelector('.thought-panel');
         const date = p.querySelector('[name="plan_date"]').value || isoDate();
         const time = p.querySelector('[name="plan_time"]').value || null;
@@ -579,6 +601,7 @@ export default {
           });
         }
       } else if (act === 'store-go') {
+        if (editing) await leaveNote();
         const boxId = li.querySelector('[name="box"]').value;
         const count = (await store.list('items', { filter: i => i.place_id === boxId })).length;
         const item = await store.create('items', { name: t.body.split('\n')[0].trim().slice(0, 200), place_id: boxId, parent_item_id: null, notes: '', quantity: null, sort_order: count, last_moved_at: null });
@@ -621,7 +644,8 @@ export default {
     // Editing a thought saves when you leave it (Esc cancels, Ctrl+Enter saves).
     list.addEventListener('focusout', async ev => {
       const box = ev.target.closest?.('.thought-edit');
-      if (!box?._editor || box.contains(ev.relatedTarget)) return;
+      // (Into the Plan it pop-up: still writing in the note.)
+      if (!box?._editor || box.contains(ev.relatedTarget) || ev.relatedTarget?.closest?.('.thought-pop')) return;
       const t = thoughts.find(x => x.id === box.dataset.thought);
       const orig = box._orig ?? t.body;
       const body = box.dataset.cancel ? orig : box._editor.value.trim();
@@ -650,7 +674,8 @@ export default {
     });
     // The ⋯ of the note being written in opens its menu without taking the
     // cursor out of the note (which would close the note, and the menu with it).
-    list.addEventListener('mousedown', ev => { if (editing && ev.target.closest('.note-more > summary')) ev.preventDefault(); });
+    // (So do Plan it and → Find Things, which open a pop-up by the button.)
+    list.addEventListener('mousedown', ev => { if (editing && ev.target.closest('.note-more > summary, [data-act="plan"], [data-act="store"]')) ev.preventDefault(); });
     // Is a press (mouse or finger) under way inside this element right now?
     let pressedOn = null;
     addEventListener('pointerdown', ev => { pressedOn = ev.target; }, { capture: true, signal: gone.signal });
@@ -662,7 +687,7 @@ export default {
       const timer = setTimeout(go, 800);
     });
     this.onKey = ev => {
-      if (ev.key === 'Escape' && panel && !editing) { panel = null; render(); return; }
+      if (ev.key === 'Escape' && pop) { ev.preventDefault(); ev.stopPropagation(); closePop(); if (editing) noteEditor()?.focus(); return; }
       if (ev.key === 'Escape' && !ev.target.closest('input, textarea, select, [contenteditable]')) kit.escape();
     };
     addEventListener('keydown', this.onKey);

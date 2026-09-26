@@ -416,14 +416,14 @@ export default {
       return pills || note ? `<div class="item-sub">${pills}${note}</div>` : '';
     }
 
-    // Notes under items: clicking one opens the item's panel.
+    // Notes under items: clicking one edits it in place.
     let noteEditing = null; // item whose notes are being typed (Shift+Enter)
     // Like Tasks, by the page's spacing (CSS): tight = no note here, just 📝 on
     // the item's line; medium = one line; loose = up to three lines.
     function noteHtml(i) {
       const { html } = previewLine(i.notes);
       if (!html) return '';
-      return `<div class="item-note plan-note" data-act="toggle-note" role="button" tabindex="0" aria-expanded="${editing === i.id}" title="${editing === i.id ? 'Close' : 'Open to read or edit'}">${inlineAll(i.notes)}</div>`;
+      return `<div class="item-note plan-note" data-act="toggle-note" role="button" tabindex="0" aria-expanded="${editing === i.id}" title="Click to edit">${inlineAll(i.notes)}</div>`;
     }
     const noteTag = i => ((i.notes || '').trim() && editing !== i.id
       ? `<button type="button" class="span-tag note-tag" data-act="toggle-note" title="${esc(i.notes.split('\n').map(l => l.trim()).find(Boolean)?.slice(0, 120) || 'Note')}">📝</button>` : '');
@@ -479,8 +479,12 @@ export default {
     // `list` lets a drag or resize draw how the day would look before it's saved.
     // Look → Alternate shading (👁): every other line of the ruled paper is
     // marked, counting down the page whatever group a line sits in (CSS shades it).
+    // An item spanning several slots counts as one piece, so the lines either
+    // side of it are always shaded differently from it.
     function markAlt(root) {
-      [...root.querySelectorAll('.line')].forEach((l, n) => l.classList.toggle('alt-row', n % 2 === 1));
+      const pieces = [...root.querySelectorAll('.line, .span-block')].filter(e => !e.parentElement.closest('.span-block'));
+      pieces.forEach((e, n) => e.classList.toggle('alt-row', n % 2 === 1));
+      root.querySelectorAll('.span-block .line.alt-row').forEach(l => l.classList.remove('alt-row'));
     }
 
     function renderLines(list = items) {
@@ -899,9 +903,12 @@ export default {
       else if (act === 'clear-day') clearDay();
       else if (act === 'add-at') openLine(t);
       else if (act === 'toggle-note') {
+        // Clicking an item's note edits it right there, under the title (the
+        // full panel stays under ⋯).
         const nid = t.closest('[data-item]').dataset.item;
-        if (editing === nid) closeDetails();
-        else { editing = nid; refresh(); }
+        noteEditing = nid;
+        await refresh();
+        el.querySelector(`[data-note-for="${nid}"]`)?._editor?.focus();
       }
       else if (act === 'adopt' || act === 'task-to-plan') {
         const taskId = t.closest('[data-task]').dataset.task;
