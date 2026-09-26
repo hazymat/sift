@@ -3152,3 +3152,8 @@ a.comment-mark:hover { color: var(--text); }
 /* 210: a task's note edited in place, under its title. */
 .task-list .item-sub .note-in-place { flex-basis: 100%; margin: 4px 0 2px; }
 .task-list > li > .tree { display: contents; }
+/* A picture opened from a note's files. */
+dialog.att-view { border: 0; padding: 0; background: transparent; max-width: 96vw; max-height: 96vh; cursor: zoom-out; text-align: center; }
+dialog.att-view::backdrop { background: rgb(0 0 0 / .8); }
+dialog.att-view img { display: block; max-width: 96vw; max-height: calc(96vh - 2.5em); object-fit: contain; border-radius: 8px; margin: 0 auto; }
+dialog.att-view .att-view-name { color: #fff; margin: 8px 0 0; font-size: .9rem; }

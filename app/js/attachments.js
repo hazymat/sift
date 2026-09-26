@@ -114,8 +114,24 @@ async function openFile(a) {
   }
   if (!blob) { toast("That file isn't on this device yet (open Sift there and let it sync)"); return; }
   const url = URL.createObjectURL(blob.type ? blob : new Blob([blob], { type: a.mime }));
+  if (a.kind === 'image') return showPicture(url, a.name);
   window.open(url, '_blank', 'noopener');
   setTimeout(() => URL.revokeObjectURL(url), 5 * 60 * 1000);
+}
+
+// A picture opens over the page, full size to fit; a click, tap or Esc closes it.
+function showPicture(url, name) {
+  const dlg = document.createElement('dialog');
+  dlg.className = 'att-view';
+  dlg.innerHTML = `<img alt=""><p class="att-view-name"></p>`;
+  dlg.querySelector('img').src = url;
+  dlg.querySelector('img').alt = name;
+  dlg.querySelector('.att-view-name').textContent = name;
+  const gone = () => { dlg.remove(); URL.revokeObjectURL(url); };
+  dlg.addEventListener('click', () => { dlg.close(); gone(); });
+  dlg.addEventListener('close', gone);
+  document.body.append(dlg);
+  dlg.showModal();
 }
 
 function afterAdd(made, done) {
@@ -164,6 +180,9 @@ export function onClick(ev, parentOf, done) {
 export function enableDrop(root, selector, parentOf, done) {
   // A note inside says it has attached a pasted file (richtext.js): redraw.
   root.addEventListener('attached', () => done?.());
+  // Pressing a file (to open or remove it) while writing in the note doesn't
+  // take the cursor out of the note, so the note stays open.
+  root.addEventListener('mousedown', ev => { if (ev.target.closest('.att-open, .att-x')) ev.preventDefault(); });
   const hasFiles = ev => [...(ev.dataTransfer?.types || [])].includes('Files');
   let over = null;
   const clear = () => { over?.classList.remove('drop-over'); over = null; };
