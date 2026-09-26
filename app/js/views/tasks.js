@@ -8,7 +8,7 @@ import { cogHtml } from '../viewcog.js';
 import * as store from '../store.js';
 import { loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES, HORIZONS, horizonOf, planDay } from '../tasks.js';
 import { ENERGY, isoDate, addDays, parseDate, addItem, durationChoices, durationLabel } from '../days.js';
-import { pillMenu, energyMenu } from '../pillmenu.js';
+import { energyMenu } from '../pillmenu.js';
 import { summarise } from '../summary.js';
 import { createListKit } from '../listkit.js';
 import { rankOf, reorderWrites, keyBetween } from '../order.js';
@@ -149,8 +149,8 @@ export default {
     function subLine(t) {
       const e = ENERGY.find(x => x.id === t.energy);
       const h = horizonOf(t);
-      const pills = (e ? `<button type="button" class="pill-act bolts" data-act="energy-pill" title="Energy: ${e.label}. Click to change" aria-label="Energy ${e.label}, change">${e.bolts}</button>` : '')
-        + (h !== 'now' && state.view !== h && !isDone(t) ? `<button type="button" class="pill-act" data-act="horizon-pill" title="For ${h}. Click to change">${h}</button>` : '');
+      const pills = (e ? `<button type="button" class="pill-act bolts" data-act="energy-pill" title="Energy: ${e.label}. Click to edit the task" aria-label="Energy ${e.label}, edit">${e.bolts}</button>` : '')
+        + (h !== 'now' && state.view !== h && !isDone(t) ? `<button type="button" class="pill-act" data-act="horizon-pill" title="For ${h}. Click to edit the task">${h}</button>` : '');
       const note = t.notes && open !== t.id ? noteHtml(t) : ''; // the open panel already shows the whole note
       // Expanded spacing: photos attached show as small pictures too.
       const photos = open !== t.id ? (atts.get(t.id) || []).filter(a => a.kind === 'image' && a.thumb) : [];
@@ -705,8 +705,18 @@ export default {
     const attParent = b => { const id = b.closest('[data-for]')?.dataset.for; return id ? { collection: 'tasks', id } : null; };
     const attDone = async () => { await flushNote(); await render(); };
     att.enableDrop(el, '.task-details[data-for], li[data-task]', node => ({ collection: 'tasks', id: node.dataset.for || node.dataset.task }), attDone);
+    // The pills under a task only show what's set; clicking one opens the
+    // task's editing pills (under its title), where each can be changed.
+    function editInPlace(id) {
+      const input = body.querySelector(`li[data-task="${id}"] .task-title`);
+      if (!input) return;
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+    }
     el.addEventListener('click', async ev => {
       if (att.onClick(ev, attParent, attDone)) return;
+      const shown = ev.target.closest('li[data-task] > .item-sub .chip');
+      if (shown && !shown.matches('a, .kids')) { editInPlace(shown.closest('li[data-task]').dataset.task); return; }
       const b = ev.target.closest('[data-act], [data-view], [data-energy], [data-horizon], [data-open-project]');
       if (!b) return;
       if (b.dataset.view) { b.closest('details')?.removeAttribute('open'); state.project = null; go(b.dataset.view, null); return; }
@@ -726,15 +736,7 @@ export default {
         await change(id, { horizon: b.dataset.horizon }, `Transferred to ${HORIZONS.find(x => x.id === b.dataset.horizon)?.label || b.dataset.horizon}`);
         return;
       }
-      if (act === 'horizon-pill' && id) {
-        pillMenu(b, HORIZONS.map(x => ({ value: x.id, label: x.label, current: horizonOf(task) === x.id })),
-          v => change(id, { horizon: v }, `Transferred to ${HORIZONS.find(x => x.id === v)?.label || v}`));
-        return;
-      }
-      if (act === 'energy-pill' && id) {
-        energyMenu(b, task.energy, v => change(id, { energy: v }, v ? 'Energy saved' : 'Energy cleared'));
-        return;
-      }
+      if ((act === 'horizon-pill' || act === 'energy-pill') && id) return editInPlace(id);
       if (b.dataset.energy && id) {
         await change(id, { energy: task.energy === b.dataset.energy ? null : b.dataset.energy }, 'Energy saved');
       } else if (act === 'close-details') {

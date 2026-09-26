@@ -2991,3 +2991,4 @@ a.comment-mark:hover { color: var(--text); }
 #main[data-density="loose"] .loose-only { display: inline; }
 #main[data-density="loose"] .task-pics { display: flex; gap: 6px; flex-basis: 100%; margin-top: 4px; }
 .task-pics img { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; border: 1px solid var(--glass-border); }
+.task-list > li[data-task] > .item-sub .chip:not(a):not(.kids), .task-list .pill-act { cursor: pointer; }
