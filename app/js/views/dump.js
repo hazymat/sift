@@ -61,6 +61,9 @@ const rankOfNote = t => rankOf(t, orderKey);
 
 export default {
   async mount(el) {
+    // Page-wide listeners are tied to this signal and removed in unmount().
+    this.gone?.abort();
+    const gone = this.gone = new AbortController();
     const state = this.state = { filter: 'all', q: '' };
     let kind = dumpTypes()[0]?.id || 'thought';
     let thoughts = [];
@@ -420,7 +423,8 @@ export default {
       if (b.dataset.filter) { state.filter = b.dataset.filter; render(); return; }
       b.closest('details')?.removeAttribute('open');
       const li = b.closest('[data-id]');
-      const t = li && thoughts.find(x => x.id === li.dataset.id);
+      // (From the store: if you were just writing in this note, its latest text.)
+      const t = li && (thoughts.find(x => x.id === li.dataset.id) && await store.get('thoughts', li.dataset.id));
       const act = b.dataset.act;
       if (act === 'save') return save();
       if (!t) return;
@@ -567,7 +571,21 @@ export default {
       if (body && body !== orig) {
         undoable('Saved', async () => { await store.update('thoughts', t.id, { body: orig, title: titleFrom(orig) }); render(); });
       }
+      // Left by pressing one of the note's own buttons (→ Task, Plan it…): redraw
+      // only after that press has done its job, or the button would vanish from
+      // under the finger first and nothing would happen.
+      if (pressingIn(box.closest('[data-id]'))) await afterPress();
       render();
+    });
+    // Is a press (mouse or finger) under way inside this element right now?
+    let pressedOn = null;
+    addEventListener('pointerdown', ev => { pressedOn = ev.target; }, { capture: true, signal: gone.signal });
+    addEventListener('pointerup', () => setTimeout(() => { pressedOn = null; }, 400), { capture: true, signal: gone.signal });
+    const pressingIn = node => !!(pressedOn && node?.contains(pressedOn));
+    const afterPress = () => new Promise(done => {
+      const go = () => { removeEventListener('click', go, true); clearTimeout(timer); setTimeout(done, 0); };
+      addEventListener('click', go, true);
+      const timer = setTimeout(go, 800);
     });
     this.onKey = ev => {
       if (ev.key === 'Escape' && !ev.target.closest('input, textarea, select, [contenteditable]')) kit.escape();
@@ -623,6 +641,7 @@ export default {
   },
 
   unmount() {
+    this.gone?.abort();
     this.barWatch?.disconnect();
     this.kit?.destroy();
     removeEventListener('keydown', this.onKey);
