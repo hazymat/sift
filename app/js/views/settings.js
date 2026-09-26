@@ -606,59 +606,10 @@ export default {
           toast('✓ Back to the default');
         });
       } else {
-        // Brain Dump types: add, rename, drag to reorder, remove. They are labels for filtering only.
-        let list = w.dumpTypes().map(t => ({ ...t }));
-        const save = async () => { await w.setDumpTypes(list); draw(); };
-        const draw = () => {
-          dlg.innerHTML = `<div class="sheet-handle"></div><h2>Brain Dump types</h2>
-            <p class="muted">${esc(word('ph_set_types'))}</p>
-            <ul class="types-list">${list.map((t, n) => `
-              <li data-n="${n}">
-                <button type="button" class="drag-handle" aria-label="Move ${esc(t.label)}">${icon('i-grip')}</button>
-                <input data-type-label value="${esc(t.label)}" aria-label="Type name" autocomplete="off">
-                <button type="button" class="icon-btn small" data-type="remove" ${list.length > 1 ? '' : 'disabled'} aria-label="Remove">×</button>
-              </li>`).join('')}
-            </ul>
-            <form class="types-add"><input name="new" placeholder="${esc(word('ph_set_new_type'))}" autocomplete="off"><button type="submit">Add</button></form>
-            <div class="backup-row"><button type="button" data-type="defaults">Put back the defaults</button></div>`;
-          // Drag a type by its grip (or focus the grip and use the arrow keys).
-          sortable(dlg.querySelector('.types-list'), {
-            async onEnd({ item }) {
-              const moved = list[Number(item.dataset.n)].id;
-              list = [...dlg.querySelectorAll('.types-list > li')].map(li => list[Number(li.dataset.n)]);
-              await save();
-              dlg.querySelector(`.types-list > li:nth-child(${list.findIndex(t => t.id === moved) + 1}) .drag-handle`)?.focus();
-            },
-          });
-        };
-        draw();
-        dlg.addEventListener('change', async e2 => {
-          if (!e2.target.matches('[data-type-label]')) return;
-          const n = Number(e2.target.closest('li').dataset.n);
-          const label = e2.target.value.trim();
-          if (!label) { e2.target.value = list[n].label; return; }
-          list[n].label = label;
-          await save();
-          toast('✓ Saved');
-        });
-        dlg.addEventListener('click', async e2 => {
-          const act = e2.target.closest('[data-type]')?.dataset.type;
-          if (!act) return;
-          if (act === 'defaults') { list = w.DEFAULT_TYPES.map(t => ({ ...t })); await save(); toast('✓ Back to the defaults'); return; }
-          const n = Number(e2.target.closest('li').dataset.n);
-          if (act === 'remove' && list.length > 1) list.splice(n, 1);
-          await save();
-        });
-        dlg.addEventListener('submit', async e2 => {
-          e2.preventDefault();
-          const label = e2.target.elements.new.value.trim();
-          if (!label) return;
-          const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') || 'type';
-          const id = list.some(t => t.id === slug) ? `${slug}_${Math.random().toString(36).slice(2, 6)}` : slug;
-          list.push({ id, label });
-          await save();
-          dlg.querySelector('.types-add input')?.focus();
-        });
+        // Brain Dump types: the shared sheet (typesheet.js), also on the Brain Dump page.
+        dlg.remove();
+        (await import('../typesheet.js')).openTypesSheet();
+        return;
       }
       dlg.showModal();
     });

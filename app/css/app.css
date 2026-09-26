@@ -3100,3 +3100,7 @@ a.comment-mark:hover { color: var(--text); }
   box-shadow: none;
   background-image: linear-gradient(to right, transparent 73px, color-mix(in srgb, var(--text) 4.5%, transparent) 73px);
 }
+/* 198: "+ New" at the end of the New note's type pills; ⋯ at the end of the type filters. */
+.dump-kinds .kind-new { opacity: .7; border-style: dashed; }
+.dump-kinds .kind-new:hover, .dump-kinds .kind-new:focus-visible { opacity: 1; }
+.dump-filter .filter-more { margin-left: auto; letter-spacing: .1em; }

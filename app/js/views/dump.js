@@ -13,7 +13,7 @@ import { SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import { toHtml, richText, titleHtml, afterTitle, inlineAll } from '../richtext.js';
 import { addTaskFirst } from '../tasks.js';
-import { askEmptied } from '../ask.js';
+import { askEmptied, askText } from '../ask.js';
 import { pickTask } from '../taskpicker.js';
 import { tintHex, tintId, colourMenu } from '../colours.js';
 import { rankOf, byRank, keyBetween, reorderWrites } from '../order.js';
@@ -90,6 +90,7 @@ export default {
           <span class="dump-caption" id="dump-kinds-cap">${esc(word('dump_kind'))}</span>
           <div class="dump-kinds" id="dump-kinds" role="group" aria-labelledby="dump-kinds-cap">
             ${dumpTypes().map(k => `<button type="button" data-kind="${esc(k.id)}">${esc(k.label)}</button>`).join('')}
+            <button type="button" class="kind-new" data-act="new-kind" title="Add a type of note">+ New</button>
           </div>
         </div>
         <div class="dump-foot">
@@ -122,6 +123,7 @@ export default {
           <button type="button" data-filter="all">All</button>
           ${dumpTypes().map(k => `<button type="button" data-filter="${esc(k.id)}">${esc(k.label)}</button>`).join('')}
           <button type="button" data-filter="pinned">★ Pinned</button>
+          <button type="button" class="filter-more" data-act="edit-kinds" title="Add, rename, reorder or remove types" aria-label="Edit note types">⋯</button>
         </div>
       </div>
       <ul id="thoughts" class="thought-list"></ul>
@@ -144,6 +146,9 @@ export default {
     writeDraft('dump:id', captureId);
     const captureBox = $('#dump-body');
     captureBox.dataset.ctrlEnter = 'keep'; // Ctrl+Enter saves the note and you carry on writing
+    // Pressing a "This is a:" pill keeps the cursor in the note: otherwise the
+    // note's toolbar folds away mid-press, the pills jump up, and the click misses.
+    el.addEventListener('mousedown', ev => { if (ev.target.closest('.dump-capture :is([data-kind], .kind-new)') && captureBox.contains(document.activeElement)) ev.preventDefault(); });
     // Its toolbar shows only once you click or type in it (the cursor is put
     // there when the page opens, which doesn't count), and goes again when you
     // leave it empty (CSS: #dump-body.in-use).
@@ -158,6 +163,20 @@ export default {
     const list = $('#thoughts');
     // Files attached to what's being typed belong to the thought it will become.
     const paintCapture = () => { const a = atts.get(captureId); $('#dump-att').innerHTML = a?.length ? att.rowHtml(a, { addButton: false }) : ''; };
+
+    // The type pills (New note) and filters, drawn again after types change.
+    function redrawKinds() {
+      const types = dumpTypes();
+      $('#dump-kinds').innerHTML = types.map(k => `<button type="button" data-kind="${esc(k.id)}">${esc(k.label)}</button>`).join('')
+        + '<button type="button" class="kind-new" data-act="new-kind" title="Add a type of note">+ New</button>';
+      $('#dump-filter').innerHTML = '<button type="button" data-filter="all">All</button>'
+        + types.map(k => `<button type="button" data-filter="${esc(k.id)}">${esc(k.label)}</button>`).join('')
+        + '<button type="button" data-filter="pinned">★ Pinned</button>'
+        + '<button type="button" class="filter-more" data-act="edit-kinds" title="Add, rename, reorder or remove types" aria-label="Edit note types">⋯</button>';
+      if (!types.some(k => k.id === kind)) kind = types[0]?.id || 'thought';
+      if (!['all', 'pinned'].includes(state.filter) && !types.some(k => k.id === state.filter)) state.filter = 'all';
+      render();
+    }
 
     function paintKinds() {
       for (const b of el.querySelectorAll('[data-kind]')) b.setAttribute('aria-pressed', b.dataset.kind === kind);
@@ -447,6 +466,21 @@ export default {
       const t = li && (thoughts.find(x => x.id === li.dataset.id) && await store.get('thoughts', li.dataset.id));
       const act = b.dataset.act;
       if (act === 'save') return save();
+      if (act === 'new-kind') {
+        // A new type of note, picked for the note being written.
+        const name = await askText('New type of note', { placeholder: word('ph_set_new_type'), ok: 'Add' });
+        if (!name?.trim()) return;
+        const { addType } = await import('../typesheet.js');
+        const made = await addType(name.trim());
+        kind = made.id;
+        redrawKinds();
+        toast(`Added "${made.label}"`);
+        return;
+      }
+      if (act === 'edit-kinds') {
+        const { openTypesSheet } = await import('../typesheet.js');
+        return openTypesSheet(() => redrawKinds());
+      }
       if (!t) return;
       if (act === 'edit') {
         editing = t.id;
