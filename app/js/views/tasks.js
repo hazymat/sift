@@ -110,12 +110,12 @@ export default {
       const out = [];
       const p = projectOf(t);
       if (p && !state.project) out.push(`<span class="chip" style="--c:${p.colour || COLOURS[0]}">${esc(p.name)}</span>`);
-      // (The words in .loose-only show in Expanded spacing only.)
-      if (t.start_date) out.push(`<span class="chip" title="Planned for">📅 <span class="loose-only">Planned for </span>${shortDate(t.start_date)}</span>`);
+      // Values only, in every spacing: the icons say what they are (hover for the words).
+      if (t.start_date) out.push(`<span class="chip" title="Planned for ${shortDate(t.start_date)}">📅 ${shortDate(t.start_date)}</span>`);
       const aim = aimDate(t);
-      if (aim) out.push(`<span class="chip${!isDone(t) && aim < isoDate() ? ' late' : ''}" title="Target end date">⚑ <span class="loose-only">Target end </span>${shortDate(aim)}${t.aim_at.length > 10 ? ` ${t.aim_at.slice(11, 16)}` : ''}</span>`);
+      if (aim) out.push(`<span class="chip${!isDone(t) && aim < isoDate() ? ' late' : ''}" title="Target end date">⚑ ${shortDate(aim)}${t.aim_at.length > 10 ? ` ${t.aim_at.slice(11, 16)}` : ''}</span>`);
       if (t.repeat) out.push(`<span class="chip" title="Repeats">🔁 ${repeatLabel(t.repeat)}</span>`);
-      if (t.estimate_min) out.push(`<span class="chip" title="Estimated time">⏱ ${durationLabel(t.estimate_min)}<span class="loose-only"> needed</span></span>`);
+      if (t.estimate_min) out.push(`<span class="chip" title="Estimated time">⏱ ${durationLabel(t.estimate_min)}</span>`);
       if (t.priority && t.priority < 3) out.push(`<span class="chip pri-${t.priority}">${PRIORITIES.find(p => p.id === t.priority)?.label}</span>`);
       if (t.status === 'doing' || t.status === 'waiting') out.push(`<span class="chip">${STATUSES.find(s => s.id === t.status)?.label}</span>`);
       const kids = kidsOf(t);
