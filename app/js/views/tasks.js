@@ -422,6 +422,19 @@ export default {
       else nextAfter = id; // opens once the saved title is redrawn
     }, { capture: true });
 
+    // The joining lines again, from the rows as they are now (with a new line in).
+    function redrawTrees() {
+      const ul = body.querySelector('.task-list');
+      if (!ul) return;
+      const rows = [...ul.querySelectorAll(':scope > li[data-task]')];
+      const depths = rows.map(li => ({ depth: Number(li.dataset.depth || 0) }));
+      rows.forEach((li, n) => {
+        li.querySelector(':scope > .tree')?.remove();
+        const html = treeOf(depths, n);
+        if (html) li.insertAdjacentHTML('afterbegin', html);
+      });
+    }
+
     function openNewAfter(id) {
       const task = data.tasks.find(x => x.id === id);
       const li = body.querySelector(`.task-list > li[data-task="${id}"]`);
@@ -431,18 +444,20 @@ export default {
       while (last.nextElementSibling?.matches('li[data-task]') && Number(last.nextElementSibling.dataset.depth || 0) > d) last = last.nextElementSibling;
       const row = document.createElement('li');
       row.className = `task-new-row${d ? ' group-kid' : ''}`;
+      row.dataset.task = ''; // laid out like a task row (CSS), but not one yet
       row.dataset.depth = d;
       row.innerHTML = `<span class="drag-handle" aria-hidden="true" style="visibility:hidden">${icon('i-grip')}</span>
         <input type="checkbox" class="tick" disabled tabindex="-1" aria-hidden="true">
         <input class="task-title no-inline" placeholder="${d ? 'New sub-task' : 'New task'}" aria-label="${d ? 'New sub-task' : 'New task'}" autocomplete="off">`;
       last.after(row);
+      redrawTrees();
       const input = row.querySelector('.task-title');
       let done = false;
       const finish = async chain => {
         if (done) return;
         done = true;
         const title = input.value.trim();
-        if (!title) { row.remove(); return; }
+        if (!title) { row.remove(); redrawTrees(); return; }
         // Just after the task and everything under it.
         const fam = withSubs([id]).map(x => data.tasks.find(y => y.id === x)).filter(Boolean).map(x => rankOf(x)).sort();
         const next = data.tasks.map(x => rankOf(x)).filter(k => k > fam.at(-1)).sort()[0] || null;
