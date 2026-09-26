@@ -1043,14 +1043,17 @@ export default {
     const closeNew = () => pileNew.classList.remove('open');
     pileNew.addEventListener('focusin', () => { if (!pileNew.classList.contains('open')) { paintNewPills(); pileNew.classList.add('open'); } });
     // Leaving by keyboard (Tab / Shift+Tab) closes it too, if nothing's typed or set.
+    // Left with a task typed (click elsewhere, or Tab away): it's added, as Enter would.
     pileNew.addEventListener('focusout', ev => {
       const to = ev.relatedTarget;
       if (!to || pileNew.contains(to) || to.closest?.('.pill-menu, .dd-menu')) return;
+      if ($('#dump').value.trim()) { addNew({ leave: true }); return; }
       if (newIdle()) { resetNew(); closeNew(); }
     });
     document.addEventListener('pointerdown', ev => {
       if (!el.isConnected || !pileNew.classList.contains('open')) return;
       if (pileNew.contains(ev.target) || ev.target.closest?.('.pill-menu')) return;
+      if ($('#dump').value.trim()) { addNew({ leave: true }); return; }
       if (newIdle()) { resetNew(); closeNew(); }
     }, pageCapture);
     $('.new-pills').addEventListener('click', ev => {
@@ -1070,7 +1073,7 @@ export default {
       if (f.dataset.pill === 'estimate_min') draft.estimate_min = f.value ? Number(f.value) : null;
       paintNewPills();
     });
-    async function addNew({ open = false } = {}) {
+    async function addNew({ open = false, leave = false } = {}) {
       const input = $('#dump');
       const text = input.value.trim();
       if (!text) return;
@@ -1082,8 +1085,9 @@ export default {
       const made = await addItem(date, { title, notes, time: p.time, end_time: p.end_time, rank: lastKey(items.filter(i => !i.time)), energy: draft.energy, estimate_min: draft.estimate_min });
       resetNew();
       if (open) { closeNew(); input.blur(); editing = made.id; }
+      if (leave) closeNew();
       await refresh();
-      if (!open) input.focus();
+      if (!open && !leave) input.focus();
       undoable(`Added "${made.title}"`, async () => { await store.remove('day_items', made.id); await refresh(); });
     }
     $('#dump').addEventListener('keydown', ev => {

@@ -474,12 +474,46 @@ export default {
         // Just after the task and everything under it.
         const fam = withSubs([id]).map(x => data.tasks.find(y => y.id === x)).filter(Boolean).map(x => rankOf(x)).sort();
         const next = data.tasks.map(x => rankOf(x)).filter(k => k > fam.at(-1)).sort()[0] || null;
-        const made = await addTask({ title, parent_task_id: task.parent_task_id || null, horizon: task.horizon || null, project_id: task.project_id || null, milestone_id: task.milestone_id || null, rank: keyBetween(fam.at(-1), next) });
+        // Its task: the nearest row above one level up (Tab / "- " may have moved it).
+        const lvl = Number(row.dataset.depth || 0);
+        let up = null;
+        for (let p = row.previousElementSibling; p && lvl; p = p.previousElementSibling) if (p.matches('li[data-task][data-id]') && Number(p.dataset.depth || 0) === lvl - 1) { up = p.dataset.task; break; }
+        const made = await addTask({ title, parent_task_id: up, horizon: task.horizon || null, project_id: task.project_id || null, milestone_id: task.milestone_id || null, rank: keyBetween(fam.at(-1), next) });
         if (chain) nextAfter = made.id;
         await render();
-        undoable(`Added ${d ? 'sub-task' : 'task'}: ${title}`, async () => { await store.remove('tasks', made.id); await render(); });
+        undoable(`Added ${lvl ? 'sub-task' : 'task'}: ${title}`, async () => { await store.remove('tasks', made.id); await render(); });
       };
+      // Tab / Shift+Tab, or "- " at the start: in a level, or back out.
+      const above = () => { let p = row.previousElementSibling; while (p && !p.matches('li[data-task][data-id]')) p = p.previousElementSibling; return p; };
+      const setLevel = n => {
+        row.dataset.depth = n;
+        row.classList.toggle('group-kid', n > 0);
+        input.placeholder = n ? 'New sub-task' : 'New task';
+        redrawTrees();
+      };
+      const deeper = () => {
+        const n = Number(row.dataset.depth || 0), a = above();
+        if (!a) { toast('Nothing above to go under'); return false; }
+        if (n >= MAX_DEPTH) { toast('Sub-tasks go three levels deep at most'); return false; }
+        if (n > Number(a.dataset.depth || 0)) { toast('Already as far in as it goes here'); return false; }
+        setLevel(n + 1);
+        return true;
+      };
+      input.addEventListener('input', () => {
+        const m = input.value.match(/^[-*•] /);
+        if (!m) return;
+        const was = Number(row.dataset.depth || 0);
+        if (!deeper()) return;
+        input.value = input.value.slice(m[0].length);
+        toast('Made it a sub-task', { action: 'Undo', onAction: () => { if (!row.isConnected) return; setLevel(was); input.value = m[0] + input.value; input.focus(); } });
+      });
       input.addEventListener('keydown', ev => {
+        if (ev.key === 'Tab' && !ev.ctrlKey && !ev.altKey && !ev.metaKey) {
+          ev.preventDefault(); ev.stopPropagation();
+          const n = Number(row.dataset.depth || 0);
+          if (ev.shiftKey) { if (n) setLevel(n - 1); else toast('Already a task of its own'); } else deeper();
+          return;
+        }
         if (ev.key === 'Enter' && !ev.isComposing) { ev.preventDefault(); ev.stopPropagation(); finish(true); }
         else if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); finish(false); }
       });
@@ -516,7 +550,7 @@ export default {
       const ti = ul?.querySelector(':scope > li[data-task][data-depth="0"] > .task-title');
       if (ti) { const x = textX(ti, ti.closest('li')); if (x > 0) body.style.setProperty('--title-x', `${x}px`); }
       const nt = body.querySelector('#task-new'), en = nt?.closest('.task-entry');
-      if (nt && en) { const x = textX(nt, en); if (x > 0) body.style.setProperty('--entry-x', `${x}px`); }
+      if (nt && en) { const x = textX(nt, en) - (parseFloat(en.style.getPropertyValue('--ind')) || 0); if (x > 0) body.style.setProperty('--entry-x', `${x}px`); }
       // Every line the same height: the New task line matches a plain task row (CSS --task-row-h).
       const plain = [...(ul?.querySelectorAll(':scope > li[data-task]') || [])].map(li => li.getBoundingClientRect().height).filter(h => h > 0);
       if (plain.length) body.style.setProperty('--task-row-h', `${Math.min(...plain)}px`);
@@ -614,7 +648,8 @@ export default {
     // ---------- adding ----------
 
     let lastTop = null; // the last top-level task added here ("- " lines go under it)
-    async function addLines(lines, { parent: startParent = null, extras = {} } = {}) {
+    let entryDepth = 0; // the New task line's level: 0 a task, 1 a sub-task, 2 under that
+    async function addLines(lines, { parent: startParent = null, extras = {}, focus = true } = {}) {
       const made = [];
       let parent = startParent;
       const base = { project_id: state.project || null, horizon: LISTS.includes(state.view) ? state.view : 'inbox', ...extras.fields };
@@ -630,7 +665,7 @@ export default {
         if (!line.sub) { parent = t.id; lastTop = t.id; }
       }
       await render();
-      body.querySelector('#task-new')?.focus();
+      if (focus) body.querySelector('#task-new')?.focus();
       undoable(`Added ${made.length} task${made.length === 1 ? '' : 's'} to ${HORIZONS.find(x => x.id === base.horizon)?.label || word('list_inbox')}${shortened ? ` (${shortened} long one${shortened === 1 ? '' : 's'} shortened, full text in the note)` : ''}`, async () => {
         await store.updateMany('tasks', made.map(id => [id, { deleted_at: new Date().toISOString() }]));
         await render();
@@ -689,16 +724,51 @@ export default {
       const idle = () => !ta.value.trim() && !noteEl.value.trim() && ![...entry.querySelectorAll('[data-entry]')].some(f => f.value && !(f.dataset.entry === 'horizon' && f.value === defaultList()));
       entry.addEventListener('focusout', () => {
         setTimeout(() => {
-          if (pressing || entry.contains(document.activeElement) || !idle()) return;
+          if (pressing || entry.contains(document.activeElement) || document.querySelector('.pill-menu')) return;
+          // Left with a task typed: it's added, as Enter would.
+          if (ta.value.trim()) { submit({ focus: false }); entry.classList.remove('open'); return; }
+          if (!idle()) return;
           reset();
           entry.classList.remove('open');
         }, 300);
       });
-      const submit = () => {
+      // Its level: "- " at the start, or Tab / Shift+Tab, make it a sub-task
+      // (of the last task above) or bring it back out, straight away.
+      const rowsNow = () => [...body.querySelectorAll('.task-list > li[data-task][data-id]')];
+      const deepest = () => { const last = rowsNow().at(-1); return last ? Math.min(MAX_DEPTH, Number(last.dataset.depth || 0) + 1) : 0; };
+      const setDepth = d => { entryDepth = d; entry.dataset.depth = d; entry.style.setProperty('--ind', `${d * 28}px`); };
+      setDepth(Math.min(entryDepth, deepest()));
+      const parentAt = d => (d ? [...rowsNow()].reverse().find(li => Number(li.dataset.depth || 0) === d - 1)?.dataset.task || null : null);
+      const deeper = () => {
+        if (!rowsNow().length) { toast('Nothing above to go under'); return false; }
+        if (entryDepth >= deepest()) { toast(entryDepth >= MAX_DEPTH ? 'Sub-tasks go three levels deep at most' : 'Already as far in as it goes here'); return false; }
+        setDepth(entryDepth + 1);
+        return true;
+      };
+      ta.addEventListener('input', () => {
+        const m = ta.value.match(/^[-*•] /);
+        if (!m) return;
+        const was = entryDepth;
+        if (!deeper()) return;
+        ta.value = ta.value.slice(m[0].length);
+        toast(entryDepth === 1 ? 'Made it a sub-task' : 'Made it a sub-task of the sub-task', { action: 'Undo', onAction: () => { setDepth(was); ta.value = m[0] + ta.value; ta.focus(); } });
+      });
+      entry.addEventListener('keydown', ev => {
+        if (ev.target === ta && ev.key === 'Tab' && !ev.ctrlKey && !ev.altKey && !ev.metaKey) {
+          ev.preventDefault();
+          if (ev.shiftKey) { if (entryDepth) setDepth(entryDepth - 1); else toast('Already a task of its own'); } else deeper();
+        } else if (ev.target === ta && ev.key === 'ArrowDown') {
+          ev.preventDefault(); noteEl.focus(); noteEl.setSelectionRange(noteEl.value.length, noteEl.value.length);
+        } else if (ev.target === noteEl && ev.key === 'ArrowUp' && !noteEl.value.slice(0, noteEl.selectionStart).includes('\n')) {
+          ev.preventDefault(); ta.focus();
+        }
+      });
+      const submit = ({ focus = true } = {}) => {
         const raw = ta.value;
         const text = raw.replace(/^[\s\-*•]+/, '').trim();
         if (!text) return;
-        const sub = /^(\s|[-*•])/.test(raw);
+        const under = parentAt(entryDepth);
+        const sub = !!under || /^(\s|[-*•])/.test(raw);
         const aim = field('aim_date').value;
         const fields = {
           energy: field('energy').value || null,
@@ -711,7 +781,7 @@ export default {
         ta.value = '';
         draftCleared(ta);
         reset();
-        return addLines([{ text, sub }], { parent: sub ? lastTop : null, extras: { fields, note } });
+        return addLines([{ text, sub }], { parent: under || (sub ? lastTop : null), extras: { fields, note }, focus });
       };
       entry.addEventListener('keydown', ev => {
         // Esc with something typed: keep it (add the task, as Enter does) and stop editing.
