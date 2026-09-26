@@ -57,21 +57,32 @@ export async function setPinned(ids) {
 
 // ---------- theme ----------
 
+// A theme is a look (colours: data-theme, one of blue / dark / light, or
+// auto) plus fonts (data-fonts: plain, or fancy = handwriting for notes and
+// lists too). Plain keeps the handwriting only for the Day Planner's day title
+// and its labels (Day focus, Energy, Schedule, Tasks, Notes). More themes can
+// be added here: `swatches` and `fonts` draw the preview in Settings.
 export const THEMES = [
-  { id: 'blue', label: 'Glass' }, // id stays "blue" (saved on devices)
-  { id: 'dark', label: 'Dark' },
-  { id: 'light', label: 'Light' },
-  { id: 'auto', label: 'Auto' },
+  { id: 'glass', label: 'Glass – Default', look: 'blue', fonts: 'plain', swatches: ['#0f172a', '#2a4a8a', '#9cc4ff'] },
+  { id: 'glass-fancy', label: 'Glass – Fancy', look: 'blue', fonts: 'fancy', swatches: ['#0f172a', '#2a4a8a', '#9cc4ff'] },
+  { id: 'dark', label: 'Dark', look: 'dark', fonts: 'plain', swatches: ['#121316', '#26282d', '#9cc4ff'] },
+  { id: 'light', label: 'Light', look: 'light', fonts: 'plain', swatches: ['#eef2f8', '#ffffff', '#1f5fd1'] },
+  { id: 'auto', label: 'Auto', look: 'auto', fonts: 'plain', swatches: ['#eef2f8', '#0f172a', '#1f5fd1'], note: 'Light by day, Glass at night, following your device.' },
 ];
+// Saved before themes had fonts: "blue" was Glass.
+const OLD = { blue: 'glass' };
+const themeOf = id => THEMES.find(t => t.id === (OLD[id] || id)) || THEMES[0];
 const THEME_COLOURS = { blue: '#0f172a', dark: '#121316', light: '#eef2f8' };
 const prefersLight = matchMedia('(prefers-color-scheme: light)');
-let theme = 'blue';
+let theme = 'glass';
 
 function applyTheme() {
-  const resolved = theme === 'auto' ? (prefersLight.matches ? 'light' : 'blue') : theme;
+  const t = themeOf(theme);
+  const resolved = t.look === 'auto' ? (prefersLight.matches ? 'light' : 'blue') : t.look;
   document.documentElement.dataset.theme = resolved;
+  document.documentElement.dataset.fonts = t.fonts;
   $('meta[name="theme-color"]').content = THEME_COLOURS[resolved];
-  try { localStorage.setItem('sift-theme', theme); } catch {} // read by index.html before first paint
+  try { localStorage.setItem('sift-theme', t.id); } catch {} // read by index.html before first paint
 }
 
 export function currentTheme() {
@@ -79,7 +90,7 @@ export function currentTheme() {
 }
 
 export async function setTheme(id) {
-  theme = THEMES.some(t => t.id === id) ? id : 'blue';
+  theme = themeOf(id).id;
   applyTheme();
   await store.updateSettings({ theme });
 }
@@ -252,7 +263,7 @@ async function boot() {
     pinned = settings.pinned_areas.filter(id => area(id)).slice(0, MAX_PINNED);
     if (pinned.join(',') === OLD_DEFAULT) pinned = DEFAULT_PINNED; // never changed by hand: take the new order
   }
-  theme = THEMES.some(t => t.id === settings.theme) ? settings.theme : 'blue';
+  theme = themeOf(settings.theme).id;
   setHints(!!settings.show_hints);
   applyTheme();
   prefersLight.addEventListener('change', applyTheme);

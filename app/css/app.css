@@ -3012,3 +3012,36 @@ a.comment-mark:hover { color: var(--text); }
 #notes .rich-edit li::marker { font-family: inherit; line-height: 1; }
 /* A ⋯ menu with no room below opens above its button (dropdown.js installMenuFlip). */
 .tool-menu .menu.up { top: auto; bottom: calc(100% + 8px); }
+
+/* ---------- Themes: fonts (188) ----------
+   data-fonts="plain" (Glass – Default, Dark, Light, Auto): notes, lists and
+   the rest in the ordinary font; the handwriting stays only for the Day
+   Planner's day title and its labels (--hand-keep). "fancy" (Glass – Fancy):
+   handwriting everywhere it was. Papers with their own font keep it. */
+:root { --hand-keep: "Segoe Print", "Bradley Hand", "Noteworthy", "Chalkboard SE", "Comic Sans MS", cursive; }
+:root[data-fonts="plain"] { --hand: var(--font); }
+.planner[data-paper="techie"] { --hand-keep: ui-monospace, "Cascadia Code", "SF Mono", Consolas, Menlo, monospace; }
+.planner[data-paper="minimal"] { --hand-keep: system-ui, -apple-system, "Segoe UI", sans-serif; }
+.day-title .weekday, .focus > span, .hand-label, .pile h2, .day-tasks h2, .day-notes h2, .schedule-title { font-family: var(--hand-keep); }
+.planner[data-paper="techie"] .day-title .date { font-family: var(--hand-keep); }
+
+/* The theme dropdown in Settings → Appearance: each row previews the theme. */
+.theme-menu { position: relative; display: block; }
+.theme-menu > summary { list-style: none; cursor: pointer; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--glass-border); background: var(--glass); }
+.theme-menu > summary::-webkit-details-marker { display: none; }
+.theme-menu > summary::after { content: "▾"; position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+.theme-menu .theme-list { left: 0; right: 0; min-width: 0; gap: 2px; }
+.theme-list button { display: block; width: 100%; text-align: left; padding: 8px 10px; border-radius: 12px; border: 1px solid transparent; background: transparent; box-shadow: none; }
+.theme-list button:hover, .theme-list button[aria-selected="true"] { background: var(--glass-hover); border-color: var(--glass-border); }
+.theme-row { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; align-items: center; }
+.theme-swatches { grid-row: 1 / 3; display: flex; }
+.theme-swatches span { width: 18px; height: 34px; border: 1px solid rgba(255, 255, 255, .25); }
+.theme-swatches span:first-child { border-radius: 8px 0 0 8px; }
+.theme-swatches span:last-child { border-radius: 0 8px 8px 0; }
+.theme-name { font-weight: 600; color: var(--text); }
+.theme-sample { color: var(--muted); font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.theme-title { font-family: "Segoe Print", "Bradley Hand", "Noteworthy", "Chalkboard SE", "Comic Sans MS", cursive; font-weight: 700; color: var(--text); }
+.theme-row[data-fonts="plain"] .theme-note-font { font-family: var(--font); }
+.theme-row[data-fonts="fancy"] .theme-note-font { font-family: "Segoe Print", "Bradley Hand", "Noteworthy", "Chalkboard SE", "Comic Sans MS", cursive; }
+.theme-menu .theme-list { background: var(--menu-bg, var(--glass-strong)); z-index: 40; }
+.card:has(.theme-menu[open]) { position: relative; z-index: 5; }

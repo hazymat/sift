@@ -467,7 +467,7 @@ export async function outboxSize() {
 const DEFAULT_SETTINGS = {
   default_calendar_id: null,
   week_start: 1,
-  theme: 'blue', // blue | dark | light | auto
+  theme: 'glass', // a theme id (app.js THEMES): glass | glass-fancy | dark | light | auto
   pinned_areas: null, // null = app default
   spot_details: true, // phone numbers / emails in notes become contacts
   phone_country: '44', // calling code for numbers written without one

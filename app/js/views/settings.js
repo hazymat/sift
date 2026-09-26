@@ -5,6 +5,12 @@ import { word } from '../words.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
+// A theme's row in the Appearance dropdown: its name, colour swatches, and a
+// line of text in its fonts (notes, and the Day Planner's title).
+const themePreview = t => `<span class="theme-row" data-fonts="${t.fonts}">`
+  + `<span class="theme-swatches">${t.swatches.map(c => `<span style="background:${c}"></span>`).join('')}</span>`
+  + `<span class="theme-name">${t.label}</span>`
+  + `<span class="theme-sample"><span class="theme-title">Monday</span> <span class="theme-note-font">Notes look like this</span></span></span>`;
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
 
 function formatBytes(n) {
@@ -28,9 +34,12 @@ export default {
 
       <section class="card">
         <h2>Appearance</h2>
-        <div class="segmented" id="theme" role="group" aria-label="Theme">
-          ${app.THEMES.map(t => `<button type="button" data-value="${t.id}" aria-pressed="${t.id === app.currentTheme()}">${t.label}</button>`).join('')}
-        </div>
+        <details class="tool-menu theme-menu" id="theme">
+          <summary class="theme-now" aria-label="Theme"></summary>
+          <div class="menu theme-list" role="listbox" aria-label="Themes">
+            ${app.THEMES.map(t => `<button type="button" role="option" data-value="${t.id}" aria-selected="${t.id === app.currentTheme()}">${themePreview(t)}</button>`).join('')}
+          </div>
+        </details>
         <p class="muted" id="theme-note"></p>
         <h3>Text size</h3>
         <div class="segmented" id="text-size" role="group" aria-label="Text size">
@@ -686,15 +695,18 @@ export default {
       toast(hintsBox.checked ? '✓ Hints shown' : '✓ Hints hidden');
     });
 
+    // Theme: a dropdown whose rows preview each theme (colours and fonts).
     const themeNote = () => {
-      el.querySelector('#theme-note').textContent =
-        app.currentTheme() === 'auto' ? 'Light by day, Glass at night, following your device.' : '';
+      const t = app.THEMES.find(x => x.id === app.currentTheme());
+      el.querySelector('#theme-note').textContent = t?.note || '';
+      el.querySelector('#theme .theme-now').innerHTML = t ? themePreview(t) : '';
     };
     themeNote();
-    el.querySelector('#theme').addEventListener('click', async e => {
-      const id = e.target.closest('button')?.dataset.value;
+    el.querySelector('#theme .theme-list').addEventListener('click', async e => {
+      const id = e.target.closest('[data-value]')?.dataset.value;
       if (!id) return;
-      for (const b of el.querySelectorAll('#theme button')) b.setAttribute('aria-pressed', b.dataset.value === id);
+      for (const b of el.querySelectorAll('#theme [data-value]')) b.setAttribute('aria-selected', b.dataset.value === id);
+      el.querySelector('#theme').open = false;
       await app.setTheme(id);
       themeNote();
     });
