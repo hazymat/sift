@@ -3157,3 +3157,9 @@ dialog.att-view { border: 0; padding: 0; background: transparent; max-width: 96v
 dialog.att-view::backdrop { background: rgb(0 0 0 / .8); }
 dialog.att-view img { display: block; max-width: 96vw; max-height: calc(96vh - 2.5em); object-fit: contain; border-radius: 8px; margin: 0 auto; }
 dialog.att-view .att-view-name { color: #fff; margin: 8px 0 0; font-size: .9rem; }
+/* A task ticked off a list: crossed out, fades while its message shows, then
+   the rows below slide up (tickAway in views/tasks.js). */
+.task-list > li.ticked-away { transition: opacity var(--fade, 6s) linear; }
+.task-list > li.ticked-away .task-title { text-decoration: line-through; }
+.task-list > li.ticked-away.fading { opacity: 0; }
+.task-list > li.ticked-away.closing { transition: height .26s ease, padding .26s ease, margin .26s ease, border-width .26s ease; height: 0 !important; padding-top: 0; padding-bottom: 0; margin-top: 0; margin-bottom: 0; border-width: 0; }

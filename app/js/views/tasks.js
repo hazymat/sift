@@ -745,13 +745,39 @@ export default {
 
         // ---------- editing ----------
 
-    async function change(id, fields, label = 'Saved', opts) {
+    async function change(id, fields, label = 'Saved', opts, away = null) {
       const before = data.tasks.find(t => t.id === id);
       const old = Object.fromEntries(Object.keys(fields).map(k => [k, before?.[k] ?? null]));
       await store.update('tasks', id, fields);
-      await render();
+      if (away) tickAway(away); else await render();
       undoable(label, async () => { await store.update('tasks', id, old); await render(); }, opts);
     }
+
+    // A task ticked off a list doesn't vanish at once: it stays, crossed out,
+    // fading while its "Done" message shows, then the rows below slide up into
+    // its place. (Several ticked close together each finish their own fade.)
+    const FADE_MS = 6000; // as long as a message with Undo shows (toast.js)
+    let fading = 0;
+    async function tickAway(ids) {
+      const rows = ids.map(x => el.querySelector(`.task-list > li[data-task="${x}"]`)).filter(Boolean);
+      if (!rows.length) return render();
+      fading++;
+      for (const r of rows) { r.classList.add('done', 'ticked-away'); r.style.setProperty('--fade', `${FADE_MS}ms`); }
+      void rows[0].offsetHeight; // start from full view, then fade
+      rows.forEach(r => r.classList.add('fading'));
+      await new Promise(done => setTimeout(done, FADE_MS));
+      if (rows.some(r => r.isConnected)) {
+        for (const r of rows) { r.style.height = `${r.offsetHeight}px`; r.style.overflow = 'hidden'; }
+        void rows[0].offsetHeight;
+        rows.forEach(r => r.classList.add('closing'));
+        await new Promise(done => setTimeout(done, 280));
+        rows.forEach(r => r.remove());
+      }
+      if (--fading === 0) render();
+    }
+    // Would ticking this task take it off the list being shown? (A sub-task
+    // stays, crossed out, under its open task; the Done list keeps everything.)
+    const leavesList = task => state.view !== 'done' && !(task.parent_task_id && data.tasks.some(p => p.id === task.parent_task_id && !isDone(p)));
 
     async function newProject() {
       const name = await askText('New project', { ok: 'Add' });
@@ -783,14 +809,14 @@ export default {
         if (kids.length) {
           // The task and everything still open under it go to Done together.
           await store.updateMany('tasks', [id, ...kids.map(k => k.id)].map(x => [x, doneFields(true)]));
-          await render();
+          if (leavesList(task)) tickAway([id, ...kids.map(k => k.id)]); else await render();
           undoable(`Done: ${task.title} and ${kids.length} sub-task${kids.length === 1 ? '' : 's'}`, async () => {
             await store.updateMany('tasks', [id, ...kids.map(k => k.id)].map(x => [x, doneFields(false)]));
             await render();
           }, { more: closingComment({ task_id: id }) });
           return;
         }
-        await change(id, doneFields(t.checked), t.checked ? `Done: ${task.title}` : 'Not done', t.checked ? { more: closingComment({ task_id: id }) } : undefined);
+        await change(id, doneFields(t.checked), t.checked ? `Done: ${task.title}` : 'Not done', t.checked ? { more: closingComment({ task_id: id }) } : undefined, t.checked && leavesList(task) ? [id] : null);
       } else if (t.classList.contains('task-title')) {
         if (!t.value.trim()) {
           // The whole title removed: delete the task, or put the title back.
