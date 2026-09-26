@@ -3115,3 +3115,6 @@ a.comment-mark:hover { color: var(--text); }
    piece (the ruled lines inside it stay), not striped slot by slot. */
 #main[data-shade="alt"] .planner .span-block > .line.alt-row { box-shadow: none; }
 #main[data-shade="alt"] .planner .span-block { box-shadow: inset 0 0 0 999px color-mix(in srgb, var(--text) 4.5%, transparent); }
+/* ⋯ menus stay invisible for the moment between opening and being placed
+   (above or below), so they never flash the wrong way first. */
+.tool-menu[open] > .menu:not(.placed) { visibility: hidden; }

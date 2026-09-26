@@ -6,7 +6,7 @@
 import { keepDraft, draftCleared } from '../drafts.js';
 import { cogHtml } from '../viewcog.js';
 import * as store from '../store.js';
-import { loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES, HORIZONS, horizonOf, planDay } from '../tasks.js';
+import { loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES, HORIZONS, horizonOf, planDay, MAX_DEPTH, depthIn, levelsUnder } from '../tasks.js';
 import { ENERGY, isoDate, addDays, parseDate, addItem, durationChoices, durationLabel } from '../days.js';
 import { energyMenu } from '../pillmenu.js';
 import { summarise } from '../summary.js';
@@ -216,7 +216,7 @@ export default {
         </details>
         <div class="detail-actions">
           <button type="button" class="close-details" data-act="close-details" title="Close (or click anywhere outside, or Esc)">Close</button>
-          <button type="button" data-act="add-sub">+ Sub-task</button>
+          ${depthIn(t, data.tasks) < MAX_DEPTH ? '<button type="button" data-act="add-sub">+ Sub-task</button>' : ''}
           <span class="spacer"></span>
           <button type="button" data-act="archive">Archive</button>
           <button type="button" class="danger" data-act="delete">Delete</button>
@@ -648,6 +648,12 @@ export default {
       if (!target) return;
       const moving = ids.map(id => data.tasks.find(t => t.id === id)).filter(t => t && t.id !== targetId && !descends(target, t.id));
       if (!moving.length) return;
+      // Three levels at most: the target's depth, plus one, plus what's under the moved task.
+      if (moving.some(t => depthIn(target, data.tasks) + 1 + levelsUnder(t, data.tasks) > MAX_DEPTH)) {
+        toast('Sub-tasks go three levels deep at most');
+        await render();
+        return;
+      }
       const family = data.tasks.filter(t => t.id === targetId || descends(t, targetId)).map(t => rankOf(t)).sort();
       const end = family.at(-1);
       const next = data.tasks.map(t => rankOf(t)).filter(k => k > end).sort()[0] || null;
@@ -659,13 +665,13 @@ export default {
       await render();
       undoable(`${moving.length === 1 ? `"${moving[0].title}" is` : `${moving.length} tasks are`} now under "${target.title}"`, async () => { await store.updateMany('tasks', before); await render(); });
     }
-    const kitOrdered = this.kitOrdered = createListKit({ reorder: true, indent: true, maxDepth: 4, noun: 'task', actions: taskActions, onReorder: persistOrder, onNest: nestUnder });
+    const kitOrdered = this.kitOrdered = createListKit({ reorder: true, indent: true, maxDepth: MAX_DEPTH, noun: 'task', actions: taskActions, onReorder: persistOrder, onNest: nestUnder });
     const kitPlain = this.kitPlain = createListKit({ reorder: false, noun: 'task', actions: taskActions });
     // In Task Dump / Now / Next / Later only the order changes: just the moved
     // tasks get a new place (order.js), so tasks on other lists keep theirs.
     // Now / Next / Later: the same drag rules as All tasks (sideways, onto a task,
     // in and out of a task's sub-tasks), with only the moved tasks re-placed.
-    const kitFlat = this.kitFlat = createListKit({ reorder: true, indent: true, maxDepth: 4, onNest: (ids, target) => nestUnder(ids, target), noun: 'task', onReorder: persistOrder, actions: taskActions });
+    const kitFlat = this.kitFlat = createListKit({ reorder: true, indent: true, maxDepth: MAX_DEPTH, onNest: (ids, target) => nestUnder(ids, target), noun: 'task', onReorder: persistOrder, actions: taskActions });
 
         // ---------- editing ----------
 

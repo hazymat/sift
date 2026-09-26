@@ -185,10 +185,12 @@ export function installDropdowns() {
 export function installMenuFlip() {
   document.addEventListener('toggle', ev => {
     const d = ev.target;
-    if (!(d instanceof HTMLDetailsElement) || !d.open || !d.matches('.tool-menu')) return;
+    if (!(d instanceof HTMLDetailsElement) || !d.matches('.tool-menu')) return;
+    if (!d.open) { d.querySelector(':scope > .menu')?.classList.remove('placed'); return; }
     const menu = d.querySelector(':scope > .menu');
     if (!menu) return;
     menu.classList.remove('up');
+    menu.classList.add('placed'); // shown only now it's placed (CSS), so it never flashes the wrong way first
     const r = menu.getBoundingClientRect();
     const room = (visualViewport?.height ?? innerHeight) - 8;
     const above = d.getBoundingClientRect().top - 8;

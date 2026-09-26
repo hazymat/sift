@@ -85,34 +85,45 @@ export function doneFields(done) {
   return done ? { done_at: new Date().toISOString(), status: 'done' } : { done_at: null, status: 'todo' };
 }
 
-// Plan for day puts the task on that day in the Day Planner: its copy there
-// moves with the date, and goes when the date is removed (unless it's been
-// ticked, which is kept as a record). Returns an undo.
-//   planDay(task, date)   date = 'YYYY-MM-DD' or null
-export async function planDay(task, date) {
+// Plan for day puts the task on that day in the Day Planner, and a task is on
+// one day only: its open copy moves with the date (from whichever day it's
+// on), any other open copies go, and removing the date takes it off. Ticked
+// copies stay where they are, as a record. Returns an undo.
+//   planDay(task, date, { keepDate })   date = 'YYYY-MM-DD' or null;
+//     keepDate: leave the task's Plan for day alone (e.g. dragged to "To place")
+export async function planDay(task, date, { keepDate = false } = {}) {
   const { addItem } = await import('./days.js');
   const before = task.start_date || null;
-  const copies = await store.list('day_items', { filter: i => i.task_id === task.id && !i.archived_at });
-  const onOld = before && copies.find(i => i.date === before && !i.done_at);
-  const onNew = date && copies.find(i => i.date === date);
-  await store.update('tasks', task.id, { start_date: date });
+  const open = (await store.list('day_items', { filter: i => i.task_id === task.id && !i.archived_at && !i.done_at }))
+    .sort((x, y) => Number(y.date === before) - Number(x.date === before)); // the one on its planned day first
+  if (!keepDate) await store.update('tasks', task.id, { start_date: date });
   let made = null;
-  let moved = null;
-  let removed = null;
-  if (date && !onNew) {
-    if (onOld) { moved = onOld; await store.update('day_items', onOld.id, { date, time: null, end_time: null }); }
-    else made = await addItem(date, { title: task.title, task_id: task.id, estimate_min: task.estimate_min ?? null, energy: task.energy ?? null, notes: task.notes || '', contact_ids: task.contact_ids || [], case_id: task.case_id || null });
-  } else if (!date && onOld) {
-    removed = onOld;
-    await store.remove('day_items', onOld.id);
+  const moved = [];
+  const removed = [];
+  const onNew = date && open.find(i => i.date === date);
+  const others = open.filter(i => i !== onNew);
+  if (date && !onNew && others.length) {
+    const m = others.shift();
+    moved.push({ ...m });
+    await store.update('day_items', m.id, { date, time: null, end_time: null });
+    made = null;
+  } else if (date && !onNew) {
+    made = await addItem(date, { title: task.title, task_id: task.id, estimate_min: task.estimate_min ?? null, energy: task.energy ?? null, notes: task.notes || '', contact_ids: task.contact_ids || [], case_id: task.case_id || null });
   }
+  for (const o of others) { removed.push(o); await store.remove('day_items', o.id); }
   return async () => {
-    await store.update('tasks', task.id, { start_date: before });
+    if (!keepDate) await store.update('tasks', task.id, { start_date: before });
     if (made) await store.remove('day_items', made.id);
-    if (moved) await store.update('day_items', moved.id, { date: moved.date, time: moved.time ?? null, end_time: moved.end_time ?? null });
-    if (removed) await store.restore('day_items', removed.id);
+    for (const m of moved) await store.update('day_items', m.id, { date: m.date, time: m.time ?? null, end_time: m.end_time ?? null });
+    for (const r of removed) await store.restore('day_items', r.id);
   };
 }
+
+// Sub-tasks go three levels deep at most: a task, its sub-tasks, and theirs.
+export const MAX_DEPTH = 2; // depth of the deepest sub-task (a task is 0)
+// How deep a task is (0 for a task of its own), and how many levels sit under it.
+export function depthIn(t, all) { let d = 0; for (let p = t?.parent_task_id; p && d < 20; d++) p = all.find(x => x.id === p)?.parent_task_id; return d; }
+export function levelsUnder(t, all) { const kids = all.filter(x => x.parent_task_id === t.id); return kids.length ? 1 + Math.max(...kids.map(k => levelsUnder(k, all))) : 0; }
 
 // What Day Planner shows for a date.
 export function forDay(tasks, date) {

@@ -15,7 +15,7 @@ import { richText, toHtml, previewLine, inlineAll } from '../richtext.js';
 import { keepDraft, draftCleared } from '../drafts.js';
 import { autosizeAll } from '../inline.js';
 import { summarise } from '../summary.js';
-import { loadAll as loadTasks, forDay, suggestions, doneFields, aimDate, addTask, horizonOf } from '../tasks.js';
+import { loadAll as loadTasks, forDay, suggestions, doneFields, aimDate, addTask, horizonOf, planDay } from '../tasks.js';
 import * as att from '../attachments.js';
 import { editPills, selectPill, energyPill } from '../editpills.js';
 import { energyMenu } from '../pillmenu.js';
@@ -732,10 +732,11 @@ export default {
       const task = tasks.find(t => t.id === id);
       if (!task) return;
       const before = { horizon: task.horizon ?? null, start_date: task.start_date ?? null, archived_at: task.archived_at ?? null };
-      let made = null;
+      let undoPlan = null;
       if (act === 'claim') {
-        made = await addItem(date, { title: task.title, task_id: task.id, notes: task.notes || '', contact_ids: task.contact_ids || [], case_id: task.case_id || null, estimate_min: task.estimate_min ?? null, energy: task.energy ?? null });
-        await store.update('tasks', task.id, { start_date: task.start_date || date, horizon: 'now' });
+        // Onto this day, off any other (a task is on one day only).
+        undoPlan = await planDay(task, date);
+        await store.update('tasks', task.id, { horizon: 'now' });
       } else if (act === 'now' || act === 'next' || act === 'later') {
         await store.update('tasks', task.id, { horizon: act });
       } else if (act === 'archive') {
@@ -745,7 +746,7 @@ export default {
       await renderTasks();
       const label = { claim: `"${task.title}" is on ${date === isoDate() ? 'today' : 'this day'}`, now: `"${task.title}" is for now`, next: `"${task.title}" is for next`, later: `"${task.title}" is for later`, archive: `Archived "${task.title}"` }[act];
       undoable(label, async () => {
-        if (made) await store.remove('day_items', made.id);
+        if (undoPlan) await undoPlan();
         await store.update('tasks', task.id, before);
         await refresh();
         await renderTasks();
@@ -905,16 +906,11 @@ export default {
       else if (act === 'adopt' || act === 'task-to-plan') {
         const taskId = t.closest('[data-task]').dataset.task;
         const task = tasks.find(x => x.id === taskId);
-        if (act === 'adopt') {
-          await store.update('tasks', taskId, { start_date: date });
-          await renderTasks();
-          undoable(`Adopted "${task.title}"`, async () => { await store.update('tasks', taskId, { start_date: null }); renderTasks(); });
-        } else {
-          const made = await addItem(date, { title: task.title, task_id: taskId, estimate_min: task.estimate_min ?? null, energy: task.energy ?? null, notes: task.notes || '', contact_ids: task.contact_ids || [], case_id: task.case_id || null });
-          await refresh();
-          renderTasks();
-          undoable(`"${task.title}" is in To place`, async () => { await store.remove('day_items', made.id); await refresh(); renderTasks(); });
-        }
+        // Onto this day (and off any other: a task is on one day only).
+        const undo = await planDay(task, date);
+        await refresh();
+        renderTasks();
+        undoable(act === 'adopt' ? `Adopted "${task.title}"` : `"${task.title}" is in To place`, async () => { await undo(); await refresh(); renderTasks(); });
       }
       else if (act === 'details') { if (editing === id) closeDetails(); else { editing = id; refresh(); } }
       else if (act === 'close-details') closeDetails();
