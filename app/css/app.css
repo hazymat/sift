@@ -1974,7 +1974,7 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 #main[data-density="tight"] .task-list > li[data-task] > .chips { flex: 0 1 auto; min-width: 0; max-width: none; }
 #main[data-density="tight"] .task-list > li[data-task] > .item-sub { flex: 0 1 auto; }
 
-/* Blue glass: section titles white; the underline stays the soft light-blue line (Mat changed his mind about yellow). */
+/* Blue glass: section titles white; the underline stays the soft light-blue line. */
 :root:not([data-theme="light"]) .planner[data-paper="glass"] :is(.schedule-title, .pile h2, .day-notes h2) { color: #fff; }
 
 /* Tasks: the "New task" line at the end of the list, shaped like a task. */
@@ -2380,7 +2380,7 @@ input[type="checkbox"]:checked { background: #6fb0ff; border-color: #6fb0ff; }
 input[type="checkbox"]:checked::after { opacity: 1; }
 input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); outline-offset: 2px; }
 
-/* Tasks, compact spacing: no note text, just 📝 (Mat; see the end of this file). */
+/* Tasks, compact spacing: no note text, just 📝 (see the end of this file). */
 /* Tasks, expanded spacing: the note as written, up to about 8 lines, fading
    out at the bottom if there's more (tap it to open the task and read it all). */
 #main[data-density="loose"] .task-note .note-loose { max-height: 10.5em; overflow: hidden; }
@@ -3082,3 +3082,13 @@ a.comment-mark:hover { color: var(--text); }
 .task-list > li.nest-target { outline: 2px dashed var(--active-border, currentColor); outline-offset: -2px; }
 .task-list > li.dragging.nest-preview { padding-left: calc(var(--nest-pad, 36px) + 28px); position: relative; }
 .task-list > li.dragging.nest-preview::before { content: "↳"; position: absolute; left: calc(var(--nest-pad, 36px) + 6px); top: .55em; width: auto; background: none; color: var(--muted); font-size: .9rem; line-height: 1; }
+/* A comment's ⋯ menu looks like the glass dropdown lists (.dd-menu): one
+   frosted panel, plain rows that light up on hover, no boxes round each item. */
+.pill-menu.comment-menu {
+  padding: 4px; gap: 0; border-radius: 14px;
+  background: color-mix(in srgb, var(--menu-bg) 80%, transparent) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4);
+  border: 1px solid var(--active-border) !important; box-shadow: 0 14px 34px rgba(0, 0, 0, .35);
+}
+.pill-menu.comment-menu button { border: 0 !important; background: transparent !important; box-shadow: none !important; border-radius: 10px; padding: 7px 12px; font-size: .9rem; color: var(--text); }
+.pill-menu.comment-menu button:hover, .pill-menu.comment-menu button:focus-visible { background: var(--glass-hover, color-mix(in srgb, var(--text) 10%, transparent)) !important; outline: none; }

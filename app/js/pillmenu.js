@@ -19,7 +19,7 @@ export function pillMenu(anchor, options, onPick, { focus = true, className = ''
   document.body.append(menu);
 
   const r = anchor.getBoundingClientRect();
-  menu.style.left = `${Math.max(8, Math.min(r.left, innerWidth - menu.offsetWidth - 8))}px`;
+  menu.style.left = `${Math.max(8, Math.min(r.left, document.documentElement.clientWidth - menu.offsetWidth - 8))}px`; // (clientWidth: inside the scrollbar)
   // Under the anchor, or above it when there's no room below (e.g. from the
   // selection bar at the bottom of the screen).
   const below = r.bottom + 4;

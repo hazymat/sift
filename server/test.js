@@ -26,7 +26,7 @@ try {
   let r = await call('GET', '/api/health');
   assert.equal(r.json.registration, 'open');
 
-  r = await call('POST', '/api/register', { email: 'Mat@Example.com', auth_hash: 'a'.repeat(44), kdf: { name: 'PBKDF2-SHA256', iterations: 600000, salt: 's' }, wrapped_data_key: 'wrapped', recovery_hash: 'r'.repeat(44), device_name: 'Laptop' });
+  r = await call('POST', '/api/register', { email: 'User@Example.com', auth_hash: 'a'.repeat(44), kdf: { name: 'PBKDF2-SHA256', iterations: 600000, salt: 's' }, wrapped_data_key: 'wrapped', recovery_hash: 'r'.repeat(44), device_name: 'Laptop' });
   assert.equal(r.status, 200, JSON.stringify(r.json));
   assert.equal(r.cors, 'http://localhost:5173');
   const laptop = r.json.token;
@@ -34,12 +34,12 @@ try {
   r = await call('POST', '/api/register', { email: 'other@example.com', auth_hash: 'b'.repeat(44), kdf: {}, wrapped_data_key: 'x' });
   assert.equal(r.status, 403, 'second registration refused');
 
-  r = await call('POST', '/api/prelogin', { email: 'mat@example.com' });
+  r = await call('POST', '/api/prelogin', { email: 'user@example.com' });
   assert.equal(r.json.kdf.salt, 's');
 
-  r = await call('POST', '/api/login', { email: 'mat@example.com', auth_hash: 'wrong'.repeat(9), device_name: 'Phone' });
+  r = await call('POST', '/api/login', { email: 'user@example.com', auth_hash: 'wrong'.repeat(9), device_name: 'Phone' });
   assert.equal(r.status, 401);
-  r = await call('POST', '/api/login', { email: 'mat@example.com', auth_hash: 'a'.repeat(44), device_name: 'Phone' });
+  r = await call('POST', '/api/login', { email: 'user@example.com', auth_hash: 'a'.repeat(44), device_name: 'Phone' });
   assert.equal(r.status, 200);
   assert.equal(r.json.wrapped_data_key, 'wrapped');
   const phone = r.json.token;
@@ -88,22 +88,22 @@ try {
   assert.equal(r.status, 401, 'other devices signed out');
   r = await call('GET', '/api/sync/pull?since=0', null, laptop);
   assert.equal(r.status, 200, 'this device stays signed in');
-  r = await call('POST', '/api/login', { email: 'mat@example.com', auth_hash: 'a'.repeat(44) });
+  r = await call('POST', '/api/login', { email: 'user@example.com', auth_hash: 'a'.repeat(44) });
   assert.equal(r.status, 401, 'old password no longer works');
-  r = await call('POST', '/api/login', { email: 'mat@example.com', auth_hash: 'c'.repeat(44) });
+  r = await call('POST', '/api/login', { email: 'user@example.com', auth_hash: 'c'.repeat(44) });
   assert.equal(r.json.wrapped_data_key, 'wrapped2');
 
   // forgot the password: the recovery code sets a new one and signs everything else out
-  r = await call('POST', '/api/recover', { email: 'mat@example.com', recovery_hash: 'x'.repeat(44), auth_hash: 'd'.repeat(44), kdf: {}, wrapped_data_key: 'w3' });
+  r = await call('POST', '/api/recover', { email: 'user@example.com', recovery_hash: 'x'.repeat(44), auth_hash: 'd'.repeat(44), kdf: {}, wrapped_data_key: 'w3' });
   assert.equal(r.status, 401);
-  r = await call('POST', '/api/recover', { email: 'mat@example.com', recovery_hash: 'r'.repeat(44), auth_hash: 'd'.repeat(44), kdf: { salt: 's3' }, wrapped_data_key: 'w3', device_name: 'Recovered' });
+  r = await call('POST', '/api/recover', { email: 'user@example.com', recovery_hash: 'r'.repeat(44), auth_hash: 'd'.repeat(44), kdf: { salt: 's3' }, wrapped_data_key: 'w3', device_name: 'Recovered' });
   assert.equal(r.status, 200, JSON.stringify(r.json));
   const recovered = r.json.token;
   r = await call('GET', '/api/sync/pull?since=0', null, laptop);
   assert.equal(r.status, 401, 'recovery signs out every other device');
   r = await call('GET', '/api/sync/pull?since=0', null, recovered);
   assert.equal(r.json.records.length, 2, 'data is still there');
-  r = await call('POST', '/api/login', { email: 'mat@example.com', auth_hash: 'd'.repeat(44) });
+  r = await call('POST', '/api/login', { email: 'user@example.com', auth_hash: 'd'.repeat(44) });
   assert.equal(r.json.wrapped_data_key, 'w3');
 
   // attachment files: raw encrypted bytes under an opaque id
