@@ -48,6 +48,7 @@ import { toast } from './toast.js';
 import { openFull, closeFull, isFull, setFullLabel, PHONE } from './fullnote.js';
 import { titleFrom } from './summary.js';
 import { word } from './words.js';
+import { noteUndo, showVersions } from './noteundo.js';
 
 const LINK_RE = /\[([^\]]+)\]\(sift:([a-z_]+)\/([\w-]+)\)/g;
 
@@ -309,6 +310,7 @@ export function richText(container, { value = '', onChange, placeholder = '', or
       <span class="md-sep" aria-hidden="true"></span>
       <span class="md-emoji">${EMOJI.map(([e, name]) => `<button type="button" data-emoji="${e}" title="${name}" aria-label="Insert ${name.toLowerCase()} emoji">${e}</button>`).join('')}</span>
       <span class="md-sep" aria-hidden="true"></span>
+      <button type="button" class="md-versions" title="Earlier versions of this note" aria-label="Earlier versions">🕘</button>
       <button type="button" class="md-toggle" aria-pressed="false" title="Show the raw markdown">Markdown</button>
     </div>
     <div class="rich-edit hand" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="${esc(placeholder)}"></div>
@@ -353,6 +355,12 @@ export function richText(container, { value = '', onChange, placeholder = '', or
   // ---------- links: 📞 📝 ⚠️ open a search ----------
   const triggerFor = e => (!e ? null : e.startsWith('📞') ? 'contact' : e.startsWith('📝') ? 'note' : e.startsWith('⚠') ? 'important' : null);
   const from = () => (typeof origin === 'function' ? origin() : origin);
+  // Undo is Sift's own (noteundo.js): this visit's steps, then earlier versions.
+  const undoer = noteUndo(edit, {
+    get: () => md,
+    set: next => { md = next; paint(); onChange?.(md); },
+    ref: () => { const o = from(); return o?.id ? { collection: o.collection, id: o.id, field: o.field || '' } : null; },
+  });
 
   function caretRect(range) {
     const r = range.getClientRects()[0] || range.startContainer.parentElement?.getBoundingClientRect?.();
@@ -517,6 +525,7 @@ export function richText(container, { value = '', onChange, placeholder = '', or
   });
   container.addEventListener('focusout', ev => {
     if (container.contains(ev.relatedTarget)) return;
+    undoer.left();
     closeMakeMenu();
     spotNow(true);
     unspotlight(container);
@@ -638,7 +647,7 @@ export function richText(container, { value = '', onChange, placeholder = '', or
     ev.preventDefault();
     const files = [...(ev.clipboardData?.files || [])];
     if (files.length) {
-      const o = origin?.();
+      const o = from();
       const { addFiles, ATTACHABLE } = await import('./attachments.js');
       if (!o?.id || !ATTACHABLE.includes(o.collection)) { toast("Files can't be attached here"); return; }
       const made = await addFiles({ collection: o.collection, id: o.id }, files);
@@ -651,6 +660,7 @@ export function richText(container, { value = '', onChange, placeholder = '', or
       });
       return;
     }
+    undoer.mark(); // pasting is a step of its own
     document.execCommand('insertText', false, ev.clipboardData.getData('text/plain'));
   });
 
@@ -730,11 +740,13 @@ export function richText(container, { value = '', onChange, placeholder = '', or
   });
 
   container.querySelector('.md-bar').addEventListener('mousedown', ev => {
-    if (ev.target.closest('[data-cmd], [data-emoji], [data-size], .md-full, .md-make, .md-colour')) ev.preventDefault(); // keep the selection in the editor
+    if (ev.target.closest('[data-cmd], [data-emoji], [data-size], .md-full, .md-make, .md-colour, .md-versions')) ev.preventDefault(); // keep the selection in the editor
   });
   container.querySelector('.md-bar').addEventListener('click', ev => {
     const b = ev.target.closest('button');
     if (!b) return;
+    if (!rawMode && (b.dataset.cmd || b.dataset.size || b.dataset.emoji)) undoer.mark(); // formatting is a step of its own
+    if (b.classList.contains('md-versions')) { const r = from(); showVersions(r?.id ? { collection: r.collection, id: r.id, field: r.field || '' } : null, md, picked => undoer.restore(picked)); return; }
     if (b.classList.contains('md-mode')) { setFull(!container.classList.contains('bar-full')); return; }
     if (b.classList.contains('md-make')) { toggleMakeMenu(b); return; }
     if (b.classList.contains('md-colour')) {

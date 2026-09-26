@@ -3069,3 +3069,11 @@ a.comment-mark:hover { color: var(--text); }
   .types-list .drag-handle { opacity: 0 !important; transition: opacity .12s; }
   .types-list li:hover .drag-handle, .types-list .drag-handle:focus-visible, .types-list li.dragging .drag-handle, .types-list li:focus-within .drag-handle { opacity: .8 !important; }
 }
+/* Note history (180): 🕘 in the full toolbar; the list of earlier versions. */
+.rich .md-versions { display: none; }
+.rich.bar-full .md-versions { display: inline-flex; }
+.versions-list { display: grid; gap: 4px; max-height: min(55vh, 460px); overflow-y: auto; }
+.versions-list button { display: grid; gap: 2px; text-align: left; padding: 8px 10px; border-radius: 10px; border: 1px solid transparent; background: transparent; box-shadow: none; }
+.versions-list button:hover, .versions-list button[aria-current="true"] { background: var(--glass-hover); border-color: var(--glass-border); }
+.versions-list .v-when { font-size: .8rem; color: var(--muted); }
+.versions-list .v-text { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

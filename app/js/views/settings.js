@@ -84,7 +84,9 @@ export default {
         <label class="check-row"><input type="checkbox" name="spot_details"> Turn phone numbers and emails typed into notes into contacts (with Undo)</label>
         <div class="settings-grid">
           <label>Phone numbers without a country code are from<select name="phone_country"></select></label>
+          <label>Keep note history for<select name="note_history_days"><option value="30">30 days</option><option value="90">90 days</option><option value="365">1 year</option><option value="0">Forever</option></select></label>
         </div>
+        <p class="muted">Every note keeps its earlier versions for this long: Ctrl+Z steps back through them once this visit's changes run out, and 🕘 in a note's full toolbar (Aa) lists them.</p>
       </section>
 
       <section class="card">
@@ -499,9 +501,10 @@ export default {
       sel.innerHTML = [...COUNTRIES].sort((a, b) => a[1].localeCompare(b[1])).map(([cc, name]) => `<option value="${cc}">${name} (+${cc})</option>`).join('');
       sel.value = cur.phone_country;
       ns.querySelector('[name="spot_details"]').checked = cur.spot_details;
+      ns.querySelector('[name="note_history_days"]').value = String((await store.getSettings())?.note_history_days ?? 90);
       ns.addEventListener('change', async ev => {
         const t = ev.target;
-        await store.updateSettings({ [t.name]: t.type === 'checkbox' ? t.checked : t.value });
+        await store.updateSettings({ [t.name]: t.type === 'checkbox' ? t.checked : t.name === 'note_history_days' ? Number(t.value) : t.value });
         toast('✓ Saved');
       });
     }
