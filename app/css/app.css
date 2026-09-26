@@ -3379,3 +3379,6 @@ dialog.att-view::backdrop { background: rgb(0 0 0 / .82); }
    swatch and the selection bar's Colour…). */
 #main[data-area="dump"]:not([data-shade="colour"]) :is(.note-dot, .md-colour, .note-more [data-act="colour"]) { display: none !important; }
 body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-kit-action="colour"] { display: none; }
+/* A message (e.g. "Attached … · Undo" after pasting a picture into a note on a
+   phone) shows, and can be tapped, above a full-screen note. */
+.toast { z-index: 1100; }

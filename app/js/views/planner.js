@@ -458,7 +458,7 @@ export default {
             ${ENERGY.map(e => `<button type="button" class="bolts" data-item-energy="${e.id}" aria-pressed="${i.energy === e.id}" title="${esc(`${e.label}: ${e.hint}`)}" aria-label="${e.label}">${e.bolts}</button>`).join('')}
           </div></div>
           <div class="wide detail-note"><span class="field-label">Note</span><div class="detail-notes" data-note-for="${i.id}"></div></div>
-          <div class="wide">${att.rowHtml(atts.get(i.id))}</div>
+          <div class="wide">${att.rowHtml(atts.get(i.id), { parent: i.id })}</div>
           <div class="wide">${commentsHtml(i.task_id ? { task_id: i.task_id } : { item_id: i.id })}</div>
           <div class="detail-actions">
             <button type="button" class="close-details" data-act="close-details" title="Close (or Esc)"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Close</button>
@@ -944,9 +944,14 @@ export default {
     }
 
     // (An item spanning several slots is a .span-block: its lower rows take files too.)
-    att.enableDrop(el, '.item-details[data-for], .line.has-item[data-item], .span-block', node => ({ collection: 'day_items', id: node.dataset.for || node.dataset.item || node.querySelector('.line.has-item')?.dataset.item }), () => refresh());
+    // Writing in a note (on a phone, full screen): only its files are redrawn.
+    const attDone = async parent => {
+      if (att.writingIn(el)) { atts = await att.byParent(); await att.redrawRows(el, parent?.id); return; }
+      refresh();
+    };
+    att.enableDrop(el, '.item-details[data-for], .line.has-item[data-item], .span-block', node => ({ collection: 'day_items', id: node.dataset.for || node.dataset.item || node.querySelector('.line.has-item')?.dataset.item }), attDone);
     el.addEventListener('click', async ev => {
-      if (att.onClick(ev, b => { const id = b.closest('[data-for]')?.dataset.for; return id ? { collection: 'day_items', id } : null; }, () => refresh())) return;
+      if (att.onClick(ev, b => { const id = b.closest('[data-for]')?.dataset.for; return id ? { collection: 'day_items', id } : null; }, attDone)) return;
       const t = ev.target.closest('[data-act], [data-energy], [data-item-energy]');
       if (!t) return;
       if (t.dataset.itemEnergy) {

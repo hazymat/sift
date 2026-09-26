@@ -73,7 +73,11 @@ export function openFull(box, { label = 'Note' } = {}) {
   document.body.append(backdrop);
   box.classList.add('is-full');
   document.documentElement.classList.add('note-full');
-  current = { box, backdrop, left: null };
+  // If a redraw takes the note off the page, full screen ends with it, rather
+  // than leaving its dark backdrop over everything (and nothing to tap).
+  const gone = new MutationObserver(() => { if (current?.box === box && !box.isConnected) closeFull({ animate: false, blur: false }); });
+  gone.observe(document.body, { childList: true, subtree: true });
+  current = { box, backdrop, left: null, gone };
   addEventListener('focusout', holdFocusOut, true);
   addEventListener('mousedown', keepCursor, true);
   follow();
@@ -86,8 +90,9 @@ export function openFull(box, { label = 'Note' } = {}) {
 // takes the cursor out of it (so the page saves it the usual way).
 export function closeFull({ animate = true, blur = true } = {}) {
   if (!current) return;
-  const { box, backdrop, left } = current;
+  const { box, backdrop, left, gone } = current;
   current = null;
+  gone?.disconnect();
   removeEventListener('focusout', holdFocusOut, true);
   removeEventListener('mousedown', keepCursor, true);
   window.visualViewport?.removeEventListener('resize', follow);

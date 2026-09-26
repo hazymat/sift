@@ -652,11 +652,12 @@ export function richText(container, { value = '', onChange, placeholder = '', or
       if (!o?.id || !ATTACHABLE.includes(o.collection)) { toast("Files can't be attached here"); return; }
       const made = await addFiles({ collection: o.collection, id: o.id }, files);
       if (!made.length) return;
-      container.dispatchEvent(new CustomEvent('attached', { bubbles: true }));
+      const detail = { collection: o.collection, id: o.id };
+      container.dispatchEvent(new CustomEvent('attached', { bubbles: true, detail }));
       const { undoable } = await import('./toast.js');
       undoable(`Attached ${made.length === 1 ? made[0].name : `${made.length} files`} to the note`, async () => {
         for (const m of made) await store.remove('attachments', m.id);
-        container.dispatchEvent(new CustomEvent('attached', { bubbles: true }));
+        container.dispatchEvent(new CustomEvent('attached', { bubbles: true, detail }));
       });
       return;
     }

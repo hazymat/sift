@@ -3,14 +3,18 @@
 // size and, for photos, a small thumbnail) says which note it belongs to.
 //
 //   byParent()                         → Map(note id → attachments)
-//   rowHtml(atts, { addButton })       → thumbnails / file chips, plus a 📎 Attach button
+//   rowHtml(atts, { addButton, parent }) → thumbnails / file chips, plus a 📎 Attach button
+//   redrawRows(root, parentId)          → redraw just that note's files rows; false if none
+//   writingIn(root)                     → is a note under root being written in?
 //   addFiles({ collection, id }, files) → the new records (other kinds of file are skipped)
 //   enableDrop(root, selector, parentOf, done) → drop files onto matching elements
 //   onClick(ev, parentOf, done)        → handles the row's buttons; true if it did
 //   open(id) / view(atts, i)           → the viewer: pictures, and a card with Open for other files
 //   pick(parent, done)                 → the file chooser, then attach
 //
-// Rows are plain HTML, so a view just re-renders in `done()`.
+// Rows are plain HTML, so a view just re-renders in `done(parent)`; while a
+// note is being written in (on a phone, full screen), it redraws only the files
+// rows instead, so the note isn't redrawn away from under the cursor.
 
 import * as store from './store.js';
 import { toast, undoable } from './toast.js';
@@ -84,7 +88,7 @@ export async function byParent() {
   return map;
 }
 
-export function rowHtml(atts = [], { addButton = true } = {}) {
+export function rowHtml(atts = [], { addButton = true, parent = atts[0]?.parent_id || '' } = {}) {
   const items = atts.map(a => {
     const arriving = a.here === false;
     const label = `${a.name} (${sizeLabel(a.size)})${arriving ? ' — still arriving on this device through sync' : ''}`;
@@ -98,8 +102,18 @@ export function rowHtml(atts = [], { addButton = true } = {}) {
     </span>`;
   }).join('');
   const add = addButton ? `<button type="button" class="att-add" data-att-add title="Attach photos, PDFs or text files (or drop them here)">${icon('i-clip')}<span>Attach</span></button>` : '';
-  return `<div class="att-row">${items}${add}</div>`;
+  return `<div class="att-row" data-att-parent="${esc(parent)}">${items}${add}</div>`;
 }
+
+export async function redrawRows(root, parentId) {
+  const rows = parentId ? [...root.querySelectorAll(`.att-row[data-att-parent="${CSS.escape(parentId)}"]`)] : [];
+  if (!rows.length) return false;
+  const list = (await byParent()).get(parentId) || [];
+  for (const r of rows) r.outerHTML = rowHtml(list, { addButton: !!r.querySelector('[data-att-add]'), parent: parentId });
+  return true;
+}
+
+export const writingIn = root => !!document.activeElement?.closest?.('.rich') && root.contains(document.activeElement);
 
 // Tight view: just a count, which opens the viewer.
 export const countChip = atts => (atts?.length ? `<button type="button" class="chip att-count" data-att-view="${atts[0].parent_id}" title="${atts.length} attached: press to look" aria-label="Open ${atts.length} attached ${atts.length === 1 ? 'file' : 'files'}">${icon('i-clip')} ${atts.length}</button>` : '');
@@ -233,11 +247,11 @@ export function view(atts, start = 0) {
   show(start);
 }
 
-function afterAdd(made, done) {
-  done?.();
+function afterAdd(made, done, parent) {
+  done?.(parent);
   undoable(`Attached ${made.length === 1 ? made[0].name : `${made.length} files`}`, async () => {
     for (const m of made) await store.remove('attachments', m.id);
-    done?.();
+    done?.(parent);
   });
 }
 
@@ -250,7 +264,7 @@ export function pick(parent, done) {
     const made = await addFiles(parent, [...picker.files]);
     picker.remove();
     picker = null;
-    if (made.length) afterAdd(made, done);
+    if (made.length) afterAdd(made, done, parent);
   };
   document.body.append(picker);
   picker.click();
@@ -268,9 +282,10 @@ export function onClick(ev, parentOf, done) {
   if (b.dataset.attOpen) { open(id); return true; }
   store.get('attachments', id).then(async a => {
     if (!a) return;
+    const parent = { collection: a.parent_collection, id: a.parent_id };
     await store.remove('attachments', a.id);
-    done?.();
-    undoable(`Removed ${a.name}`, async () => { await store.restore('attachments', a.id); done?.(); });
+    done?.(parent);
+    undoable(`Removed ${a.name}`, async () => { await store.restore('attachments', a.id); done?.(parent); });
   });
   return true;
 }
@@ -279,7 +294,7 @@ export function onClick(ev, parentOf, done) {
 // them to the note `parentOf(element)` names.
 export function enableDrop(root, selector, parentOf, done) {
   // A note inside says it has attached a pasted file (richtext.js): redraw.
-  root.addEventListener('attached', () => done?.());
+  root.addEventListener('attached', ev => done?.(ev.detail));
   // Pressing a file (to open or remove it) while writing in the note doesn't
   // take the cursor out of the note, so the note stays open.
   root.addEventListener('mousedown', ev => { if (ev.target.closest('.att-open, .att-x, .att-count, [data-att-open]')) ev.preventDefault(); });
@@ -302,7 +317,7 @@ export function enableDrop(root, selector, parentOf, done) {
     const p = parentOf(t);
     if (!p) return;
     const made = await addFiles(p, [...ev.dataTransfer.files]);
-    if (made.length) afterAdd(made, done);
+    if (made.length) afterAdd(made, done, p);
   });
 }
 

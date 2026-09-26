@@ -143,7 +143,7 @@ export default {
           </li>
           ${openItem === i.id ? `<li class="task-details list-panel" data-for="${i.id}">
             <div class="list-notes"></div>
-            ${att.rowHtml(atts.get(i.id))}
+            ${att.rowHtml(atts.get(i.id), { parent: i.id })}
             <div class="detail-actions">
               <button type="button" class="close-details" data-act="close-item" title="Close (or Esc)"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Close</button>
               <span class="spacer"></span>
@@ -168,7 +168,11 @@ export default {
     const body = el;
     // Tap an item to edit it: More (its note and files) opens under it (js/editpills.js).
     this.pills = editPills(body, { title: '.checklist .task-title', row: '.checklist > li[data-id]', key: r => r.dataset.id, html: () => '', change: () => {} });
-    att.enableDrop(el, 'li.list-panel[data-for], ul.checklist > li[data-id]', node => ({ collection: 'list_items', id: node.dataset.for || node.dataset.id }), () => render());
+    const attDone = async parent => {
+      if (att.writingIn(el)) { atts = await att.byParent(); await att.redrawRows(el, parent?.id); return; }
+      render();
+    };
+    att.enableDrop(el, 'li.list-panel[data-for], ul.checklist > li[data-id]', node => ({ collection: 'list_items', id: node.dataset.for || node.dataset.id }), attDone);
     // After a sync the app calls refresh(): redraw from fresh data, keeping what's open.
     const render = this.render = this.refresh = async () => {
       data = await loadLists();
@@ -312,7 +316,7 @@ export default {
     });
 
     el.addEventListener('click', async ev => {
-      if (att.onClick(ev, b => { const id = b.closest('[data-for]')?.dataset.for; return id ? { collection: 'list_items', id } : null; }, () => render())) return;
+      if (att.onClick(ev, b => { const id = b.closest('[data-for]')?.dataset.for; return id ? { collection: 'list_items', id } : null; }, attDone)) return;
       const b = ev.target.closest('[data-act]');
       if (!b) return;
       b.closest('details')?.removeAttribute('open');

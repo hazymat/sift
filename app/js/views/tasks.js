@@ -188,7 +188,7 @@ export default {
       const moreSet = t.project_id || (t.contact_ids || []).length || t.case_id || (t.priority && Number(t.priority) !== 3) || (t.status && t.status !== 'todo');
       return `
         <div class="task-notes"></div>
-        ${att.rowHtml(atts.get(t.id))}
+        ${att.rowHtml(atts.get(t.id), { parent: t.id })}
         ${commentsHtml({ task_id: t.id })}
         <div class="panel-sec detail-sec"><span class="panel-h">Details</span>
         <div class="energy-pick" role="group" aria-label="Energy"><span>Energy</span>
@@ -1103,7 +1103,11 @@ export default {
     });
 
     const attParent = b => { const id = b.closest('[data-for]')?.dataset.for; return id ? { collection: 'tasks', id } : null; };
-    const attDone = async () => { await flushNote(); await render(); };
+    const attDone = async parent => {
+      if (att.writingIn(body)) { atts = await att.byParent(); await att.redrawRows(body, parent?.id); return; }
+      await flushNote();
+      await render();
+    };
     att.enableDrop(el, '.task-details[data-for], li[data-task]', node => ({ collection: 'tasks', id: node.dataset.for || node.dataset.task }), attDone);
     // The pills under a task only show what's set; clicking one opens the
     // task's editing pills (under its title), where each can be changed.

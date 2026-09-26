@@ -274,7 +274,7 @@ export default {
             <input class="tag-add no-inline" list="thing-tags" placeholder="+ tag (Enter)" aria-label="Add a tag" autocomplete="off">
           </div></div>
           <div class="wide"><span class="field-label">Note</span><div class="thing-notes"></div></div>
-          <div class="wide">${att.rowHtml(atts.get(i.id))}</div>
+          <div class="wide">${att.rowHtml(atts.get(i.id), { parent: i.id })}</div>
         </div>
         <div class="detail-actions">
           <button type="button" class="close-details" data-act="close-item" title="Close (or Esc)"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Close</button>
@@ -685,9 +685,13 @@ export default {
       if (c && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); c.click(); }
     });
 
-    att.enableDrop(el, '.thing-panel[data-for]', node => ({ collection: 'items', id: node.dataset.for }), () => reload());
+    const attDone = async parent => {
+      if (att.writingIn(el)) { atts = await att.byParent(); await att.redrawRows(el, parent?.id); return; }
+      reload();
+    };
+    att.enableDrop(el, '.thing-panel[data-for]', node => ({ collection: 'items', id: node.dataset.for }), attDone);
     el.addEventListener('click', ev => {
-      if (att.onClick(ev, b => { const id = b.closest('[data-for]')?.dataset.for; return id ? { collection: 'items', id } : null; }, () => reload())) return;
+      if (att.onClick(ev, b => { const id = b.closest('[data-for]')?.dataset.for; return id ? { collection: 'items', id } : null; }, attDone)) return;
       if (ev.target.closest('.quick-add')) return;
       const t = ev.target.closest('[data-act], [data-box], [data-edition]');
       if (!t || importSheet.contains(t)) return;
