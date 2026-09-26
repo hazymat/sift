@@ -134,9 +134,9 @@ export default {
       return out.join('');
     }
 
-    function row(t, { draggable = true, group = '' } = {}) {
+    function row(t, { draggable = true, group = '', tree = '' } = {}) {
       return `
-        <li data-task="${t.id}" data-id="${t.id}" data-depth="${t.depth ?? 0}" class="${isDone(t) ? 'done' : ''} ${group}">
+        <li data-task="${t.id}" data-id="${t.id}" data-depth="${t.depth ?? 0}" class="${isDone(t) ? 'done' : ''} ${group}">${tree}
           <button type="button" class="drag-handle" aria-label="Select${draggable ? ' or move' : ''} ${esc(t.title)}">${icon('i-grip')}</button>
           <input type="checkbox" class="tick" ${isDone(t) ? 'checked' : ''} aria-label="Done">
           <input class="task-title" value="${esc(t.title)}" aria-label="Task" autocomplete="off">
@@ -258,12 +258,33 @@ export default {
     const head = (html, attrs = '') => `<li class="list-head"${attrs}>${html}</li>`;
     // A task and its sub-tasks share one card: the parent opens it, sub-tasks
     // sit inside, the last one closes it.
+    // Lines joining a task to its sub-tasks: from just under the task's tick
+    // box, down and across to each sub-task's tick box, an L that carries on
+    // down while more sub-tasks follow. Level k's line runs down the middle of
+    // the tick boxes one level up (the page measures where they sit: CSS
+    // --tick-top / --tick-h on the list).
+    const treeX = k => 49 + (k - 1) * 28;
+    const treeOf = (tasks, n) => {
+      const depthAt = j => tasks[j]?.depth ?? 0;
+      // Does a later row at depth k follow before the family ends?
+      const goesOn = k => { for (let j = n + 1; j < tasks.length; j++) { const dj = depthAt(j); if (dj < k) return false; if (dj === k) return true; } return false; };
+      const d = depthAt(n);
+      const v = (k, top, bottom) => `<i class="tree-v" style="left:${treeX(k)}px;top:${top};bottom:${bottom}"></i>`;
+      const parts = [];
+      for (let k = 1; k < d; k++) if (goesOn(k)) parts.push(v(k, '0', '0'));
+      if (d > 0) {
+        parts.push(v(d, '0', goesOn(d) ? '0' : 'calc(100% - var(--tick-top) - var(--tick-h) / 2)'));
+        parts.push(`<i class="tree-h" style="left:${treeX(d)}px;width:${40 + d * 28 - 4 - treeX(d)}px"></i>`);
+      }
+      if (depthAt(n + 1) === d + 1 && n + 1 < tasks.length) parts.push(v(d + 1, 'calc(var(--tick-top) + var(--tick-h) + 4px)', '0'));
+      return parts.length ? `<span class="tree" aria-hidden="true">${parts.join('')}</span>` : '';
+    };
     const rowsOf = (tasks, opts) => tasks.map((t, n) => {
       const d = t.depth ?? 0;
       const next = tasks[n + 1];
       const nd = next ? next.depth ?? 0 : 0;
       const group = d === 0 ? (nd > 0 ? 'group-top' : '') : `group-kid${nd === 0 ? ' group-end' : ''}`;
-      return row(t, { ...opts, group });
+      return row(t, { ...opts, group, tree: treeOf(tasks, n) });
     }).join('');
     const listOf = (inner, empty = '') => (inner ? `<ul class="task-list">${inner}</ul>` : empty);
 
@@ -396,6 +417,16 @@ export default {
       body.innerHTML = { list: viewList, inbox: () => viewHorizon('inbox'), now: () => viewHorizon('now'), next: () => viewHorizon('next'), later: () => viewHorizon('later'), projects: viewProjects, done: viewDone }[state.view]();
       wireEntry();
       const ul = body.querySelector('.task-list');
+      // Where tick boxes sit in a row, for the lines joining sub-tasks (CSS).
+      const tk = ul?.querySelector(':scope > li[data-task] .tick');
+      if (tk) {
+        const t = tk.getBoundingClientRect();
+        const top = t.top - tk.closest('li').getBoundingClientRect().top;
+        if (t.height > 0 && top >= 0) { ul.style.setProperty('--tick-top', `${top}px`); ul.style.setProperty('--tick-h', `${t.height}px`); }
+      }
+      // Every line the same height: the New task line matches a plain task row (CSS --task-row-h).
+      const plain = [...(ul?.querySelectorAll(':scope > li[data-task]') || [])].map(li => li.getBoundingClientRect().height).filter(h => h > 0);
+      if (plain.length) body.style.setProperty('--task-row-h', `${Math.min(...plain)}px`);
       const ordered = state.view === 'list';
       const flatOrder = LISTS.includes(state.view); // Task Dump, Now, Next, Later: drag to reorder, no nesting
       kitOrdered.attach(ordered ? ul : null);
@@ -556,10 +587,19 @@ export default {
         ta.value = '';
         draftCleared(ta);
         reset();
-        addLines([{ text, sub }], { parent: sub ? lastTop : null, extras: { fields, note } });
+        return addLines([{ text, sub }], { parent: sub ? lastTop : null, extras: { fields, note } });
       };
       entry.addEventListener('keydown', ev => {
-        if (ev.target === ta && ev.key === 'Escape' && ta.value) { ev.preventDefault(); ev.stopPropagation(); ta.value = ''; draftCleared(ta); return; }
+        // Esc with something typed: keep it (add the task, as Enter does) and stop editing.
+        if ((ev.target === ta || ev.target === noteEl) && ev.key === 'Escape' && ta.value.trim()) {
+          ev.preventDefault(); ev.stopPropagation();
+          submit()?.then(() => {
+            const line = body.querySelector('#task-new');
+            line?.blur();
+            line?.closest('.open')?.classList.remove('open');
+          });
+          return;
+        }
         // Esc on an empty line (or its empty note) closes the entry: the extras go away, unset.
         if ((ev.target === ta || (ev.target === noteEl && !noteEl.value.trim())) && ev.key === 'Escape' && !ta.value) {
           ev.preventDefault(); ev.stopPropagation();

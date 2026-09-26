@@ -3118,3 +3118,34 @@ a.comment-mark:hover { color: var(--text); }
 /* ⋯ menus stay invisible for the moment between opening and being placed
    (above or below), so they never flash the wrong way first. */
 .tool-menu[open] > .menu:not(.placed) { visibility: hidden; }
+
+/* 204, 205: sub-tasks on the Tasks page. Every row keeps the same left
+   padding, so the grips stay in one column (easy to swipe down to select);
+   only the tick box, title and pills move right, one step (28px) per level,
+   with the ↳ just before the tick. Sub-tasks have the same text size as tasks
+   and no longer tuck up under the row above, so shading and ruled lines agree. */
+.task-list > li[data-depth="1"], .task-list > li[data-depth="2"], .task-list > li[data-depth="3"], .task-list > li[data-depth="4"] { padding-left: 8px; }
+.task-list > li[data-depth="1"] > .tick { margin-left: 28px; }
+.task-list > li[data-depth="2"] > .tick { margin-left: 56px; }
+.task-list > li[data-depth="1"] > .item-sub { margin-left: calc(67px + 28px); max-width: calc(100% - 95px); }
+.task-list > li[data-depth="2"] > .item-sub { margin-left: calc(67px + 56px); max-width: calc(100% - 123px); }
+.task-list > li.group-kid { margin-top: 0; }
+.task-list > li.group-kid .task-title { font-size: inherit; }
+.task-list > li.group-kid::before { left: 48px; }
+.task-list > li[data-depth="2"].group-kid::before { left: 76px; }
+
+/* 207: dragging a task sideways on the Tasks page. Its ::after is the ruled
+   line, so the "sub-item" / "top level" label (and the accent bar) aren't used
+   there; the row itself shifts right or left to show where it will land. */
+.task-list > li.dragging[data-drop-label]::after { content: ''; top: auto; bottom: 0; right: 0; left: 73px; transform: none; padding: 0; height: 1px; border-radius: 0; background: var(--glass-border); }
+.task-list > li.dragging[data-drop-depth] { box-shadow: var(--shadow); }
+
+/* 208: sub-tasks hang from their task by fine lines (an L from under the
+   task's tick box to each sub-task's), instead of the ↳ arrow. */
+.task-list { --tick-top: 16px; --tick-h: 18px; }
+.task-list > li.group-kid::before { content: none; }
+.task-list .tree-v, .task-list .tree-h { position: absolute; background: color-mix(in srgb, var(--text) 22%, transparent); pointer-events: none; }
+.task-list .tree-v { width: 1px; }
+.task-list .tree-h { height: 1px; top: calc(var(--tick-top) + var(--tick-h) / 2); }
+/* 209: the New task line is as tall as a task (empty, or while typing). */
+.task-entry .task-add-line { min-height: var(--task-row-h, 42px); box-sizing: border-box; }
