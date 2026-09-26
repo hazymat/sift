@@ -2980,3 +2980,8 @@ a.comment-mark:hover { color: var(--text); }
 .pill-menu.comment-menu button { font-family: var(--font); letter-spacing: normal; white-space: nowrap; text-align: left; font-size: .9rem; line-height: 1.3; padding: 7px 12px; border-radius: 10px; border-color: transparent; background: transparent; }
 .date-quick { display: flex; gap: 10px; margin-top: 2px; }
 .date-quick .linklike { font-size: .8rem; padding: 0; }
+/* Sub-tasks (174): attached to their task, a little smaller, with an arrow. */
+.task-list > li.group-kid::before { content: "↳"; width: auto; background: none; top: .55em; bottom: auto; left: 38px; color: var(--muted); font-size: .9rem; line-height: 1; }
+.task-list > li[data-depth="2"].group-kid::before { left: 66px; }
+.task-list > li.group-kid .task-title { font-size: .92em; }
+.task-list > li.group-kid.done .task-title { color: var(--muted); }

@@ -10,7 +10,8 @@
 // A bar appears while anything is selected: built-in Indent / Outdent / ↑ / ↓
 // (when enabled) plus the caller's actions.
 //
-//   const kit = createListKit({ reorder, indent, maxDepth, actions, onReorder, noun, grid })
+//   const kit = createListKit({ reorder, indent, maxDepth, actions, onReorder, noun, grid, families })
+//   families: rows keep their depth and a parent carries its children, but there's no indenting
 //   grid: true for cards laid out in rows and columns (drag follows the pointer both ways)
 //   after each render: kit.attach(ul)        on leaving the view: kit.destroy()
 //   onReorder(rows, label, ul, moved): rows = [{ id, depth }] in the new order; moved =
@@ -22,7 +23,7 @@ import { sortable } from './sortable.js';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 export function createListKit({
-  reorder = true, indent = false, maxDepth = 1, actions = [], onReorder, noun = 'item', grid = false,
+  reorder = true, indent = false, maxDepth = 1, actions = [], onReorder, noun = 'item', grid = false, families = false,
 } = {}) {
   const selected = new Set();
   let anchor = null;
@@ -69,7 +70,7 @@ export function createListKit({
   // A row plus everything nested under it.
   function withChildren(r) {
     const out = [r];
-    if (!indent) return out;
+    if (!indent && !families) return out;
     const d = depthOf(r);
     for (let n = r.nextElementSibling; n && n.matches('li[data-id]') && depthOf(n) > d; n = n.nextElementSibling) out.push(n);
     return out;
@@ -79,7 +80,7 @@ export function createListKit({
   function commit(label, moved = []) {
     let prev = -1;
     const out = rows().map((r, i) => {
-      let d = indent ? Math.min(depthOf(r), maxDepth, prev + 1) : 0;
+      let d = indent ? Math.min(depthOf(r), maxDepth, prev + 1) : families ? depthOf(r) : 0;
       if (i === 0) d = 0;
       d = Math.max(0, d);
       r.dataset.depth = d;
@@ -195,6 +196,17 @@ export function createListKit({
         carried = [];
         const by = indent ? (dx > 30 ? 1 : dx < -30 ? -1 : 0) : 0;
         if (by) shiftDepth(group, by);
+        // Dropped between a parent and its children (or among them) at a
+        // shallower level: it would split the family, so it goes after it.
+        if (indent || families) {
+          const head = depthOf(group[0]);
+          let last = group.at(-1);
+          let next = last.nextElementSibling;
+          if (next?.matches('li[data-id]') && depthOf(next) > head) {
+            while (next?.matches('li[data-id]') && depthOf(next) > head) { last = next; next = next.nextElementSibling; }
+            last.after(...group);
+          }
+        }
         commit(by ? (by > 0 ? 'Indented' : 'Outdented') : 'Moved', group.map(r => r.dataset.id));
       },
     });

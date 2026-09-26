@@ -261,6 +261,15 @@ export default {
     const listOf = (inner, empty = '') => (inner ? `<ul class="task-list">${inner}</ul>` : empty);
 
     // Tasks in list order, hiding done ones (unless shown) and collapsed sub-trees.
+    // A ticked sub-task stays with its task until the task itself is ticked.
+    const waitsForParent = t => {
+      const p = t.parent_task_id && data.tasks.find(x => x.id === t.parent_task_id);
+      return !!p && !isDone(p);
+    };
+    // A task with everything under it (ticked sub-tasks too), in order.
+    const familyOf = t => nest(data.tasks.filter(x => x.id === t.id || descends(x, t.id))).map(x => ({ ...x }));
+    const descends = (x, id) => { for (let p = x.parent_task_id, n = 0; p && n < 10; n++) { if (p === id) return true; p = data.tasks.find(y => y.id === p)?.parent_task_id; } return false; };
+
     function visible(tasks) {
       const nested = nest(tasks);
       const out = [];
@@ -268,7 +277,7 @@ export default {
       for (const t of nested) {
         if (hideBelow != null && t.depth > hideBelow) continue;
         hideBelow = null;
-        if (!state.showDone && isDone(t) && !(t.done_at > new Date(Date.now() - 60000).toISOString())) continue;
+        if (!state.showDone && isDone(t) && !waitsForParent(t) && !(t.done_at > new Date(Date.now() - 60000).toISOString())) continue;
         out.push(t);
         if (collapsed.has(t.id)) hideBelow = t.depth;
       }
@@ -327,8 +336,10 @@ export default {
     // is in Now), with anything overdue or planned for today first in Now.
     function viewHorizon(h) {
       const today = isoDate();
-      const open = data.tasks.filter(t => !isDone(t) && horizonOf(t) === h && (!state.project || t.project_id === state.project));
-      const flat = list => rowsOf(list.map(t => ({ ...t, depth: 0 })));
+      // Sub-tasks go with their task, whichever list they were given.
+      const open = data.tasks.filter(t => !isDone(t) && horizonOf(t) === h && (!state.project || t.project_id === state.project)
+        && !(t.parent_task_id && data.tasks.some(p => p.id === t.parent_task_id && !isDone(p))));
+      const flat = list => rowsOf(list.flatMap(t => (collapsed.has(t.id) ? [{ ...t, depth: 0 }] : familyOf(t))));
       const urgent = h === 'now' ? open.filter(t => (aimDate(t) && aimDate(t) <= today) || (t.start_date && t.start_date <= today)) : [];
       const rest = open.filter(t => !urgent.includes(t));
       const body = (urgent.length ? head('Due or planned') + flat(urgent) + (rest.length ? head('Everything else') : '') : '') + flat(rest);
@@ -354,13 +365,13 @@ export default {
     }
 
     function viewDone() {
-      const done = data.tasks.filter(isDone).sort((a, b) => b.done_at.localeCompare(a.done_at));
+      const done = data.tasks.filter(t => isDone(t) && !(t.parent_task_id && data.tasks.some(p => p.id === t.parent_task_id))).sort((a, b) => b.done_at.localeCompare(a.done_at));
       if (!done.length) return '<div class="empty"><h2>Nothing ticked off yet.</h2></div>';
       const byDay = new Map();
       for (const t of done) {
         const d = isoDate(new Date(t.done_at));
         if (!byDay.has(d)) byDay.set(d, []);
-        byDay.get(d).push({ ...t, depth: 0 });
+        byDay.get(d).push(...familyOf(t));
       }
       return listOf([...byDay].map(([d, list]) => head(`${shortDate(d)} <span class="muted">${list.length}</span>`) + rowsOf(list, { draggable: false })).join(''));
     }
@@ -595,7 +606,7 @@ export default {
     const kitPlain = this.kitPlain = createListKit({ reorder: false, noun: 'task', actions: taskActions });
     // In Task Dump / Now / Next / Later only the order changes: just the moved
     // tasks get a new place (order.js), so tasks on other lists keep theirs.
-    const kitFlat = this.kitFlat = createListKit({ reorder: true, noun: 'task', actions: taskActions, onReorder: async (rows, label, ul, moved) => {
+    const kitFlat = this.kitFlat = createListKit({ reorder: true, families: true, noun: 'task', actions: taskActions, onReorder: async (rows, label, ul, moved) => {
       const task = id => data.tasks.find(x => x.id === id);
       const writes = reorderWrites(rows, r => rankOf(task(r.id)), moved);
       const before = writes.map(([r]) => [r.id, { rank: task(r.id)?.rank ?? null }]);
@@ -640,6 +651,17 @@ export default {
       if (!id) return;
       const task = data.tasks.find(x => x.id === id);
       if (t.classList.contains('tick')) {
+        const kids = t.checked ? data.tasks.filter(x => descends(x, id) && !isDone(x)) : [];
+        if (kids.length) {
+          // The task and everything still open under it go to Done together.
+          await store.updateMany('tasks', [id, ...kids.map(k => k.id)].map(x => [x, doneFields(true)]));
+          await render();
+          undoable(`Done: ${task.title} and ${kids.length} sub-task${kids.length === 1 ? '' : 's'}`, async () => {
+            await store.updateMany('tasks', [id, ...kids.map(k => k.id)].map(x => [x, doneFields(false)]));
+            await render();
+          }, { more: closingComment({ task_id: id }) });
+          return;
+        }
         await change(id, doneFields(t.checked), t.checked ? `Done: ${task.title}` : 'Not done', t.checked ? { more: closingComment({ task_id: id }) } : undefined);
       } else if (t.classList.contains('task-title')) {
         if (!t.value.trim()) {
