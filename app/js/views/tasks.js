@@ -478,6 +478,36 @@ export default {
       });
     }
 
+    // Clicking a task's note (panel closed) edits it right there, under the
+    // title; it saves as you type and when you leave it (Esc or click away).
+    function editNoteInPlace(task, noteEl) {
+      const host = document.createElement('div');
+      host.className = 'task-notes note-in-place';
+      noteEl.replaceWith(host);
+      let pending = null;
+      let timer;
+      const flush = async () => {
+        clearTimeout(timer);
+        if (pending === null || pending === (task.notes || '')) return;
+        await store.update('tasks', task.id, { notes: pending });
+        task = { ...task, notes: pending };
+      };
+      const ed = richText(host, {
+        value: task.notes || '',
+        placeholder: word('ph_notes'),
+        origin: () => ({ collection: 'tasks', id: task.id, title: task.title, field: 'notes' }),
+        onChange: md => { pending = md; clearTimeout(timer); timer = setTimeout(flush, 600); },
+      });
+      ed.focus();
+      const leave = async () => { await flush(); render(); };
+      host.addEventListener('focusout', ev => {
+        if (host.contains(ev.relatedTarget)) return;
+        setTimeout(() => { if (host.isConnected && !host.contains(document.activeElement) && !document.querySelector('.ref-picker, dialog[open]')) leave(); }, 0);
+      });
+      host.addEventListener('keydown', ev => { if (ev.key === 'Escape' && !isFullNote(host) && !document.querySelector('.ref-picker')) { ev.preventDefault(); ev.stopPropagation(); document.activeElement?.blur(); } });
+    }
+    const isFullNote = h => h.classList.contains('is-full');
+
     // Plan for day: the task goes on that day in the Day Planner (tasks.js planDay).
     async function setPlanDay(task, date) {
       if ((task.start_date || null) === (date || null)) return;
@@ -837,6 +867,8 @@ export default {
         await change(id, { energy: task.energy === b.dataset.energy ? null : b.dataset.energy }, 'Energy saved');
       } else if (act === 'close-details') {
         await closeDetails();
+      } else if (act === 'toggle-note' && open !== id && task) {
+        editNoteInPlace(task, b);
       } else if (act === 'details' || act === 'toggle-note') {
         await flushNote();
         open = open === id ? null : id;
