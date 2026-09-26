@@ -14,6 +14,7 @@ import { toast, undoable } from '../toast.js';
 import { toHtml, richText } from '../richtext.js';
 import { addTaskFirst } from '../tasks.js';
 import { askEmptied } from '../ask.js';
+import { pickTask } from '../taskpicker.js';
 import { tintHex, tintId, colourMenu } from '../colours.js';
 import { rankOf, byRank, keyBetween, reorderWrites } from '../order.js';
 import { addItem, isoDate, parseTimed, daySettings, durationChoices, durationLabel } from '../days.js';
@@ -230,7 +231,8 @@ export default {
               <summary role="button" aria-label="More: share, attach, archive, delete" title="Share, attach, archive, delete">⋯</summary>
               <div class="menu">
                 <button type="button" data-act="colour"><span class="swatch" style="--sw:${tintHex(t)}"></span> Colour…</button>
-                <button type="button" data-act="comment" title="Add this note to a task, as a dated comment">💬 Add to a task…</button>
+                <button type="button" data-act="comment" title="Add this note to a task, as a dated comment">💬 Add as comment to task…</button>
+                <button type="button" data-act="append" title="Add this note to the end of a task's note">📝 Append to task note…</button>
                 <button type="button" data-att-add title="Attach photos, PDFs or text files (or drop them onto the note)">${icon('i-clip')} Attach…</button>
                 <button type="button" data-act="copy-plain">${icon('i-share')} Copy – plain text</button>
                 <button type="button" data-act="copy-rich">${icon('i-share')} Copy – with formatting</button>
@@ -246,7 +248,6 @@ export default {
     }
 
     let boxes = [];
-    let openTasks = [];
     let maxDuration = 240;
     daySettings().then(d => { maxDuration = d.duration_max_min; });
     function panelHtml(t) {
@@ -257,12 +258,6 @@ export default {
           <label>Time (optional)<input type="time" name="plan_time" value="${p.time || ''}"></label>
           <label>Estimated time<select name="plan_est"><option value="">Not estimated</option><option value="unsure">Not sure yet</option>${durationChoices(maxDuration).map(m => `<option value="${m}">${durationLabel(m)}</option>`).join('')}</select></label>
           <button type="button" class="primary" data-act="plan-go">Add to the day</button>
-        </div>`;
-      }
-      if (panel.type === 'comment') {
-        return `<div class="thought-panel">
-          <label class="wide">Task<select name="comment_task">${openTasks.map(x => `<option value="${x.id}">${esc(x.title)}</option>`).join('')}</select></label>
-          <button type="button" class="primary" data-act="comment-go">Add as a comment</button>
         </div>`;
       }
       return `<div class="thought-panel">
@@ -488,16 +483,28 @@ export default {
         const parsed = parseTimed(t.body.split('\n')[0]);
         const item = await addItem(date, { title: parsed.title.slice(0, 200), time: time || parsed.time, end_time: parsed.end_time, estimate_min: est, estimate_unsure: estRaw === 'unsure', source_thought_id: t.id });
         await convert(t, { collection: 'day_items', id: item.id, date }, `On the plan for ${date === isoDate() ? 'today' : date}`);
-      } else if (act === 'comment') {
+      } else if (act === 'comment' || act === 'append') {
+        // Pick the task (search, grouped by list: js/taskpicker.js); Cancel changes nothing.
         li.querySelector('details.note-more')?.removeAttribute('open');
-        openTasks = (await store.list('tasks', { filter: x => !x.done_at && !x.archived_at })).sort((a, b) => a.title.localeCompare(b.title));
-        if (!openTasks.length) { toast('No open tasks to add it to'); return; }
-        panel = panel?.id === t.id && panel.type === act ? null : { id: t.id, type: act };
-        render();
-      } else if (act === 'comment-go') {
-        const taskId = li.querySelector('[name="comment_task"]').value;
-        const made = await store.create('comments', { task_id: taskId, at: new Date().toISOString(), body: t.body.trim(), from_thought_id: t.id });
-        await convert(t, { collection: 'comments', id: made.id }, `Added to "${openTasks.find(x => x.id === taskId)?.title || 'the task'}" as a comment`);
+        const task = await pickTask({ title: act === 'comment' ? 'Add as comment to…' : 'Append to the note of…' });
+        if (!task) return;
+        if (act === 'comment') {
+          const made = await store.create('comments', { task_id: task.id, at: new Date().toISOString(), body: t.body.trim(), from_thought_id: t.id });
+          await convert(t, { collection: 'comments', id: made.id }, `Added to "${task.title}" as a comment`);
+        } else {
+          // The note goes at the end of the task's note; Undo puts both back.
+          const fresh = await store.get('tasks', task.id);
+          const before = { notes: fresh?.notes || '' };
+          const was = t.converted_to || null;
+          await store.update('tasks', task.id, { notes: [before.notes.trim(), t.body.trim()].filter(Boolean).join('\n\n') });
+          await store.update('thoughts', t.id, { converted_to: { collection: 'tasks', id: task.id } });
+          await render();
+          undoable(`Added to the note of "${task.title}"`, async () => {
+            await store.update('tasks', task.id, before);
+            await store.update('thoughts', t.id, { converted_to: was });
+            render();
+          });
+        }
       } else if (act === 'store-go') {
         const boxId = li.querySelector('[name="box"]').value;
         const count = (await store.list('items', { filter: i => i.place_id === boxId })).length;
