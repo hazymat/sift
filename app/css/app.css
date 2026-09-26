@@ -3064,3 +3064,8 @@ a.comment-mark:hover { color: var(--text); }
 /* Settings → Navigation: the grip on the left like everywhere else (193); a
    row that can't move keeps the same space so the icons line up. */
 .pin-list li .grip-space { flex: 0 0 40px; }
+/* Settings → Brain Dump types: grips hidden until you hover the row, like every other list. */
+@media (hover: hover) {
+  .types-list .drag-handle { opacity: 0 !important; transition: opacity .12s; }
+  .types-list li:hover .drag-handle, .types-list .drag-handle:focus-visible, .types-list li.dragging .drag-handle, .types-list li:focus-within .drag-handle { opacity: .8 !important; }
+}
