@@ -435,6 +435,19 @@ export default {
       });
     }
 
+    // Shift+Tab in a task's note (under its name, while editing) goes back to
+    // the name; Tab moves on as usual. (In the name, Tab indents: listkit.js.)
+    body.addEventListener('keydown', ev => {
+      if (ev.key !== 'Tab' || !ev.shiftKey || ev.defaultPrevented || ev.ctrlKey || ev.altKey || ev.metaKey) return;
+      const t = ev.target;
+      if (t.id === 'task-new-note') { ev.preventDefault(); body.querySelector('#task-new')?.focus(); return; }
+      if (!t.closest?.('.pill-note, .note-in-place')) return;
+      const title = t.closest('.task-list > li[data-task]')?.querySelector(':scope > .task-title');
+      if (!title) return;
+      ev.preventDefault();
+      title.focus();
+    });
+
     function openNewAfter(id) {
       const task = data.tasks.find(x => x.id === id);
       const li = body.querySelector(`.task-list > li[data-task="${id}"]`);

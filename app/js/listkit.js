@@ -21,6 +21,7 @@
 //     make them its sub-tasks); while dragging, the row shows indented with ↳
 
 import { sortable } from './sortable.js';
+import { toast } from './toast.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
@@ -252,17 +253,30 @@ export function createListKit({
     // Tab / Shift+Tab while editing a row
     if (indent) {
       ul.addEventListener('keydown', ev => {
-        if (ev.key !== 'Tab' || !ev.target.matches('input, [contenteditable]')) return;
+        // In the row's own text field (not a note, and not a bullet the note
+        // indented itself), Tab always indents and Shift+Tab outdents: when it
+        // can't, it says why rather than moving on to the next field.
+        if (ev.key !== 'Tab' || ev.defaultPrevented || ev.ctrlKey || ev.altKey || ev.metaKey) return;
+        if (!ev.target.matches('input:not([type="checkbox"])')) return;
         const li = ev.target.closest('li[data-id]');
         if (!li || li.parentElement !== ul) return;
-        const d = depthOf(li);
-        const prev = li.previousElementSibling;
-        if (ev.shiftKey ? d === 0 : (!prev || d >= maxDepth || depthOf(prev) < d)) return;
         ev.preventDefault();
+        const d = depthOf(li);
+        const prev = li.previousElementSibling?.matches('li[data-id]') ? li.previousElementSibling : null;
+        if (ev.shiftKey && d === 0) { toast(`Already a ${noun} of its own`); return; }
+        if (!ev.shiftKey) {
+          if (!prev) { toast(`Nothing above to go under`); return; }
+          if (depthOf(prev) < d) { toast(`Already as far in as it goes here`); return; }
+          if (d + 1 + Math.max(0, ...withChildren(li).map(r => depthOf(r) - d)) > maxDepth) { toast(`Sub-${noun}s go ${maxDepth >= 2 ? 'three levels deep at most' : 'one level deep'}`); return; }
+        }
         shiftDepth(withChildren(li), ev.shiftKey ? -1 : 1);
         const id = li.dataset.id;
+        const at = ev.target.selectionStart ?? null;
         Promise.resolve(commit(ev.shiftKey ? 'Outdented' : 'Indented')).then(() => {
-          ul?.querySelector(`li[data-id="${CSS.escape(id)}"] input`)?.focus();
+          // Back in the row's text, where you were typing (not its tick box).
+          const f = ul?.querySelector(`li[data-id="${CSS.escape(id)}"] input:not([type="checkbox"])`);
+          f?.focus();
+          if (f && at != null) try { f.setSelectionRange(at, at); } catch { /* not a text field */ }
         });
       });
     }
