@@ -809,14 +809,14 @@ export default {
         if (kids.length) {
           // The task and everything still open under it go to Done together.
           await store.updateMany('tasks', [id, ...kids.map(k => k.id)].map(x => [x, doneFields(true)]));
-          if (leavesList(task)) tickAway([id, ...kids.map(k => k.id)]); else await render();
+          if (leavesList(task)) tickAway(withSubs([id])); else await render();
           undoable(`Done: ${task.title} and ${kids.length} sub-task${kids.length === 1 ? '' : 's'}`, async () => {
             await store.updateMany('tasks', [id, ...kids.map(k => k.id)].map(x => [x, doneFields(false)]));
             await render();
           }, { more: closingComment({ task_id: id }) });
           return;
         }
-        await change(id, doneFields(t.checked), t.checked ? `Done: ${task.title}` : 'Not done', t.checked ? { more: closingComment({ task_id: id }) } : undefined, t.checked && leavesList(task) ? [id] : null);
+        await change(id, doneFields(t.checked), t.checked ? `Done: ${task.title}` : 'Not done', t.checked ? { more: closingComment({ task_id: id }) } : undefined, t.checked && leavesList(task) ? withSubs([id]) : null);
       } else if (t.classList.contains('task-title')) {
         if (!t.value.trim()) {
           // The whole title removed: delete the task, or put the title back.
