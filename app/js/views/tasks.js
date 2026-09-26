@@ -109,10 +109,11 @@ export default {
       const out = [];
       const p = projectOf(t);
       if (p && !state.project) out.push(`<span class="chip" style="--c:${p.colour || COLOURS[0]}">${esc(p.name)}</span>`);
-      if (t.start_date) out.push(`<span class="chip" title="Planned for">📅 ${shortDate(t.start_date)}</span>`);
+      // (The words in .loose-only show in Expanded spacing only.)
+      if (t.start_date) out.push(`<span class="chip" title="Planned for">📅 <span class="loose-only">Planned for </span>${shortDate(t.start_date)}</span>`);
       const aim = aimDate(t);
-      if (aim) out.push(`<span class="chip${!isDone(t) && aim < isoDate() ? ' late' : ''}" title="Target end date">⚑ ${shortDate(aim)}${t.aim_at.length > 10 ? ` ${t.aim_at.slice(11, 16)}` : ''}</span>`);
-      if (t.estimate_min) out.push(`<span class="chip" title="Estimated time">⏱ ${durationLabel(t.estimate_min)}</span>`);
+      if (aim) out.push(`<span class="chip${!isDone(t) && aim < isoDate() ? ' late' : ''}" title="Target end date">⚑ <span class="loose-only">Target end </span>${shortDate(aim)}${t.aim_at.length > 10 ? ` ${t.aim_at.slice(11, 16)}` : ''}</span>`);
+      if (t.estimate_min) out.push(`<span class="chip" title="Estimated time">⏱ ${durationLabel(t.estimate_min)}<span class="loose-only"> needed</span></span>`);
       if (t.priority && t.priority < 3) out.push(`<span class="chip pri-${t.priority}">${PRIORITIES.find(p => p.id === t.priority)?.label}</span>`);
       if (t.status === 'doing' || t.status === 'waiting') out.push(`<span class="chip">${STATUSES.find(s => s.id === t.status)?.label}</span>`);
       const kids = kidsOf(t);
@@ -151,8 +152,11 @@ export default {
       const pills = (e ? `<button type="button" class="pill-act bolts" data-act="energy-pill" title="Energy: ${e.label}. Click to change" aria-label="Energy ${e.label}, change">${e.bolts}</button>` : '')
         + (h !== 'now' && state.view !== h && !isDone(t) ? `<button type="button" class="pill-act" data-act="horizon-pill" title="For ${h}. Click to change">${h}</button>` : '');
       const note = t.notes && open !== t.id ? noteHtml(t) : ''; // the open panel already shows the whole note
+      // Expanded spacing: photos attached show as small pictures too.
+      const photos = open !== t.id ? (atts.get(t.id) || []).filter(a => a.kind === 'image' && a.thumb) : [];
+      const pics = photos.length ? `<span class="loose-only task-pics">${photos.slice(0, 4).map(a => `<img src="${a.thumb}" alt="" loading="lazy">`).join('')}</span>` : '';
       const c = chips(t);
-      return pills || c || note ? `<div class="item-sub">${pills}${c ? `<span class="chips">${c}</span>` : ''}${note}</div>` : '';
+      return pills || c || note || pics ? `<div class="item-sub">${pills}${c ? `<span class="chips">${c}</span>` : ''}${note}${pics}</div>` : '';
     }
 
     // Notes under tasks: the first line; clicking it opens (or closes) the
