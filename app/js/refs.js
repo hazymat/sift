@@ -64,6 +64,11 @@ export const KINDS = {
     title: i => i.text || '(item)', sub: () => 'Lists',
     text: i => `${i.text} ${i.notes || ''}`, route: i => `#/lists/${i.list_id}`,
   },
+  scans: {
+    label: 'Scan', icon: '🧾',
+    title: s => s.title || '(scan)', sub: s => `Scans${s.summary ? ` · ${s.summary}` : ''}`,
+    text: s => `${s.title} ${s.summary || ''} ${s.note || ''}`, route: s => `#/scans/${s.id}`,
+  },
   lists: {
     label: 'List', icon: '📋',
     title: l => l.name || '(list)', sub: () => 'Lists',

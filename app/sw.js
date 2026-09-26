@@ -48,6 +48,7 @@ const SHELL = [
   'js/holdopen.js',
   'js/attachments.js',
   'js/walk.js',
+  'js/scans.js',
   'js/install.js',
   'js/link.js',
   'js/sheets.js',

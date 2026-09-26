@@ -196,6 +196,7 @@ export default {
       const dayItems = await store.list('day_items', { filter: i => i.contact_ids?.includes(c.id) && !i.archived_at });
       const known = new Set([...tasks, ...dayItems].map(r => r.id));
       const mentions = (await mentionsOf('contacts', c.id)).filter(m => !known.has(m.id) && m.id !== c.id);
+      const scans = await store.list('scans', { filter: s => s.linked?.collection === 'contacts' && s.linked.id === c.id && !s.archived_at });
       const timeline = [
         { at: c.captured_at, text: 'Recorded', kind: 'captured' },
         ...log.map(i => ({ at: i.at, text: `${HOW.find(h => h.id === i.how)?.icon || ''} ${i.direction === 'in' ? 'They' : 'I'} ${i.how === 'call' ? 'called' : i.how === 'email' ? 'emailed' : i.how === 'text' ? 'texted' : i.how}${i.detail_used ? ` (${i.detail_used})` : ''}${i.summary ? `: ${i.summary}` : ''}`, kind: 'log', id: i.id })),
@@ -235,11 +236,12 @@ export default {
           <h3 class="milestone">Log</h3>
           ${logForm('contact', tasks.filter(t => !t.done_at))}
           <ul class="timeline">${timeline.map(e => `<li class="${e.kind}"><span class="muted">${when(e.at)}</span> ${esc(e.text)}</li>`).join('')}</ul>
-          ${cases.length || tasks.length || dayItems.length || mentions.length ? `<h3 class="milestone">Connected</h3><ul class="links">
+          ${cases.length || tasks.length || dayItems.length || mentions.length || scans.length ? `<h3 class="milestone">Connected</h3><ul class="links">
             ${cases.map(k => `<li><a href="#/contacts/cases/${k.id}">Case: ${esc(k.title)}</a></li>`).join('')}
             ${tasks.map(t => `<li><a href="#/tasks/list${t.project_id ? `/${t.project_id}` : ''}">Task: ${esc(t.title)}</a></li>`).join('')}
             ${dayItems.map(i => `<li><a href="#/planner/${i.date}">Plan ${i.date}: ${esc(i.title)}</a></li>`).join('')}
             ${mentions.map(m => `<li><a href="${m.route}">${m.icon} Mentioned in ${esc(m.label.toLowerCase())}: ${esc(m.title)}</a></li>`).join('')}
+            ${scans.map(s => `<li><a href="#/scans/${s.id}">🧾 Scan: ${esc(s.title)}</a></li>`).join('')}
           </ul>` : ''}
           <div class="detail-actions">
             <button type="button" data-act="contact-task">+ Task with this contact</button>
@@ -282,7 +284,7 @@ export default {
         ...notes.map(n => ({ at: n.at, type: 'note', html: `✎ ${esc(n.body)}` })),
         ...tasks.map(t => ({ at: t.created_at, type: 'task', html: `☐ Task: <a href="#/tasks/list">${esc(t.title)}</a>${t.done_at ? ' (done)' : ''}` })),
         ...comments.map(c => ({ at: c.at, type: 'comment', html: `💬 <a href="#/tasks/list">${esc(taskIds.get(c.task_id).title)}</a>: ${esc(c.body || "📎")}` })),
-        ...scans.map(sc => ({ at: sc.letter_date || sc.created_at, type: 'letter', html: `📄 ${esc(sc.title)}${sc.summary ? `: ${esc(sc.summary)}` : ''}` })),
+        ...scans.map(sc => ({ at: sc.letter_date || sc.created_at, type: 'letter', html: `📄 <a href="#/scans/${sc.id}">${esc(sc.title)}</a>${sc.summary ? `: ${esc(sc.summary)}` : ''}` })),
       ].sort((a, b) => b.at.localeCompare(a.at));
       return `
         <div class="project-head">

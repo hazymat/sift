@@ -3295,3 +3295,43 @@ dialog.att-view::backdrop { background: rgb(0 0 0 / .82); }
 .comment-tools button { padding: 2px 6px; font-size: .85rem; line-height: 1.2; background: transparent; box-shadow: none; border: 1px solid transparent; font-family: var(--emoji-font, inherit); }
 .comment-tools button:hover { background: var(--glass-hover); border-color: var(--glass-border); }
 .comment-body a.web-link { color: var(--accent, var(--text)); text-decoration: underline; text-underline-offset: 2px; overflow-wrap: anywhere; }
+/* Scans (#8): a Scan button and the scans as cards with their first page. */
+.scans-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+.scans-head .scan-btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 20px; font-size: 1rem; }
+.scans-head .scan-btn .icon { width: 20px; height: 20px; }
+.scans-head .scan-search { flex: 1 1 12em; min-width: 0; padding: 8px 12px; border-radius: var(--radius-pill); border: 1px solid var(--glass-border); background: var(--glass-track); color: var(--text); }
+.scan-kinds { margin-bottom: 8px; flex-wrap: wrap; }
+.scan-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-top: 10px; }
+#main[data-density="tight"] .scan-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+#main[data-density="loose"] .scan-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.scan-grid > .empty { grid-column: 1 / -1; }
+.scan-card { display: grid; gap: 6px; padding: 8px 8px 10px; border-radius: 16px; border: 1px solid var(--glass-border); background: var(--glass); color: var(--text); text-decoration: none; min-width: 0; }
+.scan-card:hover { background: var(--glass-hover); }
+.scan-thumb { position: relative; display: grid; place-items: center; aspect-ratio: 4 / 3; border-radius: 10px; overflow: hidden; background: var(--glass-track); }
+.scan-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.scan-doc { width: 44%; height: 44%; fill: none; stroke: var(--muted); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+.scan-count { position: absolute; right: 6px; bottom: 6px; padding: 1px 8px; border-radius: 999px; font-size: .72rem; background: color-mix(in srgb, #000 55%, transparent); color: #fff; }
+.scan-title { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scan-meta { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; font-size: .8rem; }
+.chip.expiry-soon { border-color: color-mix(in srgb, #f5a66a 60%, transparent); background: color-mix(in srgb, #f5a66a 18%, transparent); }
+.chip.expiry-past { border-color: color-mix(in srgb, #ff8a80 60%, transparent); background: color-mix(in srgb, #ff8a80 18%, transparent); }
+.scans.drop-over { outline: 2px dashed var(--active-border, var(--muted)); outline-offset: 6px; border-radius: 16px; }
+.scan-page { position: relative; display: grid; gap: 10px; padding: 12px 12px 0; border-radius: 16px; border: 1px solid var(--glass-border); background: var(--glass-track); --pp-r: 12px; --pp-b: 0px; --pp-l: 12px; }
+.scan-page .panel-sec { margin: 0; }
+.scan-page { grid-template-columns: minmax(0, 1fr); }
+.scan-page > * { min-width: 0; }
+@media (max-width: 560px) {
+  .scan-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  #main[data-density="tight"] .scan-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  #main[data-density="loose"] .scan-grid { grid-template-columns: minmax(0, 1fr); }
+}
+.scan-page .att-img .att-open img { height: 96px; max-width: 160px; }
+.scan-summary { margin-top: 10px; }
+.scan-summary textarea { font-size: .95rem; padding: 6px 8px; color: var(--text); resize: vertical; }
+.scan-filed { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.scan-filed .field-label { font-size: .8rem; color: var(--muted); }
+.filed-chip { display: inline-flex; align-items: center; gap: 4px; }
+.filed-chip .linklike { padding: 0; font-size: .85rem; color: var(--text); }
+.scan-reminder { margin-top: 8px; font-size: .85rem; }
+.scan-actions { margin: 4px -12px 0; padding: 9px 12px; background: color-mix(in srgb, var(--text) 6%, transparent); border-top: 1px solid color-mix(in srgb, var(--text) 9%, transparent); border-radius: 0 0 15px 15px; align-items: center; }
+.scan-actions .muted { font-size: .8rem; }
