@@ -69,6 +69,11 @@ export const KINDS = {
     title: s => s.title || '(scan)', sub: s => `Scans${s.summary ? ` · ${s.summary}` : ''}`,
     text: s => `${s.title} ${s.summary || ''} ${s.note || ''}`, route: s => `#/scans/${s.id}`,
   },
+  contracts: {
+    label: 'Contract', icon: '📑',
+    title: c => c.name || c.provider || '(contract)', sub: c => `Contracts${c.provider ? ` · ${c.provider}` : ''}`,
+    text: c => `${c.name} ${c.provider || ''} ${c.covers || ''} ${c.notes || ''}`, route: c => `#/contracts/${c.id}`,
+  },
   lists: {
     label: 'List', icon: '📋',
     title: l => l.name || '(list)', sub: () => 'Lists',

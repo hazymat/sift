@@ -113,6 +113,7 @@ export default {
           <div class="detail-actions scan-actions">
             <span class="muted">Added ${niceDate(s.created_at)}</span>
             <span class="spacer"></span>
+            ${s.linked?.collection === 'contracts' ? '' : '<button type="button" data-act="make-contract" title="Start a contract from this scan (it\'s filed with it)">→ Contract</button>'}
             <button type="button" data-act="archive">Archive</button>
             <button type="button" class="danger" data-act="delete">Delete</button>
           </div>
@@ -244,6 +245,15 @@ export default {
           },
           onClose: () => {},
         });
+      }
+      if (act === 'make-contract') {
+        const { newContract } = await import('../contracts.js');
+        const kind = { warranty: 'warranty', letter: 'other', receipt: 'other', id: 'other' }[s.kind] || 'other';
+        const made = await newContract({ name: s.title, category: kind, renewal_date: s.expiry_date || null });
+        await store.update('scans', s.id, { linked: { collection: 'contracts', id: made.id, title: s.title } });
+        location.hash = `#/contracts/${made.id}`;
+        undoable('Contract started', async () => { await store.remove('contracts', made.id); await store.update('scans', s.id, { linked: s.linked || null }); });
+        return;
       }
       if (act === 'remind') {
         const aim = [monthsBefore(s.expiry_date, 3), isoDate()].sort().at(-1);

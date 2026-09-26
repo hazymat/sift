@@ -3320,6 +3320,7 @@ dialog.att-view::backdrop { background: rgb(0 0 0 / .82); }
 .scan-page .panel-sec { margin: 0; }
 .scan-page { grid-template-columns: minmax(0, 1fr); }
 .scan-page > * { min-width: 0; }
+.scan-page .md-bar { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
 @media (max-width: 560px) {
   .scan-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   #main[data-density="tight"] .scan-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -3335,3 +3336,37 @@ dialog.att-view::backdrop { background: rgb(0 0 0 / .82); }
 .scan-reminder { margin-top: 8px; font-size: .85rem; }
 .scan-actions { margin: 4px -12px 0; padding: 9px 12px; background: color-mix(in srgb, var(--text) 6%, transparent); border-top: 1px solid color-mix(in srgb, var(--text) 9%, transparent); border-radius: 0 0 15px 15px; align-items: center; }
 .scan-actions .muted { font-size: .8rem; }
+/* Contracts (#9): a table on a laptop, cards by kind on a phone. */
+.contract-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 10px; font-size: .92rem; border: 1px solid var(--glass-border); border-radius: 14px; overflow: hidden; background: var(--glass); }
+.contract-table th { text-align: left; padding: 0; border-bottom: 1px solid var(--glass-border); background: var(--glass-track); }
+.contract-table .th-sort { width: 100%; text-align: left; padding: 8px 10px; border-radius: 0; background: none; box-shadow: none; color: var(--muted); font-size: .8rem; font-weight: 600; white-space: nowrap; }
+.contract-table .th-sort[aria-pressed="true"] { color: var(--text); }
+.contract-table td { padding: 9px 10px; border-bottom: 1px solid color-mix(in srgb, var(--text) 7%, transparent); vertical-align: middle; }
+.contract-table tbody tr { cursor: pointer; }
+.contract-table tbody tr:hover, .contract-table tbody tr:focus-visible { background: var(--glass-hover); outline: none; }
+.contract-table tbody tr:last-child td { border-bottom: 0; }
+.contract-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.contract-table .c-name { font-weight: 500; }
+#main[data-shade="alt"] .contract-table tbody tr:nth-child(even) { background: color-mix(in srgb, var(--text) 4%, transparent); }
+#main[data-density="tight"] .contract-table td { padding: 5px 10px; }
+#main[data-density="loose"] .contract-table td { padding: 13px 12px; }
+.chip.renew-soon { border-color: color-mix(in srgb, #f5a66a 60%, transparent); background: color-mix(in srgb, #f5a66a 18%, transparent); }
+.chip.renew-past { border-color: color-mix(in srgb, #ff8a80 60%, transparent); background: color-mix(in srgb, #ff8a80 18%, transparent); }
+.contract-cards { display: none; }
+.contract-card { display: grid; gap: 4px; margin-bottom: 8px; padding: 10px 14px; border-radius: 16px; border: 1px solid var(--glass-border); background: var(--glass); color: var(--text); text-decoration: none; }
+.contract-card .c-name { font-weight: 500; }
+.contract-card .c-line { display: flex; justify-content: space-between; gap: 8px; align-items: center; font-size: .9rem; }
+.contract-card.renew-soon { border-color: color-mix(in srgb, #f5a66a 55%, transparent); }
+.contract-card.renew-past { border-color: color-mix(in srgb, #ff8a80 55%, transparent); }
+@media (max-width: 767px) { .contract-table { display: none; } .contract-cards { display: block; margin-top: 6px; } }
+.contract-total { margin: 12px 2px 0; font-size: .92rem; }
+.contract-page .detail-grid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.contract-page .detail-grid input, .contract-page .detail-grid select { font-size: .92rem; padding: 6px 8px; color: var(--text); width: 100%; box-sizing: border-box; min-width: 0; }
+.ref-field, .cost-field { display: flex; gap: 6px; align-items: center; min-width: 0; }
+.cost-field input { flex: 1 1 5em; min-width: 0; }
+.cost-field select { flex: 0 1 auto; width: auto !important; }
+.ref-field .masked { flex: 1; text-align: left; letter-spacing: .12em; font-variant-numeric: tabular-nums; padding: 7px 10px; border-radius: var(--radius-sm); border: 1px solid var(--glass-border); background: var(--glass-track); box-shadow: none; color: var(--text); }
+.check-label { display: flex; flex-direction: row; align-items: center; gap: 8px; align-self: end; padding-bottom: 8px; color: var(--text); font-size: .88rem; }
+.check-label input { width: auto !important; }
+.contract-year { margin: 8px 0 0; font-size: .85rem; }
+.contract-page .detail-rows { margin: 0 0 6px; }
