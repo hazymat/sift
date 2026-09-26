@@ -17,13 +17,15 @@
 //   onReorder(rows, label, ul, moved): rows = [{ id, depth }] in the new order; moved =
 //     the ids that were moved (so only they need a new place: order.js); persist them
 //   actions: [{ id, label, danger?, run(ids) }]; ids are in list order
+//   onNest(ids, targetId): rows dropped onto the middle of another row (e.g. to
+//     make them its sub-tasks); while dragging, the row shows indented with ↳
 
 import { sortable } from './sortable.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 export function createListKit({
-  reorder = true, indent = false, maxDepth = 1, actions = [], onReorder, noun = 'item', grid = false, families = false,
+  reorder = true, indent = false, maxDepth = 1, actions = [], onReorder, noun = 'item', grid = false, families = false, onNest = null,
 } = {}) {
   const selected = new Set();
   let anchor = null;
@@ -182,7 +184,26 @@ export function createListKit({
         item.dataset.dropLabel = to > from ? 'sub-item' : to < from ? 'top level' : '';
         return (to - from) * 28;
       },
-      onEnd: ({ item, dx }) => {
+      // Over the middle of another row: preview the dragged one as its sub-item.
+      ...(onNest ? {
+        onOnto: target => {
+          for (const r of ul.querySelectorAll('.nest-target')) r.classList.remove('nest-target');
+          const held = ul.querySelector('li.dragging');
+          held?.classList.toggle('nest-preview', !!target);
+          target?.classList.add('nest-target');
+        },
+      } : {}),
+      onEnd: ({ item, dx, onto }) => {
+        item.classList.remove('nest-preview');
+        if (onto && onNest) {
+          document.body.classList.remove('is-dragging');
+          onto.classList.remove('nest-target');
+          const heads = carried.length > 1 ? carried.filter(r => !carried.some(p => p !== r && depthOf(p) < depthOf(r) && carried.indexOf(p) < carried.indexOf(r) && withChildren(p).includes(r))) : [item];
+          if (carried.length > 1) dropGroup(item, carried);
+          carried = [];
+          onNest(heads.map(r => r.dataset.id), onto.dataset.id);
+          return;
+        }
         document.body.classList.remove('is-dragging');
         delete item.dataset.dropDepth;
         delete item.dataset.dropLabel;

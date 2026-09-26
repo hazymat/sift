@@ -638,11 +638,28 @@ export default {
       { id: 'archive', label: 'Archive', run: ids => batchSet(ids, { archived_at: new Date().toISOString() }, 'Archived', { subs: true }) },
       { id: 'delete', label: 'Delete', danger: true, run: ids => batchSet(ids, { deleted_at: new Date().toISOString() }, 'Deleted', { subs: true }) },
     ];
-    const kitOrdered = this.kitOrdered = createListKit({ reorder: true, indent: true, maxDepth: 4, noun: 'task', actions: taskActions, onReorder: persistOrder });
+    // Dragged onto the middle of another task: they become its sub-tasks, at the end.
+    async function nestUnder(ids, targetId) {
+      const target = data.tasks.find(t => t.id === targetId);
+      if (!target) return;
+      const moving = ids.map(id => data.tasks.find(t => t.id === id)).filter(t => t && t.id !== targetId && !descends(target, t.id));
+      if (!moving.length) return;
+      const family = data.tasks.filter(t => t.id === targetId || descends(t, targetId)).map(t => rankOf(t)).sort();
+      const end = family.at(-1);
+      const next = data.tasks.map(t => rankOf(t)).filter(k => k > end).sort()[0] || null;
+      const before = moving.map(t => [t.id, { parent_task_id: t.parent_task_id ?? null, rank: t.rank ?? null, project_id: t.project_id ?? null }]);
+      let k = end;
+      const writes = moving.map(t => { k = keyBetween(k, next); return [t.id, { parent_task_id: targetId, rank: k, project_id: target.project_id ?? null }]; });
+      await store.updateMany('tasks', writes);
+      collapsed.delete(targetId);
+      await render();
+      undoable(`${moving.length === 1 ? `"${moving[0].title}" is` : `${moving.length} tasks are`} now under "${target.title}"`, async () => { await store.updateMany('tasks', before); await render(); });
+    }
+    const kitOrdered = this.kitOrdered = createListKit({ reorder: true, indent: true, maxDepth: 4, noun: 'task', actions: taskActions, onReorder: persistOrder, onNest: nestUnder });
     const kitPlain = this.kitPlain = createListKit({ reorder: false, noun: 'task', actions: taskActions });
     // In Task Dump / Now / Next / Later only the order changes: just the moved
     // tasks get a new place (order.js), so tasks on other lists keep theirs.
-    const kitFlat = this.kitFlat = createListKit({ reorder: true, families: true, noun: 'task', actions: taskActions, onReorder: async (rows, label, ul, moved) => {
+    const kitFlat = this.kitFlat = createListKit({ reorder: true, families: true, onNest: (ids, target) => nestUnder(ids, target), noun: 'task', actions: taskActions, onReorder: async (rows, label, ul, moved) => {
       const task = id => data.tasks.find(x => x.id === id);
       const writes = reorderWrites(rows, r => rankOf(task(r.id)), moved);
       const before = writes.map(([r]) => [r.id, { rank: task(r.id)?.rank ?? null }]);

@@ -3077,3 +3077,8 @@ a.comment-mark:hover { color: var(--text); }
 .versions-list button:hover, .versions-list button[aria-current="true"] { background: var(--glass-hover); border-color: var(--glass-border); }
 .versions-list .v-when { font-size: .8rem; color: var(--muted); }
 .versions-list .v-text { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 196: a task dragged over the middle of another previews as its sub-task
+   (indented, with ↳); the task it will go under is outlined. */
+.task-list > li.nest-target { outline: 2px dashed var(--active-border, currentColor); outline-offset: -2px; }
+.task-list > li.dragging.nest-preview { padding-left: calc(var(--nest-pad, 36px) + 28px); position: relative; }
+.task-list > li.dragging.nest-preview::before { content: "↳"; position: absolute; left: calc(var(--nest-pad, 36px) + 6px); top: .55em; width: auto; background: none; color: var(--muted); font-size: .9rem; line-height: 1; }

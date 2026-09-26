@@ -14,7 +14,13 @@
 
 // With `grid: true` the items sit in rows and columns (cards): the dragged one
 // follows the pointer both ways and drops into the card it is over.
-export function sortable(list, { handle = '.drag-handle', holdMs = 0, keyboard = true, grid = false, onMove, onEnd, onTap, onPaint, onLift, onDrag } = {}) {
+//
+// With `onOnto(target | null)`, the middle of a row means "onto it" (e.g. make
+// it a sub-task) rather than before or after it: the list isn't reordered
+// there, onOnto says which row it's over, and onEnd gets it as `onto`.
+export function sortable(list, { handle = '.drag-handle', holdMs = 0, keyboard = true, grid = false, onMove, onEnd, onTap, onPaint, onLift, onDrag, onOnto } = {}) {
+  let onto = null; // the row the dragged one is over the middle of (onOnto)
+  const setOnto = el => { if (el === onto) return; onto = el; onOnto?.(el); };
   let dragging = null;
   let pending = null; // pressed; waiting to see if it's a tap, swipe or hold
   let painting = null;
@@ -45,6 +51,12 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, keyboard =
       if (dragging.compareDocumentPosition(under) & Node.DOCUMENT_POSITION_PRECEDING) list.insertBefore(dragging, under); else under.after(dragging);
       onMove?.(dragging);
       return;
+    }
+    if (onOnto) {
+      // Over the middle third of a row: onto it, no reordering.
+      const over = siblings().find(el => { const r = el.getBoundingClientRect(); return clientY > r.top + r.height / 3 && clientY < r.bottom - r.height / 3; });
+      setOnto(over || null);
+      if (over) return;
     }
     for (const el of siblings()) {
       const r = el.getBoundingClientRect();
@@ -142,7 +154,9 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, keyboard =
     item.style.transform = '';
     item.style.removeProperty('--dx');
     dragging = null;
-    onEnd?.({ item, dx: lastX - startX });
+    const target = onto;
+    if (onto) setOnto(null);
+    onEnd?.({ item, dx: lastX - startX, onto: target });
   };
   list.addEventListener('pointerup', finish);
   list.addEventListener('pointercancel', finish);
