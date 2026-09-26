@@ -258,15 +258,19 @@ export default {
     });
     const planner = $('.planner');
 
+    // Layout changes made because of a size change wait a moment, so they don't
+    // resize what's being watched while the browser is still reporting sizes
+    // (which it logs as a "ResizeObserver loop").
+    const nextFrame = fn => { let q = 0; return () => { if (!q) q = setTimeout(() => { q = 0; fn(); }); }; };
     // A wide screen: when the plan would be over 1000px wide, Tasks and Notes
     // dock in a column to its right (a little slack so it doesn't flip back
     // and forth at the edge).
     this.dockWatch?.disconnect();
-    this.dockWatch = new ResizeObserver(() => {
+    this.dockWatch = new ResizeObserver(nextFrame(() => {
       const w = planner.offsetWidth;
       if (w > 1000) planner.classList.add('docked');
       else if (w < 960) planner.classList.remove('docked');
-    });
+    }));
     this.dockWatch.observe(planner);
     // When Energy sits under Day focus (a narrow screen), the two labels end
     // at the same place and what's written after them starts at the same place:
@@ -290,7 +294,7 @@ export default {
       if (d) (d > 0 ? en : fl).style.marginLeft = `${Math.abs(d)}px`;
     };
     this.headWatch?.disconnect();
-    this.headWatch = new ResizeObserver(() => alignHeads());
+    this.headWatch = new ResizeObserver(nextFrame(alignHeads));
     this.headWatch.observe($('.focus-row'));
     for (const i of [$('#focus'), $('#energy-note')]) i.addEventListener('input', alignHeads);
     document.fonts?.ready.then(alignHeads);
