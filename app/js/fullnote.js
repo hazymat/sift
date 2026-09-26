@@ -30,6 +30,15 @@ function follow() {
   }
 }
 
+// Pressing the header (or any bare part of the note's frame) keeps the cursor
+// in the note, as a press on the dark background does; otherwise the writing
+// area loses its "writing" look until the pointer comes back over it.
+function keepCursor(ev) {
+  if (!current?.box.contains(ev.target)) return;
+  if (ev.target.closest('.rich-edit, .rich-raw, input, textarea, select, [contenteditable]')) return;
+  ev.preventDefault();
+}
+
 // The cursor leaving a full-screen note: the page isn't told (yet).
 function holdFocusOut(ev) {
   if (!current?.box.contains(ev.target)) return;
@@ -66,6 +75,7 @@ export function openFull(box, { label = 'Note' } = {}) {
   document.documentElement.classList.add('note-full');
   current = { box, backdrop, left: null };
   addEventListener('focusout', holdFocusOut, true);
+  addEventListener('mousedown', keepCursor, true);
   follow();
   window.visualViewport?.addEventListener('resize', follow);
   window.visualViewport?.addEventListener('scroll', follow);
@@ -79,6 +89,7 @@ export function closeFull({ animate = true, blur = true } = {}) {
   const { box, backdrop, left } = current;
   current = null;
   removeEventListener('focusout', holdFocusOut, true);
+  removeEventListener('mousedown', keepCursor, true);
   window.visualViewport?.removeEventListener('resize', follow);
   window.visualViewport?.removeEventListener('scroll', follow);
   backdrop.remove();
