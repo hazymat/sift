@@ -1,6 +1,8 @@
 // Recurring tasks. A task's `repeat` says how often: { every: 'day' | 'weekday'
 // | 'week' | 'month' | 'year', n: 1 } (every n days / weeks / months / years;
-// 'weekday' is Monday to Friday). When a recurring task is ticked, the next
+// 'weekday' is Monday to Friday). Monthly and yearly ones also keep the day of
+// the month they started on (`day`), so the 31st falls on the 28th in February
+// and goes back to the 31st after. When a recurring task is ticked, the next
 // one is made straight away with the next date, so missed ones never pile up;
 // its sub-tasks come along unticked, its comments stay with this one. The new
 // one goes on the Day Planner on its date (Settings → Day Planner, on at
@@ -39,10 +41,11 @@ export function repeatLabel(r) {
 }
 
 const dow = iso => new Date(`${iso}T12:00`).getDay();
-function addMonths(iso, m) {
+// `day`: the day of the month it's meant to fall on (a short month takes its last day).
+function addMonths(iso, m, day) {
   const [y, mo, d] = iso.split('-').map(Number);
-  const last = new Date(y, mo - 1 + m + 1, 0).getDate(); // the 31st becomes the month's last day
-  return isoDate(new Date(y, mo - 1 + m, Math.min(d, last)));
+  const last = new Date(y, mo - 1 + m + 1, 0).getDate();
+  return isoDate(new Date(y, mo - 1 + m, Math.min(day || d, last)));
 }
 
 export function nextDate(r, from) {
@@ -51,8 +54,8 @@ export function nextDate(r, from) {
     case 'day': return addDays(from, n);
     case 'weekday': { let d = addDays(from, 1); while ([0, 6].includes(dow(d))) d = addDays(d, 1); return d; }
     case 'week': return addDays(from, 7 * n);
-    case 'month': return addMonths(from, n);
-    case 'year': return addMonths(from, 12 * n);
+    case 'month': return addMonths(from, n, r.day);
+    case 'year': return addMonths(from, 12 * n, r.day);
     default: return null;
   }
 }
@@ -68,10 +71,18 @@ const daysBetween = (a, b) => Math.round((new Date(`${b}T12:00`) - new Date(`${a
 // The next one after `task` (just ticked): same details, next date, sub-tasks unticked.
 async function makeNext(task) {
   const base = task.start_date || aimDate(task) || isoDate();
-  let date = nextDate(task.repeat, base);
+  // Monthly and yearly: the day of the month the series started on stays with
+  // it (unless this one's date was moved by hand: then the new day does).
+  let repeat = task.repeat;
+  if (['month', 'year'].includes(repeat.every)) {
+    const [y, m, d] = base.split('-').map(Number);
+    const fits = repeat.day && Math.min(repeat.day, new Date(y, m, 0).getDate()) === d;
+    repeat = { ...repeat, day: fits ? repeat.day : d };
+  }
+  let date = nextDate(repeat, base);
   if (!date) return null;
   // Ticked late: skip ahead to a date that hasn't passed, so they never pile up.
-  for (let guard = 0; date < isoDate() && guard < 400; guard++) date = nextDate(task.repeat, date);
+  for (let guard = 0; date < isoDate() && guard < 400; guard++) date = nextDate(repeat, date);
   const onPlanner = (await daySettings()).recurring_on_planner !== false;
   const shift = daysBetween(base, date);
   const aim = aimDate(task);
@@ -79,7 +90,7 @@ async function makeNext(task) {
     title: task.title, notes: task.notes || '', project_id: task.project_id || null, milestone_id: task.milestone_id || null,
     horizon: task.horizon || 'now', energy: task.energy ?? null, estimate_min: task.estimate_min ?? null, priority: task.priority ?? 3,
     contact_ids: task.contact_ids || [], case_id: task.case_id || null, colour: task.colour ?? null,
-    repeat: task.repeat, repeat_of: task.repeat_of || task.id, ...(task.rank ? { rank: task.rank } : {}), // where this one was
+    repeat, repeat_of: task.repeat_of || task.id, ...(task.rank ? { rank: task.rank } : {}), // where this one was
     aim_at: aim ? `${addDays(aim, shift)}${task.aim_at.slice(10)}` : (onPlanner ? null : date),
   });
   if (onPlanner) await planDay(next, date);
