@@ -94,7 +94,15 @@ export function editPills(root, spec) {
     if (row?.contains(ev.target) || ev.target.closest?.('.edit-pills, .pill-menu, .ref-picker, dialog, .toast')) return;
     close();
   };
-  const onKey = ev => { if (ev.key === 'Escape' && editing && !ev.target.closest?.('.edit-pills select')) close(); };
+  const onKey = ev => {
+    if (ev.key === 'Escape' && editing && !ev.target.closest?.('.edit-pills select')) close();
+    // Ctrl+Enter (⌘+Enter) in the note under the title: save it and finish, as in every note.
+    if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey) && ev.target.closest?.('.edit-pills textarea')) {
+      ev.preventDefault();
+      ev.target.blur(); // "change" saves it
+      close();
+    }
+  };
   // A date picked in a date pill arrives as "input", "change" or only when the
   // pill is left, depending on the browser and its picker: whichever comes
   // first saves it, once.
