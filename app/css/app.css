@@ -3285,3 +3285,13 @@ dialog.att-view::backdrop { background: rgb(0 0 0 / .82); }
 .task-entry .tree-v, .task-entry .tree-h { position: absolute; background: color-mix(in srgb, var(--text) 13%, transparent); pointer-events: none; }
 .task-entry .tree-v { width: 1px; }
 .task-entry .tree-h { height: 1px; top: calc(var(--tick-top) + var(--tick-h) / 2); }
+/* Links in comments (issue 7): 📞 / 📝 beside the box while writing a comment,
+   the search opening under it, and web addresses as links. */
+.comments { position: relative; }
+.comment-add-row { display: flex; align-items: flex-start; gap: 4px; }
+.comment-add-row .comment-add { flex: 1; min-width: 0; }
+.comment-tools { display: none; gap: 2px; flex: none; }
+.comment-add-row:focus-within .comment-tools { display: inline-flex; }
+.comment-tools button { padding: 2px 6px; font-size: .85rem; line-height: 1.2; background: transparent; box-shadow: none; border: 1px solid transparent; font-family: var(--emoji-font, inherit); }
+.comment-tools button:hover { background: var(--glass-hover); border-color: var(--glass-border); }
+.comment-body a.web-link { color: var(--accent, var(--text)); text-decoration: underline; text-underline-offset: 2px; overflow-wrap: anywhere; }

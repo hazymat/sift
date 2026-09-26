@@ -14,6 +14,10 @@
 //   commentTexts()                every owner's comments as one string each (search)
 //   closingComment(owner)         the toast button after ticking something done
 //   moveComments(from, to)        e.g. a day-only item became a task: { item_id } → { task_id }
+//
+// Links, as in notes: 📞 or 📝 typed (or pressed beside the box while writing)
+// opens the same search and puts a link in; phone numbers and emails become
+// links to contacts when the comment is saved; web addresses can be clicked.
 
 import * as store from './store.js';
 import { toHtml } from './richtext.js';
@@ -23,10 +27,56 @@ import { addTask, MAX_DEPTH, depthIn } from './tasks.js';
 import { addItem, isoDate } from './days.js';
 import { ask, askText, askEmptied } from './ask.js';
 import * as att from './attachments.js';
+import { openPicker } from './linkpicker.js';
+import { linkMd, linkDetailsInText } from './refs.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const keyOf = o => o.task_id ? `task_id:${o.task_id}` : `item_id:${o.item_id}`;
 const ownerOf = key => { const [f, id] = key.split(':'); return { [f]: id }; };
+
+// Web addresses in a comment as it's shown: links that open in a new page.
+const webLinks = html => html.replace(/(^|[\s>(])((?:https?:\/\/|www\.)[^\s<]*[^\s<.,;:!?)'"])/g, (m, pre, url) => {
+  const href = (url.startsWith('www.') ? `https://${url}` : url).replace(/&amp;/g, '&');
+  return `${pre}<a class="web-link" href="${esc(href)}" target="_blank" rel="noopener">${url}</a>`;
+});
+
+// Phone numbers and emails in a comment just saved become links to contacts
+// (known ones, or new transient ones that point back to the task or item).
+async function linkDetails(c, owner) {
+  const task = owner.task_id && await store.get('tasks', owner.task_id);
+  const item = owner.item_id && await store.get('day_items', owner.item_id);
+  const origin = task ? { collection: 'tasks', id: task.id, title: task.title } : item ? { collection: 'day_items', id: item.id, title: item.title } : null;
+  const got = await linkDetailsInText(c.body, origin);
+  if (got.linked) await store.update('comments', c.id, { body: got.text });
+  return got.made;
+}
+
+// 📞 / 📝 / ⚠️ just before the cursor in a comment box: the search for something to link.
+const TRIGGERS = { '📞': 'contact', '📝': 'note', '⚠️': 'important', '⚠': 'important' };
+function linkSearch(box, ta, kind) {
+  const at = ta.selectionStart;
+  const r = ta.getBoundingClientRect();
+  const put = text => {
+    // The 📞 / 📝 that opened the search goes: a link shows its own icon.
+    const before = ta.value.slice(0, at).replace(/(?:📞|📝|⚠️?)\s*$/u, '');
+    const after = ta.value.slice(at);
+    ta.value = `${before}${before && !/\s$/.test(before) ? ' ' : ''}${text} ${after.replace(/^\s+/, '')}`;
+    const caret = ta.value.length - after.replace(/^\s+/, '').length;
+    ta.focus();
+    ta.setSelectionRange(caret, caret);
+    grow(ta);
+  };
+  openPicker({
+    host: box, at: { left: r.left, bottom: r.bottom }, kind,
+    onPick: list => put(list.map(t => linkMd(t.title, t.collection, t.id)).join(', ')),
+    onNewContact: async name => {
+      const { createContact } = await import('./contacts.js');
+      const made = await createContact({ name });
+      put(linkMd(name, 'contacts', made.id));
+    },
+    onClose: () => { ta.focus(); ta.setSelectionRange(at, at); },
+  });
+}
 
 export function commentsHtml(owner) {
   return `<div class="comments" data-comments="${esc(keyOf(owner))}"></div>`;
@@ -88,7 +138,7 @@ async function draw(box) {
   box.querySelector('.comment-items').innerHTML = (list.length ? `<ol class="comment-list">${list.map((c, n) => `
       <li class="comment" data-comment="${c.id}">
         <span class="comment-when" title="${esc(new Date(c.at).toLocaleString('en-GB'))}">${when(c.at)}</span>
-        <div class="comment-body">${toHtml(c.body)}${files.get(c.id)?.length ? att.rowHtml(files.get(c.id), { addButton: false }) : ''}${extra[n]}</div>
+        <div class="comment-body">${webLinks(toHtml(c.body))}${files.get(c.id)?.length ? att.rowHtml(files.get(c.id), { addButton: false }) : ''}${extra[n]}</div>
         <button type="button" class="comment-more" data-cmt="menu" aria-label="Comment options">⋯</button>
       </li>`).join('')}</ol>` : '');
 }
@@ -115,16 +165,25 @@ function edit(box, li, c) {
     }
     if (save && text && text !== c.body) {
       await store.update('comments', c.id, { body: text });
-      undoable('Comment saved', async () => { await store.update('comments', c.id, { body: c.body }); await draw(box); });
+      const made = await linkDetails({ ...c, body: text }, ownerOf(box.dataset.comments));
+      undoable('Comment saved', async () => {
+        await store.update('comments', c.id, { body: c.body });
+        for (const id of made) await store.remove('contacts', id);
+        await draw(box);
+      });
     }
     await draw(box);
   };
-  ta.addEventListener('input', () => grow(ta));
+  ta.addEventListener('input', ev => {
+    grow(ta);
+    const m = ev.inputType?.startsWith('insert') && ta.value.slice(0, ta.selectionStart).match(/(📞|📝|⚠️?)$/u);
+    if (m) linkSearch(box, ta, TRIGGERS[m[1]]);
+  });
   ta.addEventListener('keydown', ev => {
     if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); finish(true); }
     if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); finish(false); }
   });
-  ta.addEventListener('blur', () => finish(true));
+  ta.addEventListener('blur', () => setTimeout(() => { if (!box.querySelector('.ref-picker') && document.activeElement !== ta) finish(true); }));
 }
 
 async function act(box, v, c, owner) {
@@ -184,8 +243,13 @@ function wire(box) {
     setPending(box, []);
     const made = await store.create('comments', { ...ownerOf(box.dataset.comments), at: new Date().toISOString(), body: text });
     if (pending.length) await att.addFiles({ collection: 'comments', id: made.id }, pending);
+    const contacts = text ? await linkDetails(made, ownerOf(box.dataset.comments)) : [];
     await draw(box);
-    undoable('Comment added', async () => { await store.remove('comments', made.id); await draw(box); });
+    undoable('Comment added', async () => {
+      await store.remove('comments', made.id);
+      for (const id of contacts) await store.remove('contacts', id);
+      await draw(box);
+    });
   });
   // Files pasted or dropped into "Add a comment…" go with the next comment;
   // dropped on a comment, they're attached to it.
@@ -208,7 +272,26 @@ function wire(box) {
     if (made.length) undoable(`Attached ${made.length === 1 ? made[0].name : `${made.length} files`}`, async () => { for (const m of made) await store.remove('attachments', m.id); await draw(box); });
   });
   box.addEventListener('click', ev => { att.onClick(ev, () => null, () => draw(box)); }, true);
-  box.addEventListener('input', ev => { if (ev.target.matches('.comment-add')) grow(ev.target); });
+  box.addEventListener('input', ev => {
+    if (!ev.target.matches('.comment-add')) return;
+    grow(ev.target);
+    const ta = ev.target;
+    const m = ev.inputType?.startsWith('insert') && ta.value.slice(0, ta.selectionStart).match(/(📞|📝|⚠️?)$/u);
+    if (m) linkSearch(box, ta, TRIGGERS[m[1]]);
+  });
+  // The 📞 / 📝 beside the box (while writing): as if typed.
+  box.addEventListener('mousedown', ev => { if (ev.target.closest('[data-cmt-link]')) ev.preventDefault(); });
+  box.addEventListener('click', ev => {
+    const b = ev.target.closest('[data-cmt-link]');
+    if (!b) return;
+    const ta = box.querySelector('.comment-add');
+    const at = ta.selectionStart ?? ta.value.length;
+    const glyph = b.dataset.cmtLink === 'contact' ? '📞' : '📝';
+    ta.value = ta.value.slice(0, at) + glyph + ta.value.slice(at);
+    ta.focus();
+    ta.setSelectionRange(at + glyph.length, at + glyph.length);
+    linkSearch(box, ta, b.dataset.cmtLink);
+  });
   box.addEventListener('click', async ev => {
     const btn = ev.target.closest('[data-cmt="menu"]');
     if (!btn) return;
@@ -240,7 +323,7 @@ export async function mountComments(root, changed) {
     box._changed = changed;
     if (box._wired) continue;
     box._wired = true;
-    box.innerHTML = '<span class="panel-h">Comments</span><div class="comment-items"></div><textarea class="comment-add no-inline" rows="1" placeholder="Add a comment…" aria-label="Add a comment"></textarea><div class="comment-pending muted" hidden></div>';
+    box.innerHTML = '<span class="panel-h">Comments</span><div class="comment-items"></div><div class="comment-add-row"><textarea class="comment-add no-inline" rows="1" placeholder="Add a comment…" aria-label="Add a comment"></textarea><span class="comment-tools"><button type="button" data-cmt-link="contact" title="Link a contact (or type 📞)" aria-label="Link a contact">📞</button><button type="button" data-cmt-link="note" title="Link anything in Sift (or type 📝)" aria-label="Link anything">📝</button></span></div><div class="comment-pending muted" hidden></div>';
     wire(box);
     await draw(box);
   }
