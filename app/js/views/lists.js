@@ -56,7 +56,7 @@ export default {
           ${cogHtml('lists')}
           <details class="tool-menu">
             <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
-            <div class="menu"><a href="#/bin/archive/lists">Archive</a><a href="#/bin/bin/lists">Bin</a></div>
+            <div class="menu"><a href="#/bin/archive/lists">Show Archive</a><a href="#/bin/bin/lists">Show Bin</a></div>
           </details>
         </div>
         <h3 class="milestone">Templates</h3>

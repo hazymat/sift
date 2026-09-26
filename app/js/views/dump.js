@@ -101,21 +101,23 @@ export default {
       <section class="dump-find" aria-labelledby="dump-notes-h">
         <div class="dump-h-row">
           <h2 class="dump-h" id="dump-notes-h">${esc(word('dump_mine'))}</h2>
-          <span class="spacer"></span>
-          ${cogHtml('dump')}
-          <details class="tool-menu">
-            <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
-            <div class="menu">
-              <a href="#/bin/archive/dump">Archive</a>
-              <a href="#/bin/bin/dump">Bin</a>
-            </div>
-          </details>
         </div>
         <p class="muted hint">${esc(word('ph_dump_select'))}</p>
       </section>
       <div class="dump-bar-mark" aria-hidden="true"></div>
       <div class="dump-bar">
-        <input type="search" id="dump-q" data-sync-safe class="search" placeholder="${esc(word('ph_dump_search'))}" autocomplete="off">
+        <!-- 👁 and ⋯ sit on the search line, so they stay on screen with it (191). -->
+        <div class="dump-search-row">
+          <input type="search" id="dump-q" data-sync-safe class="search" placeholder="${esc(word('ph_dump_search'))}" autocomplete="off">
+          ${cogHtml('dump')}
+          <details class="tool-menu">
+            <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
+            <div class="menu">
+              <a href="#/bin/archive/dump">Show Archive</a>
+              <a href="#/bin/bin/dump">Show Bin</a>
+            </div>
+          </details>
+        </div>
         <div class="dump-filter" id="dump-filter" role="group" aria-label="Show">
           <button type="button" data-filter="all">All</button>
           ${dumpTypes().map(k => `<button type="button" data-filter="${esc(k.id)}">${esc(k.label)}</button>`).join('')}
@@ -228,6 +230,7 @@ export default {
             <button type="button" data-act="plan">Plan it</button>
             <button type="button" data-act="store">→ Find Things</button>
             <span class="spacer"></span>
+            <span class="note-end">
             <button type="button" class="archive-pill" data-act="archive" title="Done with it: into the Archive (Undo)">Archive</button>
             <details class="tool-menu share-note note-more">
               <summary role="button" aria-label="More: colour, attach, share, delete" title="Colour, attach, share, delete">⋯</summary>
@@ -243,6 +246,7 @@ export default {
                 <button type="button" class="danger" data-act="delete">Delete</button>
               </div>
             </details>
+            </span>
           </div>
           ${panel?.id === t.id ? panelHtml(t) : ''}
         </li>`;

@@ -60,8 +60,8 @@ export default {
             <button type="button" data-act="new-category">New category</button>
             <button type="button" data-act="new-case">New case</button>
             <hr>
-            <a href="#/bin/archive/contacts">Archive</a>
-            <a href="#/bin/bin/contacts">Bin</a>
+            <a href="#/bin/archive/contacts">Show Archive</a>
+            <a href="#/bin/bin/contacts">Show Bin</a>
           </div>
         </details>
       </div>

@@ -65,8 +65,8 @@ export default {
               <button type="button" data-act="export">Export CSV</button>
               <button type="button" data-act="split-quantities">Split "3x …" quantities out of names</button>
               <hr>
-              <a href="#/bin/archive/places">Archive</a>
-              <a href="#/bin/bin/places">Bin</a>
+              <a href="#/bin/archive/places">Show Archive</a>
+              <a href="#/bin/bin/places">Show Bin</a>
             </div>
           </details>
         </div>

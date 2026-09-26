@@ -3045,3 +3045,12 @@ a.comment-mark:hover { color: var(--text); }
 .theme-row[data-fonts="fancy"] .theme-note-font { font-family: "Segoe Print", "Bradley Hand", "Noteworthy", "Chalkboard SE", "Comic Sans MS", cursive; }
 .theme-menu .theme-list { background: var(--menu-bg, var(--glass-strong)); z-index: 40; }
 .card:has(.theme-menu[open]) { position: relative; z-index: 5; }
+/* Brain Dump: search, 👁 and ⋯ on one line that stays at the top (191). */
+.dump-search-row { display: flex; align-items: center; gap: 6px; }
+.dump-search-row .search { flex: 1; min-width: 0; width: auto; }
+.dump-search-row > :not(.search) { flex: none; }
+.dump-search-row > .search-wrap { flex: 1 1 auto; min-width: 0; }
+.dump-search-row .search-wrap .search { width: 100%; }
+.dump-search-row > .page-cog { margin-left: 0; }
+/* Archive and ⋯ stay together at the right, wrapping as a pair on a phone. */
+.thought-actions .note-end { display: flex; align-items: center; gap: 6px; margin-left: auto; }

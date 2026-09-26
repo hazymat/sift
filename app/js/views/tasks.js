@@ -81,8 +81,8 @@ export default {
             <button type="button" data-act="new-project">New project</button>
             <button type="button" data-act="toggle-done">Show / hide done</button>
             <hr>
-            <a href="#/bin/archive/tasks">Archive</a>
-            <a href="#/bin/bin/tasks">Bin</a>
+            <a href="#/bin/archive/tasks">Show Archive</a>
+            <a href="#/bin/bin/tasks">Show Bin</a>
           </div>
         </details>
       </div>
