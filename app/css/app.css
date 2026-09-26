@@ -2975,3 +2975,6 @@ a.comment-mark:hover { color: var(--text); }
 .rich-edit [data-sz="xl"], .thought-body [data-sz="xl"], .note-body [data-sz="xl"], .item-note [data-sz="xl"] { font-size: 1.7em; font-weight: 700; line-height: 1.2; margin: .3em 0 .15em; }
 .file-drop-hint { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translate(-50%, 20px); padding: 10px 16px; border-radius: 999px; background: var(--glass); border: 2px dashed var(--active-border, var(--muted)); color: var(--text); font-size: .9rem; opacity: 0; pointer-events: none; transition: opacity .15s, transform .15s; z-index: 50; backdrop-filter: blur(12px); }
 .file-drop-hint.show { opacity: 1; transform: translate(-50%, 0); }
+/* A comment's ⋯ menu: words, so a plain vertical menu (not the ⚡ pill style). */
+.pill-menu.comment-menu { flex-direction: column; align-items: stretch; gap: 2px; padding: 6px; border-radius: 16px; min-width: 170px; }
+.pill-menu.comment-menu button { font-family: var(--font); letter-spacing: normal; white-space: nowrap; text-align: left; font-size: .9rem; line-height: 1.3; padding: 7px 12px; border-radius: 10px; border-color: transparent; background: transparent; }
