@@ -566,6 +566,10 @@ export function richText(container, { value = '', onChange, placeholder = '', or
     return text;
   }
 
+  // In a list *inside this note*. (The note itself may sit in a list item on
+  // the page, e.g. a Brain Dump card or a task's panel: that doesn't count.)
+  const inList = node => { const li = node?.parentElement?.closest('li') || (node?.nodeType === 1 ? node.closest('li') : null); return !!li && edit.contains(li); };
+
   // "- " or "* " at the start of a line (not already in a list) → bullet, and
   // "1. " a numbered one. Usually that's just after the space, but the marker
   // may have arrived with more text in one go (fast typing, a phone keyboard's
@@ -574,7 +578,7 @@ export function richText(container, { value = '', onChange, placeholder = '', or
   function autoList() {
     const sel = getSelection();
     const node = sel.anchorNode;
-    if (!sel.rangeCount || !sel.isCollapsed || node?.nodeType !== Node.TEXT_NODE || !edit.contains(node) || node.parentElement.closest('li')) return;
+    if (!sel.rangeCount || !sel.isCollapsed || node?.nodeType !== Node.TEXT_NODE || !edit.contains(node) || inList(node)) return;
     const typed = lineBefore(node, sel.anchorOffset);
     const m = /^(?:([-*])|\d{1,3}[.)])[ \u00a0]/.exec(typed);
     if (!m) return;
@@ -700,7 +704,7 @@ export function richText(container, { value = '', onChange, placeholder = '', or
     if (!li || !edit.contains(li)) return;
     ev.preventDefault();
     if (ev.shiftKey) {
-      if (li.parentElement.closest('li') || li.parentElement.parentElement?.tagName === 'UL') document.execCommand('outdent');
+      if (inList(li.parentElement) || li.parentElement.parentElement?.tagName === 'UL') document.execCommand('outdent');
     } else if (li.previousElementSibling) {
       document.execCommand('indent');
     }
