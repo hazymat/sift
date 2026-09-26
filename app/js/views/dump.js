@@ -228,8 +228,9 @@ export default {
             <button type="button" data-act="plan">Plan it</button>
             <button type="button" data-act="store">→ Find Things</button>
             <span class="spacer"></span>
+            <button type="button" class="archive-pill" data-act="archive" title="Done with it: into the Archive (Undo)">Archive</button>
             <details class="tool-menu share-note note-more">
-              <summary role="button" aria-label="More: share, attach, archive, delete" title="Share, attach, archive, delete">⋯</summary>
+              <summary role="button" aria-label="More: colour, attach, share, delete" title="Colour, attach, share, delete">⋯</summary>
               <div class="menu">
                 <button type="button" data-act="colour"><span class="swatch" style="--sw:${tintHex(t)}"></span> Colour…</button>
                 <button type="button" data-act="comment" title="Add this note to a task, as a dated comment">💬 Add as comment to task…</button>
@@ -239,7 +240,6 @@ export default {
                 <button type="button" data-act="copy-rich">${icon('i-share')} Copy – with formatting</button>
                 ${navigator.share ? `<button type="button" data-act="share-sheet">${icon('i-share')} Share…</button>` : ''}
                 <hr>
-                <button type="button" data-act="archive">Archive</button>
                 <button type="button" class="danger" data-act="delete">Delete</button>
               </div>
             </details>
