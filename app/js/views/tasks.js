@@ -124,7 +124,7 @@ export default {
         out.push(`<button type="button" class="chip kids" data-act="collapse" aria-expanded="${!collapsed.has(t.id)}">${collapsed.has(t.id) ? '▸' : '▾'} ${pr.done}/${pr.total}</button>`);
       }
       const files = atts.get(t.id)?.length;
-      if (files) out.push(`<span class="chip" title="Attachments">📎 ${files}</span>`);
+      if (files) out.push(`<button type="button" class="chip" data-att-view="${t.id}" title="Attached files: press to look">📎 ${files}</button>`);
       for (const cid of t.contact_ids || []) {
         const c = people.contacts.find(x => x.id === cid);
         if (c) out.push(`<a class="chip" href="#/contacts/c/${c.id}" title="Contact">👤 ${esc(c.name || '?')}</a>`);
@@ -156,7 +156,7 @@ export default {
       const note = t.notes && open !== t.id ? noteHtml(t) : ''; // the open panel already shows the whole note
       // Expanded spacing: photos attached show as small pictures too.
       const photos = open !== t.id ? (atts.get(t.id) || []).filter(a => a.kind === 'image' && a.thumb) : [];
-      const pics = photos.length ? `<span class="loose-only task-pics">${photos.slice(0, 4).map(a => `<img src="${a.thumb}" alt="" loading="lazy">`).join('')}</span>` : '';
+      const pics = photos.length ? `<span class="loose-only task-pics">${photos.slice(0, 4).map(a => `<button type="button" data-att-open="${a.id}" title="${esc(a.name)}" aria-label="Look at ${esc(a.name)}"><img src="${a.thumb}" alt="" loading="lazy"></button>`).join('')}</span>` : '';
       const c = chips(t);
       return pills || c || note || pics ? `<div class="item-sub">${pills}${c ? `<span class="chips">${c}</span>` : ''}${note}${pics}</div>` : '';
     }

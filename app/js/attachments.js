@@ -7,6 +7,7 @@
 //   addFiles({ collection, id }, files) → the new records (other kinds of file are skipped)
 //   enableDrop(root, selector, parentOf, done) → drop files onto matching elements
 //   onClick(ev, parentOf, done)        → handles the row's buttons; true if it did
+//   open(id) / view(atts, i)           → the viewer: pictures, and a card with Open for other files
 //   pick(parent, done)                 → the file chooser, then attach
 //
 // Rows are plain HTML, so a view just re-renders in `done()`.
@@ -100,38 +101,135 @@ export function rowHtml(atts = [], { addButton = true } = {}) {
   return `<div class="att-row">${items}${add}</div>`;
 }
 
-// Tight view: just a count.
-export const countChip = atts => (atts?.length ? `<span class="chip att-count" title="${atts.length} attached">${icon('i-clip')} ${atts.length}</span>` : '');
+// Tight view: just a count, which opens the viewer.
+export const countChip = atts => (atts?.length ? `<button type="button" class="chip att-count" data-att-view="${atts[0].parent_id}" title="${atts.length} attached: press to look" aria-label="Open ${atts.length} attached ${atts.length === 1 ? 'file' : 'files'}">${icon('i-clip')} ${atts.length}</button>` : '');
 
-async function openFile(a) {
+// The file itself: on this device, or fetched from the sync server.
+async function blobOf(a) {
   let blob = await store.getBlob(a.blob_id);
   if (!blob) {
     // Added on another device: fetch it from the sync server.
     try {
       const sync = await import('./sync.js');
-      if (sync.signedIn()) { toast('Fetching the file…'); blob = await sync.downloadFile(a); }
-    } catch { /* offline: falls through to the message */ }
+      if (sync.signedIn()) blob = await sync.downloadFile(a);
+    } catch { /* offline: falls through to null */ }
   }
-  if (!blob) { toast("That file isn't on this device yet (open Sift there and let it sync)"); return; }
-  const url = URL.createObjectURL(blob.type ? blob : new Blob([blob], { type: a.mime }));
-  if (a.kind === 'image') return showPicture(url, a.name);
-  window.open(url, '_blank', 'noopener');
-  setTimeout(() => URL.revokeObjectURL(url), 5 * 60 * 1000);
+  return blob ? (blob.type ? blob : new Blob([blob], { type: a.mime })) : null;
 }
 
-// A picture opens over the page, full size to fit; a click, tap or Esc closes it.
-function showPicture(url, name) {
+// A note's files, in the order they were added.
+const siblingsOf = async a => (await store.list('attachments', { filter: x => x.parent_id === a.parent_id }))
+  .sort((x, y) => x.created_at.localeCompare(y.created_at));
+
+// Opens the viewer on one file, with the rest of its note's files either side.
+export async function open(id) {
+  const a = await store.get('attachments', id);
+  if (!a) return;
+  const all = await siblingsOf(a);
+  view(all, Math.max(0, all.findIndex(x => x.id === a.id)));
+}
+
+// Opens the viewer on a note's first file (the 📎 count in Compact spacing).
+export async function openFirst(parentId) {
+  const all = await siblingsOf({ parent_id: parentId });
+  if (all.length) view(all, 0);
+}
+
+const svg = d => `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+const DOC_ICON = '<svg class="av-doc-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M12 4h17l9 9v31H12z"/><path d="M29 4v9h9"/><path d="M18 22h14M18 28h14M18 34h9"/></svg>';
+
+// The viewer: a picture full size to fit the screen, or for other files a
+// document card with Open. ← / → (the side arrows, or a swipe) move through the
+// note's files, stopping at the first and last; Esc, ✕ or a click on the dark
+// background closes it.
+export function view(atts, start = 0) {
+  if (!atts?.length) return;
   const dlg = document.createElement('dialog');
   dlg.className = 'att-view';
-  dlg.innerHTML = `<img alt=""><p class="att-view-name"></p>`;
-  dlg.querySelector('img').src = url;
-  dlg.querySelector('img').alt = name;
-  dlg.querySelector('.att-view-name').textContent = name;
-  const gone = () => { dlg.remove(); URL.revokeObjectURL(url); };
-  dlg.addEventListener('click', () => { dlg.close(); gone(); });
-  dlg.addEventListener('close', gone);
+  dlg.setAttribute('aria-label', 'Attached files');
+  dlg.innerHTML = `<div class="av-stage"></div>
+    <p class="av-name" aria-live="polite"></p>
+    <button type="button" class="av-btn av-close" aria-label="Close" title="Close (Esc)">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button>
+    <button type="button" class="av-btn av-arrow av-prev" aria-label="Previous file" title="Previous (←)">${svg('<path d="M14.5 6l-6 6 6 6"/>')}</button>
+    <button type="button" class="av-btn av-arrow av-next" aria-label="Next file" title="Next (→)">${svg('<path d="M9.5 6l6 6-6 6"/>')}</button>`;
+  const stage = dlg.querySelector('.av-stage');
+  const urls = new Map();
+  let at = -1;
+  const urlOf = a => {
+    if (!urls.has(a.id)) urls.set(a.id, blobOf(a).then(b => (b ? URL.createObjectURL(b) : null)));
+    return urls.get(a.id);
+  };
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  async function show(i, dir = 0) {
+    if (i < 0 || i >= atts.length || i === at) return;
+    at = i;
+    const a = atts[i];
+    dlg.querySelector('.av-prev').hidden = i === 0;
+    dlg.querySelector('.av-next').hidden = i === atts.length - 1;
+    dlg.querySelector('.av-name').textContent = `${a.name}${atts.length > 1 ? ` · ${i + 1} of ${atts.length}` : ''}`;
+    const slide = document.createElement('div');
+    slide.className = 'av-slide';
+    if (a.kind === 'image') {
+      slide.innerHTML = a.thumb ? `<img alt="" src="${a.thumb}">` : '<img alt="">';
+      slide.querySelector('img').alt = a.name;
+    } else {
+      slide.innerHTML = `<div class="av-doc">${DOC_ICON}<div class="av-doc-name"></div><div class="av-doc-size">${a.kind === 'pdf' ? 'PDF' : 'Text file'} · ${sizeLabel(a.size)}</div><button type="button" class="av-open">Open</button></div>`;
+      slide.querySelector('.av-doc-name').textContent = a.name;
+    }
+    const old = [...stage.children];
+    stage.append(slide);
+    if (dir && !still) {
+      slide.animate([{ transform: `translateX(${dir * 60}px)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 220, easing: 'ease-out' });
+      for (const o of old) o.animate([{ transform: 'none', opacity: 1 }, { transform: `translateX(${-dir * 60}px)`, opacity: 0 }], { duration: 180, easing: 'ease-in', fill: 'forwards' }).onfinish = () => o.remove();
+    } else old.forEach(o => o.remove());
+    const url = await urlOf(a);
+    if (at !== i) return;
+    if (!url) {
+      slide.insertAdjacentHTML('beforeend', `<p class="av-missing">This file isn't on this device yet: open Sift where it was added and let it sync.</p>`);
+      slide.querySelector('.av-open')?.setAttribute('disabled', '');
+      return;
+    }
+    if (a.kind === 'image') slide.querySelector('img').src = url;
+  }
+
+  const close = () => dlg.close();
+  dlg.addEventListener('close', () => {
+    dlg.remove();
+    // Give a file opened in a new page time to load before letting it go.
+    setTimeout(() => { for (const p of urls.values()) p.then(u => u && URL.revokeObjectURL(u)); }, 5 * 60 * 1000);
+  });
+  dlg.addEventListener('click', async ev => {
+    if (ev.target.closest('.av-close')) return close();
+    if (ev.target.closest('.av-prev')) return show(at - 1, -1);
+    if (ev.target.closest('.av-next')) return show(at + 1, 1);
+    if (ev.target.closest('.av-open')) {
+      // PDFs and text open in a new page; anything the browser can't show, it
+      // downloads (or, on an iPhone, offers to open in another app).
+      const url = await urlOf(atts[at]);
+      if (url) window.open(url, '_blank', 'noopener');
+      return;
+    }
+    // The dark background (anything but the picture, the card or a button) closes.
+    if (!ev.target.closest('.av-slide img, .av-doc, .av-btn')) close();
+  });
+  dlg.addEventListener('keydown', ev => {
+    if (ev.key === 'ArrowLeft') { ev.preventDefault(); show(at - 1, -1); }
+    else if (ev.key === 'ArrowRight') { ev.preventDefault(); show(at + 1, 1); }
+  });
+  // A sideways swipe on a phone moves too.
+  let x0 = null;
+  stage.addEventListener('pointerdown', ev => { x0 = ev.clientX; });
+  stage.addEventListener('pointerup', ev => {
+    if (x0 === null) return;
+    const dx = ev.clientX - x0;
+    x0 = null;
+    if (Math.abs(dx) > 50) show(at + (dx < 0 ? 1 : -1), dx < 0 ? 1 : -1);
+  });
   document.body.append(dlg);
   dlg.showModal();
+  dlg.querySelector('.av-close').focus();
+  show(start);
 }
 
 function afterAdd(made, done) {
@@ -159,15 +257,16 @@ export function pick(parent, done) {
 
 // `parentOf(button)` says which note the row belongs to (for Attach).
 export function onClick(ev, parentOf, done) {
-  const b = ev.target.closest('[data-att-open], [data-att-remove], [data-att-add]');
+  const b = ev.target.closest('[data-att-open], [data-att-remove], [data-att-add], [data-att-view]');
   if (!b) return false;
   ev.preventDefault();
   ev.stopPropagation();
   if (b.dataset.attAdd !== undefined) { const p = parentOf(b); if (p) pick(p, done); return true; }
+  if (b.dataset.attView) { openFirst(b.dataset.attView); return true; }
   const id = b.dataset.attOpen || b.dataset.attRemove;
+  if (b.dataset.attOpen) { open(id); return true; }
   store.get('attachments', id).then(async a => {
     if (!a) return;
-    if (b.dataset.attOpen) return openFile(a);
     await store.remove('attachments', a.id);
     done?.();
     undoable(`Removed ${a.name}`, async () => { await store.restore('attachments', a.id); done?.(); });
@@ -182,7 +281,7 @@ export function enableDrop(root, selector, parentOf, done) {
   root.addEventListener('attached', () => done?.());
   // Pressing a file (to open or remove it) while writing in the note doesn't
   // take the cursor out of the note, so the note stays open.
-  root.addEventListener('mousedown', ev => { if (ev.target.closest('.att-open, .att-x')) ev.preventDefault(); });
+  root.addEventListener('mousedown', ev => { if (ev.target.closest('.att-open, .att-x, .att-count, [data-att-open]')) ev.preventDefault(); });
   const hasFiles = ev => [...(ev.dataTransfer?.types || [])].includes('Files');
   let over = null;
   const clear = () => { over?.classList.remove('drop-over'); over = null; };

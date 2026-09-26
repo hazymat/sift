@@ -197,7 +197,8 @@ export default {
     // cancels). Clicks on the box's own toolbar don't count as leaving.
     el.addEventListener('focusout', async ev => {
       const box = ev.target.closest?.('[data-note-for]');
-      if (!box || box.contains(ev.relatedTarget) || !box._editor) return;
+      // (Looking at an attached file: still writing in the note.)
+      if (!box || box.contains(ev.relatedTarget) || !box._editor || ev.relatedTarget?.closest?.('dialog.att-view')) return;
       const id = box.dataset.noteFor;
       const staying = ev.relatedTarget?.closest?.(`.item-details[data-for="${id}"], [data-item="${id}"]`);
       await leaveNoteBox(box, { redraw: !staying });

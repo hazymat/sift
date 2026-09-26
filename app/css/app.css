@@ -2033,7 +2033,8 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 .att-add .icon { width: 1.1em; height: 1.1em; }
 .att-count { display: none; }
 #main[data-density="tight"] .att-count { display: inline-flex; gap: 3px; align-items: center; }
-#main[data-density="tight"] .thought .att-row { display: none; }
+#main[data-density="tight"] .thought:not(.zoomed) .att-row { display: none; }
+button.att-count { font: inherit; font-size: inherit; padding: 1px 8px; }
 .drop-over { outline: 2px dashed var(--active-border, currentColor); outline-offset: 2px; }
 .thought-actions .icon { width: 1.05em; height: 1.05em; vertical-align: -.15em; }
 .save-state { font-size: .78rem; color: var(--muted, inherit); opacity: .85; margin: 2px 4px; min-height: 1.1em; }
@@ -2990,6 +2991,7 @@ a.comment-mark:hover { color: var(--text); }
 .loose-only { display: none; }
 #main[data-density="loose"] .loose-only { display: inline; }
 #main[data-density="loose"] .task-pics { display: flex; gap: 6px; flex-basis: 100%; margin-top: 4px; }
+.task-pics button { padding: 0; border: 0; background: none; box-shadow: none; border-radius: 8px; line-height: 0; cursor: zoom-in; }
 .task-pics img { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; border: 1px solid var(--glass-border); }
 .task-list > li[data-task] > .item-sub .chip:not(a):not(.kids), .task-list .pill-act { cursor: pointer; }
 
@@ -3153,10 +3155,30 @@ a.comment-mark:hover { color: var(--text); }
 .task-list .item-sub .note-in-place { flex-basis: 100%; margin: 4px 0 2px; }
 .task-list > li > .tree { display: contents; }
 /* A picture opened from a note's files. */
-dialog.att-view { border: 0; padding: 0; background: transparent; max-width: 96vw; max-height: 96vh; cursor: zoom-out; text-align: center; }
-dialog.att-view::backdrop { background: rgb(0 0 0 / .8); }
-dialog.att-view img { display: block; max-width: 96vw; max-height: calc(96vh - 2.5em); object-fit: contain; border-radius: 8px; margin: 0 auto; }
-dialog.att-view .att-view-name { color: #fff; margin: 8px 0 0; font-size: .9rem; }
+/* The attachment viewer (attachments.js): always on a dark background, so its
+   glass buttons are drawn light on dark whatever the theme. */
+dialog.att-view { border: 0; padding: 0; margin: 0; width: 100vw; height: 100dvh; max-width: none; max-height: none; background: transparent; color: #fff; overflow: hidden; }
+dialog.att-view::backdrop { background: rgb(0 0 0 / .82); }
+.av-stage { position: absolute; inset: calc(56px + env(safe-area-inset-top)) 16px calc(52px + env(safe-area-inset-bottom)); display: grid; place-items: center; touch-action: pan-y; }
+.av-slide { grid-area: 1 / 1; display: grid; place-items: center; width: 100%; height: 100%; min-height: 0; }
+.av-slide img { display: block; max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; }
+.av-name { position: absolute; left: 16px; right: 16px; bottom: calc(14px + env(safe-area-inset-bottom)); margin: 0; text-align: center; font-size: .9rem; opacity: .85; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.av-btn { position: absolute; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border-radius: 50%; color: #fff; background: rgb(255 255 255 / .14); border: 1px solid rgb(255 255 255 / .28); box-shadow: inset 0 1px 0 rgb(255 255 255 / .25), 0 4px 18px rgb(0 0 0 / .35); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); z-index: 1; }
+.av-btn:hover:not(:disabled) { background: rgb(255 255 255 / .24); }
+.av-btn[hidden] { display: none; }
+.av-btn .icon { width: 22px; height: 22px; stroke-width: 2; }
+.av-close { top: calc(8px + env(safe-area-inset-top)); right: 12px; }
+.av-arrow { top: 50%; transform: translateY(-50%); }
+.av-prev { left: 12px; }
+.av-next { right: 12px; }
+.av-doc { display: grid; justify-items: center; gap: 8px; padding: 28px 32px; max-width: min(360px, 86vw); border-radius: 22px; background: rgb(255 255 255 / .1); border: 1px solid rgb(255 255 255 / .22); text-align: center; }
+.av-doc-icon { width: 72px; height: 72px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; opacity: .9; }
+.av-doc-name { font-size: 1rem; overflow-wrap: anywhere; }
+.av-doc-size { font-size: .82rem; opacity: .7; }
+.av-open { margin-top: 6px; padding: 8px 26px; color: #fff; background: rgb(255 255 255 / .18); border: 1px solid rgb(255 255 255 / .32); }
+.av-open:hover:not(:disabled) { background: rgb(255 255 255 / .28); }
+.av-missing { max-width: 30ch; text-align: center; font-size: .85rem; opacity: .8; }
+@media (max-width: 560px) { .av-arrow { top: auto; bottom: calc(4px + env(safe-area-inset-bottom)); transform: none; } .av-stage { bottom: calc(60px + env(safe-area-inset-bottom)); } .av-name { left: 64px; right: 64px; } }
 /* A task ticked off a list: crossed out, fades while its message shows, then
    the rows below slide up (tickAway in views/tasks.js). */
 .task-list > li.ticked-away { transition: opacity var(--fade, 6s) linear; }

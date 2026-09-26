@@ -644,8 +644,8 @@ export default {
     // Editing a thought saves when you leave it (Esc cancels, Ctrl+Enter saves).
     list.addEventListener('focusout', async ev => {
       const box = ev.target.closest?.('.thought-edit');
-      // (Into the Plan it pop-up: still writing in the note.)
-      if (!box?._editor || box.contains(ev.relatedTarget) || ev.relatedTarget?.closest?.('.thought-pop')) return;
+      // (Into the Plan it pop-up or the file viewer: still writing in the note.)
+      if (!box?._editor || box.contains(ev.relatedTarget) || ev.relatedTarget?.closest?.('.thought-pop, dialog.att-view')) return;
       const t = thoughts.find(x => x.id === box.dataset.thought);
       const orig = box._orig ?? t.body;
       const body = box.dataset.cancel ? orig : box._editor.value.trim();

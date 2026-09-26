@@ -1,9 +1,10 @@
 """Serve app/ on http://localhost:5173 with caching disabled.
 
-    python tools/devserver.py [port]
+    python tools/devserver.py [port]      (or the PORT environment variable)
 """
 import functools
 import http.server
+import os
 import pathlib
 import sys
 
@@ -21,7 +22,7 @@ class NoCacheHandler(http.server.SimpleHTTPRequestHandler):
 
 
 if __name__ == '__main__':
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else 5173
+    port = int(sys.argv[1] if len(sys.argv) > 1 else os.environ.get('PORT', 5173))
     root = pathlib.Path(__file__).resolve().parent.parent / 'app'
     handler = functools.partial(NoCacheHandler, directory=str(root))
     print(f'Serving {root} at http://localhost:{port}')
