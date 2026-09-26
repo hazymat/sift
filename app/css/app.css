@@ -3370,3 +3370,7 @@ dialog.att-view::backdrop { background: rgb(0 0 0 / .82); }
 .check-label input { width: auto !important; }
 .contract-year { margin: 8px 0 0; font-size: .85rem; }
 .contract-page .detail-rows { margin: 0 0 6px; }
+/* ID scans stay blurred until tapped (spec 3.2). */
+.scan-card.is-id .scan-thumb img, .scan-pages.is-id .att img { filter: blur(14px) saturate(.6); }
+.scan-card.is-id .scan-thumb::after { content: 'ID'; position: absolute; inset: auto auto 6px 6px; padding: 1px 8px; border-radius: 999px; font-size: .72rem; background: color-mix(in srgb, #000 55%, transparent); color: #fff; }
+.scan-pages .panel-h .linklike { margin-left: 8px; font-size: .8rem; padding: 0; }

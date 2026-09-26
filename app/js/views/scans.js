@@ -2,7 +2,8 @@
 // Scan takes a photo on a phone (or picks files on a laptop) and saves it at
 // once as "Receipt 26 Sep 14:32"; the scan then opens so its kind, dates and
 // note can be filled in, or not. Photos and PDFs dropped on the page become
-// scans too (on a scan's page, more pages of it).
+// scans too (on a scan's page, more pages of it). IDs (passport, licence) are
+// shown blurred until you tap them, for anyone looking over your shoulder.
 
 import * as store from '../store.js';
 import { cogHtml } from '../viewcog.js';
@@ -31,6 +32,7 @@ export default {
     let pages = new Map();
     let noteEditor = null;
     let noteTimer;
+    const revealed = new Set(); // ID scans shown unblurred on this visit
     const gone = this.gone = new AbortController();
 
     el.innerHTML = '<div class="scans"></div><input type="file" class="scan-input" hidden multiple>';
@@ -47,7 +49,7 @@ export default {
       const soon = expirySoon(s);
       const thumb = first?.thumb ? `<img src="${first.thumb}" alt="" loading="lazy">` : DOC;
       return `
-        <a class="scan-card" href="#/scans/${s.id}" data-id="${s.id}">
+        <a class="scan-card${s.kind === 'id' ? ' is-id' : ''}" href="#/scans/${s.id}" data-id="${s.id}">
           <span class="scan-thumb">${thumb}${p.length > 1 ? `<span class="scan-count">${p.length} pages</span>` : ''}</span>
           <span class="scan-title">${esc(s.title || 'Untitled')}</span>
           <span class="scan-meta"><span class="chip">${esc(kindLabel(s.kind))}</span><span class="muted">${niceDate(s.letter_date || s.created_at)}</span>${s.expiry_date ? `<span class="chip${soon ? ` expiry-${soon}` : ''}" title="Expiry date">${soon === 'past' ? 'expired' : 'expires'} ${niceDate(s.expiry_date)}</span>` : ''}</span>
@@ -92,7 +94,7 @@ export default {
           <div class="panel-sec"><span class="panel-h">Kind</span>
             <div class="energy-pick scan-kind-pick" role="group" aria-label="Kind">${KINDS.map(k => `<button type="button" data-set-kind="${k.id}" aria-pressed="${s.kind === k.id}">${k.label}</button>`).join('')}</div>
           </div>
-          <div class="panel-sec scan-pages"><span class="panel-h">Pages</span>
+          <div class="panel-sec scan-pages${s.kind === 'id' && !revealed.has(s.id) ? ' is-id' : ''}"><span class="panel-h">Pages${s.kind === 'id' ? (revealed.has(s.id) ? '' : ' <button type="button" class="linklike" data-act="reveal">Show</button>') : ''}</span>
             ${att.rowHtml(p, { addButton: false }).replace('</div>', `<button type="button" class="att-add" data-act="add-page">${icon('i-plus')}<span>Page</span></button></div>`)}
           </div>
           <div class="panel-sec"><span class="panel-h">Details</span>
@@ -210,6 +212,8 @@ export default {
     });
 
     root.addEventListener('click', async ev => {
+      // A blurred ID: the first tap shows it, rather than opening it.
+      if (ev.target.closest('.scan-pages.is-id [data-att-open]')) { ev.preventDefault(); ev.stopPropagation(); revealed.add(state.id); render(); return; }
       if (att.onClick(ev, () => (state.id ? { collection: 'scans', id: state.id } : null), () => render())) return;
       const kindBtn = ev.target.closest('[data-kind]');
       if (kindBtn) { state.kind = kindBtn.dataset.kind; render(); return; }
@@ -231,6 +235,7 @@ export default {
       if (act === 'home') { location.hash = '#/scans'; return; }
       if (!s) return;
       if (act === 'add-page') return pick(s);
+      if (act === 'reveal') { revealed.add(s.id); return render(); }
       if (act === 'open-linked') return openRef(`${s.linked.collection}/${s.linked.id}`);
       if (act === 'unlink') return change(s.id, { linked: null }, 'Taken off');
       if (act === 'file-with') {
