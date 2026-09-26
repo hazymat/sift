@@ -481,7 +481,8 @@ export default {
       };
       const defaultList = () => (LISTS.includes(state.view) ? state.view : 'inbox');
       field('horizon').value = defaultList();
-      entry.addEventListener('change', ev => { const n = ev.target.dataset?.entry; if (n) paint(n); });
+      // (A date picker may report its date as "input" rather than "change": both show it.)
+      for (const type of ['change', 'input']) entry.addEventListener(type, ev => { const n = ev.target.dataset?.entry; if (n) paint(n); });
       chipOf('energy').addEventListener('click', ev => {
         energyMenu(ev.currentTarget, field('energy').value || null, v => { field('energy').value = v || ''; paint('energy'); ta.focus(); });
       });
