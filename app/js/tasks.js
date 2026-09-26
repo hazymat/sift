@@ -85,6 +85,35 @@ export function doneFields(done) {
   return done ? { done_at: new Date().toISOString(), status: 'done' } : { done_at: null, status: 'todo' };
 }
 
+// Plan for day puts the task on that day in the Day Planner: its copy there
+// moves with the date, and goes when the date is removed (unless it's been
+// ticked, which is kept as a record). Returns an undo.
+//   planDay(task, date)   date = 'YYYY-MM-DD' or null
+export async function planDay(task, date) {
+  const { addItem } = await import('./days.js');
+  const before = task.start_date || null;
+  const copies = await store.list('day_items', { filter: i => i.task_id === task.id && !i.archived_at });
+  const onOld = before && copies.find(i => i.date === before && !i.done_at);
+  const onNew = date && copies.find(i => i.date === date);
+  await store.update('tasks', task.id, { start_date: date });
+  let made = null;
+  let moved = null;
+  let removed = null;
+  if (date && !onNew) {
+    if (onOld) { moved = onOld; await store.update('day_items', onOld.id, { date, time: null, end_time: null }); }
+    else made = await addItem(date, { title: task.title, task_id: task.id, estimate_min: task.estimate_min ?? null, energy: task.energy ?? null, notes: task.notes || '', contact_ids: task.contact_ids || [], case_id: task.case_id || null });
+  } else if (!date && onOld) {
+    removed = onOld;
+    await store.remove('day_items', onOld.id);
+  }
+  return async () => {
+    await store.update('tasks', task.id, { start_date: before });
+    if (made) await store.remove('day_items', made.id);
+    if (moved) await store.update('day_items', moved.id, { date: moved.date, time: moved.time ?? null, end_time: moved.end_time ?? null });
+    if (removed) await store.restore('day_items', removed.id);
+  };
+}
+
 // What Day Planner shows for a date.
 export function forDay(tasks, date) {
   const planned = tasks.filter(t => t.start_date === date && (!aimDate(t) || aimDate(t) <= date));

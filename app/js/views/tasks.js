@@ -6,7 +6,7 @@
 import { keepDraft, draftCleared } from '../drafts.js';
 import { cogHtml } from '../viewcog.js';
 import * as store from '../store.js';
-import { loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES, HORIZONS, horizonOf } from '../tasks.js';
+import { loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES, HORIZONS, horizonOf, planDay } from '../tasks.js';
 import { ENERGY, isoDate, addDays, parseDate, addItem, durationChoices, durationLabel } from '../days.js';
 import { pillMenu, energyMenu } from '../pillmenu.js';
 import { summarise } from '../summary.js';
@@ -189,7 +189,8 @@ export default {
         <div class="detail-grid">
           <label>List<select name="horizon">${HORIZONS.map(x => `<option value="${x.id}" ${horizonOf(t) === x.id ? 'selected' : ''}>${x.label}</option>`).join('')}</select></label>
           <label>Estimated time<select name="estimate_min"><option value="">Not estimated</option>${durationChoices(480).map(m => `<option value="${m}" ${Number(t.estimate_min) === m ? 'selected' : ''}>${durationLabel(m)}</option>`).join('')}</select></label>
-          <label>Plan for day<input type="date" name="start_date" value="${t.start_date || ''}"></label>
+          <label>Plan for day<input type="date" name="start_date" value="${t.start_date || ''}">
+            <span class="date-quick">${t.start_date !== isoDate() ? '<button type="button" class="linklike" data-act="plan-today">Add to today</button>' : ''}${t.start_date ? '<button type="button" class="linklike" data-act="plan-clear">Remove date</button>' : ''}</span></label>
           <label>Target end date<input type="date" name="aim_date" value="${aim}"></label>
           ${aim && showTime ? `<label>…at<input type="time" name="aim_time" value="${aimTime}"></label>` : ''}
           ${aim && !showTime ? `<button type="button" class="linklike" data-act="aim-time">+ add a time</button>` : ''}
@@ -208,7 +209,6 @@ export default {
         </details>
         <div class="detail-actions">
           <button type="button" class="close-details" data-act="close-details" title="Close (or click anywhere outside, or Esc)">Close</button>
-          <button type="button" data-act="plan-today">Put on today's plan</button>
           <button type="button" data-act="add-sub">+ Sub-task</button>
           <span class="spacer"></span>
           <button type="button" data-act="archive">Archive</button>
@@ -401,6 +401,15 @@ export default {
       }
     };
 
+    // Plan for day: the task goes on that day in the Day Planner (tasks.js planDay).
+    async function setPlanDay(task, date) {
+      if ((task.start_date || null) === (date || null)) return;
+      const undo = await planDay(task, date);
+      await render();
+      const day = d => (d === isoDate() ? 'today' : shortDate(d));
+      undoable(date ? `${task.start_date ? 'Moved to' : 'On the Day Planner for'} ${day(date)}` : 'Taken off the Day Planner', async () => { await undo(); await render(); });
+    }
+
     // ---------- adding ----------
 
     let lastTop = null; // the last top-level task added here ("- " lines go under it)
@@ -414,7 +423,8 @@ export default {
         const { title, notes } = summarise(line.text);
         if (notes) shortened++;
         const note = [notes, extras.note].filter(Boolean).join('\n');
-        const t = await addTask({ ...base, title, notes: note, parent_task_id: line.sub && parent ? parent : null });
+        const t = await addTask({ ...base, title, notes: note, parent_task_id: line.sub && parent ? parent : null, start_date: null });
+        if (base.start_date) await planDay(t, base.start_date);
         made.push(t.id);
         if (!line.sub) { parent = t.id; lastTop = t.id; }
       }
@@ -575,9 +585,9 @@ export default {
     }
     const taskActions = [
       { id: 'done', label: 'Done', run: ids => batchSet(ids, doneFields(true), 'Done:') },
-      { id: 'now', label: 'Now', run: ids => batchSet(ids, { horizon: 'now' }, 'Now:') },
-      { id: 'next', label: 'Next', run: ids => batchSet(ids, { horizon: 'next' }, 'Next:') },
-      { id: 'later', label: 'Later', run: ids => batchSet(ids, { horizon: 'later' }, 'Later:') },
+      { id: 'now', label: 'Now', run: ids => batchSet(ids, { horizon: 'now' }, 'Transferred to Now:') },
+      { id: 'next', label: 'Next', run: ids => batchSet(ids, { horizon: 'next' }, 'Transferred to Next:') },
+      { id: 'later', label: 'Later', run: ids => batchSet(ids, { horizon: 'later' }, 'Transferred to Later:') },
       { id: 'archive', label: 'Archive', run: ids => batchSet(ids, { archived_at: new Date().toISOString() }, 'Archived', { subs: true }) },
       { id: 'delete', label: 'Delete', danger: true, run: ids => batchSet(ids, { deleted_at: new Date().toISOString() }, 'Deleted', { subs: true }) },
     ];
@@ -653,6 +663,8 @@ export default {
         if (!name?.trim()) { render(); return; }
         const m = await store.create('milestones', { project_id: task.project_id, name: name.trim(), due_date: null, done_at: null, sort_order: data.milestones.length });
         await change(id, { milestone_id: m.id });
+      } else if (t.name === 'start_date') {
+        await setPlanDay(task, t.value || null);
       } else if (t.name) {
         let value = t.value || null;
         if (t.name === 'priority') value = Number(t.value);
@@ -660,7 +672,7 @@ export default {
         const fields = { [t.name]: value };
         if (t.name === 'status') Object.assign(fields, value === 'done' ? doneFields(true) : { done_at: null });
         if (t.name === 'project_id') fields.milestone_id = null;
-        await change(id, fields, t.name === 'start_date' && value ? `Planned for ${shortDate(value)}` : t.name === 'horizon' ? `In ${HORIZONS.find(x => x.id === value)?.label || value}` : 'Saved');
+        await change(id, fields, t.name === 'start_date' && value ? `Planned for ${shortDate(value)}` : t.name === 'horizon' ? `Transferred to ${HORIZONS.find(x => x.id === value)?.label || value}` : 'Saved');
       }
     });
 
@@ -685,12 +697,12 @@ export default {
         return;
       }
       if (b.dataset.horizon && id) {
-        await change(id, { horizon: b.dataset.horizon }, `For ${b.dataset.horizon}`);
+        await change(id, { horizon: b.dataset.horizon }, `Transferred to ${HORIZONS.find(x => x.id === b.dataset.horizon)?.label || b.dataset.horizon}`);
         return;
       }
       if (act === 'horizon-pill' && id) {
         pillMenu(b, HORIZONS.map(x => ({ value: x.id, label: x.label, current: horizonOf(task) === x.id })),
-          v => change(id, { horizon: v }, `For ${v}`));
+          v => change(id, { horizon: v }, `Transferred to ${HORIZONS.find(x => x.id === v)?.label || v}`));
         return;
       }
       if (act === 'energy-pill' && id) {
@@ -734,15 +746,8 @@ export default {
         input?.focus();
         input?.select();
         undoable('Added a sub-task', async () => { await store.remove('tasks', sub.id); await render(); });
-      } else if (act === 'plan-today' && task) {
-        const made = await addItem(isoDate(), { title: task.title, task_id: task.id, estimate_min: task.estimate_min ?? null, energy: task.energy ?? null, notes: task.notes || '', contact_ids: task.contact_ids || [], case_id: task.case_id || null });
-        if (!task.start_date) await store.update('tasks', task.id, { start_date: isoDate() });
-        await render();
-        undoable(`On today's plan: ${task.title}`, async () => {
-          await store.remove('day_items', made.id);
-          if (!task.start_date) await store.update('tasks', task.id, { start_date: null });
-          await render();
-        });
+      } else if ((act === 'plan-today' || act === 'plan-clear') && task) {
+        await setPlanDay(task, act === 'plan-today' ? isoDate() : null);
       } else if ((act === 'delete' || act === 'archive') && task) {
         await retire(task, act);
       }
@@ -802,8 +807,9 @@ export default {
           energyMenu(body.querySelector('.edit-pills [data-pill-act="energy"]'), t.energy, v => change(id, { energy: v }, v ? 'Energy saved' : 'Energy cleared'));
           return;
         }
+        if (name === 'start_date') return setPlanDay(t, value || null);
         const v = name === 'estimate_min' ? (value ? Number(value) : null) : value || null;
-        await change(id, { [name]: v }, name === 'start_date' && v ? `Planned for ${shortDate(v)}` : name === 'horizon' ? `In ${HORIZONS.find(x => x.id === v)?.label || v}` : 'Saved');
+        await change(id, { [name]: v }, name === 'start_date' && v ? `Planned for ${shortDate(v)}` : name === 'horizon' ? `Transferred to ${HORIZONS.find(x => x.id === v)?.label || v}` : 'Saved');
       },
     });
 
