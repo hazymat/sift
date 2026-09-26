@@ -3222,3 +3222,37 @@ dialog.att-view::backdrop { background: rgb(0 0 0 / .82); }
 .task-entry-more { padding-left: calc(var(--entry-x, 54px) + var(--ind, 0px)) !important; }
 /* An open task's panel: the ruled line of the row above doesn't run along its top edge. */
 .task-list > li[data-task]:has(+ li[data-task] + li.task-details)::after { display: none; }
+
+/* Item panels (217): grouped into sections (a heading and a light box each),
+   More as a bar that is plainly a control, and the actions in a shaded footer
+   running to the panel's edges. Each kind of panel gives its padding in --pp-*
+   so the footer can reach the edges. */
+.task-details { --pp-r: 12px; --pp-b: 12px; --pp-l: 12px; padding: 12px var(--pp-r) var(--pp-b) var(--pp-l); }
+#lines .line.has-item + .item-details, .pile-paper .line.has-item + .item-details { --pp-r: 12px; --pp-b: 12px; --pp-l: 12px; padding: 10px var(--pp-r) var(--pp-b) var(--pp-l); }
+.item-list li.thing-panel { --pp-r: 14px; --pp-b: 14px; --pp-l: 36px; padding: 6px var(--pp-r) var(--pp-b) var(--pp-l); }
+@media (max-width: 560px) {
+  .task-details { --pp-r: 10px; --pp-b: 10px; --pp-l: 10px; }
+  .item-list li.thing-panel { --pp-l: 14px; }
+}
+.panel-sec, .task-details .comments, .item-details .comments { margin: 0 0 10px; padding: 9px 12px 10px; border-radius: 12px; background: color-mix(in srgb, var(--text) 3.5%, transparent); border: 1px solid color-mix(in srgb, var(--text) 8%, transparent); }
+.panel-h { display: block; margin: 0 0 8px; font-size: .8rem; font-weight: 600; letter-spacing: .01em; color: var(--muted); }
+.panel-sec > :last-child { margin-bottom: 0; }
+.detail-sec .energy-pick { margin-bottom: 10px; }
+.item-details .detail-sec .energy-pick { margin: 10px 0 0; }
+.item-details > .panel-sec, .item-details .comments { margin-bottom: 0; }
+.item-details .detail-sec .detail-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin: 0; }
+.task-details .comments .comment-list, .item-details .comments .comment-list { margin-top: -2px; }
+.label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; min-width: 0; }
+.label-row .date-quick { margin: 0; gap: 8px; flex: none; }
+.label-row .date-quick .linklike { font-size: .8rem; line-height: 1; }
+.date-quick .date-clear { color: var(--muted); }
+.date-quick .date-clear:hover { color: var(--text); }
+.detail-more { margin: 0 0 10px; }
+.detail-more > summary { list-style: none; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--glass); color: var(--text); font-size: .85rem; cursor: pointer; user-select: none; -webkit-user-select: none; }
+.detail-more > summary::-webkit-details-marker { display: none; }
+.detail-more > summary::before { content: ''; flex: none; width: 6px; height: 6px; margin: 0 3px 2px 1px; border-right: 1.75px solid currentColor; border-bottom: 1.75px solid currentColor; transform: rotate(-45deg); opacity: .7; transition: transform .15s; }
+.detail-more[open] > summary::before { transform: rotate(45deg); margin-bottom: 4px; }
+.detail-more > summary:hover { background: var(--glass-hover); }
+.detail-more > summary .more-what { color: var(--muted); }
+.detail-more[open] > summary { margin-bottom: 10px; }
+.task-details > .detail-actions, .item-details > .detail-actions { margin: 12px calc(-1 * var(--pp-r, 12px)) calc(-1 * var(--pp-b, 12px)) calc(-1 * var(--pp-l, 12px)); padding: 9px var(--pp-r, 12px) 9px var(--pp-l, 12px); background: color-mix(in srgb, var(--text) 6%, transparent); border-top: 1px solid color-mix(in srgb, var(--text) 9%, transparent); border-radius: 0 0 13px 13px; max-width: none; }

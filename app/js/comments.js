@@ -85,7 +85,7 @@ async function draw(box) {
   const list = await commentsFor(ownerOf(box.dataset.comments));
   const extra = await Promise.all(list.map(marks));
   const files = list.length ? await att.byParent() : new Map();
-  box.querySelector('.comment-items').innerHTML = (list.length ? `<div class="field-label">Comments</div><ol class="comment-list">${list.map((c, n) => `
+  box.querySelector('.comment-items').innerHTML = (list.length ? `<ol class="comment-list">${list.map((c, n) => `
       <li class="comment" data-comment="${c.id}">
         <span class="comment-when" title="${esc(new Date(c.at).toLocaleString('en-GB'))}">${when(c.at)}</span>
         <div class="comment-body">${toHtml(c.body)}${files.get(c.id)?.length ? att.rowHtml(files.get(c.id), { addButton: false }) : ''}${extra[n]}</div>
@@ -240,7 +240,7 @@ export async function mountComments(root, changed) {
     box._changed = changed;
     if (box._wired) continue;
     box._wired = true;
-    box.innerHTML = '<div class="comment-items"></div><textarea class="comment-add no-inline" rows="1" placeholder="Add a comment…" aria-label="Add a comment"></textarea><div class="comment-pending muted" hidden></div>';
+    box.innerHTML = '<span class="panel-h">Comments</span><div class="comment-items"></div><textarea class="comment-add no-inline" rows="1" placeholder="Add a comment…" aria-label="Add a comment"></textarea><div class="comment-pending muted" hidden></div>';
     wire(box);
     await draw(box);
   }

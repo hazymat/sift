@@ -443,6 +443,7 @@ export default {
     function details(i) {
       return `
         <div class="item-details" data-for="${i.id}">
+          <div class="panel-sec detail-sec wide"><span class="panel-h">Details</span><div class="detail-grid">
           <label>Time<input type="time" name="time" value="${i.time || ''}"></label>
           <label>Until<input type="time" name="end_time" value="${i.end_time || ''}"></label>
           <label>Estimated time<select name="estimate_min">
@@ -452,9 +453,10 @@ export default {
               .map(m => `<option value="${m}" ${Number(i.estimate_min) === m ? 'selected' : ''}>${durationLabel(m)}</option>`).join('')}
           </select></label>
           <label>Move to another day<input type="date" name="date" value="${i.date}"></label>
-          <div class="energy-pick wide" role="group" aria-label="Energy"><span>Energy</span>
-            ${ENERGY.map(e => `<button type="button" class="bolts" data-item-energy="${e.id}" aria-pressed="${i.energy === e.id}" title="${esc(`${e.label}: ${e.hint}`)}" aria-label="${e.label}">${e.bolts}</button>`).join('')}
           </div>
+          <div class="energy-pick" role="group" aria-label="Energy"><span>Energy</span>
+            ${ENERGY.map(e => `<button type="button" class="bolts" data-item-energy="${e.id}" aria-pressed="${i.energy === e.id}" title="${esc(`${e.label}: ${e.hint}`)}" aria-label="${e.label}">${e.bolts}</button>`).join('')}
+          </div></div>
           <div class="wide detail-note"><span class="field-label">Note</span><div class="detail-notes" data-note-for="${i.id}"></div></div>
           <div class="wide">${att.rowHtml(atts.get(i.id))}</div>
           <div class="wide">${commentsHtml(i.task_id ? { task_id: i.task_id } : { item_id: i.id })}</div>

@@ -189,21 +189,22 @@ export default {
         <div class="task-notes"></div>
         ${att.rowHtml(atts.get(t.id))}
         ${commentsHtml({ task_id: t.id })}
+        <div class="panel-sec detail-sec"><span class="panel-h">Details</span>
         <div class="energy-pick" role="group" aria-label="Energy"><span>Energy</span>
           ${ENERGY.map(e => `<button type="button" class="bolts" data-energy="${e.id}" aria-pressed="${t.energy === e.id}" title="${esc(`${e.label}: ${e.hint}`)}" aria-label="${e.label}">${e.bolts}</button>`).join('')}
         </div>
         <div class="detail-grid">
           <label>List<select name="horizon">${HORIZONS.map(x => `<option value="${x.id}" ${horizonOf(t) === x.id ? 'selected' : ''}>${x.label}</option>`).join('')}</select></label>
           <label>Estimated time<select name="estimate_min"><option value="">Not estimated</option>${durationChoices(480).map(m => `<option value="${m}" ${Number(t.estimate_min) === m ? 'selected' : ''}>${durationLabel(m)}</option>`).join('')}</select></label>
-          <label>Plan for day<input type="date" name="start_date" value="${t.start_date || ''}">
-            <span class="date-quick">${t.start_date !== isoDate() ? '<button type="button" class="linklike" data-act="plan-today">Add to today</button>' : ''}${t.start_date ? '<button type="button" class="linklike" data-act="plan-clear">Remove date</button>' : ''}</span></label>
+          <label><span class="label-row">Plan for day<span class="date-quick">${t.start_date !== isoDate() ? '<button type="button" class="linklike" data-act="plan-today" title="Plan it for today">Today</button>' : ''}${t.start_date ? '<button type="button" class="linklike date-clear" data-act="plan-clear" title="Remove the date" aria-label="Remove the date">✕</button>' : ''}</span></span><input type="date" name="start_date" value="${t.start_date || ''}"></label>
           <label>Target end date<input type="date" name="aim_date" value="${aim}"></label>
           <label>Repeats<select name="repeat">${REPEAT_CHOICES.map(c => `<option value="${c.id}" ${choiceOf(t.repeat) === c.id ? 'selected' : ''}>${c.id === 'custom' && choiceOf(t.repeat) === 'custom' ? repeatLabel(t.repeat) : c.label}</option>`).join('')}</select></label>
           ${aim && showTime ? `<label>…at<input type="time" name="aim_time" value="${aimTime}"></label>` : ''}
           ${aim && !showTime ? `<button type="button" class="linklike" data-act="aim-time">+ add a time</button>` : ''}
         </div>
+        </div>
         <details class="detail-more"${moreSet ? ' open' : ''}>
-          <summary>More: project, people, case, priority</summary>
+          <summary>More <span class="more-what">project, people, case, priority</span></summary>
           <div class="detail-grid">
             <label>Priority<select name="priority">${PRIORITIES.map(p => `<option value="${p.id}" ${Number(t.priority) === p.id ? 'selected' : ''}>${p.label}</option>`).join('')}</select></label>
             <label>Status<select name="status">${STATUSES.map(s => `<option value="${s.id}" ${t.status === s.id ? 'selected' : ''}>${s.label}</option>`).join('')}</select></label>
