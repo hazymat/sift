@@ -3266,3 +3266,16 @@ dialog.att-view::backdrop { background: rgb(0 0 0 / .82); }
   #main[data-density="tight"] .task-list > li[data-task] > .item-sub .chips > :not(.kids) { display: none !important; }
   #main[data-density="tight"] .task-list > li[data-task] > .item-sub:not(:has(.kids)) { display: none; }
 }
+/* Close in every item panel (220): a glassy green pill with a line-art tick,
+   like the Day Planner's "Bring in from tasks". */
+.detail-actions .close-details { display: inline-flex; align-items: center; gap: 6px; color: var(--text); border: 1px solid color-mix(in srgb, var(--energy-ink, #4caf7a) 40%, transparent); background: color-mix(in srgb, var(--energy-ink, #4caf7a) 13%, transparent); }
+.detail-actions .close-details:hover:not(:disabled), .detail-actions .close-details:focus-visible { border-color: color-mix(in srgb, var(--energy-ink, #4caf7a) 65%, transparent); background: color-mix(in srgb, var(--energy-ink, #4caf7a) 24%, transparent); outline: none; }
+.detail-actions .close-details .icon { width: 15px; height: 15px; stroke: var(--energy-ink, #4caf7a); stroke-width: 2.6; }
+/* Phones (220): an open task's panel (and the task above it) use the screen's
+   full width, still in place among the tasks. */
+@media (max-width: 560px) {
+  .task-list > li.task-details { margin: 0 -16px 10px !important; max-width: none; border-left: 0; border-right: 0; border-radius: 0; }
+  .task-list > li[data-task]:has(+ li.task-details)::before { left: -16px; right: -16px; border-left: 0; border-right: 0; border-radius: 0; }
+  .task-list > li.task-details { --pp-l: 16px; --pp-r: 16px; }
+  .task-list > li.task-details > .detail-actions { border-radius: 0; }
+}

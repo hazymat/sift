@@ -277,7 +277,7 @@ export default {
           <div class="wide">${att.rowHtml(atts.get(i.id))}</div>
         </div>
         <div class="detail-actions">
-          <button type="button" class="close-details" data-act="close-item">Close</button>
+          <button type="button" class="close-details" data-act="close-item" title="Close (or Esc)"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Close</button>
           <span class="spacer"></span>
           <button type="button" class="thing-colour" data-act="thing-colour"><span class="swatch" style="--sw:${tintHex(i)}"></span> Colour</button>
           <button type="button" data-act="archive-item">Archive</button>
@@ -318,13 +318,6 @@ export default {
       undoable(label, async () => { await store.update('items', id, { tags: before }); await reload(); });
     }
 
-    // Clicking outside the open panel (and its thing) closes it.
-    this.onThingPointer = ev => {
-      if (!openItem || !el.isConnected) return;
-      if (ev.target.closest(`[data-item="${openItem}"], dialog, .toast, .ref-picker, .ref-menu, .pill-menu`)) return;
-      toggleThing(openItem);
-    };
-    document.addEventListener('pointerdown', this.onThingPointer, true);
     page.addEventListener('keydown', ev => {
       const t = ev.target;
       if (!t.classList?.contains('tag-add') || ev.key !== 'Enter') return;
@@ -761,7 +754,6 @@ export default {
     this.kit?.destroy();
     this.pills?.destroy();
     removeEventListener('keydown', this.onKey);
-    document.removeEventListener('pointerdown', this.onThingPointer, true);
     removeEventListener('resize', this.onResize);
   },
 

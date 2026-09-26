@@ -149,8 +149,8 @@ export default {
         }
       }
     });
-    // The ⋯ panel closes when you click anywhere outside it (or its row), press
-    // Esc, or use Close. Whatever you were typing in it is saved first.
+    // The ⋯ panel closes with Close, ⋯ again or Esc (not by clicking elsewhere).
+    // Whatever you were typing in it is saved first.
     function closeDetails() {
       if (!editing) return;
       const panel = el.querySelector(`.item-details[data-for="${editing}"]`);
@@ -180,12 +180,6 @@ export default {
     document.addEventListener('pointerdown', ev => {
       const box = el.isConnected ? energyBox() : null;
       if (box?.classList.contains('editing') && !box.contains(ev.target)) closeEnergy();
-    }, pageCapture);
-    document.addEventListener('pointerdown', ev => {
-      if (!editing || !el.isConnected) return;
-      const t = ev.target;
-      if (t.closest(`.item-details[data-for="${editing}"], [data-item="${editing}"], dialog, .toast, #toasts, .pill-menu`)) return;
-      closeDetails();
     }, pageCapture);
     el.addEventListener('keydown', ev => {
       if (ev.key !== 'Escape' || !editing || ev.defaultPrevented) return;
@@ -461,7 +455,7 @@ export default {
           <div class="wide">${att.rowHtml(atts.get(i.id))}</div>
           <div class="wide">${commentsHtml(i.task_id ? { task_id: i.task_id } : { item_id: i.id })}</div>
           <div class="detail-actions">
-            <button type="button" class="close-details" data-act="close-details" title="Close (or click anywhere outside, or Esc)">Close</button>
+            <button type="button" class="close-details" data-act="close-details" title="Close (or Esc)"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Close</button>
             ${i.time ? '<button type="button" data-act="unschedule" title="Remove the start and end time and put it back in To place">Unallocate time</button>' : ''}
             ${i.dropped_at
               ? '<button type="button" data-act="take-back" title="It needs doing after all">Take back</button>'

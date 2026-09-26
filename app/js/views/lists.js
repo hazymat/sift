@@ -100,12 +100,6 @@ export default {
         onChange: md => { clearTimeout(noteTimer); pendingNote = { id, md }; noteTimer = setTimeout(flushNote, 600); },
       });
     }
-    this.onItemPointer = ev => {
-      if (!openItem || !el.isConnected) return;
-      if (ev.target.closest(`li[data-id="${openItem}"], li[data-for="${openItem}"], dialog, .toast, .ref-picker, .ref-menu, .pill-menu`)) return;
-      toggleItem(openItem);
-    };
-    document.addEventListener('pointerdown', this.onItemPointer, true);
 
     // ---------- one list ----------
 
@@ -151,7 +145,7 @@ export default {
             <div class="list-notes"></div>
             ${att.rowHtml(atts.get(i.id))}
             <div class="detail-actions">
-              <button type="button" class="close-details" data-act="close-item">Close</button>
+              <button type="button" class="close-details" data-act="close-item" title="Close (or Esc)"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Close</button>
               <span class="spacer"></span>
               <button type="button" data-act="archive-item">Archive</button>
               <button type="button" class="danger" data-act="remove">Delete</button>
@@ -427,7 +421,6 @@ export default {
     this.pills?.destroy();
     this.kitTemplate?.destroy();
     removeEventListener('keydown', this.onKey);
-    document.removeEventListener('pointerdown', this.onItemPointer, true);
   },
 
   quickAdd() {

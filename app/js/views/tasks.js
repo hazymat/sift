@@ -216,7 +216,7 @@ export default {
           </div>
         </details>
         <div class="detail-actions">
-          <button type="button" class="close-details" data-act="close-details" title="Close (or click anywhere outside, or Esc)">Close</button>
+          <button type="button" class="close-details" data-act="close-details" title="Close (or Esc)"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Close</button>
           ${depthIn(t, data.tasks) < MAX_DEPTH ? '<button type="button" data-act="add-sub">+ Sub-task</button>' : ''}
           <span class="spacer"></span>
           <button type="button" data-act="archive">Archive</button>
@@ -1160,8 +1160,8 @@ export default {
       },
     });
 
-    // The panel closes when you click anywhere outside it (or its task), press
-    // Esc, or use Close. Whatever you were typing in it is saved first.
+    // The panel closes with Close, ⋯ again or Esc (not by clicking elsewhere, so
+    // it stays put while you look around). Whatever you were typing is saved first.
     async function closeDetails() {
       if (!open) return;
       const panel = body.querySelector(`.task-details[data-for="${open}"]`);
@@ -1170,12 +1170,6 @@ export default {
       open = null;
       setTimeout(render);
     }
-    this.onPointer = ev => {
-      if (!open || !el.isConnected) return;
-      if (ev.target.closest(`.task-details[data-for="${open}"], [data-task="${open}"], dialog, .toast, .ref-picker, .pill-menu`)) return;
-      closeDetails();
-    };
-    document.addEventListener('pointerdown', this.onPointer, true);
     // Buttons in the panel don't take focus from the notes while pressed.
     body.addEventListener('mousedown', ev => {
       if (ev.target.closest('.task-details .detail-actions button')) ev.preventDefault();
@@ -1208,7 +1202,6 @@ export default {
     this.kitFlat?.destroy();
     this.gone?.abort();
     removeEventListener('keydown', this.onKey);
-    document.removeEventListener('pointerdown', this.onPointer, true);
     this.pills?.destroy();
   },
 
