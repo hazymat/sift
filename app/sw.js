@@ -47,6 +47,7 @@ const SHELL = [
   'js/exporttext.js',
   'js/holdopen.js',
   'js/attachments.js',
+  'js/walk.js',
   'js/install.js',
   'js/link.js',
   'js/sheets.js',

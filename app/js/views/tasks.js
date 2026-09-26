@@ -16,6 +16,7 @@ import { toast, undoable } from '../toast.js';
 import { richText, toHtml, previewLine, inlineAll } from '../richtext.js';
 import { loadContacts } from '../contacts.js';
 import * as att from '../attachments.js';
+import { atEdge, caretTo } from '../walk.js';
 import { editPills, selectPill, datePill, energyPill } from '../editpills.js';
 import { ask, askText, askEmptied } from '../ask.js';
 import { word } from '../words.js';
@@ -572,6 +573,7 @@ export default {
       kitPlain.attach(ordered || flatOrder ? null : ul);
       mountComments(body, render);
       if (nextAfter) { const id = nextAfter; nextAfter = null; openNewAfter(id); }
+      walkAgain();
       const notesBox = body.querySelector('.task-notes');
       if (notesBox && open) {
         const id = open;
@@ -646,6 +648,81 @@ export default {
       host.addEventListener('keydown', ev => { if (ev.key === 'Escape' && !isFullNote(host) && !document.querySelector('.ref-picker')) { ev.preventDefault(); ev.stopPropagation(); document.activeElement?.blur(); } });
     }
     const isFullNote = h => h.classList.contains('is-full');
+
+    // ↑ / ↓ while editing walk the list: a task's name (start, then end), its
+    // note (the note itself, or "Add note"), the next task's name, and so on
+    // down to the New task line and its note; ↑ walks back the same way.
+    // Moving saves the one you leave, as clicking away does. (A redraw after
+    // that save puts the cursor back where it was going: walkTo.)
+    let walkTo = null;
+    const walkStops = () => {
+      const stops = [...body.querySelectorAll('.task-list > li[data-task]')]
+        .filter(li => li.getClientRects().length && li.querySelector(':scope > .task-title'))
+        .map(li => ({ li, key: li.dataset.task, title: li.querySelector(':scope > .task-title') }));
+      const nt = body.querySelector('#task-new');
+      if (nt?.getClientRects().length) stops.push({ key: 'entry', title: nt });
+      return stops;
+    };
+    function walkApply(stop, part, at) {
+      if (part === 'name') { stop.title.focus(); caretTo(stop.title, at); return true; }
+      if (stop.key === 'entry') {
+        const n = body.querySelector('#task-new-note');
+        stop.title.focus(); // opens the line's note
+        if (!n?.getClientRects().length) return false;
+        n.focus(); caretTo(n, at); return true;
+      }
+      const li = stop.li;
+      const task = data.tasks.find(x => x.id === stop.key);
+      if (!task) return false; // a line not added yet has no note
+      if (!li.querySelector('.edit-pills .pill-note, .note-in-place')) stop.title.focus(); // opens its pills ("Add note")
+      const f = li.querySelector('.edit-pills .pill-note') || li.querySelector('.note-in-place [contenteditable]');
+      if (f) { f.focus(); caretTo(f, at); return true; }
+      const preview = li.querySelector('.item-sub .task-note');
+      if (!preview) return false;
+      editNoteInPlace(task, preview);
+      const ed = li.querySelector('.note-in-place [contenteditable]');
+      if (ed) caretTo(ed, at);
+      return !!ed;
+    }
+    const walkGo = (stop, part, at) => {
+      walkTo = { key: stop.key, part, at, until: Date.now() + 1500 };
+      return walkApply(stop, part, at);
+    };
+    // After a redraw: back to where the cursor was going.
+    const walkAgain = () => {
+      if (!walkTo || Date.now() > walkTo.until) { walkTo = null; return; }
+      const w = walkTo;
+      const stop = walkStops().find(s => s.key === w.key);
+      if (stop && !stop.li?.contains(document.activeElement) && document.activeElement !== stop.title) setTimeout(() => walkApply(stop, w.part, w.at));
+    };
+    body.addEventListener('pointerdown', () => { walkTo = null; }, true);
+    body.addEventListener('keydown', ev => {
+      if ((ev.key !== 'ArrowUp' && ev.key !== 'ArrowDown') || ev.defaultPrevented || ev.shiftKey || ev.ctrlKey || ev.altKey || ev.metaKey || ev.isComposing) return;
+      if (document.querySelector('.ref-picker, .pill-menu')) return;
+      const t = ev.target;
+      const stops = walkStops();
+      const i = stops.findIndex(s => s.title === t || (s.li ? s.li.contains(t) : !!t.closest?.('#task-entry')));
+      if (i < 0) return;
+      const s = stops[i], up = ev.key === 'ArrowUp';
+      if (t === s.title) {
+        const len = t.value.length;
+        ev.preventDefault();
+        if (up) {
+          if (t.selectionStart || t.selectionEnd) { t.setSelectionRange(0, 0); return; }
+          const prev = stops[i - 1];
+          if (prev && !walkGo(prev, 'note', 'end')) walkGo(prev, 'name', 'end');
+        } else {
+          if (t.selectionStart < len || t.selectionEnd < len) { t.setSelectionRange(len, len); return; }
+          if (!walkGo(s, 'note', 'start') && stops[i + 1]) walkGo(stops[i + 1], 'name', 'start');
+        }
+        return;
+      }
+      const inNote = t.matches?.('#task-new-note, .edit-pills .pill-note') || (t.isContentEditable && t.closest('.note-in-place'));
+      if (!inNote || !atEdge(t, up ? 'up' : 'down')) return;
+      ev.preventDefault();
+      if (up) walkGo(s, 'name', 'end');
+      else if (stops[i + 1]) walkGo(stops[i + 1], 'name', 'start');
+    });
 
     // Plan for day: the task goes on that day in the Day Planner (tasks.js planDay).
     async function setPlanDay(task, date) {
@@ -768,10 +845,6 @@ export default {
         if (ev.target === ta && ev.key === 'Tab' && !ev.ctrlKey && !ev.altKey && !ev.metaKey) {
           ev.preventDefault();
           if (ev.shiftKey) { if (entryDepth) setDepth(entryDepth - 1); else toast('Already a task of its own'); } else deeper();
-        } else if (ev.target === ta && ev.key === 'ArrowDown') {
-          ev.preventDefault(); noteEl.focus(); noteEl.setSelectionRange(noteEl.value.length, noteEl.value.length);
-        } else if (ev.target === noteEl && ev.key === 'ArrowUp' && !noteEl.value.slice(0, noteEl.selectionStart).includes('\n')) {
-          ev.preventDefault(); ta.focus();
         }
       });
       const submit = ({ focus = true } = {}) => {

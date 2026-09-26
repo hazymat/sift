@@ -18,6 +18,7 @@ import { summarise } from '../summary.js';
 import { loadAll as loadTasks, forDay, suggestions, doneFields, aimDate, addTask, horizonOf, planDay } from '../tasks.js';
 import * as att from '../attachments.js';
 import { typingIn } from '../listkit.js';
+import { atEdge, caretTo } from '../walk.js';
 import { editPills, selectPill, energyPill } from '../editpills.js';
 import { energyMenu } from '../pillmenu.js';
 import { byRank, rankOf, reorderWrites, lastKey } from '../order.js';
@@ -774,7 +775,84 @@ export default {
       renderLines();
       renderPile();
       paintSelection?.();
+      walkAgain();
     }
+
+    // ↑ / ↓ while editing walk the lines of the Schedule, or of the Tasks (as on
+    // the Tasks page): an item's name (start, then end), its note (or "Add
+    // note"), the next item's name… and in the Tasks, on to the New task line
+    // and its note. ↑ walks back. Moving saves the one you leave; a redraw
+    // after that save puts the cursor back where it was going (walkTo).
+    let walkTo = null;
+    const walkStops = from => {
+      const box = from?.closest?.('#lines, .pile-paper');
+      if (!box) return [];
+      const stops = [...box.querySelectorAll('.line.has-item[data-item]')]
+        .filter(r => !r.closest('#pile-done') && r.getClientRects().length && r.querySelector('.item-title'))
+        .map(row => ({ row, key: row.dataset.item, title: row.querySelector('.item-title') }));
+      if (box.matches('.pile-paper')) stops.push({ key: 'entry', title: $('#dump') });
+      return stops;
+    };
+    function walkApply(stop, part, at) {
+      if (part === 'name') { stop.title.focus(); caretTo(stop.title, at); return true; }
+      if (stop.key === 'entry') {
+        stop.title.focus(); // opens its note line
+        const n = $('#dump-note');
+        if (!n.getClientRects().length) return false;
+        n.focus(); caretTo(n, at); return true;
+      }
+      const it = items.find(i => i.id === stop.key);
+      if (!it) return false;
+      const ed = stop.row.querySelector('.note-edit [contenteditable]');
+      if (ed) { ed.focus(); caretTo(ed, at); return true; }
+      if (!(it.notes || '').trim()) {
+        if (!stop.row.querySelector('.edit-pills .pill-note')) stop.title.focus(); // opens its pills ("Add note")
+        const f = stop.row.querySelector('.edit-pills .pill-note');
+        if (!f) return false;
+        f.focus(); caretTo(f, at); return true;
+      }
+      noteEditing = it.id;
+      refresh().then(() => { const e = el.querySelector(`[data-note-for="${it.id}"] [contenteditable]`); if (e) { e.focus(); caretTo(e, at); } });
+      return true;
+    }
+    const walkGo = (stop, part, at) => {
+      walkTo = { box: stop.title.closest('#lines') ? '#lines' : '.pile-paper', key: stop.key, part, at, until: Date.now() + 1500 };
+      return walkApply(stop, part, at);
+    };
+    function walkAgain() {
+      if (!walkTo || Date.now() > walkTo.until) { walkTo = null; return; }
+      const w = walkTo;
+      const stop = walkStops(el.querySelector(w.box)).find(s => s.key === w.key);
+      if (stop && !stop.row?.contains(document.activeElement) && document.activeElement !== stop.title) setTimeout(() => walkApply(stop, w.part, w.at));
+    }
+    el.addEventListener('pointerdown', () => { walkTo = null; }, true);
+    el.addEventListener('keydown', ev => {
+      if ((ev.key !== 'ArrowUp' && ev.key !== 'ArrowDown') || ev.defaultPrevented || ev.shiftKey || ev.ctrlKey || ev.altKey || ev.metaKey || ev.isComposing) return;
+      if (document.querySelector('.ref-picker, .pill-menu')) return;
+      const t = ev.target;
+      const stops = walkStops(t);
+      const i = stops.findIndex(s => s.title === t || (s.row ? s.row.contains(t) : !!t.closest?.('.pile-new')));
+      if (i < 0) return;
+      const s = stops[i], up = ev.key === 'ArrowUp';
+      if (t === s.title) {
+        const len = t.value.length;
+        ev.preventDefault();
+        if (up) {
+          if (t.selectionStart || t.selectionEnd) { t.setSelectionRange(0, 0); return; }
+          const prev = stops[i - 1];
+          if (prev && !walkGo(prev, 'note', 'end')) walkGo(prev, 'name', 'end');
+        } else {
+          if (t.selectionStart < len || t.selectionEnd < len) { t.setSelectionRange(len, len); return; }
+          if (!walkGo(s, 'note', 'start') && stops[i + 1]) walkGo(stops[i + 1], 'name', 'start');
+        }
+        return;
+      }
+      const inNote = t.matches?.('#dump-note, .edit-pills .pill-note') || (t.isContentEditable && t.closest('.note-edit'));
+      if (!inNote || !atEdge(t, up ? 'up' : 'down')) return;
+      ev.preventDefault();
+      if (up) walkGo(s, 'name', 'end');
+      else if (stops[i + 1]) walkGo(stops[i + 1], 'name', 'start');
+    });
 
     // ---------- editing ----------
 
