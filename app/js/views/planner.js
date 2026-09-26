@@ -858,7 +858,8 @@ export default {
       });
     }
 
-    att.enableDrop(el, '.item-details[data-for], .line.has-item[data-item]', node => ({ collection: 'day_items', id: node.dataset.for || node.dataset.item }), () => refresh());
+    // (An item spanning several slots is a .span-block: its lower rows take files too.)
+    att.enableDrop(el, '.item-details[data-for], .line.has-item[data-item], .span-block', node => ({ collection: 'day_items', id: node.dataset.for || node.dataset.item || node.querySelector('.line.has-item')?.dataset.item }), () => refresh());
     el.addEventListener('click', async ev => {
       if (att.onClick(ev, b => { const id = b.closest('[data-for]')?.dataset.for; return id ? { collection: 'day_items', id } : null; }, () => refresh())) return;
       const t = ev.target.closest('[data-act], [data-energy], [data-item-energy]');

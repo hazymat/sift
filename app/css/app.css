@@ -3054,3 +3054,6 @@ a.comment-mark:hover { color: var(--text); }
 .dump-search-row > .page-cog { margin-left: 0; }
 /* Archive and ⋯ stay together at the right, wrapping as a pair on a phone. */
 .thought-actions .note-end { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+/* A file dragged over an item spanning several slots outlines the whole item (192). */
+.span-block > .line.has-item.drop-over { outline: none; }
+.span-block:has(> .line.has-item.drop-over), .span-block.drop-over { outline: 2px dashed var(--active-border, currentColor); outline-offset: 2px; border-radius: 6px; }
