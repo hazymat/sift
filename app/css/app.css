@@ -3061,3 +3061,6 @@ a.comment-mark:hover { color: var(--text); }
    the day's Notes); in full screen the toolbar always shows. */
 #dump-body.rich:not(.in-use):not(.is-full) > .md-bar, #dump-body.rich:not(:focus-within):not(.is-full) > .md-bar { display: none; }
 .rich.is-full > .md-bar { display: flex !important; }
+/* Settings → Navigation: the grip on the left like everywhere else (193); a
+   row that can't move keeps the same space so the icons line up. */
+.pin-list li .grip-space { flex: 0 0 40px; }

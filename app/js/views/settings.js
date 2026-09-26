@@ -717,9 +717,9 @@ export default {
     // Dragging an area across the divider pins or unpins it.
     const list = el.querySelector('#nav-order');
     const row = a => a.pinnable === false
-      ? `<li data-id="${a.id}" class="fixed">${icon(a.icon)}<span>${a.label}</span></li>`
-      : `<li data-id="${a.id}">${icon(a.icon)}<span>${a.label}</span>
-          <button type="button" class="drag-handle" aria-label="Reorder ${a.label}">${icon('i-grip')}</button></li>`;
+      ? `<li data-id="${a.id}" class="fixed"><span class="grip-space" aria-hidden="true"></span>${icon(a.icon)}<span>${a.label}</span></li>`
+      : `<li data-id="${a.id}"><button type="button" class="drag-handle" aria-label="Reorder ${a.label}">${icon('i-grip')}</button>
+          ${icon(a.icon)}<span>${a.label}</span></li>`;
 
     const renderPins = () => {
       const pinned = app.pinnedAreas();
