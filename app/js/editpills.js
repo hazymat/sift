@@ -42,7 +42,7 @@ export function energyPill(value) {
 }
 export function datePill(name, label, glyph, value, shown) {
   return `<label class="entry-chip${value ? ' set' : ''}" data-chip="${name}">${glyph} <span class="chip-text">${esc(value ? shown(value) : label)}</span>`
-    + `<input type="date" data-pill="${name}" value="${esc(value || '')}" aria-label="${esc(label)}"></label>`;
+    + `<input type="date" data-pill="${name}" value="${esc(value || '')}" data-sent="${esc(value || '')}" aria-label="${esc(label)}"></label>`;
 }
 
 document.body.classList.toggle('pills-only', matchMedia('(pointer: coarse)').matches);
@@ -95,10 +95,18 @@ export function editPills(root, spec) {
     close();
   };
   const onKey = ev => { if (ev.key === 'Escape' && editing && !ev.target.closest?.('.edit-pills select')) close(); };
+  // A date picked in a date pill arrives as "input", "change" or only when the
+  // pill is left, depending on the browser and its picker: whichever comes
+  // first saves it, once.
   const onChange = ev => {
     const f = ev.target.closest?.('.edit-pills [data-pill]');
     if (!f) return;
-    ev.stopPropagation();
+    if (ev.type === 'change') ev.stopPropagation();
+    const isDate = f.type === 'date';
+    if (isDate && ev.type === 'input' && !f.value) return; // half-typed
+    if (isDate && f.dataset.sent === f.value) return;
+    if (isDate) f.dataset.sent = f.value;
+    else if (ev.type !== 'change') return;
     spec.change(f.closest('.edit-pills').dataset.key, f.dataset.pill, f.value);
   };
   const onClick = ev => {
@@ -119,6 +127,8 @@ export function editPills(root, spec) {
 
   root.addEventListener('focusin', onFocus);
   root.addEventListener('change', onChange, true);
+  root.addEventListener('input', onChange, true);
+  root.addEventListener('focusout', onChange, true);
   root.addEventListener('click', onClick, true);
   document.addEventListener('pointerdown', onPointer, true);
   document.addEventListener('keydown', onKey);
@@ -132,6 +142,8 @@ export function editPills(root, spec) {
     destroy() {
       root.removeEventListener('focusin', onFocus);
       root.removeEventListener('change', onChange, true);
+      root.removeEventListener('input', onChange, true);
+      root.removeEventListener('focusout', onChange, true);
       root.removeEventListener('click', onClick, true);
       document.removeEventListener('pointerdown', onPointer, true);
       document.removeEventListener('keydown', onKey);

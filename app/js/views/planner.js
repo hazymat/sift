@@ -691,7 +691,7 @@ export default {
             <span class="bring-info">
               ${note ? `<span class="span-tag">${esc(note)}</span>` : ''}
               ${e ? `<span class="span-tag bolts" title="Energy: ${e.label}">${e.bolts}</span>` : ''}
-              ${aim ? `<span class="span-tag" title="Completion aim">⚑ ${esc(aim)}</span>` : ''}
+              ${aim ? `<span class="span-tag" title="Target end date">⚑ ${esc(aim)}</span>` : ''}
               ${t.start_date && t.start_date !== date ? `<span class="span-tag" title="Planned for">📅 ${esc(t.start_date)}</span>` : ''}
             </span>
             ${first ? `<span class="bring-note muted">${esc(first.replace(/\[([^\]]*)\]\(sift:[^)]*\)/g, '$1'))}</span>` : ''}

@@ -111,7 +111,7 @@ export default {
       if (p && !state.project) out.push(`<span class="chip" style="--c:${p.colour || COLOURS[0]}">${esc(p.name)}</span>`);
       if (t.start_date) out.push(`<span class="chip" title="Planned for">📅 ${shortDate(t.start_date)}</span>`);
       const aim = aimDate(t);
-      if (aim) out.push(`<span class="chip${!isDone(t) && aim < isoDate() ? ' late' : ''}" title="Completion aim">⚑ ${shortDate(aim)}${t.aim_at.length > 10 ? ` ${t.aim_at.slice(11, 16)}` : ''}</span>`);
+      if (aim) out.push(`<span class="chip${!isDone(t) && aim < isoDate() ? ' late' : ''}" title="Target end date">⚑ ${shortDate(aim)}${t.aim_at.length > 10 ? ` ${t.aim_at.slice(11, 16)}` : ''}</span>`);
       if (t.estimate_min) out.push(`<span class="chip" title="Estimated time">⏱ ${durationLabel(t.estimate_min)}</span>`);
       if (t.priority && t.priority < 3) out.push(`<span class="chip pri-${t.priority}">${PRIORITIES.find(p => p.id === t.priority)?.label}</span>`);
       if (t.status === 'doing' || t.status === 'waiting') out.push(`<span class="chip">${STATUSES.find(s => s.id === t.status)?.label}</span>`);
@@ -190,7 +190,7 @@ export default {
           <label>List<select name="horizon">${HORIZONS.map(x => `<option value="${x.id}" ${horizonOf(t) === x.id ? 'selected' : ''}>${x.label}</option>`).join('')}</select></label>
           <label>Estimated time<select name="estimate_min"><option value="">Not estimated</option>${durationChoices(480).map(m => `<option value="${m}" ${Number(t.estimate_min) === m ? 'selected' : ''}>${durationLabel(m)}</option>`).join('')}</select></label>
           <label>Plan for day<input type="date" name="start_date" value="${t.start_date || ''}"></label>
-          <label>Aim to finish by<input type="date" name="aim_date" value="${aim}"></label>
+          <label>Target end date<input type="date" name="aim_date" value="${aim}"></label>
           ${aim && showTime ? `<label>…at<input type="time" name="aim_time" value="${aimTime}"></label>` : ''}
           ${aim && !showTime ? `<button type="button" class="linklike" data-act="aim-time">+ add a time</button>` : ''}
         </div>
@@ -235,7 +235,7 @@ export default {
               <button type="button" class="entry-chip" data-chip="energy" aria-haspopup="menu"><span class="chip-glyph">⚡</span> <span class="chip-text" data-empty="Energy">Energy</span></button>
               <input type="hidden" data-entry="energy" value="">
               ${dateChip('start_date', 'Plan for day', '📅')}
-              ${dateChip('aim_date', 'Aim to finish', '⚑')}
+              ${dateChip('aim_date', 'Target end date', '⚑')}
               <label class="entry-chip" data-chip="estimate_min">⏱ <span class="chip-text" data-empty="Estimated time">Estimated time</span>
                 <select data-entry="estimate_min" aria-label="Estimated time"><option value="">Not estimated</option>${durationChoices(480).map(m => opt(m, durationLabel(m))).join('')}</select></label>
               <label class="entry-chip" data-chip="horizon">📥 <span class="chip-text" data-empty="${esc(listName || word('list_inbox'))}">${esc(listName || word('list_inbox'))}</span>
@@ -639,9 +639,10 @@ export default {
         }
         if (t.value.trim() !== task.title) await change(id, { title: t.value.trim() });
       } else if (t.name === 'aim_date' || t.name === 'aim_time') {
-        const d = body.querySelector(`[data-for="${id}"] [name="aim_date"]`).value;
-        const tm = body.querySelector(`[data-for="${id}"] [name="aim_time"]`).value;
-        await change(id, { aim_at: d ? (tm ? `${d}T${tm}` : d) : null }, d ? `Aim: ${shortDate(d)}` : 'Aim cleared');
+        // (The time field is only there once a time has been asked for.)
+        const d = body.querySelector(`[data-for="${id}"] [name="aim_date"]`)?.value || '';
+        const tm = body.querySelector(`[data-for="${id}"] [name="aim_time"]`)?.value || '';
+        await change(id, { aim_at: d ? (tm ? `${d}T${tm}` : d) : null }, d ? `Target end date: ${shortDate(d)}` : 'Target end date cleared');
       } else if (t.name === 'add_contact') {
         if (t.value) await change(id, { contact_ids: [...(task.contact_ids || []), t.value] }, 'Added a person');
       } else if (t.name === 'project_id' && t.value === '__new') {
@@ -786,7 +787,7 @@ export default {
         return addNote + energyPill(t.energy)
           + selectPill('estimate_min', 'Estimated time', '⏱', [['', 'Not estimated'], ...hours], t.estimate_min)
           + datePill('start_date', 'Plan for day', '📅', t.start_date, shortDate)
-          + datePill('aim_date', 'Aim to finish', '⚑', aim, shortDate)
+          + datePill('aim_date', 'Target end date', '⚑', aim, shortDate)
           + selectPill('horizon', 'List', '📥', HORIZONS.map(h => [h.id, h.label]), horizonOf(t));
       },
       change: async (id, name, value) => {
@@ -794,7 +795,7 @@ export default {
         if (!t) return;
         if (name === 'aim_date') {
           const time = t.aim_at?.length > 10 ? t.aim_at.slice(10) : '';
-          return change(id, { aim_at: value ? `${value}${time}` : null }, value ? `Aim: ${shortDate(value)}` : 'Aim cleared');
+          return change(id, { aim_at: value ? `${value}${time}` : null }, value ? `Target end date: ${shortDate(value)}` : 'Target end date cleared');
         }
         if (name === 'notes') { if (value.trim()) await change(id, { notes: value.trim() }, 'Note saved'); return; }
         if (name === 'energy') {
