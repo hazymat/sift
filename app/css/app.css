@@ -3010,3 +3010,5 @@ a.comment-mark:hover { color: var(--text); }
    text drifted off the lines). */
 #notes .rich-edit li { line-height: var(--note-line); margin: 0; }
 #notes .rich-edit li::marker { font-family: inherit; line-height: 1; }
+/* A ⋯ menu with no room below opens above its button (dropdown.js installMenuFlip). */
+.tool-menu .menu.up { top: auto; bottom: calc(100% + 8px); }

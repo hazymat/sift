@@ -179,3 +179,19 @@ export function installDropdowns() {
   addEventListener('resize', close);
   addEventListener('hashchange', close);
 }
+
+// ⋯ menus (<details class="tool-menu">) open under their button, or above it
+// when there's no room below (e.g. a card's ⋯ at the bottom of the screen).
+export function installMenuFlip() {
+  document.addEventListener('toggle', ev => {
+    const d = ev.target;
+    if (!(d instanceof HTMLDetailsElement) || !d.open || !d.matches('.tool-menu')) return;
+    const menu = d.querySelector(':scope > .menu');
+    if (!menu) return;
+    menu.classList.remove('up');
+    const r = menu.getBoundingClientRect();
+    const room = (visualViewport?.height ?? innerHeight) - 8;
+    const above = d.getBoundingClientRect().top - 8;
+    if (r.bottom > room && above > room - d.getBoundingClientRect().bottom) menu.classList.add('up');
+  }, true);
+}

@@ -7,7 +7,7 @@ import { installSearchClear } from './searchclear.js';
 import { installFlash } from './flash.js';
 import { mountSearch } from './search.js';
 import { installViewCog } from './viewcog.js';
-import { installDropdowns } from './dropdown.js';
+import { installDropdowns, installMenuFlip } from './dropdown.js';
 import { installFileDrop } from './attachments.js';
 import { word, applyWords } from './words.js';
 
@@ -272,6 +272,7 @@ async function boot() {
   installSearchClear();
   installFlash();
   installDropdowns();
+  installMenuFlip();
   installFileDrop();
   // Search everything: the laptop's top bar, and the top of the phone's More list.
   {
