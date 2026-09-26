@@ -423,17 +423,27 @@ export default {
       else nextAfter = id; // opens once the saved title is redrawn
     }, { capture: true });
 
-    // The joining lines again, from the rows as they are now (with a new line in).
+    // The joining lines again, from the rows as they are now (with a new line
+    // in, and the New task line under the list when it's a sub-task).
     function redrawTrees() {
       const ul = body.querySelector('.task-list');
       if (!ul) return;
       const rows = [...ul.querySelectorAll(':scope > li[data-task]')];
-      const depths = rows.map(li => ({ depth: Number(li.dataset.depth || 0) }));
+      const line = ul.nextElementSibling?.id === 'task-entry' ? ul.nextElementSibling.querySelector('.task-add-line') : null;
+      const tail = line && entryDepth > 0 ? [{ depth: entryDepth }] : [];
+      const depths = [...rows.map(li => ({ depth: Number(li.dataset.depth || 0) })), ...tail];
       rows.forEach((li, n) => {
         li.querySelector(':scope > .tree')?.remove();
         const html = treeOf(depths, n);
         if (html) li.insertAdjacentHTML('afterbegin', html);
       });
+      line?.querySelector(':scope > .tree')?.remove();
+      if (!tail.length) return;
+      // Where its tick box sits, as for a task row (the lines meet its middle).
+      const mark = line.querySelector('.add-mark');
+      const m = mark.getBoundingClientRect(), l = line.getBoundingClientRect();
+      if (m.height > 0) { line.style.setProperty('--tick-top', `${m.top - l.top}px`); line.style.setProperty('--tick-h', `${m.height}px`); }
+      line.insertAdjacentHTML('afterbegin', treeOf(depths, depths.length - 1));
     }
 
     // Shift+Tab in a task's note (under its name, while editing) goes back to
@@ -737,7 +747,7 @@ export default {
       // (of the last task above) or bring it back out, straight away.
       const rowsNow = () => [...body.querySelectorAll('.task-list > li[data-task][data-id]')];
       const deepest = () => { const last = rowsNow().at(-1); return last ? Math.min(MAX_DEPTH, Number(last.dataset.depth || 0) + 1) : 0; };
-      const setDepth = d => { entryDepth = d; entry.dataset.depth = d; entry.style.setProperty('--ind', `${d * 28}px`); };
+      const setDepth = d => { entryDepth = d; entry.dataset.depth = d; entry.style.setProperty('--ind', `${d * 28}px`); redrawTrees(); };
       setDepth(Math.min(entryDepth, deepest()));
       const parentAt = d => (d ? [...rowsNow()].reverse().find(li => Number(li.dataset.depth || 0) === d - 1)?.dataset.task || null : null);
       const deeper = () => {

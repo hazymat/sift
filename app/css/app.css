@@ -3279,3 +3279,9 @@ dialog.att-view::backdrop { background: rgb(0 0 0 / .82); }
   .task-list > li.task-details { --pp-l: 16px; --pp-r: 16px; }
   .task-list > li.task-details > .detail-actions { border-radius: 0; }
 }
+/* 222: the New task line under the list, once it's a sub-task, hangs from its
+   task by the same fine L as the sub-tasks above it. */
+.task-add-line > .tree { display: contents; }
+.task-entry .tree-v, .task-entry .tree-h { position: absolute; background: color-mix(in srgb, var(--text) 13%, transparent); pointer-events: none; }
+.task-entry .tree-v { width: 1px; }
+.task-entry .tree-h { height: 1px; top: calc(var(--tick-top) + var(--tick-h) / 2); }
