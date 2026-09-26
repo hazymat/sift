@@ -155,6 +155,46 @@ function openMoreSheet() {
   if (!sheet.open) sheet.showModal();
 }
 
+// ---------- keyboard: tabs and areas ----------
+
+// Is something being worked on (so arrows belong to it)? Typing anywhere, or a
+// menu, pop-up, panel, sheet, dropdown or full-screen note open.
+// With emptyOk, an empty box the page put the cursor in (e.g. Brain Dump's New
+// note on arrival) doesn't count: nothing is being written there.
+const busy = (emptyOk = false) => {
+  const f = document.activeElement?.closest?.('input:not([type="checkbox"]):not([type="radio"]):not([type="button"]), textarea, select, [contenteditable]:not([contenteditable="false"])');
+  if (f && !(emptyOk && !f.matches('select') && !(f.isContentEditable ? f.textContent : f.value).trim())) return true;
+  return !!document.querySelector('dialog[open], details.tool-menu[open], details.dd-open, .dd-menu, .pill-menu, .ref-picker, .edit-pills, .task-details, .item-details, .thing-panel, .list-panel, .thought-pop, .rich.is-full');
+};
+
+// ← / → move between the area's own tabs (the Day Planner keeps them for its
+// days); Ctrl+← / Ctrl+→ between areas, in the navigation's order (Settings
+// last), stopping at the ends. Only on a page at rest (busy above). Alt+← / →
+// are left to the browser (Back / Forward).
+function installKeyNav() {
+  addEventListener('keydown', ev => {
+    if ((ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') || ev.altKey || ev.metaKey || ev.shiftKey || ev.defaultPrevented || busy(ev.ctrlKey)) return;
+    const dir = ev.key === 'ArrowLeft' ? -1 : 1;
+    if (ev.ctrlKey) {
+      const order = [...pinned.map(area), ...AREAS.filter(a => !a.hidden && !pinned.includes(a.id))];
+      const at = order.findIndex(a => a.id === current);
+      const to = at < 0 ? null : order[at + dir];
+      if (!to) return;
+      ev.preventDefault();
+      location.hash = `#/${path(to)}`;
+      return;
+    }
+    // The page's tabs (role="tablist"), when they're showing: its main screen.
+    const list = [...document.querySelectorAll('#main [role="tablist"]')].find(t => t.offsetParent);
+    const tabs = list ? [...list.querySelectorAll('button')].filter(b => b.offsetParent && !b.disabled) : [];
+    const at = tabs.findIndex(b => b.getAttribute('aria-pressed') === 'true' || b.getAttribute('aria-selected') === 'true');
+    const to = at < 0 ? null : tabs[at + dir];
+    if (!to) return;
+    ev.preventDefault();
+    to.click();
+  });
+}
+
 // ---------- routing ----------
 
 async function route(force = false) {
@@ -316,6 +356,7 @@ async function boot() {
     });
   }
   applyDensity = installViewCog(() => current);
+  installKeyNav();
   // A dropdown menu opens inside the screen: flipped to the other side if
   // it would run off the left or right edge.
   document.addEventListener('toggle', ev => {

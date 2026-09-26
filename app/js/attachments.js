@@ -214,6 +214,7 @@ export function view(atts, start = 0) {
     if (!ev.target.closest('.av-slide img, .av-doc, .av-btn')) close();
   });
   dlg.addEventListener('keydown', ev => {
+    if (ev.altKey || ev.ctrlKey || ev.metaKey) return; // Alt+← / → stay the browser's Back / Forward
     if (ev.key === 'ArrowLeft') { ev.preventDefault(); show(at - 1, -1); }
     else if (ev.key === 'ArrowRight') { ev.preventDefault(); show(at + 1, 1); }
   });
