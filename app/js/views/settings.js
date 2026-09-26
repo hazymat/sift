@@ -64,6 +64,7 @@ export default {
         <h3>Nudges</h3>
         <label class="check-row"><input type="checkbox" name="show_now_marker"> Show a ▶ in the margin at the current time</label>
         <label class="check-row"><input type="checkbox" name="show_evening"> Show a section after the day ends, called <input name="evening_label" class="inline-text" placeholder="${esc(word('ph_set_evening'))}" autocomplete="off" aria-label="Name of the section after the day ends"></label>
+        <label class="check-row"><input type="checkbox" name="recurring_on_planner"> Recurring tasks go on the Day Planner on their day</label>
         <label class="check-row"><input type="checkbox" name="hint_down_day"> Remind me to do less on down days</label>
         <label class="check-row"><input type="checkbox" name="hint_walk_breaks"> Build in short breaks during long stretches of work <span class="muted">(with the focus timer, coming later)</span></label>
       </section>
@@ -522,6 +523,7 @@ export default {
       ps.querySelector('[name="show_evening"]').checked = d.show_evening;
       ps.querySelector('[name="evening_label"]').value = d.evening_label;
       ps.querySelector('[name="hint_walk_breaks"]').checked = d.hint_walk_breaks;
+      ps.querySelector('[name="recurring_on_planner"]').checked = d.recurring_on_planner !== false;
       for (const b of ps.querySelectorAll('[data-dow]')) b.setAttribute('aria-pressed', d.down_days.includes(Number(b.dataset.dow)));
     };
     ps.addEventListener('change', async ev => {

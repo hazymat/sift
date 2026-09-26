@@ -344,6 +344,7 @@ async function boot() {
   const days = await import('./days.js');
   await days.applyEnergyMeanings();
   let wordsSig = JSON.stringify(await applyWords());
+  import('./repeat.js').then(m => m.installRepeats()); // ticking a recurring task makes the next one
   import('./link.js').then(m => m.installMirror()); // a task and its day items share title, note, energy, time, people, case
   // Words changed (Settings → Dictionary, or on another device): names and headings follow.
   store.subscribe(async change => {

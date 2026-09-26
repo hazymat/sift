@@ -20,6 +20,7 @@ import { editPills, selectPill, datePill, energyPill } from '../editpills.js';
 import { ask, askText, askEmptied } from '../ask.js';
 import { word } from '../words.js';
 import { commentsHtml, mountComments, closingComment } from '../comments.js';
+import { REPEAT_CHOICES, choiceOf, repeatLabel, firstDate } from '../repeat.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -113,6 +114,7 @@ export default {
       if (t.start_date) out.push(`<span class="chip" title="Planned for">📅 <span class="loose-only">Planned for </span>${shortDate(t.start_date)}</span>`);
       const aim = aimDate(t);
       if (aim) out.push(`<span class="chip${!isDone(t) && aim < isoDate() ? ' late' : ''}" title="Target end date">⚑ <span class="loose-only">Target end </span>${shortDate(aim)}${t.aim_at.length > 10 ? ` ${t.aim_at.slice(11, 16)}` : ''}</span>`);
+      if (t.repeat) out.push(`<span class="chip" title="Repeats">🔁 ${repeatLabel(t.repeat)}</span>`);
       if (t.estimate_min) out.push(`<span class="chip" title="Estimated time">⏱ ${durationLabel(t.estimate_min)}<span class="loose-only"> needed</span></span>`);
       if (t.priority && t.priority < 3) out.push(`<span class="chip pri-${t.priority}">${PRIORITIES.find(p => p.id === t.priority)?.label}</span>`);
       if (t.status === 'doing' || t.status === 'waiting') out.push(`<span class="chip">${STATUSES.find(s => s.id === t.status)?.label}</span>`);
@@ -196,6 +198,7 @@ export default {
           <label>Plan for day<input type="date" name="start_date" value="${t.start_date || ''}">
             <span class="date-quick">${t.start_date !== isoDate() ? '<button type="button" class="linklike" data-act="plan-today">Add to today</button>' : ''}${t.start_date ? '<button type="button" class="linklike" data-act="plan-clear">Remove date</button>' : ''}</span></label>
           <label>Target end date<input type="date" name="aim_date" value="${aim}"></label>
+          <label>Repeats<select name="repeat">${REPEAT_CHOICES.map(c => `<option value="${c.id}" ${choiceOf(t.repeat) === c.id ? 'selected' : ''}>${c.id === 'custom' && choiceOf(t.repeat) === 'custom' ? repeatLabel(t.repeat) : c.label}</option>`).join('')}</select></label>
           ${aim && showTime ? `<label>…at<input type="time" name="aim_time" value="${aimTime}"></label>` : ''}
           ${aim && !showTime ? `<button type="button" class="linklike" data-act="aim-time">+ add a time</button>` : ''}
         </div>
@@ -415,6 +418,34 @@ export default {
         });
       }
     };
+
+    // Repeats: a recurring task needs a first date; without one it's today
+    // (on the Day Planner if Settings says so). Custom asks every how many what.
+    async function setRepeat(task, id) {
+      let repeat = REPEAT_CHOICES.find(c => c.id === id)?.repeat || null;
+      if (id === 'custom') {
+        const got = await ask({ title: 'Repeats every…', fields: [{ name: 'n', label: 'How many', type: 'number', value: task.repeat?.n || 3 }, { name: 'unit', label: 'Days, weeks, months or years', value: task.repeat?.every && task.repeat.every !== 'weekday' ? `${task.repeat.every}s` : 'days' }], ok: 'Set' });
+        const unit = { day: 'day', days: 'day', week: 'week', weeks: 'week', month: 'month', months: 'month', year: 'year', years: 'year' }[(got?.unit || '').trim().toLowerCase()];
+        const n = Math.max(1, Math.round(Number(got?.n) || 0));
+        if (!got || !unit || !n) { if (got) toast('Try e.g. 3 and days'); await render(); return; }
+        repeat = { every: unit, n };
+      }
+      const before = { repeat: task.repeat || null };
+      await store.update('tasks', task.id, { repeat });
+      let undoDate = null;
+      if (repeat && !task.start_date && !aimDate(task)) {
+        const { daySettings } = await import('../days.js');
+        const first = firstDate(repeat);
+        if ((await daySettings()).recurring_on_planner !== false) undoDate = await planDay({ ...task, repeat }, first);
+        else await store.update('tasks', task.id, { aim_at: first });
+      }
+      await render();
+      undoable(repeat ? `Repeats: ${repeatLabel(repeat)}` : "Doesn't repeat", async () => {
+        await store.update('tasks', task.id, before);
+        if (undoDate) await undoDate();
+        await render();
+      });
+    }
 
     // Plan for day: the task goes on that day in the Day Planner (tasks.js planDay).
     async function setPlanDay(task, date) {
@@ -692,6 +723,8 @@ export default {
         await change(id, { milestone_id: m.id });
       } else if (t.name === 'start_date') {
         await setPlanDay(task, t.value || null);
+      } else if (t.name === 'repeat') {
+        await setRepeat(task, t.value);
       } else if (t.name) {
         let value = t.value || null;
         if (t.name === 'priority') value = Number(t.value);
