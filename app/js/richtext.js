@@ -53,6 +53,16 @@ const LINK_RE = /\[([^\]]+)\]\(sift:([a-z_]+)\/([\w-]+)\)/g;
 
 const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
+// Showing a note anywhere goes through these, so every place draws bold,
+// italic, cross out, links and lists the same way (never esc() on a note's
+// text, which would show it without its formatting):
+//   toHtml(md)            the whole note as written
+//   inlineAll(md)         every line run together on one line ("a · b · c")
+//   previewLine(md)       the first line, and how many more there are
+//   titleHtml(md, title)  a note's title (its first line, maybe shortened) with the formatting it has there
+// plainLines() and summary.js cleanLine() are for plain text only (sharing,
+// searching, working out titles), never for showing.
+
 // A note's first line as HTML for one-line previews (links stay clickable),
 // and how many more lines there are.
 export function previewLine(md) {
@@ -63,6 +73,42 @@ export function previewLine(md) {
 // All of a note's lines run together on one line ("a · b · c"), as HTML.
 export function inlineAll(md) {
   return (md || '').split('\n').map(l => l.replace(/^(?:#{1,6}|-#|\+#|#\+)\s+/, '').replace(/^\s*[-*]\s+/, '• ').trim()).filter(Boolean).map(inline).join(' <span class="sep">·</span> ');
+}
+
+// The title as it appears at the start of the note's first line, with that
+// line's formatting; `title` may be shortened ("…"), in which case the
+// formatting is cut at the same place (anything left open is closed).
+export function titleHtml(md, title) {
+  const first = (md || '').split('\n').find(l => l.trim()) || '';
+  const line = first.replace(/^(?:#{1,6}|-#|\+#|#\+)\s+/, '').replace(/^\s*[-*]\s+/, '').trim();
+  const plain = s => s.replace(LINK_RE, '$1').replace(/\*\*|~~/g, '').replace(/(^|\s)_(\S.*?)_(?=$|[\s).,!?:;])/g, '$1$2');
+  const want = (title || '').replace(/…$/, '').trim();
+  if (!want || plain(line).trim().toLowerCase() === want.toLowerCase()) return inline(line);
+  if (!plain(line).toLowerCase().startsWith(want.toLowerCase())) return esc(title || '');
+  // The shortest start of the line that reads as the title; then close what's open.
+  let k = want.length;
+  while (k < line.length && plain(line.slice(0, k)).length < want.length) k++;
+  let cut = line.slice(0, k);
+  for (const mark of ['~~', '**']) if ((cut.split(mark).length - 1) % 2) cut += mark;
+  // A shortened title starts with a capital (summary.js): so does this.
+  if (/^[A-Z]/.test(want)) cut = cut.replace(/[a-z]/, c => c.toUpperCase());
+  return inline(cut) + (title.endsWith('…') ? '…' : '');
+}
+
+// The rest of the first line after the title (as markdown, formatting kept:
+// a mark left open at the cut is opened again), or '' if the title is all of it.
+export function afterTitle(md, title) {
+  const first = (md || '').split('\n').find(l => l.trim()) || '';
+  const line = first.replace(/^(?:#{1,6}|-#|\+#|#\+)\s+/, '').replace(/^\s*[-*]\s+/, '').trim();
+  const plain = s => s.replace(LINK_RE, '$1').replace(/\*\*|~~/g, '').replace(/(^|\s)_(\S.*?)_(?=$|[\s).,!?:;])/g, '$1$2');
+  const want = (title || '').replace(/…$/, '').trim();
+  if (!want || !plain(line).toLowerCase().startsWith(want.toLowerCase())) return null; // not how the line starts
+  let k = want.length;
+  while (k < line.length && plain(line.slice(0, k)).length < want.length) k++;
+  const head = line.slice(0, k);
+  const open = ['~~', '**'].filter(mark => (head.split(mark).length - 1) % 2).join('');
+  const rest = line.slice(k).replace(/^[\s.,:;!?–—-]+/, '');
+  return rest.replace(/^(\*\*|~~)+$/, '') ? open + rest : '';
 }
 
 // A link chip carries its own icon (CSS: ☑️ task, 📞 contact, 📝 note …), so a

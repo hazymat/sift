@@ -694,7 +694,7 @@ export default {
               ${aim ? `<span class="span-tag" title="Target end date">⚑ ${esc(aim)}</span>` : ''}
               ${t.start_date && t.start_date !== date ? `<span class="span-tag" title="Planned for">📅 ${esc(t.start_date)}</span>` : ''}
             </span>
-            ${first ? `<span class="bring-note muted">${esc(first.replace(/\[([^\]]*)\]\(sift:[^)]*\)/g, '$1'))}</span>` : ''}
+            ${first ? `<span class="bring-note muted">${previewLine(t.notes).html}</span>` : ''}
           </div>
           <span class="review-actions">
             ${onDay.has(t.id) ? '<span class="span-tag">on this day</span>' : `<button type="button" class="primary" data-bring-act="claim">Claim for ${date === isoDate() ? 'today' : 'this day'}</button>`}

@@ -8,10 +8,10 @@ import { cogHtml } from '../viewcog.js';
 import * as store from '../store.js';
 import { linkDetailsInText, unlinkText } from '../refs.js';
 import { readDraft, writeDraft } from '../drafts.js';
-import { titleFrom, cleanLine } from '../summary.js';
+import { titleFrom } from '../summary.js';
 import { SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
-import { toHtml, richText } from '../richtext.js';
+import { toHtml, richText, titleHtml, afterTitle, inlineAll } from '../richtext.js';
 import { addTaskFirst } from '../tasks.js';
 import { askEmptied } from '../ask.js';
 import { pickTask } from '../taskpicker.js';
@@ -180,15 +180,13 @@ export default {
       const firstAt = lines.findIndex(l => l.trim());
       // The title is how the first line starts (often its first sentence): below
       // it, the note carries on from where the title stops, so nothing shows twice.
-      const first = cleanLine(lines[firstAt] || '');
-      const head = title.replace(/…$/, '').trim();
-      const starts = head && first.toLowerCase().startsWith(head.toLowerCase());
-      const after = starts ? first.slice(head.length).replace(/^[\s.,:;!?–—-]+/, '') : '';
+      // (afterTitle keeps that part's formatting; null when the title isn't how the line starts.)
+      const after = afterTitle(t.body, title);
       // (When the title is the whole first line, nothing is left of it: no empty line either.)
-      const rest = starts ? [...(after ? [after] : []), ...lines.slice(firstAt + 1)].join('\n') : t.body;
+      const rest = after !== null ? [...(after ? [after] : []), ...lines.slice(firstAt + 1)].join('\n') : t.body;
       // Compact spacing shows the whole note run together, filling its square (CSS picks).
-      const flat = t.body.split('\n').map(l => cleanLine(l).replace(/\*\*|~~/g, '')).filter(Boolean).join(' ');
-      return `<div class="thought-body hand" data-act="edit"><div class="thought-title">${esc(title)}</div>${rest.trim() ? toHtml(rest) : ''}<div class="thought-flat">${esc(flat)}</div></div>`;
+      // (Title and run-together text keep the note's formatting: richtext.js.)
+      return `<div class="thought-body hand" data-act="edit"><div class="thought-title">${titleHtml(t.body, title)}</div>${rest.trim() ? toHtml(rest) : ''}<div class="thought-flat">${inlineAll(t.body)}</div></div>`;
     }
 
     // How much is in a note decides its card size: s (a jotted number or one
