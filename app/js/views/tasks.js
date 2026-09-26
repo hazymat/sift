@@ -602,7 +602,11 @@ export default {
         const t = task(r.id);
         const fields = {};
         if (places.has(r.id)) fields.rank = places.get(r.id);
-        if (parent !== (t.parent_task_id || null)) fields.parent_task_id = parent;
+        if (parent !== (t.parent_task_id || null)) {
+          fields.parent_task_id = parent;
+          // Out of its task on Now / Next / Later: it joins the list it's on, so it stays in view.
+          if (!parent && LISTS.includes(state.view) && horizonOf(t) !== state.view) fields.horizon = state.view;
+        }
         if (state.project && !parent && ul.querySelector('.list-head[data-milestone]')) {
           const m = milestoneOf.get(r.id) ?? null;
           if (m !== (t.milestone_id || null)) fields.milestone_id = m;
@@ -659,14 +663,9 @@ export default {
     const kitPlain = this.kitPlain = createListKit({ reorder: false, noun: 'task', actions: taskActions });
     // In Task Dump / Now / Next / Later only the order changes: just the moved
     // tasks get a new place (order.js), so tasks on other lists keep theirs.
-    const kitFlat = this.kitFlat = createListKit({ reorder: true, families: true, onNest: (ids, target) => nestUnder(ids, target), noun: 'task', actions: taskActions, onReorder: async (rows, label, ul, moved) => {
-      const task = id => data.tasks.find(x => x.id === id);
-      const writes = reorderWrites(rows, r => rankOf(task(r.id)), moved);
-      const before = writes.map(([r]) => [r.id, { rank: task(r.id)?.rank ?? null }]);
-      await store.updateMany('tasks', writes.map(([r, k]) => [r.id, { rank: k }]));
-      await render();
-      undoable(label, async () => { await store.updateMany('tasks', before); await render(); });
-    } });
+    // Now / Next / Later: the same drag rules as All tasks (sideways, onto a task,
+    // in and out of a task's sub-tasks), with only the moved tasks re-placed.
+    const kitFlat = this.kitFlat = createListKit({ reorder: true, indent: true, maxDepth: 4, onNest: (ids, target) => nestUnder(ids, target), noun: 'task', onReorder: persistOrder, actions: taskActions });
 
         // ---------- editing ----------
 

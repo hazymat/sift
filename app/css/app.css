@@ -2585,7 +2585,7 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
    and its text starts where a task's text does. */
 .task-list > li[data-task] { background: transparent; border: 0; border-radius: 0; box-shadow: none; position: relative; }
 .task-list > li[data-task]::after { content: ''; position: absolute; left: 74px; right: 0; bottom: 0; height: 1px; background: var(--glass-border); pointer-events: none; }
-.task-list > li[data-task]:hover, .task-list > li[data-task]:focus-within { background: color-mix(in srgb, var(--text) var(--line-hover), transparent); border-color: transparent; }
+.task-list > li[data-task]:hover, .task-list > li[data-task]:focus-within { background-color: color-mix(in srgb, var(--text) var(--line-hover), transparent); border-color: transparent; }
 .task-list > li.group-top, .task-list > li.group-kid, .task-list > li.group-kid.group-end { border-radius: 0; }
 .task-list { gap: 0; }
 .task-add-line, .task-add-line:focus-within { padding-left: 40px; gap: 8px; }
@@ -2981,7 +2981,7 @@ a.comment-mark:hover { color: var(--text); }
 .date-quick { display: flex; gap: 10px; margin-top: 2px; }
 .date-quick .linklike { font-size: .8rem; padding: 0; }
 /* Sub-tasks (174): attached to their task, a little smaller, with an arrow. */
-.task-list > li.group-kid::before { content: "↳"; width: auto; background: none; top: .55em; bottom: auto; left: 38px; color: var(--muted); font-size: .9rem; line-height: 1; }
+.task-list > li.group-kid::before { content: "↳"; width: auto; background: none; top: .72em; bottom: auto; left: 38px; color: var(--muted); font-size: .9rem; line-height: 1; }
 .task-list > li[data-depth="2"].group-kid::before { left: 66px; }
 .task-list > li.group-kid .task-title { font-size: .92em; }
 .task-list > li.group-kid.done .task-title { color: var(--muted); }
@@ -3092,3 +3092,11 @@ a.comment-mark:hover { color: var(--text); }
 }
 .pill-menu.comment-menu button { border: 0 !important; background: transparent !important; box-shadow: none !important; border-radius: 10px; padding: 7px 12px; font-size: .9rem; color: var(--text); }
 .pill-menu.comment-menu button:hover, .pill-menu.comment-menu button:focus-visible { background: var(--glass-hover, color-mix(in srgb, var(--text) 10%, transparent)) !important; outline: none; }
+
+/* 201: on Tasks, Alternate shading starts where the ruled line starts (the
+   text column), so each shaded band sits exactly between two rules instead
+   of running out into the margin past them. */
+#main[data-shade="alt"] .task-list > li[data-task]:nth-child(even of li[data-task]) {
+  box-shadow: none;
+  background-image: linear-gradient(to right, transparent 73px, color-mix(in srgb, var(--text) 4.5%, transparent) 73px);
+}

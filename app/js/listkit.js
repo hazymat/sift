@@ -98,6 +98,7 @@ export function createListKit({
 
   // ---------- group drag: the others ride along as a stack ----------
   let carried = [];
+  let liftParent = null; // the row the dragged one was nested under when lifted
   function liftGroup(held, group) {
     const h = held.getBoundingClientRect().height;
     const at = group.indexOf(held);
@@ -168,6 +169,9 @@ export function createListKit({
           ? rows().filter(r => selected.has(r.dataset.id)).flatMap(r => withChildren(r))
           : withChildren(li);
         carried = [...new Set(carried)];
+        // Where it came from: the row it was nested under (for dragging it out).
+        liftParent = null;
+        for (let p = li.previousElementSibling; p; p = p.previousElementSibling) if (p.matches('li[data-id]') && depthOf(p) < depthOf(li)) { liftParent = p; break; }
         if (carried.length > 1) liftGroup(li, carried);
       },
       // While dragging sideways, the row snaps to the depth it will land at
@@ -215,8 +219,15 @@ export function createListKit({
           carried.slice(at + 1).reverse().forEach(r => item.after(r));
         }
         carried = [];
-        const by = indent ? (dx > 30 ? 1 : dx < -30 ? -1 : 0) : 0;
+        let by = indent ? (dx > 30 ? 1 : dx < -30 ? -1 : 0) : 0;
         if (by) shiftDepth(group, by);
+        // A nested row dropped between two top-level rows (and not back under
+        // the row it came from) comes out to the top level: dragged out.
+        if (indent && !by && depthOf(group[0]) > 0) {
+          const prev = [...rows()].slice(0, rows().indexOf(group[0])).reverse().find(r => !group.includes(r));
+          const next = group.at(-1).nextElementSibling?.matches('li[data-id]') ? group.at(-1).nextElementSibling : null;
+          if ((!prev || depthOf(prev) === 0) && (!next || depthOf(next) === 0) && prev !== liftParent) { by = -depthOf(group[0]); shiftDepth(group, by); }
+        }
         // Dropped between a parent and its children (or among them) at a
         // shallower level: it would split the family, so it goes after it.
         if (indent || families) {
