@@ -315,3 +315,7 @@ NOTES['1.23.01'] = [
 NOTES['1.23.02'] = [
   F('The server guide (server/README.md) starts with how accounts and passwords work: creating the first account, adding another person, changing or recovering a password, and removing an account.'),
 ]
+NOTES['1.23.03'] = [
+  B("Brain Dump: in Plan it on a laptop, picking an Estimated time closed the pop-up without planning."),
+  F("Brain Dump: Plan it brings the rest of the note (everything after its first line) into the planned item's note."),
+]
