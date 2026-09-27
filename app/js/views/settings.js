@@ -264,17 +264,21 @@ export default {
             <p class="muted hint">${esc(word('ph_sync_signed_in'))}</p>`;
           return;
         }
-        const remembered = (await store.getDeviceSettings()).server_url;
+        // What was typed in Server and Email stays on this device (like an unsaved note) until it's cleared.
+        const typed = await store.getDeviceSettings();
         if (mine !== drawing) return;
         if (sync.signedIn()) return draw();
+        const { isIOS, isStandalone } = await import('../install.js');
+        const iosApp = isIOS() && isStandalone();
         box.innerHTML = `
           <p class="sync-out-reason" hidden></p>
           <p class="muted">${esc(word('ph_sync_intro'))}</p>
           <div class="settings-grid sync-form">
-            <label class="wide">Server<input name="server" value="${remembered || ''}" placeholder="https://your-server" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" class="no-inline"></label>
-            <label>Email<input name="email" type="email" autocomplete="username" class="no-inline"></label>
+            <label class="wide">Server<input name="server" value="${esc(typed.server_url || '')}" placeholder="https://your-server" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" class="no-inline"></label>
+            <label>Email<input name="email" type="email" value="${esc(typed.sync_email || '')}" autocomplete="username" class="no-inline"></label>
             <label>Password<input name="password" type="password" autocomplete="current-password" class="no-inline"></label>
           </div>
+          <p class="sync-reach" hidden></p>
           <div class="backup-row">
             <button type="button" class="primary" data-sync="in">Sign in</button>
             <button type="button" data-sync="create" hidden>Create account</button>
@@ -284,15 +288,19 @@ export default {
           <div class="trust-cert" hidden>
             <p class="muted">${esc(word('ph_sync_cert'))}</p>
             <div class="trust-row">
-              <a class="button trust-link" target="_blank" rel="noopener">Get the certificate</a>
+              ${iosApp ? '<button type="button" class="primary" data-sync="copy-cert">Get the certificate</button>' : `<a class="button trust-link"${isIOS() ? '' : ' target="_blank" rel="noopener"'}>Get the certificate</a>`}
               <code class="trust-url"></code>
-              <button type="button" data-sync="copy-cert">Copy</button>
             </div>
+            <p class="muted trust-copied" hidden>Copied. Now open <b>Safari</b>, tap the address bar, paste and go. Allow the download, then follow the iPhone steps below.</p>
           </div>
           <details class="trust-help" hidden>
             <summary>Trust this server: the steps for each device</summary>
             <ul class="trust-steps">
-              <li><b>iPhone / iPad:</b> open the certificate address in <b>Safari</b> (not another app; copy it and paste it into Safari's address bar) and allow the download. Then Settings → Profile Downloaded → Install. Then Settings → General → About → Certificate Trust Settings → switch it on. <b>After an iOS update, check that switch again</b>: it can be turned off, and then the app can't reach the server.</li>
+              <li><b>iPhone / iPad:</b> <ol>
+                <li>Get the certificate (above) in <b>Safari</b> and tap <b>Allow</b>.</li>
+                <li>Settings → Profile Downloaded → Install.</li>
+                <li>Settings → General → About → <b>Certificate Trust Settings</b> → switch it on. <b>Installing the profile isn't enough without this switch.</b> After an iOS update, check it again.</li>
+              </ol></li>
               <li><b>Android:</b> download it, then Settings → Security → Encryption &amp; credentials → Install a certificate → CA certificate.</li>
               <li><b>Windows:</b> download it, double-click → Install Certificate → Local Machine → "Trusted Root Certification Authorities". Restart the browser.</li>
               <li><b>Mac:</b> download it, double-click → Keychain Access; open it, choose Trust → "Always Trust".</li>
@@ -310,39 +318,56 @@ export default {
         const reason = box.querySelector('.sync-out-reason');
         if (st.error) { reason.textContent = st.error; reason.hidden = false; }
         const serverInput = box.querySelector('[name="server"]');
+        box.querySelector('[name="email"]').addEventListener('input', ev => store.updateDeviceSettings({ sync_email: ev.target.value.trim() }));
+        // Whether the server answers, and if so whether it takes new accounts (that's when Create account shows).
+        let checking = 0;
         const check = () => {
           const server = serverInput.value.trim();
           const create = box.querySelector('[data-sync="create"]');
-          const note = box.querySelector('#sync-msg');
+          const reach = box.querySelector('.sync-reach');
           const help = box.querySelector('.trust-help');
-          create.hidden = true;
           const cert = box.querySelector('.trust-cert');
+          const mine = ++checking;
+          create.hidden = true;
           help.hidden = true;
           help.open = false;
           cert.hidden = true;
-          note.textContent = '';
+          reach.hidden = true;
           if (!/^https?:\/\/.+/i.test(server)) return;
-          // The certificate's address, from what was typed, shown as soon as there is one.
-          try {
-            const url = `http://${new URL(server).hostname}/sift-ca.crt`;
-            cert.querySelector('.trust-link').href = url;
-            cert.querySelector('.trust-url').textContent = url;
-            cert.hidden = false;
-            help.hidden = false;
-          } catch { /* not a web address yet */ }
+          reach.textContent = 'Looking for the server…';
+          reach.hidden = false;
           sync.serverInfo(server).then(info => {
-            create.hidden = info.registration !== 'open';
-            note.textContent = info.registration === 'open' ? 'This server has no account yet: create yours.' : '';
+            if (mine !== checking) return;
+            const open = info.registration === 'open';
+            create.hidden = !open;
+            reach.textContent = open ? '✓ Server found. It is taking new accounts: sign in, or create an account.'
+              : "✓ Server found. It isn't taking new accounts, so there's no Create account: sign in with an account that already exists. To add a person, the server has to allow new accounts first (sift-admin registration open, see the server guide).";
           }).catch(() => {
-            note.textContent = "Can't reach the server from here (on the right network, and its certificate trusted?)";
-            help.open = true;
+            if (mine !== checking) return;
+            const https = /^https:/i.test(server);
+            reach.textContent = `Can't reach the server. Create account only shows once it can. Check this device is on the same network as the server${https ? (isIOS() ? ", and that the certificate is switched on: Settings → General → About → Certificate Trust Settings (installing the profile isn't enough)" : ', and that it trusts the certificate (below)') : ''}.`;
+            if (!https) return;
+            try {
+              const url = `http://${new URL(server).hostname}/sift-ca.crt`;
+              cert.querySelector('.trust-url').textContent = url;
+              const link = cert.querySelector('.trust-link');
+              if (link) link.href = url;
+              cert.hidden = false;
+              help.hidden = false;
+              help.open = true;
+            } catch { /* not a web address yet */ }
           });
         };
         serverInput.addEventListener('change', check);
-        serverInput.addEventListener('input', () => { clearTimeout(serverInput._t); serverInput._t = setTimeout(check, 600); });
-        box.querySelector('[data-sync="copy-cert"]').addEventListener('click', async () => {
+        serverInput.addEventListener('input', () => {
+          store.updateDeviceSettings({ server_url: serverInput.value.trim() });
+          clearTimeout(serverInput._t);
+          serverInput._t = setTimeout(check, 600);
+        });
+        // In the Home Screen app a link opens a small browser that can't install a profile (a blank page), so it goes through Safari.
+        box.querySelector('[data-sync="copy-cert"]')?.addEventListener('click', async () => {
           const url = box.querySelector('.trust-url').textContent;
-          try { await navigator.clipboard.writeText(url); toast('Copied: paste it into Safari'); } catch { toast(url); }
+          try { await navigator.clipboard.writeText(url); box.querySelector('.trust-copied').hidden = false; } catch { toast(`Open this in Safari: ${url}`); }
         });
         check();
       };
@@ -424,7 +449,7 @@ export default {
           draw();
         } catch (e) {
           b.disabled = false;
-          msg(e instanceof TypeError ? "Can't reach the server from here (on the right network?)" : e.message);
+          msg(e instanceof TypeError ? "Can't reach the server from here (see above)" : e.message);
         }
       });
       draw();

@@ -316,6 +316,11 @@ NOTES['1.23.02'] = [
   F('The server guide (server/README.md) starts with how accounts and passwords work: creating the first account, adding another person, changing or recovering a password, and removing an account.'),
 ]
 NOTES['1.23.03'] = [
+  F('Settings, Sync: the server address and email typed in stay on this device, even before signing in, until they are cleared.'),
+  F('Settings, Sync: says whether the server was found, whether it is taking new accounts (the only time Create account shows), and if it can\'t be reached, the likely reasons.'),
+  F('Settings, Sync: one Get the certificate button. In the iPhone Home Screen app it copies the address to paste into Safari, instead of opening a blank page. The steps say that the certificate has to be switched on under Certificate Trust Settings.'),
+]
+NOTES['1.23.04'] = [
   B("Brain Dump: in Plan it on a laptop, picking an Estimated time closed the pop-up without planning."),
   F("Brain Dump: Plan it brings the rest of the note (everything after its first line) into the planned item's note."),
 ]
