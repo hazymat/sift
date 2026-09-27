@@ -751,7 +751,7 @@ kbd { font: inherit; font-size: .72em; padding: 1px 5px; margin-left: 4px; borde
 .energy button { padding: 4px 12px; font-size: .85rem; }
 .energy button[aria-pressed="true"] { background: var(--active-bg); border-color: var(--active-border); color: var(--text); }
 
-.carry { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 4px 12px; padding: 8px 12px; border-radius: 16px; background: var(--glass); border: 1px dashed var(--active-border); font-size: .9rem; }
+.carry { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 12px; padding: 8px 14px; border-radius: 16px; background: var(--glass); border: 1px dashed var(--active-border); font-size: .9rem; }
 .carry button { padding: 4px 12px; font-size: .85rem; }
 
 .paper {

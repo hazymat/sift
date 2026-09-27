@@ -494,3 +494,7 @@ NOTES['1.32.01'] = [
 NOTES['1.32.02'] = [
   F('Day Planner 👁 menu, Layout: Achievements starts switched off.'),
 ]
+
+NOTES['1.32.03'] = [
+  B('Day Planner: the "unfinished from earlier days" box sat a little indented, not lined up with the down-day box above it.'),
+]
