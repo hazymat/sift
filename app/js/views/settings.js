@@ -732,13 +732,14 @@ export default {
 
     // Backup
     const backup = await import('../backup.js');
+    const { dateTimeText } = await import('../days.js');
     const backupStatus = async () => {
       const last = await backup.lastBackup();
       const overdue = await backup.backupOverdue();
       const p = el.querySelector('#backup-status');
       p.classList.toggle('warn', overdue);
       p.textContent = last
-        ? `Last backup: ${new Date(last).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}.${overdue ? ' ⚠️ Over two weeks ago.' : ''}`
+        ? `Last backup: ${dateTimeText(new Date(last), { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}.${overdue ? ' ⚠️ Over two weeks ago.' : ''}`
         : overdue ? '⚠️ Never backed up, and this device holds the only copy of your data.' : 'Until sync is set up, this device holds the only copy of your data.';
     };
     backupStatus();

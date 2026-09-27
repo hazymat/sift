@@ -15,11 +15,11 @@ import { toast, undoable } from '../toast.js';
 import { openPicker } from '../linkpicker.js';
 import { KINDS as REF_KINDS, openRef } from '../refs.js';
 import { addTask } from '../tasks.js';
-import { isoDate } from '../days.js';
+import { isoDate, dateText } from '../days.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
-const niceDate = iso => (iso ? new Date(`${iso.slice(0, 10)}T12:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
+const niceDate = iso => (iso ? dateText(new Date(`${iso.slice(0, 10)}T12:00`), { day: 'numeric', month: 'short', year: 'numeric' }) : '');
 const DOC = '<svg class="scan-doc" viewBox="0 0 48 48" aria-hidden="true"><path d="M12 4h17l9 9v31H12z"/><path d="M29 4v9h9"/><path d="M18 22h14M18 28h14M18 34h9"/></svg>';
 const COARSE = matchMedia('(pointer: coarse)').matches;
 
@@ -177,17 +177,24 @@ export default {
     }
     input.addEventListener('change', () => take([...input.files]));
 
-    // Files dropped anywhere on the page.
+    // Files dropped anywhere on the page (el is shared by every area: these go when Scans is left).
     const hasFiles = ev => [...(ev.dataTransfer?.types || [])].includes('Files');
-    el.addEventListener('dragover', ev => { if (hasFiles(ev)) { ev.preventDefault(); root.classList.add('drop-over'); } });
-    el.addEventListener('dragleave', ev => { if (!el.contains(ev.relatedTarget)) root.classList.remove('drop-over'); });
+    const signal = gone.signal;
+    signal.addEventListener('abort', () => delete el.dataset.dropHint);
+    el.addEventListener('dragover', ev => {
+      if (!hasFiles(ev)) return;
+      ev.preventDefault();
+      root.classList.add('drop-over');
+      el.dataset.dropHint = state.id ? 'Drop to add pages to this scan' : 'Drop to save each file as a new scan';
+    }, { signal });
+    el.addEventListener('dragleave', ev => { if (!el.contains(ev.relatedTarget)) root.classList.remove('drop-over'); }, { signal });
     el.addEventListener('drop', ev => {
       root.classList.remove('drop-over');
       if (!hasFiles(ev)) return;
       ev.preventDefault();
       pickFor = state.id ? scanOf(state.id) : null;
       take([...ev.dataTransfer.files]);
-    });
+    }, { signal });
 
     // ---------- changes ----------
 

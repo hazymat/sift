@@ -324,8 +324,10 @@ export function enableDrop(root, selector, parentOf, done) {
 // Files dragged over the page anywhere else: a hint at the bottom says where
 // they can go, and a drop that lands elsewhere says so (rather than the browser
 // opening the file in place of Sift). Drop areas (enableDrop) handle their own
-// drops first and mark the event as taken.
+// drops first and mark the event as taken. A page whose drops do something else
+// (Scans, Contracts) says what in data-drop-hint on an element around the pointer.
 export function installFileDrop() {
+  const pageHint = ev => ev.target.closest?.('[data-drop-hint]')?.dataset.dropHint;
   const hasFiles = ev => [...(ev.dataTransfer?.types || [])].includes('Files');
   let hint = null;
   let timer;
@@ -333,15 +335,15 @@ export function installFileDrop() {
     if (on && !hint) {
       hint = document.createElement('div');
       hint.className = 'file-drop-hint';
-      hint.textContent = 'Drop onto a note or item to attach it';
       document.body.append(hint);
     }
-    hint?.classList.toggle('show', on);
+    if (on) hint.textContent = on;
+    hint?.classList.toggle('show', !!on);
   };
   addEventListener('dragover', ev => {
     if (!hasFiles(ev)) return;
     clearTimeout(timer);
-    show(true);
+    show(pageHint(ev) || 'Drop onto a note or item to attach it');
     if (!ev.defaultPrevented) ev.preventDefault(); // so a drop here reaches us (and doesn't open the file)
     timer = setTimeout(() => show(false), 300); // dragover repeats while over the page
   });
@@ -350,6 +352,6 @@ export function installFileDrop() {
     show(false);
     if (ev.defaultPrevented) return;
     ev.preventDefault();
-    toast('Not attached: drop it onto a note or item (or its open panel)');
+    toast(pageHint(ev) ? `Not added: ${pageHint(ev)}` : 'Not attached: drop it onto a note or item (or its open panel)');
   });
 }
