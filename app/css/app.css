@@ -3458,5 +3458,7 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
 #main[data-density="tight"] .task-list > li[data-task]:has(> .edit-pills > .pill-reveal) { flex-wrap: nowrap; }
 #main[data-density="tight"] .task-list > li[data-task]:has(> .edit-pills > .pill-reveal) > .task-title { flex: 1 1 auto; min-width: 0; }
 .task-entry:not(.typed) .task-add-line > .pill-reveal, .task-entry.revealed .task-add-line > .pill-reveal, .task-entry:has(.task-add-line > .pill-reveal):not(.revealed) .task-entry-more { display: none; }
+/* Show additional lines when list is empty (👁 Layout, on unless unticked). */
+#main[data-area="tasks"]:not([data-layout-empty-lines]) .task-entry.is-empty::after { display: none; }
 .layout-opt.layout-sub { padding-left: 26px; }
 .layout-opt:has(input:disabled) { opacity: .45; cursor: default; }

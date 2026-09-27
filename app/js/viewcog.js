@@ -46,7 +46,8 @@ export function lookHtml(area) {
 }
 
 // Layout switches per page (trying out layouts; the labels are rough for now).
-// needs: a switch that only works with another on (greyed out without it).
+// needs: a switch that only works with another on (greyed out without it). def: true for
+// one that starts on.
 const LAYOUTS = {
   tasks: [
     { id: 'new-top', label: 'New task line at the top' },
@@ -56,15 +57,19 @@ const LAYOUTS = {
     { id: 'added-flash', label: 'Highlight item when added' },
     { id: 'pills-hide', label: 'Hide pills behind More (editing / new)' },
     { id: 'more-panel', label: 'More goes straight to the full panel', needs: 'pills-hide' },
+    { id: 'empty-lines', label: 'Show additional lines when list is empty', def: true },
   ],
 };
 const layoutKey = (area, id) => `sift-layout:${area}:${id}`;
 export function layoutOn(area, id) {
   const needs = LAYOUTS[area]?.find(o => o.id === id)?.needs;
   if (needs && !layoutOn(area, needs)) return false;
-  try { return localStorage.getItem(layoutKey(area, id)) === '1'; } catch { return false; }
+  return setOn(area, id);
 }
-const setOn = (area, id) => { try { return localStorage.getItem(layoutKey(area, id)) === '1'; } catch { return false; } };
+function setOn(area, id) {
+  const def = !!LAYOUTS[area]?.find(o => o.id === id)?.def;
+  try { const v = localStorage.getItem(layoutKey(area, id)); return v === null ? def : v === '1'; } catch { return def; }
+}
 export function layoutHtml(area) {
   const opts = LAYOUTS[area];
   if (!opts) return '';
