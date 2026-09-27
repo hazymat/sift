@@ -486,3 +486,7 @@ NOTES['1.32.00'] = [
   F('Day Planner nudges (the ▶ at the current time, the evening section, reminders) moved from Settings to the Day Planner 👁 menu.'),
   F('👁 view settings on every page sync between devices of the same kind: phones with phones, computers with computers. The latest change wins. "Keep this device\'s view separate", at the bottom of each 👁 menu, keeps one device to itself.'),
 ]
+
+NOTES['1.32.01'] = [
+  F('Day Planner 👁 menu, Layout: "Show \"Today\" or \"In 5 days\" under the date" (on to start with).'),
+]
