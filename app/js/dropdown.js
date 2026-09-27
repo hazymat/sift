@@ -38,6 +38,7 @@ function optionEl(o, n) {
   b.setAttribute('role', 'option');
   b.dataset.n = n;
   b.textContent = o.textContent;
+  if (o.style.fontFamily) b.style.fontFamily = o.style.fontFamily; // e.g. a font list shows each font
   if (o.disabled) b.setAttribute('aria-disabled', 'true');
   if (o.selected) b.setAttribute('aria-selected', 'true');
   return b;
