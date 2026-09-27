@@ -1307,12 +1307,14 @@ export default {
     // Hide pills behind More (👁 Layout): a task being edited shows only a More pill, at the right
     // of its name (the row doesn't grow); More shows "Add note" and the pills (and More…, for the
     // whole panel), or with "More goes straight to the full panel" opens the panel. The New task
-    // line the same (it has no panel: More shows its note and pills). revealed: the task shown.
+    // line the same (it has no panel: More shows its note and pills). revealed: the task shown,
+    // until its pills are put away (leaving the task): back in, it's behind More again.
     let revealed = null;
     this.pills = editPills(body, {
       title: '.task-title',
       row: 'li[data-task]',
       key: r => r.dataset.task,
+      closed: id => { if (revealed === id) revealed = null; },
       html: id => {
         const t = data.tasks.find(x => x.id === id);
         if (!t) return '';
