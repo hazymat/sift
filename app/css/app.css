@@ -3403,4 +3403,8 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
 #main .task-list > li[data-task]:has(> .note-in-place) { flex-wrap: wrap; }
 .task-list > li[data-task] > .note-in-place { order: 8; flex: 0 0 calc(100% - var(--title-x, 64px) - var(--sub-ind, 0px)); margin: -4px 0 6px calc(var(--title-x, 64px) + var(--sub-ind, 0px)); min-width: 0; }
 .rich.bare > .md-bar { display: none; }
-.task-list > li[data-task] > .note-in-place .rich-edit { min-height: 1.4em; padding: 2px 0; border: 0; border-radius: 0; box-shadow: none; outline: none; background: transparent; font-size: .9rem; line-height: 1.4; }
+/* A task's note being written (in place, or the New task line's) looks as it
+   does when shown: smaller and fainter than the task's name (in italics in Glass). */
+:is(.task-list > li[data-task] > .note-in-place, #task-new-note) .rich-edit { min-height: 1.4em; padding: 2px 0; border: 0; border-radius: 0; box-shadow: none; outline: none; background: transparent; font-size: .78rem; line-height: 1.5; color: color-mix(in srgb, var(--text) 72%, transparent); }
+:root[data-theme="blue"] :is(.task-list > li[data-task] > .note-in-place, #task-new-note) .rich-edit { font-size: calc(.78rem * .93); font-style: italic; color: color-mix(in srgb, var(--text) 78%, transparent); }
+#task-new-note { margin-bottom: 4px; }
