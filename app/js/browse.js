@@ -13,6 +13,9 @@
 //            Dump, ↑ again goes up into New note, where the arrows are the
 //            note's own until Esc)
 //   Enter    open it: edit it (cursor at the end), or go into it
+//   Alt+Enter  the same, going one level further in: a note opens full
+//            screen (in a note being written, Alt+Enter does that too;
+//            richtext.js). At the top level: a new one, full screen.
 //   Esc      stop browsing. After editing an item, Esc leaves the editing and
 //            the same item is highlighted again; Esc once more stops.
 // A click anywhere, or changing page, stops browsing too.
@@ -34,6 +37,11 @@ const waitFor = (sel, ms = 1500) => new Promise(done => {
   tick();
 });
 const click = el => { el?.click(); return !!el; };
+// After Enter's job: the note now being written, full screen (as its ⤢ does).
+const fullNow = () => {
+  const rich = document.activeElement?.closest?.('.rich');
+  if (rich && !rich.classList.contains('is-full')) rich.querySelector('.md-full')?.click();
+};
 
 // Per area: the search box above the items, the items, what Enter does to one
 // (open), and what ↓ / Enter do at the top level (down / enter).
@@ -121,7 +129,8 @@ export function installBrowse({ busy, area }) {
   const take = ev => { ev.preventDefault(); ev.stopPropagation(); };
 
   addEventListener('keydown', ev => {
-    if (ev.altKey || ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.isComposing) return;
+    const deeper = ev.altKey && ev.key === 'Enter';
+    if ((ev.altKey && !deeper) || ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.isComposing) return;
     if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Escape'].includes(ev.key)) return;
     const c = cfg();
     if (!c) return;
@@ -139,7 +148,7 @@ export function installBrowse({ busy, area }) {
     if (on) {
       if (ev.key === 'Escape') { take(ev); stop(); return; }
       const cur = current(c);
-      if (ev.key === 'Enter') { if (cur) { take(ev); c.open?.(cur); } return; }
+      if (ev.key === 'Enter') { if (cur) { take(ev); Promise.resolve(c.open?.(cur)).then(() => { if (deeper) setTimeout(fullNow, 50); }); } return; }
       take(ev);
       if (!cur) { if (list[0]) go(list[0]); return; }
       if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') {
@@ -162,7 +171,7 @@ export function installBrowse({ busy, area }) {
       else if (list[0]) { go(list[0]); done = true; }
       else done = !!c.enter?.();
       if (done) take(ev);
-    } else if (ev.key === 'Enter' && c.enter?.()) take(ev);
+    } else if (ev.key === 'Enter' && c.enter?.()) { take(ev); if (deeper) fullNow(); }
   }, true);
 
   addEventListener('pointerdown', () => { if (on) stop(); }, true);

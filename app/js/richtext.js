@@ -560,6 +560,21 @@ export function richText(container, { value = '', onChange, placeholder = '', or
   };
   edit.addEventListener('keydown', finishOnCtrlEnter);
   raw.addEventListener('keydown', finishOnCtrlEnter);
+  // Alt+Enter goes in one level: writing in a note → the note full screen
+  // (Esc comes back out). Already full screen: nothing more to go into.
+  function goFull() {
+    unspotlight(container);
+    openFull(container, { label: fullLabel() });
+    if (!container.contains(document.activeElement)) placeCaretAtEnd();
+  }
+  const altEnter = ev => {
+    if (ev.key !== 'Enter' || !ev.altKey || ev.ctrlKey || ev.metaKey || ev.shiftKey) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    if (!isFull(container)) goFull();
+  };
+  edit.addEventListener('keydown', altEnter);
+  raw.addEventListener('keydown', altEnter);
   // Esc steps out one level at a time: a menu of the note's own first, then
   // the note itself (leaving it saves it, as clicking away does). Whatever
   // holds the note (a panel, say) waits for the next Esc. Full screen has its
@@ -772,7 +787,7 @@ export function richText(container, { value = '', onChange, placeholder = '', or
     }
     if (b.classList.contains('md-full')) {
       if (isFull(container)) { closeFull({ blur: false }); spotlight(container); edit.focus(); }
-      else { unspotlight(container); openFull(container, { label: fullLabel() }); if (!container.contains(document.activeElement)) placeCaretAtEnd(); }
+      else goFull();
       return;
     }
     if (b.dataset.size) { if (!rawMode) { edit.focus(); setSize(Number(b.dataset.size)); } return; }
