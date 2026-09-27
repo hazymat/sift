@@ -380,3 +380,7 @@ NOTES['1.26.02'] = [
 NOTES['1.26.03'] = [
   B('On a phone, opening More put the cursor in Search everything, so the keyboard came up and covered the bottom of the list. Tap the box to search.'),
 ]
+
+NOTES['1.26.04'] = [
+  B('On an iPhone, tapping into a note or a small text box zoomed the page in. Text you type into is now big enough on touch screens that the page stays put.'),
+]
