@@ -42,12 +42,11 @@ export function energyPill(value) {
   return `<button type="button" class="entry-chip${e ? ' set' : ''}" data-chip="energy" data-pill-act="energy" aria-haspopup="menu">${e ? e.bolts : '⚡'} <span class="chip-text">${esc(e ? e.label : 'Energy')}</span></button>`;
 }
 // The date goes in data-value, not value (fillDates puts it in), so Reset in the
-// iPhone picker empties it. A set date gets a Remove pill after it (change() gets
-// the name with value '').
+// iPhone picker empties it. The picker's Clear / Reset removes a set date (change()
+// gets the name with value '').
 export function datePill(name, label, glyph, value, shown) {
   return `<label class="entry-chip${value ? ' set' : ''}" data-chip="${name}">${glyph} <span class="chip-text">${esc(value ? shown(value) : label)}</span>`
-    + `<input type="date" data-pill="${name}" data-value="${esc(value || '')}" data-sent="${esc(value || '')}" aria-label="${esc(label)}"></label>`
-    + (value ? `<button type="button" class="entry-chip pill-remove" data-pill-clear="${name}" aria-label="Remove ${esc(label)}">✕ Remove</button>` : '');
+    + `<input type="date" data-pill="${name}" data-value="${esc(value || '')}" data-sent="${esc(value || '')}" aria-label="${esc(label)}"></label>`;
 }
 export const fillDates = box => { for (const d of box.querySelectorAll('input[type="date"][data-value]')) d.value = d.dataset.value; };
 // On touch screens a date is only saved when the picker is closed (the field
@@ -139,8 +138,6 @@ export function editPills(root, spec) {
     if (!pills) return;
     const d = ev.target.closest('input[type="date"]');
     if (d) { try { d.showPicker(); } catch { /* the tap opens it */ } return; }
-    const clear = ev.target.closest('[data-pill-clear]');
-    if (clear) { ev.stopPropagation(); spec.change(pills.dataset.key, clear.dataset.pillClear, ''); return; }
     const act = ev.target.closest('[data-pill-act]');
     if (act) { ev.stopPropagation(); spec.change(pills.dataset.key, act.dataset.pillAct, null); return; }
     if (ev.target.closest('[data-pill-more]')) {

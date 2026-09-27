@@ -468,3 +468,7 @@ NOTES['1.30.00'] = [
 NOTES['1.30.01'] = [
   F('Tasks without the lined paper: 15px between the New task box and the tasks under it.'),
 ]
+
+NOTES['1.30.02'] = [
+  F('Date pills (Plan for day, Target end date and others): no Remove pill after a set date; the date picker clears it.'),
+]
