@@ -2717,6 +2717,18 @@ select.dd-open, .dd-open > select { outline: none; }
 
 /* Day focus and Energy side by side only while both texts fit (planner.js alignHeads). */
 .focus-row.stacked .energy { flex-basis: 100%; }
+/* Achievements (👁 Layout): its own line under Day focus and Energy, labelled the
+   same way, in the page's ink. Day focus and Energy can each be hidden (👁 Layout). */
+.focus-row .achieve { flex: 1 1 100%; display: flex; align-items: center; gap: 12px; min-width: 0; }
+.focus-row .achieve[hidden] { display: none; }
+.planner.docked .focus-row .achieve { grid-column: 1 / -1; padding-left: 4px; }
+.achieve .hand-label { flex: none; color: var(--ink); }
+.achieve-text { font-weight: 700; font-size: 1.15rem; color: var(--ink); padding: 4px 6px; }
+#main[data-area="planner"]:not([data-layout-focus]) .focus-row > .focus, #main[data-area="planner"]:not([data-layout-energy]) .focus-row > .energy { display: none; }
+/* Nudges in the Day Planner's 👁 menu: the evening section's name sits under its switch. */
+.nudge-opts .nudge-text { margin: 0 0 4px 26px; width: calc(100% - 26px); font-size: .85rem; padding: 3px 8px; }
+/* "Keep this device's view separate": last in every 👁 menu, set apart by a line. */
+.view-separate { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--vm-line); }
 
 /* The ⋯ (Details) button at the end of a line, like the ⠿ handle: hidden until
    the pointer is anywhere on the line (or you're in it, or its panel is open).

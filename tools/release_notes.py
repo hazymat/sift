@@ -476,6 +476,13 @@ NOTES['1.30.02'] = [
 NOTES['1.30.03'] = [
   B('Day Planner on a wide screen: the down-day line ("Sunday is a down day...") dropped to the bottom, under the schedule.'),
 ]
+
 NOTES['1.31.00'] = [
   F('Sharing between accounts on the same sync server. A list (👥 Share on the list), a note (⋯ → Share with someone) or the Day Planner (Share menu: this day, this week or the whole diary) can be shared by the other person\'s sign-in email. They get an invitation and accept it in the same area; after that you both see and change it. Things shared with you stay apart from your own: Lists has a Shared with me section, Brain Dump a filter for each person, and the Day Planner\'s Share menu shows their day, with a note saying whose it is. The person who shared can remove someone or stop sharing (it stays theirs); anyone it\'s shared with can leave. Needs the updated server.'),
+]
+
+NOTES['1.32.00'] = [
+  F('Day Planner 👁 menu, Layout: switches for Achievements, Day focus and Energy (all on to start with). Achievements is a line under Day focus and Energy, labelled the same way, once anything is done: "Three and counting", then bigger praise from 6 and from 11, and it says so when everything is done. It replaces "You did 6 things".'),
+  F('Day Planner nudges (the ▶ at the current time, the evening section, reminders) moved from Settings to the Day Planner 👁 menu.'),
+  F('👁 view settings on every page sync between devices of the same kind: phones with phones, computers with computers. The latest change wins. "Keep this device\'s view separate", at the bottom of each 👁 menu, keeps one device to itself.'),
 ]
