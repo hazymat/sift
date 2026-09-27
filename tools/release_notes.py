@@ -502,3 +502,7 @@ NOTES['1.32.03'] = [
 NOTES['1.32.04'] = [
   F('Sharing keeps one copy: something shared lives only in its share on the server, not in your own records as well, and goes back into your own records if you stop sharing it.'),
 ]
+
+NOTES['1.32.05'] = [
+  F('Day Planner 👁 menu, Layout: "Show unfinished items from earlier days" (off to start with).'),
+]

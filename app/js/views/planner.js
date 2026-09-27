@@ -372,7 +372,7 @@ export default {
     });
     $('.view-menu').addEventListener('keydown', ev => { if (ev.key === 'Enter' && ev.target.dataset.nudgeText) ev.target.blur(); });
     // A 👁 Layout switch changed (here or on another device): Achievements follows it.
-    document.addEventListener('sift-layout', ev => { if (ev.detail?.area === 'planner') didThings(); }, page);
+    document.addEventListener('sift-layout', ev => { if (ev.detail?.area === 'planner') { didThings(); renderCarry(); } }, page);
     $('.view-menu').addEventListener('click', async ev => {
       const b = ev.target.closest('[data-view-paper], [data-view-slot], [data-view-layout]');
       if (!b) return;
@@ -708,7 +708,7 @@ export default {
     async function renderCarry() {
       const carry = await unfinishedBefore(date);
       const box = $('.carry');
-      box.hidden = !carry.length || date < isoDate();
+      box.hidden = !layoutOn('planner', 'carry') || !carry.length || date < isoDate(); // 👁 Layout, off to start with
       if (!box.hidden) {
         box.innerHTML = `<span>${carry.length} unfinished from earlier days</span>
           <button type="button" data-act="review">Go through them</button>`;
