@@ -231,8 +231,8 @@ async function pullShares() {
       for (const row of page.records) {
         const { c, r } = await cx.openJson(sh.keys, row.ciphertext);
         if (!store.COLLECTIONS.includes(c) || !r?.id) continue;
-        const onward = sh.mine ? ['personal', ...routes(space, c, r).filter(id => id !== sh.id)] : null;
-        if (await space.applyRemote(c, r, row.seq, sh.id, onward)) changed++;
+        const onward = sh.mine ? routes(space, c, r).filter(id => id !== sh.id) : [];
+        if (await space.applyRemote(c, r, row.seq, sh.id, onward.length ? onward : null)) changed++;
       }
       since = seqs[sh.id] = page.last_seq;
       await store.metaSet('share_seqs', seqs);
@@ -242,8 +242,9 @@ async function pullShares() {
   return changed;
 }
 
-// Where a record goes on the server: 'personal' (your own records) and/or the
-// ids of the shares it belongs to.
+// The shares a record belongs to (by id). A shared record is kept only in its
+// share on the server, not in your own records as well: one copy, which
+// everyone it's shared with works on.
 const IN_SCOPE = {
   list: (info, c, r) => (c === 'lists' && r.id === info.id) || (c === 'list_items' && r.list_id === info.id),
   note: (info, c, r) => c === 'thoughts' && r.id === info.id,
@@ -254,8 +255,8 @@ function routes(space, c, r) {
   return shares.filter(sh => sh.accepted && (space.isLocal ? sh.mine : !sh.mine && space === store.spaceOf(sh.owner_id)) && inShare(sh, c, r)).map(sh => sh.id);
 }
 
-// Push every space's outbox: your own to your records and your shares,
-// others' to the shares they came from. A conflict is merged and pushed
+// Push every space's outbox: your own to your records, or to its shares if
+// it's shared; others' to the shares they came from. A conflict is merged and pushed
 // again next round.
 async function push() {
   const spaces = [store.local, ...new Set(shares.filter(sh => sh.accepted && !sh.mine).map(sh => store.spaceOf(sh.owner_id)))];
@@ -275,9 +276,10 @@ async function pushSpace(space) {
     for (const e of entries.slice(i, i + 200)) {
       const rec = await space.get(e.collection, e.id, { includeDeleted: true });
       if (!rec) { await space.markPushed(e.collection, e.id, {}, e.queued_at); continue; }
-      const valid = [...(space.isLocal ? ['personal'] : []), ...routes(space, e.collection, rec)];
-      const places = e.places ? e.places.filter(p => valid.includes(p) || (space.isLocal && shares.some(sh => sh.id === p && sh.mine && sh.accepted))) : valid;
-      results.set(e.id, { e, seqs: {}, conflicted: false });
+      const inShares = routes(space, e.collection, rec);
+      const valid = space.isLocal && !inShares.length ? ['personal'] : inShares;
+      const places = e.places ? e.places.filter(p => valid.includes(p)) : valid;
+      results.set(e.id, { e, rec, places, seqs: {}, conflicted: false });
       for (const place of places) {
         if (!byPlace.has(place)) byPlace.set(place, []);
         byPlace.get(place).push({ e, rec });
@@ -306,6 +308,12 @@ async function pushSpace(space) {
         results.get(meta.get(c.record_id).id).conflicted = true;
         conflicts++;
       }
+    }
+    // Now in a share: the old copy in your own records goes (one copy only).
+    const moved = [...results.values()].filter(x => space.isLocal && !x.conflicted && x.rec._server_seq && x.places.length && !x.places.includes('personal'));
+    if (moved.length) {
+      await api('POST', '/api/sync/forget', { record_ids: await Promise.all(moved.map(x => cx.opaqueId(keys, x.e.collection, x.e.id))) });
+      for (const x of moved) x.seqs.personal = 0;
     }
     for (const { e, seqs, conflicted } of results.values()) await space.markPushed(e.collection, e.id, seqs, e.queued_at, !conflicted);
   }
@@ -415,8 +423,17 @@ export async function shareWith(info, email) {
 export async function acceptShare(id) { await api('POST', `/api/shares/${id}/accept`); await refreshShares(); return syncNow(); }
 // Decline an invitation, leave a share, or (the owner) take someone out.
 export async function leaveShare(id, userId = account.user_id) { await api('DELETE', `/api/shares/${id}/members/${userId}`); await refreshShares(); }
-// Stop sharing: it stays yours; everyone else loses it.
-export async function stopSharing(id) { await api('DELETE', `/api/shares/${id}`); await refreshShares(); }
+// Stop sharing: it stays yours (back into your own records); everyone else loses it.
+export async function stopSharing(id) {
+  const sh = shares.find(x => x.id === id);
+  for (const c of ['lists', 'list_items', 'thoughts', 'days', 'day_items']) {
+    const ids = (await store.local.list(c, { includeDeleted: true })).filter(r => sh && inShare(sh, c, r)).map(r => r.id);
+    if (ids.length) await store.local.queue(c, ids, null);
+  }
+  await api('DELETE', `/api/shares/${id}`);
+  await refreshShares();
+  syncNow();
+}
 export async function loadShares() { if (account && keys) { try { await refreshShares(); } catch (e) { console.warn('Shares not checked:', e.message); } } }
 
 // ---------- attachment files ----------

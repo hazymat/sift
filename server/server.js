@@ -466,6 +466,15 @@ const routes = {
 
   'GET /api/sync/pull': ({ req, query }) => pullFrom(PERSONAL, authed(req).user_id, query),
 
+  // Records that now live in a share: their old copy in the account's own records goes.
+  'POST /api/sync/forget': ({ req, body }) => {
+    const dev = authed(req);
+    const ids = Array.isArray(body.record_ids) ? body.record_ids.filter(x => typeof x === 'string').slice(0, 2000) : [];
+    const del = db.prepare('DELETE FROM records WHERE user_id = ? AND record_id = ?');
+    for (const rid of ids) del.run(dev.user_id, rid);
+    return { ok: true, forgotten: ids.length };
+  },
+
   'GET /api/usage': ({ req }) => {
     const dev = authed(req);
     return { bytes: usage(dev.user_id), quota: QUOTA };

@@ -498,3 +498,7 @@ NOTES['1.32.02'] = [
 NOTES['1.32.03'] = [
   B('Day Planner: the "unfinished from earlier days" box sat a little indented, not lined up with the down-day box above it.'),
 ]
+
+NOTES['1.32.04'] = [
+  F('Sharing keeps one copy: something shared lives only in its share on the server, not in your own records as well, and goes back into your own records if you stop sharing it.'),
+]
