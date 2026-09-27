@@ -132,13 +132,6 @@ export async function setCustomTheme(changes) {
   await store.updateSettings({ custom_theme: custom });
 }
 
-// A colour being dragged in the Custom theme editor: shown, not saved yet.
-export function previewCustom(key, value) {
-  if (!customCss) return;
-  const values = Object.assign({}, custom.values, { [key]: value });
-  document.getElementById('custom-theme-css').textContent = customCss.css(values);
-}
-
 // Custom, started from the theme in use so nothing changes until something is picked.
 export async function openCustomTheme() {
   if (theme !== 'custom') {
@@ -149,7 +142,7 @@ export async function openCustomTheme() {
     if (!saved) await store.updateSettings({ custom_theme: custom });
   }
   await customStyle();
-  customCss.openEditor({ app: { THEMES, customTheme, setCustomTheme, previewCustom }, store });
+  customCss.openEditor({ app: { THEMES, customTheme, setCustomTheme }, paper: (await (await import('./days.js')).daySettings()).paper_style });
 }
 
 // ---------- hints ----------

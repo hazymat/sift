@@ -525,3 +525,9 @@ NOTES['1.32.09'] = [
 NOTES['1.33.00'] = [
   F('Custom theme: choose Custom in Settings → Appearance to set your own fonts and colours, section by section (Whole app, Top and bottom bars, Brain Dump, Tasks, Day Planner, Lists and the rest). It starts from the theme you were using, so nothing changes until you pick something. Fonts include the handwriting used for Schedule times on the Sift test site. "Change fonts and colours" under the theme opens it again.'),
 ]
+NOTES['1.34.00'] = [
+  F('Custom theme is a visual editor: each section (Whole app, the bars, Brain Dump, Tasks, the Day Planner and the rest) is shown as a sample page. Point at anything and it is outlined; press it to change its colour or font. Everything is also listed under "Everything in …".'),
+  F('Custom theme colours can be see-through, and the Whole app background sets how frosted the panels look.'),
+  F('Custom theme font lists show each font in its own lettering.'),
+  F('Custom theme: a colour that would make writing hard to read is put back, with a message saying which colour it went back to.'),
+]

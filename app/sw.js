@@ -15,6 +15,7 @@ const SHELL = [
   'js/colours.js',
   'js/comments.js',
   'js/customtheme.js',
+  'js/thememocks.js',
   'js/typesheet.js',
   'js/noteundo.js',
   'js/repeat.js',
