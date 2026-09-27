@@ -3410,10 +3410,11 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
 .rich.bare > .md-bar { display: none; }
 .rich.bare > .bare-full { display: flex; align-items: center; gap: 5px; width: fit-content; margin: 6px 0 6px auto; padding: 4px 12px; font-size: .78rem; line-height: 1.3; border: 1px solid var(--glass-border); border-radius: var(--radius-pill, 999px); cursor: pointer; }
 .rich.is-full > .bare-full { display: none; }
-/* A task's note being written (in place, or the New task line's) looks as it
-   does when shown: smaller and fainter than the task's name (in italics in Glass). */
-:is(.task-list > li[data-task] > .note-in-place, #task-new-note):not(.is-full) .rich-edit { min-height: 1.4em; padding: 2px 0; border: 0; border-radius: 0; box-shadow: none; outline: none; background: transparent; font-size: .78rem; line-height: 1.5; color: color-mix(in srgb, var(--text) 72%, transparent); }
-:root[data-theme="blue"] :is(.task-list > li[data-task] > .note-in-place, #task-new-note):not(.is-full) .rich-edit { font-size: calc(.78rem * .93); font-style: italic; color: color-mix(in srgb, var(--text) 78%, transparent); }
+/* A task's note being written (in place, or the New task line's): the size of "Add note", a
+   little fainter than the task's name (in italics in Glass); "Add note" faint until typed over. */
+:is(.task-list > li[data-task] > .note-in-place, #task-new-note):not(.is-full) .rich-edit { min-height: 1.4em; padding: 2px 0; border: 0; border-radius: 0; box-shadow: none; outline: none; background: transparent; font-size: .9rem; line-height: 1.4; color: color-mix(in srgb, var(--text) 85%, transparent); }
+:root[data-theme="blue"] :is(.task-list > li[data-task] > .note-in-place, #task-new-note):not(.is-full) .rich-edit { font-style: italic; color: color-mix(in srgb, var(--text) 88%, transparent); }
+:is(.task-list > li[data-task] > .note-in-place, #task-new-note):not(.is-full) .rich-edit.is-empty::before { font-style: normal; opacity: .7; }
 #task-new-note { margin-bottom: 4px; }
 
 /* iPhone zooms the page into any field whose text is under 16px when it's tapped.
@@ -3455,7 +3456,7 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
 #main:not([data-density="tight"]) .task-list > li[data-task]:has(> .edit-pills > .pill-reveal) > .more { order: 3; }
 #main:not([data-density="tight"]) .task-list > li[data-task]:has(> .edit-pills > .pill-reveal) > .item-sub { order: 4; }
 .edit-pills:has(> .pill-reveal) > :not(.pill-reveal) { display: none; }
-#main[data-density="tight"] .task-list > li[data-task]:has(> .edit-pills > .pill-reveal) { flex-wrap: nowrap; }
+#main[data-density="tight"] .task-list > li[data-task]:has(> .edit-pills > .pill-reveal):not(:has(> .note-in-place)) { flex-wrap: nowrap; }
 #main[data-density="tight"] .task-list > li[data-task]:has(> .edit-pills > .pill-reveal) > .task-title { flex: 1 1 auto; min-width: 0; }
 .task-entry:not(.typed) .task-add-line > .pill-reveal, .task-entry.revealed .task-add-line > .pill-reveal, .task-entry:has(.task-add-line > .pill-reveal):not(.revealed) .task-entry-more { display: none; }
 /* Show additional lines when list is empty (👁 Layout, on unless unticked). */
@@ -3506,3 +3507,19 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
 .task-list > li.ticked-away.closing > .done-note { display: none; }
 .task-list > li.ticked-away .tree > i { transition: opacity var(--fade, 6s) linear; }
 .task-list > li.ticked-away.fading .tree > i { opacity: 0; }
+
+/* Share pill in every area, left of 👁 and ⋯ (the Day Planner's look). */
+.page-share { margin-left: auto; flex: none; }
+.page-share + .page-cog { margin-left: 4px; }
+.page-share summary { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: var(--radius-pill); border: 1px solid var(--glass-border); background: var(--glass); }
+.page-share .icon { width: 18px; height: 18px; }
+.day-nav .view-menu { margin-left: 2px; }
+@media (max-width: 560px) { .page-share summary { padding: 6px 10px; } }
+/* More pressed on a task with a note: the note in full under the name; its small preview steps aside. */
+.task-list .edit-pills .note-shown { flex: 1 0 100%; order: -1; margin: -4px 0 2px; cursor: text; font-size: .9rem; line-height: 1.4; color: var(--muted); white-space: normal; padding: 2px 0; }
+.task-list .edit-pills .note-shown > :first-child { margin-top: 0; }
+.task-list .edit-pills .note-shown > :last-child { margin-bottom: 0; }
+#main[data-density="tight"] .task-list > li[data-task]:has(.edit-pills .note-shown) > .item-sub .task-note { display: none; }
+#main:not([data-density="tight"]) .task-list .edit-pills .note-shown { display: none; } /* medium and loose show the note already */
+@media (max-width: 560px) { .page-share summary { font-size: 0; gap: 0; padding: 6px 10px; } .page-share summary .icon { font-size: 1rem; } }
+.task-list > li[data-task]:has(> .note-in-place) > .item-sub .task-note { display: none; }

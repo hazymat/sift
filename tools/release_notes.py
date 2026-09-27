@@ -453,3 +453,14 @@ NOTES['1.29.00'] = [
   F('Tasks: a task ticked off shows "⏳ Transferring to Done list" while it fades (untick it to keep it).'),
   F('Tasks: Shift+Enter presses More (with Hide pills behind More), shown on the pill.'),
 ]
+
+NOTES['1.30.00'] = [
+  F('A Share pill (like the Day Planner\'s) on Brain Dump, Tasks, Lists, Places, Contacts, Scans and Contracts, left of 👁 and ⋯: copies what the page shows as plain text, rich text or for WhatsApp.'),
+  F('Keys with nothing picked and nothing being typed in: V opens 👁, S opens Share, . (full stop) opens the page\'s ⋯. Esc closes it again.'),
+  F('Ctrl+Space ticks or unticks the item being edited or picked (tasks, list items, the Day Planner).'),
+  F('Day Planner: 👁 moves up, right of Share. The down-day line ("Sunday is a down day...") sits under Day Focus and Energy.'),
+  F('Tasks with Hide pills behind More: More (Shift+Enter) also shows the task\'s note, and Enter in the name then goes into it (or into Add note).'),
+  F('Tasks: ↑ / ↓ in a task\'s name go straight to the task above / below.'),
+  F('Tasks: Add note keeps its size and its faint "Add note" once clicked, until you type.'),
+  B('Tasks in Compact spacing: going into a note squashed the task\'s name to nothing.'),
+]

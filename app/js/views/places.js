@@ -3,6 +3,7 @@
 // out again. Search across all life areas, CSV import/export.
 
 import { cogHtml } from '../viewcog.js';
+import { shareHtml } from '../share.js';
 import { loadTree, search, importCsv, exportCsv, archivedMatchCount, splitQuantity } from '../places.js';
 import { richText, previewLine } from '../richtext.js';
 import { debounced } from '../autosave.js';
@@ -54,8 +55,9 @@ export default {
         </div>
         <div class="find-tools">
           <div class="segmented" id="editions" role="tablist" aria-label="Life areas"></div>
+          ${shareHtml()}
           ${cogHtml('places')}
-          <details class="tool-menu">
+          <details class="tool-menu page-more">
             <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
             <div class="menu">
               <button type="button" data-act="add-box">Add box</button>

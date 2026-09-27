@@ -7,6 +7,7 @@ import { installSearchClear } from './searchclear.js';
 import { installFlash } from './flash.js';
 import { mountSearch } from './search.js';
 import { installViewCog } from './viewcog.js';
+import { installShare } from './share.js';
 import { installDropdowns, installMenuFlip } from './dropdown.js';
 import { installFileDrop } from './attachments.js';
 import { flushAll } from './autosave.js';
@@ -357,6 +358,15 @@ async function boot() {
   // close Sift there without warning, so anything waiting to save goes in now.
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushAll(); });
   addEventListener('pagehide', () => flushAll());
+  // Ctrl+Space ticks or unticks the item being edited or picked (tasks, list items, the planner).
+  addEventListener('keydown', ev => {
+    if (ev.key !== ' ' || !ev.ctrlKey || ev.altKey || ev.metaKey || ev.shiftKey) return;
+    const row = document.activeElement?.closest?.('li, .line') || document.querySelector('.kb-cur');
+    const tick = row?.querySelector('input.tick:not(:disabled)');
+    if (!tick) return;
+    ev.preventDefault();
+    tick.click();
+  }, true);
   // Esc closes an open ⋯ / 👁 menu (or the top bar's More) before anything else.
   addEventListener('keydown', ev => {
     if (ev.key !== 'Escape') return;
@@ -365,7 +375,7 @@ async function boot() {
     ev.preventDefault();
     ev.stopPropagation();
     menu.removeAttribute('open');
-    menu.querySelector('summary')?.focus();
+    if (menu.dataset.byKey) { delete menu.dataset.byKey; document.activeElement?.blur(); } else menu.querySelector('summary')?.focus();
   }, true);
   // Esc with nothing left to step out of (nothing being typed in, no menu,
   // panel or selection to close: anything that took the Esc says so with
@@ -419,6 +429,7 @@ async function boot() {
     });
   }
   applyDensity = installViewCog(() => current);
+  installShare(() => current);
   installKeyNav();
   // A dropdown menu opens inside the screen: flipped to the other side if
   // it would run off the left or right edge.

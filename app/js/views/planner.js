@@ -54,7 +54,7 @@ export default {
         <button type="button" data-act="today">Today</button>
         <button type="button" data-act="next" class="day-step" aria-label="Next day"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
         <details class="tool-menu share-menu">
-          <summary class="share-btn" role="button"><svg class="icon" aria-hidden="true"><use href="#i-share"/></svg> Share</summary>
+          <summary class="share-btn" role="button" title="Share (S)"><svg class="icon" aria-hidden="true"><use href="#i-share"/></svg> Share</summary>
           <div class="menu">
             <button type="button" disabled title="Coming later: share and merge your day with someone">Link day plan with another person</button>
             <hr>
@@ -63,12 +63,15 @@ export default {
             <button type="button" data-share="whatsapp">Copy to clipboard – WhatsApp</button>
           </div>
         </details>
+        <details class="tool-menu view-menu">
+          <summary class="icon-btn" aria-label="View settings for this day" title="View settings for this day"><svg class="icon" aria-hidden="true"><use href="#i-view"/></svg></summary>
+          <div class="menu view-settings"></div>
+        </details>
       </div>
       <header class="day-head">
         <h1 class="day-title"><span class="weekday"></span> <span class="date"></span></h1>
         <p class="day-rel muted"></p>
         <p class="did-things" hidden></p>
-        <div class="down-day" hidden></div>
         <div class="down-day over-plan" hidden></div>
         <div class="focus-row">
         <label class="focus"><span class="hand-label">${esc(word('day_focus'))}</span><input id="focus" placeholder="${esc(word('day_focus_prompt'))}" autocomplete="off"></label>
@@ -79,13 +82,10 @@ export default {
             ${ENERGY.map(e => `<button type="button" class="bolts" data-energy="${e.id}" title="${esc(`${e.label}: ${e.hint}`)}" aria-label="${e.label}">${e.bolts}</button>`).join('')}
             <button type="button" data-energy="none" title="No energy level" aria-label="No energy level">✕</button>
           </div>
-          <details class="tool-menu view-menu">
-            <summary class="icon-btn" aria-label="View settings for this day" title="View settings for this day"><svg class="icon" aria-hidden="true"><use href="#i-view"/></svg></summary>
-            <div class="menu view-settings"></div>
-          </details>
         </div>
         </div>
       </header>
+      <div class="down-day down-note" hidden></div>
       <div class="carry" hidden></div>
       <h2 class="schedule-title section-title">${esc(word('day_schedule'))}</h2>
       <section class="paper" aria-label="Plan"><div id="lines"></div></section>
@@ -356,8 +356,8 @@ export default {
       $('.day-rel').textContent = diff === 0 ? 'Today' : diff === 1 ? 'Tomorrow' : diff === -1 ? 'Yesterday'
         : diff > 0 ? `In ${diff} days` : `${-diff} days ago`;
       const down = settings.hint_down_day && settings.down_days.includes(d.getDay());
-      $('.down-day').hidden = !down;
-      $('.down-day').textContent = down
+      $('.down-note').hidden = !down;
+      $('.down-note').textContent = down
         ? `${WEEKDAYS[d.getDay()]} is a down day. Pick one or two things; rest counts as part of the plan.` : '';
       $('#focus').value = day.focus || '';
       for (const b of el.querySelectorAll('[data-energy]')) b.setAttribute('aria-pressed', b.dataset.energy === day.energy);
