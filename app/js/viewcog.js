@@ -3,7 +3,9 @@
 // and on pages with lists of things a Look: Original, Multicolour (each item
 // in its own soft colour) and/or Alternate shading (every other item a touch
 // darker). The look is remembered the same way and put on <main data-shade>.
-// Pages can add their own sections above it.
+// Pages can add their own sections above it. Some pages have a Layout: on /
+// off switches (all off by default), remembered the same way, put on <main> as
+// data-layout-<id> and announced with a "sift-layout" event on document.
 //
 //   cogHtml(extraSectionsHtml)   the 👁 view button and its menu, for a page header
 //   spacingHtml(area)            just the Spacing section (the Day Planner adds
@@ -43,6 +45,28 @@ export function lookHtml(area) {
     </div>`;
 }
 
+// Layout switches per page (trying out layouts; the labels are rough for now).
+const LAYOUTS = {
+  tasks: [
+    { id: 'new-top', label: 'New task line at the top' },
+    { id: 'new-focus', label: 'Start typing a new task on arriving' },
+    { id: 'add-top', label: 'New tasks added at the top' },
+    { id: 'margin', label: 'Show margin' },
+  ],
+};
+const layoutKey = (area, id) => `sift-layout:${area}:${id}`;
+export function layoutOn(area, id) {
+  try { return localStorage.getItem(layoutKey(area, id)) === '1'; } catch { return false; }
+}
+export function layoutHtml(area) {
+  const opts = LAYOUTS[area];
+  if (!opts) return '';
+  return `<h4>Layout</h4>
+    <div class="layout-opts" role="group" aria-label="Layout">
+      ${opts.map(o => `<label class="layout-opt"><input type="checkbox" data-layout-set="${o.id}"${layoutOn(area, o.id) ? ' checked' : ''}> ${o.label}</label>`).join('')}
+    </div>`;
+}
+
 const key = area => `sift-density:${area}`;
 export function densityOf(area) {
   try { return localStorage.getItem(key(area)) || 'medium'; } catch { return 'medium'; }
@@ -59,15 +83,25 @@ export function spacingHtml(area) {
 export function cogHtml(area, extra = '') {
   return `<details class="tool-menu view-menu page-cog">
       <summary class="icon-btn" aria-label="View settings" title="View settings"><svg class="icon" aria-hidden="true"><use href="#i-view"/></svg></summary>
-      <div class="menu view-settings">${extra}${lookHtml(area)}${spacingHtml(area)}</div>
+      <div class="menu view-settings">${extra}${layoutHtml(area)}${lookHtml(area)}${spacingHtml(area)}</div>
     </details>`;
 }
 
 export function installViewCog(getArea) {
   const apply = () => {
     const main = document.querySelector('#main');
-    if (main) { main.dataset.density = densityOf(getArea()); main.dataset.shade = shadeOf(getArea()); }
+    if (!main) return;
+    main.dataset.density = densityOf(getArea());
+    main.dataset.shade = shadeOf(getArea());
+    for (const o of LAYOUTS[getArea()] || []) main.toggleAttribute(`data-layout-${o.id}`, layoutOn(getArea(), o.id));
   };
+  document.addEventListener('change', ev => {
+    const box = ev.target.closest?.('[data-layout-set]');
+    if (!box) return;
+    try { localStorage.setItem(layoutKey(getArea(), box.dataset.layoutSet), box.checked ? '1' : '0'); } catch { /* not kept */ }
+    apply();
+    document.dispatchEvent(new CustomEvent('sift-layout', { detail: { area: getArea(), id: box.dataset.layoutSet } }));
+  });
   document.addEventListener('click', ev => {
     const sh = ev.target.closest?.('[data-shade-set]');
     if (sh) {

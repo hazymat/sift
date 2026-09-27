@@ -3421,3 +3421,25 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
   :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), textarea, select, [contenteditable="true"], .rich-raw):not(.box-code-input, .box-name-input, .focus input, #dump-body *, .rich.is-full > *) { font-size: max(16px, 1rem) !important; }
   :is(.task-list > li[data-task] > .note-in-place, #task-new-note):not(.is-full) .rich-edit, .add-note, .pill-note, .comment-add, .comment-edit { line-height: 1.3 !important; }
 }
+/* 👁 Layout on Tasks (viewcog.js): switches for trying out layouts. */
+.layout-opts { display: grid; gap: 2px; }
+.layout-opt { display: flex; align-items: center; gap: 8px; padding: 3px 2px; font-size: .85rem; color: var(--vm-text); cursor: pointer; }
+.layout-opt input { flex: none; width: 16px; height: 16px; margin: 0; accent-color: #6fb0ff; }
+/* New task line at the top: the list follows it straight away. */
+#task-entry + .task-list { margin-top: 0; }
+/* Show margin: a red margin like the Day Planner's (each theme's own
+   --margin-rule). Every tick box sits in it, at the same place whatever the
+   level; only the text is indented. Ruled lines start at the margin, a
+   sub-task's where the line joining it to its task comes down (treeOf in
+   views/tasks.js), so the joining lines are ruled lines too. */
+#main[data-layout-margin] { --margin-bg: linear-gradient(to right, transparent 64px, var(--margin-rule) 64px, var(--margin-rule) 66px, transparent 66px); }
+#main[data-layout-margin] :is(.task-list > li[data-task], .task-add-line, .task-entry-more) { background-image: var(--margin-bg); }
+#main[data-layout-margin] .task-list > li[data-task] > .tick { margin-left: 0; }
+#main[data-layout-margin] .task-list > li[data-task] > .task-title { margin-left: calc(9px + var(--ind, 0px)); }
+#main[data-layout-margin] .task-list > li[data-task]::after, #main[data-layout-margin] .task-entry .task-add-line::after { left: max(66px, calc(50px + var(--ind, 0px))); }
+#main[data-layout-margin][data-shade="alt"] .task-list > li[data-task]:nth-child(even of li[data-task]) { background-image: var(--margin-bg), linear-gradient(to right, transparent max(66px, calc(50px + var(--ind, 0px))), color-mix(in srgb, var(--text) 4.5%, transparent) max(66px, calc(50px + var(--ind, 0px)))); }
+#main[data-layout-margin] .task-list .tree-v, #main[data-layout-margin] .task-entry .tree-v { background: var(--glass-border); }
+#main[data-layout-margin] .task-entry .task-add-line > .add-mark { margin-left: 0; }
+#main[data-layout-margin] .task-entry .task-add-line .new-task-line { margin-left: calc(7px + var(--ind, 0px)); }
+#main[data-layout-margin] .task-entry.is-empty::after { margin-left: 66px; }
+#task-entry:has(+ .task-list) { margin-bottom: 0; }
