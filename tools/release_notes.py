@@ -472,3 +472,7 @@ NOTES['1.30.01'] = [
 NOTES['1.30.02'] = [
   F('Date pills (Plan for day, Target end date and others): no Remove pill after a set date; the date picker clears it.'),
 ]
+
+NOTES['1.30.03'] = [
+  B('Day Planner on a wide screen: the down-day line ("Sunday is a down day...") dropped to the bottom, under the schedule.'),
+]
