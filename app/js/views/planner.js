@@ -69,6 +69,7 @@ export default {
         <p class="day-rel muted"></p>
         <p class="did-things" hidden></p>
         <div class="down-day" hidden></div>
+        <div class="down-day over-plan" hidden></div>
         <div class="focus-row">
         <label class="focus"><span class="hand-label">${esc(word('day_focus'))}</span><input id="focus" placeholder="${esc(word('day_focus_prompt'))}" autocomplete="off"></label>
         <div class="energy" role="group" aria-label="Today's energy level"><span class="hand-label energy-label">${esc(word('day_energy'))}</span>
@@ -627,6 +628,18 @@ export default {
     // the item would land and the others shuffle round it.
     let doneOpen = false;
     const pileOrder = byRank(); // order.js: merges cleanly across devices
+    // More planned than the day holds (today or later): a gentle note, e.g.
+    // "That's 11h of plan for a 10h day." Timed items count their span, the
+    // rest their estimated time; done and let-go items don't count.
+    function overPlan() {
+      const box = $('.over-plan');
+      const length = toMin(settings.day_end) - toMin(settings.day_start);
+      const minutes = items.filter(i => !i.done_at && !i.dropped_at)
+        .reduce((sum, i) => sum + (i.time && i.end_time ? toMin(i.end_time) - toMin(i.time) : Number(i.estimate_min) || 0), 0);
+      const over = settings.hint_over_plan && date >= isoDate() && length > 0 && minutes > length;
+      box.hidden = !over;
+      box.textContent = over ? `That's ${durationLabel(minutes)} of plan for a ${durationLabel(length)} day. Something could move to another day.` : '';
+    }
     function renderPile(gapAt = null) {
       const all = items.filter(i => !i.time);
       const todo = all.filter(i => !i.done_at && !lifted.has(i.id)).sort(pileOrder);
@@ -634,6 +647,7 @@ export default {
       const rows = todo.map(i => `<li data-pile="${i.id}">${itemRow(i, '')}</li>`);
       if (gapAt != null) rows.splice(Math.min(gapAt, rows.length), 0, '<li class="pile-gap" aria-hidden="true"></li>');
       $('#pile').innerHTML = rows.join('');
+      overPlan();
       $('#pile-done').innerHTML = done.length ? `
         <li class="line pile-done-head"><span class="margin"></span><span class="content">
           <button type="button" class="done-toggle" data-act="toggle-done" aria-expanded="${doneOpen}">${doneOpen ? '▾' : '▸'} Done <span class="task-count">${done.length}</span></button>

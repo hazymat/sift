@@ -616,11 +616,16 @@ export default {
     }
 
     // Clicking a task's note (panel closed) edits it right there, under the
-    // title; it saves as you type and when you leave it (Esc or click away).
+    // title: the notes editor without its toolbar or dimming, the same in every
+    // spacing and width. It saves as you type and when you leave it (Esc, click
+    // away, or ↑ / ↓ past its first / last line).
     function editNoteInPlace(task, noteEl) {
+      const li = noteEl.closest('li[data-task]');
       const host = document.createElement('div');
       host.className = 'task-notes note-in-place';
-      noteEl.replaceWith(host);
+      noteEl.remove();
+      li.querySelector(':scope > .item-sub:empty')?.remove();
+      li.append(host);
       let pending = null;
       const auto = debounced(async () => {
         if (pending === null || pending === (task.notes || '')) return;
@@ -632,9 +637,13 @@ export default {
         placeholder: word('ph_notes'),
         origin: () => ({ collection: 'tasks', id: task.id, title: task.title, field: 'notes' }),
         onChange: md => { pending = md; auto.trigger(); },
+        bare: true,
       });
       ed.focus();
-      const leave = async () => { await auto.flush(); render(); };
+      const leave = async () => {
+        if (walkTo?.key === task.id && walkTo.part === 'note') walkTo = null; // left on purpose (Esc, Ctrl+Enter, click away): the redraw doesn't come back here
+        await auto.flush(); render();
+      };
       host.addEventListener('focusout', ev => {
         if (host.contains(ev.relatedTarget)) return;
         setTimeout(() => { if (host.isConnected && !host.contains(document.activeElement) && !document.querySelector('.ref-picker, dialog[open]')) leave(); }, 0);

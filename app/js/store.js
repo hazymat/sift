@@ -571,14 +571,18 @@ export async function outboxAll() {
 }
 
 // Queue every record (turning sync on for data that was never pushed, e.g.
-// restored from a backup).
+// restored from a backup, or moving to another server). Sequence numbers from
+// an earlier server mean nothing to the new one, so they are forgotten.
 export async function queueAll() {
   await open();
   let n = 0;
   for (const c of COLLECTIONS) {
     const tx = db.transaction([c, 'outbox'], 'readwrite');
-    const keys = await promisify(tx.objectStore(c).getAllKeys());
-    for (const id of keys) { tx.objectStore('outbox').put({ id, collection: c, queued_at: Date.now() }); n++; }
+    const records = await promisify(tx.objectStore(c).getAll());
+    for (const record of records) {
+      if (record._server_seq) { record._server_seq = 0; tx.objectStore(c).put(record); }
+      tx.objectStore('outbox').put({ id: record.id, collection: c, queued_at: Date.now() }); n++;
+    }
     await done(tx);
   }
   return n;
