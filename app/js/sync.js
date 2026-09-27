@@ -96,7 +96,7 @@ const deviceName = () => {
 
 export async function serverInfo(server) {
   server = server.trim().replace(/\/+$/, '');
-  const res = await fetch(`${server}/api/health`);
+  const res = await fetch(`${server}/api/health`, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Server said ${res.status}`);
   return res.json();
 }

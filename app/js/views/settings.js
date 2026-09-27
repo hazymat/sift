@@ -280,7 +280,7 @@ export default {
             <label>Email<input name="email" type="email" value="${esc(typed.sync_email || '')}" autocomplete="username" class="no-inline"></label>
             <label>Password<input name="password" type="password" autocomplete="current-password" class="no-inline"></label>
           </div>
-          <p class="sync-reach" hidden></p>
+          <p class="sync-reach" hidden><span class="sync-reach-text"></span><button type="button" class="link-btn sync-recheck">Check again</button></p>
           <div class="backup-row">
             <button type="button" class="primary" data-sync="in">Sign in</button>
             <button type="button" data-sync="create" hidden>Create account</button>
@@ -322,33 +322,50 @@ export default {
         const serverInput = box.querySelector('[name="server"]');
         box.querySelector('[name="email"]').addEventListener('input', ev => store.updateDeviceSettings({ sync_email: ev.target.value.trim() }));
         // Whether the server answers, and if so whether it takes new accounts (that's when Create account shows).
+        // Checked again on leaving the field, with Check again, and every 12 s while the server can't be reached or isn't taking accounts (it may be changed on the server meanwhile).
         let checking = 0;
-        const check = () => {
+        let lastResult = '';
+        let checkedServer = null;
+        const check = (quiet = false) => {
           const server = serverInput.value.trim();
+          clearTimeout(serverInput._t);
+          checkedServer = server;
           const create = box.querySelector('[data-sync="create"]');
           const reach = box.querySelector('.sync-reach');
+          const reachText = box.querySelector('.sync-reach-text');
           const help = box.querySelector('.trust-help');
           const cert = box.querySelector('.trust-cert');
           const mine = ++checking;
-          create.hidden = true;
-          help.hidden = true;
-          help.open = false;
-          cert.hidden = true;
-          reach.hidden = true;
+          clearTimeout(this.reachTick);
+          if (!quiet) {
+            lastResult = '';
+            create.hidden = true;
+            help.hidden = true;
+            help.open = false;
+            cert.hidden = true;
+            reach.hidden = true;
+          }
           if (!/^https?:\/\/.+/i.test(server)) return;
-          reach.textContent = 'Looking for the server…';
-          reach.hidden = false;
+          if (!quiet) { reachText.textContent = 'Looking for the server…'; reach.hidden = false; }
+          const again = () => { if (el.isConnected && !sync.signedIn()) this.reachTick = setTimeout(() => check(true), 12000); };
           sync.serverInfo(server).then(info => {
-            if (mine !== checking) return;
+            if (mine !== checking || !el.isConnected) return;
             const open = info.registration === 'open';
+            lastResult = open ? 'open' : 'closed';
             create.hidden = !open;
-            reach.textContent = open ? '✓ Server found. It is taking new accounts: sign in, or create an account.'
-              : "✓ Server found. It isn't taking new accounts, so there's no Create account: sign in with an account that already exists. To add a person, the server has to allow new accounts first (sift-admin registration open, see the server guide).";
+            help.hidden = true;
+            cert.hidden = true;
+            reachText.textContent = open ? '✓ Server found. It is taking new accounts: sign in, or create an account.'
+              : "✓ Server found. It isn't taking new accounts, so there's no Create account: sign in with an account that already exists. To add a person, the server has to allow new accounts first (sift-admin registration open, see the server guide). This updates by itself once it does.";
+            if (!open) again();
           }).catch(() => {
-            if (mine !== checking) return;
+            if (mine !== checking || !el.isConnected) return;
             const https = /^https:/i.test(server);
-            reach.textContent = `Can't reach the server. Create account only shows once it can. Check this device is on the same network as the server${https ? (isIOS() ? ", and that the certificate is switched on: Settings → General → About → Certificate Trust Settings (installing the profile isn't enough)" : ', and that it trusts the certificate (below)') : ''}.`;
-            if (!https) return;
+            create.hidden = true;
+            reachText.textContent = `Can't reach the server. Create account only shows once it can. Check this device is on the same network as the server${https ? (isIOS() ? ", and that the certificate is switched on: Settings → General → About → Certificate Trust Settings (installing the profile isn't enough)" : ', and that it trusts the certificate (below)') : ''}.`;
+            again();
+            if (!https || (quiet && lastResult === 'down')) return;
+            lastResult = 'down';
             try {
               const url = `http://${new URL(server).hostname}/sift-ca.crt`;
               cert.querySelector('.trust-url').textContent = url;
@@ -360,11 +377,12 @@ export default {
             } catch { /* not a web address yet */ }
           });
         };
-        serverInput.addEventListener('change', check);
+        serverInput.addEventListener('blur', () => check(serverInput.value.trim() === checkedServer));
+        box.querySelector('.sync-recheck').addEventListener('click', () => check());
         serverInput.addEventListener('input', () => {
           store.updateDeviceSettings({ server_url: serverInput.value.trim() });
           clearTimeout(serverInput._t);
-          serverInput._t = setTimeout(check, 600);
+          serverInput._t = setTimeout(() => check(), 600);
         });
         // In the Home Screen app a link opens a small browser that can't install a profile (a blank page), so it goes through Safari.
         box.querySelector('[data-sync="copy-cert"]')?.addEventListener('click', async () => {
