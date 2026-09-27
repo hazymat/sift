@@ -111,3 +111,40 @@ export function fromRecoveryCode(code) {
   if (hex.length !== 64) throw new Error('A recovery code has 64 letters and numbers');
   return Uint8Array.from(hex.match(/../g), h => parseInt(h, 16));
 }
+
+// ---------- sharing ----------
+// Each account has an ECDH key pair: the public key is stored on the server
+// as it is, the private key sealed with the account's record key. Something
+// shared has a key of its own (a data key, used just like the account's);
+// it reaches each person sealed for their public key with a one-off key pair.
+
+const ECDH = { name: 'ECDH', namedCurve: 'P-256' };
+
+export async function newKeyPair(keys) {
+  const pair = await subtle.generateKey(ECDH, true, ['deriveBits']);
+  return {
+    public_key: b64(await subtle.exportKey('spki', pair.publicKey)),
+    wrapped_private_key: await sealBytes(keys.records, new Uint8Array(await subtle.exportKey('pkcs8', pair.privateKey))),
+  };
+}
+
+// The private key, not extractable, so it can live in IndexedDB.
+export async function openPrivateKey(keys, wrapped) {
+  return subtle.importKey('pkcs8', await openBytes(keys.records, wrapped), ECDH, false, ['deriveBits']);
+}
+
+async function sharedKey(privateKey, publicB64) {
+  const pub = await subtle.importKey('spki', unb64(publicB64), ECDH, false, []);
+  return hkdf(new Uint8Array(await subtle.deriveBits({ name: 'ECDH', public: pub }, privateKey, 256)), 'share', { name: 'AES-GCM', length: 256 }, ['encrypt', 'decrypt']);
+}
+
+export async function sealShareKey(publicB64, shareKeyRaw) {
+  const once = await subtle.generateKey(ECDH, true, ['deriveBits']);
+  const sealed = await sealBytes(await sharedKey(once.privateKey, publicB64), shareKeyRaw);
+  return JSON.stringify({ e: b64(await subtle.exportKey('spki', once.publicKey)), c: sealed });
+}
+
+export async function openShareKey(privateKey, wrapped) {
+  const { e, c } = JSON.parse(wrapped);
+  return openBytes(await sharedKey(privateKey, e), c);
+}

@@ -106,6 +106,8 @@ export async function serverInfo(server) {
 // before "Start syncing".
 async function keep(server, email, login, dataKeyRaw) {
   keys = await cx.workingKeys(dataKeyRaw);
+  privateKey = null;
+  for (const k of ['share_private', 'share_public']) await store.metaSet(k, undefined);
   account = { server, email, user_id: login.user_id, token: login.token, device_id: login.device_id };
   await store.queueAll();
   await store.metaSet('sync_last_seq', 0);
@@ -178,6 +180,10 @@ export async function signOut() {
   try { await api('POST', '/api/logout'); } catch { /* offline: forget locally anyway */ }
   keys = null;
   account = null;
+  privateKey = null;
+  for (const owner of new Set(shares.filter(sh => !sh.mine).map(sh => sh.owner_id))) await store.dropSpace(owner);
+  await setShares([]);
+  for (const k of ['share_private', 'share_public', 'share_keys', 'share_seqs']) await store.metaSet(k, undefined);
   await store.metaSet('sync_keys', undefined);
   await store.metaSet('sync_account', undefined);
   await store.metaSet('sync_last_seq', undefined);
@@ -191,7 +197,7 @@ export async function devices() { return (await api('GET', '/api/devices')).devi
 
 // ---------- the sync itself ----------
 
-const strip = r => { const { _dirty_fields, _server_seq, ...rest } = r; return rest; };
+const strip = r => { const { _dirty_fields, _server_seq, _share_seqs, ...rest } = r; return rest; };
 
 async function pull() {
   let changed = 0;
@@ -200,7 +206,7 @@ async function pull() {
     const page = await api('GET', `/api/sync/pull?since=${since}&limit=500`);
     for (const row of page.records) {
       const { c, r } = await cx.openJson(keys, row.ciphertext);
-      if (store.COLLECTIONS.includes(c) && r?.id && await store.applyRemote(c, r, row.seq)) changed++;
+      if (store.COLLECTIONS.includes(c) && r?.id && await store.local.applyRemote(c, r, row.seq)) changed++;
     }
     since = page.last_seq;
     await store.metaSet('sync_last_seq', since);
@@ -209,33 +215,209 @@ async function pull() {
   return changed;
 }
 
-async function push() {
-  for (let round = 0; round < 5; round++) {
-    const entries = await store.outboxAll();
-    if (!entries.length) return;
-    let conflicts = 0;
-    for (let i = 0; i < entries.length; i += 200) {
-      const batch = [];
-      const meta = new Map();
-      for (const e of entries.slice(i, i + 200)) {
-        const rec = await store.get(e.collection, e.id, { includeDeleted: true });
-        if (!rec) { await store.markPushed(e.collection, e.id, 0, e.queued_at); continue; }
-        const rid = await cx.opaqueId(keys, e.collection, e.id);
-        meta.set(rid, e);
-        batch.push({ record_id: rid, base_seq: rec._server_seq || 0, ciphertext: await cx.sealJson(keys, { c: e.collection, r: strip(rec) }) });
+// Everything changed in each share since last time. What comes from your own
+// share (someone you shared with changed it) goes into your own records and
+// on to your own records on the server; what others share goes into their
+// space on this device.
+async function pullShares() {
+  let changed = 0;
+  const seqs = (await store.metaGet('share_seqs')) || {};
+  for (const sh of shares.filter(x => x.accepted)) {
+    const space = sh.mine ? store.local : store.spaceOf(sh.owner_id);
+    let since = seqs[sh.id] || 0;
+    for (;;) {
+      let page;
+      try { page = await api('GET', `/api/shares/${sh.id}/pull?since=${since}&limit=500`); } catch (e) { if (e.status === 404) break; throw e; } // just ended: gone next time
+      for (const row of page.records) {
+        const { c, r } = await cx.openJson(sh.keys, row.ciphertext);
+        if (!store.COLLECTIONS.includes(c) || !r?.id) continue;
+        const onward = sh.mine ? ['personal', ...routes(space, c, r).filter(id => id !== sh.id)] : null;
+        if (await space.applyRemote(c, r, row.seq, sh.id, onward)) changed++;
       }
-      if (!batch.length) continue;
-      const res = await api('POST', '/api/sync/push', { records: batch });
-      for (const a of res.accepted) { const e = meta.get(a.record_id); await store.markPushed(e.collection, e.id, a.seq, e.queued_at); }
-      for (const c of res.conflicts) {
-        const { c: coll, r } = await cx.openJson(keys, c.ciphertext);
-        await store.applyRemote(coll, r, c.seq); // merged; still queued, pushed again next round
-        conflicts++;
-      }
+      since = seqs[sh.id] = page.last_seq;
+      await store.metaSet('share_seqs', seqs);
+      if (!page.more) break;
     }
+  }
+  return changed;
+}
+
+// Where a record goes on the server: 'personal' (your own records) and/or the
+// ids of the shares it belongs to.
+const IN_SCOPE = {
+  list: (info, c, r) => (c === 'lists' && r.id === info.id) || (c === 'list_items' && r.list_id === info.id),
+  note: (info, c, r) => c === 'thoughts' && r.id === info.id,
+  days: (info, c, r) => (c === 'days' || c === 'day_items') && !!r.date && (!info.from || r.date >= info.from) && (!info.to || r.date <= info.to),
+};
+export const inShare = (sh, c, r) => !!IN_SCOPE[sh.info?.kind]?.(sh.info, c, r);
+function routes(space, c, r) {
+  return shares.filter(sh => sh.accepted && (space.isLocal ? sh.mine : !sh.mine && space === store.spaceOf(sh.owner_id)) && inShare(sh, c, r)).map(sh => sh.id);
+}
+
+// Push every space's outbox: your own to your records and your shares,
+// others' to the shares they came from. A conflict is merged and pushed
+// again next round.
+async function push() {
+  const spaces = [store.local, ...new Set(shares.filter(sh => sh.accepted && !sh.mine).map(sh => store.spaceOf(sh.owner_id)))];
+  for (let round = 0; round < 5; round++) {
+    let conflicts = 0;
+    for (const space of spaces) conflicts += await pushSpace(space);
     if (!conflicts) return;
   }
 }
+
+async function pushSpace(space) {
+  const entries = await space.outboxAll();
+  let conflicts = 0;
+  for (let i = 0; i < entries.length; i += 200) {
+    const byPlace = new Map(); // place → [{ e, rec }]
+    const results = new Map(); // entry id → { seqs, conflicted }
+    for (const e of entries.slice(i, i + 200)) {
+      const rec = await space.get(e.collection, e.id, { includeDeleted: true });
+      if (!rec) { await space.markPushed(e.collection, e.id, {}, e.queued_at); continue; }
+      const valid = [...(space.isLocal ? ['personal'] : []), ...routes(space, e.collection, rec)];
+      const places = e.places ? e.places.filter(p => valid.includes(p) || (space.isLocal && shares.some(sh => sh.id === p && sh.mine && sh.accepted))) : valid;
+      results.set(e.id, { e, seqs: {}, conflicted: false });
+      for (const place of places) {
+        if (!byPlace.has(place)) byPlace.set(place, []);
+        byPlace.get(place).push({ e, rec });
+      }
+    }
+    for (const [place, list] of byPlace) {
+      const sh = place === 'personal' ? null : shares.find(x => x.id === place);
+      const placeKeys = sh ? sh.keys : keys;
+      const meta = new Map();
+      const batch = [];
+      for (const { e, rec } of list) {
+        const rid = await cx.opaqueId(placeKeys, e.collection, e.id);
+        meta.set(rid, e);
+        batch.push({ record_id: rid, base_seq: space.seqIn(rec, place), ciphertext: await cx.sealJson(placeKeys, { c: e.collection, r: strip(rec) }) });
+      }
+      let res;
+      try { res = await api('POST', sh ? `/api/shares/${sh.id}/push` : '/api/sync/push', { records: batch }); } catch (e) {
+        if (!sh || e.status !== 404) throw e;
+        for (const { e: entry } of list) results.get(entry.id).conflicted = true; // the share just ended: kept for the next round
+        continue;
+      }
+      for (const a of res.accepted) results.get(meta.get(a.record_id).id).seqs[place] = a.seq;
+      for (const c of res.conflicts) {
+        const { c: coll, r } = await cx.openJson(placeKeys, c.ciphertext);
+        await space.applyRemote(coll, r, c.seq, place); // merged; still queued, pushed again next round
+        results.get(meta.get(c.record_id).id).conflicted = true;
+        conflicts++;
+      }
+    }
+    for (const { e, seqs, conflicted } of results.values()) await space.markPushed(e.collection, e.id, seqs, e.queued_at, !conflicted);
+  }
+  return conflicts;
+}
+
+// ---------- sharing ----------
+// Shares this account is in (its own, and others' it accepted or is invited
+// to), each with its key and what it holds (info: { kind: 'list' | 'note' |
+// 'days', id | from, to, name }). Kept on this device between syncs.
+
+let shares = [];
+let privateKey = null;
+const shareListeners = new Set();
+export const sharesNow = () => shares;
+export const onShares = fn => { shareListeners.add(fn); fn(shares); return () => shareListeners.delete(fn); };
+export const myUserId = () => account?.user_id;
+// "anna.smith@example.com" → "Anna": what the app calls someone.
+export const personName = email => { const first = String(email || '').split('@')[0].split(/[._+-]/)[0]; return first ? first[0].toUpperCase() + first.slice(1) : 'Someone'; };
+
+// The account's key pair: made once by whichever device gets there first.
+async function ensureKeyPair() {
+  if (privateKey) return;
+  privateKey = await store.metaGet('share_private');
+  if (privateKey) return;
+  let me = await api('GET', '/api/me');
+  if (!me.public_key) me = await api('POST', '/api/keypair', await cx.newKeyPair(keys));
+  privateKey = await cx.openPrivateKey(keys, me.wrapped_private_key);
+  await store.metaSet('share_private', privateKey);
+  await store.metaSet('share_public', me.public_key);
+}
+
+async function refreshShares() {
+  await ensureKeyPair();
+  const res = await api('GET', '/api/shares');
+  const known = (await store.metaGet('share_keys')) || {};
+  const next = [];
+  for (const s of res.shares) {
+    try {
+      const shareKeys = known[s.id] || (known[s.id] = await cx.workingKeys(await cx.openShareKey(privateKey, s.wrapped_key)));
+      next.push({ id: s.id, wrapped_key: s.wrapped_key, mine: s.mine, owner_id: s.owner_id, owner_email: s.owner_email, accepted: !!s.accepted_at, created_at: s.created_at, keys: shareKeys, info: await cx.openJson(shareKeys, s.info),
+        members: s.members.map(m => ({ user_id: m.user_id, email: m.email, accepted: !!m.accepted_at })) });
+    } catch (e) { console.warn('A share could not be opened:', e.message); }
+  }
+  // Gone (stopped, or you were taken out or left): what came from it goes from this device.
+  for (const gone of shares.filter(old => !old.mine && old.accepted && !next.some(sh => sh.id === old.id && sh.accepted))) await forgetShare(gone, next);
+  for (const id of Object.keys(known)) if (!next.some(sh => sh.id === id)) delete known[id];
+  const seqs = (await store.metaGet('share_seqs')) || {};
+  for (const id of Object.keys(seqs)) if (!next.some(sh => sh.id === id && sh.accepted)) delete seqs[id];
+  await store.metaSet('share_seqs', seqs);
+  await store.metaSet('share_keys', known);
+  await setShares(next);
+}
+
+async function setShares(next) {
+  const plain = next.map(({ keys: _, ...rest }) => rest);
+  const same = JSON.stringify(plain) === JSON.stringify(shares.map(({ keys: _, ...rest }) => rest));
+  shares = next;
+  if (same) return;
+  await store.metaSet('shares', plain);
+  for (const fn of shareListeners) fn(shares);
+}
+
+async function forgetShare(gone, still) {
+  const others = still.filter(sh => sh.accepted && !sh.mine && sh.owner_id === gone.owner_id);
+  if (!others.length) return store.dropSpace(gone.owner_id);
+  const space = store.spaceOf(gone.owner_id);
+  for (const c of ['lists', 'list_items', 'thoughts', 'days', 'day_items']) {
+    const ids = (await space.list(c, { includeDeleted: true })).filter(r => inShare(gone, c, r) && !others.some(sh => inShare(sh, c, r))).map(r => r.id);
+    await space.forget(c, ids);
+  }
+}
+
+const sameScope = (a, b) => a.kind === b.kind && (a.kind === 'days' ? a.from === b.from && a.to === b.to : a.id === b.id);
+
+// Share something with someone on this server (by their sign-in email).
+// They get an invitation; it reaches them once they accept.
+export async function shareWith(info, email) {
+  if (!account) throw new Error('Sign in to sync first: sharing goes through your server');
+  try { await refreshShares(); } catch (e) { throw e.status === 404 ? new Error('Your sync server needs updating before it can share') : e; }
+  const person = await api('POST', '/api/people/find', { email: email.trim() });
+  if (person.user_id === account.user_id) throw new Error("That's you");
+  const sh = shares.find(x => x.mine && sameScope(x.info, info));
+  let raw;
+  let id = sh?.id;
+  if (!sh) {
+    raw = cx.newDataKey();
+    id = store.uuidv7();
+    const shareKeys = await cx.workingKeys(raw);
+    await api('POST', '/api/shares', { id, wrapped_key: await cx.sealShareKey(await store.metaGet('share_public'), raw), info: await cx.sealJson(shareKeys, info) });
+    // What is already there goes up to the share.
+    for (const c of ['lists', 'list_items', 'thoughts', 'days', 'day_items']) {
+      const probe = { info };
+      const ids = (await store.local.list(c, { includeDeleted: true })).filter(r => inShare(probe, c, r)).map(r => r.id);
+      if (ids.length) await store.local.queue(c, ids, [id]);
+    }
+  } else {
+    if (sh.members.some(m => m.user_id === person.user_id)) throw new Error(`Already shared with ${personName(person.email)}`);
+    raw = await cx.openShareKey(privateKey, sh.wrapped_key);
+  }
+  await api('POST', `/api/shares/${id}/members`, { user_id: person.user_id, wrapped_key: await cx.sealShareKey(person.public_key, raw) });
+  await refreshShares();
+  syncNow();
+  return personName(person.email);
+}
+
+export async function acceptShare(id) { await api('POST', `/api/shares/${id}/accept`); await refreshShares(); return syncNow(); }
+// Decline an invitation, leave a share, or (the owner) take someone out.
+export async function leaveShare(id, userId = account.user_id) { await api('DELETE', `/api/shares/${id}/members/${userId}`); await refreshShares(); }
+// Stop sharing: it stays yours; everyone else loses it.
+export async function stopSharing(id) { await api('DELETE', `/api/shares/${id}`); await refreshShares(); }
+export async function loadShares() { if (account && keys) { try { await refreshShares(); } catch (e) { console.warn('Shares not checked:', e.message); } } }
 
 // ---------- attachment files ----------
 // The records (name, type, thumbnail) sync like everything else; the files
@@ -321,7 +503,9 @@ export async function syncNow() {
   running = (async () => {
     setStatus({ state: 'syncing', error: null, tried: new Date().toISOString() });
     try {
-      const changed = await pull();
+      // Sharing never holds up your own records (e.g. a server without it yet).
+      try { await refreshShares(); } catch (e) { console.warn('Shares not checked:', e.message); }
+      const changed = await pull() + await pullShares();
       await push();
       setStatus({ state: 'ok', last: new Date().toISOString(), pending: await store.outboxSize(), error: null, changed, received: changed });
       failures = 0;
@@ -368,6 +552,9 @@ export async function init() {
 async function load() {
   account = await store.metaGet('sync_account');
   keys = await store.metaGet('sync_keys');
+  const keyring = (await store.metaGet('share_keys')) || {};
+  shares = ((await store.metaGet('shares')) || []).filter(sh => keyring[sh.id]).map(sh => ({ ...sh, keys: keyring[sh.id] }));
+  if (shares.length) for (const fn of shareListeners) fn(shares); // pages drawn before this show them now
   if (!account || !keys) { setStatus({ state: 'off', pending: await store.outboxSize() }); return; }
   setStatus({ state: 'idle', pending: await store.outboxSize() });
   wire();
