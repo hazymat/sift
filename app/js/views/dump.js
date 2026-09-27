@@ -21,7 +21,8 @@ import { rankOf, byRank, keyBetween, reorderWrites } from '../order.js';
 import { addItem, isoDate, parseTimed, daySettings, durationChoices, durationLabel } from '../days.js';
 import { loadTree } from '../places.js';
 import { contactFromText } from '../contacts.js';
-import { createListKit } from '../listkit.js';
+import { createListKit, typingIn } from '../listkit.js';
+import { browseTo } from '../browse.js';
 import * as att from '../attachments.js';
 import { pointTo, flash } from '../flash.js';
 import { word, dumpTypes } from '../words.js';
@@ -689,11 +690,64 @@ export default {
       addEventListener('click', go, true);
       const timer = setTimeout(go, 800);
     });
+    // Browsing with the keyboard (one note outlined, browse.js): single keys act on
+    // that note, as its buttons do (#46). Ctrl+C / Ctrl+V copy the note, or attach
+    // a picture or file from the clipboard to it.
+    const NOTE_KEYS = { c: 'colour', t: 'to-task', a: 'archive', p: 'plan', d: 'delete', '*': 'pin' };
+    const outlined = ev => !typingIn(ev.target) && !pop && !document.querySelector('dialog[open], .pill-menu, details[open]') && list.querySelector(':scope > li.kb-cur[data-id]');
+    const until = async (test, ms = 1500) => { for (const t0 = Date.now(); Date.now() - t0 < ms; await new Promise(done => setTimeout(done, 30))) { const v = test(); if (v) return v; } return null; };
+    async function noteKey(li, act) {
+      const t = thoughts.find(x => x.id === li.dataset.id);
+      if (!t) return;
+      if (act === 'colour') return colourMenu(li.querySelector('.note-dot'), tintId(t), v => setColour([t.id], v), { keyboard: true });
+      const nextId = [li.nextElementSibling, li.previousElementSibling].find(e => e?.matches('li[data-id]'))?.dataset.id;
+      li.querySelector(`[data-act="${act}"]`).click();
+      // Plan it: the pop-up takes the keys (Enter adds it to today, Tab to its fields, Esc closes).
+      if (act === 'plan' && await until(() => pop)) { pop.tabIndex = -1; pop.focus(); }
+      // Gone from the list: the outline moves on to the next note.
+      if ((act === 'archive' || act === 'delete') && nextId && await until(() => !list.querySelector(`li[data-id="${t.id}"]`))) browseTo(list.querySelector(`li[data-id="${nextId}"]`));
+    }
     this.onKey = ev => {
       if (ev.key === 'Escape' && pop) { ev.preventDefault(); ev.stopPropagation(); closePop(); if (editing) noteEditor()?.focus(); return; }
       if (ev.key === 'Escape' && !ev.target.closest('input, textarea, select, [contenteditable]') && kit.escape()) ev.preventDefault();
+      // Enter in the Plan it pop-up: Add to the day.
+      if (ev.key === 'Enter' && pop?.contains(ev.target) && !ev.target.closest('button')) { ev.preventDefault(); pop.querySelector('.primary')?.click(); return; }
+      const act = NOTE_KEYS[String(ev.key || '').toLowerCase()];
+      const li = act && !ev.ctrlKey && !ev.metaKey && !ev.altKey && outlined(ev);
+      if (!li) return;
+      ev.preventDefault();
+      if (!ev.repeat) noteKey(li, act);
     };
     addEventListener('keydown', this.onKey);
+    // Ctrl+V: a picture or file on the clipboard is attached (text only: nothing happens).
+    document.addEventListener('paste', async ev => {
+      const li = outlined(ev);
+      const files = li ? [...(ev.clipboardData?.files || [])] : [];
+      if (!files.length) return;
+      ev.preventDefault();
+      const parent = parentOf(li);
+      const made = await att.addFiles(parent, files);
+      if (!made.length) return;
+      await attachedDone(parent);
+      undoable(`Clipboard ${made.every(m => m.kind === 'image') ? 'image' : 'file'} detected: attached to note`, async () => {
+        for (const m of made) await store.remove('attachments', m.id);
+        attachedDone(parent);
+      });
+    }, { signal: gone.signal });
+    // Ctrl+C: the whole note, with formatting (unless some text in it is selected).
+    document.addEventListener('copy', ev => {
+      const li = !getSelection()?.toString() && outlined(ev);
+      const t = li && thoughts.find(x => x.id === li.dataset.id);
+      if (!t || !ev.clipboardData) return;
+      ev.preventDefault();
+      const text = unlinkText(t.body);
+      ev.clipboardData.setData('text/html', toHtml(text));
+      ev.clipboardData.setData('text/plain', text.replace(/\*\*|~~/g, ''));
+      toast('Copied note with formatting', {
+        action: 'Copy markdown instead',
+        onAction: () => navigator.clipboard.writeText(text).then(() => toast('Copied as markdown'), () => toast("Couldn't copy it from here")),
+      });
+    }, { signal: gone.signal });
     list.addEventListener('keydown', ev => {
       const box = ev.target.closest?.('.thought-edit');
       if (!box) return;

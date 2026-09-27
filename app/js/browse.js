@@ -99,6 +99,9 @@ const AREAS = {
 };
 
 let on = false;
+let goTo = null;
+// Outline this item (e.g. the next note, after the outlined one was archived).
+export const browseTo = el => { if (el) goTo?.(el); };
 let inBar = false; // browsing the filter bar, not the items
 let barPick = null; // the filter just switched to (the page marks it a moment later)
 let key = null;
@@ -144,6 +147,7 @@ export function installBrowse({ busy, area }) {
     paint();
     el.scrollIntoView({ block: 'nearest' });
   };
+  goTo = go;
   const stop = () => { on = false; inBar = false; key = null; barPick = null; paint(); };
   const goBar = () => { on = true; inBar = true; paint(); pressed(cfg())?.scrollIntoView({ block: 'nearest', inline: 'nearest' }); };
   const flash = el => {

@@ -4,13 +4,15 @@
 //
 //   pillMenu(anchorEl, [{ value, label, title?, current? }], onPick, { focus?, className? })
 //     focus: false leaves the cursor where it is (e.g. in a note being written)
+//     back: false leaves the cursor off the anchor after Esc (e.g. opened by a key while browsing)
+//   With the cursor in the menu, ← / → move between its pills, Enter picks.
 //   energyMenu(anchorEl, currentEnergy, onPick)   the energy picker used everywhere
 
 import { ENERGY } from './days.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-export function pillMenu(anchor, options, onPick, { focus = true, className = '' } = {}) {
+export function pillMenu(anchor, options, onPick, { focus = true, back = true, className = '' } = {}) {
   document.querySelector('.pill-menu')?.remove();
   const menu = document.createElement('div');
   menu.className = `pill-menu ${className}`.trim();
@@ -34,11 +36,18 @@ export function pillMenu(anchor, options, onPick, { focus = true, className = ''
   };
   const outside = ev => { if (!menu.contains(ev.target) && !anchor.contains(ev.target)) close(); };
   const keys = ev => {
+    if ((ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') && menu.contains(document.activeElement)) {
+      const pills = [...menu.querySelectorAll('button')];
+      pills[pills.indexOf(document.activeElement) + (ev.key === 'ArrowLeft' ? -1 : 1)]?.focus();
+      ev.preventDefault();
+      ev.stopPropagation();
+      return;
+    }
     if (ev.key !== 'Escape') return;
     ev.preventDefault();
     ev.stopPropagation();
     close();
-    if (focus) anchor.focus();
+    if (focus && back) anchor.focus();
   };
   addEventListener('pointerdown', outside, true);
   addEventListener('keydown', keys, true);
