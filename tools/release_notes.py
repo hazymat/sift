@@ -297,6 +297,9 @@ NOTES['1.22.07'] = [
 NOTES['1.22.08'] = [
   F("A file still arriving through sync is labelled \"name (size) · still arriving on this device through sync\"."),
 ]
+NOTES['1.22.09'] = [
+  B("Day Planner: just after it opened, the page's spacing changed and its paper could show yellow for a moment before turning to the chosen paper."),
+]
 NOTES['1.22.10'] = [
   B("Brain Dump: on a phone, the ⋯ at the end of the note types under Your notes (to add, rename or remove types) could sit off the right-hand edge of the screen."),
 ]
