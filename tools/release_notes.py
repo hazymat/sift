@@ -355,3 +355,6 @@ NOTES['1.23.12'] = [
 NOTES['1.23.13'] = [
   F("Tasks: a task's note edited in place (click it, or ↓ from the task's name) keeps the notes editor's keys again: Ctrl+B, Ctrl+I, \"- \" for a bullet, Alt+Enter for full screen, Ctrl+Enter or Esc to finish. It still has no toolbar and doesn't dim the page, in every spacing and on a phone."),
 ]
+NOTES['1.23.14'] = [
+  B('Sync: moving a device from one sync server to another (Settings → Sync, create an account or sign in on the new server) uploaded nothing, because the new server stopped at the old server\'s record numbers. Everything on the device is now uploaded to the new server.'),
+]

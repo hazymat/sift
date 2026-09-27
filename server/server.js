@@ -295,7 +295,8 @@ const routes = {
       for (const r of list) {
         if (typeof r.record_id !== 'string' || typeof r.ciphertext !== 'string') continue;
         const have = current.get(dev.user_id, r.record_id);
-        if ((have?.seq ?? 0) !== (Number(r.base_seq) || 0)) { conflicts.push({ record_id: r.record_id, seq: have.seq, ciphertext: have.ciphertext }); continue; }
+        // Not held here yet (e.g. a device moving over from another server): nothing to conflict with.
+        if (have && have.seq !== (Number(r.base_seq) || 0)) { conflicts.push({ record_id: r.record_id, seq: have.seq, ciphertext: have.ciphertext }); continue; }
         const size = Buffer.byteLength(r.ciphertext);
         bytes += size - (have ? Buffer.byteLength(have.ciphertext) : 0);
         if (bytes > QUOTA) throw new HttpError(507, 'Storage quota reached');
