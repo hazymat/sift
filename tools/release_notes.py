@@ -321,5 +321,9 @@ NOTES['1.23.03'] = [
   F('Settings, Sync: one Get the certificate button. In the iPhone Home Screen app it copies the address to paste into Safari, instead of opening a blank page. The steps say that the certificate has to be switched on under Certificate Trust Settings.'),
 ]
 NOTES['1.23.04'] = [
+  B("Brain Dump: in Plan it on a laptop, picking an Estimated time closed the pop-up without planning."),
+  F("Brain Dump: Plan it brings the rest of the note (everything after its first line) into the planned item's note."),
+]
+NOTES['1.23.05'] = [
   B('Batch Book: its page said "Coming in phase 1, step 9", which only made sense in the build plan. It now says "Coming soon."'),
 ]
