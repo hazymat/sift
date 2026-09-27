@@ -7,6 +7,7 @@
 
 import * as store from '../store.js';
 import { cogHtml } from '../viewcog.js';
+import { shareHtml } from '../share.js';
 import { KINDS, kindLabel, newScan, addPages, pagesByScan, expirySoon } from '../scans.js';
 import * as att from '../attachments.js';
 import { richText } from '../richtext.js';
@@ -64,8 +65,9 @@ export default {
         <div class="scans-head">
           <button type="button" class="primary scan-btn" data-act="scan">${icon('i-scans')}<span>Scan</span></button>
           <input type="search" class="scan-search" placeholder="Search scans…" value="${esc(state.q)}" aria-label="Search scans">
+          ${shareHtml()}
           ${cogHtml('scans')}
-          <details class="tool-menu">
+          <details class="tool-menu page-more">
             <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
             <div class="menu"><button type="button" data-act="files">Add from files…</button><a href="#/bin/archive/scans">Show Archive</a><a href="#/bin/bin/scans">Show Bin</a></div>
           </details>

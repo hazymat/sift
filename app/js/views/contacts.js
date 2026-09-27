@@ -5,6 +5,7 @@
 //   #/contacts/c/<id>          One contact (opening it stamps "looked up")
 
 import { cogHtml } from '../viewcog.js';
+import { shareHtml } from '../share.js';
 import * as store from '../store.js';
 import {
   loadContacts, createContact, contactFromText, extractDetails, logInteraction, lastActivity,
@@ -53,8 +54,9 @@ export default {
           <button type="button" data-tab="directory">Directory</button>
           <button type="button" data-tab="cases">Cases</button>
         </div>
-        ${cogHtml('contacts')}
-        <details class="tool-menu">
+        ${shareHtml()}
+          ${cogHtml('contacts')}
+        <details class="tool-menu page-more">
           <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
           <div class="menu">
             <button type="button" data-act="new-contact">New contact</button>

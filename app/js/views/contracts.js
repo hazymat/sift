@@ -4,6 +4,7 @@
 
 import * as store from '../store.js';
 import { cogHtml } from '../viewcog.js';
+import { shareHtml } from '../share.js';
 import { CATEGORIES, FREQUENCIES, STATUSES, categoryLabel, perYear, money, renewalSoon, newContract, renew } from '../contracts.js';
 import * as att from '../attachments.js';
 import { richText } from '../richtext.js';
@@ -63,8 +64,9 @@ export default {
         <div class="scans-head contracts-head">
           <button type="button" class="primary" data-act="new">+ New contract</button>
           <input type="search" class="scan-search contract-search" placeholder="Search contracts…" value="${esc(state.q)}" aria-label="Search contracts">
+          ${shareHtml()}
           ${cogHtml('contracts')}
-          <details class="tool-menu">
+          <details class="tool-menu page-more">
             <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
             <div class="menu"><a href="#/bin/archive/contracts">Show Archive</a><a href="#/bin/bin/contracts">Show Bin</a></div>
           </details>

@@ -5,6 +5,7 @@
 // item, a Find Things item or (select text) a contact.
 
 import { cogHtml } from '../viewcog.js';
+import { shareHtml } from '../share.js';
 import * as store from '../store.js';
 import { linkDetailsInText, unlinkText } from '../refs.js';
 import { readDraft, writeDraft } from '../drafts.js';
@@ -112,8 +113,9 @@ export default {
         <!-- 👁 and ⋯ sit on the search line, so they stay on screen with it (191). -->
         <div class="dump-search-row">
           <input type="search" id="dump-q" data-sync-safe class="search" placeholder="${esc(word('ph_dump_search'))}" autocomplete="off">
+          ${shareHtml()}
           ${cogHtml('dump')}
-          <details class="tool-menu">
+          <details class="tool-menu page-more">
             <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
             <div class="menu">
               <a href="#/bin/archive/dump">Show Archive</a>

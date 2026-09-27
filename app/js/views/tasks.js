@@ -5,6 +5,7 @@
 
 import { keepDraft, draftCleared } from '../drafts.js';
 import { cogHtml, layoutOn } from '../viewcog.js';
+import { shareHtml } from '../share.js';
 import { flash, SOFT } from '../flash.js';
 import * as store from '../store.js';
 import { loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES, HORIZONS, horizonOf, planDay, MAX_DEPTH, depthIn, levelsUnder } from '../tasks.js';
@@ -83,8 +84,9 @@ export default {
         <div class="segmented" id="task-views" role="tablist" aria-label="Views">
           ${VIEWS.map(v => `<button type="button" data-view="${v.id}">${v.label}</button>`).join('')}
         </div>
-        ${cogHtml('tasks')}
-        <details class="tool-menu">
+        ${shareHtml()}
+          ${cogHtml('tasks')}
+        <details class="tool-menu page-more">
           <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
           <div class="menu">
             <button type="button" data-view="list">All tasks</button>
@@ -453,6 +455,8 @@ export default {
       if (!t.classList?.contains('task-title') || !t.closest('.task-list > li[data-task]')) return;
       if (!LISTS.includes(state.view) && state.view !== 'list') return;
       const id = t.closest('li[data-task]').dataset.task;
+      // More pressed (its note showing): Enter goes into the note instead.
+      if (revealed === id && !lay('more-panel')) { ev.preventDefault(); ev.stopPropagation(); walkGo({ li: t.closest('li[data-task]'), key: id, title: t }, 'note', 0); return; }
       const task = data.tasks.find(x => x.id === id);
       if (!task || !t.value.trim()) return;
       if (t.value.trim() === task.title) setTimeout(() => openNewAfter(id), 0); // nothing to save: no redraw
@@ -671,7 +675,7 @@ export default {
       }, 600);
       const ed = richText(host, {
         value: task.notes || '',
-        placeholder: word('ph_notes'),
+        placeholder: noteEl.matches('.add-note') ? 'Add note' : word('ph_notes'),
         origin: () => ({ collection: 'tasks', id: task.id, title: task.title, field: 'notes' }),
         onChange: md => { pending = md; auto.trigger(); },
         bare: true,
@@ -696,10 +700,10 @@ export default {
       if (task) editNoteInPlace(task, ev.target);
     });
 
-    // ↑ / ↓ while editing walk the list: a task's name (start, then end), its
-    // note (the note itself, or "Add note"), the next task's name, and so on
-    // down to the New task line and its note (or from it, when it's at the
-    // top); ↑ walks back the same way.
+    // ↑ / ↓ while editing walk the list: from a task's name straight to the
+    // next (or previous) task's name, down to the New task line (or from it,
+    // when it's at the top). From inside a note, past its first / last line:
+    // its task's name, or the next task's.
     // Moving saves the one you leave, as clicking away does. (A redraw after
     // that save puts the cursor back where it was going: walkTo.)
     let walkTo = null;
@@ -725,7 +729,7 @@ export default {
       if (!li.querySelector('.edit-pills .pill-note, .note-in-place')) stop.title.focus(); // opens its pills ("Add note")
       const f = li.querySelector('.edit-pills .pill-note') || li.querySelector('.note-in-place [contenteditable]');
       if (f) { f.focus(); caretTo(f, at); return true; }
-      const preview = li.querySelector('.item-sub .task-note');
+      const preview = [...li.querySelectorAll('.edit-pills .note-shown, .item-sub .task-note')].find(note => note.getClientRects().length);
       if (!preview) return false;
       editNoteInPlace(task, preview);
       const ed = li.querySelector('.note-in-place [contenteditable]');
@@ -753,17 +757,11 @@ export default {
       const i = stops.findIndex(s => s.title === t || (s.li ? s.li.contains(t) : !!t.closest?.('#task-entry')));
       if (i < 0) return;
       const s = stops[i], up = ev.key === 'ArrowUp';
+      // In a name: straight to the task above / below (its note is Enter, after More, or a click).
       if (t === s.title) {
-        const len = t.value.length;
         ev.preventDefault();
-        if (up) {
-          if (t.selectionStart || t.selectionEnd) { t.setSelectionRange(0, 0); return; }
-          const prev = stops[i - 1];
-          if (prev && !walkGo(prev, 'note', 'end')) walkGo(prev, 'name', 'end');
-        } else {
-          if (t.selectionStart < len || t.selectionEnd < len) { t.setSelectionRange(len, len); return; }
-          if (!walkGo(s, 'note', 'start') && stops[i + 1]) walkGo(stops[i + 1], 'name', 'start');
-        }
+        const to = stops[i + (up ? -1 : 1)];
+        if (to) walkGo(to, 'name', up ? 'end' : 'start');
         return;
       }
       const inNote = t.matches?.('.edit-pills .pill-note') || (t.isContentEditable && t.closest('.note-in-place, #task-new-note'));
@@ -1214,6 +1212,7 @@ export default {
       if (b.dataset.view) { b.closest('details')?.removeAttribute('open'); state.project = null; go(b.dataset.view, null); return; }
       if (b.dataset.act === 'focus-entry') { focusEntry(); return; }
       if (b.dataset.act === 'entry-reveal') { b.closest('.task-entry').classList.add('revealed'); body.querySelector('#task-new')?.focus(); return; }
+      if (b.dataset.act === 'note-shown') { const row = b.closest('li[data-task]'); walkGo({ li: row, key: row.dataset.task, title: row.querySelector(':scope > .task-title') }, 'note', 0); return; }
       if (b.dataset.act === 'pills-reveal') {
         const row = b.closest('li[data-task]');
         if (lay('more-panel')) { this.pills.close(); row?.querySelector(':scope > [data-act="details"]')?.click(); return; }
@@ -1350,7 +1349,9 @@ export default {
         if (!t) return '';
         const aim = t.aim_at ? t.aim_at.slice(0, 10) : '';
         // No note yet: an "Add note" line under the title, like adding a new task.
-        const addNote = (t.notes || '').trim() ? '' : `<textarea class="entry-note add-note pill-note no-inline" data-pill="notes" rows="1" placeholder="Add note" aria-label="Note"></textarea>`;
+        // With More pressed, a note already there shows in full (Enter in the name goes into it).
+        const addNote = !(t.notes || '').trim() ? `<textarea class="entry-note add-note pill-note no-inline" data-pill="notes" rows="1" placeholder="Add note" aria-label="Note"></textarea>`
+          : lay('pills-hide') ? `<div class="entry-note note-shown" data-act="note-shown" title="Edit the note (Enter)">${toHtml(t.notes)}</div>` : '';
         if (lay('pills-hide') && (revealed !== id || lay('more-panel'))) return '<button type="button" class="entry-chip pill-reveal" data-act="pills-reveal">More<kbd>Shift+Enter</kbd></button>';
         return addNote + energyPill(t.energy)
           + selectPill('estimate_min', 'Estimated time', '⏱', [['', 'Not estimated'], ...hours], t.estimate_min)

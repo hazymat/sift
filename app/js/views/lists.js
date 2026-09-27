@@ -2,6 +2,7 @@
 // from them, and plain lists. #/lists  and  #/lists/<list id>
 
 import { cogHtml } from '../viewcog.js';
+import { shareHtml } from '../share.js';
 import * as store from '../store.js';
 import { loadLists, nestItems, progress, createList, addItems, useTemplate, missingFromTemplate } from '../lists.js';
 import { createListKit } from '../listkit.js';
@@ -55,8 +56,9 @@ export default {
         <div class="lists-head">
           <button type="button" class="primary" data-act="new-template">+ New template</button>
           <button type="button" data-act="new-list">+ New list</button>
+          ${shareHtml()}
           ${cogHtml('lists')}
-          <details class="tool-menu">
+          <details class="tool-menu page-more">
             <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
             <div class="menu"><a href="#/bin/archive/lists">Show Archive</a><a href="#/bin/bin/lists">Show Bin</a></div>
           </details>
