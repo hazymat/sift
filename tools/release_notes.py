@@ -521,3 +521,7 @@ NOTES['1.32.08'] = [
 NOTES['1.32.09'] = [
   F('Day Planner, Glass themes (Default and Fancy): the Schedule times are in the handwriting again, as in the older build.'),
 ]
+
+NOTES['1.33.00'] = [
+  F('Custom theme: choose Custom in Settings → Appearance to set your own fonts and colours, section by section (Whole app, Top and bottom bars, Brain Dump, Tasks, Day Planner, Lists and the rest). It starts from the theme you were using, so nothing changes until you pick something. Fonts include the handwriting used for Schedule times on the Sift test site. "Change fonts and colours" under the theme opens it again.'),
+]

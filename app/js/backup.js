@@ -32,7 +32,7 @@ async function keyFrom(passphrase, salt, iterations) {
 // This device's own preferences (not synced): text size, notes toolbar,
 // each page's spacing and look, the theme, Find Things' last life area, and the sync
 // server's address. Not drafts, sign-ins or reminders.
-const DEVICE_KEYS = /^(sift-text-size|sift-theme|sift-find-edition|sift:notes-toolbar|sift-density:.+|sift-shade:.+)$/;
+const DEVICE_KEYS = /^(sift-text-size|sift-theme|sift-custom|sift-find-edition|sift:notes-toolbar|sift-density:.+|sift-shade:.+)$/;
 function devicePrefs() {
   const local = {};
   try {

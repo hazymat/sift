@@ -14,8 +14,15 @@
       try { t = localStorage.getItem('sift-theme') || t; } catch (e) {}
       var look = { glass: 'blue', 'glass-fancy': 'blue', blue: 'blue', dark: 'dark', light: 'light', auto: 'auto' }[t] || 'blue';
       if (look === 'auto') look = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'blue';
+      var fonts = t === 'glass-fancy' ? 'fancy' : 'plain';
+      // Custom theme: its starting look and the CSS made from the user's picks (js/customtheme.js).
+      if (t === 'custom') try {
+        var c = JSON.parse(localStorage.getItem('sift-custom'));
+        look = c.look; fonts = c.fonts; document.documentElement.dataset.custom = '';
+        var st = document.createElement('style'); st.id = 'custom-theme-css'; st.textContent = c.css; document.head.appendChild(st);
+      } catch (e) {}
       document.documentElement.dataset.theme = look;
-      document.documentElement.dataset.fonts = t === 'glass-fancy' ? 'fancy' : 'plain';
+      document.documentElement.dataset.fonts = fonts;
       // Text size is per device (Settings → Appearance).
       try { var z = localStorage.getItem('sift-text-size'); if (z) document.documentElement.style.fontSize = z + '%'; } catch (e) {}
     })();

@@ -3557,3 +3557,19 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
 #main.theirs .dump-find .hint,
 #main.theirs .thought-actions > :is([data-act="to-task"], [data-act="plan"], [data-act="store"]),
 #main.theirs .archive-pill, #main.theirs .note-more :is([data-act="comment"], [data-act="append"], [data-att-add]) { display: none; }
+
+/* Custom theme editor (Settings → Appearance → Custom…): a large overlay over the app, so changes show behind it. */
+dialog.custom-theme { width: min(720px, calc(100vw - 24px)); max-width: none; height: min(88dvh, 900px); max-height: none; margin: auto; padding: 0; border-radius: var(--radius-card); border: 1px solid var(--glass-border); background: var(--menu-bg, #1a2444); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; overflow: hidden; display: none; flex-direction: column; box-shadow: var(--shadow); }
+dialog.custom-theme[open] { display: flex; }
+dialog.custom-theme::backdrop { background: rgba(0, 0, 0, .2); }
+.ct-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--glass-border); }
+.ct-head h2 { margin: 0; font-size: 1.15rem; }
+.ct-body { overflow: auto; padding: 4px 18px calc(18px + var(--safe-bottom)); }
+.ct-section h3 { margin: 18px 0 6px; font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); position: sticky; top: -4px; padding: 6px 0; background: var(--menu-bg, #1a2444); z-index: 1; }
+.ct-row { display: grid; grid-template-columns: 1fr minmax(120px, 170px) 32px; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent); }
+.ct-row.is-set .ct-label { font-weight: 600; }
+.ct-row input[type="color"] { width: 100%; height: 32px; padding: 2px; border-radius: 8px; cursor: pointer; }
+.ct-row:not(.is-set) input[type="color"] { opacity: .55; }
+.ct-row select { width: 100%; }
+.ct-reset { padding: 2px 6px; background: transparent; box-shadow: none; border-color: transparent; }
+.ct-base { margin: 6px 0 4px; }
