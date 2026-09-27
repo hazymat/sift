@@ -3386,3 +3386,6 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
 /* Browsing with the keyboard (browse.js): the item you're on, the same in every area. */
 /* Drawn inside the item, so it never reaches the ones beside it. */
 .kb-cur { outline: 2px solid var(--accent); outline-offset: -2px; box-shadow: inset 0 0 0 5px color-mix(in srgb, var(--accent) 22%, transparent); scroll-margin: 16px; }
+/* Already at the end of a bar: the highlight flashes (browse.js). */
+.kb-flash { animation: kb-flash .5s ease-out; }
+@keyframes kb-flash { 0%, 60% { background: color-mix(in srgb, var(--accent) 45%, transparent); } 100% { background: transparent; } }

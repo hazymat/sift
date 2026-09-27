@@ -19,6 +19,12 @@
 //   Esc      stop browsing. After editing an item, Esc leaves the editing and
 //            the same item is highlighted again; Esc once more stops.
 // A click anywhere, or changing page, stops browsing too.
+// Areas with a filter bar (Brain Dump's All / Thought / Idea…) have it as a
+// layer between the search box and the items: ↓ from the search box (or ← / →
+// at the top level) highlights the filter showing; ← / → switch filter there
+// and then (at either end: a flash, nothing changes); ↓ goes on to the items,
+// and ↑ from their top row comes back to the bar, ↑ again to the search box.
+// Esc in the search box goes back to the top level.
 // Tab / Shift+Tab still walk the page's buttons, links and filters (the
 // browser's own ring shows where): Esc takes the cursor off them, back to
 // the page, where the keys above work again (in every area).
@@ -51,6 +57,7 @@ const fullNow = () => {
 const AREAS = {
   dump: {
     search: '#dump-q',
+    bar: '#dump-filter [data-filter]',
     aboveSearch: () => focusEnd($('.dump-capture .rich-edit')),
     items: '#thoughts > li[data-id]',
     enter: () => focusEnd($('.dump-capture .rich-edit')),
@@ -90,6 +97,8 @@ const AREAS = {
 };
 
 let on = false;
+let inBar = false; // browsing the filter bar, not the items
+let barPick = null; // the filter just switched to (the page marks it a moment later)
 let key = null;
 const keyOf = el => el.dataset.id || el.dataset.box || el.getAttribute('href') || '';
 
@@ -114,9 +123,13 @@ export function installBrowse({ busy, area }) {
   const cfg = () => AREAS[area()];
   const items = c => (c?.items ? all(c.items) : []);
   const current = c => items(c).find(e => keyOf(e) === key) || null;
+  const bar = c => (c?.bar ? all(c.bar) : []);
+  const barId = b => b.dataset.filter || b.textContent;
+  const pressed = c => (barPick && bar(c).find(b => barId(b) === barPick))
+    || bar(c).find(b => b.getAttribute('aria-pressed') === 'true') || bar(c)[0] || null;
   const paint = () => {
     const c = cfg();
-    const cur = on && !busy() ? current(c) : null;
+    const cur = on && !busy() ? (inBar ? pressed(c) : current(c)) : null;
     for (const e of document.querySelectorAll('.kb-cur')) if (e !== cur) e.classList.remove('kb-cur');
     cur?.classList.add('kb-cur');
   };
@@ -125,10 +138,27 @@ export function installBrowse({ busy, area }) {
   const go = el => {
     key = keyOf(el);
     on = true;
+    inBar = false;
     paint();
     el.scrollIntoView({ block: 'nearest' });
   };
-  const stop = () => { on = false; key = null; paint(); };
+  const stop = () => { on = false; inBar = false; key = null; barPick = null; paint(); };
+  const goBar = () => { on = true; inBar = true; paint(); pressed(cfg())?.scrollIntoView({ block: 'nearest', inline: 'nearest' }); };
+  const flash = el => {
+    if (!el) return;
+    el.classList.remove('kb-flash');
+    void el.offsetWidth; // start the animation again
+    el.classList.add('kb-flash');
+    setTimeout(() => el.classList.remove('kb-flash'), 600);
+  };
+  // ← / → on the bar: the next filter, switched to at once; at an end, a flash.
+  const moveBar = (c, dir) => {
+    const btns = bar(c);
+    const at = btns.indexOf(pressed(c));
+    const to = btns[at + dir];
+    goBar();
+    if (to) { barPick = barId(to); to.click(); paint(); } else flash(btns[at]);
+  };
   const take = ev => { ev.preventDefault(); ev.stopPropagation(); };
 
   addEventListener('keydown', ev => {
@@ -148,7 +178,9 @@ export function installBrowse({ busy, area }) {
     // In the search box: ↓ goes on to browse what it found.
     if (c.search && t.matches?.(c.search)) {
       const first = items(c)[0];
-      if (ev.key === 'ArrowDown' && first) { take(ev); t.blur(); go(first); }
+      if (ev.key === 'Escape') { take(ev); t.blur(); stop(); }
+      else if (ev.key === 'ArrowDown' && bar(c).length) { take(ev); t.blur(); goBar(); }
+      else if (ev.key === 'ArrowDown' && first) { take(ev); t.blur(); go(first); }
       else if (ev.key === 'ArrowDown' && c.enter?.()) take(ev);
       else if (ev.key === 'ArrowUp' && c.aboveSearch?.()) take(ev);
       return;
@@ -157,6 +189,13 @@ export function installBrowse({ busy, area }) {
     const list = items(c);
     if (on) {
       if (ev.key === 'Escape') { take(ev); stop(); return; }
+      if (inBar) {
+        take(ev);
+        if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') moveBar(c, ev.key === 'ArrowLeft' ? -1 : 1);
+        else if (ev.key === 'ArrowDown' || ev.key === 'Enter') { if (list[0]) go(list[0]); }
+        else if (ev.key === 'ArrowUp') { const s = c.search && all(c.search)[0]; stop(); s?.focus(); }
+        return;
+      }
       const cur = current(c);
       if (ev.key === 'Enter') { if (cur) { take(ev); Promise.resolve(c.open?.(cur)).then(() => { if (deeper) setTimeout(fullNow, 50); }); } return; }
       take(ev);
@@ -168,12 +207,14 @@ export function installBrowse({ busy, area }) {
       }
       const to = nearest(list, cur, ev.key === 'ArrowDown' ? 1 : -1);
       if (to) go(to);
+      else if (ev.key === 'ArrowUp' && bar(c).length) goBar();
       else if (ev.key === 'ArrowUp' && c.search) { const s = all(c.search)[0]; if (s) { stop(); s.focus(); } }
       return;
     }
     // The top level: only when nothing in particular has the keyboard (a
     // button or link with focus keeps its own Enter).
     if (t !== document.body && t !== document.documentElement && t.closest?.('a, button, summary, [role="button"], [tabindex], input, textarea, select')) return;
+    if ((ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') && bar(c).length) { take(ev); moveBar(c, ev.key === 'ArrowLeft' ? -1 : 1); return; }
     if (ev.key === 'ArrowDown') {
       let done = false;
       if (c.down) done = c.down();
@@ -185,7 +226,7 @@ export function installBrowse({ busy, area }) {
   }, true);
 
   addEventListener('pointerdown', () => { if (on) stop(); }, true);
-  addEventListener('hashchange', () => { if (on) stop(); });
+  addEventListener('hashchange', () => { barPick = null; if (on) stop(); });
   // Editing hides the highlight; leaving the editing (or a redraw) brings it back.
   addEventListener('focusin', later);
   addEventListener('focusout', later);
