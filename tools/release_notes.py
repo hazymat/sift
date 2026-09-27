@@ -517,3 +517,7 @@ NOTES['1.32.07'] = [
 NOTES['1.32.08'] = [
   F('Day Planner, Glass paper on the blue and dark themes: the Schedule, Tasks and Notes titles are pastel yellow again, as in the older build.'),
 ]
+
+NOTES['1.32.09'] = [
+  F('Day Planner, Glass themes (Default and Fancy): the Schedule times are in the handwriting again, as in the older build.'),
+]
