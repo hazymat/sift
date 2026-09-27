@@ -17,6 +17,7 @@ import { richText, toHtml, previewLine, inlineAll } from '../richtext.js';
 import { loadContacts } from '../contacts.js';
 import * as att from '../attachments.js';
 import { atEdge, caretTo } from '../walk.js';
+import { debounced } from '../autosave.js';
 import { editPills, selectPill, datePill, energyPill } from '../editpills.js';
 import { ask, askText, askEmptied } from '../ask.js';
 import { word } from '../words.js';
@@ -58,13 +59,12 @@ export default {
     // Notes typed in the panel save shortly after typing stops, or at once
     // when the panel closes.
     let pendingNote = null;
-    let noteTimer;
-    async function flushNote() {
-      clearTimeout(noteTimer);
+    const noteAuto = debounced(async () => {
       const p = pendingNote;
       pendingNote = null;
       if (p) await store.update('tasks', p.id, { notes: p.md });
-    }
+    }, 600);
+    const flushNote = noteAuto.flush;
     const collapsed = new Set();
     let notesEditor = null;
 
@@ -582,11 +582,7 @@ export default {
           value: t?.notes || '',
           placeholder: word('ph_notes'),
           origin: () => ({ collection: 'tasks', id, title: t?.title, field: 'notes' }),
-          onChange: md => {
-            clearTimeout(noteTimer);
-            pendingNote = { id, md };
-            noteTimer = setTimeout(flushNote, 600);
-          },
+          onChange: md => { pendingNote = { id, md }; noteAuto.trigger(); },
         });
       }
     };
@@ -626,21 +622,19 @@ export default {
       host.className = 'task-notes note-in-place';
       noteEl.replaceWith(host);
       let pending = null;
-      let timer;
-      const flush = async () => {
-        clearTimeout(timer);
+      const auto = debounced(async () => {
         if (pending === null || pending === (task.notes || '')) return;
         await store.update('tasks', task.id, { notes: pending });
         task = { ...task, notes: pending };
-      };
+      }, 600);
       const ed = richText(host, {
         value: task.notes || '',
         placeholder: word('ph_notes'),
         origin: () => ({ collection: 'tasks', id: task.id, title: task.title, field: 'notes' }),
-        onChange: md => { pending = md; clearTimeout(timer); timer = setTimeout(flush, 600); },
+        onChange: md => { pending = md; auto.trigger(); },
       });
       ed.focus();
-      const leave = async () => { await flush(); render(); };
+      const leave = async () => { await auto.flush(); render(); };
       host.addEventListener('focusout', ev => {
         if (host.contains(ev.relatedTarget)) return;
         setTimeout(() => { if (host.isConnected && !host.contains(document.activeElement) && !document.querySelector('.ref-picker, dialog[open]')) leave(); }, 0);

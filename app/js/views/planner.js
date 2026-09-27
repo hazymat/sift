@@ -19,6 +19,7 @@ import { loadAll as loadTasks, forDay, suggestions, doneFields, aimDate, addTask
 import * as att from '../attachments.js';
 import { typingIn } from '../listkit.js';
 import { atEdge, caretTo } from '../walk.js';
+import { debounced } from '../autosave.js';
 import { editPills, selectPill, energyPill } from '../editpills.js';
 import { energyMenu } from '../pillmenu.js';
 import { byRank, rankOf, reorderWrites, lastKey } from '../order.js';
@@ -143,12 +144,9 @@ export default {
       const box = t.closest?.('[data-note-for]');
       if (box) {
         if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); t.blur(); }
-        if (ev.key === 'Escape') {
-          ev.preventDefault();
-          ev.stopPropagation();
-          box.dataset.cancel = '1';
-          t.blur();
-        }
+        // Esc saves and closes, the same as clicking away (it's been saving as
+        // you type anyway): there's nothing left for Esc to usefully discard.
+        if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); t.blur(); }
       }
     });
     // The ⋯ panel closes with Close, ⋯ again or Esc (not by clicking elsewhere).
@@ -189,8 +187,9 @@ export default {
       closeDetails();
     });
 
-    // An item's notes save when you click away from its notes box (or Esc
-    // cancels). Clicks on the box's own toolbar don't count as leaving.
+    // An item's notes save as you type (mountNoteEditors' autosave) and again
+    // on leaving the box (Esc included), which just catches anything typed
+    // since the last save. Clicks on the box's own toolbar don't count as leaving.
     el.addEventListener('focusout', async ev => {
       const box = ev.target.closest?.('[data-note-for]');
       // (Looking at an attached file: still writing in the note.)
@@ -213,48 +212,34 @@ export default {
       const id = box.dataset.noteFor;
       const it = items.find(i => i.id === id);
       if (!it) return;
+      await box._flush?.(); // catch anything typed since the last autosave
       const text = box._editor.value.replace(/\s+$/, '');
-      const cancelled = box.dataset.cancel === '1';
-      if (!redraw && !cancelled) {
-        if (text !== (it.notes || '')) {
-          const old = it.notes || '';
-          await store.update('day_items', id, { notes: text });
-          it.notes = text;
-          undoable(text ? 'Note saved' : 'Note removed', async () => { await store.update('day_items', id, { notes: old }); await refresh(); });
-        }
+      const orig = box._orig ?? (it.notes || ''); // what it was before this visit (the Undo target)
+      if (it.notes !== text) { await store.update('day_items', id, { notes: text }); it.notes = text; }
+      if (!redraw) {
+        if (text !== orig) undoable(text ? 'Note saved' : 'Note removed', async () => { await store.update('day_items', id, { notes: orig }); await refresh(); });
         return;
       }
       box._editor = null;
       if (box.classList.contains('note-edit')) noteEditing = null;
-      if (!cancelled && text !== (it.notes || '')) {
-        await change(id, { notes: text }, text ? 'Note saved' : 'Note removed');
-      } else {
-        await refresh();
-        if (cancelled && text !== (it.notes || '')) {
-          toast('Escape cancelled change', { action: 'Undo', onAction: () => change(id, { notes: text }, 'Note saved') });
-        }
-      }
+      await refresh();
+      if (text !== orig) undoable(text ? 'Note saved' : 'Note removed', async () => { await store.update('day_items', id, { notes: orig }); await refresh(); });
     }
 
     // Notes save as you type (debounced); the date is captured so a quick
     // day change can't write one day's notes into another.
-    let notesTimer;
     let notesDate = null; // the day whose notes the editor shows
     let notesPending = null; // { forDate, md } not saved yet
     const flushDayNotes = async () => {
-      clearTimeout(notesTimer);
       const p = notesPending;
       notesPending = null;
       if (p) { const saved = await saveDay(p.forDate, { notes: p.md }); if (p.forDate === date) day = saved; }
     };
+    const notesAuto = debounced(flushDayNotes, 600);
     const notes = richText($('#notes'), {
       placeholder: word('ph_day_notes'),
       origin: () => ({ collection: 'days', id: date, title: `Notes for ${date}`, field: 'notes' }),
-      onChange: md => {
-        clearTimeout(notesTimer);
-        notesPending = { forDate: date, md };
-        notesTimer = setTimeout(flushDayNotes, 600);
-      },
+      onChange: md => { notesPending = { forDate: date, md }; notesAuto.trigger(); },
     });
     const planner = $('.planner');
 
@@ -435,7 +420,15 @@ export default {
         if (box._editor) continue;
         const it = items.find(i => i.id === box.dataset.noteFor);
         if (!it) continue;
-        box._editor = richText(box, { value: it.notes || '', origin: () => ({ collection: 'day_items', id: it.id, title: it.title, field: 'notes' }) });
+        box._orig = it.notes || ''; // what it was before this visit (leaveNoteBox's Undo target)
+        const auto = debounced(async () => {
+          const text = box._editor?.value.replace(/\s+$/, '');
+          if (text === undefined || text === (it.notes || '')) return;
+          await store.update('day_items', it.id, { notes: text });
+          it.notes = text;
+        }, 700);
+        box._flush = auto.flush;
+        box._editor = richText(box, { value: it.notes || '', origin: () => ({ collection: 'day_items', id: it.id, title: it.title, field: 'notes' }), onChange: () => auto.trigger() });
       }
       mountComments(el, refresh);
     }
@@ -1794,7 +1787,7 @@ export default {
     this.refresh = () => render();
 
     this.show = async d => {
-      await flushDayNotes(); // the last few words typed are saved before the page changes
+      await notesAuto.flush(); // the last few words typed are saved before the page changes
       date = /^\d{4}-\d{2}-\d{2}$/.test(d || '') ? d : isoDate();
       editing = null;
       selected.clear();

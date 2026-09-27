@@ -34,6 +34,7 @@ const SHELL = [
   'js/views/history.js',
   'js/richtext.js',
   'js/fullnote.js',
+  'js/autosave.js',
   'js/linemake.js',
   'js/ask.js',
   'js/flash.js',

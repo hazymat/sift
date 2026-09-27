@@ -12,6 +12,7 @@ import { titleFrom } from '../summary.js';
 import { SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import { toHtml, richText, titleHtml, afterTitle, inlineAll } from '../richtext.js';
+import { debounced } from '../autosave.js';
 import { addTaskFirst } from '../tasks.js';
 import { askEmptied, askText } from '../ask.js';
 import { pickTask } from '../taskpicker.js';
@@ -529,9 +530,7 @@ export default {
           box._orig = t.body;
           box._saved = t.body;   // what is stored right now (t itself goes stale when the list redraws)
           const line = box.previousElementSibling;
-          let timer;
-          const flush = async () => {
-            clearTimeout(timer);
+          const auto = debounced(async () => {
             const body = box._editor?.value.trim();
             if (!body || body === box._saved) return showSaved(line, 'saved');
             try {
@@ -539,12 +538,12 @@ export default {
               box._saved = body;
               showSaved(line, 'saved');
             } catch { showSaved(line, 'failed'); }
-          };
-          box._flush = flush;
+          }, 700);
+          box._flush = auto.flush;
           box._editor = richText(box, {
             value: t.body,
             origin: () => ({ collection: 'thoughts', id: t.id, title: t.body.split('\n')[0].slice(0, 60), field: 'body' }),
-            onChange: () => { showSaved(line, 'saving'); clearTimeout(timer); timer = setTimeout(flush, 700); },
+            onChange: () => { showSaved(line, 'saving'); auto.trigger(); },
             colour: { get: () => tintId(t), set: v => setColour([t.id], v) },
           });
           box._editor.focus();
