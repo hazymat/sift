@@ -302,16 +302,23 @@ function registerServiceWorker() {
     navigator.serviceWorker.getRegistration().then(r => r?.update()).catch(() => {});
   });
   navigator.serviceWorker.register('./sw.js').then(reg => {
-    const offer = worker => {
+    const offer = () => {
       const banner = $('#update-banner');
       banner.hidden = false;
-      banner.querySelector('button').onclick = () => worker.postMessage('skip-waiting');
+      // A version that has waited since an earlier visit may be several behind:
+      // fetch the newest first so one press goes straight to it.
+      banner.querySelector('button').onclick = async event => {
+        event.currentTarget.disabled = true;
+        event.currentTarget.textContent = 'Updating…';
+        await checkForUpdate();
+        applyUpdate();
+      };
     };
-    if (reg.waiting && navigator.serviceWorker.controller) offer(reg.waiting);
+    if (reg.waiting && navigator.serviceWorker.controller) offer();
     reg.addEventListener('updatefound', () => {
       const worker = reg.installing;
       worker.addEventListener('statechange', () => {
-        if (worker.state === 'installed' && navigator.serviceWorker.controller) offer(worker);
+        if (worker.state === 'installed' && navigator.serviceWorker.controller) offer();
       });
     });
   }).catch(err => console.warn('Offline support unavailable:', err.message));

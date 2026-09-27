@@ -31,7 +31,7 @@ How work on Sift is done: where things are, the rules, and where it has got to. 
 ## How to test
 
 - **Locally:** `python tools/devserver.py`, then http://localhost:5173 (the port can be set with `PORT`). To try a pull request's branch: `git fetch`, `git switch <branch>`, then the same.
-- **The page check:** in the browser console on the dev page, `(await import('/js/smoke.js')).run()` visits every page, tries the view options, opens a panel or two, and returns `{ pages, errors, problems }`. Expect no errors and no problems. It takes about a minute.
+- **The page check:** in the browser console on the dev page, `(await import('/js/smoke.js')).run()` visits every page, tries the view options, opens a panel or two, goes through the Scans and Contracts filters and opens the first scan's and contract's own page, and returns `{ pages, errors, problems, skipped }`. Expect no errors and no problems; `skipped` names what couldn't be tried because there was nothing there yet (e.g. no scans). It takes about a minute.
 - **Test data:** titles starting `zz ` or dates in 2030 and later. Delete them afterwards straight from IndexedDB (database `sift_local`: the record, plus its `history` and `outbox` entries).
 - **How to test steps** (in each pull request, one per change), always as: "In <area>, click <this>, do <that>. Before, it <did this>; now fixed. It should <do this>." Name things in the UI's words. These are copied into the separate test list, and anything that fails comes back as an issue.
 - Real iPhone behaviour (Home Screen app, keyboard, safe areas) can only be checked on a real iPhone after publishing: say what couldn't be checked.
