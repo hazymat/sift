@@ -358,3 +358,6 @@ NOTES['1.23.13'] = [
 NOTES['1.23.14'] = [
   B('Sync: moving a device from one sync server to another (Settings → Sync, create an account or sign in on the new server) uploaded nothing, because the new server stopped at the old server\'s record numbers. Everything on the device is now uploaded to the new server.'),
 ]
+NOTES['1.23.15'] = [
+  B('Sync: after creating an account, the notes already on the device were uploaded only once "Start syncing" was pressed under the recovery code. Leaving that screen another way meant they never went up. Everything on the device is now queued for upload as soon as the account is made (or on signing in).'),
+]
