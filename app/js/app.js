@@ -66,12 +66,15 @@ export async function setPinned(ids) {
 // lists too). Plain keeps the handwriting only for the Day Planner's day title
 // and its labels (Day focus, Energy, Schedule, Tasks, Notes). More themes can
 // be added here: `swatches` and `fonts` draw the preview in Settings.
+// Custom starts from one of the others (its base) and adds the user's own
+// fonts and colours (customtheme.js).
 export const THEMES = [
   { id: 'glass', label: 'Glass – Default', look: 'blue', fonts: 'plain', swatches: ['#0f172a', '#2a4a8a', '#9cc4ff'] },
   { id: 'glass-fancy', label: 'Glass – Fancy', look: 'blue', fonts: 'fancy', swatches: ['#0f172a', '#2a4a8a', '#9cc4ff'] },
   { id: 'dark', label: 'Dark', look: 'dark', fonts: 'plain', swatches: ['#121316', '#26282d', '#9cc4ff'] },
   { id: 'light', label: 'Light', look: 'light', fonts: 'plain', swatches: ['#eef2f8', '#ffffff', '#1f5fd1'] },
   { id: 'auto', label: 'Auto', look: 'auto', fonts: 'plain', swatches: ['#eef2f8', '#0f172a', '#1f5fd1'], note: 'Light by day, Glass at night, following your device.' },
+  { id: 'custom', label: 'Custom…', look: 'blue', fonts: 'plain', swatches: ['#f6e7a6', '#8fdcaa', '#ff8a8a'] },
 ];
 // Saved before themes had fonts: "blue" was Glass.
 const OLD = { blue: 'glass' };
@@ -79,14 +82,34 @@ const themeOf = id => THEMES.find(t => t.id === (OLD[id] || id)) || THEMES[0];
 const THEME_COLOURS = { blue: '#0f172a', dark: '#121316', light: '#eef2f8' };
 const prefersLight = matchMedia('(prefers-color-scheme: light)');
 let theme = 'glass';
+let custom = { base: 'glass', values: {} };
+let customCss = null; // customtheme.js, loaded when first needed
+
+export function customTheme() {
+  return custom;
+}
+
+async function customStyle() {
+  customCss ||= await import('./customtheme.js');
+  let el = document.getElementById('custom-theme-css');
+  if (!el) { el = document.createElement('style'); el.id = 'custom-theme-css'; document.head.append(el); }
+  el.textContent = customCss.css(custom.values);
+  return el.textContent;
+}
 
 function applyTheme() {
-  const t = themeOf(theme);
+  const isCustom = theme === 'custom';
+  const t = isCustom ? themeOf(custom.base) : themeOf(theme);
   const resolved = t.look === 'auto' ? (prefersLight.matches ? 'light' : 'blue') : t.look;
-  document.documentElement.dataset.theme = resolved;
-  document.documentElement.dataset.fonts = t.fonts;
-  $('meta[name="theme-color"]').content = THEME_COLOURS[resolved];
-  try { localStorage.setItem('sift-theme', t.id); } catch {} // read by index.html before first paint
+  const root = document.documentElement;
+  root.dataset.theme = resolved;
+  root.dataset.fonts = t.fonts;
+  if (isCustom) root.dataset.custom = ''; else delete root.dataset.custom;
+  $('meta[name="theme-color"]').content = (isCustom && custom.values['app.bg']) || THEME_COLOURS[resolved];
+  try { localStorage.setItem('sift-theme', theme); } catch {} // read by index.html before first paint
+  if (isCustom || document.getElementById('custom-theme-css')) customStyle().then(text => {
+    try { localStorage.setItem('sift-custom', JSON.stringify({ look: resolved, fonts: t.fonts, css: text })); } catch {}
+  });
 }
 
 export function currentTheme() {
@@ -97,6 +120,36 @@ export async function setTheme(id) {
   theme = themeOf(id).id;
   applyTheme();
   await store.updateSettings({ theme });
+}
+
+// The Custom theme's own changes: { base } and/or { values: { key: value or null } }
+// (values: null puts every one back).
+export async function setCustomTheme(changes) {
+  const values = changes.values === null ? {} : Object.assign({}, custom.values, changes.values || {});
+  for (const k of Object.keys(values)) if (!values[k]) delete values[k];
+  custom = { base: changes.base || custom.base, values };
+  applyTheme();
+  await store.updateSettings({ custom_theme: custom });
+}
+
+// A colour being dragged in the Custom theme editor: shown, not saved yet.
+export function previewCustom(key, value) {
+  if (!customCss) return;
+  const values = Object.assign({}, custom.values, { [key]: value });
+  document.getElementById('custom-theme-css').textContent = customCss.css(values);
+}
+
+// Custom, started from the theme in use so nothing changes until something is picked.
+export async function openCustomTheme() {
+  if (theme !== 'custom') {
+    const saved = (await store.getSettings()).custom_theme;
+    const start = theme === 'auto' ? (prefersLight.matches ? 'light' : 'glass') : theme;
+    custom = saved || { base: start, values: {} };
+    await setTheme('custom');
+    if (!saved) await store.updateSettings({ custom_theme: custom });
+  }
+  await customStyle();
+  customCss.openEditor({ app: { THEMES, customTheme, setCustomTheme, previewCustom }, store });
 }
 
 // ---------- hints ----------
@@ -240,7 +293,7 @@ async function route(force = false) {
   if (current === next.id) currentView.arrived?.(); // drawn: e.g. Tasks may put the cursor in New task
 }
 
-const appApi = { AREAS, MAX_PINNED, pinnedAreas, setPinned, THEMES, currentTheme, setTheme, setHints, checkForUpdate, applyUpdate };
+const appApi = { AREAS, MAX_PINNED, pinnedAreas, setPinned, THEMES, currentTheme, setTheme, openCustomTheme, setHints, checkForUpdate, applyUpdate };
 
 // ---------- header status ----------
 
@@ -343,6 +396,7 @@ async function boot() {
     if (pinned.join(',') === OLD_DEFAULT) pinned = DEFAULT_PINNED; // never changed by hand: take the new order
   }
   theme = themeOf(settings.theme).id;
+  if (settings.custom_theme) custom = settings.custom_theme;
   setHints(!!settings.show_hints);
   applyTheme();
   prefersLight.addEventListener('change', applyTheme);
@@ -467,6 +521,12 @@ async function boot() {
   store.subscribe(async change => {
     if (change?.collection !== 'settings') return;
     days.applyEnergyMeanings();
+    const now = await store.getSettings(); // the theme changed on another device
+    if (now.custom_theme && JSON.stringify(now.custom_theme) !== JSON.stringify(custom) || themeOf(now.theme).id !== theme) {
+      theme = themeOf(now.theme).id;
+      if (now.custom_theme) custom = now.custom_theme;
+      applyTheme();
+    }
     const sig = JSON.stringify(await applyWords());
     if (sig === wordsSig) return;
     wordsSig = sig;

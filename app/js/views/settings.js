@@ -673,7 +673,9 @@ export default {
     // Theme: a dropdown whose rows preview each theme (colours and fonts).
     const themeNote = () => {
       const t = app.THEMES.find(x => x.id === app.currentTheme());
-      el.querySelector('#theme-note').textContent = t?.note || '';
+      const note = el.querySelector('#theme-note');
+      note.textContent = t?.note || '';
+      if (t?.id === 'custom') note.innerHTML = '<button type="button" class="link-btn" data-act="custom-theme">Change fonts and colours</button>';
       el.querySelector('#theme .theme-now').innerHTML = t ? themePreview(t) : '';
     };
     themeNote();
@@ -682,9 +684,10 @@ export default {
       if (!id) return;
       for (const b of el.querySelectorAll('#theme [data-value]')) b.setAttribute('aria-selected', b.dataset.value === id);
       el.querySelector('#theme').open = false;
-      await app.setTheme(id);
+      if (id === 'custom') await app.openCustomTheme(); else await app.setTheme(id);
       themeNote();
     });
+    el.querySelector('#theme-note').addEventListener('click', e => { if (e.target.closest('[data-act="custom-theme"]')) app.openCustomTheme(); });
 
     // One list: pinned areas, a "More" divider, then everything else.
     // Dragging an area across the divider pins or unpins it.
