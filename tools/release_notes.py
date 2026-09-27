@@ -506,3 +506,6 @@ NOTES['1.32.04'] = [
 NOTES['1.32.05'] = [
   F('Day Planner 👁 menu, Layout: "Show unfinished items from earlier days" (off to start with).'),
 ]
+NOTES['1.32.06'] = [
+  B('On a laptop, the top bar\'s More menu stayed open after clicking somewhere else on the page, and was half greyed out when Brain Dump dimmed the page.'),
+]

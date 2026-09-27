@@ -445,9 +445,9 @@ async function boot() {
     if (r.left < 8) { m.style.left = '0'; m.style.right = 'auto'; }
     else if (r.right > innerWidth - 8) { m.style.right = '0'; m.style.left = 'auto'; }
   }, true);
-  // An open dropdown menu (<details class="tool-menu">) closes on a click elsewhere.
+  // An open dropdown menu (<details class="tool-menu">, or the top bar's More) closes on a click elsewhere.
   document.addEventListener('pointerdown', ev => {
-    for (const d of document.querySelectorAll('details.tool-menu[open]')) if (!d.contains(ev.target)) d.removeAttribute('open');
+    for (const d of document.querySelectorAll('details.tool-menu[open], #topnav-overflow[open]')) if (!d.contains(ev.target)) d.removeAttribute('open');
   }, true);
   addEventListener('hashchange', route);
   addEventListener('resize', fitTopNav);
