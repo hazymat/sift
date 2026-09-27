@@ -4,6 +4,7 @@
 #   sudo ./install.sh home   sift.lan         # LAN: HTTPS from Caddy's own certificate authority
 #                                              (a name, an IP, or both: sift.lan,<ip>)
 #   sudo ./install.sh public sift.example.com # internet: automatic Let's Encrypt certificate
+#   sudo ./install.sh proxy                   # behind a web server you already run (Apache, nginx): no Caddy
 #   sudo ./install.sh update                  # after `git pull`: refresh the code, keep settings and data
 #
 # Everything is fetched over https. Safe to run again.
@@ -14,8 +15,8 @@ set -euo pipefail
 MODE="${1:-}"; ADDRESS="${2:-}"
 case "$MODE" in
   home|public) [ -n "$ADDRESS" ] || { echo "Usage: $0 $MODE <address>"; exit 1; } ;;
-  update) ;;
-  *) sed -n '2,8p' "$0" | sed 's/^# \?//'; exit 1 ;;
+  update|proxy) ;;
+  *) sed -n '2,9p' "$0" | sed 's/^# \?//'; exit 1 ;;
 esac
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -52,7 +53,7 @@ systemctl enable --now sift-server
 systemctl restart sift-server
 
 # --- Caddy (HTTPS in front) ---
-if [ "$MODE" != update ]; then
+if [ "$MODE" = home ] || [ "$MODE" = public ]; then
   if ! command -v caddy >/dev/null; then
     apt-get install -y -qq debian-keyring debian-archive-keyring apt-transport-https curl gnupg
     curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/gpg.key | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
@@ -97,4 +98,8 @@ if [ "$MODE" = home ]; then
   echo "Devices must trust Caddy's certificate authority once: on a phone, open http://$FIRST/sift-ca.crt in Safari;"
   echo "see README.md (\"Trusting the home certificate\")."
 fi
-[ "$MODE" = update ] || echo "Check: https://$FIRST/api/health   Then in Sift: Settings -> Sync -> server https://$FIRST"
+if [ "$MODE" = proxy ]; then
+  echo "The server listens on 127.0.0.1:8787. Point your web server's HTTPS site at it: see README.md (\"Behind a web server you already run\")."
+  echo "Check here: curl -s http://127.0.0.1:8787/api/health"
+fi
+[ "$MODE" = update ] || [ "$MODE" = proxy ] || echo "Check: https://$FIRST/api/health   Then in Sift: Settings -> Sync -> server https://$FIRST"

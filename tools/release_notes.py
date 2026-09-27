@@ -336,3 +336,9 @@ NOTES['1.23.07'] = [
 NOTES['1.23.08'] = [
   B('Task comments: a contact or note linked with 📞 or 📝 while writing a comment showed as [name](sift:...) in the box until the comment was saved. It now shows just its name while writing, and is still a link once saved.'),
 ]
+NOTES['1.23.09'] = [
+  B('Sync server: one request with a badly written address could stop the server until it restarted.'),
+  B('Sync server: the limit of 10 wrong sign-in tries per address could be dodged behind Apache by sending a made-up address header. It now uses the address the web server adds, and old failed tries are cleared.'),
+  F('Sync server: sign-in and account requests are limited to 64 KB, and a wrong email takes as long to answer as a wrong password.'),
+  F('Sync server: `install.sh proxy` installs the server without Caddy, for a machine that already runs Apache, nginx or ISPConfig. server/README.md explains the web server settings.'),
+]

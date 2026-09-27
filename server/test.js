@@ -129,6 +129,19 @@ try {
   f = await raw('GET', `/api/blobs/${fid}`, undefined, recovered);
   assert.equal(f.status, 404, 'deleted');
 
+  // nothing a caller sends can stop the server
+  r = await call('DELETE', '/api/devices/%E0', null, recovered);
+  assert.equal(r.status, 400, 'a bad percent code is refused');
+  r = await call('GET', '/api/health');
+  assert.equal(r.status, 200, 'still running after a bad address');
+  r = await fetch(base + '/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'x@example.com', auth_hash: 'a'.repeat(100 * 1024) }) }).catch(() => ({ status: 413 }));
+  assert.equal(r.status, 413, 'sign-in requests are kept small');
+
+  // a made-up X-Forwarded-For doesn't get round the per-address limit
+  const guess = n => fetch(base + '/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': `10.0.0.${n}, 203.0.113.9` }, body: JSON.stringify({ email: `nobody${n}@example.com`, auth_hash: 'z'.repeat(44) }) });
+  for (let n = 0; n < 10; n++) await guess(n);
+  assert.equal((await guess(99)).status, 429, 'limited by the address the proxy added');
+
   console.log('all server checks passed');
 } finally {
   child.kill();
