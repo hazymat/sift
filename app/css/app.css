@@ -3409,3 +3409,11 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
 :is(.task-list > li[data-task] > .note-in-place, #task-new-note) .rich-edit { min-height: 1.4em; padding: 2px 0; border: 0; border-radius: 0; box-shadow: none; outline: none; background: transparent; font-size: .78rem; line-height: 1.5; color: color-mix(in srgb, var(--text) 72%, transparent); }
 :root[data-theme="blue"] :is(.task-list > li[data-task] > .note-in-place, #task-new-note) .rich-edit { font-size: calc(.78rem * .93); font-style: italic; color: color-mix(in srgb, var(--text) 78%, transparent); }
 #task-new-note { margin-bottom: 4px; }
+
+/* iPhone zooms the page into any field whose text is under 16px when it's tapped.
+   On touch screens every editable field is at least 16px (the big ones keep their size),
+   and the small in-line notes get tighter lines so they stay close to how they look. */
+@media (pointer: coarse) {
+  :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), textarea, select, [contenteditable="true"], .rich-raw):not(.box-code-input, .box-name-input, .focus input, #dump-body *, .rich.is-full > *) { font-size: max(16px, 1rem) !important; }
+  :is(.task-list > li[data-task] > .note-in-place, #task-new-note) .rich-edit, .add-note, .pill-note, .comment-add, .comment-edit { line-height: 1.3 !important; }
+}
