@@ -117,7 +117,7 @@ Chrome will also ask once whether the site may "access devices on your local net
 
 ## Sharing between accounts
 
-Each account has a key pair, made by the app the first time it syncs: the public half is stored as it is, the private half encrypted with the account's own key. Something shared (a list, a note, some days of the Day Planner) gets a key of its own, which the app encrypts for each person with their public key. The server keeps the shared records apart from each account's own (`shares`, `share_members`, `share_records`) and still can't read any of them. An invitation is only used once it's accepted. Shared records count towards the storage of the account that shared them.
+Each account has a key pair, made by the app the first time it syncs: the public half is stored as it is, the private half encrypted with the account's own key. Something shared (a list, a note, some days of the Day Planner) gets a key of its own, which the app encrypts for each person with their public key. The server keeps the shared records apart from each account's own (`shares`, `share_members`, `share_records`) and still can't read any of them. An invitation is only used once it's accepted. There is one copy of each shared thing: it moves from the account's own records into the share, and back again if it stops being shared. Shared records count towards the storage of the account that shared them.
 
 ## Everyday care
 

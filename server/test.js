@@ -191,6 +191,10 @@ try {
   assert.deepEqual(r.json.records.map(x => [x.record_id, x.seq]), [['s1', 2]]);
   r = await call('GET', '/api/sync/pull?since=0', null, fam);
   assert.equal(r.json.records.length, 0, 'shared records stay out of their own records');
+  r = await call('POST', '/api/sync/forget', { record_ids: ['r2'] }, recovered);
+  assert.equal(r.status, 200);
+  r = await call('GET', '/api/sync/pull?since=0', null, recovered);
+  assert.ok(!r.json.records.some(x => x.record_id === 'r2'), 'a record moved into a share leaves the account\'s own records');
   const before = (await call('GET', '/api/usage', null, recovered)).json.bytes;
   assert.ok(before >= 'list-fam'.length, 'shared records count towards the owner');
 

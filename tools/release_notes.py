@@ -486,3 +486,6 @@ NOTES['1.32.00'] = [
   F('Day Planner nudges (the ▶ at the current time, the evening section, reminders) moved from Settings to the Day Planner 👁 menu.'),
   F('👁 view settings on every page sync between devices of the same kind: phones with phones, computers with computers. The latest change wins. "Keep this device\'s view separate", at the bottom of each 👁 menu, keeps one device to itself.'),
 ]
+NOTES['1.31.01'] = [
+  F('Sharing keeps one copy: something shared lives only in its share on the server, not in your own records as well, and goes back into your own records if you stop sharing it.'),
+]

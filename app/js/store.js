@@ -592,9 +592,9 @@ function makeSpace(name) {
     return n;
   }
 
-  // Queue records for some places only ('personal' or share ids): e.g. what
-  // was there before a list was shared goes up to the new share. An entry
-  // already waiting for every place stays that way.
+  // Queue records for some places only ('personal' or share ids), or every
+  // place they belong (null): e.g. what was there before a list was shared
+  // goes up to the new share. An entry already waiting for every place stays that way.
   async function queue(collection, ids, places) {
     assertCollection(collection);
     await open();
@@ -603,7 +603,7 @@ function makeSpace(name) {
     for (const id of ids) {
       const entry = await promisify(outbox.get(id));
       if (entry && !entry.places) continue;
-      outbox.put({ id, collection, queued_at: Date.now(), places: [...new Set([...(entry?.places || []), ...places])] });
+      outbox.put(places ? { id, collection, queued_at: Date.now(), places: [...new Set([...(entry?.places || []), ...places])] } : { id, collection, queued_at: Date.now() });
     }
     await done(tx);
   }
