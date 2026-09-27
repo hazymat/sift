@@ -441,3 +441,7 @@ NOTES['1.28.00'] = [
 NOTES['1.28.01'] = [
   B('Tasks with Hide pills behind More: after pressing More on a task, leaving it and coming back still showed its pills instead of just More.'),
 ]
+
+NOTES['1.28.02'] = [
+  F('Tasks without the lined paper: a small gap under each task card, in Compact spacing too.'),
+]
