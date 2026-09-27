@@ -193,6 +193,11 @@ export default {
     }
     // Whose notes are showing: null for your own, or the person sharing them (their space, store.js).
     const theirsOwner = () => (state.filter.startsWith('from:') ? state.filter.slice(5) : null);
+    // New note stays usable while someone's shared notes show: anything made
+    // while writing there (the note, contacts, files) is your own.
+    const useOwnSpaceWhileWriting = () => store.useSpace(theirsOwner() && !$('.dump-capture').contains(document.activeElement) ? store.spaceOf(theirsOwner()) : null);
+    $('.dump-capture').addEventListener('focusin', useOwnSpaceWhileWriting);
+    $('.dump-capture').addEventListener('focusout', () => setTimeout(useOwnSpaceWhileWriting));
 
     function paintKinds() {
       for (const b of el.querySelectorAll('[data-kind]')) b.setAttribute('aria-pressed', b.dataset.kind === kind);
@@ -203,12 +208,12 @@ export default {
     const render = this.render = this.refresh = async () => {
       drawFilters();
       const owner = theirsOwner();
-      store.useSpace(owner ? store.spaceOf(owner) : null);
+      useOwnSpaceWhileWriting();
       el.classList.toggle('theirs', !!owner);
       const sharedIds = new Set(fromOthers(['note']).filter(sh => sh.owner_id === owner).map(sh => sh.info.id));
       const who = owner && people(['note']).find(p => p.owner_id === owner)?.name;
       $('#dump-shared').innerHTML = owner ? theirsHtml(`Notes ${who} shares with you. You can both change them.`, '<button type="button" data-filter="all">Back to mine</button>') : invitesHtml(['note']);
-      thoughts = (await store.list('thoughts', { filter: t => !t.archived_at && (!owner || sharedIds.has(t.id)) })).sort(byOrder);
+      thoughts = (await (owner ? store.spaceOf(owner) : store.local).list('thoughts', { filter: t => !t.archived_at && (!owner || sharedIds.has(t.id)) })).sort(byOrder);
       atts = await att.byParent();
       paintCapture();
       paintKinds();
