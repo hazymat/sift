@@ -1234,6 +1234,8 @@ export default {
     // Tap on the empty part of the page (like Reminders): a new task line opens.
     body.addEventListener('click', ev => {
       if (ev.target === body || ev.target.matches('.task-entry, .task-list, .list-head')) focusEntry();
+      // Compact spacing: the space right of a short name still edits it.
+      else if (ev.target.matches('.task-list > li[data-task]')) ev.target.querySelector(':scope > .task-title')?.focus();
     });
 
     this.closeDetails = () => { open = null; };

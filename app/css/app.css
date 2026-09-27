@@ -3261,15 +3261,17 @@ dialog.att-view::backdrop { background: rgb(0 0 0 / .82); }
 .detail-more > summary .more-what { color: var(--muted); }
 .detail-more[open] > summary { margin-bottom: 10px; }
 .task-details > .detail-actions, .item-details > .detail-actions { margin: 12px calc(-1 * var(--pp-r, 12px)) calc(-1 * var(--pp-b, 12px)) calc(-1 * var(--pp-l, 12px)); padding: 9px var(--pp-r, 12px) 9px var(--pp-l, 12px); background: color-mix(in srgb, var(--text) 6%, transparent); border-top: 1px solid color-mix(in srgb, var(--text) 9%, transparent); border-radius: 0 0 13px 13px; max-width: none; }
-/* Tasks in Compact spacing (219): on a laptop-wide window the pills sit at the
-   far right of the task's line (after the start of the note); on a phone or a
-   narrow window, just the task's text (and the ▾ to fold its sub-tasks). */
+/* Tasks in Compact spacing: the name is only as wide as its text, with the 📝
+   and the pills straight after it; a long name ends in "…" so they still show.
+   (Browsers without field-sizing keep the pills at the far right.) */
 #main[data-density="tight"] .task-list > li[data-task] > .item-sub .task-note { order: -1; }
 #main[data-density="tight"] .task-list > li[data-task] > .item-sub { justify-content: flex-end; }
-@media (max-width: 767px) {
-  #main[data-density="tight"] .task-list > li[data-task] > .item-sub > :not(.chips),
-  #main[data-density="tight"] .task-list > li[data-task] > .item-sub .chips > :not(.kids) { display: none !important; }
-  #main[data-density="tight"] .task-list > li[data-task] > .item-sub:not(:has(.kids)) { display: none; }
+#main[data-density="tight"] .task-list > li[data-task] > .task-title { text-overflow: ellipsis; }
+@supports (field-sizing: content) {
+  #main[data-density="tight"] .task-list > li[data-task] > .task-title { field-sizing: content; width: auto; flex: 0 1 auto; min-width: 4ch; }
+  #main[data-density="tight"] .task-list > li[data-task] > .item-sub { flex: 0 1 auto; max-width: 45%; justify-content: flex-start; }
+  #main[data-density="tight"] .task-list > li[data-task] > .more { margin-left: auto; }
+  #main[data-density="tight"] .task-list > li[data-task] > :is(.drag-handle, .tick) { flex: none; }
 }
 /* Close in every item panel (220): a glassy green pill with a line-art tick,
    like the Day Planner's "Bring in from tasks". */
