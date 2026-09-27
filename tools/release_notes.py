@@ -464,3 +464,7 @@ NOTES['1.30.00'] = [
   F('Tasks: Add note keeps its size and its faint "Add note" once clicked, until you type.'),
   B('Tasks in Compact spacing: going into a note squashed the task\'s name to nothing.'),
 ]
+
+NOTES['1.30.01'] = [
+  F('Tasks without the lined paper: 15px between the New task box and the tasks under it.'),
+]

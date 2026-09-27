@@ -3477,7 +3477,8 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
   .task-add-line > .add-mark { display: none; }
   .task-add-line .new-task-line { margin-left: 0; padding-left: 0; }
   .entry-add { display: inline-flex; align-items: center; flex: none; padding: 7px 14px; }
-  #task-entry + .task-list { margin-top: 6px; }
+  #task-entry + .task-list { margin-top: 0; }
+  #task-entry .task-add-line { margin-bottom: 15px; } /* room between New task and the tasks */
   .task-list { gap: var(--row-gap, 6px); }
   .task-list > li[data-task] { background: var(--glass-track); border: 1px solid var(--glass-border); border-radius: 14px; }
   .task-list > li[data-task]:hover, .task-list > li[data-task]:focus-within { background: var(--glass); border-color: var(--glass-border); }
