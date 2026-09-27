@@ -235,6 +235,7 @@ async function route(force = false) {
   currentView = module.default;
   await currentView.mount(main, { store, app: appApi });
   if (rest.length) await currentView.route?.(rest);
+  if (current === next.id) currentView.arrived?.(); // drawn: e.g. Tasks may put the cursor in New task
 }
 
 const appApi = { AREAS, MAX_PINNED, pinnedAreas, setPinned, THEMES, currentTheme, setTheme, setHints, checkForUpdate, applyUpdate };

@@ -2,7 +2,8 @@
 // edited: where ← / → change tabs and Ctrl+← / → change areas):
 //   ↑, Esc   do nothing here (Esc still steps back from a record's page,
 //            and clears a search left in the search box)
-//   ↓        Tasks / Day Planner: start editing the first entry (↑ / ↓ then
+//   ↓        Tasks / Day Planner: start editing the first entry (Tasks with
+//            its New task line at the top: that line) (↑ / ↓ then
 //            walk the list, as while editing). Elsewhere: into the search box
 //            above the items, if there is one; ↓ again starts browsing.
 //            With nothing in the list yet, ↓ does what Enter does.
@@ -32,6 +33,7 @@
 // the page, where the keys above work again (in every area).
 
 import { caretTo } from './walk.js';
+import { layoutOn } from './viewcog.js';
 
 const $ = s => document.querySelector(s);
 const vis = el => !!el && el.getClientRects().length > 0;
@@ -70,7 +72,8 @@ const AREAS = {
     },
   },
   tasks: {
-    down: () => focusEnd(all('#main li[data-task][data-id] > .task-title')[0]) || focusEnd($('#task-new')),
+    // New task line at the top (👁 Layout): ↓ starts typing there too.
+    down: () => (layoutOn('tasks', 'new-top') ? focusEnd($('#task-new')) : focusEnd(all('#main li[data-task][data-id] > .task-title')[0]) || focusEnd($('#task-new'))),
     enter: () => focusEnd($('#task-new')),
   },
   planner: {

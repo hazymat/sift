@@ -4,7 +4,7 @@
 // task's ⋯ so the list stays simple until you want more.
 
 import { keepDraft, draftCleared } from '../drafts.js';
-import { cogHtml } from '../viewcog.js';
+import { cogHtml, layoutOn } from '../viewcog.js';
 import * as store from '../store.js';
 import { loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES, HORIZONS, horizonOf, planDay, MAX_DEPTH, depthIn, levelsUnder } from '../tasks.js';
 import { ENERGY, isoDate, dateText, addDays, parseDate, addItem, durationChoices, durationLabel } from '../days.js';
@@ -29,6 +29,8 @@ const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></s
 const VIEWS = [...HORIZONS, { id: 'done', label: 'Done' }];
 const LISTS = ['inbox', 'now', 'next', 'later'];   // where a task lives
 const EMPTY = { get inbox() { return `${word('list_inbox')} is empty.`; }, now: 'Nothing for now.', next: 'Nothing lined up next.', later: 'Nothing for later.' };
+// 👁 Layout switches (viewcog.js), all off by default.
+const lay = id => layoutOn('tasks', id);
 const COLOURS = ['#6fb0ff', '#7dd3a8', '#f5a66a', '#e58fd0', '#f0d264', '#a99cff', '#ff8a8a'];
 
 function shortDate(iso) {
@@ -51,6 +53,8 @@ export default {
     let pressing = false;
     addEventListener('pointerup', () => setTimeout(() => { pressing = false; }, 400), { passive: true, signal: gone.signal });
     const state = this.state = { view: 'now', project: null, showDone: false };
+    // A 👁 Layout switch changed: draw the list again the new way.
+    document.addEventListener('sift-layout', ev => { if (ev.detail?.area === 'tasks') render(); }, { signal: gone.signal });
     let aimTimeFor = null; // a task whose panel is showing the aim time field
     let data = { tasks: [], projects: [], milestones: [] };
     let people = { contacts: [], cases: [] };
@@ -265,6 +269,12 @@ export default {
     // down while more sub-tasks follow. Level k's line runs down the middle of
     // the tick boxes one level up (the page measures where they sit: CSS
     // --tick-top / --tick-h on the list).
+    // With the margin shown (👁 Layout) every tick box sits in the margin and
+    // only the text is indented. The line then drops from the ruled line under
+    // the task, down the left of each sub-task, and turns along the sub-task's
+    // own ruled line (which starts there): the joining lines are the ruled
+    // lines, so they never cross them. Level k's line is under the first letter
+    // of the text one level up (CSS: the ruled lines start at 50px + indent).
     const treeX = k => 49 + (k - 1) * 28;
     const treeOf = (tasks, n) => {
       const depthAt = j => tasks[j]?.depth ?? 0;
@@ -273,6 +283,10 @@ export default {
       const d = depthAt(n);
       const v = (k, top, bottom) => `<i class="tree-v" style="left:${treeX(k)}px;top:${top};bottom:${bottom}"></i>`;
       const parts = [];
+      if (lay('margin')) {
+        for (let k = 1; k <= d; k++) if (k === d || goesOn(k)) parts.push(`<i class="tree-v" style="left:${50 + k * 28}px;top:0;bottom:0"></i>`);
+        return parts.length ? `<span class="tree" aria-hidden="true">${parts.join('')}</span>` : '';
+      }
       for (let k = 1; k < d; k++) if (goesOn(k)) parts.push(v(k, '0', '0'));
       if (d > 0) {
         parts.push(v(d, '0', goesOn(d) ? '0' : 'calc(100% - var(--tick-top) - var(--tick-h) / 2)'));
@@ -331,6 +345,7 @@ export default {
             <button type="button" data-act="new-milestone">+ Milestone</button>
           </div>`;
       }
+      html += '<!--list-->';
       const ph = project ? `New task in ${project.name}` : 'New task';
       let entry = addBox(ph, false, word('list_inbox'));
       if (project) {
@@ -356,7 +371,9 @@ export default {
         html += listOf(rowsOf(tasks));
         entry = addBox(ph, !tasks.length, word('list_inbox'));
       }
-      html += entry;
+      // New task line at the top (👁 Layout): before the list, after the project's heading.
+      if (lay('new-top')) html = html.replace('<!--list-->', entry); else html += entry;
+      html = html.replace('<!--list-->', '');
       const doneCount = scoped.filter(isDone).length;
       if (doneCount) html += `<p class="muted done-toggle"><button type="button" data-act="toggle-done">${state.showDone ? 'Hide' : 'Show'} ${doneCount} done</button></p>`;
       return html;
@@ -374,7 +391,8 @@ export default {
       const rest = open.filter(t => !urgent.includes(t));
       const body = (urgent.length ? head('Due or planned') + flat(urgent) + (rest.length ? head('Everything else') : '') : '') + flat(rest);
       const label = HORIZONS.find(x => x.id === h).label;
-      return listOf(open.length ? body : '') + addBox(h === 'inbox' ? 'New task' : `New task for ${word(`list_${h}`)}`, !open.length, label);
+      const entry = addBox(h === 'inbox' ? 'New task' : `New task for ${word(`list_${h}`)}`, !open.length, label);
+      return lay('new-top') ? entry + listOf(open.length ? body : '') : listOf(open.length ? body : '') + entry;
     }
 
     function viewProjects() {
@@ -662,7 +680,8 @@ export default {
 
     // ↑ / ↓ while editing walk the list: a task's name (start, then end), its
     // note (the note itself, or "Add note"), the next task's name, and so on
-    // down to the New task line and its note; ↑ walks back the same way.
+    // down to the New task line and its note (or from it, when it's at the
+    // top); ↑ walks back the same way.
     // Moving saves the one you leave, as clicking away does. (A redraw after
     // that save puts the cursor back where it was going: walkTo.)
     let walkTo = null;
@@ -671,7 +690,7 @@ export default {
         .filter(li => li.getClientRects().length && li.querySelector(':scope > .task-title'))
         .map(li => ({ li, key: li.dataset.task, title: li.querySelector(':scope > .task-title') }));
       const nt = body.querySelector('#task-new');
-      if (nt?.getClientRects().length) stops.push({ key: 'entry', title: nt });
+      if (nt?.getClientRects().length) stops[lay('new-top') ? 'unshift' : 'push']({ key: 'entry', title: nt });
       return stops;
     };
     function walkApply(stop, part, at) {
@@ -754,12 +773,17 @@ export default {
       let parent = startParent;
       const base = { project_id: state.project || null, horizon: LISTS.includes(state.view) ? state.view : 'inbox', ...extras.fields };
       let shortened = 0;
+      // New tasks added at the top (👁 Layout): above every task, in the order typed.
+      const top = lay('add-top') ? data.tasks.map(x => rankOf(x)).sort()[0] || null : undefined;
+      let prev = null;
       for (const line of lines) {
         // A long line gets a short title; the note keeps it all.
         const { title, notes } = summarise(line.text);
         if (notes) shortened++;
         const note = [notes, extras.note].filter(Boolean).join('\n');
-        const t = await addTask({ ...base, title, notes: note, parent_task_id: line.sub && parent ? parent : null, start_date: null });
+        const at = {};
+        if (top !== undefined) { prev = keyBetween(prev, top); at.rank = prev; }
+        const t = await addTask({ ...base, ...at, title, notes: note, parent_task_id: line.sub && parent ? parent : null, start_date: null });
         if (base.start_date) await planDay(t, base.start_date);
         made.push(t.id);
         if (!line.sub) { parent = t.id; lastTop = t.id; }
@@ -838,12 +862,14 @@ export default {
       // Its level: "- " at the start, or Tab / Shift+Tab, make it a sub-task
       // (of the last task above) or bring it back out, straight away.
       const rowsNow = () => [...body.querySelectorAll('.task-list > li[data-task][data-id]')];
-      const deepest = () => { const last = rowsNow().at(-1); return last ? Math.min(MAX_DEPTH, Number(last.dataset.depth || 0) + 1) : 0; };
+      // At the top (👁 Layout) there's nothing above it to go under.
+      const onTop = lay('new-top');
+      const deepest = () => { const last = !onTop && rowsNow().at(-1); return last ? Math.min(MAX_DEPTH, Number(last.dataset.depth || 0) + 1) : 0; };
       const setDepth = d => { entryDepth = d; entry.dataset.depth = d; entry.style.setProperty('--ind', `${d * 28}px`); redrawTrees(); };
       setDepth(Math.min(entryDepth, deepest()));
       const parentAt = d => (d ? [...rowsNow()].reverse().find(li => Number(li.dataset.depth || 0) === d - 1)?.dataset.task || null : null);
       const deeper = () => {
-        if (!rowsNow().length) { toast('Nothing above to go under'); return false; }
+        if (onTop || !rowsNow().length) { toast('Nothing above to go under'); return false; }
         if (entryDepth >= deepest()) { toast(entryDepth >= MAX_DEPTH ? 'Sub-tasks go three levels deep at most' : 'Already as far in as it goes here'); return false; }
         setDepth(entryDepth + 1);
         return true;
@@ -1251,6 +1277,8 @@ export default {
     });
 
     this.closeDetails = () => { open = null; };
+    // Arriving on Tasks (nav, Ctrl+← / →): with the 👁 Layout switch on, the cursor goes in New task.
+    this.arrived = () => { if (lay('new-focus')) focusEntry(); };
 
     // Tap a task's title to edit it: pills for energy, time, dates and list
     // open under it, plus More for the whole panel (js/editpills.js).

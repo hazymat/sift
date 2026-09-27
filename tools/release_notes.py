@@ -411,3 +411,7 @@ NOTES['1.26.09'] = [
 NOTES['1.26.10'] = [
   F('Tasks: the button under a note written in place is now a real button, "Fullscreen note editor", on its own line at the right.'),
 ]
+
+NOTES['1.27.00'] = [
+  F('Tasks: a Layout section in the 👁 view menu, with four switches for trying out layouts (all off keeps Tasks as it was): New task line at the top (↓ and Enter at the top of the page then start typing a new task), Start typing a new task on arriving, New tasks added at the top, and Show margin (a red margin like the Day Planner\'s, every tick box in it, sub-tasks indented to its right and joined to their task by the ruled lines).'),
+]
