@@ -407,3 +407,7 @@ NOTES['1.26.08'] = [
 NOTES['1.26.09'] = [
   F('Tasks: the New task line shows "Add note" and the pills only once you start typing the task\'s name, and puts them away again if the name is emptied.'),
 ]
+
+NOTES['1.26.10'] = [
+  F('Tasks: the button under a note written in place is now a real button, "Fullscreen note editor", on its own line at the right.'),
+]
