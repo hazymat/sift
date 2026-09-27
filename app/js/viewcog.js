@@ -47,17 +47,18 @@ export function lookHtml(area) {
 
 // Layout switches per page (trying out layouts; the labels are rough for now).
 // needs: a switch that only works with another on (greyed out without it). def: true for
-// one that starts on.
+// one that starts on. flat: not indented under the one it needs.
 const LAYOUTS = {
   tasks: [
-    { id: 'new-top', label: 'New task line at the top' },
+    { id: 'lined', label: 'Lined paper layout', def: true },
+    { id: 'new-top', label: 'New task line at the top', needs: 'lined', flat: true },
     { id: 'new-focus', label: 'Start typing a new task on arriving' },
     { id: 'add-top', label: 'New tasks added at the top' },
-    { id: 'margin', label: 'Show margin' },
+    { id: 'margin', label: 'Show margin', needs: 'lined', flat: true },
     { id: 'added-flash', label: 'Highlight item when added' },
     { id: 'pills-hide', label: 'Hide pills behind More (editing / new)' },
     { id: 'more-panel', label: 'More goes straight to the full panel', needs: 'pills-hide' },
-    { id: 'empty-lines', label: 'Show additional lines when list is empty', def: true },
+    { id: 'empty-lines', label: 'Show additional lines when list is empty', def: true, needs: 'lined', flat: true },
   ],
 };
 const layoutKey = (area, id) => `sift-layout:${area}:${id}`;
@@ -75,7 +76,7 @@ export function layoutHtml(area) {
   if (!opts) return '';
   return `<h4>Layout</h4>
     <div class="layout-opts" role="group" aria-label="Layout">
-      ${opts.map(o => `<label class="layout-opt${o.needs ? ' layout-sub' : ''}"><input type="checkbox" data-layout-set="${o.id}"${o.needs ? ` data-layout-needs="${o.needs}"` : ''}${setOn(area, o.id) ? ' checked' : ''}${o.needs && !setOn(area, o.needs) ? ' disabled' : ''}> ${o.label}</label>`).join('')}
+      ${opts.map(o => `<label class="layout-opt${o.needs && !o.flat ? ' layout-sub' : ''}"><input type="checkbox" data-layout-set="${o.id}"${o.needs ? ` data-layout-needs="${o.needs}"` : ''}${setOn(area, o.id) ? ' checked' : ''}${o.needs && !setOn(area, o.needs) ? ' disabled' : ''}> ${o.label}</label>`).join('')}
     </div>`;
 }
 

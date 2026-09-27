@@ -72,8 +72,8 @@ const AREAS = {
     },
   },
   tasks: {
-    // New task line at the top (👁 Layout): ↓ starts typing there too.
-    down: () => (layoutOn('tasks', 'new-top') ? focusEnd($('#task-new')) : focusEnd(all('#main li[data-task][data-id] > .task-title')[0]) || focusEnd($('#task-new'))),
+    // New task line at the top (👁 Layout; always, without the lined paper): ↓ starts typing there too.
+    down: () => (layoutOn('tasks', 'new-top') || !layoutOn('tasks', 'lined') ? focusEnd($('#task-new')) : focusEnd(all('#main li[data-task][data-id] > .task-title')[0]) || focusEnd($('#task-new'))),
     enter: () => focusEnd($('#task-new')),
   },
   planner: {
