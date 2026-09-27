@@ -77,6 +77,8 @@ const SHELL = [
   'js/views/scans.js',
   'js/views/settings.js',
   'js/views/bin.js',
+  'js/views/welcome.js',
+  'js/tour.js',
   'icons/app-icon-32.png',
   'icons/app-icon-180.png',
   'icons/app-icon-192.png',

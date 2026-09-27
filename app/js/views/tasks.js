@@ -164,7 +164,9 @@ export default {
     function subLine(t) {
       const e = ENERGY.find(x => x.id === t.energy);
       const h = horizonOf(t);
-      const pills = (e ? `<button type="button" class="pill-act bolts" data-act="energy-pill" title="Energy: ${e.label}. Click to edit the task" aria-label="Energy ${e.label}, edit">${e.bolts}</button>` : '')
+      // The "Take the tour" task (views/welcome.js) carries a pill that starts it.
+      const pills = (t.tour && !isDone(t) ? '<button type="button" class="pill-act tour-pill" data-act="tour" title="Start the tour of Sift">▶ Start the tour</button>' : '')
+        + (e ? `<button type="button" class="pill-act bolts" data-act="energy-pill" title="Energy: ${e.label}. Click to edit the task" aria-label="Energy ${e.label}, edit">${e.bolts}</button>` : '')
         + (h !== 'now' && state.view !== h && !isDone(t) ? `<button type="button" class="pill-act" data-act="horizon-pill" title="For ${h}. Click to edit the task">${h}</button>` : '');
       const note = t.notes && open !== t.id ? noteHtml(t) : ''; // the open panel already shows the whole note
       // Expanded spacing: photos attached show as small pictures too.
@@ -1237,6 +1239,7 @@ export default {
         return;
       }
       if ((act === 'horizon-pill' || act === 'energy-pill') && id) return editInPlace(id);
+      if (act === 'tour') return (await import('../tour.js')).startTour();
       if (b.dataset.energy && id) {
         await change(id, { energy: task.energy === b.dataset.energy ? null : b.dataset.energy }, 'Energy saved');
       } else if (act === 'close-details') {

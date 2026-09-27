@@ -531,3 +531,7 @@ NOTES['1.34.00'] = [
   F('Custom theme font lists show each font in its own lettering.'),
   F('Custom theme: a colour that would make writing hard to read is put back, with a message saying which colour it went back to.'),
 ]
+NOTES['1.35.00'] = [
+  F('A welcome the first time Sift is opened: see the tour now, put it on your to do list (a task with a ▶ Start the tour pill, ticked off when the tour is finished), or just use the app.'),
+  F('The tour: a walk round Sift that has you try things for real (writing a note, turning it into a task, adding a task, getting around), and shows sharing, the Day Planner, lists, search and undo. Laptops get the keyboard shortcuts; phones get taps. Settings → Take the tour starts it again.'),
+]
