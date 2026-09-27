@@ -327,3 +327,6 @@ NOTES['1.23.04'] = [
 NOTES['1.23.05'] = [
   B('Batch Book: its page said "Coming in phase 1, step 9", which only made sense in the build plan. It now says "Coming soon."'),
 ]
+NOTES['1.23.06'] = [
+  B('Dates: September was "Sept" in some places and "Sep" in others, and some dates were in the browser\'s order (Sep 27) rather than the app\'s (27 Sep). Every short date now reads the same way, e.g. "Sun 27 Sep".'),
+]

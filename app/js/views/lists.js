@@ -14,10 +14,11 @@ import { editPills } from '../editpills.js';
 import { word } from '../words.js';
 import { tintHex, tintId, colourMenu } from '../colours.js';
 import { rankOf, reorderWrites } from '../order.js';
+import { dateText } from '../days.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
-const shortDate = iso => new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+const shortDate = iso => dateText(new Date(iso), { day: 'numeric', month: 'short', year: 'numeric' });
 
 export default {
   async mount(el) {
@@ -347,7 +348,7 @@ export default {
       if (!l) return;
       if (act === 'add') return addEntry();
       if (act === 'use') {
-        const name = `${l.name} – ${new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`;
+        const name = `${l.name} – ${shortDate(new Date().toISOString())}`;
         const inst = await useTemplate(l, itemsOf(l.id), name);
         nameNext = inst.id;
         go(`#/lists/${inst.id}`);

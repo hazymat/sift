@@ -18,7 +18,7 @@ import { askEmptied, askText } from '../ask.js';
 import { pickTask } from '../taskpicker.js';
 import { tintHex, tintId, colourMenu } from '../colours.js';
 import { rankOf, byRank, keyBetween, reorderWrites } from '../order.js';
-import { addItem, isoDate, parseTimed, daySettings, durationChoices, durationLabel } from '../days.js';
+import { addItem, isoDate, dateText, parseTimed, daySettings, durationChoices, durationLabel } from '../days.js';
 import { loadTree } from '../places.js';
 import { contactFromText } from '../contacts.js';
 import { createListKit, typingIn } from '../listkit.js';
@@ -42,7 +42,7 @@ function ago(iso) {
   if (mins < 60) return `${mins} min ago`;
   const h = Math.round(mins / 60);
   if (h < 24) return `${h} h ago`;
-  return new Date(iso).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+  return dateText(new Date(iso), { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
 // When a note's text was last changed: the sync clock of its body (so notes
