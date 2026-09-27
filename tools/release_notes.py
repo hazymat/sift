@@ -330,3 +330,6 @@ NOTES['1.23.05'] = [
 NOTES['1.23.06'] = [
   B('Dates: September was "Sept" in some places and "Sep" in others, and some dates were in the browser\'s order (Sep 27) rather than the app\'s (27 Sep). Every short date now reads the same way, e.g. "Sun 27 Sep".'),
 ]
+NOTES['1.23.07'] = [
+  B('Scans and Contracts: dragging a file over the page showed the hint meant for notes ("Drop onto a note or item to attach it"). On Scans it now says the file will be saved as a new scan (or added as pages to the scan that is open); on a contract\'s page it says it will be added to the contract\'s files, and dropping there does that.'),
+]

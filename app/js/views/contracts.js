@@ -197,6 +197,10 @@ export default {
     };
     this.route = rest => { state.id = rest[0] || null; state.reveal = false; render(); };
 
+    // Files dropped anywhere on a contract's page go into its Files.
+    att.enableDrop(root, '.contract-page', node => ({ collection: 'contracts', id: node.dataset.id }), () => render());
+    root.addEventListener('dragover', () => { root.dataset.dropHint = state.id ? "Drop to add to this contract's files" : 'Open a contract to add files to it'; });
+
     // ---------- changes ----------
 
     async function change(id, fields, label = 'Saved') {
