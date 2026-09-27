@@ -342,3 +342,6 @@ NOTES['1.23.09'] = [
   F('Sync server: sign-in and account requests are limited to 64 KB, and a wrong email takes as long to answer as a wrong password.'),
   F('Sync server: `install.sh proxy` installs the server without Caddy, for a machine that already runs Apache, nginx or ISPConfig. server/README.md explains the web server settings.'),
 ]
+NOTES['1.23.10'] = [
+  F("The page check (development only) goes through the Scans and Contracts filters and opens the first scan's and contract's own page. What it couldn't try because there was nothing there yet is listed under skipped."),
+]
