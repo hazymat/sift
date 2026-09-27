@@ -35,6 +35,9 @@ sudo ./install.sh home sift.lan
 
 # Internet (the domain must already point at the machine; ports 80 and 443 open):
 sudo ./install.sh public sift.example.com
+
+# A machine that already runs a web server (Apache, nginx, ISPConfig): see the next section.
+sudo ./install.sh proxy
 ```
 
 This installs Node 24 and Caddy (which does the HTTPS), creates a `sift` user, puts the code in `/opt/sift-server`, your settings in `/etc/sift/sift.env` and your data in `/var/lib/sift`, and starts two services: `sift-server` and `caddy`. Run it again any time; it keeps your settings and data.
@@ -42,6 +45,44 @@ This installs Node 24 and Caddy (which does the HTTPS), creates a `sift` user, p
 Check it: open `https://<address>/api/health` in a browser. You should see `{"ok":true,...}`.
 
 Then create your account in Sift (see [Accounts and passwords](#accounts-and-passwords-the-short-version)). Save the recovery code somewhere safe: it's the only way back in if you forget your password.
+
+## Install: behind a web server you already run
+
+If the machine already has a web server on ports 80 and 443 (Apache, nginx, a control panel such as ISPConfig or Plesk), don't use `public`: Caddy would fight it for those ports and the existing sites would stop. Install the server on its own instead:
+
+```bash
+sudo ./install.sh proxy
+```
+
+This does everything `public` does except Caddy. The server listens only on `127.0.0.1:8787`, which nothing outside the machine can reach. Check it with `curl -s http://127.0.0.1:8787/api/health`.
+
+Then make an HTTPS site for it (e.g. `sift.example.com`, with its DNS pointing at the machine and a Let's Encrypt certificate) and pass `/api/` through to the server.
+
+**Apache**: switch on the proxy modules once (`sudo a2enmod proxy proxy_http`, then `sudo systemctl reload apache2`; sites that don't use them are unaffected), then in the site's HTTPS settings:
+
+```apache
+ProxyPreserveHost On
+ProxyPass /api/ http://127.0.0.1:8787/api/
+ProxyPassReverse /api/ http://127.0.0.1:8787/api/
+LimitRequestBody 33554432
+```
+
+With **ISPConfig**: Sites → Add website, tick SSL and Let's Encrypt SSL, PHP off. Put the four lines above in the site's Options tab, "Apache Directives". They affect only that site.
+
+**nginx**, in the site's `server { listen 443 ssl; ... }` block:
+
+```nginx
+client_max_body_size 32m;
+location /api/ {
+    proxy_pass http://127.0.0.1:8787;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+```
+
+Both add the caller's address as the last `X-Forwarded-For` entry, which is the one the server uses for its sign-in limits. Check `https://sift.example.com/api/health` in a browser, then create your account in Sift straight away.
+
+To update later: get the new code, then `sudo ./install.sh update`.
 
 ## Install: Docker (a VPS)
 
@@ -109,6 +150,7 @@ The copy is still encrypted; it's useless without your password. Your devices al
 
 - The server listens only on `127.0.0.1`; Caddy is the only thing exposed. Keep it that way.
 - Leave `REGISTRATION=first` (or `closed`) unless you're inviting people.
-- Sign-in is limited to 10 wrong tries per 15 minutes.
+- Sign-in is limited to 10 wrong tries per 15 minutes, for each email and for each address.
+- On a machine that serves other sites, use `install.sh proxy`, never `public` (see [Behind a web server you already run](#install-behind-a-web-server-you-already-run)).
 - Keep the machine updated (`apt upgrade`), and reachable only over your VPN if it's at home.
 - Never put the server's address or certificate in a public repository.

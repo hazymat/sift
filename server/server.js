@@ -25,6 +25,7 @@ const ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://hazymat.github.io,http:
 const REGISTRATION = process.env.REGISTRATION || 'first';
 const QUOTA = Number(process.env.QUOTA_MB || 1024) * 1024 * 1024;
 const MAX_BODY = 20 * 1024 * 1024;
+const MAX_PUBLIC_BODY = 64 * 1024; // sign-in and account requests, before a device is known
 const MAX_BLOB = 30 * 1024 * 1024; // an encrypted attachment (the app allows 25 MB files)
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -94,13 +95,13 @@ const same = (a, b) => a.length === b.length && crypto.timingSafeEqual(Buffer.fr
 
 class HttpError extends Error { constructor(status, message) { super(message); this.status = status; } }
 
-function readJson(req) {
+function readJson(req, limit) {
   return new Promise((resolve, reject) => {
     let size = 0;
     const chunks = [];
     req.on('data', c => {
       size += c.length;
-      if (size > MAX_BODY) { reject(new HttpError(413, 'Too large')); req.destroy(); return; }
+      if (size > limit) { reject(new HttpError(413, 'Too large')); req.destroy(); return; }
       chunks.push(c);
     });
     req.on('end', () => {
@@ -143,6 +144,7 @@ function authed(req) {
 
 // Login attempts: after 10 failures for an email or address, wait 15 minutes.
 const failures = new Map();
+setInterval(() => { for (const [key, f] of failures) if (Date.now() - f.first > 15 * 60 * 1000) failures.delete(key); }, 60 * 1000).unref();
 function checkLimit(key) {
   const f = failures.get(key);
   if (f && f.count >= 10 && Date.now() - f.first < 15 * 60 * 1000) throw new HttpError(429, 'Too many attempts. Try again in 15 minutes.');
@@ -211,7 +213,9 @@ const routes = {
     checkLimit(`e:${email}`);
     checkLimit(`i:${ip}`);
     const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
-    const ok = user && typeof body.auth_hash === 'string' && same(await scrypt(body.auth_hash, user.auth_salt), user.auth_hash);
+    // Unknown emails still pay for one scrypt, so the answer takes as long either way.
+    const hash = await scrypt(String(body.auth_hash ?? ''), user?.auth_salt || secret);
+    const ok = user && typeof body.auth_hash === 'string' && same(hash, user.auth_hash);
     if (!ok) { fail(`e:${email}`); fail(`i:${ip}`); throw new HttpError(401, 'Email or password is wrong'); }
     failures.delete(`e:${email}`);
     return { user_id: user.id, wrapped_data_key: user.wrapped_data_key, kdf: JSON.parse(user.kdf), ...newDevice(user.id, body.device_name) };
@@ -331,7 +335,8 @@ function match(method, pathname) {
     const names = [];
     const re = new RegExp(`^${pattern.replace(/:(\w+)/g, (_, n) => { names.push(n); return '([^/]+)'; })}$`);
     const hit = re.exec(pathname);
-    if (hit) return { fn, params: Object.fromEntries(names.map((n, i) => [n, decodeURIComponent(hit[i + 1])])) };
+    if (!hit) continue;
+    try { return { fn, params: Object.fromEntries(names.map((n, i) => [n, decodeURIComponent(hit[i + 1])])) }; } catch { throw new HttpError(400, 'Bad address'); }
   }
   return null;
 }
@@ -369,7 +374,20 @@ async function blobs(req, res, url, origin) {
   throw new HttpError(405, 'Not allowed');
 }
 
-const server = http.createServer(async (req, res) => {
+// Sign-in and account requests are the only ones allowed before a device is known.
+const PUBLIC = new Set(['/api/prelogin', '/api/register', '/api/login', '/api/recover']);
+
+// The caller's address: behind Caddy or Apache (the server only listens on
+// 127.0.0.1) it is the last X-Forwarded-For entry, the one the proxy added.
+// Earlier entries come from the caller and can be made up.
+function clientIp(req) {
+  const direct = req.socket.remoteAddress;
+  const forwarded = req.headers['x-forwarded-for'];
+  if (!forwarded || !/^(127\.|::1$|::ffff:127\.)/.test(direct || '')) return direct;
+  return forwarded.split(',').at(-1).trim() || direct;
+}
+
+async function handle(req, res) {
   const origin = req.headers.origin;
   if (req.method === 'OPTIONS') {
     // Chrome asks before a public site (the app on github.io) talks to a
@@ -380,24 +398,21 @@ const server = http.createServer(async (req, res) => {
     return res.end();
   }
   const url = new URL(req.url, 'http://x');
-  if (url.pathname.startsWith('/api/blobs')) {
-    try { return await blobs(req, res, url, origin); } catch (e) {
-      const status = e.status || 500;
-      if (status === 500) console.error(e);
-      return send(res, status, { error: status === 500 ? 'Server error' : e.message }, origin);
-    }
-  }
+  if (url.pathname.startsWith('/api/blobs')) return blobs(req, res, url, origin);
   const route = match(req.method, url.pathname);
   if (!route) return send(res, 404, { error: 'Not found' }, origin);
-  try {
-    const body = req.method === 'POST' ? await readJson(req) : {};
-    const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress;
-    const out = await route.fn({ req, body, params: route.params, query: url.searchParams, ip });
-    send(res, 200, out, origin);
-  } catch (e) {
+  const body = req.method === 'POST' ? await readJson(req, PUBLIC.has(url.pathname) ? MAX_PUBLIC_BODY : MAX_BODY) : {};
+  const out = await route.fn({ req, body, params: route.params, query: url.searchParams, ip: clientIp(req) });
+  send(res, 200, out, origin);
+}
+
+// Any error, from any request, becomes an answer: nothing a caller sends can stop the server.
+const server = http.createServer(async (req, res) => {
+  try { await handle(req, res); } catch (e) {
     const status = e.status || 500;
     if (status === 500) console.error(e);
-    send(res, status, { error: status === 500 ? 'Server error' : e.message }, origin);
+    if (res.headersSent) return res.destroy();
+    try { send(res, status, { error: status === 500 ? 'Server error' : e.message }, req.headers.origin); } catch { res.destroy(); }
   }
 });
 
