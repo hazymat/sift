@@ -2087,11 +2087,13 @@ button.att-count { font: inherit; font-size: inherit; padding: 1px 8px; }
 
 /* A row you were sent to lights up for a moment */
 /* "Here it is" after following a link (js/flash.js): a yellow outline pulsing 5 times. */
+/* Colour, strength and number of pulses can be set per flash (flash.js):
+   --flash-rgb, --flash-a (0 to 1), --flash-n, --flash-ms. */
 @keyframes here-pulse {
-  0%, 100% { box-shadow: 0 0 0 2px rgba(255, 214, 64, 0), 0 0 0 rgba(255, 214, 64, 0); }
-  50% { box-shadow: 0 0 0 3px rgba(255, 214, 64, .95), 0 0 18px rgba(255, 214, 64, .55); }
+  0%, 100% { box-shadow: 0 0 0 2px rgb(var(--flash-rgb, 255 214 64) / 0), 0 0 0 rgb(var(--flash-rgb, 255 214 64) / 0); }
+  50% { box-shadow: 0 0 0 3px rgb(var(--flash-rgb, 255 214 64) / calc(.95 * var(--flash-a, 1))), 0 0 18px rgb(var(--flash-rgb, 255 214 64) / calc(.55 * var(--flash-a, 1))); }
 }
-.flash { animation: here-pulse .7s ease-in-out 5; border-radius: 12px; position: relative; z-index: 1; }
+.flash { animation: here-pulse var(--flash-ms, .7s) ease-in-out var(--flash-n, 5); border-radius: 12px; position: relative; z-index: 1; }
 
 .trust-help { margin: 8px 0; font-size: .9rem; }
 .trust-help summary { cursor: pointer; color: var(--muted); }
