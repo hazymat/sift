@@ -384,3 +384,7 @@ NOTES['1.26.03'] = [
 NOTES['1.26.04'] = [
   B('On an iPhone, tapping into a note or a small text box zoomed the page in. Text you type into is now big enough on touch screens that the page stays put.'),
 ]
+
+NOTES['1.26.05'] = [
+  B('On a phone, the page no longer zooms with two fingers, like an app. For bigger text, use Text size in Settings.'),
+]
