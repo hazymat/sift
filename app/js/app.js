@@ -32,6 +32,8 @@ export const AREAS = [
   { id: 'settings', label: 'Settings', icon: 'i-settings', view: './views/settings.js', pinnable: false },
   // Not in the nav: reached from each area's ⋯ menu and from Settings.
   { id: 'history', label: 'History', icon: 'i-history', view: './views/history.js', pinnable: false, hidden: true },
+  // Not in the nav either: the first time Sift is opened (firstVisit below).
+  { id: 'welcome', label: 'Welcome', icon: 'i-dump', view: './views/welcome.js', pinnable: false, hidden: true },
 ];
 
 export const MAX_PINNED = 4;
@@ -247,6 +249,17 @@ function installKeyNav() {
 }
 
 // ---------- routing ----------
+
+// The very first time Sift is opened on this device, with nothing in it yet
+// and no sync set up: a welcome (views/welcome.js) instead of the first area.
+// Anyone already using Sift (from before the welcome existed) never sees it.
+async function firstVisit() {
+  const device = await store.getDeviceSettings();
+  if (device.welcomed || device.server_url) return false;
+  const used = (await Promise.all(['thoughts', 'tasks', 'day_items', 'lists'].map(c => store.list(c)))).some(list => list.length);
+  if (used) { await store.updateDeviceSettings({ welcomed: true }); return false; }
+  return !location.hash.replace(/^#\/?/, ''); // not when a link to somewhere in Sift was opened
+}
 
 async function route(force = false) {
   const [id, ...rest] = location.hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent);
@@ -536,6 +549,7 @@ async function boot() {
     requestAnimationFrame(() => scrollTo(0, y));
   };
 
+  if (await firstVisit()) location.replace('#/welcome');
   await route();
   renderSyncStatus();
   import('./install.js').then(m => m.showBanner());

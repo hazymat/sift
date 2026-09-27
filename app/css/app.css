@@ -3602,3 +3602,36 @@ dialog.custom-theme::backdrop { background: rgba(0, 0, 0, .35); }
 .ct-msg { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 6; width: max-content; max-width: calc(100% - 32px); padding: 10px 16px; border-radius: 12px; background: #5a1f1f; color: #fff; border: 1px solid #ff8a8a; box-shadow: 0 10px 30px rgba(0, 0, 0, .5); font-size: .9rem; }
 .ct-msg .swatch { border-color: #fff; }
 @media (max-width: 640px) { .ct-row { grid-template-columns: 1fr 32px; } .ct-row > :nth-child(2) { grid-column: 1 / -1; grid-row: 2; } .ct-head h2 { font-size: 1rem; } }
+
+/* Welcome (the first time Sift is opened): one panel in the middle of an empty page. */
+.welcome { min-height: 62vh; display: grid; place-items: center; }
+.welcome-card { max-width: 560px; margin: 0; text-align: center; padding: 32px 28px; }
+.welcome-card h2 { font-size: clamp(2.2rem, 7vw, 3rem); margin: 0 0 12px; letter-spacing: -.01em; }
+.welcome-lead { font-size: 1.1rem; line-height: 1.55; margin: 0 0 24px; }
+.welcome-choices { display: grid; gap: 10px; }
+.welcome-choices button { padding: 12px 18px; font-size: 1rem; }
+
+/* The tour (tour.js): a ring round what a step points at, everything else dimmed
+   (the ring lets clicks through, so things can be tried), and a card saying what
+   to do. Fixed colours, so it reads the same on every theme. */
+.tour-ring { position: fixed; z-index: 1200; pointer-events: none; border-radius: 14px; outline: 2px solid #ffb020; outline-offset: 0; box-shadow: 0 0 0 200vmax rgba(4, 8, 20, .58); }
+.tour-ring.whole { outline: none; border-radius: 0; box-shadow: none; background: rgba(4, 8, 20, .58); }
+.touring .toast { z-index: 1250; } /* over the dimming, under the card */
+.tour-card { position: fixed; z-index: 1300; width: min(420px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto; padding: 12px 18px 14px; border-radius: 16px; background: #182032; color: #e8edf5; border: 1px solid rgba(255, 255, 255, .2); box-shadow: 0 16px 50px rgba(0, 0, 0, .6); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: .92rem; line-height: 1.5; }
+.tour-card h3 { margin: 2px 0 8px; font-size: 1.1rem; color: #fff; }
+.tour-card p { margin: 0 0 8px; }
+.tour-card ul { margin: 0 0 8px; padding-left: 1.2em; }
+.tour-card b { color: #fff; }
+.tour-card kbd { border-color: rgba(255, 255, 255, .35); opacity: 1; margin-left: 0; }
+.tour-head { display: flex; align-items: center; justify-content: space-between; }
+.tour-count { font-size: .75rem; color: #9aa6ba; letter-spacing: .04em; }
+.tour-x { padding: 2px 8px; background: transparent; box-shadow: none; border-color: transparent; color: #e8edf5; }
+.tour-try { color: #ffd479; font-weight: 600; }
+.tour-keys { border-collapse: collapse; margin: 0 0 8px; width: 100%; }
+.tour-keys td { padding: 3px 8px 3px 0; vertical-align: top; }
+.tour-keys td:first-child { white-space: nowrap; }
+.tour-foot { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.tour-foot .spacer { flex: 1; }
+.tour-nice { margin-left: auto; color: #8fdcaa; font-weight: 600; }
+.tour-pill { font-weight: 600; color: var(--accent); border-color: var(--active-border); background: var(--active-bg); }
+.note-full .tour-ring, .note-full .tour-card { display: none; } /* writing in a full-screen note: the tour waits */
