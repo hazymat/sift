@@ -62,7 +62,9 @@ Apple Notes and Google Keep are good at keeping notes. Sift is for what happens 
 
 | | Apple Notes | Google Keep | Sift |
 |---|---|---|---|
+| Where your data lives | Apple's iCloud (end-to-end encryption if you turn it on) | Google's servers | Your devices, and optionally your own server, always end-to-end encrypted |
 | Quick capture, checklists, photos | Yes | Yes | Yes |
+| Notes in sync across Windows, Apple and Android devices | Apple devices only; on Windows, a faff (sign in to iCloud.com, authenticate, use it in a browser tab) | Yes, with a Google account | Yes. Nothing special: one web app that edits offline, keeps its data on your device and syncs sensibly |
 | Undo past this visit, even edits made yesterday on another device | No | No | Yes |
 | Turn a line into a task or a contact, and keep the line | No (copy it by hand) | No (a reminder at most) | Yes, and the line becomes a link |
 | A phone number in a note is a real contact, with a call log | Tap to call only | Tap to call only | Yes |
@@ -72,5 +74,4 @@ Apple Notes and Google Keep are good at keeping notes. Sift is for what happens 
 | Energy levels: choose today's tasks by how you feel | No | No | Yes |
 | Where things are kept (boxes, shelves, search inside a box) | No | No | Find Things |
 | Ongoing sagas: every call, letter and task about one complaint or claim in one timeline | No | No | Cases |
-| Where your data lives | Apple's iCloud (end-to-end encryption if you turn it on) | Google's servers | Your devices, and optionally your own server, always end-to-end encrypted |
 | Your own words for the app's names and headings | No | No | Yes |
