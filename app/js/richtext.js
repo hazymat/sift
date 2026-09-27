@@ -318,7 +318,7 @@ export function richText(container, { value = '', onChange, placeholder = '', or
       <button type="button" class="md-toggle" aria-pressed="false" title="Show the raw markdown">Markdown</button>
     </div>
     <div class="rich-edit hand" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="${esc(placeholder)}"></div>
-    <textarea class="rich-raw hand" hidden spellcheck="true"></textarea>${bare ? '<button type="button" class="bare-full linklike" tabindex="-1" title="Open this note full screen (Alt+Enter)">Note editor</button>' : ''}`;
+    <textarea class="rich-raw hand" hidden spellcheck="true"></textarea>${bare ? '<button type="button" class="bare-full" tabindex="-1" title="Open this note full screen, with its toolbar (Alt+Enter)">⤢ Fullscreen note editor</button>' : ''}`;
 
   // Compact or full toolbar, remembered on this device.
   const FULL_KEY = 'sift:notes-toolbar';
