@@ -32,6 +32,8 @@ const LISTS = ['inbox', 'now', 'next', 'later'];   // where a task lives
 const EMPTY = { get inbox() { return `${word('list_inbox')} is empty.`; }, now: 'Nothing for now.', next: 'Nothing lined up next.', later: 'Nothing for later.' };
 // 👁 Layout switches (viewcog.js), all off by default.
 const lay = id => layoutOn('tasks', id);
+// Without the lined paper (cards, as in earlier versions) the New task box is always at the top.
+const entryOnTop = () => lay('new-top') || !lay('lined');
 // Highlight item when added (👁 Layout): the new tasks pulse once, soft blue (flash.js), and
 // the list scrolls to them if they're out of view.
 const showAdded = (root, ids) => { if (lay('added-flash')) ids.forEach((id, n) => flash(root.querySelector(`.task-list > li[data-task="${id}"]`), Object.assign({ scroll: n ? false : 'nearest' }, SOFT))); };
@@ -245,6 +247,7 @@ export default {
           <div class="task-add-line">
             <span class="add-mark" aria-hidden="true"></span>
             <input id="task-new" class="new-task-line no-inline" placeholder="${esc(placeholder)}" autocomplete="off" enterkeyhint="done" aria-label="New task">
+            <button type="button" class="entry-add" data-act="add" title="Add (Enter)">Add <kbd>Enter</kbd></button>
             ${lay('pills-hide') ? '<button type="button" class="entry-chip pill-reveal" data-act="entry-reveal">More</button>' : ''}
           </div>
           <div class="task-entry-more">
@@ -377,7 +380,7 @@ export default {
         entry = addBox(ph, !tasks.length, word('list_inbox'));
       }
       // New task line at the top (👁 Layout): before the list, after the project's heading.
-      if (lay('new-top')) html = html.replace('<!--list-->', entry); else html += entry;
+      if (entryOnTop()) html = html.replace('<!--list-->', entry); else html += entry;
       html = html.replace('<!--list-->', '');
       const doneCount = scoped.filter(isDone).length;
       if (doneCount) html += `<p class="muted done-toggle"><button type="button" data-act="toggle-done">${state.showDone ? 'Hide' : 'Show'} ${doneCount} done</button></p>`;
@@ -397,7 +400,7 @@ export default {
       const body = (urgent.length ? head('Due or planned') + flat(urgent) + (rest.length ? head('Everything else') : '') : '') + flat(rest);
       const label = HORIZONS.find(x => x.id === h).label;
       const entry = addBox(h === 'inbox' ? 'New task' : `New task for ${word(`list_${h}`)}`, !open.length, label);
-      return lay('new-top') ? entry + listOf(open.length ? body : '') : listOf(open.length ? body : '') + entry;
+      return entryOnTop() ? entry + listOf(open.length ? body : '') : listOf(open.length ? body : '') + entry;
     }
 
     function viewProjects() {
@@ -696,7 +699,7 @@ export default {
         .filter(li => li.getClientRects().length && li.querySelector(':scope > .task-title'))
         .map(li => ({ li, key: li.dataset.task, title: li.querySelector(':scope > .task-title') }));
       const nt = body.querySelector('#task-new');
-      if (nt?.getClientRects().length) stops[lay('new-top') ? 'unshift' : 'push']({ key: 'entry', title: nt });
+      if (nt?.getClientRects().length) stops[entryOnTop() ? 'unshift' : 'push']({ key: 'entry', title: nt });
       return stops;
     };
     function walkApply(stop, part, at) {
@@ -871,7 +874,7 @@ export default {
       // (of the last task above) or bring it back out, straight away.
       const rowsNow = () => [...body.querySelectorAll('.task-list > li[data-task][data-id]')];
       // At the top (👁 Layout) there's nothing above it to go under.
-      const onTop = lay('new-top');
+      const onTop = entryOnTop();
       const deepest = () => { const last = !onTop && rowsNow().at(-1); return last ? Math.min(MAX_DEPTH, Number(last.dataset.depth || 0) + 1) : 0; };
       const setDepth = d => { entryDepth = d; entry.dataset.depth = d; entry.style.setProperty('--ind', `${d * 28}px`); redrawTrees(); };
       setDepth(Math.min(entryDepth, deepest()));
@@ -1238,7 +1241,8 @@ export default {
         collapsed.has(id) ? collapsed.delete(id) : collapsed.add(id);
         render();
       } else if (act === 'add') {
-        body.querySelector('#task-new')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true }));
+        body.querySelector('#task-entry')?.submitEntry?.(); // the Add button (no lined paper): as Enter
+        body.querySelector('#task-new')?.focus();
       } else if (act === 'toggle-done') {
         state.showDone = !state.showDone;
         render();

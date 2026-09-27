@@ -3,12 +3,13 @@
 // times, then stops. One look, used everywhere.
 //
 //   pointTo(collection, id)   before changing page: which item to show
-//   flash(el, { scroll, pulses, colour, strength, ms })
+//   flash(el, { scroll, pulses, colour, strength, ms, width, glow })
 //                             pulse an element now. scroll: true (to the
 //                             middle), 'nearest' (only if out of view) or false;
-//                             colour 'r g b'; strength 0 to 1; ms per pulse.
-//   SOFT                      a gentler look: one light blue pulse (e.g. a
-//                             task just added)
+//                             colour 'r g b'; strength 0 to 1; ms per pulse;
+//                             width of the ring and glow (blur), in px.
+//   SOFT                      a gentler look: one thin blue pulse (e.g. a task
+//                             just added)
 //
 // installFlash() (from app.js) watches for the item to appear after the page
 // changes, since views draw a moment after the address changes.
@@ -28,15 +29,17 @@ const FIND = {
   contacts: id => `#main [data-contact-card="${id}"], #main .c-page[data-contact="${id}"]`,
 };
 
-export const SOFT = { pulses: 1, colour: '120 185 255', strength: .6, ms: 1100 };
+export const SOFT = { pulses: 1, colour: '60 125 230', strength: .7, ms: 1100, width: 1.5, glow: 8 };
 
-export function flash(el, { scroll = true, pulses = PULSES, colour = null, strength = 1, ms = PULSE_MS } = {}) {
+export function flash(el, { scroll = true, pulses = PULSES, colour = null, strength = 1, ms = PULSE_MS, width = 3, glow = 18 } = {}) {
   if (!el) return;
   el.classList.remove('flash');
   void el.offsetWidth; // restart the animation
   el.style.setProperty('--flash-n', pulses);
   el.style.setProperty('--flash-ms', `${ms}ms`);
   el.style.setProperty('--flash-a', strength);
+  el.style.setProperty('--flash-w', `${width}px`);
+  el.style.setProperty('--flash-glow', `${glow}px`);
   if (colour) el.style.setProperty('--flash-rgb', colour); else el.style.removeProperty('--flash-rgb');
   el.classList.add('flash');
   if (scroll) el.scrollIntoView({ block: scroll === 'nearest' ? 'nearest' : 'center', behavior: 'smooth' });

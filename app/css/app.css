@@ -2088,10 +2088,10 @@ button.att-count { font: inherit; font-size: inherit; padding: 1px 8px; }
 /* A row you were sent to lights up for a moment */
 /* "Here it is" after following a link (js/flash.js): a yellow outline pulsing 5 times. */
 /* Colour, strength and number of pulses can be set per flash (flash.js):
-   --flash-rgb, --flash-a (0 to 1), --flash-n, --flash-ms. */
+   --flash-rgb, --flash-a (0 to 1), --flash-n, --flash-ms, --flash-w (ring), --flash-glow. */
 @keyframes here-pulse {
   0%, 100% { box-shadow: 0 0 0 2px rgb(var(--flash-rgb, 255 214 64) / 0), 0 0 0 rgb(var(--flash-rgb, 255 214 64) / 0); }
-  50% { box-shadow: 0 0 0 3px rgb(var(--flash-rgb, 255 214 64) / calc(.95 * var(--flash-a, 1))), 0 0 18px rgb(var(--flash-rgb, 255 214 64) / calc(.55 * var(--flash-a, 1))); }
+  50% { box-shadow: 0 0 0 var(--flash-w, 3px) rgb(var(--flash-rgb, 255 214 64) / calc(.95 * var(--flash-a, 1))), 0 0 var(--flash-glow, 18px) rgb(var(--flash-rgb, 255 214 64) / calc(.55 * var(--flash-a, 1))); }
 }
 .flash { animation: here-pulse var(--flash-ms, .7s) ease-in-out var(--flash-n, 5); border-radius: 12px; position: relative; z-index: 1; }
 
@@ -3462,3 +3462,29 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
 #main[data-area="tasks"]:not([data-layout-empty-lines]) .task-entry.is-empty::after { display: none; }
 .layout-opt.layout-sub { padding-left: 26px; }
 .layout-opt:has(input:disabled) { opacity: .45; cursor: default; }
+/* Lined paper layout (👁 Layout, on unless unticked). Unticked, Tasks look as in
+   earlier versions: New task a rounded box at the top with Add, and each task a
+   shaded rounded card, its sub-tasks inside the same card. */
+.entry-add { display: none; }
+#main[data-area="tasks"]:not([data-layout-lined]) {
+  .task-add-line, .task-add-line:focus-within { margin: 0 0 var(--row-gap, 6px); padding: 4px 4px 4px 14px; min-height: 44px; border: 1px solid var(--glass-border); border-radius: 14px; background: var(--glass-track); }
+  .task-add-line:focus-within { border-color: var(--active-border); }
+  .task-add-line::after, .task-entry.is-empty::after { display: none; }
+  .task-add-line > .add-mark { display: none; }
+  .task-add-line .new-task-line { margin-left: 0; padding-left: 0; }
+  .entry-add { display: inline-flex; align-items: center; flex: none; padding: 7px 14px; }
+  #task-entry + .task-list { margin-top: 6px; }
+  .task-list { gap: var(--row-gap, 6px); }
+  .task-list > li[data-task] { background: var(--glass-track); border: 1px solid var(--glass-border); border-radius: 14px; }
+  .task-list > li[data-task]:hover, .task-list > li[data-task]:focus-within { background: var(--glass); border-color: var(--glass-border); }
+  .task-list > li[data-task]::after { display: none; }
+  .task-list > li.group-top { border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom-color: transparent; }
+  .task-list > li.group-kid { margin-top: calc(-1 * var(--row-gap, 6px)); border-radius: 0; border-top-color: transparent; }
+  .task-list > li.group-kid:not(.group-end) { border-bottom-color: transparent; }
+  .task-list > li.group-kid.group-end { border-bottom-left-radius: 14px; border-bottom-right-radius: 14px; }
+  .task-list > li[data-task]:nth-child(even of li[data-task]) { background-image: none; }
+  .task-list > li[data-task]:has(+ li.task-details) { background: var(--glass-track) !important; border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom-color: transparent; }
+  .task-list > li[data-task]:has(+ li.task-details)::before { display: none; }
+  .task-list > li.task-details { margin: calc(-1 * var(--row-gap, 6px)) 0 0 !important; border: 1px solid var(--glass-border); border-top: 0; border-radius: 0 0 14px 14px; }
+}
+#main[data-area="tasks"][data-shade="alt"]:not([data-layout-lined]) .task-list > li[data-task]:nth-child(even of li[data-task]) { background-color: color-mix(in srgb, var(--text) 7%, var(--glass-track)); }

@@ -432,3 +432,8 @@ NOTES['1.27.04'] = [
   F('Tasks: 👁 → Layout → Hide pills behind More. While editing a task, or typing a new one, only a small More pill shows, at the right of the name, so the line doesn\'t grow; More shows Add note and the pills (and More…, for the whole panel). "More goes straight to the full panel" (with it on) opens the panel at once instead.'),
   F('Tasks: 👁 → Layout → Show additional lines when list is empty (on to start with). Untick it and an empty list shows just the New task line, without the ruled lines under it.'),
 ]
+
+NOTES['1.28.00'] = [
+  F('Tasks: 👁 → Layout → Lined paper layout (on to start with). Untick it for the look of earlier versions: New task a rounded box at the top with an Add button (Enter adds), and each task a shaded rounded card, its sub-tasks inside the same card. The keyboard works as with the lined paper. Without it, New task line at the top, Show margin and the extra lines under an empty list don\'t apply (greyed out).'),
+  F('Tasks: the pulse on a task just added (Highlight item when added) is a thinner, deeper blue.'),
+]
