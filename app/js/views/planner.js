@@ -38,14 +38,16 @@ export default {
     const gone = this.gone = new AbortController();
     const page = { signal: gone.signal };
     const pageCapture = { capture: true, signal: gone.signal };
-    let date = isoDate();
+    // The day being opened, with its paper and layout, goes on the first paint:
+    // drawing today on the default paper first made the page jump a moment later (#22).
+    let date = /^#\/planner\/(\d{4}-\d{2}-\d{2})/.exec(location.hash)?.[1] || isoDate();
     let settings = await daySettings();
     let items = [];
-    let day = null;
+    let day = await getDay(date);
     let editing = null; // item id whose details are open
     let calMonth = null;
 
-    el.innerHTML = `<div class="planner" data-paper="notebook">
+    el.innerHTML = `<div class="planner${day.layout === 'tasks-first' ? ' tasks-first' : ''}" data-paper="${esc(day.paper || settings.paper_style)}">
       <div class="day-nav">
         <button type="button" data-act="prev" class="day-step" aria-label="Previous day"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg></button>
         <button type="button" data-act="calendar" class="cal-icon" aria-label="Pick a date" title="Pick a date"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg></button>
@@ -252,12 +254,14 @@ export default {
     // A wide screen: when the plan would be over 1000px wide, Tasks and Notes
     // dock in a column to its right (a little slack so it doesn't flip back
     // and forth at the edge).
-    this.dockWatch?.disconnect();
-    this.dockWatch = new ResizeObserver(nextFrame(() => {
+    const dock = () => {
       const w = planner.offsetWidth;
       if (w > 1000) planner.classList.add('docked');
       else if (w < 960) planner.classList.remove('docked');
-    }));
+    };
+    dock(); // now as well, so a wide screen doesn't open narrow and then jump
+    this.dockWatch?.disconnect();
+    this.dockWatch = new ResizeObserver(nextFrame(dock));
     this.dockWatch.observe(planner);
     // When Energy sits under Day focus (a narrow screen), the two labels end
     // at the same place and what's written after them starts at the same place:
