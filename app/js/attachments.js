@@ -91,7 +91,7 @@ export async function byParent() {
 export function rowHtml(atts = [], { addButton = true, parent = atts[0]?.parent_id || '' } = {}) {
   const items = atts.map(a => {
     const arriving = a.here === false;
-    const label = `${a.name} (${sizeLabel(a.size)})${arriving ? ' — still arriving on this device through sync' : ''}`;
+    const label = `${a.name} (${sizeLabel(a.size)})${arriving ? ' · still arriving on this device through sync' : ''}`;
     const asPhoto = a.kind === 'image' && a.thumb;
     const body = asPhoto
       ? `<img src="${a.thumb}" alt="" loading="lazy">`

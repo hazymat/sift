@@ -18,13 +18,13 @@ A personal, local-first "life app" for people who like to get things out of thei
 - **Sync (optional):** your phone and laptop stay in step through your own server. Everything is encrypted on your device first; the server only stores scrambled copies. See [server/README.md](server/README.md).
 - **Works offline**, installs to the Home Screen, and keeps a full history so you can undo anything.
 
-Not built yet: Scans, Contracts and Batch Book (they show as placeholders), the calendar connection, and cloud drives as an alternative to your own server. See the backlog in [docs/implementation.md](docs/implementation.md).
+Not built yet: Batch Book (a placeholder), the calendar connection, and cloud drives as an alternative to your own server; Scans and Contracts have first versions. See the [Roadmap](https://github.com/hazymat/sift/issues/20) and [Known bugs](https://github.com/hazymat/sift/issues/21).
 
 ## Documents
 
 - [docs/pitch.md](docs/pitch.md): why Sift, and how it compares with Apple Notes and Google Keep
 - [docs/spec.md](docs/spec.md): what it is and how it works
-- [docs/implementation.md](docs/implementation.md): progress, the to-do list and decisions
+- [docs/working-notes.md](docs/working-notes.md): how it's built and released, where it has got to (the to-do list is in GitHub Issues: Roadmap #20, Known bugs #21)
 - [server/README.md](server/README.md): running your own sync server (Ubuntu or Docker)
 
 ## Layout

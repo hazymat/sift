@@ -1358,7 +1358,7 @@ export default {
       return out;
     }
 
-    // Mid-flight preview: redraw the day as it would be if dropped here —
+    // Mid-flight preview: redraw the day as it would be if dropped here:
     // carried items at their new times, anything in the way pushed on.
     function showPreview(target) {
       $('#pile').classList.toggle('drop-target', !!target?.pile);

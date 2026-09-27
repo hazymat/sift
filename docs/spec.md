@@ -1,4 +1,4 @@
-# Sift — spec
+# Sift: spec
 
 > *sift (v.)*: to sort through a loose mass so that what matters settles into order. Sift is where your scattered tasks, thoughts, things, receipts, contracts and trusted people gradually find their place.
 
@@ -402,7 +402,7 @@ Where it applies (2026-09-25): Brain Dump notes, Find Things boxes and things, L
 
 ## 12. Phases
 
-**Phase 1 — Local, single user, no server** (laptop and iPhone each usable standalone)
+**Phase 1: local, single user, no server** (laptop and iPhone each usable standalone)
 1. Shell: PWA install, service worker, area registry/nav, `store.js` with sync-ready record format (UUIDv7, field clocks, soft delete, outbox), persistent storage request.
 2. Find Things (places + items) + CSV import.
 3. Brain Dump.
@@ -415,15 +415,15 @@ Where it applies (2026-09-25): Brain Dump notes, Find Things boxes and things, L
 10. Search.
 11. Backup / restore.
 
-**Phase 2 — Sync server (multi-user from its first version)**
+**Phase 2: sync server (multi-user from its first version)**
 12. `crypto.js`: registration, login, key wrap, recovery key.
 13. sift-server: auth, devices, push/pull, quota, admin CLI, Docker + Caddy.
 14. `sync.js`: record sync + merge, then blob sync.
 
-**Phase 3 — Calendar**
+**Phase 3: calendar**
 15. Calendar connector (Google first): busy blocks in Day Planner, task push; scan expiry + contract renewal reminders.
 
-**Phase 4 — v2 cloud adapters**
+**Phase 4: v2 cloud adapters**
 16. Adapter interface + Google Drive app-data adapter first.
 
 ## 13. Future

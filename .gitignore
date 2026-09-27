@@ -4,3 +4,4 @@ Thumbs.db
 .env
 server/data/
 private/
+__pycache__/
