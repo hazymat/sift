@@ -367,3 +367,6 @@ NOTES['1.24.00'] = [
 NOTES['1.25.00'] = [
   F('Day Planner: when a day (today or later) has more planned than it holds, a note under the date says so, e.g. "That\'s 11h of plan for a 10h day." Timed items count their time, the rest their estimated time; done and let-go items don\'t count. It can be turned off in Settings, Day Planner.'),
 ]
+NOTES['1.26.00'] = [
+  F('Day Planner: once a day is over (an earlier day, or today after the day\'s end), a line under the date says what got done, e.g. "You did 6 things today." It counts what was done, never what wasn\'t. It can be turned off in Settings, Day Planner, Nudges.'),
+]
