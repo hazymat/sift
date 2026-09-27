@@ -52,17 +52,49 @@ async function linkDetails(c, owner) {
   return got.made;
 }
 
+// While writing, a link in a comment box shows as its name, not [name](sift:…).
+// The box remembers where each one is (ta._links), and the text with its links
+// is put back together when it's saved (boxText) or kept as a draft.
+const LINK_RE = /\[([^\]]+)\]\(sift:[a-z_]+\/[\w-]+\)/g;
+function showLinks(ta, md) {
+  const links = ta._links = [];
+  let shown = '';
+  let last = 0;
+  for (const m of md.matchAll(LINK_RE)) { shown += md.slice(last, m.index); links.push({ label: m[1], md: m[0], at: shown.length }); shown += m[1]; last = m.index + m[0].length; }
+  ta.value = shown + md.slice(last);
+}
+function boxText(ta) {
+  const text = ta.value;
+  const taken = new Set();
+  const found = [];
+  for (const link of ta._links || []) {
+    // The name nearest where the link was put (typing before it moves it along).
+    let best = -1;
+    for (let at = text.indexOf(link.label); at >= 0; at = text.indexOf(link.label, at + 1)) if (!taken.has(at) && (best < 0 || Math.abs(at - link.at) < Math.abs(best - link.at))) best = at;
+    if (best >= 0) { taken.add(best); found.push({ link, at: best }); }
+  }
+  found.sort((a, b) => b.at - a.at);
+  return found.reduce((out, { link, at }) => out.slice(0, at) + link.md + out.slice(at + link.label.length), text);
+}
+
 // 📞 / 📝 / ⚠️ just before the cursor in a comment box: the search for something to link.
 const TRIGGERS = { '📞': 'contact', '📝': 'note', '⚠️': 'important', '⚠': 'important' };
 function linkSearch(box, ta, kind) {
   const at = ta.selectionStart;
   const r = ta.getBoundingClientRect();
-  const put = text => {
+  const put = md => {
     // The 📞 / 📝 that opened the search goes: a link shows its own icon.
+    const oldLength = ta.value.length;
     const before = ta.value.slice(0, at).replace(/(?:📞|📝|⚠️?)\s*$/u, '');
-    const after = ta.value.slice(at);
-    ta.value = `${before}${before && !/\s$/.test(before) ? ' ' : ''}${text} ${after.replace(/^\s+/, '')}`;
-    const caret = ta.value.length - after.replace(/^\s+/, '').length;
+    const after = ta.value.slice(at).replace(/^\s+/, '');
+    const start = before.length + (before && !/\s$/.test(before) ? 1 : 0);
+    ta.value = `${before.padEnd(start)}${md.replace(LINK_RE, '$1')} ${after}`;
+    // Links further on move along; the new ones are where their names now are.
+    for (const link of ta._links || []) if (link.at >= at) link.at += ta.value.length - oldLength;
+    ta._links ??= [];
+    let shorter = 0;
+    for (const m of md.matchAll(LINK_RE)) { ta._links.push({ label: m[1], md: m[0], at: start + m.index - shorter }); shorter += m[0].length - m[1].length; }
+    const caret = ta.value.length - after.length;
     ta.focus();
     ta.setSelectionRange(caret, caret);
     grow(ta);
@@ -148,14 +180,14 @@ function edit(box, li, c) {
   const body = li.querySelector('.comment-body');
   body.innerHTML = '<textarea class="comment-edit no-inline" rows="1" aria-label="Edit comment"></textarea>';
   const ta = body.querySelector('textarea');
-  ta.value = c.body;
+  showLinks(ta, c.body);
   grow(ta);
   ta.focus();
   let done = false;
   const finish = async save => {
     if (done) return;
     done = true;
-    const text = ta.value.trim();
+    const text = boxText(ta).trim();
     if (save && !text && c.body) {
       await draw(box);
       if (await askEmptied('comment')) {
@@ -237,10 +269,11 @@ function wire(box) {
     if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); ta.blur(); return; }
     if (ev.key !== 'Enter' || ev.shiftKey) return;
     ev.preventDefault();
-    const text = ta.value.trim();
+    const text = boxText(ta).trim();
     const pending = box._pending || [];
     if (!text && !pending.length) return;
     ta.value = '';
+    ta._links = [];
     draftCleared(ta);
     grow(ta);
     setPending(box, []);
@@ -329,7 +362,9 @@ export async function mountComments(root, changed) {
     box.innerHTML = '<span class="panel-h">Comments</span><div class="comment-items"></div><div class="comment-add-row"><textarea class="comment-add no-inline" rows="1" placeholder="Add a comment…" aria-label="Add a comment"></textarea><span class="comment-tools"><button type="button" data-cmt-link="contact" title="Link a contact (or type 📞)" aria-label="Link a contact">📞</button><button type="button" data-cmt-link="note" title="Link anything in Sift (or type 📝)" aria-label="Link anything">📝</button></span></div><div class="comment-pending muted" hidden></div>';
     wire(box);
     const ta = box.querySelector('.comment-add');
+    ta._asText = () => boxText(ta);
     keepDraft(ta, `comment:${box.dataset.comments}`);
+    showLinks(ta, ta.value);
     grow(ta);
     await draw(box);
   }
