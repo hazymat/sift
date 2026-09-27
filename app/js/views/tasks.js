@@ -7,7 +7,7 @@ import { keepDraft, draftCleared } from '../drafts.js';
 import { cogHtml } from '../viewcog.js';
 import * as store from '../store.js';
 import { loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES, HORIZONS, horizonOf, planDay, MAX_DEPTH, depthIn, levelsUnder } from '../tasks.js';
-import { ENERGY, isoDate, addDays, parseDate, addItem, durationChoices, durationLabel } from '../days.js';
+import { ENERGY, isoDate, dateText, addDays, parseDate, addItem, durationChoices, durationLabel } from '../days.js';
 import { energyMenu } from '../pillmenu.js';
 import { summarise } from '../summary.js';
 import { createListKit } from '../listkit.js';
@@ -38,7 +38,7 @@ function shortDate(iso) {
   if (iso === addDays(today, 1)) return 'Tomorrow';
   if (iso === addDays(today, -1)) return 'Yesterday';
   const d = parseDate(iso);
-  return d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+  return dateText(d, { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
 export default {

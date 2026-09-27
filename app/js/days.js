@@ -71,6 +71,10 @@ export async function daySettings() {
 
 // ---------- dates and times (local, not UTC) ----------
 
+// Dates in words, the same everywhere: British order and "Sep" (some browsers write "Sept").
+export const dateText = (d, opts) => d.toLocaleDateString('en-GB', opts).replace(/\bSept\b/, 'Sep');
+export const dateTimeText = (d, opts) => d.toLocaleString('en-GB', opts).replace(/\bSept\b/, 'Sep');
+
 export function isoDate(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
@@ -155,7 +159,7 @@ export async function datesWithContent(from, to) {
 // like any archived item; the "Let go, not done" filter finds just those.
 // Restoring one recalls it: back on its day, unfinished, not "let go".
 
-const niceDay = d => parseDate(d).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+const niceDay = d => dateText(parseDate(d), { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 
 export const binProvider = {
   area: 'planner',

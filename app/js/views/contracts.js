@@ -12,12 +12,12 @@ import { toast, undoable } from '../toast.js';
 import { openPicker } from '../linkpicker.js';
 import { openRef } from '../refs.js';
 import { addTask } from '../tasks.js';
-import { isoDate } from '../days.js';
+import { isoDate, dateText } from '../days.js';
 import { telHref } from '../contacts.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
-const niceDate = iso => (iso ? new Date(`${iso.slice(0, 10)}T12:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
+const niceDate = iso => (iso ? dateText(new Date(`${iso.slice(0, 10)}T12:00`), { day: 'numeric', month: 'short', year: 'numeric' }) : '');
 const daysBefore = (iso, n) => { const d = new Date(`${iso}T12:00`); d.setDate(d.getDate() - n); return isoDate(d); };
 const freqLabel = f => FREQUENCIES.find(x => x[0] === f)?.[1] || '';
 const costText = c => (c.cost ? `${money(c.cost)} ${freqLabel(c.cost_frequency)}` : '');

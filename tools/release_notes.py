@@ -320,3 +320,6 @@ NOTES['1.23.03'] = [
   F('Settings, Sync: says whether the server was found, whether it is taking new accounts (the only time Create account shows), and if it can\'t be reached, the likely reasons.'),
   F('Settings, Sync: one Get the certificate button. In the iPhone Home Screen app it copies the address to paste into Safari, instead of opening a blank page. The steps say that the certificate has to be switched on under Certificate Trust Settings.'),
 ]
+NOTES['1.23.05'] = [
+  B('Dates: September was "Sept" in some places and "Sep" in others, and some dates were in the browser\'s order (Sep 27) rather than the app\'s (27 Sep). Every short date now reads the same way, e.g. "Sun 27 Sep".'),
+]
