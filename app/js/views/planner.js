@@ -3,7 +3,7 @@
 // odd time slotted in as its own line; evening below; a pile for things not
 // yet given a time (fed by the dump box); notes. Calendar popup for any date.
 
-import { spacingHtml, lookHtml } from '../viewcog.js';
+import { spacingHtml, lookHtml, layoutHtml, layoutOn, separateHtml } from '../viewcog.js';
 import * as store from '../store.js';
 import {
   daySettings, ENERGY, PAPERS, durationChoices, durationLabel, isoDate, parseDate, addDays, toMin, fromMin, showTime, parseTimed,
@@ -28,6 +28,18 @@ import { word } from '../words.js';
 import { commentsHtml, mountComments, moveComments, closingComment } from '../comments.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+// Achievements' words: a few done is "Three and counting", 6 to 10 and 11+ get
+// bigger praise, and a day with everything done says so.
+const NUMBERS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+const TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+const numberWord = count => count < 20 ? NUMBERS[count] : count < 100 ? TENS[Math.floor(count / 10)] + (count % 10 ? `-${NUMBERS[count % 10]}` : '') : String(count);
+function achieveText(done, total) {
+  const words = numberWord(done).replace(/^./, first => first.toUpperCase());
+  const all = done >= total;
+  if (done <= 5) return all ? 'Everything has been achieved so far.' : `${words} and counting.`;
+  if (done <= 10) return all ? `${words} tasks, every one of them done. Storming it!` : `${words} tasks and storming it!`;
+  return all ? `${words} done, every single one. What a day!` : `${words} done; that's a strong day!`;
+}
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export default {
@@ -71,7 +83,6 @@ export default {
       <header class="day-head">
         <h1 class="day-title"><span class="weekday"></span> <span class="date"></span></h1>
         <p class="day-rel muted"></p>
-        <p class="did-things" hidden></p>
         <div class="down-day over-plan" hidden></div>
         <div class="focus-row">
         <label class="focus"><span class="hand-label">${esc(word('day_focus'))}</span><input id="focus" placeholder="${esc(word('day_focus_prompt'))}" autocomplete="off"></label>
@@ -83,6 +94,7 @@ export default {
             <button type="button" data-energy="none" title="No energy level" aria-label="No energy level">✕</button>
           </div>
         </div>
+        <div class="achieve" hidden><span class="hand-label">Achievements</span><span class="achieve-text"></span></div>
         </div>
       </header>
       <div class="down-day down-note" hidden></div>
@@ -272,19 +284,23 @@ export default {
     const alignHeads = () => {
       const fl = $('.focus .hand-label');
       const en = $('.energy .energy-label');
+      const ach = $('.achieve .hand-label');
       if (!fl || !en) return;
-      fl.style.marginLeft = en.style.marginLeft = '';
+      for (const label of [fl, en, ach]) label.style.marginLeft = '';
+      const both = fl.offsetParent && en.offsetParent; // either can be hidden (👁 Layout)
+      const sideBySide = () => both && en.getBoundingClientRect().top <= fl.getBoundingClientRect().top + 4;
       // Side by side only while both texts fit; otherwise Energy goes under Day focus.
       const row = $('.focus-row');
       row.classList.remove('stacked');
       if (!planner.classList.contains('docked')) {
         const cut = i => i.scrollWidth > i.clientWidth + 1;
-        const sideBySide = en.getBoundingClientRect().top <= fl.getBoundingClientRect().top + 4;
-        if (sideBySide && (cut($('#focus')) || cut($('#energy-note')))) row.classList.add('stacked');
+        if (sideBySide() && (cut($('#focus')) || cut($('#energy-note')))) row.classList.add('stacked');
       }
-      if (en.getBoundingClientRect().top <= fl.getBoundingClientRect().top + 4) return; // side by side
-      const d = fl.getBoundingClientRect().width - en.getBoundingClientRect().width;
-      if (d) (d > 0 ? en : fl).style.marginLeft = `${Math.abs(d)}px`;
+      if (sideBySide()) return;
+      // One under another (Achievements too): every label ends where the widest ends.
+      const shown = [fl, en, ach].filter(label => label.offsetParent);
+      const widest = Math.max(...shown.map(label => label.getBoundingClientRect().width));
+      for (const label of shown) { const gap = widest - label.getBoundingClientRect().width; if (gap) label.style.marginLeft = `${gap}px`; }
     };
     this.headWatch?.disconnect();
     this.headWatch = new ResizeObserver(nextFrame(alignHeads));
@@ -304,6 +320,8 @@ export default {
     // 👁 View settings for this day: paper, timeslots, layout. Each choice is
     // saved on the day; "default" follows Settings.
     const slotMin = () => Math.max(5, Number(day?.slot_min) || Number(settings.slot_min) || 60);
+    // Nudges are the same on every device (they're in Settings' synced record).
+    const nudge = (name, label) => `<label class="layout-opt"><input type="checkbox" data-nudge="${name}"${settings[name] !== false ? ' checked' : ''}> <span>${label}</span></label>`;
     function paintViewMenu() {
       const m = $('.view-settings');
       if (!m) return;
@@ -329,8 +347,29 @@ export default {
           ${opt('data-view-layout', 'plan-first', 'Timed plan first', day.layout !== 'tasks-first')}
           ${opt('data-view-layout', 'tasks-first', 'Tasks &amp; notes first', day.layout === 'tasks-first')}
         </div>
-        ${lookHtml('planner')}${spacingHtml('planner')}`;
+        ${layoutHtml('planner', false)}
+        <h4>Nudges</h4>
+        <div class="layout-opts nudge-opts">
+          ${nudge('show_now_marker', 'Show a ▶ in the margin at the current time')}
+          ${nudge('show_evening', 'Show a section after the day ends, called')}
+          <input class="nudge-text no-inline" data-nudge-text="evening_label" value="${esc(settings.evening_label)}" placeholder="${esc(word('ph_set_evening'))}" autocomplete="off" aria-label="Name of the section after the day ends">
+          ${nudge('recurring_on_planner', 'Recurring tasks go on the Day Planner on their day')}
+          ${nudge('hint_down_day', 'Remind me to do less on down days')}
+          ${nudge('hint_over_plan', "Say when a day's plan is longer than the day")}
+          ${nudge('hint_walk_breaks', 'Build in short breaks during long stretches of work <span class="muted">(with the focus timer, coming later)</span>')}
+        </div>
+        ${lookHtml('planner')}${spacingHtml('planner')}${separateHtml()}`;
     }
+    $('.view-menu').addEventListener('change', async ev => {
+      const t = ev.target;
+      if (t.dataset.nudge) await store.updateSettings({ [t.dataset.nudge]: t.checked });
+      else if (t.dataset.nudgeText) await store.updateSettings({ [t.dataset.nudgeText]: t.value.trim() || null }); // cleared = the default name
+      else return;
+      await render();
+    });
+    $('.view-menu').addEventListener('keydown', ev => { if (ev.key === 'Enter' && ev.target.dataset.nudgeText) ev.target.blur(); });
+    // A 👁 Layout switch changed (here or on another device): Achievements follows it.
+    document.addEventListener('sift-layout', ev => { if (ev.detail?.area === 'planner') didThings(); }, page);
     $('.view-menu').addEventListener('click', async ev => {
       const b = ev.target.closest('[data-view-paper], [data-view-slot], [data-view-layout]');
       if (!b) return;
@@ -775,16 +814,13 @@ export default {
     });
 
     let atts = new Map(); // day item id → its attachments
-    // Once the day is over (an earlier day, or today after the day's end), what
-    // got done is counted, never what didn't: "You did 6 things today."
+    // Achievements (👁 Layout): what got done is counted, never what didn't, and
+    // only once something is done. The words grow with the count.
     function didThings() {
-      const box = $('.did-things');
-      const now = new Date();
-      const over = date < isoDate() || (date === isoDate() && now.getHours() * 60 + now.getMinutes() >= toMin(settings.day_end));
       const done = items.filter(i => i.done_at).length;
-      const show = settings.hint_did_things && over && done > 0;
-      box.hidden = !show;
-      box.textContent = show ? `You did ${done === 1 ? 'one thing' : `${done} things`}${date === isoDate() ? ' today' : ''}.` : '';
+      const show = layoutOn('planner', 'achievements') && done > 0;
+      $('.achieve').hidden = !show;
+      $('.achieve-text').textContent = show ? achieveText(done, items.length) : '';
     }
 
     async function render() {

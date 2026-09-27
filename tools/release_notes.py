@@ -476,3 +476,9 @@ NOTES['1.30.02'] = [
 NOTES['1.30.03'] = [
   B('Day Planner on a wide screen: the down-day line ("Sunday is a down day...") dropped to the bottom, under the schedule.'),
 ]
+
+NOTES['1.31.00'] = [
+  F('Day Planner 👁 menu, Layout: switches for Achievements, Day focus and Energy (all on to start with). Achievements is a line under Day focus and Energy, labelled the same way, once anything is done: "Three and counting", then bigger praise from 6 and from 11, and it says so when everything is done. It replaces "You did 6 things".'),
+  F('Day Planner nudges (the ▶ at the current time, the evening section, reminders) moved from Settings to the Day Planner 👁 menu.'),
+  F('👁 view settings on every page sync between devices of the same kind: phones with phones, computers with computers. The latest change wins. "Keep this device\'s view separate", at the bottom of each 👁 menu, keeps one device to itself.'),
+]

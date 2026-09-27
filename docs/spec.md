@@ -88,7 +88,7 @@ Common fields on every record: `id (UUIDv7), created_at, updated_at, deleted_at,
 - Tasks brought in from the Tasks page (**Bring in from tasks… → Claim**, or a task's **Put on today's plan**) are **linked copies**, peers rather than master and copy: title, note, energy, estimate, people, case and the tick stay the same on both; the day keeps its own time, order and let go, the task its own list, project, dates and sub-tasks. Moving a linked copy to another day moves the task's Plan for day with it.
 - Remote work for many clients at once isn't covered by this (it isn't tied to a day); see §13, "More lists".
 
-**Now marker**: on today's page a small ▶ in the margin marks the current time, placed proportionally between the written times and moving every 30 s (Settings → Day Planner → Nudges; on by default).
+**Now marker**: on today's page a small ▶ in the margin marks the current time, placed proportionally between the written times and moving every 30 s (Day Planner 👁 menu → Nudges; on by default).
 
 **Getting around**: ‹ Today › buttons (and ← → / T on a keyboard), plus a **Calendar** popup: a month grid where days that have anything planned or written are marked with a dot and down days are dimmed. Any date, past or future, opens the same page (look back at last Thursday; plan next week).
 
@@ -102,7 +102,7 @@ Each paper sets fonts, colours, spacing and time format through tokens scoped to
 
 **Energy**: Tasks can carry an `energy` tag (high | medium | low). Rough guide: **low** = laptop work (coding, accounts/bookkeeping, design); **medium** = pottering jobs; **high** = big tidy-ups, starting a big project. Setting today's energy makes the Tasks section suggest matching tasks to **adopt** for the day (suggestions only; nothing is added without a tap).
 
-**Doing less** (Settings → Day Planner → Nudges; each can be turned off):
+**Doing less** (Day Planner 👁 menu → Nudges; each can be turned off):
 - **Down days** (default Sunday; any weekdays): the page says so and suggests picking one or two things; resting counts as part of the plan. The paper gets a calm tint.
 - **Walking breaks**: with the **focus timer** (a Pomodoro-style timer started from any item: e.g. 25 min work / 5 min break), low-energy (laptop) items get a "walk around for 10 minutes" break built in.
 - Other nudges to consider: a gentle warning when the planned minutes exceed the hours in the day ("that's 11 hours of plan for 10 hours"); an automatic "rest" line after lunch on down days; celebrating a done list at the end of the day ("You did 6 things") instead of highlighting what didn't happen; unfinished items move on quietly (carry-over) rather than showing as failures.
@@ -200,6 +200,7 @@ A recipe book that also records every time a recipe is **made**: a batch of wine
 ### 4.7 Cross-cutting
 
 - `tags` are free strings on every record; autocomplete from local data.
+- **View settings** (each page's 👁 menu: Layout, Look, Spacing) sync between devices of the same kind: phones with phones, computers with computers (smallest screen side under 600px is a phone). The latest change wins. "Keep this device's view separate" (this device only) stops sending and receiving them. Kept in the settings record as `view_phone:<key>` / `view_computer:<key>`; `js/viewcog.js`.
 - **Archive & Bin** (every area): **Archive** = `archived_at` set: hidden from normal views, still searchable (search shows "+ n in archive"), never expires. **Bin** = `deleted_at` set: kept 30 days, then purged automatically. **Delete forever** / **Empty bin** purge: content fields are blanked and `purged_at` set, but the record stays as a tombstone so sync can't resurrect it (and the undo toast runs before anything is purged). One **Archive & Bin** page (`#/bin/<archive|bin>/<area>`): tabs Archive | Bin, area filter, search, grouped by area; each entry has Restore, bin entries also Delete forever. Reached from each area's ⋯ menu (pre-filtered) and from Settings. Each area supplies a provider (`entries(kind)`) to `js/bin.js`; a deleted box shows as one entry with the items deleted with it.
 - **Lists** (every list): one behaviour everywhere, from Find Things' box contents. ≡ tap selects (Shift = range, Ctrl/⌘ = toggle), swiping down the ≡ column selects a range, press-and-hold drags (a selection moves as one stack; a parent carries its children; sideways = indent/outdent), Tab/Shift+Tab indents while editing, Esc clears the selection. A bar shows batch actions while anything is selected. Each list turns reordering and indenting on or off: Find Things contents (reorder, 1 level), Tasks List (reorder, nested), other Tasks views, Brain Dump, Contacts, Archive & Bin (select only). Shared helper: `js/listkit.js`.
 - **Date and time fields**: nothing saves while you're typing in them; Enter or leaving the field saves (with undo), Esc restores. `js/inline.js`.
