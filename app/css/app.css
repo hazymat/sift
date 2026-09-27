@@ -3447,3 +3447,16 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
 #main[data-layout-margin] .task-entry .task-add-line .new-task-line { margin-left: calc(7px + var(--mshift) + var(--ind, 0px)); }
 #main[data-layout-margin] .task-entry.is-empty::after { margin-left: calc(66px + var(--mshift)); }
 #task-entry:has(+ .task-list) { margin-bottom: 0; }
+/* Hide pills behind More (👁 Layout, views/tasks.js): while editing, only a More pill, at the
+   right of the name on the same line (the name scrolls under the cursor), until it's pressed. */
+.pill-reveal { flex: none; margin-left: auto; padding: 2px 10px; font-size: .78rem; color: var(--text); }
+.task-list > li[data-task] > .edit-pills:has(> .pill-reveal) { display: contents; }
+.task-list > li[data-task] > .edit-pills > .pill-reveal { order: 2; align-self: center; }
+#main:not([data-density="tight"]) .task-list > li[data-task]:has(> .edit-pills > .pill-reveal) > .more { order: 3; }
+#main:not([data-density="tight"]) .task-list > li[data-task]:has(> .edit-pills > .pill-reveal) > .item-sub { order: 4; }
+.edit-pills:has(> .pill-reveal) > :not(.pill-reveal) { display: none; }
+#main[data-density="tight"] .task-list > li[data-task]:has(> .edit-pills > .pill-reveal) { flex-wrap: nowrap; }
+#main[data-density="tight"] .task-list > li[data-task]:has(> .edit-pills > .pill-reveal) > .task-title { flex: 1 1 auto; min-width: 0; }
+.task-entry:not(.typed) .task-add-line > .pill-reveal, .task-entry.revealed .task-add-line > .pill-reveal, .task-entry:has(.task-add-line > .pill-reveal):not(.revealed) .task-entry-more { display: none; }
+.layout-opt.layout-sub { padding-left: 26px; }
+.layout-opt:has(input:disabled) { opacity: .45; cursor: default; }

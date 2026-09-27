@@ -46,6 +46,7 @@ export function lookHtml(area) {
 }
 
 // Layout switches per page (trying out layouts; the labels are rough for now).
+// needs: a switch that only works with another on (greyed out without it).
 const LAYOUTS = {
   tasks: [
     { id: 'new-top', label: 'New task line at the top' },
@@ -53,18 +54,23 @@ const LAYOUTS = {
     { id: 'add-top', label: 'New tasks added at the top' },
     { id: 'margin', label: 'Show margin' },
     { id: 'added-flash', label: 'Highlight item when added' },
+    { id: 'pills-hide', label: 'Hide pills behind More (editing / new)' },
+    { id: 'more-panel', label: 'More goes straight to the full panel', needs: 'pills-hide' },
   ],
 };
 const layoutKey = (area, id) => `sift-layout:${area}:${id}`;
 export function layoutOn(area, id) {
+  const needs = LAYOUTS[area]?.find(o => o.id === id)?.needs;
+  if (needs && !layoutOn(area, needs)) return false;
   try { return localStorage.getItem(layoutKey(area, id)) === '1'; } catch { return false; }
 }
+const setOn = (area, id) => { try { return localStorage.getItem(layoutKey(area, id)) === '1'; } catch { return false; } };
 export function layoutHtml(area) {
   const opts = LAYOUTS[area];
   if (!opts) return '';
   return `<h4>Layout</h4>
     <div class="layout-opts" role="group" aria-label="Layout">
-      ${opts.map(o => `<label class="layout-opt"><input type="checkbox" data-layout-set="${o.id}"${layoutOn(area, o.id) ? ' checked' : ''}> ${o.label}</label>`).join('')}
+      ${opts.map(o => `<label class="layout-opt${o.needs ? ' layout-sub' : ''}"><input type="checkbox" data-layout-set="${o.id}"${o.needs ? ` data-layout-needs="${o.needs}"` : ''}${setOn(area, o.id) ? ' checked' : ''}${o.needs && !setOn(area, o.needs) ? ' disabled' : ''}> ${o.label}</label>`).join('')}
     </div>`;
 }
 
@@ -100,6 +106,7 @@ export function installViewCog(getArea) {
     const box = ev.target.closest?.('[data-layout-set]');
     if (!box) return;
     try { localStorage.setItem(layoutKey(getArea(), box.dataset.layoutSet), box.checked ? '1' : '0'); } catch { /* not kept */ }
+    for (const sub of box.closest('.layout-opts').querySelectorAll(`[data-layout-needs="${box.dataset.layoutSet}"]`)) sub.disabled = !box.checked;
     apply();
     document.dispatchEvent(new CustomEvent('sift-layout', { detail: { area: getArea(), id: box.dataset.layoutSet } }));
   });

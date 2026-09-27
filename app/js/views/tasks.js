@@ -245,6 +245,7 @@ export default {
           <div class="task-add-line">
             <span class="add-mark" aria-hidden="true"></span>
             <input id="task-new" class="new-task-line no-inline" placeholder="${esc(placeholder)}" autocomplete="off" enterkeyhint="done" aria-label="New task">
+            ${lay('pills-hide') ? '<button type="button" class="entry-chip pill-reveal" data-act="entry-reveal">More</button>' : ''}
           </div>
           <div class="task-entry-more">
             <div id="task-new-note" class="add-note" data-ctrl-enter="keep"></div>
@@ -844,6 +845,7 @@ export default {
         noteEd.setValue('');
         for (const f of entry.querySelectorAll('[data-entry]')) f.value = f.dataset.entry === 'horizon' ? defaultList() : '';
         for (const n of ['energy', 'start_date', 'aim_date', 'estimate_min', 'horizon']) paint(n);
+        entry.classList.remove('revealed');
         showExtras();
       };
       // The extras stay open while the entry is in use. They are shown by the
@@ -1197,6 +1199,15 @@ export default {
       if (!b) return;
       if (b.dataset.view) { b.closest('details')?.removeAttribute('open'); state.project = null; go(b.dataset.view, null); return; }
       if (b.dataset.act === 'focus-entry') { focusEntry(); return; }
+      if (b.dataset.act === 'entry-reveal') { b.closest('.task-entry').classList.add('revealed'); body.querySelector('#task-new')?.focus(); return; }
+      if (b.dataset.act === 'pills-reveal') {
+        const row = b.closest('li[data-task]');
+        if (lay('more-panel')) { this.pills.close(); row?.querySelector(':scope > [data-act="details"]')?.click(); return; }
+        revealed = b.closest('.edit-pills').dataset.key;
+        b.closest('.edit-pills').remove(); // drawn again with everything in it
+        row?.querySelector(':scope > .task-title')?.focus();
+        return;
+      }
       if (b.dataset.act === 'aim-time') { aimTimeFor = b.closest('[data-for]')?.dataset.for; render(); return; }
       if (b.dataset.openProject) { go('list', b.dataset.openProject); return; }
       const li = b.closest('[data-task], [data-for]');
@@ -1289,6 +1300,11 @@ export default {
     // Tap a task's title to edit it: pills for energy, time, dates and list
     // open under it, plus More for the whole panel (js/editpills.js).
     const hours = durationChoices(480).map(m => [m, durationLabel(m)]);
+    // Hide pills behind More (👁 Layout): a task being edited shows only a More pill, at the right
+    // of its name (the row doesn't grow); More shows "Add note" and the pills (and More…, for the
+    // whole panel), or with "More goes straight to the full panel" opens the panel. The New task
+    // line the same (it has no panel: More shows its note and pills). revealed: the task shown.
+    let revealed = null;
     this.pills = editPills(body, {
       title: '.task-title',
       row: 'li[data-task]',
@@ -1299,6 +1315,7 @@ export default {
         const aim = t.aim_at ? t.aim_at.slice(0, 10) : '';
         // No note yet: an "Add note" line under the title, like adding a new task.
         const addNote = (t.notes || '').trim() ? '' : `<textarea class="entry-note add-note pill-note no-inline" data-pill="notes" rows="1" placeholder="Add note" aria-label="Note"></textarea>`;
+        if (lay('pills-hide') && (revealed !== id || lay('more-panel'))) return '<button type="button" class="entry-chip pill-reveal" data-act="pills-reveal">More</button>';
         return addNote + energyPill(t.energy)
           + selectPill('estimate_min', 'Estimated time', '⏱', [['', 'Not estimated'], ...hours], t.estimate_min)
           + datePill('start_date', 'Plan for day', '📅', t.start_date, shortDate)
