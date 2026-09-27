@@ -3485,6 +3485,8 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
   .task-list > li[data-task]:nth-child(even of li[data-task]) { background-image: none; }
   .task-list > li[data-task]:has(+ li.task-details) { background: var(--glass-track) !important; border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom-color: transparent; }
   .task-list > li[data-task]:has(+ li.task-details)::before { display: none; }
-  .task-list > li.task-details { margin: calc(-1 * var(--row-gap, 6px)) 0 0 !important; border: 1px solid var(--glass-border); border-top: 0; border-radius: 0 0 14px 14px; }
+  .task-list > li.task-details { margin: calc(-1 * var(--row-gap, 6px)) 0 2px !important; border: 1px solid var(--glass-border); border-top: 0; border-radius: 0 0 14px 14px; }
+  /* A little gap under each card, even in Compact spacing (not inside a card: a task and its sub-tasks, or its open panel). */
+  .task-list > li[data-task]:not(.group-top, .group-kid:not(.group-end), :has(+ li.task-details)) { margin-bottom: 2px; }
 }
 #main[data-area="tasks"][data-shade="alt"]:not([data-layout-lined]) .task-list > li[data-task]:nth-child(even of li[data-task]) { background-color: color-mix(in srgb, var(--text) 7%, var(--glass-track)); }
