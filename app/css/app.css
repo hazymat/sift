@@ -3400,4 +3400,6 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
 /* A task's note edited in place: plain text on its own line under the title,
    lined up with it, the same in every spacing and at any width. */
 #main .task-list > li[data-task]:has(> .note-in-place) { flex-wrap: wrap; }
-.task-list > li[data-task] > .note-in-place { order: 8; flex: 0 0 calc(100% - var(--title-x, 64px) - var(--sub-ind, 0px)); margin: -4px 0 6px calc(var(--title-x, 64px) + var(--sub-ind, 0px)); padding: 2px 0; border: 0; border-radius: 0; box-shadow: none; outline: none; background: transparent; font-size: .9rem; line-height: 1.4; min-height: 1.4em; }
+.task-list > li[data-task] > .note-in-place { order: 8; flex: 0 0 calc(100% - var(--title-x, 64px) - var(--sub-ind, 0px)); margin: -4px 0 6px calc(var(--title-x, 64px) + var(--sub-ind, 0px)); min-width: 0; }
+.rich.bare > .md-bar { display: none; }
+.task-list > li[data-task] > .note-in-place .rich-edit { min-height: 1.4em; padding: 2px 0; border: 0; border-radius: 0; box-shadow: none; outline: none; background: transparent; font-size: .9rem; line-height: 1.4; }

@@ -616,36 +616,41 @@ export default {
     }
 
     // Clicking a task's note (panel closed) edits it right there, under the
-    // title, as plain text (no toolbar), the same in every spacing and width;
-    // it saves as you type and when you leave it (Esc, click away, or ↑ / ↓ past
-    // its first / last line). Alt+Enter goes one level in: the task's panel.
+    // title: the notes editor without its toolbar or dimming, the same in every
+    // spacing and width. It saves as you type and when you leave it (Esc, click
+    // away, or ↑ / ↓ past its first / last line).
     function editNoteInPlace(task, noteEl) {
       const li = noteEl.closest('li[data-task]');
-      const box = document.createElement('textarea');
-      box.className = 'entry-note note-in-place no-inline';
-      box.rows = 1;
-      box.placeholder = word('ph_notes');
-      box.setAttribute('aria-label', 'Note');
-      box.value = task.notes || '';
+      const host = document.createElement('div');
+      host.className = 'task-notes note-in-place';
       noteEl.remove();
       li.querySelector(':scope > .item-sub:empty')?.remove();
-      li.append(box);
-      const grow = () => { box.style.height = 'auto'; box.style.height = `${box.scrollHeight}px`; };
+      li.append(host);
+      let pending = null;
       const auto = debounced(async () => {
-        const md = box.value.replace(/\s+$/, '');
-        if (md === (task.notes || '')) return;
-        await store.update('tasks', task.id, { notes: md });
-        task = { ...task, notes: md };
+        if (pending === null || pending === (task.notes || '')) return;
+        await store.update('tasks', task.id, { notes: pending });
+        task = { ...task, notes: pending };
       }, 600);
-      box.addEventListener('input', () => { grow(); auto.trigger(); });
-      box.focus();
-      grow();
-      box.addEventListener('blur', () => setTimeout(async () => { if (!box.isConnected || document.activeElement === box) return; await auto.flush(); render(); }, 0));
-      box.addEventListener('keydown', async ev => {
-        if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); box.blur(); return; }
-        if (ev.key === 'Enter' && ev.altKey) { ev.preventDefault(); await auto.flush(); open = task.id; render(); }
+      const ed = richText(host, {
+        value: task.notes || '',
+        placeholder: word('ph_notes'),
+        origin: () => ({ collection: 'tasks', id: task.id, title: task.title, field: 'notes' }),
+        onChange: md => { pending = md; auto.trigger(); },
+        bare: true,
       });
+      ed.focus();
+      const leave = async () => {
+        if (walkTo?.key === task.id && walkTo.part === 'note') walkTo = null; // left on purpose (Esc, Ctrl+Enter, click away): the redraw doesn't come back here
+        await auto.flush(); render();
+      };
+      host.addEventListener('focusout', ev => {
+        if (host.contains(ev.relatedTarget)) return;
+        setTimeout(() => { if (host.isConnected && !host.contains(document.activeElement) && !document.querySelector('.ref-picker, dialog[open]')) leave(); }, 0);
+      });
+      host.addEventListener('keydown', ev => { if (ev.key === 'Escape' && !isFullNote(host) && !document.querySelector('.ref-picker')) { ev.preventDefault(); ev.stopPropagation(); document.activeElement?.blur(); } });
     }
+    const isFullNote = h => h.classList.contains('is-full');
 
     // ↑ / ↓ while editing walk the list: a task's name (start, then end), its
     // note (the note itself, or "Add note"), the next task's name, and so on
@@ -673,12 +678,12 @@ export default {
       const task = data.tasks.find(x => x.id === stop.key);
       if (!task) return false; // a line not added yet has no note
       if (!li.querySelector('.edit-pills .pill-note, .note-in-place')) stop.title.focus(); // opens its pills ("Add note")
-      const f = li.querySelector('.edit-pills .pill-note, .note-in-place');
+      const f = li.querySelector('.edit-pills .pill-note') || li.querySelector('.note-in-place [contenteditable]');
       if (f) { f.focus(); caretTo(f, at); return true; }
       const preview = li.querySelector('.item-sub .task-note');
       if (!preview) return false;
       editNoteInPlace(task, preview);
-      const ed = li.querySelector('.note-in-place');
+      const ed = li.querySelector('.note-in-place [contenteditable]');
       if (ed) caretTo(ed, at);
       return !!ed;
     }
@@ -716,7 +721,7 @@ export default {
         }
         return;
       }
-      const inNote = t.matches?.('#task-new-note, .edit-pills .pill-note, .note-in-place');
+      const inNote = t.matches?.('#task-new-note, .edit-pills .pill-note') || (t.isContentEditable && t.closest('.note-in-place'));
       if (!inNote || !atEdge(t, up ? 'up' : 'down')) return;
       ev.preventDefault();
       if (up) walkGo(s, 'name', 'end');

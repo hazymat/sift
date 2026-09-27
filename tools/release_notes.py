@@ -352,3 +352,6 @@ NOTES['1.23.12'] = [
   B('Tasks: editing a task\'s note in place (clicking it, or ↓ from the task\'s name) opened the full notes editor with its toolbar, and in Compact spacing as a dimmed panel on the right. It is now plain text under the task\'s name, the same in every spacing and at any width; ↓ on its last line goes on to the next task, ↑ on its first line back to the name, and Alt+Enter opens the task\'s panel.'),
   B('Tasks: in Medium and Expanded spacing a task\'s note started a little left of the task\'s name.'),
 ]
+NOTES['1.23.13'] = [
+  F("Tasks: a task's note edited in place (click it, or ↓ from the task's name) keeps the notes editor's keys again: Ctrl+B, Ctrl+I, \"- \" for a bullet, Alt+Enter for full screen, Ctrl+Enter or Esc to finish. It still has no toolbar and doesn't dim the page, in every spacing and on a phone."),
+]

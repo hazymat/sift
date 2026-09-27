@@ -293,8 +293,11 @@ function unspotlight(host) {
 const SZ = { '-1': 's', 1: 'm', 3: 'xl' };
 const SIZE_OF = b => (b.tagName === 'H3' ? 2 : { s: -1, m: 1, xl: 3 }[b.dataset?.sz] ?? 0);
 
-export function richText(container, { value = '', onChange, placeholder = '', origin = null, spot = true, colour = null } = {}) {
+// bare: no toolbar, no dimming and no full screen on a phone tap; the keys
+// (Ctrl+B, Ctrl+I, "- " bullets, Alt+Enter full screen) still work.
+export function richText(container, { value = '', onChange, placeholder = '', origin = null, spot = true, colour = null, bare = false } = {}) {
   container.classList.add('rich');
+  container.classList.toggle('bare', bare);
   container.innerHTML = `
     <div class="md-bar" role="toolbar" aria-label="Formatting">
       <button type="button" class="md-full" title="Full screen: just this note" aria-label="Edit full screen">⤢</button>
@@ -521,6 +524,7 @@ export function richText(container, { value = '', onChange, placeholder = '', or
   // On a phone the note opens full screen as soon as you tap into it
   // (fullnote.js); a full-screen note needs no dimming.
   container.addEventListener('focusin', () => {
+    if (bare) return;
     if (PHONE.matches && !isFull(container)) openFull(container, { label: fullLabel() });
     if (!isFull(container)) spotlight(container);
   });
