@@ -3043,6 +3043,8 @@ a.comment-mark:hover { color: var(--text); }
 .planner[data-paper="minimal"] { --hand-keep: system-ui, -apple-system, "Segoe UI", sans-serif; }
 .day-title .weekday, .focus > span, .hand-label, .pile h2, .day-tasks h2, .day-notes h2, .schedule-title { font-family: var(--hand-keep); }
 .planner[data-paper="techie"] .day-title .date { font-family: var(--hand-keep); }
+/* Blue themes: the Schedule times keep the handwriting too, even with plain fonts. */
+:root[data-theme="blue"] .planner :is(.line .margin, .margin-time) { font-family: var(--hand-keep); }
 
 /* The theme dropdown in Settings → Appearance: each row previews the theme. */
 .theme-menu { position: relative; display: block; }
