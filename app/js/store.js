@@ -176,6 +176,17 @@ function assertCollection(collection) {
   if (!COLLECTIONS.includes(collection)) throw new Error(`Unknown collection: ${collection}`);
 }
 
+// A reload (an app update, say) shouldn't cut off a save that's still in
+// flight: it should wait for it. `idle()` resolves once every write started
+// so far has reached the database.
+let inFlight = 0;
+let idleWaiters = [];
+function beginWrite() { inFlight++; }
+function endWrite() { if (--inFlight <= 0) { inFlight = 0; idleWaiters.splice(0).forEach(r => r()); } }
+export function idle() {
+  return inFlight === 0 ? Promise.resolve() : new Promise(resolve => idleWaiters.push(resolve));
+}
+
 function same(a, b) {
   return JSON.stringify(a) === JSON.stringify(b);
 }
@@ -224,25 +235,30 @@ function withDoneLog(collection, existing, changes) {
 async function write(collection, id, changes, { mustExist }) {
   assertCollection(collection);
   await open();
-  const tx = db.transaction([collection, 'outbox', 'sync_meta'], 'readwrite');
-  const existing = await promisify(tx.objectStore(collection).get(id));
-  if (mustExist && !existing) {
-    tx.abort();
-    throw new Error(`${collection}/${id} not found`);
+  beginWrite();
+  try {
+    const tx = db.transaction([collection, 'outbox', 'sync_meta'], 'readwrite');
+    const existing = await promisify(tx.objectStore(collection).get(id));
+    if (mustExist && !existing) {
+      tx.abort();
+      throw new Error(`${collection}/${id} not found`);
+    }
+    const record = stamp(existing, existing ? withDoneLog(collection, existing, changes) : { ...changes, id });
+    if (record) {
+      record.id = id;
+      tx.objectStore(collection).put(record);
+      tx.objectStore('outbox').put({ id, collection, queued_at: Date.now() });
+      tx.objectStore('sync_meta').put(lastClock, 'clock');
+    }
+    await done(tx);
+    if (record) {
+      noteChange(collection, existing, record);
+      emit({ collection, id, deleted: !!record.deleted_at });
+    }
+    return record || existing;
+  } finally {
+    endWrite();
   }
-  const record = stamp(existing, existing ? withDoneLog(collection, existing, changes) : { ...changes, id });
-  if (record) {
-    record.id = id;
-    tx.objectStore(collection).put(record);
-    tx.objectStore('outbox').put({ id, collection, queued_at: Date.now() });
-    tx.objectStore('sync_meta').put(lastClock, 'clock');
-  }
-  await done(tx);
-  if (record) {
-    noteChange(collection, existing, record);
-    emit({ collection, id, deleted: !!record.deleted_at });
-  }
-  return record || existing;
 }
 
 export function create(collection, fields = {}) {

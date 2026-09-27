@@ -259,7 +259,18 @@ export async function checkForUpdate() {
 }
 export async function applyUpdate() {
   const reg = await navigator.serviceWorker?.getRegistration();
-  if (reg?.waiting) reg.waiting.postMessage('skip-waiting'); else location.reload();
+  if (reg?.waiting) reg.waiting.postMessage('skip-waiting'); else { await flushBeforeReload(); location.reload(); }
+}
+
+// A reload (an update taking over) shouldn't cut off typing that hasn't been
+// saved yet. A full-screen note only saves when it's closed (fullnote.js), so
+// close it first; then take the cursor out of anything else being edited and
+// wait for that save to reach the database.
+async function flushBeforeReload() {
+  const { closeFull } = await import('./fullnote.js');
+  closeFull({ animate: false });
+  document.activeElement?.blur();
+  await store.idle();
 }
 
 function registerServiceWorker() {
@@ -290,7 +301,7 @@ function registerServiceWorker() {
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (reloading) return;
     reloading = true;
-    location.reload();
+    flushBeforeReload().then(() => location.reload());
   });
 }
 

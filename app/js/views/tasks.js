@@ -700,6 +700,7 @@ export default {
       if ((ev.key !== 'ArrowUp' && ev.key !== 'ArrowDown') || ev.defaultPrevented || ev.shiftKey || ev.ctrlKey || ev.altKey || ev.metaKey || ev.isComposing) return;
       if (document.querySelector('.ref-picker, .pill-menu')) return;
       const t = ev.target;
+      if (t.closest?.('.is-full')) return; // full-screen note: the cursor stays in it
       const stops = walkStops();
       const i = stops.findIndex(s => s.title === t || (s.li ? s.li.contains(t) : !!t.closest?.('#task-entry')));
       if (i < 0) return;
