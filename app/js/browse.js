@@ -1,6 +1,7 @@
 // Multi App Item Browsing with Keyboard. At an area's top level (nothing being
 // edited: where ← / → change tabs and Ctrl+← / → change areas):
-//   ↑, Esc   do nothing here (Esc still steps back from a record's page)
+//   ↑, Esc   do nothing here (Esc still steps back from a record's page,
+//            and clears a search left in the search box)
 //   ↓        Tasks / Day Planner: start editing the first entry (↑ / ↓ then
 //            walk the list, as while editing). Elsewhere: into the search box
 //            above the items, if there is one; ↓ again starts browsing.
@@ -24,7 +25,8 @@
 // at the top level) highlights the filter showing; ← / → switch filter there
 // and then (at either end: a flash, nothing changes); ↓ goes on to the items,
 // and ↑ from their top row comes back to the bar, ↑ again to the search box.
-// Esc in the search box goes back to the top level.
+// Esc in the search box goes back to the top level, keeping the search; Esc
+// again there clears it.
 // Tab / Shift+Tab still walk the page's buttons, links and filters (the
 // browser's own ring shows where): Esc takes the cursor off them, back to
 // the page, where the keys above work again (in every area).
@@ -214,6 +216,12 @@ export function installBrowse({ busy, area }) {
     // The top level: only when nothing in particular has the keyboard (a
     // button or link with focus keeps its own Enter).
     if (t !== document.body && t !== document.documentElement && t.closest?.('a, button, summary, [role="button"], [tabindex], input, textarea, select')) return;
+    // Esc after leaving the search box (the search kept): a second Esc clears it.
+    if (ev.key === 'Escape') {
+      const s = c.search && all(c.search).find(e => e.value);
+      if (s) { take(ev); s.value = ''; s.dispatchEvent(new Event('input', { bubbles: true })); }
+      return;
+    }
     if ((ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') && bar(c).length) { take(ev); moveBar(c, ev.key === 'ArrowLeft' ? -1 : 1); return; }
     if (ev.key === 'ArrowDown') {
       let done = false;
