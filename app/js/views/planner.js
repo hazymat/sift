@@ -118,9 +118,11 @@ export default {
     const $ = s => el.querySelector(s);
     const linesEl = $('#lines');
     $('#pile-blank').addEventListener('click', () => $('#dump').focus());
-    // The New task line's note: Ctrl+Enter adds the task, as Enter does on the title.
+    // The New task line's note: Ctrl+Enter adds the task, as Enter does on the
+    // title; Esc keeps what's typed, as on the title.
     $('#dump-note').addEventListener('keydown', ev => {
       if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); $('#dump').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); }
+      if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); leaveNew(); ev.target.blur(); }
     });
     $('#dump-note').addEventListener('input', ev => { ev.target.style.height = 'auto'; ev.target.style.height = `${ev.target.scrollHeight}px`; });
 
@@ -921,13 +923,12 @@ export default {
           await create({ title: parsed.title, time: parsed.time || time, end_time: parsed.end_time, notes });
         }
       };
+      // Esc keeps what's typed, the same as Enter (an empty line just goes).
       input.addEventListener('keydown', ev => {
-        if (ev.key === 'Enter') { ev.preventDefault(); finish(true); }
-        if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); finish(false); }
+        if (ev.key === 'Enter' || ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); finish(true); }
       });
       note.addEventListener('keydown', ev => {
-        if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); finish(true); }
-        if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); finish(false); }
+        if ((ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) || ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); finish(true); }
       });
       note.addEventListener('input', () => { note.style.height = 'auto'; note.style.height = `${note.scrollHeight}px`; });
       // Leaving both the title and its note saves it.
@@ -1120,6 +1121,13 @@ export default {
       paintNewPills();
     }
     const closeNew = () => pileNew.classList.remove('open');
+    // Esc on the New task line: a task typed is added (as on the Tasks page);
+    // with nothing typed or set the line just closes. A note typed without a
+    // title stays where it is, for later.
+    function leaveNew() {
+      if ($('#dump').value.trim()) addNew({ leave: true });
+      else if (newIdle()) { resetNew(); closeNew(); }
+    }
     pileNew.addEventListener('focusin', () => { if (!pileNew.classList.contains('open')) { paintNewPills(); pileNew.classList.add('open'); } });
     // Leaving by keyboard (Tab / Shift+Tab) closes it too, if nothing's typed or set.
     // Left with a task typed (click elsewhere, or Tab away): it's added, as Enter would.
@@ -1173,9 +1181,7 @@ export default {
       if (ev.key === 'Escape') {
         ev.preventDefault();
         ev.stopPropagation();
-        if (ev.target.value) { ev.target.value = ''; draftCleared(ev.target); return; }
-        resetNew();
-        closeNew();
+        leaveNew();
         ev.target.blur();
         return;
       }

@@ -49,6 +49,7 @@ import { openFull, closeFull, isFull, setFullLabel, PHONE } from './fullnote.js'
 import { titleFrom } from './summary.js';
 import { word } from './words.js';
 import { noteUndo, showVersions } from './noteundo.js';
+import { flushAll } from './autosave.js';
 
 const LINK_RE = /\[([^\]]+)\]\(sift:([a-z_]+)\/([\w-]+)\)/g;
 
@@ -525,6 +526,7 @@ export function richText(container, { value = '', onChange, placeholder = '', or
   });
   container.addEventListener('focusout', ev => {
     if (container.contains(ev.relatedTarget)) return;
+    flushAll(); // leaving a note saves it at once, not after the typing pause
     undoer.left();
     closeMakeMenu();
     spotNow(true);
@@ -558,6 +560,20 @@ export function richText(container, { value = '', onChange, placeholder = '', or
   };
   edit.addEventListener('keydown', finishOnCtrlEnter);
   raw.addEventListener('keydown', finishOnCtrlEnter);
+  // Esc steps out one level at a time: a menu of the note's own first, then
+  // the note itself (leaving it saves it, as clicking away does). Whatever
+  // holds the note (a panel, say) waits for the next Esc. Full screen has its
+  // own first step, above.
+  const stepOut = ev => {
+    if (ev.key !== 'Escape' || ev.defaultPrevented || isFull(container) || document.querySelector('.ref-picker, .pill-menu, .dd-menu, .thought-pop')) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    const menu = container.querySelector('.md-make-menu, .ref-menu');
+    if (menu) { closeMakeMenu(); menu.remove(); return; }
+    document.activeElement?.blur();
+  };
+  edit.addEventListener('keydown', stepOut);
+  raw.addEventListener('keydown', stepOut);
 
   // What has been typed on the caret's line so far (a line starts at the block's
   // start or after a line break).

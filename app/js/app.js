@@ -247,6 +247,18 @@ async function renderSyncStatus() {
   pill.title = status.state === 'off' ? `${await store.outboxSize()} changes stored on this device only` : status.error || text;
 }
 
+// Where Esc goes back to from a record's own page (null: already at the start).
+function stepUp(hash) {
+  const [id, ...rest] = hash.replace(/^#\/?/, '').split('/');
+  if (!rest.length) return null;
+  if (['lists', 'scans', 'contracts'].includes(id)) return `#/${id}`;
+  if (id === 'contacts') {
+    if (rest[0] === 'c') return '#/contacts';
+    if (['cases', 'directory'].includes(rest[0]) && rest.length > 1) return `#/contacts/${rest[0]}`;
+  }
+  return null;
+}
+
 // ---------- service worker ----------
 
 // Look for a new version now: 'ready' when one is waiting (it goes in when
@@ -334,6 +346,28 @@ async function boot() {
   // close Sift there without warning, so anything waiting to save goes in now.
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushAll(); });
   addEventListener('pagehide', () => flushAll());
+  // Esc closes an open ⋯ / 👁 menu (or the top bar's More) before anything else.
+  addEventListener('keydown', ev => {
+    if (ev.key !== 'Escape') return;
+    const menu = document.querySelector('details.tool-menu[open], #topnav-overflow[open]');
+    if (!menu) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    menu.removeAttribute('open');
+    menu.querySelector('summary')?.focus();
+  }, true);
+  // Esc with nothing left to step out of (nothing being typed in, no menu,
+  // panel or selection to close: anything that took the Esc says so with
+  // preventDefault) goes back to the area's starting view from one of its
+  // records: a list, a contact, a case, a scan, a contract.
+  addEventListener('keydown', ev => {
+    if (ev.key !== 'Escape' || ev.target.closest?.('input, textarea, select, [contenteditable]') || document.querySelector('dialog[open]')) return;
+    setTimeout(() => {
+      if (ev.defaultPrevented) return;
+      const up = stepUp(location.hash);
+      if (up) location.hash = up;
+    });
+  });
   installInlineEditing();
   installRefLinks();
   installHoldToOpen();

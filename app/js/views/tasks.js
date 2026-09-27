@@ -873,6 +873,12 @@ export default {
           });
           return;
         }
+        // Esc in a note typed with no title yet: stop, keeping the note for later.
+        if (ev.target === noteEl && ev.key === 'Escape' && !ta.value.trim() && noteEl.value.trim()) {
+          ev.preventDefault(); ev.stopPropagation();
+          noteEl.blur();
+          return;
+        }
         // Esc on an empty line (or its empty note) closes the entry: the extras go away, unset.
         if ((ev.target === ta || (ev.target === noteEl && !noteEl.value.trim())) && ev.key === 'Escape' && !ta.value) {
           ev.preventDefault(); ev.stopPropagation();

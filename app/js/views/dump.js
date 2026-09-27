@@ -155,6 +155,8 @@ export default {
     // leave it empty (CSS: #dump-body.in-use).
     for (const type of ['pointerdown', 'keydown']) captureBox.addEventListener(type, () => captureBox.classList.add('in-use'));
     captureBox.addEventListener('focusout', ev => { if (!captureBox.contains(ev.relatedTarget) && !input?.value.trim()) captureBox.classList.remove('in-use'); });
+    // Esc: stop writing and see the whole page, un-dimmed (what's typed stays as the draft).
+    captureBox.addEventListener('keydown', ev => { if (ev.key === 'Escape' && !ev.defaultPrevented) { ev.preventDefault(); ev.stopPropagation(); document.activeElement?.blur(); } });
     const input = richText(captureBox, {
       value: readDraft('dump'),
       placeholder: word('ph_dump_new'),
@@ -640,14 +642,14 @@ export default {
       }
     });
 
-    // Editing a thought saves when you leave it (Esc cancels, Ctrl+Enter saves).
+    // Editing a thought saves as you type, and when you leave it (click away, Esc or Ctrl+Enter).
     list.addEventListener('focusout', async ev => {
       const box = ev.target.closest?.('.thought-edit');
       // (Into the Plan it pop-up or the file viewer: still writing in the note.)
       if (!box?._editor || box.contains(ev.relatedTarget) || ev.relatedTarget?.closest?.('.thought-pop, dialog.att-view')) return;
       const t = thoughts.find(x => x.id === box.dataset.thought);
       const orig = box._orig ?? t.body;
-      const body = box.dataset.cancel ? orig : box._editor.value.trim();
+      const body = box._editor.value.trim();
       box._editor = null;
       editing = null;
       // Everything cut or deleted, then left: ask, rather than quietly keeping
@@ -660,7 +662,7 @@ export default {
         undoable('Deleted', async () => { await store.update('thoughts', t.id, { deleted_at: null }); render(); });
         return;
       }
-      // It has been saving as you typed; this puts the last bit in (or, after Esc, the original back).
+      // It has been saving as you typed; this puts the last bit in.
       if (body && body !== (box._saved ?? t.body)) await store.update('thoughts', t.id, { body, title: titleFrom(body), ...toTop(t) });
       if (body && body !== orig) {
         undoable('Saved', async () => { await store.update('thoughts', t.id, { body: orig, title: titleFrom(orig) }); render(); });
@@ -687,13 +689,13 @@ export default {
     });
     this.onKey = ev => {
       if (ev.key === 'Escape' && pop) { ev.preventDefault(); ev.stopPropagation(); closePop(); if (editing) noteEditor()?.focus(); return; }
-      if (ev.key === 'Escape' && !ev.target.closest('input, textarea, select, [contenteditable]')) kit.escape();
+      if (ev.key === 'Escape' && !ev.target.closest('input, textarea, select, [contenteditable]') && kit.escape()) ev.preventDefault();
     };
     addEventListener('keydown', this.onKey);
     list.addEventListener('keydown', ev => {
       const box = ev.target.closest?.('.thought-edit');
       if (!box) return;
-      if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); box.dataset.cancel = '1'; ev.target.blur(); }
+      if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); ev.target.blur(); }
       if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); ev.target.blur(); }
     });
 

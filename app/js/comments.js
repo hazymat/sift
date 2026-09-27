@@ -29,6 +29,7 @@ import { ask, askText, askEmptied } from './ask.js';
 import * as att from './attachments.js';
 import { openPicker } from './linkpicker.js';
 import { linkMd, linkDetailsInText } from './refs.js';
+import { keepDraft, draftCleared } from './drafts.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const keyOf = o => o.task_id ? `task_id:${o.task_id}` : `item_id:${o.item_id}`;
@@ -181,7 +182,7 @@ function edit(box, li, c) {
   });
   ta.addEventListener('keydown', ev => {
     if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); finish(true); }
-    if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); finish(false); }
+    if ((ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) || ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); finish(true); }
   });
   ta.addEventListener('blur', () => setTimeout(() => { if (!box.querySelector('.ref-picker') && document.activeElement !== ta) finish(true); }));
 }
@@ -232,13 +233,15 @@ function wire(box) {
   box.addEventListener('keydown', async ev => {
     const ta = ev.target.closest('.comment-add');
     if (!ta) return;
-    if (ev.key === 'Escape' && ta.value) { ev.preventDefault(); ev.stopPropagation(); ta.value = ''; grow(ta); return; }
+    // Esc: stop writing; what's typed stays (kept as a draft) for later.
+    if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); ta.blur(); return; }
     if (ev.key !== 'Enter' || ev.shiftKey) return;
     ev.preventDefault();
     const text = ta.value.trim();
     const pending = box._pending || [];
     if (!text && !pending.length) return;
     ta.value = '';
+    draftCleared(ta);
     grow(ta);
     setPending(box, []);
     const made = await store.create('comments', { ...ownerOf(box.dataset.comments), at: new Date().toISOString(), body: text });
@@ -325,6 +328,9 @@ export async function mountComments(root, changed) {
     box._wired = true;
     box.innerHTML = '<span class="panel-h">Comments</span><div class="comment-items"></div><div class="comment-add-row"><textarea class="comment-add no-inline" rows="1" placeholder="Add a comment…" aria-label="Add a comment"></textarea><span class="comment-tools"><button type="button" data-cmt-link="contact" title="Link a contact (or type 📞)" aria-label="Link a contact">📞</button><button type="button" data-cmt-link="note" title="Link anything in Sift (or type 📝)" aria-label="Link anything">📝</button></span></div><div class="comment-pending muted" hidden></div>';
     wire(box);
+    const ta = box.querySelector('.comment-add');
+    keepDraft(ta, `comment:${box.dataset.comments}`);
+    grow(ta);
     await draw(box);
   }
 }

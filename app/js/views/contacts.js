@@ -367,7 +367,7 @@ export default {
       ],
     });
     this.onKey = ev => {
-      if (ev.key === 'Escape' && !ev.target.closest('input, textarea, select, [contenteditable]')) kit.escape();
+      if (ev.key === 'Escape' && !ev.target.closest('input, textarea, select, [contenteditable]') && kit.escape()) ev.preventDefault();
     };
     addEventListener('keydown', this.onKey);
 

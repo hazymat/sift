@@ -95,7 +95,11 @@ export function editPills(root, spec) {
     close();
   };
   const onKey = ev => {
-    if (ev.key === 'Escape' && editing && !ev.target.closest?.('.edit-pills select')) close();
+    if (ev.key === 'Escape' && editing && !ev.target.closest?.('.edit-pills select')) {
+      // A note typed under the title is saved ("change", on leaving it) before the pills go.
+      if (ev.target.closest?.('.edit-pills textarea, .edit-pills input')) ev.target.blur();
+      close();
+    }
     // Ctrl+Enter (⌘+Enter) in the note under the title: save it and finish, as in every note.
     if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey) && ev.target.closest?.('.edit-pills textarea')) {
       ev.preventDefault();
