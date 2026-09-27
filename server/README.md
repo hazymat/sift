@@ -7,6 +7,23 @@ You need one of:
 - a small machine at home (a Raspberry Pi, a Proxmox container, an old PC) that your phone and laptop can reach, e.g. over a VPN; or
 - a small server on the internet (a VPS).
 
+## Accounts and passwords: the short version
+
+Accounts are made in the app, never on the server. Everything is encrypted on your device with a key made from your password, so the server never sees a password and can't set, read or reset one.
+
+| To do this | Do this |
+|---|---|
+| Create the first account | In Sift: Settings → Sync, type the server address, then email and password, and **Create account**. Save the recovery code it shows. |
+| Add another person | On the server: `sudo sift-admin registration open`. They create their account in Sift as above. Then `sudo sift-admin registration closed`. |
+| Change a password | In Sift, signed in: Settings → Sync → **Change password** (needs the current one). Other devices are signed out and sign in again with the new one. |
+| Forgotten password | In Sift: Settings → Sync → **Forgot password?**, then the email, the recovery code and a new password. Other devices are signed out. |
+| Forgotten password and lost recovery code | The data on the server can't be opened by anyone. On a device that still has the notes, make a backup first (Settings → Backup). Then `sudo sift-admin delete-user <email>`, open registration, create the account again and restore the backup. |
+| Change an account's email | `sudo sift-admin rename-user <old email> <new email>` |
+| Remove an account | `sudo sift-admin delete-user <email>` (deletes everything stored for it) |
+| See accounts | `sudo sift-admin users` |
+
+**Create account** only shows once the server address is typed and the server is accepting new accounts. By default (`REGISTRATION=first`) that's only until the first account exists; after that it closes by itself. With Docker, use `docker compose exec sift node admin.js <command>`; to change registration there, set `REGISTRATION` in `.env` and run `docker compose up -d`.
+
 ## Install: Ubuntu or Debian
 
 Copy this `server/` folder to the machine, then, as root:
@@ -24,7 +41,7 @@ This installs Node 24 and Caddy (which does the HTTPS), creates a `sift` user, p
 
 Check it: open `https://<address>/api/health` in a browser. You should see `{"ok":true,...}`.
 
-Then in Sift: **Settings → Sync**, type the server address, and **Create account**. Save the recovery code somewhere safe: it's the only way back in if you forget your password.
+Then create your account in Sift (see [Accounts and passwords](#accounts-and-passwords-the-short-version)). Save the recovery code somewhere safe: it's the only way back in if you forget your password.
 
 ## Install: Docker (a VPS)
 

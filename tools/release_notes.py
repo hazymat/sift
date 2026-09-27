@@ -312,3 +312,6 @@ NOTES['1.23.00'] = [
 NOTES['1.23.01'] = [
   F('An empty value in History and the Quantity box in Find Things show a plain dash.'),
 ]
+NOTES['1.23.02'] = [
+  F('The server guide (server/README.md) starts with how accounts and passwords work: creating the first account, adding another person, changing or recovering a password, and removing an account.'),
+]
