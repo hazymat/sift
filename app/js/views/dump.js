@@ -165,7 +165,7 @@ export default {
     const input = richText(captureBox, {
       value: readDraft('dump'),
       placeholder: word('ph_dump_new'),
-      origin: () => ({ collection: 'thoughts', id: captureId, title: titleFrom(input?.value || '') || 'Brain dump', field: 'body' }),
+      origin: () => ({ collection: 'thoughts', id: theirsOwner() ? null : captureId, title: titleFrom(input?.value || '') || 'Brain dump', field: 'body' }),
       onChange: md => { writeDraft('dump', md); showSaved($('#dump-save'), md.trim() ? 'saved' : 'clear', 'Draft saved ✓'); },
     });
     const list = $('#thoughts');
@@ -461,7 +461,8 @@ export default {
     }
 
     const parentOf = node => {
-      if (node.closest('.dump-capture')) return { collection: 'thoughts', id: captureId };
+      // While someone else's notes show, files can't go on a new note: they'd land in their space.
+      if (node.closest('.dump-capture')) return theirsOwner() ? null : { collection: 'thoughts', id: captureId };
       const li = node.closest('li[data-id]');
       return li ? { collection: 'thoughts', id: li.dataset.id } : null;
     };

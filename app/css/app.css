@@ -3555,6 +3555,6 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
 .day-shared-with { margin: 0 0 8px; font-size: .85rem; }
 .planner.theirs .bring-link, .planner.theirs .day-housekeeping, .planner.theirs .carry { display: none; }
 .planner.not-shared :is(.day-head, .schedule-title, .paper, .day-bottom) { opacity: .35; }
-#main.theirs .dump-capture, #main.theirs .dump-find .hint,
+#main.theirs .dump-capture :is(.att-add, .kind-new), #main.theirs .dump-find .hint,
 #main.theirs .thought-actions > :is([data-act="to-task"], [data-act="plan"], [data-act="store"]),
 #main.theirs .archive-pill, #main.theirs .note-more :is([data-act="comment"], [data-act="append"], [data-att-add]) { display: none; }
