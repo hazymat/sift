@@ -26,6 +26,8 @@ import { byRank, rankOf, reorderWrites, lastKey } from '../order.js';
 import { askYes, askEmptied } from '../ask.js';
 import { word } from '../words.js';
 import { commentsHtml, mountComments, moveComments, closingComment } from '../comments.js';
+import { shareSheet, people, sharedWithText, invitesHtml, theirsHtml, scopeText } from '../sharing.js';
+import { sharesNow, inShare, myUserId, personName } from '../sync.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -56,7 +58,7 @@ export default {
         <details class="tool-menu share-menu">
           <summary class="share-btn" role="button" title="Share (S)"><svg class="icon" aria-hidden="true"><use href="#i-share"/></svg> Share</summary>
           <div class="menu">
-            <button type="button" disabled title="Coming later: share and merge your day with someone">Link day plan with another person</button>
+            <div class="day-people"></div>
             <hr>
             <button type="button" data-share="plain">Copy to clipboard – plain text</button>
             <button type="button" data-share="rich">Copy to clipboard – rich text</button>
@@ -68,6 +70,7 @@ export default {
           <div class="menu view-settings"></div>
         </details>
       </div>
+      <div class="day-shared"></div>
       <header class="day-head">
         <h1 class="day-title"><span class="weekday"></span> <span class="date"></span></h1>
         <p class="day-rel muted"></p>
@@ -787,7 +790,56 @@ export default {
       box.textContent = show ? `You did ${done === 1 ? 'one thing' : `${done} things`}${date === isoDate() ? ' today' : ''}.` : '';
     }
 
+    // ---------- sharing ----------
+    // Share this day, this week or the whole diary with someone; show the day
+    // of someone who shares theirs with you (it's read and changed in their
+    // space, store.js), with a note saying whose day it is.
+    let viewing = null; // the person whose day is showing (null: yours)
+    const weekOf = d => { const monday = addDays(d, -((parseDate(d).getDay() + 6) % 7)); return { from: monday, to: addDays(monday, 6) }; };
+    function paintSharing() {
+      const others = people(['days']);
+      if (viewing && !others.some(p => p.owner_id === viewing)) viewing = null;
+      store.useSpace(viewing ? store.spaceOf(viewing) : null);
+      const who = others.find(p => p.owner_id === viewing);
+      const scopes = { day: { kind: 'days', from: date, to: date }, week: { kind: 'days', ...weekOf(date) }, all: { kind: 'days', from: null, to: null } };
+      const label = (what, info) => { const names = sharedWithText(info); return `👥 Share ${what}…${names ? ` <span class="muted">(with ${esc(names)})</span>` : ''}`; };
+      $('.day-people').innerHTML = (viewing ? '' : `
+        <button type="button" data-day-share="day">${label('this day', scopes.day)}</button>
+        <button type="button" data-day-share="week">${label('this week', scopes.week)}</button>
+        <button type="button" data-day-share="all">${label('my whole diary', scopes.all)}</button>`)
+        + others.filter(p => p.owner_id !== viewing).map(p => `<button type="button" data-day-view="${esc(p.owner_id)}">Show ${esc(p.name)}'s day</button>`).join('')
+        + (viewing ? '<button type="button" data-day-view="">Show my day</button>' : '');
+      // Their day: which of their shares covers this date (none: they haven't shared it).
+      const covering = who?.shares.find(sh => inShare(sh, 'days', { date }));
+      $('.planner').classList.toggle('theirs', !!viewing);
+      $('.planner').classList.toggle('not-shared', !!viewing && !covering);
+      for (const part of el.querySelectorAll('.day-head, .down-day, .carry, .schedule-title, .paper, .day-bottom')) part.inert = !!viewing && !covering;
+      if (viewing) {
+        $('.day-shared').innerHTML = theirsHtml(covering ? `You're looking at ${who.name}'s day. You can both change it.` : `You're looking at ${who.name}'s diary: they haven't shared this day.`,
+          `${covering ? `<button type="button" data-share-leave="${covering.id}" title="Stop seeing ${esc(scopeText(covering.info))}">Leave</button>` : ''}<button type="button" class="primary" data-day-view="">Back to my day</button>`);
+      } else {
+        const mine = sharesNow().filter(sh => sh.mine && inShare(sh, 'days', { date }));
+        const names = [...new Set(mine.flatMap(sh => sh.members.filter(m => m.user_id !== myUserId()).map(m => personName(m.email))))];
+        $('.day-shared').innerHTML = invitesHtml(['days']) + (names.length ? `<p class="muted day-shared-with">👥 This day is shared with ${esc(names.join(', '))}.</p>` : '');
+      }
+    }
+    el.addEventListener('click', ev => {
+      const b = ev.target.closest('[data-day-share], [data-day-view]');
+      if (!b) return;
+      b.closest('details')?.removeAttribute('open');
+      if (b.dataset.dayShare) {
+        const kind = b.dataset.dayShare;
+        const info = kind === 'day' ? { kind: 'days', from: date, to: date } : kind === 'week' ? { kind: 'days', ...weekOf(date) } : { kind: 'days', from: null, to: null };
+        return shareSheet(info, kind === 'all' ? 'your whole diary' : kind === 'week' ? `this week (${scopeText(info)})` : `this day (${scopeText(info)})`);
+      }
+      viewing = b.dataset.dayView || null;
+      editing = null;
+      selected.clear();
+      render();
+    }, page);
+
     async function render() {
+      paintSharing();
       settings = await daySettings();
       [day, items] = await Promise.all([getDay(date), itemsFor(date)]);
       atts = await att.byParent();
@@ -801,6 +853,7 @@ export default {
     }
 
     async function refresh() {
+      paintSharing();
       items = await itemsFor(date);
       atts = await att.byParent();
       renderLines();

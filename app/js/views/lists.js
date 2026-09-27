@@ -16,6 +16,7 @@ import { word } from '../words.js';
 import { tintHex, tintId, colourMenu } from '../colours.js';
 import { rankOf, reorderWrites } from '../order.js';
 import { dateText } from '../days.js';
+import { shareSheet, sharedWithText, people, invitesHtml, theirsHtml } from '../sharing.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -26,8 +27,9 @@ export default {
     let nameNext = null; // a list just made: select its name for typing
     let atts = new Map(); // list item id → its attachments
     let focusAdd = false; // Enter or Tab from the list name carries on into "Add items"
-    const state = this.state = { id: null, hideTicked: false };
+    const state = this.state = { id: null, owner: null, hideTicked: false };
     let data = { lists: [], items: [] };
+    let shared = []; // lists others share with you: [{ l, items, owner_id, name, share }]
 
     const itemsOf = id => data.items.filter(i => i.list_id === id);
     const listOf = id => data.lists.find(l => l.id === id);
@@ -35,17 +37,19 @@ export default {
 
     // ---------- overview ----------
 
-    function card(l) {
-      const items = itemsOf(l.id);
+    function card(l, from = null) {
+      const items = from ? from.items : itemsOf(l.id);
       const pr = progress(items);
-      const copies = data.lists.filter(x => x.template_id === l.id).length;
+      const copies = from ? 0 : data.lists.filter(x => x.template_id === l.id).length;
+      const who = from ? '' : sharedWithText({ kind: 'list', id: l.id });
       return `
-        <a class="project-card list-card" href="#/lists/${l.id}" style="--tint: ${tintHex(l)}">
+        <a class="project-card list-card" href="#/lists/${l.id}${from ? `/from/${from.owner_id}` : ''}" style="--tint: ${tintHex(l)}">
           <span class="project-title">${esc(l.name || 'Untitled')}</span>
+          ${from ? `<span class="muted">👥 from ${esc(from.name)}</span>` : who ? `<span class="muted">👥 shared with ${esc(who)}</span>` : ''}
           ${l.kind === 'template'
             ? `<span class="muted">${items.length} item${items.length === 1 ? '' : 's'}${copies ? ` · used ${copies}×` : ''}${l.used_at ? ` · last ${shortDate(l.used_at)}` : ''}</span>`
             : `<span class="bar"><span style="width:${pr.pct}%"></span></span><span class="muted">${pr.done} of ${pr.total} ticked</span>`}
-          ${l.kind === 'instance' && listOf(l.template_id) ? `<span class="muted">from ${esc(listOf(l.template_id).name)}</span>` : ''}
+          ${!from && l.kind === 'instance' && listOf(l.template_id) ? `<span class="muted">from ${esc(listOf(l.template_id).name)}</span>` : ''}
         </a>`;
     }
 
@@ -67,8 +71,24 @@ export default {
         <p class="muted hint">${esc(word('ph_lists_templates'))}</p>
         <div class="project-grid">${templates.map(card).join('') || '<p class="muted">' + esc(word('ph_lists_no_templates')) + '</p>'}</div>
         <h3 class="milestone">Lists</h3>
-        <div class="project-grid">${inUse.map(card).join('') || '<p class="muted">' + esc(word('ph_lists_none')) + '</p>'}</div>`;
+        <div class="project-grid">${inUse.map(l => card(l)).join('') || '<p class="muted">' + esc(word('ph_lists_none')) + '</p>'}</div>
+        ${shared.length || invitesHtml(['list']) ? `<h3 class="milestone">Shared with me</h3>${invitesHtml(['list'])}
+        <div class="project-grid">${shared.map(x => card(x.l, x)).join('')}</div>` : ''}`;
     }
+
+    // Lists others share with you, from each person's space (store.js).
+    async function loadShared() {
+      const out = [];
+      for (const p of people(['list'])) {
+        const space = store.spaceOf(p.owner_id);
+        const ids = new Set(p.shares.map(sh => sh.info.id));
+        const lists = await space.list('lists', { filter: l => ids.has(l.id) && !l.archived_at });
+        const items = await space.list('list_items', { filter: i => ids.has(i.list_id) && !i.archived_at });
+        for (const l of lists) out.push({ l, items: items.filter(i => i.list_id === l.id), owner_id: p.owner_id, name: p.name, share: p.shares.find(sh => sh.info.id === l.id) });
+      }
+      return out;
+    }
+    const theirs = () => state.owner && shared.find(x => x.owner_id === state.owner && x.l.id === state.id);
 
     // ---------- an item's note and panel ----------
 
@@ -116,16 +136,20 @@ export default {
       const template = l.template_id && listOf(l.template_id);
       const copies = isTemplate ? data.lists.filter(x => x.template_id === l.id) : [];
       const missing = template ? missingFromTemplate(all, itemsOf(template.id)) : [];
+      const from = theirs();
+      const who = sharedWithText({ kind: 'list', id: l.id });
       return `
+        ${from ? theirsHtml(`${from.name} shared this ${isTemplate ? 'template' : 'list'} with you. You can both change it.`, `<button type="button" data-share-leave="${from.share.id}">Leave</button>`) : ''}
         <div class="project-head">
           <button type="button" class="back" data-act="home">‹ Lists</button>
           <button type="button" class="note-dot list-colour" data-act="list-colour" title="List colour" aria-label="List colour"><span class="swatch" style="--sw:${tintHex(l)}"></span></button>
           <input class="project-name" name="name" value="${esc(l.name)}" data-list-name="${l.id}" aria-label="List name" placeholder="${esc(word('ph_list_name'))}">
           <span class="chip">${isTemplate ? 'Template' : template ? 'From a template' : 'List'}</span>
+          ${from ? '' : `<button type="button" class="share-btn-people" data-act="share-people" title="Share with someone on your server">👥 ${who ? `Shared with ${esc(who)}` : 'Share'}</button>`}
         </div>
         ${isTemplate ? `
           <div class="list-actions">
-            <button type="button" class="primary" data-act="use">Use this template</button>
+            ${from ? '' : '<button type="button" class="primary" data-act="use">Use this template</button>'}
             ${copies.length ? `<span class="muted">Copies: ${copies.map(c => `<a href="#/lists/${c.id}">${esc(c.name)}</a>`).join(', ')}</span>` : ''}
           </div>` : `
           <div class="list-actions">
@@ -161,8 +185,8 @@ export default {
         <div class="detail-actions">
           <button type="button" data-act="add">Add items <kbd>${SHORTCUT}</kbd></button>
           <span class="spacer"></span>
-          <button type="button" data-act="archive-list">Archive list</button>
-          <button type="button" class="danger" data-act="delete-list">Delete list</button>
+          ${from ? '' : `<button type="button" data-act="archive-list">Archive list</button>
+          <button type="button" class="danger" data-act="delete-list">Delete list</button>`}
         </div>`;
     }
 
@@ -178,6 +202,10 @@ export default {
     att.enableDrop(el, 'li.list-panel[data-for], ul.checklist > li[data-id]', node => ({ collection: 'list_items', id: node.dataset.for || node.dataset.id }), attDone);
     // After a sync the app calls refresh(): redraw from fresh data, keeping what's open.
     const render = this.render = this.refresh = async () => {
+      // A list someone shares with you is read and changed in their space.
+      store.useSpace(state.owner ? store.spaceOf(state.owner) : null);
+      shared = await loadShared();
+      if (state.owner && !theirs()) { state.owner = null; store.useSpace(null); if (state.id) return go('#/lists'); }
       data = await loadLists();
       atts = await att.byParent();
       const l = state.id && listOf(state.id);
@@ -348,6 +376,7 @@ export default {
         return;
       }
       if (!l) return;
+      if (act === 'share-people') return shareSheet({ kind: 'list', id: l.id, name: l.name || 'Untitled' }, `"${l.name || 'Untitled'}"`);
       if (act === 'add') return addEntry();
       if (act === 'use') {
         const name = `${l.name} – ${shortDate(new Date().toISOString())}`;
@@ -418,8 +447,9 @@ export default {
     await render();
   },
 
-  route([id]) {
+  route([id, from, owner]) {
     this.state.id = id || null;
+    this.state.owner = from === 'from' ? owner || null : null;
     return this.render();
   },
 

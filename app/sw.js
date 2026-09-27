@@ -38,6 +38,7 @@ const SHELL = [
   'js/browse.js',
   'js/linemake.js',
   'js/ask.js',
+  'js/sharing.js',
   'js/flash.js',
   'js/words.js',
   'js/search.js',

@@ -3525,3 +3525,24 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
 #main:not([data-density="tight"]) .task-list .edit-pills .note-shown { display: none; } /* medium and loose show the note already */
 @media (max-width: 560px) { .page-share summary { font-size: 0; gap: 0; padding: 6px 10px; } .page-share summary .icon { font-size: 1rem; } }
 .task-list > li[data-task]:has(> .note-in-place) > .item-sub .task-note { display: none; }
+
+/* ---------- sharing with other people (js/sharing.js) ---------- */
+/* Someone else's things on screen: a clear note, not an alarm (amber, not red). */
+.theirs-note, .share-invite { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; padding: 10px 14px; border-radius: 16px; font-size: .92rem; }
+.theirs-note { background: color-mix(in srgb, #f5b642 22%, transparent); border: 1px solid color-mix(in srgb, #f5b642 55%, transparent); }
+.share-invite { background: var(--calm, var(--glass)); border: 1px solid var(--active-border); }
+.theirs-note .spacer, .share-invite .spacer { flex: 1; }
+.theirs-note button, .share-invite button { padding: 4px 12px; }
+.share-people { list-style: none; margin: 0 0 12px; padding: 0; }
+.share-people li { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--glass-border); }
+.share-people li > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.share-error { color: #e0573a; margin: 0 0 8px; }
+.project-head .share-btn-people { padding: 4px 12px; font-size: .85rem; white-space: nowrap; }
+.share-chip { cursor: pointer; }
+.day-people { display: contents; }
+.day-shared-with { margin: 0 0 8px; font-size: .85rem; }
+.planner.theirs .bring-link, .planner.theirs .day-housekeeping, .planner.theirs .carry { display: none; }
+.planner.not-shared :is(.day-head, .schedule-title, .paper, .day-bottom) { opacity: .35; }
+#main.theirs .dump-capture, #main.theirs .dump-find .hint,
+#main.theirs .thought-actions > :is([data-act="to-task"], [data-act="plan"], [data-act="store"]),
+#main.theirs .archive-pill, #main.theirs .note-more :is([data-act="comment"], [data-act="append"], [data-att-add]) { display: none; }

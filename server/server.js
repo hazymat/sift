@@ -69,7 +69,34 @@ db.exec(`
     PRIMARY KEY (user_id, blob_id)
   );
 `);
-for (const col of ['recovery_hash', 'recovery_salt']) {
+db.exec(`
+  CREATE TABLE IF NOT EXISTS shares (
+    id TEXT PRIMARY KEY,
+    owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    last_seq INTEGER NOT NULL DEFAULT 0,
+    info TEXT NOT NULL,               -- what is shared (kind and name), encrypted with the share's key
+    created_at TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS share_members (
+    share_id TEXT NOT NULL REFERENCES shares(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    wrapped_key TEXT NOT NULL,        -- the share's key, encrypted by the app for this member
+    added_at TEXT NOT NULL,
+    accepted_at TEXT,                 -- null while it is only an invitation
+    PRIMARY KEY (share_id, user_id)
+  );
+  CREATE TABLE IF NOT EXISTS share_records (
+    share_id TEXT NOT NULL REFERENCES shares(id) ON DELETE CASCADE,
+    record_id TEXT NOT NULL,          -- opaque (keyed hash made by the app)
+    seq INTEGER NOT NULL,
+    ciphertext TEXT NOT NULL,
+    size_bytes INTEGER NOT NULL,
+    PRIMARY KEY (share_id, record_id)
+  );
+  CREATE INDEX IF NOT EXISTS share_records_by_seq ON share_records (share_id, seq);
+`);
+// Sharing: each account's public key, and its private key encrypted by the app.
+for (const col of ['recovery_hash', 'recovery_salt', 'public_key', 'wrapped_private_key']) {
   if (!db.prepare('PRAGMA table_info(users)').all().some(c => c.name === col)) db.exec(`ALTER TABLE users ADD COLUMN ${col} TEXT`);
 }
 
@@ -175,8 +202,72 @@ function replacePassword(userId, body) {
     .run(hash, salt, JSON.stringify(body.kdf), body.wrapped_data_key, userId);
 }
 
+// Shared records count towards the account that shared them.
 const usage = userId => db.prepare('SELECT COALESCE(SUM(size_bytes), 0) AS bytes FROM records WHERE user_id = ?').get(userId).bytes
-  + db.prepare('SELECT COALESCE(SUM(size_bytes), 0) AS bytes FROM blobs WHERE user_id = ?').get(userId).bytes;
+  + db.prepare('SELECT COALESCE(SUM(size_bytes), 0) AS bytes FROM blobs WHERE user_id = ?').get(userId).bytes
+  + db.prepare('SELECT COALESCE(SUM(r.size_bytes), 0) AS bytes FROM share_records r JOIN shares s ON s.id = r.share_id WHERE s.owner_id = ?').get(userId).bytes;
+
+// A place records are kept: one account's own (records) or a share (share_records).
+const PERSONAL = { table: 'records', key: 'user_id', counter: 'UPDATE users SET last_seq = last_seq + 1 WHERE id = ? RETURNING last_seq' };
+const SHARED = { table: 'share_records', key: 'share_id', counter: 'UPDATE shares SET last_seq = last_seq + 1 WHERE id = ? RETURNING last_seq' };
+
+// Push: each record is accepted only if the server's copy is the one the
+// app last saw (base_seq). Otherwise the current copy comes back as a
+// conflict for the app to merge field by field and push again.
+function pushInto(place, owner, quotaUser, body) {
+  const list = Array.isArray(body.records) ? body.records : [];
+  if (list.length > 2000) throw new HttpError(413, 'Push at most 2000 records at a time');
+  const accepted = [];
+  const conflicts = [];
+  const current = db.prepare(`SELECT seq, ciphertext FROM ${place.table} WHERE ${place.key} = ? AND record_id = ?`);
+  const bump = db.prepare(place.counter);
+  const put = db.prepare(`INSERT INTO ${place.table} (${place.key}, record_id, seq, ciphertext, size_bytes) VALUES (?, ?, ?, ?, ?)
+    ON CONFLICT (${place.key}, record_id) DO UPDATE SET seq = excluded.seq, ciphertext = excluded.ciphertext, size_bytes = excluded.size_bytes`);
+  let bytes = usage(quotaUser);
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    for (const r of list) {
+      if (typeof r.record_id !== 'string' || typeof r.ciphertext !== 'string') continue;
+      const have = current.get(owner, r.record_id);
+      // Not held here yet (e.g. a device moving over from another server): nothing to conflict with.
+      if (have && have.seq !== (Number(r.base_seq) || 0)) { conflicts.push({ record_id: r.record_id, seq: have.seq, ciphertext: have.ciphertext }); continue; }
+      const size = Buffer.byteLength(r.ciphertext);
+      bytes += size - (have ? Buffer.byteLength(have.ciphertext) : 0);
+      if (bytes > QUOTA) throw new HttpError(507, 'Storage quota reached');
+      const seq = bump.get(owner).last_seq;
+      put.run(owner, r.record_id, seq, r.ciphertext, size);
+      accepted.push({ record_id: r.record_id, seq });
+    }
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  }
+  return { accepted, conflicts };
+}
+
+// Pull: everything changed since `since`, in order, a page at a time.
+function pullFrom(place, owner, query) {
+  const since = Number(query.get('since')) || 0;
+  const limit = Math.min(1000, Number(query.get('limit')) || 500);
+  const rows = db.prepare(`SELECT record_id, seq, ciphertext FROM ${place.table} WHERE ${place.key} = ? AND seq > ? ORDER BY seq LIMIT ?`).all(owner, since, limit + 1);
+  const more = rows.length > limit;
+  const records = rows.slice(0, limit);
+  return { records, last_seq: records.at(-1)?.seq ?? since, more };
+}
+
+// The share, if this account is in it (owner or member). Only invited, not
+// yet accepted: it can be seen (to accept or decline) but not used.
+function shareFor(userId, shareId, { invited = false } = {}) {
+  const share = db.prepare('SELECT s.*, m.accepted_at FROM shares s JOIN share_members m ON m.share_id = s.id WHERE s.id = ? AND m.user_id = ?').get(shareId, userId);
+  if (!share || (!share.accepted_at && !invited)) throw new HttpError(404, 'That share has ended or was never shared with you');
+  return share;
+}
+const ownShare = (userId, shareId) => {
+  const share = shareFor(userId, shareId);
+  if (share.owner_id !== userId) throw new HttpError(403, 'Only the person who shared it can do that');
+  return share;
+};
 
 // ---------- endpoints ----------
 
@@ -240,8 +331,100 @@ const routes = {
   // What a signed-in device needs to change the password.
   'GET /api/me': ({ req }) => {
     const dev = authed(req);
-    const u = db.prepare('SELECT email, kdf, wrapped_data_key FROM users WHERE id = ?').get(dev.user_id);
-    return { email: u.email, kdf: JSON.parse(u.kdf), wrapped_data_key: u.wrapped_data_key };
+    const u = db.prepare('SELECT email, kdf, wrapped_data_key, public_key, wrapped_private_key FROM users WHERE id = ?').get(dev.user_id);
+    return { email: u.email, kdf: JSON.parse(u.kdf), wrapped_data_key: u.wrapped_data_key, public_key: u.public_key, wrapped_private_key: u.wrapped_private_key };
+  },
+
+  // ---------- sharing ----------
+  // Each account has a key pair made by the app: the public key is stored as
+  // it is, the private key encrypted with the account's data key. A share has
+  // its own key, which the app encrypts for each member with their public key.
+
+  // Set once: replacing it would lock the account out of what it was given.
+  'POST /api/keypair': ({ req, body }) => {
+    const dev = authed(req);
+    if (typeof body.public_key !== 'string' || typeof body.wrapped_private_key !== 'string' || body.public_key.length > 4000 || body.wrapped_private_key.length > 8000) throw new HttpError(400, 'Missing keys');
+    db.prepare('UPDATE users SET public_key = ?, wrapped_private_key = ? WHERE id = ? AND public_key IS NULL').run(body.public_key, body.wrapped_private_key, dev.user_id);
+    const u = db.prepare('SELECT public_key, wrapped_private_key FROM users WHERE id = ?').get(dev.user_id);
+    return u;
+  },
+
+  // Someone on this server to share with, by their sign-in email.
+  'POST /api/people/find': ({ req, body }) => {
+    authed(req);
+    const email = String(body.email || '').trim().toLowerCase();
+    const u = db.prepare('SELECT id, email, public_key FROM users WHERE email = ?').get(email);
+    if (!u) throw new HttpError(404, 'Nobody on this server signs in with that email');
+    if (!u.public_key) throw new HttpError(409, 'They need to open Sift and sync once before things can be shared with them');
+    return { user_id: u.id, email: u.email, public_key: u.public_key };
+  },
+
+  // Every share this account is in, with its key (encrypted for this account) and who else is in it.
+  'GET /api/shares': ({ req }) => {
+    const dev = authed(req);
+    const shares = db.prepare(`SELECT s.id, s.owner_id, s.last_seq, s.info, s.created_at, m.wrapped_key, m.accepted_at, o.email AS owner_email
+      FROM shares s JOIN share_members m ON m.share_id = s.id AND m.user_id = ? JOIN users o ON o.id = s.owner_id ORDER BY s.created_at`).all(dev.user_id);
+    const members = db.prepare('SELECT u.id AS user_id, u.email, m.added_at, m.accepted_at FROM share_members m JOIN users u ON u.id = m.user_id WHERE m.share_id = ? ORDER BY m.added_at');
+    return { user_id: dev.user_id, shares: shares.map(s => ({ ...s, mine: s.owner_id === dev.user_id, members: members.all(s.id) })) };
+  },
+
+  'POST /api/shares': ({ req, body }) => {
+    const dev = authed(req);
+    const shareId = String(body.id || '');
+    if (!/^[0-9a-f-]{36}$/.test(shareId)) throw new HttpError(400, 'Bad share id');
+    if (typeof body.wrapped_key !== 'string' || body.wrapped_key.length > 4000) throw new HttpError(400, 'Missing key');
+    if (typeof body.info !== 'string' || body.info.length > 4000) throw new HttpError(400, 'Missing info');
+    if (db.prepare('SELECT 1 FROM shares WHERE id = ?').get(shareId)) throw new HttpError(409, 'That share already exists');
+    db.prepare('INSERT INTO shares (id, owner_id, info, created_at) VALUES (?, ?, ?, ?)').run(shareId, dev.user_id, body.info, now());
+    db.prepare('INSERT INTO share_members (share_id, user_id, wrapped_key, added_at, accepted_at) VALUES (?, ?, ?, ?, ?)').run(shareId, dev.user_id, body.wrapped_key, now(), now());
+    return { ok: true };
+  },
+
+  'POST /api/shares/:id/members': ({ req, params, body }) => {
+    const dev = authed(req);
+    ownShare(dev.user_id, params.id);
+    if (typeof body.user_id !== 'string' || typeof body.wrapped_key !== 'string' || body.wrapped_key.length > 4000) throw new HttpError(400, 'Missing key');
+    if (!db.prepare('SELECT 1 FROM users WHERE id = ?').get(body.user_id)) throw new HttpError(404, 'No such account');
+    if (db.prepare('SELECT 1 FROM share_members WHERE share_id = ? AND user_id = ?').get(params.id, body.user_id)) throw new HttpError(409, 'Already shared with them');
+    db.prepare('INSERT INTO share_members (share_id, user_id, wrapped_key, added_at) VALUES (?, ?, ?, ?)').run(params.id, body.user_id, body.wrapped_key, now());
+    return { ok: true };
+  },
+
+  // An invitation is only used once its person accepts it (declining is leaving).
+  'POST /api/shares/:id/accept': ({ req, params }) => {
+    const dev = authed(req);
+    shareFor(dev.user_id, params.id, { invited: true });
+    db.prepare('UPDATE share_members SET accepted_at = COALESCE(accepted_at, ?) WHERE share_id = ? AND user_id = ?').run(now(), params.id, dev.user_id);
+    return { ok: true };
+  },
+
+  // The owner takes someone out, or a member leaves (or declines).
+  'DELETE /api/shares/:id/members/:user': ({ req, params }) => {
+    const dev = authed(req);
+    const share = shareFor(dev.user_id, params.id, { invited: true });
+    if (params.user !== dev.user_id && share.owner_id !== dev.user_id) throw new HttpError(403, 'Only the person who shared it can do that');
+    if (params.user === share.owner_id) throw new HttpError(400, 'The person who shared it stops sharing instead');
+    db.prepare('DELETE FROM share_members WHERE share_id = ? AND user_id = ?').run(params.id, params.user);
+    return { ok: true };
+  },
+
+  // Stop sharing: the share and its records go (the owner's app has put them back in the owner's own records first).
+  'DELETE /api/shares/:id': ({ req, params }) => {
+    const dev = authed(req);
+    ownShare(dev.user_id, params.id);
+    db.prepare('DELETE FROM shares WHERE id = ?').run(params.id);
+    return { ok: true };
+  },
+
+  'POST /api/shares/:id/push': ({ req, params, body }) => {
+    const dev = authed(req);
+    const share = shareFor(dev.user_id, params.id);
+    return pushInto(SHARED, share.id, share.owner_id, body);
+  },
+
+  'GET /api/shares/:id/pull': ({ req, params, query }) => {
+    const dev = authed(req);
+    return pullFrom(SHARED, shareFor(dev.user_id, params.id).id, query);
   },
 
   // Change the password while signed in (the old one must be right).
@@ -276,52 +459,12 @@ const routes = {
     return { ok: true };
   },
 
-  // Push: each record is accepted only if the server's copy is the one the
-  // app last saw (base_seq). Otherwise the current copy comes back as a
-  // conflict for the app to merge field by field and push again.
   'POST /api/sync/push': ({ req, body }) => {
     const dev = authed(req);
-    const list = Array.isArray(body.records) ? body.records : [];
-    if (list.length > 2000) throw new HttpError(413, 'Push at most 2000 records at a time');
-    const accepted = [];
-    const conflicts = [];
-    const current = db.prepare('SELECT seq, ciphertext FROM records WHERE user_id = ? AND record_id = ?');
-    const bump = db.prepare('UPDATE users SET last_seq = last_seq + 1 WHERE id = ? RETURNING last_seq');
-    const put = db.prepare(`INSERT INTO records (user_id, record_id, seq, ciphertext, size_bytes) VALUES (?, ?, ?, ?, ?)
-      ON CONFLICT (user_id, record_id) DO UPDATE SET seq = excluded.seq, ciphertext = excluded.ciphertext, size_bytes = excluded.size_bytes`);
-    let bytes = usage(dev.user_id);
-    db.exec('BEGIN IMMEDIATE');
-    try {
-      for (const r of list) {
-        if (typeof r.record_id !== 'string' || typeof r.ciphertext !== 'string') continue;
-        const have = current.get(dev.user_id, r.record_id);
-        // Not held here yet (e.g. a device moving over from another server): nothing to conflict with.
-        if (have && have.seq !== (Number(r.base_seq) || 0)) { conflicts.push({ record_id: r.record_id, seq: have.seq, ciphertext: have.ciphertext }); continue; }
-        const size = Buffer.byteLength(r.ciphertext);
-        bytes += size - (have ? Buffer.byteLength(have.ciphertext) : 0);
-        if (bytes > QUOTA) throw new HttpError(507, 'Storage quota reached');
-        const seq = bump.get(dev.user_id).last_seq;
-        put.run(dev.user_id, r.record_id, seq, r.ciphertext, size);
-        accepted.push({ record_id: r.record_id, seq });
-      }
-      db.exec('COMMIT');
-    } catch (e) {
-      db.exec('ROLLBACK');
-      throw e;
-    }
-    return { accepted, conflicts };
+    return pushInto(PERSONAL, dev.user_id, dev.user_id, body);
   },
 
-  // Pull: everything changed since `since`, in order, a page at a time.
-  'GET /api/sync/pull': ({ req, query }) => {
-    const dev = authed(req);
-    const since = Number(query.get('since')) || 0;
-    const limit = Math.min(1000, Number(query.get('limit')) || 500);
-    const rows = db.prepare('SELECT record_id, seq, ciphertext FROM records WHERE user_id = ? AND seq > ? ORDER BY seq LIMIT ?').all(dev.user_id, since, limit + 1);
-    const more = rows.length > limit;
-    const records = rows.slice(0, limit);
-    return { records, last_seq: records.at(-1)?.seq ?? since, more };
-  },
+  'GET /api/sync/pull': ({ req, query }) => pullFrom(PERSONAL, authed(req).user_id, query),
 
   'GET /api/usage': ({ req }) => {
     const dev = authed(req);

@@ -134,6 +134,85 @@ try {
   assert.equal(r.status, 200, JSON.stringify(r.json));
   assert.equal(r.json.accepted.length, 1, 'a record the server has never seen is accepted');
 
+  // sharing: a second account, added straight to the database (registration is "first")
+  const { DatabaseSync } = await import('node:sqlite');
+  const { createHash } = await import('node:crypto');
+  const side = new DatabaseSync(path.join(dir, 'sift.db'));
+  side.prepare("INSERT INTO users (id, email, auth_hash, auth_salt, kdf, wrapped_data_key, created_at) VALUES ('u2', 'fam@example.com', 'x', 'x', '{}', 'w', 'now')").run();
+  side.prepare("INSERT INTO devices (id, user_id, name, token_hash, created_at) VALUES ('d2', 'u2', 'Fam', ?, 'now')").run(createHash('sha256').update('famtoken').digest('hex'));
+  side.close();
+  const fam = 'famtoken';
+  const sid = '0190aaaa-bbbb-7ccc-8ddd-eeeeeeeeeeee';
+
+  r = await call('POST', '/api/people/find', { email: 'fam@example.com' }, recovered);
+  assert.equal(r.status, 409, 'no key pair yet');
+  r = await call('POST', '/api/keypair', { public_key: 'pub2', wrapped_private_key: 'priv2' }, fam);
+  assert.equal(r.json.public_key, 'pub2');
+  r = await call('POST', '/api/keypair', { public_key: 'other', wrapped_private_key: 'other' }, fam);
+  assert.equal(r.json.public_key, 'pub2', 'a key pair is set once');
+  r = await call('GET', '/api/me', null, fam);
+  assert.equal(r.json.wrapped_private_key, 'priv2');
+  r = await call('POST', '/api/people/find', { email: 'Fam@Example.com' }, recovered);
+  assert.deepEqual(r.json, { user_id: 'u2', email: 'fam@example.com', public_key: 'pub2' });
+  r = await call('POST', '/api/people/find', { email: 'nobody@example.com' }, recovered);
+  assert.equal(r.status, 404);
+
+  r = await call('POST', '/api/shares', { id: sid, wrapped_key: 'k-owner', info: 'sealed' }, recovered);
+  assert.equal(r.status, 200, JSON.stringify(r.json));
+  r = await call('GET', `/api/shares/${sid}/pull?since=0`, null, fam);
+  assert.equal(r.status, 404, 'not shared with them yet');
+  r = await call('POST', `/api/shares/${sid}/members`, { user_id: 'u2', wrapped_key: 'k-fam' }, fam);
+  assert.equal(r.status, 404, 'only members, and only the owner, can add people');
+  r = await call('POST', `/api/shares/${sid}/members`, { user_id: 'u2', wrapped_key: 'k-fam' }, recovered);
+  assert.equal(r.status, 200);
+  r = await call('GET', '/api/shares', null, fam);
+  assert.equal(r.json.shares.length, 1);
+  assert.equal(r.json.shares[0].wrapped_key, 'k-fam');
+  assert.equal(r.json.shares[0].owner_email, 'user@example.com');
+  assert.equal(r.json.shares[0].mine, false);
+  assert.equal(r.json.shares[0].info, 'sealed');
+  assert.equal(r.json.shares[0].accepted_at, null, 'only invited so far');
+  assert.deepEqual(r.json.shares[0].members.map(m => m.email), ['user@example.com', 'fam@example.com']);
+  r = await call('GET', `/api/shares/${sid}/pull?since=0`, null, fam);
+  assert.equal(r.status, 404, 'not usable until accepted');
+  r = await call('POST', `/api/shares/${sid}/members`, { user_id: 'u2', wrapped_key: 'k-fam' }, recovered);
+  assert.equal(r.status, 409, 'invited once');
+  r = await call('POST', `/api/shares/${sid}/accept`, null, fam);
+  assert.equal(r.status, 200);
+
+  // both push and pull in the share, with the same conflict check as an account's own records
+  r = await call('POST', `/api/shares/${sid}/push`, { records: [{ record_id: 's1', base_seq: 0, ciphertext: 'list' }] }, recovered);
+  assert.equal(r.json.accepted[0].seq, 1);
+  r = await call('POST', `/api/shares/${sid}/push`, { records: [{ record_id: 's1', base_seq: 1, ciphertext: 'list-fam' }] }, fam);
+  assert.equal(r.json.accepted[0].seq, 2);
+  r = await call('POST', `/api/shares/${sid}/push`, { records: [{ record_id: 's1', base_seq: 1, ciphertext: 'list-owner' }] }, recovered);
+  assert.equal(r.json.conflicts[0].ciphertext, 'list-fam');
+  r = await call('GET', `/api/shares/${sid}/pull?since=0`, null, recovered);
+  assert.deepEqual(r.json.records.map(x => [x.record_id, x.seq]), [['s1', 2]]);
+  r = await call('GET', '/api/sync/pull?since=0', null, fam);
+  assert.equal(r.json.records.length, 0, 'shared records stay out of their own records');
+  const before = (await call('GET', '/api/usage', null, recovered)).json.bytes;
+  assert.ok(before >= 'list-fam'.length, 'shared records count towards the owner');
+
+  // a member can leave but can't take the owner out; the owner can take someone out
+  r = await call('DELETE', `/api/shares/${sid}/members/${'x'}`, null, fam);
+  assert.equal(r.status, 403);
+  r = await call('DELETE', `/api/shares/${sid}/members/u2`, null, fam);
+  assert.equal(r.status, 200);
+  r = await call('GET', `/api/shares/${sid}/pull?since=0`, null, fam);
+  assert.equal(r.status, 404, 'gone once they left');
+  r = await call('POST', `/api/shares/${sid}/members`, { user_id: 'u2', wrapped_key: 'k-fam' }, recovered);
+  r = await call('GET', '/api/shares', null, fam);
+  assert.equal(r.json.shares.length, 1, 'an invitation can be seen');
+  r = await call('DELETE', `/api/shares/${sid}`, null, fam);
+  assert.equal(r.status, 404, 'only the owner stops sharing');
+  r = await call('DELETE', `/api/shares/${sid}`, null, recovered);
+  assert.equal(r.status, 200);
+  r = await call('GET', '/api/shares', null, fam);
+  assert.equal(r.json.shares.length, 0, 'stopped: gone for everyone');
+  r = await call('GET', `/api/shares/${sid}/pull?since=0`, null, recovered);
+  assert.equal(r.status, 404);
+
   // nothing a caller sends can stop the server
   r = await call('DELETE', '/api/devices/%E0', null, recovered);
   assert.equal(r.status, 400, 'a bad percent code is refused');
