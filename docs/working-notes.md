@@ -61,4 +61,5 @@ How work on Sift is done: where things are, the rules, and where it has got to. 
 
 - **Esc** leaves what's being worked on and keeps it, one level per press: a menu, then the field or note (saved), then the panel around it, then a record's page back to its list. In Brain Dump, Esc in New note stops writing and un-dims the page. Esc takes the focus off a button reached with Tab.
 - **Ctrl+Enter** saves and leaves. **Shift+Enter** is a new line. **Alt+Enter** goes one level in (a note full screen; browsing: the outlined note straight into full screen).
+- **Brain Dump, browsing** (a note outlined): C colour, T task, P Plan it, A archive, D delete, * pin; Ctrl+V attaches a picture or file from the clipboard, Ctrl+C copies the note with formatting (#46).
 - **At an area's top level** (nothing being edited): ← / → change the area's tabs (the Day Planner: its days; Brain Dump: its filter bar), Ctrl+← / → change area, ↓ and Enter start work (see `browse.js` for each area). Alt+← / → are left to the browser.

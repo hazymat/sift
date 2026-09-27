@@ -306,3 +306,6 @@ NOTES['1.22.11'] = [
 NOTES['1.22.12'] = [
   B("Brain Dump: on a phone, the ⋯ at the end of the note types under Your notes (to add, rename or remove types) could sit off the right-hand edge of the screen."),
 ]
+NOTES['1.23.00'] = [
+  F("Brain Dump: keys for the note outlined while browsing with the keyboard. C colour (← / → and Enter to pick), T make it a task, P Plan it, A archive, D delete (Undo in the message), * pin or unpin. Ctrl+V attaches a picture or file from the clipboard; Ctrl+C copies the whole note with formatting, with Copy markdown instead in the message."),
+]
