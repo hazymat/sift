@@ -437,3 +437,7 @@ NOTES['1.28.00'] = [
   F('Tasks: 👁 → Layout → Lined paper layout (on to start with). Untick it for the look of earlier versions: New task a rounded box at the top with an Add button (Enter adds), and each task a shaded rounded card, its sub-tasks inside the same card. The keyboard works as with the lined paper. Without it, New task line at the top, Show margin and the extra lines under an empty list don\'t apply (greyed out).'),
   F('Tasks: the pulse on a task just added (Highlight item when added) is a thinner, deeper blue.'),
 ]
+
+NOTES['1.28.01'] = [
+  B('Tasks with Hide pills behind More: after pressing More on a task, leaving it and coming back still showed its pills instead of just More.'),
+]

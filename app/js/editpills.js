@@ -14,6 +14,7 @@
 //     key:   row => row.dataset.task,         which record the row shows
 //     html:  key => '<label class="entry-chip" …><select data-pill="energy">…',
 //     change: (key, name, value) => …,        a pill's field changed
+//     closed: key => …,                       (optional) the pills were put away
 //   }) → { destroy() }
 //
 // A pill is a label.entry-chip holding a real <select> or date <input> with
@@ -82,8 +83,10 @@ export function editPills(root, spec) {
     if (!editing) return;
     const row = rowOf(editing);
     row?.classList.remove('pills-open');
+    const was = editing;
     editing = null;
     place();
+    spec.closed?.(was);
   };
 
   const onFocus = ev => {
