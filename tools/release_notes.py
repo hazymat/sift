@@ -377,3 +377,6 @@ NOTES['1.26.01'] = [
 NOTES['1.26.02'] = [
   F('Settings, Sync: the server is checked again on leaving the Server field, with Check again, and every 12 seconds while it can\'t be reached or isn\'t taking new accounts, so Create account appears once new accounts are allowed.'),
 ]
+NOTES['1.26.03'] = [
+  B('On a phone, opening More put the cursor in Search everything, so the keyboard came up and covered the bottom of the list. Tap the box to search.'),
+]

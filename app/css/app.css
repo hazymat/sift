@@ -351,6 +351,7 @@ main {
   opacity: .5;
 }
 .sheet-handle::before { content: ''; position: absolute; inset: -14px -70px; } /* a bigger area to grab */
+.sheet-handle:focus { outline: none; } /* More's sheet opens with the focus here, so a phone keyboard doesn't cover the list */
 .sheet-list { display: grid; gap: 6px; }
 .sheet-list a {
   display: flex;
