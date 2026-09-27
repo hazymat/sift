@@ -55,7 +55,13 @@ How work on Sift is done: where things are, the rules, and where it has got to. 
 - `app/js/listkit.js`: shared list behaviour (select by the grab handle, drag, selection bar, Delete key).
 - `app/js/views/*.js`: one module per area. `smoke.js`: the page check (dev only, not cached).
 - `server/`: the sync server (Node 24, `node:sqlite`), end-to-end encrypted. `node test.js` after any change.
-- `tools/`: `devserver.py`, `make_icons.py` (every icon size from `tools/icon-source.png`), `release.py` and `release_notes.py`, `onenote_to_csv.py`.
+- `tools/`: `devserver.py`, `make_icons.py` (every icon size from `tools/icon-source.png`), `release.py` and `release_notes.py`, `onenote_to_csv.py`, `make_sift_test.py` (see Sift test below).
+
+## Sift test (older build for comparison)
+
+- https://hazymat.github.io/sift-test/ (repo `hazymat/sift-test`, Pages from `main`, root) runs an older sift build next to the live app. First build: commit 84ee797, the end of 23 September 2026.
+- It shares the browser origin with the live app, so an unchanged build would share its IndexedDB, localStorage and caches (and its service worker would delete the live app's cache). Never put an unchanged build there.
+- To change the build: from a sift checkout run `python3 tools/make_sift_test.py <commit> <out folder>`, then replace the files in the sift-test repo with `<out folder>/app` and push. The script renames the database, cache, channel and localStorage keys. It stops if a text it patches is missing, which a much newer build may need adding to the script.
 
 ## Keyboard behaviour (as built)
 
