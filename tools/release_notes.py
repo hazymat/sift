@@ -374,3 +374,6 @@ NOTES['1.26.01'] = [
   B('Tasks: a note typed before the task was added (the New task line\'s "Add note"), or in "Add note" under a task that had none, was plain text: "- " didn\'t make a bullet until the note was opened again, and Ctrl+B and the other note keys did nothing. They are the notes editor now, as a task\'s note is. In the New task line\'s note, Enter is a new line and Ctrl+Enter adds the task.'),
   B("Tasks: a task's note being edited looked the same as the task's name. It now looks as it does when not being edited: smaller and fainter (in italics in the Glass look)."),
 ]
+NOTES['1.26.02'] = [
+  F('Settings, Sync: the server is checked again on leaving the Server field, with Check again, and every 12 seconds while it can\'t be reached or isn\'t taking new accounts, so Create account appears once new accounts are allowed.'),
+]
