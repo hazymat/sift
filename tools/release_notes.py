@@ -513,3 +513,7 @@ NOTES['1.32.06'] = [
 NOTES['1.32.07'] = [
   F('Brain Dump: the New note box stays while you look at notes someone shares with you. What you write there is your own note: saving it goes back to All and lights the new note up.'),
 ]
+
+NOTES['1.32.08'] = [
+  F('Day Planner, Glass paper on the blue and dark themes: the Schedule, Tasks and Notes titles are pastel yellow again, as in the older build.'),
+]
