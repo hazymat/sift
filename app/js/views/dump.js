@@ -120,10 +120,13 @@ export default {
             </div>
           </details>
         </div>
-        <div class="dump-filter" id="dump-filter" role="group" aria-label="Show">
-          <button type="button" data-filter="all">All</button>
-          ${dumpTypes().map(k => `<button type="button" data-filter="${esc(k.id)}">${esc(k.label)}</button>`).join('')}
-          <button type="button" data-filter="pinned">★ Pinned</button>
+        <!-- ⋯ sits outside the scrolling filters so it stays on screen on phones (30). -->
+        <div class="dump-filter-row">
+          <div class="dump-filter" id="dump-filter" role="group" aria-label="Show">
+            <button type="button" data-filter="all">All</button>
+            ${dumpTypes().map(k => `<button type="button" data-filter="${esc(k.id)}">${esc(k.label)}</button>`).join('')}
+            <button type="button" data-filter="pinned">★ Pinned</button>
+          </div>
           <button type="button" class="filter-more" data-act="edit-kinds" title="Add, rename, reorder or remove types" aria-label="Edit note types">⋯</button>
         </div>
       </div>
@@ -174,8 +177,7 @@ export default {
         + '<button type="button" class="kind-new" data-act="new-kind" title="Add a type of note">+ New</button>';
       $('#dump-filter').innerHTML = '<button type="button" data-filter="all">All</button>'
         + types.map(k => `<button type="button" data-filter="${esc(k.id)}">${esc(k.label)}</button>`).join('')
-        + '<button type="button" data-filter="pinned">★ Pinned</button>'
-        + '<button type="button" class="filter-more" data-act="edit-kinds" title="Add, rename, reorder or remove types" aria-label="Edit note types">⋯</button>';
+        + '<button type="button" data-filter="pinned">★ Pinned</button>';
       if (!types.some(k => k.id === kind)) kind = types[0]?.id || 'thought';
       if (!['all', 'pinned'].includes(state.filter) && !types.some(k => k.id === state.filter)) state.filter = 'all';
       render();
