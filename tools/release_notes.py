@@ -303,3 +303,6 @@ NOTES['1.22.09'] = [
 NOTES['1.22.11'] = [
   F("Esc in Search your notes leaves the box and keeps the search; a second Esc clears it and all the notes show again. The same in the other areas' search boxes."),
 ]
+NOTES['1.22.12'] = [
+  B("Brain Dump: on a phone, the ⋯ at the end of the note types under Your notes (to add, rename or remove types) could sit off the right-hand edge of the screen."),
+]

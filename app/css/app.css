@@ -1178,9 +1178,10 @@ a.chip { color: var(--text); text-decoration: none; }
 /* Filter: plain text tabs with an underline, one row, so it doesn't look like the kind pills. */
 .dump-find { margin-bottom: 6px; }
 .dump-bar .search { width: 100%; }
-.dump-filter { display: flex; gap: 2px; margin-top: 6px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--glass-border); }
+.dump-filter-row { display: flex; align-items: stretch; margin-top: 6px; border-bottom: 1px solid var(--glass-border); }
+.dump-filter { display: flex; gap: 2px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
 .dump-filter::-webkit-scrollbar { display: none; }
-.dump-filter button { flex: none; background: none; border: 0; border-bottom: 2px solid transparent; border-radius: 0; box-shadow: none; padding: 6px 9px 5px; font-size: .85rem; line-height: 1.2; color: var(--muted); }
+.dump-filter-row button { flex: none; background: none; border: 0; border-bottom: 2px solid transparent; border-radius: 0; box-shadow: none; padding: 6px 9px 5px; font-size: .85rem; line-height: 1.2; color: var(--muted); }
 .dump-filter button[aria-pressed="true"] { color: inherit; border-bottom-color: currentColor; font-weight: 600; }
 .thought-list { list-style: none; margin: 10px 0; padding: 0; display: grid; gap: 10px; }
 .thought { padding: 10px 14px 10px; border-radius: 20px; background: var(--glass); border: 1px solid var(--glass-border); }
@@ -3105,7 +3106,7 @@ a.comment-mark:hover { color: var(--text); }
 /* 198: "+ New" at the end of the New note's type pills; ⋯ at the end of the type filters. */
 .dump-kinds .kind-new { opacity: .7; border-style: dashed; }
 .dump-kinds .kind-new:hover, .dump-kinds .kind-new:focus-visible { opacity: 1; }
-.dump-filter .filter-more { margin-left: auto; letter-spacing: .1em; }
+.dump-filter-row .filter-more { letter-spacing: .1em; }
 /* 202: the Schedule's open item and its panel are one rounded box too, like
    the Day Planner's Tasks and the Tasks page (the time stays in the margin). */
 #lines .line.has-item:has(+ .item-details) { border-bottom: 0; }
