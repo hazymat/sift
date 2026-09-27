@@ -19,6 +19,9 @@
 //   Esc      stop browsing. After editing an item, Esc leaves the editing and
 //            the same item is highlighted again; Esc once more stops.
 // A click anywhere, or changing page, stops browsing too.
+// Tab / Shift+Tab still walk the page's buttons, links and filters (the
+// browser's own ring shows where): Esc takes the cursor off them, back to
+// the page, where the keys above work again (in every area).
 
 import { caretTo } from './walk.js';
 
@@ -132,9 +135,16 @@ export function installBrowse({ busy, area }) {
     const deeper = ev.altKey && ev.key === 'Enter';
     if ((ev.altKey && !deeper) || ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.isComposing) return;
     if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Escape'].includes(ev.key)) return;
+    const t = ev.target;
+    if (ev.key === 'Escape' && !deeper && t !== document.body && t.matches?.('a, button, summary, [tabindex]:not([contenteditable]), input[type="checkbox"], input[type="radio"]')
+      && !t.closest('dialog, .pill-menu, .dd-menu, .ref-picker, .thought-pop, details[open], .item-details, .task-details, .thing-panel, .list-panel')) {
+      take(ev);
+      t.blur();
+      later();
+      return;
+    }
     const c = cfg();
     if (!c) return;
-    const t = ev.target;
     // In the search box: ↓ goes on to browse what it found.
     if (c.search && t.matches?.(c.search)) {
       const first = items(c)[0];
