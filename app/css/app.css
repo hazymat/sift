@@ -3460,8 +3460,11 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
 .task-entry:not(.typed) .task-add-line > .pill-reveal, .task-entry.revealed .task-add-line > .pill-reveal, .task-entry:has(.task-add-line > .pill-reveal):not(.revealed) .task-entry-more { display: none; }
 /* Show additional lines when list is empty (👁 Layout, on unless unticked). */
 #main[data-area="tasks"]:not([data-layout-empty-lines]) .task-entry.is-empty::after { display: none; }
-.layout-opt.layout-sub { padding-left: 26px; }
-.layout-opt:has(input:disabled) { opacity: .45; cursor: default; }
+.layout-opt[hidden] { display: none; }
+/* A switch that goes with the one above: indented under it, joined by an L like a sub-task's. */
+.layout-opt.layout-sub { position: relative; padding-left: 30px; }
+.layout-opt.layout-sub::before { content: ''; position: absolute; left: 9px; top: -6px; width: 12px; height: calc(50% + 6px); border-left: 1px solid var(--vm-line); border-bottom: 1px solid var(--vm-line); }
+.layout-opt.layout-sub:has(+ .layout-sub:not([hidden]))::after { content: ''; position: absolute; left: 9px; top: 50%; bottom: -3px; border-left: 1px solid var(--vm-line); }
 /* Lined paper layout (👁 Layout, on unless unticked). Unticked, Tasks look as in
    earlier versions: New task a rounded box at the top with Add, and each task a
    shaded rounded card, its sub-tasks inside the same card. */
@@ -3490,3 +3493,16 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
   .task-list > li[data-task]:not(.group-top, .group-kid:not(.group-end), :has(+ li.task-details)) { margin-bottom: 2px; }
 }
 #main[data-area="tasks"][data-shade="alt"]:not([data-layout-lined]) .task-list > li[data-task]:nth-child(even of li[data-task]) { background-color: color-mix(in srgb, var(--text) 7%, var(--glass-track)); }
+/* The More pill's shortcut (Hide pills behind More). */
+.pill-reveal kbd { margin-left: 5px; }
+/* A task ticked off fades, all but its note saying where it's going (tickAway, views/tasks.js). */
+.task-list > li.ticked-away { transition: none; }
+.task-list > li.ticked-away > :not(.done-note) { transition: opacity var(--fade, 6s) linear; }
+.task-list > li.ticked-away.fading { opacity: 1; }
+.task-list > li.ticked-away.fading > :not(.done-note) { opacity: 0; }
+.done-note { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 2; display: inline-flex; align-items: center; gap: 6px; padding: 3px 12px; border-radius: 999px; font-size: .8rem; white-space: nowrap; color: var(--text); background: var(--menu-bg, var(--glass-strong)); border: 1px solid var(--glass-border); box-shadow: var(--shadow); pointer-events: none; }
+.done-glass { display: inline-block; animation: done-glass 1.5s ease-in-out infinite; }
+@keyframes done-glass { 0%, 40% { transform: rotate(0); } 50%, 90% { transform: rotate(180deg); } 100% { transform: rotate(360deg); } }
+.task-list > li.ticked-away.closing > .done-note { display: none; }
+.task-list > li.ticked-away .tree > i { transition: opacity var(--fade, 6s) linear; }
+.task-list > li.ticked-away.fading .tree > i { opacity: 0; }

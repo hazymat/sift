@@ -46,19 +46,19 @@ export function lookHtml(area) {
 }
 
 // Layout switches per page (trying out layouts; the labels are rough for now).
-// needs: a switch that only works with another on (greyed out without it). def: true for
-// one that starts on. flat: not indented under the one it needs.
+// needs: a switch that only works with another on: shown under it (indented, joined by a
+// line) only while that one is ticked. def: true for one that starts on.
 const LAYOUTS = {
   tasks: [
-    { id: 'lined', label: 'Lined paper layout', def: true },
-    { id: 'new-top', label: 'New task line at the top', needs: 'lined', flat: true },
-    { id: 'new-focus', label: 'Start typing a new task on arriving' },
-    { id: 'add-top', label: 'New tasks added at the top' },
-    { id: 'margin', label: 'Show margin', needs: 'lined', flat: true },
-    { id: 'added-flash', label: 'Highlight item when added' },
-    { id: 'pills-hide', label: 'Hide pills behind More (editing / new)' },
+    { id: 'lined', label: 'Lined Paper' },
+    { id: 'new-top', label: 'New task line at the top', needs: 'lined' },
+    { id: 'margin', label: 'Show margin', needs: 'lined' },
+    { id: 'empty-lines', label: 'Show additional lines when list is empty', def: true, needs: 'lined' },
+    { id: 'new-focus', label: 'Start typing a new task on arriving', def: true },
+    { id: 'add-top', label: 'New tasks appear at top', def: true },
+    { id: 'added-flash', label: 'Highlight task when added', def: true },
+    { id: 'pills-hide', label: 'Hide pills behind More (editing / new)', def: true },
     { id: 'more-panel', label: 'More goes straight to the full panel', needs: 'pills-hide' },
-    { id: 'empty-lines', label: 'Show additional lines when list is empty', def: true, needs: 'lined', flat: true },
   ],
 };
 const layoutKey = (area, id) => `sift-layout:${area}:${id}`;
@@ -76,7 +76,7 @@ export function layoutHtml(area) {
   if (!opts) return '';
   return `<h4>Layout</h4>
     <div class="layout-opts" role="group" aria-label="Layout">
-      ${opts.map(o => `<label class="layout-opt${o.needs && !o.flat ? ' layout-sub' : ''}"><input type="checkbox" data-layout-set="${o.id}"${o.needs ? ` data-layout-needs="${o.needs}"` : ''}${setOn(area, o.id) ? ' checked' : ''}${o.needs && !setOn(area, o.needs) ? ' disabled' : ''}> ${o.label}</label>`).join('')}
+      ${opts.map(o => `<label class="layout-opt${o.needs ? ' layout-sub' : ''}"${o.needs && !setOn(area, o.needs) ? ' hidden' : ''}><input type="checkbox" data-layout-set="${o.id}"${o.needs ? ` data-layout-needs="${o.needs}"` : ''}${setOn(area, o.id) ? ' checked' : ''}> ${o.label}</label>`).join('')}
     </div>`;
 }
 
@@ -112,7 +112,7 @@ export function installViewCog(getArea) {
     const box = ev.target.closest?.('[data-layout-set]');
     if (!box) return;
     try { localStorage.setItem(layoutKey(getArea(), box.dataset.layoutSet), box.checked ? '1' : '0'); } catch { /* not kept */ }
-    for (const sub of box.closest('.layout-opts').querySelectorAll(`[data-layout-needs="${box.dataset.layoutSet}"]`)) sub.disabled = !box.checked;
+    for (const sub of box.closest('.layout-opts').querySelectorAll(`[data-layout-needs="${box.dataset.layoutSet}"]`)) sub.closest('.layout-opt').hidden = !box.checked;
     apply();
     document.dispatchEvent(new CustomEvent('sift-layout', { detail: { area: getArea(), id: box.dataset.layoutSet } }));
   });
