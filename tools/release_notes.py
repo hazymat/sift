@@ -392,3 +392,8 @@ NOTES['1.26.05'] = [
 NOTES['1.26.06'] = [
   F('Tasks in Compact spacing: the 📝 and the pills sit just after the task\'s name, not at the far right. A long name ends in "…" so they still show.'),
 ]
+
+NOTES['1.26.07'] = [
+  F('Tasks: a note being written in place (no toolbar) has a small "Note editor" button under it, which opens the note full screen with its toolbar. ↑ and ↓ go past it as before.'),
+  B('Tasks: a note opened full screen from being written in place (Alt+Enter) was pushed to the right on a phone and kept its small italic text.'),
+]
