@@ -10,6 +10,7 @@ export const DAY_DEFAULTS = {
   slot_min: 60,
   down_days: [0], // 0 = Sunday … 6 = Saturday
   hint_down_day: true,
+  hint_over_plan: true, // a note when the day's plan is longer than the day
   hint_walk_breaks: true,
   paper_style: 'glass',
   duration_max_min: 240, // longest choice in the Duration list
