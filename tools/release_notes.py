@@ -392,3 +392,9 @@ NOTES['1.26.05'] = [
 NOTES['1.26.06'] = [
   F('Tasks in Compact spacing: the 📝 and the pills sit just after the task\'s name, not at the far right. A long name ends in "…" so they still show.'),
 ]
+
+NOTES['1.26.07'] = [
+  B('On an iPhone, tapping Plan for day opened the date picker and it closed at once, planning the task for today. Dates are now saved when the picker is closed.'),
+  B('A task\'s Plan for day couldn\'t be removed on an iPhone. There is now a Remove button next to it (in the pills and in the task\'s panel), and Reset in the iPhone picker empties it.'),
+  B('On a laptop, Clear in a date picker in Tasks wasn\'t saved until you left the date, so it still showed Today.'),
+]

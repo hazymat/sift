@@ -40,12 +40,20 @@ export function energyPill(value) {
   const e = ENERGY.find(x => x.id === value);
   return `<button type="button" class="entry-chip${e ? ' set' : ''}" data-chip="energy" data-pill-act="energy" aria-haspopup="menu">${e ? e.bolts : '⚡'} <span class="chip-text">${esc(e ? e.label : 'Energy')}</span></button>`;
 }
+// The date goes in data-value, not value (fillDates puts it in), so Reset in the
+// iPhone picker empties it. A set date gets a Remove pill after it (change() gets
+// the name with value '').
 export function datePill(name, label, glyph, value, shown) {
   return `<label class="entry-chip${value ? ' set' : ''}" data-chip="${name}">${glyph} <span class="chip-text">${esc(value ? shown(value) : label)}</span>`
-    + `<input type="date" data-pill="${name}" value="${esc(value || '')}" data-sent="${esc(value || '')}" aria-label="${esc(label)}"></label>`;
+    + `<input type="date" data-pill="${name}" data-value="${esc(value || '')}" data-sent="${esc(value || '')}" aria-label="${esc(label)}"></label>`
+    + (value ? `<button type="button" class="entry-chip pill-remove" data-pill-clear="${name}" aria-label="Remove ${esc(label)}">✕ Remove</button>` : '');
 }
+export const fillDates = box => { for (const d of box.querySelectorAll('input[type="date"][data-value]')) d.value = d.dataset.value; };
+// On touch screens a date is only saved when the picker is closed (the field
+// is left): an iPhone fills in today as its picker opens.
+export const touch = matchMedia('(pointer: coarse)').matches;
 
-document.body.classList.toggle('pills-only', matchMedia('(pointer: coarse)').matches);
+document.body.classList.toggle('pills-only', touch);
 
 export function editPills(root, spec) {
   let editing = null; // key of the row whose pills are open
@@ -63,6 +71,7 @@ export function editPills(root, spec) {
     box.className = 'edit-pills';
     box.dataset.key = editing;
     box.innerHTML = `${spec.html(editing)}<button type="button" class="entry-chip pill-more" data-pill-more>More…</button>`;
+    fillDates(box);
     // After the note line if there is one, so the pills sit right under the text.
     const sub = host.querySelector(':scope > .item-sub');
     if (sub) sub.after(box); else host.append(box);
@@ -115,7 +124,8 @@ export function editPills(root, spec) {
     if (!f) return;
     if (ev.type === 'change') ev.stopPropagation();
     const isDate = f.type === 'date';
-    if (isDate && ev.type === 'input' && !f.value) return; // half-typed
+    if (isDate && touch && ev.type !== 'focusout') return;
+    if (isDate && !f.value && f.validity.badInput) return; // half-typed (a Clear in the picker comes as "input" with nothing half-typed)
     if (isDate && f.dataset.sent === f.value) return;
     if (isDate) f.dataset.sent = f.value;
     else if (ev.type !== 'change') return;
@@ -126,6 +136,8 @@ export function editPills(root, spec) {
     if (!pills) return;
     const d = ev.target.closest('input[type="date"]');
     if (d) { try { d.showPicker(); } catch { /* the tap opens it */ } return; }
+    const clear = ev.target.closest('[data-pill-clear]');
+    if (clear) { ev.stopPropagation(); spec.change(pills.dataset.key, clear.dataset.pillClear, ''); return; }
     const act = ev.target.closest('[data-pill-act]');
     if (act) { ev.stopPropagation(); spec.change(pills.dataset.key, act.dataset.pillAct, null); return; }
     if (ev.target.closest('[data-pill-more]')) {
