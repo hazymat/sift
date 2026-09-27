@@ -509,3 +509,7 @@ NOTES['1.32.05'] = [
 NOTES['1.32.06'] = [
   B('On a laptop, the top bar\'s More menu stayed open after clicking somewhere else on the page, and was half greyed out when Brain Dump dimmed the page.'),
 ]
+
+NOTES['1.32.07'] = [
+  F('Brain Dump: the New note box stays while you look at notes someone shares with you. What you write there is your own note: saving it goes back to All and lights the new note up.'),
+]
