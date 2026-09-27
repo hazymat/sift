@@ -239,7 +239,7 @@ export default {
             <input id="task-new" class="new-task-line no-inline" placeholder="${esc(placeholder)}" autocomplete="off" enterkeyhint="done" aria-label="New task">
           </div>
           <div class="task-entry-more">
-            <textarea id="task-new-note" class="entry-note add-note no-inline" rows="1" placeholder="Add note" aria-label="Note"></textarea>
+            <div id="task-new-note" class="add-note" data-ctrl-enter="keep"></div>
             <div class="entry-actions">
               <button type="button" class="entry-chip" data-chip="energy" aria-haspopup="menu"><span class="chip-glyph">⚡</span> <span class="chip-text" data-empty="Energy">Energy</span></button>
               <input type="hidden" data-entry="energy" value="">
@@ -452,7 +452,7 @@ export default {
     body.addEventListener('keydown', ev => {
       if (ev.key !== 'Tab' || !ev.shiftKey || ev.defaultPrevented || ev.ctrlKey || ev.altKey || ev.metaKey) return;
       const t = ev.target;
-      if (t.id === 'task-new-note') { ev.preventDefault(); body.querySelector('#task-new')?.focus(); return; }
+      if (t.closest?.('#task-new-note')) { ev.preventDefault(); body.querySelector('#task-new')?.focus(); return; }
       if (!t.closest?.('.pill-note, .note-in-place')) return;
       const title = t.closest('.task-list > li[data-task]')?.querySelector(':scope > .task-title');
       if (!title) return;
@@ -651,6 +651,13 @@ export default {
       host.addEventListener('keydown', ev => { if (ev.key === 'Escape' && !isFullNote(host) && !document.querySelector('.ref-picker')) { ev.preventDefault(); ev.stopPropagation(); document.activeElement?.blur(); } });
     }
     const isFullNote = h => h.classList.contains('is-full');
+    // "Add note" under a task being edited: typing goes straight into the notes
+    // editor, as for a task's note.
+    body.addEventListener('focusin', ev => {
+      if (!ev.target.matches?.('.edit-pills .pill-note')) return;
+      const task = data.tasks.find(x => x.id === ev.target.closest('li[data-task]')?.dataset.task);
+      if (task) editNoteInPlace(task, ev.target);
+    });
 
     // ↑ / ↓ while editing walk the list: a task's name (start, then end), its
     // note (the note itself, or "Add note"), the next task's name, and so on
@@ -669,7 +676,7 @@ export default {
     function walkApply(stop, part, at) {
       if (part === 'name') { stop.title.focus(); caretTo(stop.title, at); return true; }
       if (stop.key === 'entry') {
-        const n = body.querySelector('#task-new-note');
+        const n = body.querySelector('#task-new-note .rich-edit');
         stop.title.focus(); // opens the line's note
         if (!n?.getClientRects().length) return false;
         n.focus(); caretTo(n, at); return true;
@@ -721,7 +728,7 @@ export default {
         }
         return;
       }
-      const inNote = t.matches?.('#task-new-note, .edit-pills .pill-note') || (t.isContentEditable && t.closest('.note-in-place'));
+      const inNote = t.matches?.('.edit-pills .pill-note') || (t.isContentEditable && t.closest('.note-in-place, #task-new-note'));
       if (!inNote || !atEdge(t, up ? 'up' : 'down')) return;
       ev.preventDefault();
       if (up) walkGo(s, 'name', 'end');
@@ -775,7 +782,9 @@ export default {
       const entry = body.querySelector('#task-entry');
       const ta = body.querySelector('#task-new');
       if (!entry || !ta) return;
-      const noteEl = entry.querySelector('#task-new-note');
+      // Its note: the notes editor without its toolbar or dimming, as for a task's note edited in place.
+      const noteBox = entry.querySelector('#task-new-note');
+      const noteEd = richText(noteBox, { placeholder: 'Add note', bare: true });
       keepDraft(ta, `tasks:${state.view}:${state.project || ''}`);
       const chipOf = name => entry.querySelector(`[data-chip="${name}"]`);
       const field = name => entry.querySelector(`[data-entry="${name}"]`);
@@ -801,19 +810,17 @@ export default {
       });
       for (const d of entry.querySelectorAll('input[type="date"]')) d.addEventListener('click', () => { try { d.showPicker(); } catch { /* not supported: the tap opens it */ } });
       const reset = () => {
-        noteEl.value = '';
+        noteEd.setValue('');
         for (const f of entry.querySelectorAll('[data-entry]')) f.value = f.dataset.entry === 'horizon' ? defaultList() : '';
         for (const n of ['energy', 'start_date', 'aim_date', 'estimate_min', 'horizon']) paint(n);
-        noteEl.style.height = '';
       };
-      noteEl.addEventListener('input', () => { noteEl.style.height = 'auto'; noteEl.style.height = `${noteEl.scrollHeight}px`; });
       // The extras stay open while the entry is in use. They are shown by the
       // .open class, not by focus: on an iPhone a tap takes the focus away
       // before it lands, so focus-based showing hid them under your finger.
       entry.addEventListener('focusin', () => entry.classList.add('open'));
       entry.addEventListener('pointerdown', () => { pressing = true; });
       // Leaving it with nothing typed or set puts the extras away.
-      const idle = () => !ta.value.trim() && !noteEl.value.trim() && ![...entry.querySelectorAll('[data-entry]')].some(f => f.value && !(f.dataset.entry === 'horizon' && f.value === defaultList()));
+      const idle = () => !ta.value.trim() && !noteEd.value.trim() && ![...entry.querySelectorAll('[data-entry]')].some(f => f.value && !(f.dataset.entry === 'horizon' && f.value === defaultList()));
       entry.addEventListener('focusout', () => {
         setTimeout(() => {
           if (pressing || entry.contains(document.activeElement) || document.querySelector('.pill-menu')) return;
@@ -865,15 +872,33 @@ export default {
           estimate_min: field('estimate_min').value ? Number(field('estimate_min').value) : null,
         };
         if (field('horizon').value !== defaultList()) fields.horizon = field('horizon').value;
-        const note = noteEl.value.trim();
+        const note = noteEd.value.trim();
         ta.value = '';
         draftCleared(ta);
         reset();
         return addLines([{ text, sub }], { parent: under || (sub ? lastTop : null), extras: { fields, note }, focus });
       };
+      // Esc or Ctrl+Enter in the note (before the notes editor's own Esc): with a
+      // task typed, it's added (as Enter on its line); without, a note written is
+      // kept for later and an empty one closes the entry. Enter is a new line.
       entry.addEventListener('keydown', ev => {
+        if (!noteBox.contains(ev.target) || noteBox.classList.contains('is-full') || document.querySelector('.ref-picker')) return;
+        const esc = ev.key === 'Escape', done = ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey);
+        if (!esc && !done) return;
+        ev.preventDefault(); ev.stopPropagation();
+        walkTo = null; // left on purpose: the redraw doesn't bring the cursor back here
+        if (ta.value.trim()) {
+          submit({ focus: done })?.then(() => { if (esc) body.querySelector('#task-new')?.closest('.open')?.classList.remove('open'); });
+          if (esc) document.activeElement?.blur(); else ta.focus(); // Ctrl+Enter: on to the next task
+          return;
+        }
+        if (!noteEd.value.trim()) { reset(); entry.classList.remove('open'); }
+        document.activeElement?.blur();
+      }, true);
+      entry.addEventListener('keydown', ev => {
+        if (ev.target !== ta) return;
         // Esc with something typed: keep it (add the task, as Enter does) and stop editing.
-        if ((ev.target === ta || ev.target === noteEl) && ev.key === 'Escape' && ta.value.trim()) {
+        if (ev.key === 'Escape' && ta.value.trim()) {
           ev.preventDefault(); ev.stopPropagation();
           submit()?.then(() => {
             const line = body.querySelector('#task-new');
@@ -882,22 +907,15 @@ export default {
           });
           return;
         }
-        // Esc in a note typed with no title yet: stop, keeping the note for later.
-        if (ev.target === noteEl && ev.key === 'Escape' && !ta.value.trim() && noteEl.value.trim()) {
-          ev.preventDefault(); ev.stopPropagation();
-          noteEl.blur();
-          return;
-        }
-        // Esc on an empty line (or its empty note) closes the entry: the extras go away, unset.
-        if ((ev.target === ta || (ev.target === noteEl && !noteEl.value.trim())) && ev.key === 'Escape' && !ta.value) {
+        // Esc on an empty line closes the entry: the extras go away, unset.
+        if (ev.key === 'Escape' && !ta.value) {
           ev.preventDefault(); ev.stopPropagation();
           reset();
           entry.classList.remove('open');
-          ev.target.blur();
+          ta.blur();
           return;
         }
         if (ev.key !== 'Enter' || ev.isComposing || ev.shiftKey) return;
-        if (ev.target !== ta && ev.target !== noteEl) return;
         ev.preventDefault();
         submit();
       });
