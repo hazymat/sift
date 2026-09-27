@@ -177,17 +177,24 @@ export default {
     }
     input.addEventListener('change', () => take([...input.files]));
 
-    // Files dropped anywhere on the page.
+    // Files dropped anywhere on the page (el is shared by every area: these go when Scans is left).
     const hasFiles = ev => [...(ev.dataTransfer?.types || [])].includes('Files');
-    el.addEventListener('dragover', ev => { if (hasFiles(ev)) { ev.preventDefault(); root.classList.add('drop-over'); } });
-    el.addEventListener('dragleave', ev => { if (!el.contains(ev.relatedTarget)) root.classList.remove('drop-over'); });
+    const signal = gone.signal;
+    signal.addEventListener('abort', () => delete el.dataset.dropHint);
+    el.addEventListener('dragover', ev => {
+      if (!hasFiles(ev)) return;
+      ev.preventDefault();
+      root.classList.add('drop-over');
+      el.dataset.dropHint = state.id ? 'Drop to add pages to this scan' : 'Drop to save each file as a new scan';
+    }, { signal });
+    el.addEventListener('dragleave', ev => { if (!el.contains(ev.relatedTarget)) root.classList.remove('drop-over'); }, { signal });
     el.addEventListener('drop', ev => {
       root.classList.remove('drop-over');
       if (!hasFiles(ev)) return;
       ev.preventDefault();
       pickFor = state.id ? scanOf(state.id) : null;
       take([...ev.dataTransfer.files]);
-    });
+    }, { signal });
 
     // ---------- changes ----------
 

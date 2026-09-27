@@ -320,3 +320,6 @@ NOTES['1.23.03'] = [
   F('Settings, Sync: says whether the server was found, whether it is taking new accounts (the only time Create account shows), and if it can\'t be reached, the likely reasons.'),
   F('Settings, Sync: one Get the certificate button. In the iPhone Home Screen app it copies the address to paste into Safari, instead of opening a blank page. The steps say that the certificate has to be switched on under Certificate Trust Settings.'),
 ]
+NOTES['1.23.06'] = [
+  B('Scans and Contracts: dragging a file over the page showed the hint meant for notes ("Drop onto a note or item to attach it"). On Scans it now says the file will be saved as a new scan (or added as pages to the scan that is open); on a contract\'s page it says it will be added to the contract\'s files, and dropping there does that.'),
+]
