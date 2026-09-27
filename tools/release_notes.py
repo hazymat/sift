@@ -306,3 +306,6 @@ NOTES['1.22.11'] = [
 NOTES['1.22.12'] = [
   B("Brain Dump: on a phone, the ⋯ at the end of the note types under Your notes (to add, rename or remove types) could sit off the right-hand edge of the screen."),
 ]
+NOTES['1.22.13'] = [
+  F('An empty value in History and the Quantity box in Find Things show a plain dash.'),
+]

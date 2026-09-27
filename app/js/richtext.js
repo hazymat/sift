@@ -109,7 +109,7 @@ export function afterTitle(md, title) {
   while (k < line.length && plain(line.slice(0, k)).length < want.length) k++;
   const head = line.slice(0, k);
   const open = ['~~', '**'].filter(mark => (head.split(mark).length - 1) % 2).join('');
-  const rest = line.slice(k).replace(/^[\s.,:;!?–—-]+/, '');
+  const rest = line.slice(k).replace(/^[\s.,:;!?\u2013\u2014-]+/, '');
   return rest.replace(/^(\*\*|~~)+$/, '') ? open + rest : '';
 }
 
