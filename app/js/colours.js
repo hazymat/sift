@@ -30,7 +30,8 @@ export const tintId = rec => (TINTS.some(c => c.id === rec?.colour) ? rec.colour
 export const tintHex = rec => TINTS.find(c => c.id === tintId(rec)).hex;
 
 // Doesn't take the cursor out of a note being written in.
-export function colourMenu(anchor, current, onPick) {
+// keyboard: true (opened by a key): the cursor goes into the menu, for ← / → and Enter.
+export function colourMenu(anchor, current, onPick, { keyboard = false } = {}) {
   return pillMenu(anchor, TINTS.map(c => ({ value: c.id, label: `<span class="swatch" style="--sw:${c.hex}"></span>`, title: c.label, current: c.id === current })),
-    onPick, { focus: false, className: 'colour-menu' });
+    onPick, { focus: keyboard, back: !keyboard, className: 'colour-menu' });
 }
