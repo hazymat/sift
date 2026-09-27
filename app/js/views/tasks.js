@@ -814,6 +814,7 @@ export default {
         noteEd.setValue('');
         for (const f of entry.querySelectorAll('[data-entry]')) f.value = f.dataset.entry === 'horizon' ? defaultList() : '';
         for (const n of ['energy', 'start_date', 'aim_date', 'estimate_min', 'horizon']) paint(n);
+        showExtras();
       };
       // The extras stay open while the entry is in use. They are shown by the
       // .open class, not by focus: on an iPhone a tap takes the focus away
@@ -822,6 +823,8 @@ export default {
       entry.addEventListener('pointerdown', () => { pressing = true; });
       // Leaving it with nothing typed or set puts the extras away.
       const idle = () => !ta.value.trim() && !noteEd.value.trim() && ![...entry.querySelectorAll('[data-entry]')].some(f => f.value && !(f.dataset.entry === 'horizon' && f.value === defaultList()));
+      // "Add note" and the pills only show once something is typed (or still set): an empty line is just a line.
+      const showExtras = () => entry.classList.toggle('typed', !!ta.value || !idle());
       entry.addEventListener('focusout', () => {
         setTimeout(() => {
           if (pressing || entry.contains(document.activeElement) || document.querySelector('.pill-menu')) return;
@@ -920,6 +923,8 @@ export default {
         ev.preventDefault();
         submit();
       });
+      ta.addEventListener('input', showExtras); // after the "- " check, which may empty the line
+      showExtras();
       entry.submitEntry = submit;
     }
 

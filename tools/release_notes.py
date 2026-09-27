@@ -403,3 +403,7 @@ NOTES['1.26.08'] = [
   B('A task\'s Plan for day couldn\'t be removed on an iPhone. There is now a Remove button next to it (in the pills and in the task\'s panel), and Reset in the iPhone picker empties it.'),
   B('On a laptop, Clear in a date picker in Tasks wasn\'t saved until you left the date, so it still showed Today.'),
 ]
+
+NOTES['1.26.09'] = [
+  F('Tasks: the New task line shows "Add note" and the pills only once you start typing the task\'s name, and puts them away again if the name is emptied.'),
+]

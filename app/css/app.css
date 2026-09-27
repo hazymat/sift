@@ -2109,7 +2109,7 @@ button.att-count { font: inherit; font-size: inherit; padding: 1px 8px; }
 #task-body { min-height: 55vh; }
 
 .task-entry { margin: var(--row-gap, 6px) 0 4px; }
-.task-entry:not(.open) .task-entry-more { display: none; }
+.task-entry:not(.open) .task-entry-more, .task-entry:not(.typed) .task-entry-more { display: none; }
 .task-entry-more { display: grid; gap: 8px; padding: 2px 8px 8px 54px; }
 .entry-note { width: 100%; background: transparent; border: 0; border-bottom: 1px solid var(--glass-border); color: var(--text); font: inherit; font-size: .95rem; padding: 4px 2px; resize: none; overflow: hidden; box-shadow: none; }
 .entry-note:focus { outline: none; border-bottom-color: var(--active-border); }
