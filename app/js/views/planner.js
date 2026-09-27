@@ -67,6 +67,7 @@ export default {
       <header class="day-head">
         <h1 class="day-title"><span class="weekday"></span> <span class="date"></span></h1>
         <p class="day-rel muted"></p>
+        <p class="did-things" hidden></p>
         <div class="down-day" hidden></div>
         <div class="focus-row">
         <label class="focus"><span class="hand-label">${esc(word('day_focus'))}</span><input id="focus" placeholder="${esc(word('day_focus_prompt'))}" autocomplete="off"></label>
@@ -760,6 +761,18 @@ export default {
     });
 
     let atts = new Map(); // day item id → its attachments
+    // Once the day is over (an earlier day, or today after the day's end), what
+    // got done is counted, never what didn't: "You did 6 things today."
+    function didThings() {
+      const box = $('.did-things');
+      const now = new Date();
+      const over = date < isoDate() || (date === isoDate() && now.getHours() * 60 + now.getMinutes() >= toMin(settings.day_end));
+      const done = items.filter(i => i.done_at).length;
+      const show = settings.hint_did_things && over && done > 0;
+      box.hidden = !show;
+      box.textContent = show ? `You did ${done === 1 ? 'one thing' : `${done} things`}${date === isoDate() ? ' today' : ''}.` : '';
+    }
+
     async function render() {
       settings = await daySettings();
       [day, items] = await Promise.all([getDay(date), itemsFor(date)]);
@@ -770,6 +783,7 @@ export default {
       renderPile();
       renderCarry();
       renderTasks();
+      didThings();
     }
 
     async function refresh() {
@@ -777,6 +791,7 @@ export default {
       atts = await att.byParent();
       renderLines();
       renderPile();
+      didThings();
       paintSelection?.();
       walkAgain();
     }

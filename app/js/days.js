@@ -11,6 +11,7 @@ export const DAY_DEFAULTS = {
   down_days: [0], // 0 = Sunday … 6 = Saturday
   hint_down_day: true,
   hint_walk_breaks: true,
+  hint_did_things: true, // "You did 6 things" once the day is over
   paper_style: 'glass',
   duration_max_min: 240, // longest choice in the Duration list
   show_now_marker: true, // ▶ in the margin at the current time (today only)

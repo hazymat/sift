@@ -342,3 +342,6 @@ NOTES['1.23.09'] = [
   F('Sync server: sign-in and account requests are limited to 64 KB, and a wrong email takes as long to answer as a wrong password.'),
   F('Sync server: `install.sh proxy` installs the server without Caddy, for a machine that already runs Apache, nginx or ISPConfig. server/README.md explains the web server settings.'),
 ]
+NOTES['1.26.00'] = [
+  F('Day Planner: once a day is over (an earlier day, or today after the day\'s end), a line under the date says what got done, e.g. "You did 6 things today." It counts what was done, never what wasn\'t. It can be turned off in Settings, Day Planner, Nudges.'),
+]
