@@ -9,7 +9,9 @@
 // Browsing: one item is highlighted (.kb-cur, the same look in every area).
 //   ← / →    previous / next item
 //   ↑ / ↓    the item above / below, at about the same place across
-//            (↑ from the top row goes back to the search box)
+//            (↑ from the top row goes back to the search box; in Brain
+//            Dump, ↑ again goes up into New note, where the arrows are the
+//            note's own until Esc)
 //   Enter    open it: edit it (cursor at the end), or go into it
 //   Esc      stop browsing. After editing an item, Esc leaves the editing and
 //            the same item is highlighted again; Esc once more stops.
@@ -38,6 +40,7 @@ const click = el => { el?.click(); return !!el; };
 const AREAS = {
   dump: {
     search: '#dump-q',
+    aboveSearch: () => focusEnd($('.dump-capture .rich-edit')),
     items: '#thoughts > li[data-id]',
     enter: () => focusEnd($('.dump-capture .rich-edit')),
     async open(li) {
@@ -128,6 +131,7 @@ export function installBrowse({ busy, area }) {
       const first = items(c)[0];
       if (ev.key === 'ArrowDown' && first) { take(ev); t.blur(); go(first); }
       else if (ev.key === 'ArrowDown' && c.enter?.()) take(ev);
+      else if (ev.key === 'ArrowUp' && c.aboveSearch?.()) take(ev);
       return;
     }
     if (busy()) return;
