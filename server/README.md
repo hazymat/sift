@@ -21,6 +21,7 @@ Accounts are made in the app, never on the server. Everything is encrypted on yo
 | Change an account's email | `sudo sift-admin rename-user <old email> <new email>` |
 | Remove an account | `sudo sift-admin delete-user <email>` (deletes everything stored for it) |
 | See accounts | `sudo sift-admin users` |
+| Share with someone | Both need an account on the same server. In Sift: a list's 👥 Share, a note's ⋯ → Share with someone, or the Day Planner's Share menu. The other person accepts the invitation in the same area. |
 
 **Create account** only shows once the server address is typed and the server is accepting new accounts. By default (`REGISTRATION=first`) that's only until the first account exists; after that it closes by itself. With Docker, use `docker compose exec sift node admin.js <command>`; to change registration there, set `REGISTRATION` in `.env` and run `docker compose up -d`.
 
@@ -113,6 +114,10 @@ scp root@<address>:/var/lib/caddy/.local/share/caddy/pki/authorities/local/root.
 Keep this certificate out of any public repository.
 
 Chrome will also ask once whether the site may "access devices on your local network" when the app calls a private address. Allow it.
+
+## Sharing between accounts
+
+Each account has a key pair, made by the app the first time it syncs: the public half is stored as it is, the private half encrypted with the account's own key. Something shared (a list, a note, some days of the Day Planner) gets a key of its own, which the app encrypts for each person with their public key. The server keeps the shared records apart from each account's own (`shares`, `share_members`, `share_records`) and still can't read any of them. An invitation is only used once it's accepted. Shared records count towards the storage of the account that shared them.
 
 ## Everyday care
 

@@ -224,6 +224,7 @@ async function route(force = false) {
   $('#page-title').textContent = next.label;
 
   currentView?.unmount?.();
+  store.useSpace(null); // a new area starts on your own things (sharing.js)
   // A fresh #main for each page: the old one still carries the click handlers
   // of every page shown in it before, which would all fire again.
   const stale = $('#main');
@@ -514,6 +515,10 @@ async function boot() {
       was = st.state;
       wasFiles = st.files;
     });
+    // Shared things changed (an invitation, someone accepted, a share ended): the page follows.
+    let sharesSeen = false;
+    sync.onShares(() => { if (sharesSeen) update(); sharesSeen = true; });
+    import('./sharing.js').then(m => m.installSharing());
     sync.init();
   });
   import('./bin.js').then(bin => bin.autoEmpty()).catch(err => console.warn('Bin clean-up failed:', err));

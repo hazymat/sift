@@ -34,6 +34,7 @@ How work on Sift is done: where things are, the rules, and where it has got to. 
 - **The page check:** in the browser console on the dev page, `(await import('/js/smoke.js')).run()` visits every page, tries the view options, opens a panel or two, goes through the Scans and Contracts filters and opens the first scan's and contract's own page, and returns `{ pages, errors, problems, skipped }`. Expect no errors and no problems; `skipped` names what couldn't be tried because there was nothing there yet (e.g. no scans). It takes about a minute.
 - **Test data:** titles starting `zz ` or dates in 2030 and later. Delete them afterwards straight from IndexedDB (database `sift_local`: the record, plus its `history` and `outbox` entries).
 - **How to test steps** (in each pull request, one per change), always as: "In <area>, click <this>, do <that>. Before, it <did this>; now fixed. It should <do this>." Name things in the UI's words. These are copied into the separate test list, and anything that fails comes back as an issue.
+- Sharing is tested with two browser profiles against a local `server/` (`REGISTRATION=open`): register two accounts, share, accept, change on each side.
 - Real iPhone behaviour (Home Screen app, keyboard, safe areas) can only be checked on a real iPhone after publishing: say what couldn't be checked.
 
 ## Rules
@@ -47,7 +48,8 @@ How work on Sift is done: where things are, the rules, and where it has got to. 
 ## Map of the code
 
 - `app/js/app.js`: areas list (`AREAS`), routing, navigation, keyboard (← / → tabs, Ctrl+← / → areas, Esc for menus and stepping back from a record's page), service worker registration and updates (a reload waits for saves).
-- `app/js/store.js`: IndexedDB. Record format is final: UUIDv7 ids, per-field clocks, soft deletes, an outbox for sync. `idle()` resolves when every write has reached the database.
+- `app/js/store.js`: IndexedDB. Record format is final: UUIDv7 ids, per-field clocks, soft deletes, an outbox for sync. `idle()` resolves when every write has reached the database. Spaces: `local` is your own database; each person sharing with you has their own (`spaceOf(user id)`), and `store.get/list/create...` work on the current one (`useSpace`, reset to your own on changing area).
+- `app/js/sync.js` and `app/js/sharing.js`: sync, and sharing between accounts on one server. A share holds a list (and its items), a note, or a range of days (`info.kind`: list, note, days); which records go to which share is worked out from that (`inShare`), never stored on the record. Your own shared records stay in your own records too; others' shared records live in their space. `sharing.js` is the sheet, the invitations and the "whose things these are" note.
 - `app/js/richtext.js`: the one notes editor, used everywhere (toolbar, "- " bullets, links with 📞 📝 ⚠️, full screen with ⤢ or Alt+Enter, Esc steps out). `fullnote.js` is the full-screen part.
 - `app/js/autosave.js`: `debounced(save, delay)` with `trigger()` / `flush()`; `flushAll()` runs on leaving a note, changing page, going into the background and before an update reload. Every note editor uses it.
 - `app/js/browse.js`: keyboard browsing; one table of per-area settings (search box, filter bar, items, what Enter / Down do). The highlight is `.kb-cur` (same look everywhere).

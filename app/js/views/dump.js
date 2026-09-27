@@ -27,6 +27,7 @@ import { browseTo } from '../browse.js';
 import * as att from '../attachments.js';
 import { pointTo, flash } from '../flash.js';
 import { word, dumpTypes } from '../words.js';
+import { shareSheet, sharedWithText, people, fromOthers, invitesHtml, theirsHtml } from '../sharing.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -126,13 +127,11 @@ export default {
         <!-- ⋯ sits outside the scrolling filters so it stays on screen on phones (30). -->
         <div class="dump-filter-row">
           <div class="dump-filter" id="dump-filter" role="group" aria-label="Show">
-            <button type="button" data-filter="all">All</button>
-            ${dumpTypes().map(k => `<button type="button" data-filter="${esc(k.id)}">${esc(k.label)}</button>`).join('')}
-            <button type="button" data-filter="pinned">★ Pinned</button>
           </div>
           <button type="button" class="filter-more" data-act="edit-kinds" title="Add, rename, reorder or remove types" aria-label="Edit note types">⋯</button>
         </div>
       </div>
+      <div id="dump-shared"></div>
       <ul id="thoughts" class="thought-list"></ul>
       <button type="button" class="make-contact" hidden>Make contact</button>`;
 
@@ -178,13 +177,22 @@ export default {
       const types = dumpTypes();
       $('#dump-kinds').innerHTML = types.map(k => `<button type="button" data-kind="${esc(k.id)}">${esc(k.label)}</button>`).join('')
         + '<button type="button" class="kind-new" data-act="new-kind" title="Add a type of note">+ New</button>';
-      $('#dump-filter').innerHTML = '<button type="button" data-filter="all">All</button>'
-        + types.map(k => `<button type="button" data-filter="${esc(k.id)}">${esc(k.label)}</button>`).join('')
-        + '<button type="button" data-filter="pinned">★ Pinned</button>';
       if (!types.some(k => k.id === kind)) kind = types[0]?.id || 'thought';
-      if (!['all', 'pinned'].includes(state.filter) && !types.some(k => k.id === state.filter)) state.filter = 'all';
+      if (!['all', 'pinned'].includes(state.filter) && !types.some(k => k.id === state.filter) && !state.filter.startsWith('from:')) state.filter = 'all';
       render();
     }
+    // The filters: All, each type, Pinned, then each person sharing notes with you.
+    function drawFilters() {
+      const others = people(['note']);
+      if (state.filter.startsWith('from:') && !others.some(p => `from:${p.owner_id}` === state.filter)) state.filter = 'all';
+      const html = '<button type="button" data-filter="all">All</button>'
+        + dumpTypes().map(k => `<button type="button" data-filter="${esc(k.id)}">${esc(k.label)}</button>`).join('')
+        + '<button type="button" data-filter="pinned">★ Pinned</button>'
+        + others.map(p => `<button type="button" data-filter="from:${esc(p.owner_id)}" title="Notes ${esc(p.name)} shares with you">👥 ${esc(p.name)}</button>`).join('');
+      if ($('#dump-filter').innerHTML !== html) $('#dump-filter').innerHTML = html;
+    }
+    // Whose notes are showing: null for your own, or the person sharing them (their space, store.js).
+    const theirsOwner = () => (state.filter.startsWith('from:') ? state.filter.slice(5) : null);
 
     function paintKinds() {
       for (const b of el.querySelectorAll('[data-kind]')) b.setAttribute('aria-pressed', b.dataset.kind === kind);
@@ -193,13 +201,20 @@ export default {
 
     // After a sync the app calls refresh(): redraw from fresh data, keeping what's open.
     const render = this.render = this.refresh = async () => {
-      thoughts = (await store.list('thoughts', { filter: t => !t.archived_at })).sort(byOrder);
+      drawFilters();
+      const owner = theirsOwner();
+      store.useSpace(owner ? store.spaceOf(owner) : null);
+      el.classList.toggle('theirs', !!owner);
+      const sharedIds = new Set(fromOthers(['note']).filter(sh => sh.owner_id === owner).map(sh => sh.info.id));
+      const who = owner && people(['note']).find(p => p.owner_id === owner)?.name;
+      $('#dump-shared').innerHTML = owner ? theirsHtml(`Notes ${who} shares with you. You can both change them.`, '<button type="button" data-filter="all">Back to mine</button>') : invitesHtml(['note']);
+      thoughts = (await store.list('thoughts', { filter: t => !t.archived_at && (!owner || sharedIds.has(t.id)) })).sort(byOrder);
       atts = await att.byParent();
       paintCapture();
       paintKinds();
       const words = state.q.toLowerCase().split(/\s+/).filter(Boolean);
       const shown = thoughts.filter(t =>
-        (state.filter === 'all' || (state.filter === 'pinned' ? t.pinned : t.kind === state.filter))
+        (state.filter === 'all' || owner || (state.filter === 'pinned' ? t.pinned : t.kind === state.filter))
         && words.every(w => t.body.toLowerCase().includes(w)));
       list.innerHTML = shown.map(t => card(t)).join('')
         || `<li class="empty"><h2>${thoughts.length ? 'Nothing matches.' : 'Empty head. Nice.'}</h2></li>`;
@@ -253,6 +268,7 @@ export default {
             <span class="muted" title="Edited ${esc(new Date(editedAt(t)).toLocaleString())} · made ${esc(new Date(t.created_at).toLocaleString())}">${ago(editedAt(t))}</span>
             ${conv ? `<a class="chip" href="${href}" data-focus="${t.converted_to.collection}:${t.converted_to.id}">→ ${conv[0]}</a>` : ''}
             ${att.countChip(atts.get(t.id))}
+            ${!theirsOwner() && sharedWithText({ kind: 'note', id: t.id }) ? `<button type="button" class="chip share-chip" data-act="share-people" title="Shared: see who has it">👥 ${esc(sharedWithText({ kind: 'note', id: t.id }))}</button>` : ''}
             <span class="spacer"></span>
             <button type="button" class="pin" data-act="pin" aria-pressed="${!!t.pinned}" title="Pin">${t.pinned ? '★' : '☆'}</button>
           </div>
@@ -277,8 +293,9 @@ export default {
                 <button type="button" data-act="copy-plain">${icon('i-share')} Copy – plain text</button>
                 <button type="button" data-act="copy-rich">${icon('i-share')} Copy – with formatting</button>
                 ${navigator.share ? `<button type="button" data-act="share-sheet">${icon('i-share')} Share…</button>` : ''}
+                ${theirsOwner() ? '' : '<button type="button" data-act="share-people">👥 Share with someone…</button>'}
                 <hr>
-                <button type="button" class="danger" data-act="delete">Delete</button>
+                ${theirsOwner() ? `<button type="button" data-share-leave="${fromOthers(['note']).find(sh => sh.info.id === t.id)?.id || ''}">Leave this shared note</button>` : '<button type="button" class="danger" data-act="delete">Delete</button>'}
               </div>
             </details>
             </span>
@@ -389,6 +406,7 @@ export default {
     // ---------- capture ----------
 
     async function save() {
+      if (theirsOwner()) { state.filter = 'all'; store.useSpace(null); } // a new note is always your own
       const text = input.value.trim();
       if (!text) return;
       const bodies = [text];
@@ -511,6 +529,9 @@ export default {
       // (From the store: if you were just writing in this note, its latest text.)
       const t = li && (thoughts.find(x => x.id === li.dataset.id) && await store.get('thoughts', li.dataset.id));
       const act = b.dataset.act;
+      // Someone else's note: only changing it here (nothing made from it lands in their space).
+      if (theirsOwner() && ['to-task', 'plan', 'store', 'comment', 'append', 'archive', 'delete', 'plan-go', 'store-go'].includes(act)) return;
+      if (act === 'share-people' && t) return shareSheet({ kind: 'note', id: t.id, name: t.title || titleFrom(t.body) }, `"${t.title || titleFrom(t.body) || 'this note'}"`);
       if (act === 'save') return save();
       if (act === 'new-kind') {
         // A new type of note, picked for the note being written.
