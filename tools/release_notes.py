@@ -345,3 +345,6 @@ NOTES['1.23.09'] = [
 NOTES['1.23.10'] = [
   F("The page check (development only) goes through the Scans and Contracts filters and opens the first scan's and contract's own page. What it couldn't try because there was nothing there yet is listed under skipped."),
 ]
+NOTES['1.23.11'] = [
+  B('An app several versions behind showed "A new version of Sift is ready" again straight after Reload was pressed, once for each version in between. One press now goes straight to the newest version.'),
+]
