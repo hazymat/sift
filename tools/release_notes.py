@@ -423,3 +423,7 @@ NOTES['1.27.01'] = [
 NOTES['1.27.02'] = [
   F('Tasks: with 👁 → Layout → Highlight item when added, a new task pulses once in a soft blue (not the bright yellow used to point something out), and the list scrolls to it if it was added out of view.'),
 ]
+
+NOTES['1.27.03'] = [
+  F('Tasks with 👁 → Layout → Show margin: the margin and the tasks right of it sit a little further right (more on a laptop than on a phone).'),
+]

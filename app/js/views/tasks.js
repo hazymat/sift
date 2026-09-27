@@ -288,7 +288,7 @@ export default {
       const v = (k, top, bottom) => `<i class="tree-v" style="left:${treeX(k)}px;top:${top};bottom:${bottom}"></i>`;
       const parts = [];
       if (lay('margin')) {
-        for (let k = 1; k <= d; k++) if (k === d || goesOn(k)) parts.push(`<i class="tree-v" style="left:${50 + k * 28}px;top:0;bottom:0"></i>`);
+        for (let k = 1; k <= d; k++) if (k === d || goesOn(k)) parts.push(`<i class="tree-v" style="left:calc(${50 + k * 28}px + var(--mshift, 0px));top:0;bottom:0"></i>`);
         return parts.length ? `<span class="tree" aria-hidden="true">${parts.join('')}</span>` : '';
       }
       for (let k = 1; k < d; k++) if (goesOn(k)) parts.push(v(k, '0', '0'));
