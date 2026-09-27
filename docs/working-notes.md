@@ -31,7 +31,7 @@ How work on Sift is done: where things are, the rules, and where it has got to. 
 ## How to test
 
 - **Locally:** `python tools/devserver.py`, then http://localhost:5173 (the port can be set with `PORT`). To try a pull request's branch: `git fetch`, `git switch <branch>`, then the same.
-- **The page check:** in the browser console on the dev page, `(await import('/js/smoke.js')).run()` visits every page, tries the view options, opens a panel or two, and returns `{ pages, errors, problems }`. Expect no errors and no problems. It takes about a minute.
+- **The page check:** in the browser console on the dev page, `(await import('/js/smoke.js')).run()` visits every page, tries the view options, opens a panel or two, goes through the Scans and Contracts filters and opens the first scan's and contract's own page, and returns `{ pages, errors, problems, skipped }`. Expect no errors and no problems; `skipped` names what couldn't be tried because there was nothing there yet (e.g. no scans). It takes about a minute.
 - **Test data:** titles starting `zz ` or dates in 2030 and later. Delete them afterwards straight from IndexedDB (database `sift_local`: the record, plus its `history` and `outbox` entries).
 - **How to test steps** (in each pull request, one per change), always as: "In <area>, click <this>, do <that>. Before, it <did this>; now fixed. It should <do this>." Name things in the UI's words. These are copied into the separate test list, and anything that fails comes back as an issue.
 - Real iPhone behaviour (Home Screen app, keyboard, safe areas) can only be checked on a real iPhone after publishing: say what couldn't be checked.
@@ -60,6 +60,7 @@ How work on Sift is done: where things are, the rules, and where it has got to. 
 ## Keyboard behaviour (as built)
 
 - **Esc** leaves what's being worked on and keeps it, one level per press: a menu, then the field or note (saved), then the panel around it, then a record's page back to its list. In Brain Dump, Esc in New note stops writing and un-dims the page. Esc takes the focus off a button reached with Tab.
+- **Ctrl+.** in a note makes the line a bullet, or plain text again (#23).
 - **Ctrl+Enter** saves and leaves. **Shift+Enter** is a new line. **Alt+Enter** goes one level in (a note full screen; browsing: the outlined note straight into full screen).
 - **Brain Dump, browsing** (a note outlined): C colour, T task, P Plan it, A archive, D delete, * pin; Ctrl+V attaches a picture or file from the clipboard, Ctrl+C copies the note with formatting (#46).
 - **At an area's top level** (nothing being edited): ← / → change the area's tabs (the Day Planner: its days; Brain Dump: its filter bar), Ctrl+← / → change area, ↓ and Enter start work (see `browse.js` for each area). Alt+← / → are left to the browser.

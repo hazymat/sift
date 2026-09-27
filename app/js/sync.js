@@ -101,9 +101,14 @@ export async function serverInfo(server) {
   return res.json();
 }
 
+// Joining a server (new account, sign in, recovery): everything on this device
+// is queued for upload straight away, so it goes up even if the page is left
+// before "Start syncing".
 async function keep(server, email, login, dataKeyRaw) {
   keys = await cx.workingKeys(dataKeyRaw);
   account = { server, email, user_id: login.user_id, token: login.token, device_id: login.device_id };
+  await store.queueAll();
+  await store.metaSet('sync_last_seq', 0);
   await store.metaSet('sync_keys', keys);
   await store.metaSet('sync_account', account);
   await store.updateDeviceSettings({ server_url: server });
@@ -161,11 +166,9 @@ export async function signIn(server, email, password) {
   await keep(server, email, login, await cx.unwrapDataKey(master, login.wrapped_data_key));
 }
 
-// Turning sync on for data already on this device: everything is queued,
-// the account's data is pulled and merged, then everything is pushed.
+// Turning sync on (everything was queued on joining, see keep): the
+// account's data is pulled and merged, then everything is pushed.
 export async function start() {
-  await store.queueAll();
-  await store.metaSet('sync_last_seq', 0);
   wire();
   setStatus({ state: 'idle', pending: await store.outboxSize(), error: null });
   schedule(0);

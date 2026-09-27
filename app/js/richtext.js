@@ -293,8 +293,11 @@ function unspotlight(host) {
 const SZ = { '-1': 's', 1: 'm', 3: 'xl' };
 const SIZE_OF = b => (b.tagName === 'H3' ? 2 : { s: -1, m: 1, xl: 3 }[b.dataset?.sz] ?? 0);
 
-export function richText(container, { value = '', onChange, placeholder = '', origin = null, spot = true, colour = null } = {}) {
+// bare: no toolbar, no dimming and no full screen on a phone tap; the keys
+// (Ctrl+B, Ctrl+I, "- " bullets, Alt+Enter full screen) still work.
+export function richText(container, { value = '', onChange, placeholder = '', origin = null, spot = true, colour = null, bare = false } = {}) {
   container.classList.add('rich');
+  container.classList.toggle('bare', bare);
   container.innerHTML = `
     <div class="md-bar" role="toolbar" aria-label="Formatting">
       <button type="button" class="md-full" title="Full screen: just this note" aria-label="Edit full screen">⤢</button>
@@ -521,6 +524,7 @@ export function richText(container, { value = '', onChange, placeholder = '', or
   // On a phone the note opens full screen as soon as you tap into it
   // (fullnote.js); a full-screen note needs no dimming.
   container.addEventListener('focusin', () => {
+    if (bare) return;
     if (PHONE.matches && !isFull(container)) openFull(container, { label: fullLabel() });
     if (!isFull(container)) spotlight(container);
   });
@@ -769,6 +773,39 @@ export function richText(container, { value = '', onChange, placeholder = '', or
     }
     for (const span of edit.querySelectorAll('span[style]')) span.replaceWith(...span.childNodes); // the browser adds these
     changed(toMarkdown(edit));
+  });
+
+  // Ctrl+. (⌘+. on a Mac) makes the line the cursor is on a bullet, or plain
+  // text again if it is one: the same as "- " at its start, from anywhere in the line.
+  const bulletKey = ev => ev.key === '.' && (ev.ctrlKey || ev.metaKey) && !ev.altKey && !ev.shiftKey;
+  edit.addEventListener('keydown', ev => {
+    if (!bulletKey(ev)) return;
+    ev.preventDefault();
+    undoer.mark();
+    const sel = getSelection();
+    const into = sel.anchorNode?.nodeType === Node.TEXT_NODE ? lineBefore(sel.anchorNode, sel.anchorOffset).length : 0;
+    document.execCommand('insertUnorderedList');
+    for (const span of edit.querySelectorAll('span[style]')) span.replaceWith(...span.childNodes);
+    // The browser puts the cursor at the start of the line: back to where it was.
+    getSelection().modify('move', 'backward', 'paragraphboundary');
+    for (let k = 0; k < into; k++) getSelection().modify('move', 'forward', 'character');
+    changed(toMarkdown(edit));
+    showState();
+  });
+  raw.addEventListener('keydown', ev => {
+    if (!bulletKey(ev)) return;
+    ev.preventDefault();
+    const start = raw.value.lastIndexOf('\n', raw.selectionStart - 1) + 1;
+    const marker = /^(\s*)(?:[-*]|\d{1,3}[.)])[ \u00a0]/.exec(raw.value.slice(start));
+    const caret = raw.selectionStart;
+    const bullet = marker && /^[-*]/.test(marker[0].trim());
+    // A bullet goes back to plain text; a numbered line or a plain one becomes a bullet.
+    const now = bullet ? marker[1] : `${marker ? marker[1] : ''}- `;
+    const was = marker ? marker[0].length : 0;
+    raw.setRangeText(now, start, start + was, 'preserve');
+    const at = Math.max(start, caret + now.length - was);
+    raw.setSelectionRange(at, at);
+    changed(raw.value);
   });
 
   container.querySelector('.md-bar').addEventListener('mousedown', ev => {

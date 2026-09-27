@@ -129,6 +129,11 @@ try {
   f = await raw('GET', `/api/blobs/${fid}`, undefined, recovered);
   assert.equal(f.status, 404, 'deleted');
 
+  // a device moving over from another server still has that server's seq numbers
+  r = await call('POST', '/api/sync/push', { records: [{ record_id: 'moved-in', base_seq: 500, ciphertext: 'm' }] }, recovered);
+  assert.equal(r.status, 200, JSON.stringify(r.json));
+  assert.equal(r.json.accepted.length, 1, 'a record the server has never seen is accepted');
+
   // nothing a caller sends can stop the server
   r = await call('DELETE', '/api/devices/%E0', null, recovered);
   assert.equal(r.status, 400, 'a bad percent code is refused');

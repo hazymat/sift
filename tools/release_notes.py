@@ -342,6 +342,28 @@ NOTES['1.23.09'] = [
   F('Sync server: sign-in and account requests are limited to 64 KB, and a wrong email takes as long to answer as a wrong password.'),
   F('Sync server: `install.sh proxy` installs the server without Caddy, for a machine that already runs Apache, nginx or ISPConfig. server/README.md explains the web server settings.'),
 ]
+NOTES['1.23.10'] = [
+  F("The page check (development only) goes through the Scans and Contracts filters and opens the first scan's and contract's own page. What it couldn't try because there was nothing there yet is listed under skipped."),
+]
+NOTES['1.23.11'] = [
+  B('An app several versions behind showed "A new version of Sift is ready" again straight after Reload was pressed, once for each version in between. One press now goes straight to the newest version.'),
+]
+NOTES['1.23.12'] = [
+  B('Tasks: editing a task\'s note in place (clicking it, or ↓ from the task\'s name) opened the full notes editor with its toolbar, and in Compact spacing as a dimmed panel on the right. It is now plain text under the task\'s name, the same in every spacing and at any width; ↓ on its last line goes on to the next task, ↑ on its first line back to the name, and Alt+Enter opens the task\'s panel.'),
+  B('Tasks: in Medium and Expanded spacing a task\'s note started a little left of the task\'s name.'),
+]
+NOTES['1.23.13'] = [
+  F("Tasks: a task's note edited in place (click it, or ↓ from the task's name) keeps the notes editor's keys again: Ctrl+B, Ctrl+I, \"- \" for a bullet, Alt+Enter for full screen, Ctrl+Enter or Esc to finish. It still has no toolbar and doesn't dim the page, in every spacing and on a phone."),
+]
+NOTES['1.23.14'] = [
+  B('Sync: moving a device from one sync server to another (Settings → Sync, create an account or sign in on the new server) uploaded nothing, because the new server stopped at the old server\'s record numbers. Everything on the device is now uploaded to the new server.'),
+]
+NOTES['1.23.15'] = [
+  B('Sync: after creating an account, the notes already on the device were uploaded only once "Start syncing" was pressed under the recovery code. Leaving that screen another way meant they never went up. Everything on the device is now queued for upload as soon as the account is made (or on signing in).'),
+]
+NOTES['1.24.00'] = [
+  F('Ctrl+. (⌘+. on a Mac) makes the line the cursor is on a bullet, or plain text again if it already is one, from anywhere in the line: the same as typing "- " at its start. In any note, full screen or not, and in the Markdown view.'),
+]
 NOTES['1.25.00'] = [
   F('Day Planner: when a day (today or later) has more planned than it holds, a note under the date says so, e.g. "That\'s 11h of plan for a 10h day." Timed items count their time, the rest their estimated time; done and let-go items don\'t count. It can be turned off in Settings, Day Planner.'),
 ]
