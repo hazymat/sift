@@ -18,7 +18,7 @@ import { loadContacts } from '../contacts.js';
 import * as att from '../attachments.js';
 import { atEdge, caretTo } from '../walk.js';
 import { debounced } from '../autosave.js';
-import { editPills, selectPill, datePill, energyPill } from '../editpills.js';
+import { editPills, selectPill, datePill, energyPill, fillDates, touch } from '../editpills.js';
 import { ask, askText, askEmptied } from '../ask.js';
 import { word } from '../words.js';
 import { commentsHtml, mountComments, closingComment } from '../comments.js';
@@ -197,8 +197,8 @@ export default {
         <div class="detail-grid">
           <label>List<select name="horizon">${HORIZONS.map(x => `<option value="${x.id}" ${horizonOf(t) === x.id ? 'selected' : ''}>${x.label}</option>`).join('')}</select></label>
           <label>Estimated time<select name="estimate_min"><option value="">Not estimated</option>${durationChoices(480).map(m => `<option value="${m}" ${Number(t.estimate_min) === m ? 'selected' : ''}>${durationLabel(m)}</option>`).join('')}</select></label>
-          <label><span class="label-row">Plan for day<span class="date-quick">${t.start_date !== isoDate() ? '<button type="button" class="linklike" data-act="plan-today" title="Plan it for today">Today</button>' : ''}${t.start_date ? '<button type="button" class="linklike date-clear" data-act="plan-clear" title="Remove the date" aria-label="Remove the date">✕</button>' : ''}</span></span><input type="date" name="start_date" value="${t.start_date || ''}"></label>
-          <label>Target end date<input type="date" name="aim_date" value="${aim}"></label>
+          <label><span class="label-row">Plan for day<span class="date-quick">${t.start_date !== isoDate() ? '<button type="button" class="linklike" data-act="plan-today" title="Plan it for today">Today</button>' : ''}${t.start_date ? '<button type="button" class="linklike date-clear" data-act="plan-clear" title="Remove the date">✕ Remove</button>' : ''}</span></span><input type="date" name="start_date" data-value="${t.start_date || ''}"></label>
+          <label>Target end date<input type="date" name="aim_date" data-value="${aim}"></label>
           <label>Repeats<select name="repeat">${REPEAT_CHOICES.map(c => `<option value="${c.id}" ${choiceOf(t.repeat) === c.id ? 'selected' : ''}>${c.id === 'custom' && choiceOf(t.repeat) === 'custom' ? repeatLabel(t.repeat) : c.label}</option>`).join('')}</select></label>
           ${aim && showTime ? `<label>…at<input type="time" name="aim_time" value="${aimTime}"></label>` : ''}
           ${aim && !showTime ? `<button type="button" class="linklike" data-act="aim-time">+ add a time</button>` : ''}
@@ -544,6 +544,7 @@ export default {
       const tabs = el.querySelector('#task-views');
       tabs.classList.toggle('overflows', tabs.scrollWidth > tabs.clientWidth + 1);
       body.innerHTML = { list: viewList, inbox: () => viewHorizon('inbox'), now: () => viewHorizon('now'), next: () => viewHorizon('next'), later: () => viewHorizon('later'), projects: viewProjects, done: viewDone }[state.view]();
+      fillDates(body);
       wireEntry();
       const ul = body.querySelector('.task-list');
       // Where tick boxes sit in a row, for the lines joining sub-tasks (CSS).
@@ -1064,6 +1065,12 @@ export default {
       });
     }
 
+    // A task's panel: date fields save when left (inline.js); a Clear in a
+    // laptop's picker leaves the field, so it's saved straight away.
+    body.addEventListener('input', ev => {
+      const t = ev.target;
+      if (t.type === 'date' && t.name && !touch && !t.value && !t.validity.badInput) t.blur();
+    });
     body.addEventListener('change', async ev => {
       const t = ev.target;
       const li = t.closest('[data-task], [data-for]');

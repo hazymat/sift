@@ -80,7 +80,8 @@ function installDateFields() {
   let releasing = false;
   const isDate = el => el instanceof HTMLInputElement && el.matches(DATEISH) && !el.matches('.no-inline');
 
-  document.addEventListener('focusin', ev => { if (isDate(ev.target)) was.set(ev.target, ev.target.value); });
+  // (Focus can come again without leaving, e.g. when the picker empties the field: keep the first value.)
+  document.addEventListener('focusin', ev => { if (isDate(ev.target) && !was.has(ev.target)) was.set(ev.target, ev.target.value); });
 
   document.addEventListener('change', ev => {
     if (!releasing && isDate(ev.target) && was.has(ev.target)) ev.stopImmediatePropagation();

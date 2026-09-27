@@ -397,3 +397,9 @@ NOTES['1.26.07'] = [
   F('Tasks: a note being written in place (no toolbar) has a small "Note editor" button under it, which opens the note full screen with its toolbar. ↑ and ↓ go past it as before.'),
   B('Tasks: a note opened full screen from being written in place (Alt+Enter) was pushed to the right on a phone and kept its small italic text.'),
 ]
+
+NOTES['1.26.08'] = [
+  B('On an iPhone, tapping Plan for day opened the date picker and it closed at once, planning the task for today. Dates are now saved when the picker is closed.'),
+  B('A task\'s Plan for day couldn\'t be removed on an iPhone. There is now a Remove button next to it (in the pills and in the task\'s panel), and Reset in the iPhone picker empties it.'),
+  B('On a laptop, Clear in a date picker in Tasks wasn\'t saved until you left the date, so it still showed Today.'),
+]
