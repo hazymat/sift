@@ -141,6 +141,15 @@ export function editPills(root, spec) {
   root.addEventListener('change', onChange, true);
   root.addEventListener('input', onChange, true);
   root.addEventListener('focusout', onChange, true);
+  // The keyboard took the cursor out of the task to nowhere (Esc in its name):
+  // its pills go too. (A click on a bare part of the row doesn't count.)
+  let keyAt = 0;
+  const onAnyKey = () => { keyAt = Date.now(); };
+  addEventListener('keydown', onAnyKey, true);
+  root.addEventListener('focusout', ev => {
+    if (!editing || ev.relatedTarget || Date.now() - keyAt > 150) return;
+    setTimeout(() => { if (editing && (document.activeElement === document.body || !document.activeElement) && !document.querySelector('.pill-menu, .ref-picker, dialog[open]')) close(); });
+  });
   root.addEventListener('click', onClick, true);
   document.addEventListener('pointerdown', onPointer, true);
   document.addEventListener('keydown', onKey);
@@ -152,6 +161,7 @@ export function editPills(root, spec) {
     close,
     get editing() { return editing; },
     destroy() {
+      removeEventListener('keydown', onAnyKey, true);
       root.removeEventListener('focusin', onFocus);
       root.removeEventListener('change', onChange, true);
       root.removeEventListener('input', onChange, true);

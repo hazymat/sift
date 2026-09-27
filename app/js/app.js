@@ -10,6 +10,7 @@ import { installViewCog } from './viewcog.js';
 import { installDropdowns, installMenuFlip } from './dropdown.js';
 import { installFileDrop } from './attachments.js';
 import { flushAll } from './autosave.js';
+import { installBrowse } from './browse.js';
 import { word, applyWords } from './words.js';
 
 // Adding an area is one entry here plus a view module (spec §5.1). Names come
@@ -173,6 +174,7 @@ const busy = (emptyOk = false) => {
 // last), stopping at the ends. Only on a page at rest (busy above). Alt+← / →
 // are left to the browser (Back / Forward).
 function installKeyNav() {
+  installBrowse({ busy: () => busy(), area: () => current });
   addEventListener('keydown', ev => {
     if ((ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') || ev.altKey || ev.metaKey || ev.shiftKey || ev.defaultPrevented || busy(ev.ctrlKey)) return;
     const dir = ev.key === 'ArrowLeft' ? -1 : 1;

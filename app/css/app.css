@@ -3382,3 +3382,6 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
 /* A message (e.g. "Attached … · Undo" after pasting a picture into a note on a
    phone) shows, and can be tapped, above a full-screen note. */
 .toast { z-index: 1100; }
+
+/* Browsing with the keyboard (browse.js): the item you're on, the same in every area. */
+.kb-cur { outline: 2px solid var(--accent); outline-offset: 3px; box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 22%, transparent); scroll-margin: 16px; }

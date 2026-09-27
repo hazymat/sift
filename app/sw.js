@@ -35,6 +35,7 @@ const SHELL = [
   'js/richtext.js',
   'js/fullnote.js',
   'js/autosave.js',
+  'js/browse.js',
   'js/linemake.js',
   'js/ask.js',
   'js/flash.js',
