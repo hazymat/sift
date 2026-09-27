@@ -364,3 +364,6 @@ NOTES['1.23.15'] = [
 NOTES['1.24.00'] = [
   F('Ctrl+. (⌘+. on a Mac) makes the line the cursor is on a bullet, or plain text again if it already is one, from anywhere in the line: the same as typing "- " at its start. In any note, full screen or not, and in the Markdown view.'),
 ]
+NOTES['1.25.00'] = [
+  F('Day Planner: when a day (today or later) has more planned than it holds, a note under the date says so, e.g. "That\'s 11h of plan for a 10h day." Timed items count their time, the rest their estimated time; done and let-go items don\'t count. It can be turned off in Settings, Day Planner.'),
+]
