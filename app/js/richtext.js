@@ -318,7 +318,7 @@ export function richText(container, { value = '', onChange, placeholder = '', or
       <button type="button" class="md-toggle" aria-pressed="false" title="Show the raw markdown">Markdown</button>
     </div>
     <div class="rich-edit hand" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="${esc(placeholder)}"></div>
-    <textarea class="rich-raw hand" hidden spellcheck="true"></textarea>`;
+    <textarea class="rich-raw hand" hidden spellcheck="true"></textarea>${bare ? '<button type="button" class="bare-full linklike" tabindex="-1" title="Open this note full screen (Alt+Enter)">Note editor</button>' : ''}`;
 
   // Compact or full toolbar, remembered on this device.
   const FULL_KEY = 'sift:notes-toolbar';
@@ -578,6 +578,11 @@ export function richText(container, { value = '', onChange, placeholder = '', or
     if (!isFull(container)) goFull();
   };
   edit.addEventListener('keydown', altEnter);
+  // bare: "Note editor" under the note opens it full screen. Pressing it keeps
+  // the cursor in the note, so the note isn't left (and saved away) first.
+  const bareFull = container.querySelector(':scope > .bare-full');
+  bareFull?.addEventListener('pointerdown', ev => ev.preventDefault());
+  bareFull?.addEventListener('click', () => { if (!isFull(container)) goFull(); });
   raw.addEventListener('keydown', altEnter);
   // Esc steps out one level at a time: a menu of the note's own first, then
   // the note itself (leaving it saves it, as clicking away does). Whatever
