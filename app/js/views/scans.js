@@ -15,11 +15,11 @@ import { toast, undoable } from '../toast.js';
 import { openPicker } from '../linkpicker.js';
 import { KINDS as REF_KINDS, openRef } from '../refs.js';
 import { addTask } from '../tasks.js';
-import { isoDate } from '../days.js';
+import { isoDate, dateText } from '../days.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
-const niceDate = iso => (iso ? new Date(`${iso.slice(0, 10)}T12:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
+const niceDate = iso => (iso ? dateText(new Date(`${iso.slice(0, 10)}T12:00`), { day: 'numeric', month: 'short', year: 'numeric' }) : '');
 const DOC = '<svg class="scan-doc" viewBox="0 0 48 48" aria-hidden="true"><path d="M12 4h17l9 9v31H12z"/><path d="M29 4v9h9"/><path d="M18 22h14M18 28h14M18 34h9"/></svg>';
 const COARSE = matchMedia('(pointer: coarse)').matches;
 

@@ -20,6 +20,7 @@
 //   pruneVersions()                                once at start-up
 
 import * as store from './store.js';
+import { dateTimeText } from './days.js';
 
 const PAUSE = 1000; // ms without typing that starts a new step
 const MAX_STEPS = 500;
@@ -155,7 +156,7 @@ export async function showVersions(ref, current, pick) {
   const list = (await versionsOf(ref)).reverse();
   if (!list.length) { (await import('./toast.js')).toast('No earlier versions of this note yet'); return; }
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-  const when = iso => new Date(iso).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const when = iso => dateTimeText(new Date(iso), { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   const line = md => md.split('\n').map(l => l.replace(/^(?:#{1,6}|-#|\+#|#\+|\s*[-*]|\s*\d+[.)])\s+/, '').replace(/\*\*|~~/g, '').trim()).filter(Boolean).slice(0, 2).join(' · ') || '(empty)';
   const dlg = document.createElement('dialog');
   dlg.className = 'sheet versions-sheet';

@@ -8,9 +8,10 @@ import * as store from './store.js';
 import { createContact, CAPTURED_HEADING } from './contacts.js';
 import { readDraft } from './drafts.js';
 import { pointTo } from './flash.js';
+import { dateText } from './days.js';
 
 const firstLine = s => (s || '').split('\n').map(l => l.trim()).find(Boolean) || '';
-const niceDate = d => (d ? new Date(`${d}T12:00`).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }) : '');
+const niceDate = d => (d ? dateText(new Date(`${d}T12:00`), { weekday: 'short', day: 'numeric', month: 'short' }) : '');
 export const unlinkText = s => (s || '').replace(/\[([^\]]*)\]\(sift:[^)]*\)/g, '$1');
 
 // Each kind: how to name it, what to search, where it lives.

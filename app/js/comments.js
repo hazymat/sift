@@ -24,7 +24,7 @@ import { toHtml } from './richtext.js';
 import { pillMenu } from './pillmenu.js';
 import { undoable } from './toast.js';
 import { addTask, MAX_DEPTH, depthIn } from './tasks.js';
-import { addItem, isoDate } from './days.js';
+import { addItem, isoDate, dateText } from './days.js';
 import { ask, askText, askEmptied } from './ask.js';
 import * as att from './attachments.js';
 import { openPicker } from './linkpicker.js';
@@ -105,7 +105,7 @@ export async function moveComments(from, to) {
   for (const c of await commentsFor(from)) await store.update('comments', c.id, { task_id: null, item_id: null, ...to });
 }
 
-const short = iso => new Date(`${iso}T12:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', ...(iso.slice(0, 4) !== isoDate().slice(0, 4) ? { year: 'numeric' } : {}) });
+const short = iso => dateText(new Date(`${iso}T12:00`), { weekday: 'short', day: 'numeric', month: 'short', ...(iso.slice(0, 4) !== isoDate().slice(0, 4) ? { year: 'numeric' } : {}) });
 // A comment's first line, as the title of what it turns into.
 const titleOf = c => (c.body.split('\n').map(l => l.replace(/^\s*[-*]\s+/, '').trim()).find(Boolean) || 'Comment').slice(0, 120);
 
@@ -124,7 +124,7 @@ function when(iso) {
   const d = new Date(iso);
   const now = new Date();
   const day = d.toDateString() === now.toDateString() ? 'Today'
-    : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', ...(d.getFullYear() !== now.getFullYear() ? { year: 'numeric' } : {}) });
+    : dateText(d, { day: 'numeric', month: 'short', ...(d.getFullYear() !== now.getFullYear() ? { year: 'numeric' } : {}) });
   return `${day} ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
 }
 

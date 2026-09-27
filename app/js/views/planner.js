@@ -7,7 +7,7 @@ import { spacingHtml, lookHtml } from '../viewcog.js';
 import * as store from '../store.js';
 import {
   daySettings, ENERGY, PAPERS, durationChoices, durationLabel, isoDate, parseDate, addDays, toMin, fromMin, showTime, parseTimed,
-  getDay, saveDay, itemsFor, addItem, unfinishedBefore, datesWithContent, DAY_DEFAULTS,
+  getDay, saveDay, itemsFor, addItem, unfinishedBefore, datesWithContent, DAY_DEFAULTS, dateText,
 } from '../days.js';
 import { listEntry, listHint } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
@@ -1484,7 +1484,7 @@ export default {
     const WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const dayName = d => {
       const diff = Math.round((parseDate(d) - parseDate(date)) / 86400000);
-      const nice = `${WEEK[parseDate(d).getDay()]} ${parseDate(d).getDate()} ${parseDate(d).toLocaleDateString(undefined, { month: 'short' })}`;
+      const nice = `${WEEK[parseDate(d).getDay()]} ${parseDate(d).getDate()} ${dateText(parseDate(d), { month: 'short' })}`;
       return diff === -1 ? `Yesterday · ${nice}` : `${nice} · ${-diff} days ago`;
     };
 

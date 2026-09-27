@@ -17,7 +17,7 @@ import { debounced } from '../autosave.js';
 import { mentionsOf } from '../refs.js';
 import { keepDraft, draftCleared } from '../drafts.js';
 import { addTask } from '../tasks.js';
-import { isoDate } from '../days.js';
+import { isoDate, dateText, dateTimeText } from '../days.js';
 import { createListKit } from '../listkit.js';
 import { askText } from '../ask.js';
 import { word } from '../words.js';
@@ -36,9 +36,9 @@ function ago(iso) {
   if (h < 24) return `${h} h ago`;
   const d = Math.round(h / 24);
   if (d < 14) return `${d} day${d === 1 ? '' : 's'} ago`;
-  return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  return dateText(new Date(iso), { day: 'numeric', month: 'short', year: 'numeric' });
 }
-const when = iso => new Date(iso).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+const when = iso => dateTimeText(new Date(iso), { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
 export default {
   async mount(el) {
