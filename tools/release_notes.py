@@ -490,3 +490,7 @@ NOTES['1.32.00'] = [
 NOTES['1.32.01'] = [
   F('Day Planner 👁 menu, Layout: "Show \"Today\" or \"In 5 days\" under the date" (on to start with).'),
 ]
+
+NOTES['1.32.02'] = [
+  F('Day Planner 👁 menu, Layout: Achievements starts switched off.'),
+]
