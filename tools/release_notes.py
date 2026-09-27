@@ -427,3 +427,8 @@ NOTES['1.27.02'] = [
 NOTES['1.27.03'] = [
   F('Tasks with 👁 → Layout → Show margin: the margin and the tasks right of it sit a little further right (more on a laptop than on a phone).'),
 ]
+
+NOTES['1.27.04'] = [
+  F('Tasks: 👁 → Layout → Hide pills behind More. While editing a task, or typing a new one, only a small More pill shows, at the right of the name, so the line doesn\'t grow; More shows Add note and the pills (and More…, for the whole panel). "More goes straight to the full panel" (with it on) opens the panel at once instead.'),
+  F('Tasks: 👁 → Layout → Show additional lines when list is empty (on to start with). Untick it and an empty list shows just the New task line, without the ruled lines under it.'),
+]
