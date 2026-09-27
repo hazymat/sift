@@ -361,7 +361,10 @@ NOTES['1.23.14'] = [
 NOTES['1.23.15'] = [
   B('Sync: after creating an account, the notes already on the device were uploaded only once "Start syncing" was pressed under the recovery code. Leaving that screen another way meant they never went up. Everything on the device is now queued for upload as soon as the account is made (or on signing in).'),
 ]
-NOTES['1.23.16'] = [
+NOTES['1.24.00'] = [
+  F('Ctrl+. (⌘+. on a Mac) makes the line the cursor is on a bullet, or plain text again if it already is one, from anywhere in the line: the same as typing "- " at its start. In any note, full screen or not, and in the Markdown view.'),
+]
+NOTES['1.24.01'] = [
   B('Tasks: a note typed before the task was added (the New task line\'s "Add note"), or in "Add note" under a task that had none, was plain text: "- " didn\'t make a bullet until the note was opened again, and Ctrl+B and the other note keys did nothing. They are the notes editor now, as a task\'s note is. In the New task line\'s note, Enter is a new line and Ctrl+Enter adds the task.'),
   B("Tasks: a task's note being edited looked the same as the task's name. It now looks as it does when not being edited: smaller and fainter (in italics in the Glass look)."),
 ]
