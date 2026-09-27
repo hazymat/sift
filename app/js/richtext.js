@@ -771,6 +771,39 @@ export function richText(container, { value = '', onChange, placeholder = '', or
     changed(toMarkdown(edit));
   });
 
+  // Ctrl+. (⌘+. on a Mac) makes the line the cursor is on a bullet, or plain
+  // text again if it is one: the same as "- " at its start, from anywhere in the line.
+  const bulletKey = ev => ev.key === '.' && (ev.ctrlKey || ev.metaKey) && !ev.altKey && !ev.shiftKey;
+  edit.addEventListener('keydown', ev => {
+    if (!bulletKey(ev)) return;
+    ev.preventDefault();
+    undoer.mark();
+    const sel = getSelection();
+    const into = sel.anchorNode?.nodeType === Node.TEXT_NODE ? lineBefore(sel.anchorNode, sel.anchorOffset).length : 0;
+    document.execCommand('insertUnorderedList');
+    for (const span of edit.querySelectorAll('span[style]')) span.replaceWith(...span.childNodes);
+    // The browser puts the cursor at the start of the line: back to where it was.
+    getSelection().modify('move', 'backward', 'paragraphboundary');
+    for (let k = 0; k < into; k++) getSelection().modify('move', 'forward', 'character');
+    changed(toMarkdown(edit));
+    showState();
+  });
+  raw.addEventListener('keydown', ev => {
+    if (!bulletKey(ev)) return;
+    ev.preventDefault();
+    const start = raw.value.lastIndexOf('\n', raw.selectionStart - 1) + 1;
+    const marker = /^(\s*)(?:[-*]|\d{1,3}[.)])[ \u00a0]/.exec(raw.value.slice(start));
+    const caret = raw.selectionStart;
+    const bullet = marker && /^[-*]/.test(marker[0].trim());
+    // A bullet goes back to plain text; a numbered line or a plain one becomes a bullet.
+    const now = bullet ? marker[1] : `${marker ? marker[1] : ''}- `;
+    const was = marker ? marker[0].length : 0;
+    raw.setRangeText(now, start, start + was, 'preserve');
+    const at = Math.max(start, caret + now.length - was);
+    raw.setSelectionRange(at, at);
+    changed(raw.value);
+  });
+
   container.querySelector('.md-bar').addEventListener('mousedown', ev => {
     if (ev.target.closest('[data-cmd], [data-emoji], [data-size], .md-full, .md-make, .md-colour, .md-versions')) ev.preventDefault(); // keep the selection in the editor
   });

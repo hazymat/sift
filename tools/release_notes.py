@@ -342,3 +342,6 @@ NOTES['1.23.09'] = [
   F('Sync server: sign-in and account requests are limited to 64 KB, and a wrong email takes as long to answer as a wrong password.'),
   F('Sync server: `install.sh proxy` installs the server without Caddy, for a machine that already runs Apache, nginx or ISPConfig. server/README.md explains the web server settings.'),
 ]
+NOTES['1.24.00'] = [
+  F('Ctrl+. (⌘+. on a Mac) makes the line the cursor is on a bullet, or plain text again if it already is one, from anywhere in the line: the same as typing "- " at its start. In any note, full screen or not, and in the Markdown view.'),
+]
