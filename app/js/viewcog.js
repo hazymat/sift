@@ -94,7 +94,8 @@ const LAYOUTS = {
     { id: 'more-panel', label: 'More goes straight to the full panel', needs: 'pills-hide' },
   ],
   planner: [
-    { id: 'achievements', label: 'Show achievement count when tasks completed', def: true },
+    { id: 'day-rel', label: 'Show "Today" or "In 5 days" under the date', def: true },
+    { id: 'achievements', label: 'Show achievement count when tasks completed' },
     { id: 'focus', label: 'Show day focus', def: true },
     { id: 'energy', label: 'Show energy', def: true },
   ],

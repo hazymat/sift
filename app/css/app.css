@@ -751,7 +751,7 @@ kbd { font: inherit; font-size: .72em; padding: 1px 5px; margin-left: 4px; borde
 .energy button { padding: 4px 12px; font-size: .85rem; }
 .energy button[aria-pressed="true"] { background: var(--active-bg); border-color: var(--active-border); color: var(--text); }
 
-.carry { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 4px 12px; padding: 8px 12px; border-radius: 16px; background: var(--glass); border: 1px dashed var(--active-border); font-size: .9rem; }
+.carry { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 12px; padding: 8px 14px; border-radius: 16px; background: var(--glass); border: 1px dashed var(--active-border); font-size: .9rem; }
 .carry button { padding: 4px 12px; font-size: .85rem; }
 
 .paper {
@@ -2724,7 +2724,7 @@ select.dd-open, .dd-open > select { outline: none; }
 .planner.docked .focus-row .achieve { grid-column: 1 / -1; padding-left: 4px; }
 .achieve .hand-label { flex: none; color: var(--ink); }
 .achieve-text { font-weight: 700; font-size: 1.15rem; color: var(--ink); padding: 4px 6px; }
-#main[data-area="planner"]:not([data-layout-focus]) .focus-row > .focus, #main[data-area="planner"]:not([data-layout-energy]) .focus-row > .energy { display: none; }
+#main[data-area="planner"]:not([data-layout-day-rel]) .day-head > .day-rel, #main[data-area="planner"]:not([data-layout-focus]) .focus-row > .focus, #main[data-area="planner"]:not([data-layout-energy]) .focus-row > .energy { display: none; }
 /* Nudges in the Day Planner's 👁 menu: the evening section's name sits under its switch. */
 .nudge-opts .nudge-text { margin: 0 0 4px 26px; width: calc(100% - 26px); font-size: .85rem; padding: 3px 8px; }
 /* "Keep this device's view separate": last in every 👁 menu, set apart by a line. */
