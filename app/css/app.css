@@ -739,6 +739,7 @@ kbd { font: inherit; font-size: .72em; padding: 1px 5px; margin-left: 4px; borde
 .day-title .date { font-size: clamp(1.4rem, 4.5vw, 2.3rem); font-weight: 600; color: var(--ink); opacity: .85; }
 .day-rel { margin: 2px 0 10px; font-size: .85rem; }
 .down-day { margin: 0 0 12px; padding: 10px 14px; border-radius: 16px; background: var(--calm); font-size: .9rem; }
+.did-things { margin: 0 0 12px; font-family: var(--hand); font-size: 1.2rem; color: var(--ink); }
 
 .focus { display: flex; align-items: baseline; gap: 12px; font-size: 1rem; color: var(--text); margin-bottom: 10px; }
 .focus > span { flex: none; font-family: var(--hand); font-size: 1.05rem; color: var(--focus-ink); text-transform: uppercase; letter-spacing: .04em; border-bottom: 2px solid var(--focus-ink); line-height: 1.2; }
@@ -2820,7 +2821,7 @@ html:not(.show-hints) #main:not([data-area="settings"]) .hint { display: none; }
 @media (min-width: 1400px) {
   .planner.docked > .day-head { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 56px; align-items: center; }
   .planner.docked > .day-head > .day-title { grid-column: 1; grid-row: 1; }
-  .planner.docked > .day-head > :is(.day-rel, .down-day) { grid-column: 1; }
+  .planner.docked > .day-head > :is(.day-rel, .down-day, .did-things) { grid-column: 1; }
   .planner.docked > .day-head > .focus-row { grid-column: 2; grid-row: 1; align-self: center; display: grid; grid-template-columns: minmax(0, 1fr); row-gap: 6px; margin: 0; }
   .planner.docked > .day-head > .focus-row .energy { padding-left: 4px; }
 }

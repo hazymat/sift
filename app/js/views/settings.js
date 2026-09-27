@@ -68,6 +68,7 @@ export default {
         <label class="check-row"><input type="checkbox" name="hint_down_day"> Remind me to do less on down days</label>
         <label class="check-row"><input type="checkbox" name="hint_over_plan"> Say when a day's plan is longer than the day</label>
         <label class="check-row"><input type="checkbox" name="hint_walk_breaks"> Build in short breaks during long stretches of work <span class="muted">(with the focus timer, coming later)</span></label>
+        <label class="check-row"><input type="checkbox" name="hint_did_things"> Say how many things got done, once the day is over</label>
       </section>
 
       <section class="card" id="words-card">
@@ -547,6 +548,7 @@ export default {
       ps.querySelector('[name="show_evening"]').checked = d.show_evening;
       ps.querySelector('[name="evening_label"]').value = d.evening_label;
       ps.querySelector('[name="hint_walk_breaks"]').checked = d.hint_walk_breaks;
+      ps.querySelector('[name="hint_did_things"]').checked = d.hint_did_things;
       ps.querySelector('[name="recurring_on_planner"]').checked = d.recurring_on_planner !== false;
       for (const b of ps.querySelectorAll('[data-dow]')) b.setAttribute('aria-pressed', d.down_days.includes(Number(b.dataset.dow)));
     };
