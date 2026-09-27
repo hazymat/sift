@@ -333,3 +333,6 @@ NOTES['1.23.06'] = [
 NOTES['1.23.07'] = [
   B('Scans and Contracts: dragging a file over the page showed the hint meant for notes ("Drop onto a note or item to attach it"). On Scans it now says the file will be saved as a new scan (or added as pages to the scan that is open); on a contract\'s page it says it will be added to the contract\'s files, and dropping there does that.'),
 ]
+NOTES['1.23.08'] = [
+  B('Task comments: a contact or note linked with 📞 or 📝 while writing a comment showed as [name](sift:...) in the box until the comment was saved. It now shows just its name while writing, and is still a link once saved.'),
+]
