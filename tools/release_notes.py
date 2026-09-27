@@ -388,3 +388,7 @@ NOTES['1.26.04'] = [
 NOTES['1.26.05'] = [
   B('On a phone, the page no longer zooms with two fingers, like an app. For bigger text, use Text size in Settings.'),
 ]
+
+NOTES['1.26.06'] = [
+  F('Tasks in Compact spacing: the 📝 and the pills sit just after the task\'s name, not at the far right. A long name ends in "…" so they still show.'),
+]
