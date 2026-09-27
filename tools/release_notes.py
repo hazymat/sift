@@ -361,3 +361,6 @@ NOTES['1.23.14'] = [
 NOTES['1.23.15'] = [
   B('Sync: after creating an account, the notes already on the device were uploaded only once "Start syncing" was pressed under the recovery code. Leaving that screen another way meant they never went up. Everything on the device is now queued for upload as soon as the account is made (or on signing in).'),
 ]
+NOTES['1.24.00'] = [
+  F('Ctrl+. (⌘+. on a Mac) makes the line the cursor is on a bullet, or plain text again if it already is one, from anywhere in the line: the same as typing "- " at its start. In any note, full screen or not, and in the Markdown view.'),
+]
