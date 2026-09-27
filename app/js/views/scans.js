@@ -10,6 +10,7 @@ import { cogHtml } from '../viewcog.js';
 import { KINDS, kindLabel, newScan, addPages, pagesByScan, expirySoon } from '../scans.js';
 import * as att from '../attachments.js';
 import { richText } from '../richtext.js';
+import { debounced } from '../autosave.js';
 import { toast, undoable } from '../toast.js';
 import { openPicker } from '../linkpicker.js';
 import { KINDS as REF_KINDS, openRef } from '../refs.js';
@@ -31,7 +32,6 @@ export default {
     let scans = [];
     let pages = new Map();
     let noteEditor = null;
-    let noteTimer;
     const revealed = new Set(); // ID scans shown unblurred on this visit
     const gone = this.gone = new AbortController();
 
@@ -132,12 +132,16 @@ export default {
       noteEditor = null;
       root.innerHTML = s ? pageHtml(s) : listHtml();
       if (s) {
+        let notePend = null;
+        const noteAuto = debounced(async () => { const md = notePend; notePend = null; if (md !== null) await store.update('scans', s.id, { note: md }); }, 600);
         noteEditor = richText(root.querySelector('.scan-note'), {
           value: s.note || '',
           placeholder: 'Anything to remember about it…',
           origin: () => ({ collection: 'scans', id: s.id, title: s.title, field: 'note' }),
-          onChange: md => { clearTimeout(noteTimer); noteTimer = setTimeout(() => store.update('scans', s.id, { note: md }), 600); },
+          onChange: md => { notePend = md; noteAuto.trigger(); },
         });
+        const box = root.querySelector('.scan-note');
+        box.addEventListener('focusout', ev => { if (!box.contains(ev.relatedTarget)) noteAuto.flush(); });
       }
     };
 

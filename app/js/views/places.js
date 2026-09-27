@@ -5,6 +5,7 @@
 import { cogHtml } from '../viewcog.js';
 import { loadTree, search, importCsv, exportCsv, archivedMatchCount, splitQuantity } from '../places.js';
 import { richText, previewLine } from '../richtext.js';
+import { debounced } from '../autosave.js';
 import { createListKit } from '../listkit.js';
 import { tintHex, tintId, colourMenu } from '../colours.js';
 import { rankOf, reorderWrites } from '../order.js';
@@ -253,7 +254,6 @@ export default {
     }
     let openItem = null; // thing whose panel is open
     let pendingNote = null;
-    let noteTimer;
     const allTags = () => [...new Set(tree.flatMap(e => e.sections.flatMap(s => s.boxes.flatMap(b => b.items.flatMap(i => i.tags || [])))))].sort((a, b) => a.localeCompare(b));
 
     // Under the name: tags (click one to find everything with it), then the
@@ -294,15 +294,15 @@ export default {
       richText(box, {
         value: it?.notes || '',
         origin: () => ({ collection: 'items', id, title: it?.name, field: 'notes' }),
-        onChange: md => { clearTimeout(noteTimer); pendingNote = { id, md }; noteTimer = setTimeout(flushThingNote, 600); },
+        onChange: md => { pendingNote = { id, md }; thingNoteAuto.trigger(); },
       });
     }
-    async function flushThingNote() {
-      clearTimeout(noteTimer);
+    const thingNoteAuto = debounced(async () => {
       const p = pendingNote;
       pendingNote = null;
       if (p) { await store.update('items', p.id, { notes: p.md }); tree = await loadTreeA(); }
-    }
+    }, 600);
+    const flushThingNote = thingNoteAuto.flush;
     async function toggleThing(id) {
       await flushThingNote();
       openItem = openItem === id ? null : id;

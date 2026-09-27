@@ -7,6 +7,7 @@ import { cogHtml } from '../viewcog.js';
 import { CATEGORIES, FREQUENCIES, STATUSES, categoryLabel, perYear, money, renewalSoon, newContract, renew } from '../contracts.js';
 import * as att from '../attachments.js';
 import { richText } from '../richtext.js';
+import { debounced } from '../autosave.js';
 import { toast, undoable } from '../toast.js';
 import { openPicker } from '../linkpicker.js';
 import { openRef } from '../refs.js';
@@ -29,7 +30,6 @@ export default {
     const state = this.state = { id: null, view: 'current', q: '', sort: 'renewal', dir: 1, reveal: false };
     let all = [];
     let atts = new Map();
-    let noteTimer;
     const gone = this.gone = new AbortController();
     el.innerHTML = '<div class="contracts"></div>';
     const root = el.querySelector('.contracts');
@@ -183,12 +183,16 @@ export default {
       if (c && root.querySelector('.contract-page')?.contains(document.activeElement) && document.activeElement.matches('input, textarea, [contenteditable]')) return;
       root.innerHTML = c ? await pageHtml(c) : listHtml();
       if (c) {
-        richText(root.querySelector('.contract-note'), {
+        let notePend = null;
+        const noteAuto = debounced(async () => { const md = notePend; notePend = null; if (md !== null) await store.update('contracts', c.id, { notes: md }); }, 600);
+        const box = root.querySelector('.contract-note');
+        richText(box, {
           value: c.notes || '',
           placeholder: 'Anything to remember: what the excess is, who you spoke to…',
           origin: () => ({ collection: 'contracts', id: c.id, title: c.name, field: 'notes' }),
-          onChange: md => { clearTimeout(noteTimer); noteTimer = setTimeout(() => store.update('contracts', c.id, { notes: md }), 600); },
+          onChange: md => { notePend = md; noteAuto.trigger(); },
         });
+        box.addEventListener('focusout', ev => { if (!box.contains(ev.relatedTarget)) noteAuto.flush(); });
       }
     };
     this.route = rest => { state.id = rest[0] || null; state.reveal = false; render(); };

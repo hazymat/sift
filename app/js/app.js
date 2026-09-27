@@ -9,6 +9,7 @@ import { mountSearch } from './search.js';
 import { installViewCog } from './viewcog.js';
 import { installDropdowns, installMenuFlip } from './dropdown.js';
 import { installFileDrop } from './attachments.js';
+import { flushAll } from './autosave.js';
 import { word, applyWords } from './words.js';
 
 // Adding an area is one entry here plus a view module (spec §5.1). Names come
@@ -204,6 +205,7 @@ async function route(force = false) {
     location.replace(`#/${path(area(pinned[0]))}`);
     return;
   }
+  flushAll(); // notes still waiting to save go in now, before the page changes
   const sheet = $('#more-sheet');
   if (sheet.open) sheet.close();
   $('#topnav-more-menu').parentElement.removeAttribute('open');
@@ -270,6 +272,7 @@ async function flushBeforeReload() {
   const { closeFull } = await import('./fullnote.js');
   closeFull({ animate: false });
   document.activeElement?.blur();
+  await flushAll();
   await store.idle();
 }
 
@@ -327,6 +330,10 @@ async function boot() {
   $('#more-sheet').addEventListener('click', e => {
     if (e.target === e.currentTarget) e.currentTarget.close(); // backdrop tap
   });
+  // Going into the background (another app, the phone locked): a phone may
+  // close Sift there without warning, so anything waiting to save goes in now.
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushAll(); });
+  addEventListener('pagehide', () => flushAll());
   installInlineEditing();
   installRefLinks();
   installHoldToOpen();

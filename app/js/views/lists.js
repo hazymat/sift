@@ -8,6 +8,7 @@ import { createListKit } from '../listkit.js';
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import { richText, previewLine } from '../richtext.js';
+import { debounced } from '../autosave.js';
 import * as att from '../attachments.js';
 import { editPills } from '../editpills.js';
 import { word } from '../words.js';
@@ -70,19 +71,18 @@ export default {
 
     let openItem = null;
     let pendingNote = null;
-    let noteTimer;
     // Under the item: the note's first line; clicking it opens the panel.
     function noteLine(i) {
       const { html, more } = previewLine(i.notes || '');
       if (!html || openItem === i.id) return ''; // the open panel already shows the whole note
       return `<div class="item-sub"><span class="item-note task-note" data-act="item-details" role="button" tabindex="0" title="${openItem === i.id ? 'Close' : 'Open to read or edit'}">${html}${more ? ` <span class="more-lines">+${more} more</span>` : ''}</span></div>`;
     }
-    async function flushNote() {
-      clearTimeout(noteTimer);
+    const noteAuto = debounced(async () => {
       const p = pendingNote;
       pendingNote = null;
       if (p) await store.update('list_items', p.id, { notes: p.md });
-    }
+    }, 600);
+    const flushNote = noteAuto.flush;
     async function toggleItem(id) {
       await flushNote();
       openItem = openItem === id ? null : id;
@@ -97,7 +97,7 @@ export default {
         value: it?.notes || '',
         placeholder: word('ph_notes'),
         origin: () => ({ collection: 'list_items', id, title: it?.text, field: 'notes' }),
-        onChange: md => { clearTimeout(noteTimer); pendingNote = { id, md }; noteTimer = setTimeout(flushNote, 600); },
+        onChange: md => { pendingNote = { id, md }; noteAuto.trigger(); },
       });
     }
 

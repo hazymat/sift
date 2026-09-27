@@ -13,6 +13,7 @@ import {
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import { richText } from '../richtext.js';
+import { debounced } from '../autosave.js';
 import { mentionsOf } from '../refs.js';
 import { keepDraft, draftCleared } from '../drafts.js';
 import { addTask } from '../tasks.js';
@@ -339,8 +340,10 @@ export default {
       const notesBox = body.querySelector('#c-notes');
       if (notesBox) {
         const c = byId(state.id);
-        let t;
-        richText(notesBox, { value: c.notes || '', placeholder: word('ph_contact_notes'), spot: false, origin: () => ({ collection: 'contacts', id: c.id, title: c.name, field: 'notes' }), onChange: md => { clearTimeout(t); t = setTimeout(() => store.update('contacts', c.id, { notes: md }), 600); } });
+        let pend = null;
+        const auto = debounced(async () => { const md = pend; pend = null; if (md !== null) await store.update('contacts', c.id, { notes: md }); }, 600);
+        richText(notesBox, { value: c.notes || '', placeholder: word('ph_contact_notes'), spot: false, origin: () => ({ collection: 'contacts', id: c.id, title: c.name, field: 'notes' }), onChange: md => { pend = md; auto.trigger(); } });
+        notesBox.addEventListener('focusout', ev => { if (!notesBox.contains(ev.relatedTarget)) auto.flush(); });
       }
     };
 
