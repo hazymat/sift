@@ -17,7 +17,7 @@ export const AREA_OF = {
 const NAME_FIELDS = ['title', 'name', 'text', 'body', 'label_code', 'summary'];
 const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 const short = v => {
-  if (v == null || v === '') return '—';
+  if (v == null || v === '') return '-';
   if (Array.isArray(v)) return `${v.length} item${v.length === 1 ? '' : 's'}`;
   if (typeof v === 'object') return '…';
   const s = String(v).replace(/\s+/g, ' ');

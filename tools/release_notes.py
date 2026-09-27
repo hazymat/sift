@@ -309,3 +309,6 @@ NOTES['1.22.12'] = [
 NOTES['1.23.00'] = [
   F("Brain Dump: keys for the note outlined while browsing with the keyboard. C colour (← / → and Enter to pick), T make it a task, P Plan it, A archive, D delete (Undo in the message), * pin or unpin. Ctrl+V attaches a picture or file from the clipboard; Ctrl+C copies the whole note with formatting, with Copy markdown instead in the message."),
 ]
+NOTES['1.23.01'] = [
+  F('An empty value in History and the Quantity box in Find Things show a plain dash.'),
+]
