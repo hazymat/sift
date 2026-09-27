@@ -348,3 +348,7 @@ NOTES['1.23.10'] = [
 NOTES['1.23.11'] = [
   B('An app several versions behind showed "A new version of Sift is ready" again straight after Reload was pressed, once for each version in between. One press now goes straight to the newest version.'),
 ]
+NOTES['1.23.12'] = [
+  B('Tasks: editing a task\'s note in place (clicking it, or ↓ from the task\'s name) opened the full notes editor with its toolbar, and in Compact spacing as a dimmed panel on the right. It is now plain text under the task\'s name, the same in every spacing and at any width; ↓ on its last line goes on to the next task, ↑ on its first line back to the name, and Alt+Enter opens the task\'s panel.'),
+  B('Tasks: in Medium and Expanded spacing a task\'s note started a little left of the task\'s name.'),
+]
