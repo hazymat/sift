@@ -531,3 +531,6 @@ NOTES['1.34.00'] = [
   F('Custom theme font lists show each font in its own lettering.'),
   F('Custom theme: a colour that would make writing hard to read is put back, with a message saying which colour it went back to.'),
 ]
+NOTES['1.34.01'] = [
+  F('Ctrl+Z (⌘Z on a Mac) does what Undo on the message at the bottom does, while it shows. The Undo button says so. Once something is typed after it, Ctrl+Z undoes the typing instead.'),
+]
