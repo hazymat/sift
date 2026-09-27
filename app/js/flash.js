@@ -3,8 +3,12 @@
 // times, then stops. One look, used everywhere.
 //
 //   pointTo(collection, id)   before changing page: which item to show
-//   flash(el, { scroll })     pulse an element now (and scroll it into view,
-//                             unless scroll: false)
+//   flash(el, { scroll, pulses, colour, strength, ms })
+//                             pulse an element now. scroll: true (to the
+//                             middle), 'nearest' (only if out of view) or false;
+//                             colour 'r g b'; strength 0 to 1; ms per pulse.
+//   SOFT                      a gentler look: one light blue pulse (e.g. a
+//                             task just added)
 //
 // installFlash() (from app.js) watches for the item to appear after the page
 // changes, since views draw a moment after the address changes.
@@ -24,14 +28,20 @@ const FIND = {
   contacts: id => `#main [data-contact-card="${id}"], #main .c-page[data-contact="${id}"]`,
 };
 
-export function flash(el, { scroll = true } = {}) {
+export const SOFT = { pulses: 1, colour: '120 185 255', strength: .6, ms: 1100 };
+
+export function flash(el, { scroll = true, pulses = PULSES, colour = null, strength = 1, ms = PULSE_MS } = {}) {
   if (!el) return;
   el.classList.remove('flash');
   void el.offsetWidth; // restart the animation
+  el.style.setProperty('--flash-n', pulses);
+  el.style.setProperty('--flash-ms', `${ms}ms`);
+  el.style.setProperty('--flash-a', strength);
+  if (colour) el.style.setProperty('--flash-rgb', colour); else el.style.removeProperty('--flash-rgb');
   el.classList.add('flash');
-  if (scroll) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  if (scroll) el.scrollIntoView({ block: scroll === 'nearest' ? 'nearest' : 'center', behavior: 'smooth' });
   clearTimeout(el._flashT);
-  el._flashT = setTimeout(() => el.classList.remove('flash'), PULSE_MS * PULSES + 100);
+  el._flashT = setTimeout(() => el.classList.remove('flash'), ms * pulses + 100);
 }
 
 export function pointTo(collection, id) {

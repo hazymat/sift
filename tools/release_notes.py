@@ -419,3 +419,7 @@ NOTES['1.27.00'] = [
 NOTES['1.27.01'] = [
   F('Tasks: 👁 → Layout → Highlight item when added. When on, a task just added pulses yellow, as a task you were sent to by a link does.'),
 ]
+
+NOTES['1.27.02'] = [
+  F('Tasks: with 👁 → Layout → Highlight item when added, a new task pulses once in a soft blue (not the bright yellow used to point something out), and the list scrolls to it if it was added out of view.'),
+]

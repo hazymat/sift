@@ -5,7 +5,7 @@
 
 import { keepDraft, draftCleared } from '../drafts.js';
 import { cogHtml, layoutOn } from '../viewcog.js';
-import { flash } from '../flash.js';
+import { flash, SOFT } from '../flash.js';
 import * as store from '../store.js';
 import { loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES, HORIZONS, horizonOf, planDay, MAX_DEPTH, depthIn, levelsUnder } from '../tasks.js';
 import { ENERGY, isoDate, dateText, addDays, parseDate, addItem, durationChoices, durationLabel } from '../days.js';
@@ -32,8 +32,9 @@ const LISTS = ['inbox', 'now', 'next', 'later'];   // where a task lives
 const EMPTY = { get inbox() { return `${word('list_inbox')} is empty.`; }, now: 'Nothing for now.', next: 'Nothing lined up next.', later: 'Nothing for later.' };
 // 👁 Layout switches (viewcog.js), all off by default.
 const lay = id => layoutOn('tasks', id);
-// Highlight item when added (👁 Layout): the new tasks pulse, as a task linked to does (flash.js).
-const showAdded = (root, ids) => { if (lay('added-flash')) for (const id of ids) flash(root.querySelector(`.task-list > li[data-task="${id}"]`), { scroll: false }); };
+// Highlight item when added (👁 Layout): the new tasks pulse once, soft blue (flash.js), and
+// the list scrolls to them if they're out of view.
+const showAdded = (root, ids) => { if (lay('added-flash')) ids.forEach((id, n) => flash(root.querySelector(`.task-list > li[data-task="${id}"]`), Object.assign({ scroll: n ? false : 'nearest' }, SOFT))); };
 const COLOURS = ['#6fb0ff', '#7dd3a8', '#f5a66a', '#e58fd0', '#f0d264', '#a99cff', '#ff8a8a'];
 
 function shortDate(iso) {
@@ -793,8 +794,8 @@ export default {
         if (!line.sub) { parent = t.id; lastTop = t.id; }
       }
       await render();
-      showAdded(body, made);
       if (focus) body.querySelector('#task-new')?.focus();
+      showAdded(body, made); // after the focus, so its scroll to the new task wins
       undoable(`Added ${made.length} task${made.length === 1 ? '' : 's'} to ${HORIZONS.find(x => x.id === base.horizon)?.label || word('list_inbox')}${shortened ? ` (${shortened} long one${shortened === 1 ? '' : 's'} shortened, full text in the note)` : ''}`, async () => {
         await store.updateMany('tasks', made.map(id => [id, { deleted_at: new Date().toISOString() }]));
         await render();
