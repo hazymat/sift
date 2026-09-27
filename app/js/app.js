@@ -26,9 +26,10 @@ export const AREAS = [
   { id: 'scans', get label() { return word('area_scans'); }, icon: 'i-scans', view: './views/scans.js' },
   { id: 'contracts', get label() { return word('area_contracts'); }, icon: 'i-contracts', view: './views/contracts.js' },
   { id: 'recipes', get label() { return word('area_recipes'); }, icon: 'i-recipes', view: './views/recipes.js' },
+  // Archive and Bin together; in the nav just before Settings unless moved.
+  { id: 'bin', get label() { return word('area_bin'); }, icon: 'i-archive', view: './views/bin.js' },
   { id: 'settings', label: 'Settings', icon: 'i-settings', view: './views/settings.js', pinnable: false },
   // Not in the nav: reached from each area's ⋯ menu and from Settings.
-  { id: 'bin', label: 'Archive & Bin', icon: 'i-archive', view: './views/bin.js', pinnable: false, hidden: true },
   { id: 'history', label: 'History', icon: 'i-history', view: './views/history.js', pinnable: false, hidden: true },
 ];
 

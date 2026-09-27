@@ -115,12 +115,6 @@ export default {
       </section>
 
       <section class="card">
-        <h2>Archive &amp; Bin</h2>
-        <p class="muted">${esc(word('ph_set_bin'))}</p>
-        <div class="segmented"><a class="seg-link" href="#/bin/archive/all">Archive <span id="count-archive" class="muted"></span></a><a class="seg-link" href="#/bin/bin/all">Bin <span id="count-bin" class="muted"></span></a></div>
-      </section>
-
-      <section class="card">
         <h2>Storage</h2>
         <dl class="facts" id="storage"></dl>
       </section>
@@ -710,12 +704,6 @@ export default {
     });
 
     renderPins();
-
-    import('../bin.js').then(async bin => {
-      const c = await bin.counts();
-      el.querySelector('#count-archive').textContent = c.archive;
-      el.querySelector('#count-bin').textContent = c.bin;
-    });
 
     // Backup
     const backup = await import('../backup.js');

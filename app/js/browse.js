@@ -4,6 +4,7 @@
 //   ↓        Tasks / Day Planner: start editing the first entry (↑ / ↓ then
 //            walk the list, as while editing). Elsewhere: into the search box
 //            above the items, if there is one; ↓ again starts browsing.
+//            With nothing in the list yet, ↓ does what Enter does.
 //   Enter    start typing a new one (New task, New note, Add items…)
 // Browsing: one item is highlighted (.kb-cur, the same look in every area).
 //   ← / →    previous / next item
@@ -46,11 +47,11 @@ const AREAS = {
     },
   },
   tasks: {
-    down: () => focusEnd(all('#main li[data-task][data-id] > .task-title')[0]),
+    down: () => focusEnd(all('#main li[data-task][data-id] > .task-title')[0]) || focusEnd($('#task-new')),
     enter: () => focusEnd($('#task-new')),
   },
   planner: {
-    down: () => focusEnd(all('#lines .line.has-item .item-title')[0] || all('#main .line.has-item .item-title')[0]),
+    down: () => focusEnd(all('#lines .line.has-item .item-title')[0] || all('#main .line.has-item .item-title')[0]) || focusEnd($('#dump')),
     enter: () => focusEnd($('#dump')),
   },
   lists: {
@@ -126,6 +127,7 @@ export function installBrowse({ busy, area }) {
     if (c.search && t.matches?.(c.search)) {
       const first = items(c)[0];
       if (ev.key === 'ArrowDown' && first) { take(ev); t.blur(); go(first); }
+      else if (ev.key === 'ArrowDown' && c.enter?.()) take(ev);
       return;
     }
     if (busy()) return;
@@ -154,6 +156,7 @@ export function installBrowse({ busy, area }) {
       if (c.down) done = c.down();
       else if (c.search && all(c.search)[0]) { all(c.search)[0].focus(); done = true; }
       else if (list[0]) { go(list[0]); done = true; }
+      else done = !!c.enter?.();
       if (done) take(ev);
     } else if (ev.key === 'Enter' && c.enter?.()) take(ev);
   }, true);

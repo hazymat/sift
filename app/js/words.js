@@ -19,6 +19,7 @@ export const WORDS = [
   { group: 'Areas', key: 'area_scans', default: 'Scans', hint: 'Photos of letters, receipts and documents.' },
   { group: 'Areas', key: 'area_contracts', default: 'Contracts', hint: 'Insurance, utilities, subscriptions: "Bills", "Policies"…' },
   { group: 'Areas', key: 'area_recipes', default: 'Batch Book', hint: 'Recipes and batches: "Recipes", "Brewing"…' },
+  { group: 'Areas', key: 'area_bin', default: 'Tidied', hint: 'Archived and deleted things, together: "Put away", "Archive", "Stowed"…' },
 
   { group: 'Task lists', key: 'list_inbox', default: 'Task Dump', hint: "Where new tasks land before you've decided when to do them: \"Inbox\", \"To sort\"…" },
   { group: 'Task lists', key: 'list_now', default: 'Now', hint: 'What you are working on these days: "This week", "Doing"…' },
@@ -92,7 +93,6 @@ export const WORDS = [
   { group: "Phrases: Settings", key: 'ph_set_notes', default: "In any note, 📞 links a contact, 📝 links anything, ⚠️ links something important. Or just keep the emoji.", hint: "The text on the Notes card." },
   { group: "Phrases: Settings", key: 'ph_set_backup', default: "Backups are a single .sift file. On iPhone, save it to Files or iCloud Drive. Restoring merges: nothing on this device is lost, and the newest edit of each field wins.", hint: "The hint on the Backup card." },
   { group: "Phrases: Settings", key: 'ph_set_history', default: "Every change on this device, newest first. Undo any of them individually, in any order.", hint: "The text on the History card." },
-  { group: "Phrases: Settings", key: 'ph_set_bin', default: "Archived things are hidden but still searchable. Deleted things stay in the bin for 30 days.", hint: "The text on the Archive & Bin card." },
   { group: "Phrases: Settings", key: 'ph_set_exchange', default: "Days from the Day Planner as plain text: each day's tasks (done and not done) with their notes, and the day's notes.", hint: "The text on the Data exchange card." },
   { group: "Phrases: Settings", key: 'ph_set_clear', default: "These can't be undone. Back up first if you might want anything back.", hint: "The text on the Clear and erase card." },
   { group: "Phrases: Settings", key: 'ph_set_erase', default: "Erasing removes every task, plan, note, contact, box and setting stored here. The app itself stays installed.", hint: "Under \"Erase all data on this device\"." },
