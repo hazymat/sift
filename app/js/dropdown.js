@@ -130,7 +130,8 @@ export function installDropdowns() {
   for (const type of ['pointerdown', 'mousedown', 'touchstart']) {
     addEventListener(type, ev => {
       if (!open) return;
-      if (open.menu.contains(ev.target)) { ev.stopPropagation(); if (type !== 'touchstart') ev.preventDefault(); return; }
+      // (Immediate: other listeners on window don't hear it either, e.g. a pop-up's click-away.)
+      if (open.menu.contains(ev.target)) { ev.stopImmediatePropagation(); if (type !== 'touchstart') ev.preventDefault(); return; }
       if (!open.anchor.contains(ev.target)) close();
     }, true);
   }

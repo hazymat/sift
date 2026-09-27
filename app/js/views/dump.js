@@ -492,7 +492,7 @@ export default {
       // Clicked away from the note too: it closes, as it would have.
       if (editing && !ev.target.closest('.thought-edit')) leaveNote();
     }, { capture: true, signal: gone.signal });
-    addEventListener('scroll', ev => { if (pop && !pop.contains(ev.target)) closePop(); }, { capture: true, signal: gone.signal });
+    addEventListener('scroll', ev => { if (pop && !pop.contains(ev.target) && !ev.target.closest?.('.dd-menu')) closePop(); }, { capture: true, signal: gone.signal });
     el.addEventListener('click', async ev => {
       if (ev.target.closest('.note-more [data-att-add]')) ev.target.closest('details')?.removeAttribute('open');
       if (att.onClick(ev, parentOf, attachedDone)) return;
@@ -579,8 +579,11 @@ export default {
         const time = p.querySelector('[name="plan_time"]').value || null;
         const estRaw = p.querySelector('[name="plan_est"]').value;
         const est = Number(estRaw) || null;
-        const parsed = parseTimed(t.body.split('\n')[0]);
-        const item = await addItem(date, { title: parsed.title.slice(0, 200), time: time || parsed.time, end_time: parsed.end_time, estimate_min: est, estimate_unsure: estRaw === 'unsure', source_thought_id: t.id });
+        const [first, ...rest] = t.body.split('\n');
+        const parsed = parseTimed(first);
+        // The rest of the note goes in the item's note (all of it, if the title had to be cut short).
+        const notes = parsed.title.length > 200 ? t.body.trim() : rest.join('\n').trim();
+        const item = await addItem(date, { title: parsed.title.slice(0, 200), notes, time: time || parsed.time, end_time: parsed.end_time, estimate_min: est, estimate_unsure: estRaw === 'unsure', source_thought_id: t.id });
         await convert(t, { collection: 'day_items', id: item.id, date }, `On the plan for ${date === isoDate() ? 'today' : date}`);
       } else if (act === 'comment' || act === 'append') {
         // Pick the task (search, grouped by list: js/taskpicker.js); Cancel changes nothing.
