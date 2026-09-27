@@ -364,7 +364,10 @@ NOTES['1.23.15'] = [
 NOTES['1.24.00'] = [
   F('Ctrl+. (⌘+. on a Mac) makes the line the cursor is on a bullet, or plain text again if it already is one, from anywhere in the line: the same as typing "- " at its start. In any note, full screen or not, and in the Markdown view.'),
 ]
-NOTES['1.24.01'] = [
+NOTES['1.25.00'] = [
+  F('Day Planner: when a day (today or later) has more planned than it holds, a note under the date says so, e.g. "That\'s 11h of plan for a 10h day." Timed items count their time, the rest their estimated time; done and let-go items don\'t count. It can be turned off in Settings, Day Planner.'),
+]
+NOTES['1.25.01'] = [
   B('Tasks: a note typed before the task was added (the New task line\'s "Add note"), or in "Add note" under a task that had none, was plain text: "- " didn\'t make a bullet until the note was opened again, and Ctrl+B and the other note keys did nothing. They are the notes editor now, as a task\'s note is. In the New task line\'s note, Enter is a new line and Ctrl+Enter adds the task.'),
   B("Tasks: a task's note being edited looked the same as the task's name. It now looks as it does when not being edited: smaller and fainter (in italics in the Glass look)."),
 ]

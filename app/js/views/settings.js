@@ -66,6 +66,7 @@ export default {
         <label class="check-row"><input type="checkbox" name="show_evening"> Show a section after the day ends, called <input name="evening_label" class="inline-text" placeholder="${esc(word('ph_set_evening'))}" autocomplete="off" aria-label="Name of the section after the day ends"></label>
         <label class="check-row"><input type="checkbox" name="recurring_on_planner"> Recurring tasks go on the Day Planner on their day</label>
         <label class="check-row"><input type="checkbox" name="hint_down_day"> Remind me to do less on down days</label>
+        <label class="check-row"><input type="checkbox" name="hint_over_plan"> Say when a day's plan is longer than the day</label>
         <label class="check-row"><input type="checkbox" name="hint_walk_breaks"> Build in short breaks during long stretches of work <span class="muted">(with the focus timer, coming later)</span></label>
       </section>
 
@@ -541,6 +542,7 @@ export default {
       ps.querySelector('[name="slot_min"]').value = String(d.slot_min);
       ps.querySelector('[name="duration_max_min"]').value = String(d.duration_max_min);
       ps.querySelector('[name="hint_down_day"]').checked = d.hint_down_day;
+      ps.querySelector('[name="hint_over_plan"]').checked = d.hint_over_plan;
       ps.querySelector('[name="show_now_marker"]').checked = d.show_now_marker;
       ps.querySelector('[name="show_evening"]').checked = d.show_evening;
       ps.querySelector('[name="evening_label"]').value = d.evening_label;
