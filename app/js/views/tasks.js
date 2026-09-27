@@ -248,7 +248,7 @@ export default {
             <span class="add-mark" aria-hidden="true"></span>
             <input id="task-new" class="new-task-line no-inline" placeholder="${esc(placeholder)}" autocomplete="off" enterkeyhint="done" aria-label="New task">
             <button type="button" class="entry-add" data-act="add" title="Add (Enter)">Add <kbd>Enter</kbd></button>
-            ${lay('pills-hide') ? '<button type="button" class="entry-chip pill-reveal" data-act="entry-reveal">More</button>' : ''}
+            ${lay('pills-hide') ? '<button type="button" class="entry-chip pill-reveal" data-act="entry-reveal">More<kbd>Shift+Enter</kbd></button>' : ''}
           </div>
           <div class="task-entry-more">
             <div id="task-new-note" class="add-note" data-ctrl-enter="keep"></div>
@@ -438,6 +438,15 @@ export default {
     // task, or a new task. Enter there adds it and opens the next; Esc or
     // leaving it empty drops the line.
     let nextAfter = null; // open a new line after this task once the list is drawn
+    // Shift+Enter in a task's name or the New task line (Hide pills behind More): presses More.
+    body.addEventListener('keydown', ev => {
+      if (ev.key !== 'Enter' || !ev.shiftKey || ev.ctrlKey || ev.metaKey || ev.altKey || ev.isComposing) return;
+      const t = ev.target;
+      const more = t.id === 'task-new' ? t.parentElement.querySelector(':scope > .pill-reveal') : t.classList?.contains('task-title') ? t.closest('li[data-task]')?.querySelector('.edit-pills > .pill-reveal') : null;
+      if (!more?.getClientRects().length) return;
+      ev.preventDefault(); ev.stopPropagation();
+      more.click();
+    }, { capture: true });
     body.addEventListener('keydown', ev => {
       const t = ev.target;
       if (ev.key !== 'Enter' || ev.shiftKey || ev.ctrlKey || ev.metaKey || ev.isComposing) return;
@@ -1082,6 +1091,8 @@ export default {
       if (!rows.length) return render();
       fading++;
       for (const r of rows) { r.classList.add('done', 'ticked-away'); r.style.setProperty('--fade', `${FADE_MS}ms`); }
+      // On the task ticked: a note while it fades (untick it to keep it here).
+      rows[0].insertAdjacentHTML('beforeend', '<span class="done-note" aria-live="polite"><span class="done-glass" aria-hidden="true">⏳</span> Transferring to Done list</span>');
       void rows[0].offsetHeight; // start from full view, then fade
       rows.forEach(r => r.classList.add('fading'));
       await new Promise(done => setTimeout(done, FADE_MS));
@@ -1238,8 +1249,9 @@ export default {
         open = open === id ? null : id;
         render();
       } else if (act === 'collapse') {
-        collapsed.has(id) ? collapsed.delete(id) : collapsed.add(id);
-        render();
+        // The sub-tasks slide closed, or slide open once drawn.
+        if (collapsed.has(id)) { collapsed.delete(id); await render(); slideRows(kidRows(id), true); }
+        else { await slideRows(kidRows(id), false); collapsed.add(id); render(); }
       } else if (act === 'add') {
         body.querySelector('#task-entry')?.submitEntry?.(); // the Add button (no lined paper): as Enter
         body.querySelector('#task-new')?.focus();
@@ -1273,6 +1285,24 @@ export default {
         await retire(task, act);
       }
     });
+
+    // The rows under a task (its sub-tasks, and any open panel among them), as drawn.
+    function kidRows(id) {
+      const li = body.querySelector(`.task-list > li[data-task="${id}"]`);
+      if (!li) return [];
+      const d = Number(li.dataset.depth || 0), out = [];
+      for (let r = li.nextElementSibling; r && !(r.matches('li[data-task]') && Number(r.dataset.depth || 0) <= d) && !r.matches('.list-head'); r = r.nextElementSibling) out.push(r);
+      return out;
+    }
+    // Rows sliding open (from nothing to their height) or closed.
+    const slideRows = (rows, opening) => Promise.all(rows.map(r => {
+      const cs = getComputedStyle(r);
+      const full = { height: `${r.offsetHeight}px`, paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom, opacity: 1 };
+      const none = { height: '0px', paddingTop: '0px', paddingBottom: '0px', opacity: 0 };
+      r.style.overflow = 'hidden'; r.style.minHeight = '0';
+      const anim = r.animate(opening ? [none, full] : [full, none], { duration: 220, easing: 'ease-in-out', fill: opening ? 'none' : 'forwards' });
+      return anim.finished.then(() => { if (opening) { r.style.overflow = ''; r.style.minHeight = ''; } }, () => {});
+    }));
 
     // Delete or archive a task, with its sub-tasks.
     async function retire(task, act) {
@@ -1321,7 +1351,7 @@ export default {
         const aim = t.aim_at ? t.aim_at.slice(0, 10) : '';
         // No note yet: an "Add note" line under the title, like adding a new task.
         const addNote = (t.notes || '').trim() ? '' : `<textarea class="entry-note add-note pill-note no-inline" data-pill="notes" rows="1" placeholder="Add note" aria-label="Note"></textarea>`;
-        if (lay('pills-hide') && (revealed !== id || lay('more-panel'))) return '<button type="button" class="entry-chip pill-reveal" data-act="pills-reveal">More</button>';
+        if (lay('pills-hide') && (revealed !== id || lay('more-panel'))) return '<button type="button" class="entry-chip pill-reveal" data-act="pills-reveal">More<kbd>Shift+Enter</kbd></button>';
         return addNote + energyPill(t.energy)
           + selectPill('estimate_min', 'Estimated time', '⏱', [['', 'Not estimated'], ...hours], t.estimate_min)
           + datePill('start_date', 'Plan for day', '📅', t.start_date, shortDate)

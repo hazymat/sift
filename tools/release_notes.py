@@ -445,3 +445,11 @@ NOTES['1.28.01'] = [
 NOTES['1.28.02'] = [
   F('Tasks without the lined paper: a small gap under each task card, in Compact spacing too.'),
 ]
+
+NOTES['1.29.00'] = [
+  F('Tasks, 👁 → Layout: switches that go with another (New task line at the top, Show margin and the extra lines under Lined Paper; More goes straight to the full panel under Hide pills behind More) show under it, joined by a line, only while it is ticked. Renamed: Lined Paper, New tasks appear at top, Highlight task when added.'),
+  F('Tasks: new starting choices (on a device where the Layout switches were never changed): no lined paper, start typing a new task on arriving, new tasks at the top, highlight a task when added, pills behind More.'),
+  F('Tasks: a task\'s sub-tasks slide open and closed when its ▾ 1/2 is pressed.'),
+  F('Tasks: a task ticked off shows "⏳ Transferring to Done list" while it fades (untick it to keep it).'),
+  F('Tasks: Shift+Enter presses More (with Hide pills behind More), shown on the pill.'),
+]
