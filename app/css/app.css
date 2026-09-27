@@ -3434,14 +3434,16 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
    level; only the text is indented. Ruled lines start at the margin, a
    sub-task's where the line joining it to its task comes down (treeOf in
    views/tasks.js), so the joining lines are ruled lines too. */
-#main[data-layout-margin] { --margin-bg: linear-gradient(to right, transparent 64px, var(--margin-rule) 64px, var(--margin-rule) 66px, transparent 66px); }
+/* --mshift: how much further right the margin (and everything right of it) sits than the plain layout's text. */
+#main[data-layout-margin] { --mshift: 24px; --margin-bg: linear-gradient(to right, transparent calc(64px + var(--mshift)), var(--margin-rule) calc(64px + var(--mshift)), var(--margin-rule) calc(66px + var(--mshift)), transparent calc(66px + var(--mshift))); }
+@media (max-width: 560px) { #main[data-layout-margin] { --mshift: 8px; } }
 #main[data-layout-margin] :is(.task-list > li[data-task], .task-add-line, .task-entry-more) { background-image: var(--margin-bg); }
 #main[data-layout-margin] .task-list > li[data-task] > .tick { margin-left: 0; }
-#main[data-layout-margin] .task-list > li[data-task] > .task-title { margin-left: calc(9px + var(--ind, 0px)); }
-#main[data-layout-margin] .task-list > li[data-task]::after, #main[data-layout-margin] .task-entry .task-add-line::after { left: max(66px, calc(50px + var(--ind, 0px))); }
-#main[data-layout-margin][data-shade="alt"] .task-list > li[data-task]:nth-child(even of li[data-task]) { background-image: var(--margin-bg), linear-gradient(to right, transparent max(66px, calc(50px + var(--ind, 0px))), color-mix(in srgb, var(--text) 4.5%, transparent) max(66px, calc(50px + var(--ind, 0px)))); }
+#main[data-layout-margin] .task-list > li[data-task] > .task-title { margin-left: calc(9px + var(--mshift) + var(--ind, 0px)); }
+#main[data-layout-margin] .task-list > li[data-task]::after, #main[data-layout-margin] .task-entry .task-add-line::after { left: calc(var(--mshift) + max(66px, calc(50px + var(--ind, 0px)))); }
+#main[data-layout-margin][data-shade="alt"] .task-list > li[data-task]:nth-child(even of li[data-task]) { background-image: var(--margin-bg), linear-gradient(to right, transparent calc(var(--mshift) + max(66px, calc(50px + var(--ind, 0px)))), color-mix(in srgb, var(--text) 4.5%, transparent) calc(var(--mshift) + max(66px, calc(50px + var(--ind, 0px))))); }
 #main[data-layout-margin] .task-list .tree-v, #main[data-layout-margin] .task-entry .tree-v { background: var(--glass-border); }
 #main[data-layout-margin] .task-entry .task-add-line > .add-mark { margin-left: 0; }
-#main[data-layout-margin] .task-entry .task-add-line .new-task-line { margin-left: calc(7px + var(--ind, 0px)); }
-#main[data-layout-margin] .task-entry.is-empty::after { margin-left: 66px; }
+#main[data-layout-margin] .task-entry .task-add-line .new-task-line { margin-left: calc(7px + var(--mshift) + var(--ind, 0px)); }
+#main[data-layout-margin] .task-entry.is-empty::after { margin-left: calc(66px + var(--mshift)); }
 #task-entry:has(+ .task-list) { margin-bottom: 0; }
