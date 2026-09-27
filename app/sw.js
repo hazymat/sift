@@ -74,10 +74,10 @@ const SHELL = [
   'js/views/scans.js',
   'js/views/settings.js',
   'js/views/bin.js',
-  'icons/icon.svg',
-  'icons/apple-touch-icon.png',
-  'icons/icon-192.png',
-  'icons/icon-512.png',
+  'icons/app-icon-32.png',
+  'icons/app-icon-180.png',
+  'icons/app-icon-192.png',
+  'icons/app-icon-512.png',
 ];
 
 self.addEventListener('install', event => {
