@@ -52,6 +52,7 @@ const LAYOUTS = {
     { id: 'new-focus', label: 'Start typing a new task on arriving' },
     { id: 'add-top', label: 'New tasks added at the top' },
     { id: 'margin', label: 'Show margin' },
+    { id: 'added-flash', label: 'Highlight item when added' },
   ],
 };
 const layoutKey = (area, id) => `sift-layout:${area}:${id}`;

@@ -415,3 +415,7 @@ NOTES['1.26.10'] = [
 NOTES['1.27.00'] = [
   F('Tasks: a Layout section in the 👁 view menu, with four switches for trying out layouts (all off keeps Tasks as it was): New task line at the top (↓ and Enter at the top of the page then start typing a new task), Start typing a new task on arriving, New tasks added at the top, and Show margin (a red margin like the Day Planner\'s, every tick box in it, sub-tasks indented to its right and joined to their task by the ruled lines).'),
 ]
+
+NOTES['1.27.01'] = [
+  F('Tasks: 👁 → Layout → Highlight item when added. When on, a task just added pulses yellow, as a task you were sent to by a link does.'),
+]
