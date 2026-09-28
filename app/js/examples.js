@@ -302,6 +302,57 @@ No kneading. Start 10 hours ahead.
 5. Roll each carefully in {dusting flour|flour}, stretch and place on baking paper.
 6. Oven 250 °C for 25 mins.
 
+# Coloured Sticky Rice with Mango
+Book: Cooking
+Tags: thai, dessert
+
+Difficult! This is a lot of effort, and you really need to find the perfect mangos for it to be excellent.
+
+## Ingredients
+### Rice
+- 4 cup sticky rice (a cup per colour)
+- 50 g pandan leaves (green)
+- green food colouring
+- 20 butterfly pea flowers (blue)
+- ½ tsp turmeric (yellow)
+- ¼ cup black sticky rice (purple)
+- 4 cup water
+- ice cubes
+### Salted coconut sauce
+- 3 ml cornflour
+- 10 ml sauce water
+- 80 ml coconut milk
+- ⅕ tsp table salt
+### Toasted mung beans
+- 2 tbsp mung beans
+- 470 ml bean water
+- oil
+### Coconut syrup
+- syrup coconut milk
+- sugar
+- salt
+### To serve
+- mango
+
+## Method
+1. Wash the {sticky rice|rice} until the water runs clear (5 times).
+2. Colour the water, one cup of rice for each:
+   - Green: blend {pandan leaves} with {1/4 water|1 cup water} (not atomised), add some {green food colouring|green food colour}.
+   - Blue: {butterfly pea flowers} in {1/8 water|½ cup hot water} (off the boil) for 15 mins, drain, then add {1/8 water|½ cup cold} to cool it down.
+   - Yellow: {turmeric} in {1/16 water|¼ cup hot water}, stir to extract the colour, then {3/16 water|¾ cup cold} to cool it down.
+   - Purple: {black sticky rice} with {1/4 water|1 cup off-boil water}, steep 30 mins ({ice cubes} to cool if still hot), then add {sticky rice|¾ cup washed white rice}.
+3. Steep {sticky rice|a cup of rice} in each for 4 hours.
+4. During the soak, salted coconut sauce: stir {cornflour} into {sauce water}, combine in a small pot with {coconut milk} and {table salt}. Medium-high heat, stir constantly until it boils. Remove and cool completely.
+5. {mung beans|Mung beans}: rinse, add to a small pot, cover with {bean water}. Bring to a simmer over medium heat, immediately take off the heat and leave 10 mins. Drain and dry on paper towel. Toast in a pan lightly greased with {oil} over medium-high heat until light golden. Cool on a plate; they keep.
+6. Coconut syrup (any time, but HEAT UP before adding to the rice): {syrup coconut milk|coconut milk}, {sugar} and {salt} in a pan on medium-high. At the FIRST sign of bubbling, take off the heat and COVER. Don't let it reduce!
+7. Steam the rice 20 to 25 mins; make sure there's space for the steam to come up!
+8. Just before it's done, reheat the syrup.
+9. Put the rice in individual bowls and pour the syrup over. STIR to break up lumps, COVER and stand 20 mins. Then fold the bottom of the rice up to the top and WAIT another 20 mins, covered.
+10. Cut the {mango} (long slices across the cheek) and assemble, with the coconut sauce on top and mung beans sprinkled over.
+
+## Notes
+Thai evening running order: 7pm set the table (crackers and chilli sauce, prik nam pla); 7.15 oven on for starters; 7.20 prep cocktails. On arrival: drinks, starters in the oven and served, THEN jasmine rice on; green curry on; pad kra pao heated with basil to serve; peanuts on the som tum.
+
 # Bun Cha
 Book: Cooking
 Tags: vietnamese, pork
@@ -354,11 +405,11 @@ Hanoi grilled pork. First made 2013; made again in 2023 (bought meat pre-minced)
 11. Cook the {vermicelli} per the packet (2 mins?), then blanch in {cold water}.
 12. Mat's way: broth in bowls, then a little greens, a little {vermicelli|vermicelli} and some meatballs (not all). The rest on small plates to share.
 `;
-const PHOTOS = { 'Borscht': ['borscht-1.jpg', 'borscht-2.jpg'], 'Chicken Green Curry': ['green-curry-1.jpg'], 'Hot Toddy': ['hot-toddy-1.jpg', 'hot-toddy-2.jpg'], 'Pampushki': ['pampushki-1.jpg', 'pampushki-2.jpg', 'pampushki-3.jpg'] };
+const PHOTOS = { 'Borscht': ['borscht-1.jpg', 'borscht-2.jpg'], 'Chicken Green Curry': ['green-curry-1.jpg'], 'Hot Toddy': ['hot-toddy-1.jpg', 'hot-toddy-2.jpg'], 'Pampushki': ['pampushki-1.jpg', 'pampushki-2.jpg', 'pampushki-3.jpg'], 'Coloured Sticky Rice with Mango': ['sticky-rice-1.jpg', 'sticky-rice-2.jpg'] };
 // Goes up when photos are added, so books that already have the showcase get the new ones.
-const PHOTOS_VERSION = 4;
+const PHOTOS_VERSION = 5;
 // Recipes added to the showcase later, so books that already have it get them too (unless deleted there).
-const ADDED = ['Hot Toddy', 'Pampushki'];
+const ADDED = ['Hot Toddy', 'Pampushki', 'Coloured Sticky Rice with Mango'];
 // Showcase names and photo files that changed since a book got them (1.49.02: Mat spells it Borscht).
 const RENAMED = { 'Borsch': 'Borscht', 'borsch-1.jpg': 'borscht-1.jpg' };
 // The examples from 1.47.00 to 1.48.00, which the showcase replaces.

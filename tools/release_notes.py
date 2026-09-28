@@ -855,3 +855,4 @@ NOTES['1.49.01'] = [F("Batch Book: the Borscht starter has Mat's own photo. Book
 NOTES['1.49.02'] = [F("Batch Book: Borscht (now spelt that way) has a second photo, of the broth being made.")]
 NOTES['1.49.03'] = [F("Batch Book: the Chicken Green Curry starter has Mat's own photo.")]
 NOTES['1.49.04'] = [F("Batch Book: two new starters with Mat's photos, Hot Toddy in Cocktails and Pampushki (garlic bread rolls) in Baking. Books that already have the starters get them too.")]
+NOTES['1.49.05'] = [F("Batch Book: a new starter, Mat's Coloured Sticky Rice with Mango, with his photo.")]
