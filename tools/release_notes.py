@@ -740,5 +740,5 @@ NOTES['1.40.00'] = [
 ]
 
 NOTES['1.40.01'] = [
-  X('Batch Book: scrolling down, the next book\'s heading pushes the one above it up and out instead of sliding over it; headings are see-through, with a glass background only while stuck at the top.'),
+  B('Batch Book: scrolling down, the next book\'s heading slid over the one above it instead of pushing it up and out, and headings had a background even when not stuck at the top (now see-through, with glass only while stuck).'),
 ]
