@@ -542,3 +542,6 @@ NOTES['1.35.01'] = [
   F('The tour carries on where it was left, and has End tour early on every step: the "Take the tour of Sift" task then waits on Now, highlighted, and its ▶ pill carries on. N and B go to the next and previous steps on a keyboard. Settings → Take the tour opens the welcome page; Reset the tour starts it from the beginning next time.'),
   F('The tour has more to say: keeping notes in order, choosing and moving several tasks with the actions bar, energy levels, dragging tasks onto a time, the day\'s notes, everything in 👁, copying and sharing a day (and switching to someone else\'s), transient and stored contacts, and themes. Keys are drawn as separate keys, and the page\'s place in the navigation is outlined.'),
 ]
+NOTES['1.35.02'] = [
+  F('"⤢ Fullscreen note editor" under a note shows its key, Alt+Enter.'),
+]
