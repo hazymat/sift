@@ -4,7 +4,8 @@
 //   recipe_makes:   recipe_id, name, batch_no (older batches' only name), date (YYYY-MM-DD), status (planned|going|done), description, state,
 //                   fields, back_sweetened, ingredients[] and steps[] (copied from the recipe, then its own to change),
 //                   stock ({ ingredient id: have|need }), stock_items ({ ingredient id: list item id }), list_id
-//   recipe_entries: make_id, kind (diary|tasting|reading), date, text; readings also: label (OG|SG|FG), gravity
+//   recipe_entries: make_id, kind (diary|tasting|reading), date, text; readings also: type (a book's reading kind, none = Gravity),
+//                   and for gravity label (OG|SG|FG) and gravity, for any other kind value (as typed, e.g. 21°C)
 // Photos are attachments: on a recipe or batch (its result photos, the first is its picture), on a step (by the
 // step's id) or on a diary entry. Sections are the user's own, kept in settings (batch_sections).
 //
@@ -233,9 +234,13 @@ export function parseRecipes(text) {
 
 // ---------- batches ----------
 
+// The kinds of reading a book's batches have (e.g. Gravity, Temperature); books from before kinds could be named have Gravity.
+export const readingTypesOf = sec => (!sec.readings ? [] : sec.reading_types?.length ? sec.reading_types : ['Gravity']);
+export const isGravity = type => /^gravity$/i.test(type || 'Gravity');
+
 // ABV from the first and last gravity readings: (OG − FG) × 131.25
 export function abvOf(readings) {
-  const sorted = readings.filter(r => r.gravity).sort((a, b) => (a.date || '').localeCompare(b.date || '') || a.created_at.localeCompare(b.created_at));
+  const sorted = readings.filter(r => r.gravity && isGravity(r.type)).sort((a, b) => (a.date || '').localeCompare(b.date || '') || a.created_at.localeCompare(b.created_at));
   const og = sorted.find(r => r.label === 'OG') || sorted[0];
   const fg = sorted.findLast(r => r.label === 'FG') || sorted.at(-1);
   if (!og || !fg || og === fg) return null;
