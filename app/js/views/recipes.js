@@ -1,19 +1,21 @@
-// Batch Book: a recipe book that also keeps every batch made from it.
-// #/recipes                         the book (by type, like chapters) or all batches
-// #/recipes/<recipe id>             a recipe: details, ingredients, method, tasting notes, its batches
-// #/recipes/<recipe id>/make/<id>   one batch: summary, gravity log, recipe as made, diary, tasting diary
-// Data and units: js/batchbook.js. The stock check: stockCheck() below.
+// Batch Book: recipes in your own sections, and every batch made from them.
+// #/recipes                         recipes (by section, with tags and a search) or all batches
+// #/recipes/<recipe id>             a recipe: details, ingredients, steps, result photos, tasting notes, its batches
+// #/recipes/<recipe id>/make/<id>   one batch: its own copy of the recipe to change, stock check, summary,
+//                                   gravity log, diary, tasting diary
+// Pages are drawn on the same papers as the Day Planner (👁: paper, lined, margin).
+// Data and units: js/batchbook.js. The stock check and the sections sheet are below.
 
 import * as store from '../store.js';
 import * as att from '../attachments.js';
-import { TYPES, typeOf, UNITS, UNIT_GROUPS, parseLine, parseQty, qtyText, amountText, ingredientText, methodHtml, renameRefs, abvOf, nextBatchNo, loadBook } from '../batchbook.js';
+import { sectionsOf, sectionOf, stepsOf, UNITS, UNIT_GROUPS, parseLine, parseQty, qtyText, amountText, ingredientText, stepHtml, renameRefs, abvOf, nextBatchNo, loadBook } from '../batchbook.js';
 import { loadLists, nestItems, createList, addItems } from '../lists.js';
 import { richText } from '../richtext.js';
 import { debounced } from '../autosave.js';
 import { toast, undoable } from '../toast.js';
 import { askText, askYes } from '../ask.js';
-import { dateText, isoDate } from '../days.js';
-import { word } from '../words.js';
+import { dateText, isoDate, PAPERS } from '../days.js';
+import { cogHtml } from '../viewcog.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -24,44 +26,50 @@ const STATUSES = [['planned', 'Planned'], ['going', 'On the go'], ['done', 'Done
 const GOALS = ['ABV goal', 'Sweetness goal', 'Final sweetness'];
 const SCALES = [0.5, 1, 2, 3];
 const now = () => new Date().toISOString();
+const camera = '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
 
 export default {
   async mount(el) {
-    const state = this.state = { recipe: null, make: null, tab: 'book', type: '', q: '', times: 1, edit: {} };
+    const state = this.state = { recipe: null, make: null, section: '', tag: '', q: '', batches: false, times: 1, edit: {} };
     let data = { recipes: [], makes: [], entries: [] };
     let atts = new Map();
+    let settings = {};
+    let sections = [];
+    let lists = [];
     let dirty = false; // something changed while a field was being written in: redraw once it's left
+    let focusNext = null;
     const recipeOf = id => data.recipes.find(r => r.id === id);
     const makeOf = id => data.makes.find(m => m.id === id);
     const makesOf = id => data.makes.filter(m => m.recipe_id === id);
+    const sectionFor = r => sectionOf(sections, r?.type);
     const entriesOf = (id, kind) => data.entries.filter(e => e.make_id === id && e.kind === kind).sort((a, b) => (a.date || '9').localeCompare(b.date || '9') || a.created_at.localeCompare(b.created_at));
     const go = hash => { if (location.hash !== hash) location.hash = hash; else render(); };
     const photoOf = id => (atts.get(id) || []).find(a => a.kind === 'image' && a.thumb);
-    const writing = () => !!document.activeElement?.closest?.('input:not([type="checkbox"]), textarea, select, [contenteditable="true"]') && el.contains(document.activeElement);
+    const paper = () => settings.batch_paper || 'notebook';
+    const writing = () => !!document.activeElement?.closest?.('input:not([type="checkbox"]), textarea, select, [contenteditable="true"], [data-step-view]') && el.contains(document.activeElement);
 
-    // ---------- the book ----------
+    // ---------- the recipes ----------
 
-    const typesInUse = () => {
-      const ids = Array.from(new Set(data.recipes.map(r => r.type || '')));
-      return ids.sort((a, b) => ((TYPES.findIndex(t => t.id === a) + 1 || 99) - (TYPES.findIndex(t => t.id === b) + 1 || 99)) || a.localeCompare(b));
-    };
     const matches = r => {
-      if (state.type && (r.type || '') !== state.type) return false;
+      if (state.section && (r.type || '') !== state.section) return false;
+      if (state.tag && !(r.tags || []).includes(state.tag)) return false;
       if (!state.q) return true;
-      const text = [r.title, r.type, r.description, r.method].concat((r.ingredients || []).map(i => `${i.item} ${i.note}`)).join(' ').toLowerCase();
+      const text = [r.title, r.type, r.description, (r.tags || []).join(' ')].concat((r.ingredients || []).map(i => `${i.item} ${i.note}`), stepsOf(r).map(x => x.text)).join(' ').toLowerCase();
       return state.q.toLowerCase().split(/\s+/).every(w => text.includes(w));
     };
-    const shown = () => data.recipes.filter(matches).sort((a, b) => ((TYPES.findIndex(t => t.id === a.type) + 1 || 99) - (TYPES.findIndex(t => t.id === b.type) + 1 || 99)) || (a.type || '').localeCompare(b.type || '') || (a.title || '').localeCompare(b.title || ''));
+    const order = r => sections.findIndex(x => x.name === (r.type || ''));
+    const shown = () => data.recipes.filter(matches).sort((a, b) => order(a) - order(b) || (a.title || '').localeCompare(b.title || ''));
 
     function card(r) {
-      const t = typeOf(r.type);
+      const sec = sectionFor(r);
       const made = makesOf(r.id);
       const photo = photoOf(r.id);
-      return `<a class="bb-card" href="#/recipes/${r.id}" style="--bb:${t.colour}">
-        <span class="bb-card-pic">${photo ? `<img src="${photo.thumb}" alt="" loading="lazy">` : `<span class="bb-card-emoji">${t.emoji}</span>`}</span>
+      return `<a class="bb-card" href="#/recipes/${r.id}" style="--bb:${sec.colour}">
+        <span class="bb-card-pic">${photo ? `<img src="${photo.thumb}" alt="" loading="lazy">` : `<span class="bb-card-emoji">${sec.emoji}</span>`}</span>
         <span class="bb-card-body">
           <span class="bb-card-title">${esc(r.title || 'Untitled')}</span>
           ${r.description ? `<span class="muted bb-card-desc">${esc(r.description)}</span>` : ''}
+          ${(r.tags || []).length ? `<span class="bb-card-tags">${r.tags.map(t => `<span class="chip">${esc(t)}</span>`).join('')}</span>` : ''}
           <span class="muted bb-card-made">${made.length ? `Made ${made.length}× · last ${shortDate(made[0].date)}` : 'Not made yet'}</span>
         </span>
       </a>`;
@@ -69,10 +77,11 @@ export default {
 
     function batchRow(m) {
       const r = recipeOf(m.recipe_id);
-      const t = typeOf(r?.type);
+      const sec = sectionFor(r);
       const abv = abvOf(entriesOf(m.id, 'reading'));
-      return `<a class="bb-batch-row" href="#/recipes/${m.recipe_id}/make/${m.id}" style="--bb:${t.colour}">
-        <span class="bb-batch-emoji">${t.emoji}</span>
+      const photo = photoOf(m.id);
+      return `<a class="bb-batch-row" href="#/recipes/${m.recipe_id}/make/${m.id}" style="--bb:${sec.colour}">
+        ${photo ? `<img class="bb-batch-pic" src="${photo.thumb}" alt="">` : `<span class="bb-batch-emoji">${sec.emoji}</span>`}
         <span class="bb-batch-no">Batch #${esc(m.batch_no || '?')}</span>
         <span class="bb-batch-name">${esc(r?.title || 'Untitled')}${m.description && m.description !== r?.description ? ` <span class="muted">· ${esc(m.description)}</span>` : ''}</span>
         <span class="muted">${shortDate(m.date)}</span>
@@ -81,132 +90,143 @@ export default {
       </a>`;
     }
 
+    function paperHtml() {
+      return `<h4>Paper</h4><div class="view-opts bb-papers" role="group" aria-label="Paper">
+        ${PAPERS.map(p => `<button type="button" class="paper-pill" data-look="${p.id}" data-bb-paper="${p.id}" aria-pressed="${paper() === p.id}">${p.label}</button>`).join('')}
+      </div>`;
+    }
+
     function overview() {
-      const types = typesInUse();
+      const inSection = data.recipes.filter(r => !state.section || (r.type || '') === state.section);
+      const tags = Array.from(new Set(inSection.flatMap(r => r.tags || []))).sort((a, b) => a.localeCompare(b));
+      if (state.tag && !tags.includes(state.tag)) state.tag = '';
       const list = shown();
       const ids = new Set(list.map(r => r.id));
       const batches = data.makes.filter(m => ids.has(m.recipe_id));
-      const chapters = Array.from(new Set(list.map(r => r.type || '')));
+      const groups = state.section ? [state.section] : sections.map(x => x.name).filter(n => list.some(r => (r.type || '') === n));
       return `
         <div class="bb-head">
           <button type="button" class="primary" data-act="new">+ New recipe</button>
-          <input type="search" class="bb-search" placeholder="Search the book…" value="${esc(state.q)}" aria-label="Search the book">
+          <input type="search" class="bb-search" placeholder="Search recipes…" value="${esc(state.q)}" aria-label="Search recipes">
+          <button type="button" class="bb-batches-btn" data-act="batches" aria-pressed="${state.batches}">🧪 Batches</button>
+          ${cogHtml('recipes', paperHtml())}
           <details class="tool-menu page-more">
             <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
-            <div class="menu"><a href="#/bin/archive/recipes">Show Archive</a><a href="#/bin/bin/recipes">Show Bin</a></div>
+            <div class="menu"><a href="#" data-act="sections">Edit sections</a><a href="#/bin/archive/recipes">Show Archive</a><a href="#/bin/bin/recipes">Show Bin</a></div>
           </details>
         </div>
-        <div class="segmented bb-tabs" role="tablist" aria-label="Recipes or batches">
-          <button type="button" data-tab="book" aria-pressed="${state.tab === 'book'}">📖 Recipes</button>
-          <button type="button" data-tab="batches" aria-pressed="${state.tab === 'batches'}">🧪 Batches</button>
+        <div class="bb-sections-bar">
+          <div class="segmented bb-sections" role="tablist" aria-label="Sections">
+            <button type="button" data-section="" aria-pressed="${!state.section}">All</button>
+            ${sections.map(x => `<button type="button" data-section="${esc(x.name)}" aria-pressed="${state.section === x.name}" style="--bb:${x.colour}">${x.emoji} ${esc(x.name || 'No section')}</button>`).join('')}
+          </div>
+          <button type="button" class="icon-btn bb-sections-edit" data-act="sections" title="Edit sections" aria-label="Edit sections">✎</button>
         </div>
-        ${types.length > 1 ? `<div class="bb-types">
-          <button type="button" class="chip" data-type="" aria-pressed="${!state.type}">All</button>
-          ${types.map(id => `<button type="button" class="chip" data-type="${esc(id)}" aria-pressed="${state.type === id}" style="--bb:${typeOf(id).colour}">${typeOf(id).emoji} ${esc(id || 'No type')}</button>`).join('')}
-        </div>` : ''}
-        ${!data.recipes.length ? `<div class="empty"><h2>Your Batch Book is empty.</h2><p class="muted">Add a recipe: ingredients, method, photos and tasting notes. Each time you make it, record the batch: readings, a diary and how it tasted.</p></div>`
-        : state.tab === 'batches' ? (batches.length ? `<div class="bb-batches">${batches.map(batchRow).join('')}</div>` : '<div class="empty"><h2>No batches yet.</h2><p class="muted">Open a recipe and press Make this.</p></div>')
-        : list.length ? chapters.map(c => `
-          <section class="bb-chapter" style="--bb:${typeOf(c).colour}">
-            <h3 class="bb-chapter-title"><span>${typeOf(c).emoji}</span> ${esc(c || 'Other recipes')} <span class="muted">${list.filter(r => (r.type || '') === c).length}</span></h3>
-            <div class="bb-grid">${list.filter(r => (r.type || '') === c).map(card).join('')}</div>
-          </section>`).join('') : '<div class="empty"><h2>Nothing here.</h2></div>'}`;
+        ${tags.length ? `<div class="bb-tags">${tags.map(t => `<button type="button" class="chip" data-tag="${esc(t)}" aria-pressed="${state.tag === t}">${esc(t)}</button>`).join('')}</div>` : ''}
+        ${!data.recipes.length ? `<div class="empty"><h2>No recipes yet.</h2><p class="muted">Add a recipe: ingredients, steps, photos and tasting notes. Each time you make it, start a batch: its own copy to change, a stock check, readings, a diary and how it turned out.</p></div>`
+        : state.batches ? (batches.length ? `<div class="bb-batches">${batches.map(batchRow).join('')}</div>` : '<div class="empty"><h2>No batches here yet.</h2><p class="muted">Open a recipe and press Make this.</p></div>')
+        : list.length ? groups.map(name => { const x = sectionOf(sections, name); const mine = list.filter(r => (r.type || '') === name); return `
+          <section class="bb-chapter" style="--bb:${x.colour}">
+            ${state.section ? '' : `<h3 class="bb-chapter-title"><span>${x.emoji}</span> ${esc(name || 'No section')} <span class="muted">${mine.length}</span></h3>`}
+            <div class="bb-grid">${mine.map(card).join('')}</div>
+          </section>`; }).join('') : `<div class="empty"><h2>Nothing here yet.</h2>${state.section && !state.q ? '<p class="muted">Press + New recipe to add one to this section.</p>' : ''}</div>`}`;
     }
 
     // ---------- pieces used on both pages ----------
 
+    const line = (margin, content, tools = '', attrs = '') => `<div class="bb-line" ${attrs}><span class="bb-margin">${margin}</span><span class="bb-content">${content}</span>${tools ? `<span class="bb-tools">${tools}</span>` : ''}</div>`;
     const unitSelect = (value, attrs) => `<select ${attrs} aria-label="Unit">${UNIT_GROUPS.map(g => `<optgroup label="${g}">${UNITS.filter(u => u[2] === g).map(u => `<option value="${u[0]}"${u[0] === (value || '') ? ' selected' : ''}>${u[0] ? esc(u[1]) : 'each'}</option>`).join('')}</optgroup>`).join('')}</select>`;
+    const hero = id => { const p = (atts.get(id) || []).find(a => a.kind === 'image'); return p ? `<div class="bb-hero" data-hero="${p.id}">${p.thumb ? `<img src="${p.thumb}" alt="">` : ''}</div>` : ''; };
 
-    // owner = { collection, id }; the record carries ingredients[] and method.
-    function ingredientsHtml(rec, owner, { times = 1, stock = null } = {}) {
+    // o = { collection, id }: the recipe or the batch whose ingredients these are.
+    function ingredientsHtml(rec, o, { stock = null } = {}) {
       const ings = rec.ingredients || [];
       const editing = state.edit[`ings:${rec.id}`];
-      const scale = owner.collection === 'recipes' && ings.some(i => i.qty != null) ? `<span class="segmented bb-scale" aria-label="Scale">${SCALES.map(s => `<button type="button" data-scale="${s}" aria-pressed="${state.times === s}">×${qtyText(s)}</button>`).join('')}</span>` : '';
-      const head = `<h2 class="bb-h"><span>🧺 Ingredients</span>${editing ? '' : scale}<button type="button" class="bb-edit" data-edit="ings:${rec.id}">${editing ? 'Done' : ings.length ? 'Edit' : '+ Add'}</button></h2>`;
+      const isRecipe = o.collection === 'recipes';
+      const hasQty = ings.some(i => i.qty != null);
+      const scale = !editing && hasQty ? (isRecipe
+        ? `<span class="segmented bb-scale" aria-label="Scale">${SCALES.map(s => `<button type="button" data-scale="${s}" aria-pressed="${state.times === s}">×${qtyText(s)}</button>`).join('')}</span>`
+        : `<span class="segmented bb-scale" aria-label="Scale this batch"><button type="button" data-rescale="0.5" title="Halve every amount">×½</button><button type="button" data-rescale="2" title="Double every amount">×2</button><button type="button" data-rescale="ask" title="Scale every amount">×…</button></span>`) : '';
+      const head = `<h2 class="bb-h"><span>🧺 Ingredients</span>${scale}<button type="button" class="bb-edit" data-edit="ings:${rec.id}">${editing ? 'Done' : ings.length ? 'Edit' : '+ Add'}</button></h2>`;
       if (editing) return `${head}
-        <div class="bb-ing-edit" data-owner="${owner.collection}:${owner.id}">
+        <div class="bb-ing-edit" data-owner="${o.collection}:${o.id}">
           ${ings.map((i, n) => `<div class="bb-ing-row" data-ing="${i.id}">
             <input class="bb-ing-item" data-ing-field="item" value="${esc(i.item)}" placeholder="Ingredient" aria-label="Ingredient">
             <input class="bb-ing-qty" data-ing-field="qty" value="${esc(i.qty == null ? '' : qtyText(i.qty, i.unit))}" placeholder="Amount" inputmode="decimal" aria-label="Amount">
             ${unitSelect(i.unit, 'data-ing-field="unit" class="bb-ing-unit"')}
-            <input class="bb-ing-note" data-ing-field="note" value="${esc(i.note || '')}" placeholder="Type or note" aria-label="Type or note">
+            <input class="bb-ing-note" data-ing-field="note" value="${esc(i.note || '')}" placeholder="Kind or note" aria-label="Kind or note">
             <span class="bb-ing-moves"><button type="button" class="icon-btn" data-ing-move="-1" ${n ? '' : 'disabled'} aria-label="Move up">↑</button><button type="button" class="icon-btn" data-ing-remove aria-label="Remove">×</button></span>
           </div>`).join('')}
-          <textarea class="bb-ing-new no-inline" rows="3" placeholder="Add ingredients, one per line: 3268g honey, Asda Orange Blossom · ½ onion · 2 tsp salt · 5 UK gallon water"></textarea>
+          <textarea class="bb-ing-new no-inline" rows="3" placeholder="Add ingredients, one per line: 250g butter, unsalted · ½ lemon · 1 tsp baking powder"></textarea>
           <div class="detail-actions"><button type="button" data-act="add-ings">Add these</button></div>
         </div>`;
       if (!ings.length) return `${head}<p class="muted bb-none">No ingredients yet.</p>`;
-      const t = owner.collection === 'recipes' ? state.times : 1;
-      return `${head}
-        <table class="bb-table bb-ings">
-          <thead><tr><th>Ingredient</th><th>Amount</th><th>Type</th>${stock ? '<th>Stock</th>' : ''}</tr></thead>
-          <tbody>${ings.map(i => `<tr><td>${esc(i.item)}</td><td>${esc(amountText(i, t * times))}</td><td>${esc(i.note || '')}</td>${stock ? `<td class="bb-stock-cell">${stock[i.id] === 'have' ? '<span title="In stock">✓</span>' : stock[i.id] === 'need' ? '<span title="On the shopping list">🛒</span>' : ''}</td>` : ''}</tr>`).join('')}</tbody>
-        </table>`;
+      const times = isRecipe ? state.times : 1;
+      return `${head}<div class="bb-lines bb-ings">${ings.map(i => line(esc(amountText(i, times)),
+        `<span class="bb-ing-name">${esc(i.item)}</span>${i.note ? ` <span class="muted">${esc(i.note)}</span>` : ''}`,
+        stock ? (stock[i.id] === 'have' ? '<span class="bb-stock-mark" title="In stock">✓</span>' : stock[i.id] === 'need' ? '<span class="bb-stock-mark" title="To buy">🛒</span>' : '') : '')).join('')}</div>`;
     }
 
-    function methodSection(rec) {
-      const editing = state.edit[`method:${rec.id}`];
-      const t = rec.recipe_id ? 1 : state.times;
-      const head = `<h2 class="bb-h"><span>🥄 Method</span><button type="button" class="bb-edit" data-edit="method:${rec.id}">${editing ? 'Done' : rec.method ? 'Edit' : '+ Add'}</button></h2>`;
-      if (editing) return `${head}
-        ${(rec.ingredients || []).length ? `<div class="bb-ref-picks"><span class="muted">Put in:</span>${rec.ingredients.map(i => `<button type="button" class="chip" data-ref="${esc(i.item)}">${esc(i.item)}</button>`).join('')}</div>` : ''}
-        <textarea class="bb-method-edit no-inline" data-method="${rec.id}" rows="8" placeholder="How it's made. Press an ingredient above to put it in with its amount.">${esc(rec.method || '')}</textarea>
-        <p class="muted hint">{salt} shows the salt with its amount. {1/2 salt} or {25% salt} shows part of it; {salt|a pinch of salt} shows your own words.</p>`;
-      return `${head}${rec.method ? `<div class="bb-method">${methodHtml(rec.method, rec.ingredients || [], t, esc)}</div>` : '<p class="muted bb-none">No method yet.</p>'}`;
-    }
-
-    // A details table: each field a row; for batches with readings, goals and actual sit together.
-    function fieldsHtml(rec, collection, { goals = false } = {}) {
-      const fields = rec.fields || {};
-      const rows = Object.keys(fields).filter(k => !(goals && GOALS.includes(k)));
-      return rows.map(k => `<tr><th>${esc(k)}</th><td><input data-field-key="${esc(k)}" data-coll="${collection}" value="${esc(fields[k] || '')}" aria-label="${esc(k)}"></td><td class="bb-x"><button type="button" class="icon-btn" data-field-remove="${esc(k)}" aria-label="Remove ${esc(k)}">×</button></td></tr>`).join('');
-    }
-
-    function turner(list, at, href, label) {
-      if (list.length < 2) return '';
-      const prev = list[at - 1], next = list[at + 1];
-      return `<div class="segmented bb-turn" role="tablist" aria-label="Turn the page">
-        <button type="button" data-go="${prev ? href(prev) : ''}" ${prev ? '' : 'disabled'} title="${prev ? esc(label(prev)) : ''}" aria-label="Previous">‹</button>
-        <button type="button" aria-pressed="true" tabindex="-1" class="bb-turn-at">${at + 1} of ${list.length}</button>
-        <button type="button" data-go="${next ? href(next) : ''}" ${next ? '' : 'disabled'} title="${next ? esc(label(next)) : ''}" aria-label="Next">›</button>
+    // Steps are written straight on the lines: press one to change it; Enter starts the next.
+    function stepsHtml(rec, o) {
+      const steps = stepsOf(rec);
+      const times = o.collection === 'recipes' ? state.times : 1;
+      const ings = rec.ingredients || [];
+      return `<div class="bb-method" data-owner="${o.collection}:${o.id}">
+        <h2 class="bb-h"><span>🥄 Steps</span></h2>
+        ${ings.length ? `<div class="bb-ref-picks"><span class="muted">Put in:</span>${ings.map(i => `<button type="button" class="chip" data-ref="${esc(i.item)}">${esc(i.item)}</button>`).join('')}</div>` : ''}
+        <div class="bb-lines bb-steps">
+          ${steps.map((x, n) => line(`${n + 1}`, `
+            <div class="bb-step-view" data-step-view tabindex="0" role="button" title="Press to change">${stepHtml(x.text, ings, times, esc) || '<span class="muted">Empty step</span>'}</div>
+            <textarea class="bb-step-edit no-inline" data-step-text rows="1" hidden aria-label="Step ${n + 1}">${esc(x.text)}</textarea>
+            ${(atts.get(x.id) || []).length ? att.rowHtml(atts.get(x.id), { parent: x.id, addButton: false }) : ''}`,
+            `<button type="button" class="icon-btn" data-step-photo title="Add a photo to this step" aria-label="Add a photo">${camera}</button>`, `data-step="${x.id}"`)).join('')}
+          ${line('+', `<textarea class="bb-step-new no-inline" rows="1" placeholder="${steps.length ? 'Next step' : 'First step'}" aria-label="New step"></textarea>`)}
+        </div>
+        <p class="muted hint bb-ref-hint">{salt} shows the salt with its amount. {1/2 salt} or {25% salt} shows part of it; {salt|a pinch} shows your own words. Enter starts the next step.</p>
       </div>`;
     }
+
+    // The details: each field a line, label in the margin. With gravity readings, goals and actual sit together.
+    function fieldsHtml(rec, { goals = false } = {}) {
+      const fields = rec.fields || {};
+      return Object.keys(fields).filter(k => !(goals && GOALS.includes(k))).map(k => line(esc(k),
+        `<input data-field-key="${esc(k)}" value="${esc(fields[k] || '')}" aria-label="${esc(k)}">`,
+        `<button type="button" class="icon-btn bb-x" data-field-remove="${esc(k)}" aria-label="Remove ${esc(k)}">×</button>`)).join('');
+    }
+
+    const top = (act, label) => `<div class="bb-top"><button type="button" class="back" data-act="${act}">‹ ${esc(label)}</button>${cogHtml('recipes', paperHtml())}</div>`;
 
     // ---------- a recipe ----------
 
     function recipePage() {
       const r = recipeOf(state.recipe);
       if (!r) return '<div class="empty"><h2>That recipe has gone.</h2></div>';
-      const t = typeOf(r.type);
-      const list = shown().some(x => x.id === r.id) ? shown() : data.recipes;
-      const at = list.findIndex(x => x.id === r.id);
+      const sec = sectionFor(r);
       const made = makesOf(r.id);
-      const types = Array.from(new Set(TYPES.map(x => x.id).concat(typesInUse()))).filter(Boolean);
-      return `
-        <div class="bb-top">
-          <button type="button" class="back" data-act="home">‹ ${esc(word('area_recipes'))}</button>
-          ${turner(list, at, x => `#/recipes/${x.id}`, x => x.title || 'Untitled')}
-        </div>
-        <article class="bb-paper" style="--bb:${t.colour}">
+      return `${top('home', 'Recipes')}
+        <article class="bb-paper" data-paper="${paper()}" style="--bb:${sec.colour}">
+          ${hero(r.id)}
           <header class="bb-title-row">
-            <span class="bb-emoji">${t.emoji}</span>
+            <span class="bb-emoji">${sec.emoji}</span>
             <textarea class="bb-title one-line" rows="1" data-rec="title" placeholder="Recipe name" aria-label="Recipe name">${esc(r.title)}</textarea>
           </header>
           <div class="bb-rule"></div>
           <textarea class="bb-desc one-line" rows="1" data-rec="description" placeholder="What it is, in a line" aria-label="Description">${esc(r.description || '')}</textarea>
-          ${att.rowHtml(atts.get(r.id), { parent: r.id })}
-          <h2 class="bb-h"><span>📋 Details</span></h2>
-          <table class="bb-table bb-summary">
-            <tr><th>Type</th><td><select data-rec-type aria-label="Type"><option value="">None</option>${types.map(x => `<option${x === r.type ? ' selected' : ''}>${esc(x)}</option>`).join('')}<option value="__new">Another type…</option></select></td><td class="bb-x"></td></tr>
-            ${fieldsHtml(r, 'recipes')}
-          </table>
+          <div class="bb-lines bb-details">
+            ${line('Section', `<select data-rec-section aria-label="Section">${sections.map(x => `<option value="${esc(x.name)}"${x.name === (r.type || '') ? ' selected' : ''}>${x.emoji} ${esc(x.name || 'No section')}</option>`).join('')}<option value="__edit">Edit sections…</option></select>`)}
+            ${line('Tags', `<input data-rec="tags" value="${esc((r.tags || []).join(', '))}" placeholder="Words to find it by, with commas between" aria-label="Tags">`)}
+            ${fieldsHtml(r)}
+          </div>
           <button type="button" class="bb-add-field" data-act="add-field">+ Add a detail</button>
           ${ingredientsHtml(r, { collection: 'recipes', id: r.id })}
-          ${methodSection(r)}
+          ${stepsHtml(r, { collection: 'recipes', id: r.id })}
+          <h2 class="bb-h"><span>📸 Result photos</span><span class="muted bb-h-note">the first is the recipe's picture</span></h2>
+          ${att.rowHtml(atts.get(r.id), { parent: r.id })}
           <h2 class="bb-h"><span>🥂 Tasting notes</span></h2>
           <div class="bb-tasting"></div>
           <h2 class="bb-h"><span>🧪 Batches</span><button type="button" class="primary" data-act="make">Make this${state.times !== 1 ? ` ×${qtyText(state.times)}` : ''}</button></h2>
-          ${made.length ? `<div class="bb-batches">${made.map(batchRow).join('')}</div>` : '<p class="muted bb-none">Not made yet. Make this starts a batch and checks what you have in stock.</p>'}
+          ${made.length ? `<div class="bb-batches">${made.map(batchRow).join('')}</div>` : '<p class="muted bb-none">Not made yet. Make this starts a batch with its own copy of the recipe, to change as you like, and a stock check.</p>'}
         </article>
         <div class="detail-actions bb-foot">
           <span class="spacer"></span>
@@ -232,65 +252,53 @@ export default {
     }
 
     function entriesHtml(m, kind, title) {
-      const list = entriesOf(m.id, kind);
       return `<h2 class="bb-h"><span>${title}</span></h2>
-        <table class="bb-table bb-diary">
-          <thead><tr><th>Date</th><th>Notes</th><th></th></tr></thead>
-          <tbody>${list.map(e => `<tr data-entry="${e.id}">
-            <td><input type="date" data-entry-field="date" value="${esc(e.date || '')}" aria-label="Date"></td>
-            <td><textarea class="bb-entry-text no-inline" data-entry-field="text" rows="1" placeholder="What happened" aria-label="Notes">${esc(e.text || '')}</textarea>${(atts.get(e.id) || []).length ? att.rowHtml(atts.get(e.id), { parent: e.id, addButton: false }) : ''}</td>
-            <td class="bb-x"><button type="button" class="icon-btn" data-entry-photo title="Add a photo" aria-label="Add a photo">${icon('i-clip')}</button><button type="button" class="icon-btn" data-entry-remove aria-label="Remove">×</button></td>
-          </tr>`).join('')}</tbody>
-        </table>
-        <button type="button" class="bb-add-field" data-add-entry="${kind}">+ Add ${kind === 'tasting' ? 'a tasting' : 'an entry'}</button>`;
+        <div class="bb-lines bb-diary">${entriesOf(m.id, kind).map(e => line(
+          `<input type="date" data-entry-field="date" value="${esc(e.date || '')}" aria-label="Date">`,
+          `<textarea class="bb-entry-text no-inline" data-entry-field="text" rows="1" placeholder="${kind === 'tasting' ? 'How it tasted' : 'What happened'}" aria-label="Notes">${esc(e.text || '')}</textarea>${(atts.get(e.id) || []).length ? att.rowHtml(atts.get(e.id), { parent: e.id, addButton: false }) : ''}`,
+          `<button type="button" class="icon-btn" data-entry-photo title="Add a photo" aria-label="Add a photo">${camera}</button><button type="button" class="icon-btn bb-x" data-entry-remove aria-label="Remove">×</button>`,
+          `data-entry="${e.id}"`)).join('')}
+          ${line('', `<button type="button" class="bb-add-field" data-add-entry="${kind}">+ Add ${kind === 'tasting' ? 'a tasting' : 'an entry'}</button>`)}
+        </div>`;
     }
 
     function makePage() {
       const m = makeOf(state.make);
-      const r = m && recipeOf(m.recipe_id);
       if (!m) return '<div class="empty"><h2>That batch has gone.</h2></div>';
-      const t = typeOf(r?.type);
+      const r = recipeOf(m.recipe_id);
+      const sec = sectionFor(r);
       const readings = entriesOf(m.id, 'reading');
       const abv = abvOf(readings);
-      const gravity = t.readings || readings.length;
+      const gravity = sec.readings || readings.length > 0;
       const f = m.fields || {};
-      const sameType = data.makes.filter(x => (recipeOf(x.recipe_id)?.type || '') === (r?.type || '')).sort((a, b) => (a.date || '').localeCompare(b.date || '') || (parseInt(a.batch_no, 10) || 0) - (parseInt(b.batch_no, 10) || 0));
-      const at = sameType.findIndex(x => x.id === m.id);
       const stock = m.stock || {};
       const have = Object.values(stock).filter(v => v === 'have').length, need = Object.values(stock).filter(v => v === 'need').length;
       const list = m.list_id && lists.find(l => l.id === m.list_id);
-      const goal = k => `<input data-field-key="${k}" data-coll="recipe_makes" value="${esc(f[k] || '')}" aria-label="${k}" placeholder="…">`;
-      return `
-        <div class="bb-top">
-          <button type="button" class="back" data-act="to-recipe">‹ ${esc(r?.title || 'Recipe')}</button>
-          ${turner(sameType, at, x => `#/recipes/${x.recipe_id}/make/${x.id}`, x => `Batch #${x.batch_no || '?'}`)}
-        </div>
-        <article class="bb-paper bb-make" style="--bb:${t.colour}">
+      const goal = k => `<label><span>${k}</span><input data-field-key="${k}" value="${esc(f[k] || '')}" aria-label="${k}" placeholder="…"></label>`;
+      return `${top('to-recipe', r?.title || 'Recipe')}
+        <article class="bb-paper bb-make" data-paper="${paper()}" style="--bb:${sec.colour}">
+          ${hero(m.id)}
           <header class="bb-title-row">
-            <span class="bb-emoji">${t.emoji}</span>
+            <span class="bb-emoji">${sec.emoji}</span>
             <span class="bb-title bb-batch-title">Batch #<input class="bb-batch-input" data-make="batch_no" value="${esc(m.batch_no || '')}" aria-label="Batch number" size="4"></span>
           </header>
           <div class="bb-rule"></div>
           <p class="bb-of">${esc(r?.type ? `${r.type}: ` : '')}<a href="#/recipes/${m.recipe_id}">${esc(r?.title || 'Untitled')}</a></p>
-          <h2 class="bb-h"><span>Batch summary</span></h2>
-          <table class="bb-table bb-summary">
-            <tr><th>Date</th><td><input type="date" data-make="date" value="${esc(m.date || '')}" aria-label="Date"></td><td class="bb-x"></td></tr>
-            <tr><th>Description</th><td><input data-make="description" value="${esc(m.description || '')}" aria-label="Description" placeholder="e.g. Session mead, 5 gallon bucket brew"></td><td class="bb-x"></td></tr>
-            <tr><th>Status</th><td><select data-make="status" aria-label="Status">${STATUSES.map(([v, l]) => `<option value="${v}"${(m.status || 'going') === v ? ' selected' : ''}>${l}</option>`).join('')}</select></td><td class="bb-x"></td></tr>
-            ${fieldsHtml(m, 'recipe_makes', { goals: gravity })}
-            ${gravity ? `<tr><th>Goals vs actual</th><td colspan="2"><div class="bb-goals">
-              <label><span>Sweetness goal</span>${goal('Sweetness goal')}</label><label><span>ABV goal</span>${goal('ABV goal')}</label>
-              <label><span>Final sweetness</span>${goal('Final sweetness')}</label><label class="bb-abv"><span>${abv?.final ? 'Final ABV' : 'ABV so far'}</span><b>${abv ? `${abv.abv.toFixed(2)}%` : '–'}</b></label>
-            </div></td></tr>
-            <tr><th>Back-sweetened?</th><td><input type="checkbox" data-make="back_sweetened" ${m.back_sweetened ? 'checked' : ''} aria-label="Back-sweetened"></td><td class="bb-x"></td></tr>` : ''}
-            <tr><th>Current state</th><td><input data-make="state" value="${esc(m.state || '')}" aria-label="Current state" placeholder="e.g. Fermenting, bottled, all gone"></td><td class="bb-x"></td></tr>
-          </table>
-          <button type="button" class="bb-add-field" data-act="add-field">+ Add a detail</button>
           <div class="bb-stockline">
-            <span>${have || need ? `${have ? `✓ ${have} in stock` : ''}${have && need ? ' · ' : ''}${need ? `🛒 ${need} to buy${list ? ` on <a href="#/lists/${list.id}">${esc(list.name)}</a>` : ''}` : ''}` : 'Stock not checked yet.'}</span>
-            <button type="button" data-act="stock">${have || need ? 'Check again' : 'Check stock'}</button>
+            <span>${have || need ? `${have ? `✓ ${have} in stock` : ''}${have && need ? ' · ' : ''}${need ? `🛒 ${need} to buy${list ? ` on <a href="#/lists/${list.id}">${esc(list.name)}</a>` : ''}` : ''}` : 'Change the amounts or ingredients below if you like, then check what you have in.'}</span>
+            <button type="button" class="${have || need ? '' : 'primary'}" data-act="stock">${have || need ? 'Check again' : 'Check stock'}</button>
           </div>
-          ${att.rowHtml(atts.get(m.id), { parent: m.id })}
+          <h2 class="bb-h"><span>📋 Batch summary</span></h2>
+          <div class="bb-lines bb-details">
+            ${line('Date', `<input type="date" data-make="date" value="${esc(m.date || '')}" aria-label="Date">`)}
+            ${line('Description', `<input data-make="description" value="${esc(m.description || '')}" aria-label="Description" placeholder="What makes this batch different">`)}
+            ${line('Status', `<select data-make="status" aria-label="Status">${STATUSES.map(([v, l]) => `<option value="${v}"${(m.status || 'going') === v ? ' selected' : ''}>${l}</option>`).join('')}</select>`)}
+            ${fieldsHtml(m, { goals: gravity })}
+            ${gravity ? line('Goals vs actual', `<div class="bb-goals">${goal('Sweetness goal')}${goal('ABV goal')}${goal('Final sweetness')}<label class="bb-abv"><span>${abv?.final ? 'Final ABV' : 'ABV so far'}</span><b>${abv ? `${abv.abv.toFixed(2)}%` : '–'}</b></label></div>`)
+              + line('Back-sweetened?', `<input type="checkbox" data-make="back_sweetened" ${m.back_sweetened ? 'checked' : ''} aria-label="Back-sweetened">`) : ''}
+            ${line('Current state', `<input data-make="state" value="${esc(m.state || '')}" aria-label="Current state" placeholder="Where it's up to">`)}
+          </div>
+          <button type="button" class="bb-add-field" data-act="add-field">+ Add a detail</button>
           ${gravity ? `<h2 class="bb-h"><span>🌡️ Gravity log</span><button type="button" data-act="reading">+ Log reading</button></h2>
             ${chart(readings)}
             <div class="bb-readings">${readings.map(e => `<div class="bb-reading" data-entry="${e.id}">
@@ -300,11 +308,13 @@ export default {
               <textarea class="bb-entry-text no-inline" data-entry-field="text" rows="1" placeholder="Note" aria-label="Note">${esc(e.text || '')}</textarea>
               <button type="button" class="icon-btn bb-reading-x" data-entry-remove aria-label="Remove reading">×</button>
             </div>`).join('') || '<p class="muted bb-none">No readings yet.</p>'}</div>` : ''}
-          <h2 class="bb-h bb-h-big"><span>🍯 Recipe</span><span class="muted bb-h-note">as made in this batch</span></h2>
+          <h2 class="bb-h bb-h-big"><span>🍯 This batch's recipe</span><span class="muted bb-h-note">a copy: changes here stay on this batch</span></h2>
           ${ingredientsHtml(m, { collection: 'recipe_makes', id: m.id }, { stock: have || need ? stock : null })}
-          ${methodSection(m)}
+          ${stepsHtml(m, { collection: 'recipe_makes', id: m.id })}
           ${entriesHtml(m, 'diary', '📔 Diary')}
           ${entriesHtml(m, 'tasting', '🥂 Tasting diary')}
+          <h2 class="bb-h"><span>📸 Result photos</span><span class="muted bb-h-note">the first is this batch's picture</span></h2>
+          ${att.rowHtml(atts.get(m.id), { parent: m.id })}
         </article>
         <div class="detail-actions bb-foot">
           <span class="spacer"></span>
@@ -314,11 +324,15 @@ export default {
 
     // ---------- drawing ----------
 
-    let lists = [];
     let tasting = null;
+    let adding = null; // a step still being saved: drawn once it's in
     const render = this.render = async () => {
+      await adding;
       data = await loadBook();
       atts = await att.byParent();
+      settings = await store.getSettings();
+      sections = sectionsOf(settings, data.recipes);
+      if (state.section && !sections.some(x => x.name === state.section)) state.section = '';
       if (state.make) lists = (await loadLists()).lists;
       tasting?.flush();
       tasting = null;
@@ -329,14 +343,20 @@ export default {
       if (box && r) {
         let pending = null;
         tasting = debounced(async () => { if (pending != null) { const md = pending; pending = null; await store.update('recipes', r.id, { tasting: md }); } }, 600);
-        richText(box, { value: r.tasting || '', placeholder: 'How it tasted, what to change next time', origin: () => ({ collection: 'recipes', id: r.id, title: r.title, field: 'tasting' }), onChange: md => { pending = md; tasting.trigger(); } });
+        richText(box, { value: r.tasting || '', placeholder: 'How it turned out, what to change next time', origin: () => ({ collection: 'recipes', id: r.id, title: r.title, field: 'tasting' }), onChange: md => { pending = md; tasting.trigger(); } });
       }
       if (focusNext) { const f = el.querySelector(focusNext); focusNext = null; if (f) { f.focus(); f.select?.(); } }
+      // The picture at the top, full size once the file is here.
+      const h = el.querySelector('[data-hero]');
+      if (h) {
+        const a = await store.get('attachments', h.dataset.hero);
+        const blob = a && await store.getBlob(a.blob_id);
+        if (blob && h.isConnected) { const img = h.querySelector('img') || h.appendChild(document.createElement('img')); const url = URL.createObjectURL(blob); img.onload = () => URL.revokeObjectURL(url); img.src = url; }
+      }
     };
     // After a sync: redraw unless something is being written in (then when it's left).
     this.refresh = async () => { if (writing()) { dirty = true; return; } await render(); };
     el.addEventListener('focusout', () => setTimeout(() => { if (dirty && !writing()) render(); }, 0));
-    let focusNext = null;
     const later = async () => { data = await loadBook(); if (writing()) dirty = true; else await render(); };
 
     // ---------- saving ----------
@@ -346,14 +366,20 @@ export default {
     const pageRec = () => (state.make ? { collection: 'recipe_makes', id: state.make } : { collection: 'recipes', id: state.recipe });
 
     async function saveIngredients(o, next, label) {
-      const rec = recOf(o);
-      const old = rec.ingredients || [];
+      const old = recOf(o).ingredients || [];
       await store.update(o.collection, o.id, { ingredients: next });
       await later();
       if (label) undoable(label, async () => { await store.update(o.collection, o.id, { ingredients: old }); render(); });
     }
+    async function saveSteps(o, next, label) {
+      const rec = recOf(o);
+      const old = rec.steps || null;
+      await store.update(o.collection, o.id, rec.method ? { steps: next, method: '' } : { steps: next });
+      data = await loadBook();
+      if (label) undoable(label, async () => { await store.update(o.collection, o.id, { steps: old }); render(); });
+    }
 
-    // Text as it's typed: saved after a pause, and when it's left.
+    // Diary text as it's typed: saved after a pause, and when it's left.
     const pendingText = new Map();
     const textSave = debounced(async () => {
       const all = Array.from(pendingText.values());
@@ -362,11 +388,82 @@ export default {
     }, 700);
     const queueText = (collection, id, field, value) => { pendingText.set(`${collection}:${id}:${field}`, { collection, id, field, value }); textSave.trigger(); };
 
+    // ---------- steps ----------
+
+    function openStep(view) {
+      const ta = view.parentElement.querySelector('[data-step-text]');
+      view.hidden = true;
+      ta.hidden = false;
+      ta.focus();
+      ta.setSelectionRange(ta.value.length, ta.value.length);
+    }
+    // A step left: saved, and shown with its amounts again. An emptied step goes.
+    async function closeStep(ta) {
+      const row = ta.closest('[data-step]');
+      if (!row || ta.hidden) return;
+      const o = ownerOf(ta);
+      const steps = stepsOf(recOf(o));
+      const text = ta.value.trim();
+      const at = steps.findIndex(x => x.id === row.dataset.step);
+      if (at < 0) return;
+      ta.hidden = true;
+      const view = row.querySelector('[data-step-view]');
+      view.hidden = false;
+      if (text === steps[at].text) return;
+      if (!text) { await saveSteps(o, steps.filter((x, n) => n !== at), 'Step removed'); return render(); }
+      await saveSteps(o, steps.map((x, n) => (n === at ? Object.assign({}, x, { text }) : x)));
+      view.innerHTML = stepHtml(text, recOf(o).ingredients || [], o.collection === 'recipes' ? state.times : 1, esc);
+    }
+    async function addStep(o, text, after = null) {
+      const steps = stepsOf(recOf(o)).slice();
+      const made = { id: store.uuidv7(), text };
+      steps.splice(after ? steps.findIndex(x => x.id === after) + 1 : steps.length, 0, made);
+      await saveSteps(o, steps);
+      return made;
+    }
+
+    el.addEventListener('focusout', ev => {
+      const t = ev.target;
+      if (t.matches?.('[data-step-text]')) closeStep(t);
+      // Something written in "Next step" and left: it's a step.
+      if (t.matches?.('.bb-step-new') && t.value.trim()) { const text = t.value.trim(); t.value = ''; dirty = true; adding = addStep(ownerOf(t), text); }
+      if (t.dataset?.entryField === 'text') textSave.flush();
+    });
+
     el.addEventListener('input', ev => {
       const t = ev.target;
       if (t.matches('.bb-search')) { state.q = t.value; const at = t.selectionStart; render().then(() => { const s = el.querySelector('.bb-search'); s?.focus(); s?.setSelectionRange(at, at); }); return; }
-      if (t.dataset.method) return queueText(pageRec().collection, t.dataset.method, 'method', t.value);
       if (t.dataset.entryField === 'text') return queueText('recipe_entries', t.closest('[data-entry]').dataset.entry, 'text', t.value);
+    });
+
+    el.addEventListener('keydown', async ev => {
+      const t = ev.target;
+      if (ev.isComposing) return;
+      // Enter in "Add ingredients" adds them (Shift+Enter for another line).
+      if (t.matches?.('.bb-ing-new') && ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); return addIngredientLines(ownerOf(t), t.value); }
+      if (t.matches?.('[data-step-view]') && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); return openStep(t); }
+      if (t.matches?.('.bb-step-new') && ev.key === 'Enter' && !ev.shiftKey) {
+        ev.preventDefault();
+        const text = t.value.trim();
+        if (!text) return;
+        t.value = '';
+        await addStep(ownerOf(t), text);
+        focusNext = '.bb-step-new';
+        return render();
+      }
+      if (!t.matches?.('[data-step-text]')) return;
+      if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); t.blur(); return; }
+      // Enter: this step is done, and the next one starts under it.
+      if (ev.key === 'Enter' && !ev.shiftKey) {
+        ev.preventDefault();
+        const o = ownerOf(t), id = t.closest('[data-step]').dataset.step;
+        await closeStep(t);
+        if (!stepsOf(recOf(o)).some(x => x.id === id)) return;
+        const made = await addStep(o, '', id);
+        await render();
+        const view = el.querySelector(`[data-step="${made.id}"] [data-step-view]`);
+        if (view) openStep(view);
+      }
     });
 
     el.addEventListener('change', async ev => {
@@ -374,25 +471,22 @@ export default {
       const page = pageRec();
       if (t.dataset.rec) {
         const r = recipeOf(state.recipe);
-        const value = t.value.trim();
-        if (t.dataset.rec === 'title' && !value) { t.value = r.title; toast('A recipe needs a name, so it was put back'); return; }
-        const old = r[t.dataset.rec] || '';
-        if (value === old) return;
-        await store.update('recipes', r.id, { [t.dataset.rec]: value });
+        const field = t.dataset.rec;
+        const value = field === 'tags' ? t.value.split(',').map(x => x.trim()).filter(Boolean) : t.value.trim();
+        if (field === 'title' && !value) { t.value = r.title; toast('A recipe needs a name, so it was put back'); return; }
+        const old = r[field] ?? (field === 'tags' ? [] : '');
+        if (JSON.stringify(value) === JSON.stringify(old)) return;
+        await store.update('recipes', r.id, { [field]: value });
         await later();
-        undoable('Saved', async () => { await store.update('recipes', r.id, { [t.dataset.rec]: old }); render(); });
+        undoable('Saved', async () => { await store.update('recipes', r.id, { [field]: old }); render(); });
         return;
       }
-      if (t.matches('[data-rec-type]')) {
+      if (t.matches('[data-rec-section]')) {
         const r = recipeOf(state.recipe);
-        let type = t.value;
-        if (type === '__new') {
-          type = (await askText('A new type', { placeholder: 'e.g. Kombucha', ok: 'Add' }))?.trim();
-          if (!type) { t.value = r.type || ''; return; }
-        }
+        if (t.value === '__edit') { t.value = r.type || ''; return editSections(); }
         const fields = Object.assign({}, r.fields);
-        for (const k of typeOf(type).fields) if (!(k in fields)) fields[k] = '';
-        await store.update('recipes', r.id, { type, fields });
+        for (const k of sectionOf(sections, t.value).fields) if (!(k in fields)) fields[k] = '';
+        await store.update('recipes', r.id, { type: t.value, fields });
         return render();
       }
       if (t.dataset.fieldKey) {
@@ -401,9 +495,7 @@ export default {
         return later();
       }
       if (t.dataset.make) {
-        const field = t.dataset.make;
-        const value = t.type === 'checkbox' ? t.checked : t.value.trim();
-        await store.update('recipe_makes', state.make, { [field]: value });
+        await store.update('recipe_makes', state.make, { [t.dataset.make]: t.type === 'checkbox' ? t.checked : t.value.trim() });
         return later();
       }
       if (t.dataset.ingField) {
@@ -414,7 +506,12 @@ export default {
         let value = t.value.trim();
         if (t.dataset.ingField === 'qty') { value = value === '' ? null : parseQty(value); if (value == null && t.value.trim()) { toast('That amount wasn\'t a number'); t.value = ing.qty ?? ''; return; } }
         const next = rec.ingredients.map(i => (i.id === id ? Object.assign({}, i, { [t.dataset.ingField]: value }) : i));
-        if (t.dataset.ingField === 'item' && ing.item && value && rec.method) await store.update(o.collection, o.id, { method: renameRefs(rec.method, ing.item, value) });
+        // Renamed: the steps that mention it follow.
+        if (t.dataset.ingField === 'item' && ing.item && value) {
+          const steps = stepsOf(rec);
+          const renamed = steps.map(x => Object.assign({}, x, { text: renameRefs(x.text, ing.item, value) }));
+          if (renamed.some((x, n) => x.text !== steps[n].text)) await saveSteps(o, renamed);
+        }
         return saveIngredients(o, next);
       }
       if (t.dataset.entryField) {
@@ -431,42 +528,60 @@ export default {
         return later();
       }
     });
-    el.addEventListener('focusout', ev => { if (ev.target.dataset?.method || ev.target.dataset?.entryField === 'text') textSave.flush(); });
 
     // ---------- pressing things ----------
 
+    // Pressing an ingredient chip keeps the cursor in the step being written.
+    el.addEventListener('mousedown', ev => { if (ev.target.closest('[data-ref]')) ev.preventDefault(); });
+
+    const attParent = b => {
+      const e = b.closest('[data-entry]');
+      if (e) return { collection: 'recipe_entries', id: e.dataset.entry };
+      const s = b.closest('[data-step]');
+      if (s) return { collection: ownerOf(s).collection, id: s.dataset.step };
+      return pageRec();
+    };
+
     el.addEventListener('click', async ev => {
-      if (att.onClick(ev, b => { const e = b.closest('[data-entry]'); return e ? { collection: 'recipe_entries', id: e.dataset.entry } : pageRec(); }, () => render())) return;
+      if (att.onClick(ev, attParent, () => render())) return;
+      const view = ev.target.closest('[data-step-view]');
+      if (view && !ev.target.closest('a')) return openStep(view);
       const b = ev.target.closest('button, [data-act]');
       if (!b) return;
+      if (b.dataset.bbPaper) {
+        settings.batch_paper = b.dataset.bbPaper;
+        for (const p of el.querySelectorAll('.bb-paper')) p.dataset.paper = b.dataset.bbPaper;
+        for (const x of el.querySelectorAll('[data-bb-paper]')) x.setAttribute('aria-pressed', String(x.dataset.bbPaper === b.dataset.bbPaper));
+        await store.updateSettings({ batch_paper: b.dataset.bbPaper });
+        return;
+      }
+      if (b.closest('.view-settings')) return;
+      if (b.matches('a[href="#"]')) ev.preventDefault();
       b.closest('details')?.removeAttribute('open');
       const page = pageRec();
-      if (b.dataset.tab) { state.tab = b.dataset.tab; return render(); }
-      if (b.dataset.type !== undefined) { state.type = b.dataset.type; return render(); }
-      if (b.dataset.go) return go(b.dataset.go);
+      if (b.dataset.section !== undefined) { state.section = b.dataset.section; state.tag = ''; return render(); }
+      if (b.dataset.tag !== undefined) { state.tag = state.tag === b.dataset.tag ? '' : b.dataset.tag; return render(); }
       if (b.dataset.scale) { state.times = +b.dataset.scale; return render(); }
+      if (b.dataset.rescale) return rescale(b.dataset.rescale);
       if (b.dataset.edit) {
-        await textSave.flush();
         state.edit[b.dataset.edit] = !state.edit[b.dataset.edit];
-        if (state.edit[b.dataset.edit]) focusNext = b.dataset.edit.startsWith('ings') ? ((recOf(page).ingredients || []).length ? null : '.bb-ing-new') : '.bb-method-edit';
+        if (state.edit[b.dataset.edit] && !(recOf(page).ingredients || []).length) focusNext = '.bb-ing-new';
         return render();
       }
       if (b.dataset.ref) {
-        const ta = el.querySelector('.bb-method-edit');
-        const insert = `{${b.dataset.ref}}`;
+        const ta = document.activeElement?.closest?.('.bb-steps textarea') ? document.activeElement : el.querySelector('.bb-step-new');
+        if (!ta) return;
         const at = ta.selectionStart ?? ta.value.length;
-        ta.setRangeText(insert, at, ta.selectionEnd ?? at, 'end');
+        ta.setRangeText(`{${b.dataset.ref}}`, at, ta.selectionEnd ?? at, 'end');
         ta.focus();
-        queueText(page.collection, ta.dataset.method, 'method', ta.value);
         return;
       }
+      if (b.dataset.stepPhoto !== undefined) return att.pick(attParent(b), () => render());
       if (b.dataset.ingRemove !== undefined || b.dataset.ingMove) {
         const o = ownerOf(b);
-        const rec = recOf(o);
-        const id = b.closest('[data-ing]').dataset.ing;
-        const next = rec.ingredients.slice();
-        const at = next.findIndex(i => i.id === id);
-        if (b.dataset.ingMove) { const [moved] = next.splice(at, 1); next.splice(at - 1, 0, moved); await saveIngredients(o, next); return render(); }
+        const next = recOf(o).ingredients.slice();
+        const at = next.findIndex(i => i.id === b.closest('[data-ing]').dataset.ing);
+        if (b.dataset.ingMove) { const moved = next.splice(at, 1)[0]; next.splice(at - 1, 0, moved); await saveIngredients(o, next); return render(); }
         const gone = next.splice(at, 1)[0];
         await saveIngredients(o, next, `Removed ${gone.item || 'ingredient'}`);
         return render();
@@ -486,7 +601,7 @@ export default {
         focusNext = `[data-entry="${made.id}"] textarea`;
         return render();
       }
-      if (b.dataset.entryPhoto !== undefined) return att.pick({ collection: 'recipe_entries', id: b.closest('[data-entry]').dataset.entry }, () => render());
+      if (b.dataset.entryPhoto !== undefined) return att.pick(attParent(b), () => render());
       if (b.dataset.entryRemove !== undefined) {
         const id = b.closest('[data-entry]').dataset.entry;
         await store.remove('recipe_entries', id);
@@ -497,13 +612,12 @@ export default {
       const act = b.dataset.act;
       if (act === 'home') return go('#/recipes');
       if (act === 'new') return newRecipe();
+      if (act === 'batches') { state.batches = !state.batches; return render(); }
+      if (act === 'sections') return editSections();
       if (act === 'to-recipe') return go(`#/recipes/${makeOf(state.make)?.recipe_id || ''}`);
-      if (act === 'add-ings') {
-        const ta = b.closest('.bb-ing-edit').querySelector('.bb-ing-new');
-        return addIngredientLines(ownerOf(ta), ta.value);
-      }
+      if (act === 'add-ings') { const ta = b.closest('.bb-ing-edit').querySelector('.bb-ing-new'); return addIngredientLines(ownerOf(ta), ta.value); }
       if (act === 'add-field') {
-        const name = (await askText('Add a detail', { placeholder: 'e.g. Batch volume, Yeast, Oven temperature', ok: 'Add' }))?.trim();
+        const name = (await askText('Add a detail', { placeholder: 'e.g. Oven temperature, Yeast, Serves', ok: 'Add' }))?.trim();
         if (!name) return;
         const rec = recOf(page);
         await store.update(page.collection, page.id, { fields: Object.assign({}, rec.fields, { [name]: (rec.fields || {})[name] || '' }) });
@@ -513,8 +627,7 @@ export default {
       if (act === 'make') return makeThis(recipeOf(state.recipe));
       if (act === 'stock') return stockCheck(makeOf(state.make));
       if (act === 'reading') {
-        const had = entriesOf(state.make, 'reading');
-        const made = await store.create('recipe_entries', { make_id: state.make, kind: 'reading', label: had.length ? 'SG' : 'OG', gravity: null, date: today(), text: '' });
+        const made = await store.create('recipe_entries', { make_id: state.make, kind: 'reading', label: entriesOf(state.make, 'reading').length ? 'SG' : 'OG', gravity: null, date: today(), text: '' });
         focusNext = `[data-entry="${made.id}"] .bb-gravity`;
         return render();
       }
@@ -542,12 +655,6 @@ export default {
       }
     });
 
-    // Enter in "Add ingredients" adds them (Shift+Enter for another line).
-    el.addEventListener('keydown', ev => {
-      const t = ev.target;
-      if (t.matches?.('.bb-ing-new') && ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing) { ev.preventDefault(); addIngredientLines(ownerOf(t), t.value); }
-    });
-
     async function addIngredientLines(o, text) {
       const made = text.split('\n').map(parseLine).filter(Boolean);
       if (!made.length) return;
@@ -556,26 +663,101 @@ export default {
       await render();
     }
 
+    // Every amount in this batch times a number (the recipe itself stays as it is).
+    async function rescale(how) {
+      const m = makeOf(state.make);
+      let times = +how;
+      if (how === 'ask') {
+        const got = await askText('Scale every amount', { placeholder: 'e.g. 1.5 or 3/4', ok: 'Scale', text: 'Every ingredient\'s amount in this batch is multiplied by this.' });
+        times = parseQty(got);
+        if (!times || times <= 0) { if (got) toast('That wasn\'t a number'); return; }
+      }
+      await saveIngredients({ collection: 'recipe_makes', id: m.id }, m.ingredients.map(i => Object.assign({}, i, { qty: i.qty == null ? null : i.qty * times })), `Scaled ×${qtyText(times)}`);
+      await render();
+    }
+
     async function newRecipe() {
-      const type = state.type || '';
-      const fields = Object.fromEntries(typeOf(type).fields.map(k => [k, '']));
-      const r = await store.create('recipes', { title: 'New recipe', type, description: '', ingredients: [], method: '', tasting: '', fields });
+      const section = state.section || sections[0]?.name || '';
+      const fields = Object.fromEntries(sectionOf(sections, section).fields.map(k => [k, '']));
+      const r = await store.create('recipes', { title: 'New recipe', type: section, tags: [], description: '', ingredients: [], steps: [], tasting: '', fields });
       focusNext = '.bb-title';
       go(`#/recipes/${r.id}`);
       undoable('New recipe', async () => { await store.remove('recipes', r.id); go('#/recipes'); });
     }
 
-    // A batch starts from the recipe as it is now (at the scale shown), then checks the stock.
+    // A batch starts as a copy of the recipe (at the scale shown), with its step photos, to change freely.
     async function makeThis(r) {
       const times = state.times;
+      const steps = stepsOf(r).map(x => ({ id: store.uuidv7(), text: x.text, from: x.id }));
       const m = await store.create('recipe_makes', {
         recipe_id: r.id, batch_no: nextBatchNo(data.makes, data.recipes, r.type), date: today(), status: 'going',
         description: r.description || '', state: '', back_sweetened: false, fields: Object.assign({}, r.fields),
-        ingredients: (r.ingredients || []).map(i => Object.assign({}, i, { qty: i.qty == null ? null : i.qty * times })), method: r.method || '', stock: {}, list_id: null,
+        ingredients: (r.ingredients || []).map(i => Object.assign({}, i, { qty: i.qty == null ? null : i.qty * times })), steps, stock: {}, list_id: null,
       });
+      // The same files, not copies: a second record points at each one.
+      for (const x of steps) {
+        for (const a of atts.get(x.from) || []) await store.create('attachments', { parent_collection: 'recipe_makes', parent_id: x.id, blob_id: a.blob_id, name: a.name, mime: a.mime, kind: a.kind, size: a.size, thumb: a.thumb });
+      }
       go(`#/recipes/${r.id}/make/${m.id}`);
       undoable(`Started Batch #${m.batch_no}`, async () => { await store.remove('recipe_makes', m.id); go(`#/recipes/${r.id}`); });
-      if ((r.ingredients || []).length) setTimeout(() => stockCheck(m), 300);
+    }
+
+    // ---------- sections ----------
+    // Your own sections: a name, an emoji, a colour, the details its new recipes start with, and
+    // whether its batches have gravity readings. A renamed section takes its recipes with it.
+    async function editSections() {
+      const own = sections.filter(x => !x.auto).map(x => ({ was: x.name, name: x.name, emoji: x.emoji, colour: x.colour, fields: x.fields.slice(), readings: !!x.readings }));
+      const dlg = document.createElement('dialog');
+      dlg.className = 'sheet bb-sections-sheet';
+      document.body.append(dlg);
+      const row = (x, n) => `<div class="bb-sec-row" data-i="${n}">
+        <input class="bb-sec-emoji" data-k="emoji" value="${esc(x.emoji)}" aria-label="Emoji" maxlength="8">
+        <input class="bb-sec-name" data-k="name" value="${esc(x.name)}" placeholder="Name, e.g. Baking" aria-label="Section name">
+        <input type="color" data-k="colour" value="${esc(x.colour)}" aria-label="Colour">
+        <button type="button" class="icon-btn bb-x" data-sec-remove="${n}" aria-label="Remove section">×</button>
+        <input class="bb-sec-fields" data-k="fields" value="${esc(x.fields.join(', '))}" placeholder="Details its recipes have, e.g. Serves, Oven temperature" aria-label="Details">
+        <label class="bb-sec-readings"><input type="checkbox" data-k="readings" ${x.readings ? 'checked' : ''}> Batches have gravity readings</label>
+      </div>`;
+      const draw = () => {
+        dlg.innerHTML = `<div class="sheet-handle"></div>
+          <h2>Sections</h2>
+          <p class="muted">Each recipe goes in one section. Sort them however suits you: by what they are, where they're from, or when you make them. Tags on a recipe sort them further.</p>
+          <div class="bb-sec-list">${own.map(row).join('')}</div>
+          <button type="button" data-sec-add>+ Add a section</button>
+          <div class="sheet-actions"><button type="button" data-sec-cancel>Cancel</button><span class="spacer"></span><button type="button" class="primary" data-sec-save>Save</button></div>`;
+      };
+      const read = () => {
+        for (const r of dlg.querySelectorAll('.bb-sec-row')) {
+          const x = own[+r.dataset.i];
+          x.emoji = r.querySelector('[data-k="emoji"]').value.trim() || '📖';
+          x.name = r.querySelector('[data-k="name"]').value.trim();
+          x.colour = r.querySelector('[data-k="colour"]').value;
+          x.fields = r.querySelector('[data-k="fields"]').value.split(',').map(s => s.trim()).filter(Boolean);
+          x.readings = r.querySelector('[data-k="readings"]').checked;
+        }
+      };
+      dlg.addEventListener('click', async ev => {
+        const b = ev.target.closest('button');
+        if (!b) return;
+        if (b.dataset.secAdd !== undefined) { read(); own.push({ was: null, name: '', emoji: '📖', colour: '#7a6a55', fields: [], readings: false }); draw(); dlg.querySelector('.bb-sec-row:last-child .bb-sec-name').focus(); return; }
+        if (b.dataset.secRemove) { read(); own.splice(+b.dataset.secRemove, 1); draw(); return; }
+        if (b.dataset.secCancel !== undefined) return dlg.close();
+        if (b.dataset.secSave !== undefined) {
+          read();
+          const keep = own.filter(x => x.name);
+          if (new Set(keep.map(x => x.name)).size !== keep.length) { toast('Two sections have the same name'); return; }
+          const moved = keep.filter(x => x.was && x.was !== x.name);
+          for (const x of moved) await store.updateMany('recipes', data.recipes.filter(r => (r.type || '') === x.was).map(r => [r.id, { type: x.name }]));
+          await store.updateSettings({ batch_sections: keep.map(x => ({ name: x.name, emoji: x.emoji, colour: x.colour, fields: x.fields, readings: x.readings })) });
+          const followed = moved.find(x => x.was === state.section);
+          if (followed) state.section = followed.name;
+          dlg.close();
+          toast('Sections saved');
+        }
+      });
+      dlg.addEventListener('close', () => { dlg.remove(); render(); });
+      draw();
+      dlg.showModal();
     }
 
     // ---------- the stock check ----------
@@ -589,7 +771,6 @@ export default {
       const answers = Object.assign({}, m.stock);
       let at = 0;
       const all = (await loadLists()).lists.filter(l => l.kind !== 'template');
-      const settings = await store.getSettings();
       const dlg = document.createElement('dialog');
       dlg.className = 'sheet bb-stock';
       document.body.append(dlg);
@@ -638,10 +819,8 @@ export default {
         if (s === 'add') {
           const picked = ings.filter(i => dlg.querySelector(`[data-need="${i.id}"]`)?.checked);
           const useOld = dlg.querySelector('[name="bb-list"]:checked')?.value === 'old';
-          let list;
-          if (useOld) list = all.find(l => l.id === dlg.querySelector('.bb-stock-pick').value);
-          else list = await createList({ name: dlg.querySelector('.bb-stock-name-in').value.trim() || 'Shopping', kind: 'list' });
-          const have = (await store.list('list_items', { filter: x => x.list_id === list.id && !x.archived_at }));
+          const list = useOld ? all.find(l => l.id === dlg.querySelector('.bb-stock-pick').value) : await createList({ name: dlg.querySelector('.bb-stock-name-in').value.trim() || 'Shopping', kind: 'list' });
+          const have = await store.list('list_items', { filter: x => x.list_id === list.id && !x.archived_at });
           const made = await addItems(list.id, picked.map(i => ({ text: ingredientText(i) + (i.note ? ` (${i.note})` : ''), sub: false })), nestItems(have));
           await store.updateSettings({ batch_list_id: list.id });
           await save(list.id);
@@ -656,8 +835,7 @@ export default {
 
     this.onKey = ev => {
       if (ev.key === 'Escape' && !ev.defaultPrevented && !document.querySelector('dialog[open]') && !writing()) {
-        const open = Object.keys(state.edit).find(k => state.edit[k]);
-        if (open) { ev.preventDefault(); state.edit = {}; render(); }
+        if (Object.keys(state.edit).some(k => state.edit[k])) { ev.preventDefault(); state.edit = {}; render(); }
       }
     };
     addEventListener('keydown', this.onKey);
