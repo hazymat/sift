@@ -661,6 +661,15 @@ label.inline select { width: auto; max-width: 220px; font-size: .85rem; padding:
 .select-bar .select-count { font-size: .85rem; margin-right: 6px; }
 .select-bar button { padding: 5px 10px; font-size: .85rem; box-shadow: none; }
 body.is-dragging .select-bar { opacity: 0; pointer-events: none; }
+.select-bar button[hidden] { display: none; }
+.select-bar button { display: inline-flex; align-items: center; }
+/* A group (Move ▸) opens sideways to show its buttons (listkit.js). */
+.select-bar .kit-group { display: inline-flex; align-items: center; gap: 4px; }
+.select-bar .kit-group-items { display: inline-flex; gap: 4px; overflow: hidden; }
+.select-bar .kit-group-items[hidden] { display: none; }
+.select-bar .kit-group-items:not([hidden]) { animation: kit-open .2s cubic-bezier(.2, .8, .2, 1); }
+.select-bar [data-kit-group][aria-expanded="true"] { background: var(--active-bg); border-color: var(--active-border); }
+@keyframes kit-open { from { clip-path: inset(0 100% 0 0); opacity: .4; } to { clip-path: inset(0); opacity: 1; } }
 body.has-select-bar .toast { bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 72px); }
 body.has-select-bar main { padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 80px); }
 @media (min-width: 768px) {
@@ -3428,6 +3437,12 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
 .rich.bare > .md-bar { display: none; }
 .rich.bare > .bare-full { display: flex; align-items: center; gap: 5px; width: fit-content; margin: 6px 0 6px auto; padding: 4px 12px; font-size: .78rem; line-height: 1.3; border: 1px solid var(--glass-border); border-radius: var(--radius-pill, 999px); cursor: pointer; }
 .rich.is-full > .bare-full { display: none; }
+/* Desktop: the Fullscreen button sits on the note's own (first) line, at the right, not a line of its own under it. */
+@media (hover: hover) and (pointer: fine) and (min-width: 700px) {
+  .rich.bare:not(.is-full):has(> .bare-full) { display: flex; align-items: flex-start; gap: 10px; }
+  .rich.bare:not(.is-full):has(> .bare-full) > .rich-edit { flex: 1 1 auto; min-width: 0; }
+  .rich.bare:not(.is-full) > .bare-full { flex: none; margin: 0; }
+}
 /* A task's note being written (in place, or the New task line's): the size of "Add note", a
    little fainter than the task's name (in italics in Glass); "Add note" faint until typed over. */
 :is(.task-list > li[data-task] > .note-in-place, #task-new-note):not(.is-full) .rich-edit { min-height: 1.4em; padding: 2px 0; border: 0; border-radius: 0; box-shadow: none; outline: none; background: transparent; font-size: .9rem; line-height: 1.4; color: color-mix(in srgb, var(--text) 85%, transparent); }

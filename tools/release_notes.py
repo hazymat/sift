@@ -655,3 +655,10 @@ NOTES['1.35.36'] = [
 NOTES['1.35.37'] = [
   B("Day Planner tasks: the New task line is back under the tasks still to do (above the done ones)."),
 ]
+NOTES['1.35.38'] = [
+  B("Tasks: while you type a task's note in place, its pills (energy, time, dates, list) stay open instead of flashing and going."),
+  B("On a computer, the Fullscreen note editor button sits on the note's own line."),
+  F("Tasks on a computer: Shift+↑ / ↓ in a task's name stops editing and selects it and the task above / below; again, the selection grows or shrinks."),
+  F("The selection bar says \"2 selected\", shows each button's keys, which work while things are selected (Ctrl+Enter Done, A Archive, D Delete, Tab / Shift+Tab Indent / Outdent), and only shows Indent or Outdent when some of the selection can go that way."),
+  F("Tasks: Now, Next and Later sit behind one Move button that opens sideways (without the list you're looking at)."),
+]

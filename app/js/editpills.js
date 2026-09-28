@@ -94,6 +94,7 @@ export function editPills(root, spec) {
   };
 
   const onFocus = ev => {
+    if (!ev.target.isConnected) return; // swapped for something else as it got the cursor (e.g. "Add note" for the notes editor)
     const title = ev.target.closest?.(spec.title);
     const row = title?.closest(spec.row);
     // The cursor moved somewhere else on the page (Tab, Shift+Tab): put the pills away.
