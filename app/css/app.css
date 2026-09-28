@@ -2876,6 +2876,8 @@ html:not(.show-hints) #main:not([data-area="settings"]) .hint { display: none; }
 
 /* Colour swatches and the colour picker (colours.js). */
 .swatch { display: inline-block; flex: none; width: 14px; height: 14px; border-radius: 50%; background: var(--sw, transparent); border: 1px solid color-mix(in srgb, var(--text) 35%, transparent); vertical-align: -2px; }
+/* Words, not emoji: the app's own font, normal spacing. */
+.pill-menu.word-menu button { font-family: inherit; letter-spacing: normal; padding: 4px 12px; font-size: .88rem; }
 .pill-menu.colour-menu { flex-wrap: wrap; width: 232px; gap: 4px; padding: 6px; border-radius: 16px; }
 .pill-menu.colour-menu button { padding: 5px; line-height: 0; }
 .pill-menu.colour-menu .swatch { width: 20px; height: 20px; }
