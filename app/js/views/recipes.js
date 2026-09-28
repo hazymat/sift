@@ -19,6 +19,9 @@ import { dateText, isoDate, PAPERS } from '../days.js';
 import { cogHtml } from '../viewcog.js';
 import { rankOf, byRank, reorderWrites } from '../order.js';
 import { createListKit } from '../listkit.js';
+import { shareSheet, sharedWithText, people, fromOthers, invitesHtml, theirsHtml } from '../sharing.js';
+import { TINTS } from '../colours.js';
+import { pillMenu } from '../pillmenu.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -37,12 +40,13 @@ const camera = '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d
 
 export default {
   async mount(el) {
-    const state = this.state = { recipe: null, make: null, section: '', tag: '', q: '', batches: false, times: 1, edit: {} };
+    const state = this.state = { recipe: null, make: null, section: '', tag: '', q: '', batches: false, status: '', times: 1, edit: {}, owner: null };
     let data = { recipes: [], makes: [], entries: [] };
     let atts = new Map();
     let settings = {};
     let sections = [];
     let lists = [];
+    let shared = []; // recipes others share with you: [{ r, owner_id, name }]
     let dirty = false; // something changed while a field was being written in: redraw once it's left
     let focusNext = null;
     const recipeOf = id => data.recipes.find(r => r.id === id);
@@ -53,6 +57,13 @@ export default {
     const go = hash => { if (location.hash !== hash) location.hash = hash; else render(); };
     const photoOf = id => (atts.get(id) || []).find(a => a.kind === 'image' && a.thumb);
     const paper = () => settings.batch_paper || 'notebook';
+    // A recipe's own colour (More, Colour), else its book's.
+    const colourOf = r => TINTS.find(c => c.id === r?.colour)?.hex || sectionFor(r).colour;
+    // Someone else's recipe (shared with you) is read and changed in their space (store.js): its pages end /from/<their id>.
+    const ownerPath = (owner = state.owner) => (owner ? `/from/${owner}` : '');
+    const theirName = () => shared.find(x => x.owner_id === state.owner)?.name || 'Someone';
+    // Lists are always your own, even on someone else's batch.
+    const inMine = async fn => { store.useSpace(null); try { return await fn(); } finally { store.useSpace(state.owner ? store.spaceOf(state.owner) : null); } };
     const batchListName = m => `${recipeOf(m.recipe_id)?.title || 'Batch'} – ${dayMonth(m.date || today())}`;
     const writing = () => !!document.activeElement?.closest?.('input:not([type="checkbox"]), textarea, select, [contenteditable="true"], [data-step-view]') && el.contains(document.activeElement);
 
@@ -68,21 +79,44 @@ export default {
     const order = r => sections.findIndex(x => x.name === (r.type || ''));
     const shown = () => data.recipes.filter(matches).sort((a, b) => order(a) - order(b) || byPlace(a, b));
 
-    function card(r) {
+    // A card: its picture, name and how often it's been made; Make and ⋯ More under it.
+    // from: a person sharing it with you ({ owner_id, name }); their cards don't drag.
+    function card(r, from = null) {
       const sec = sectionFor(r);
-      const made = makesOf(r.id);
-      const photo = photoOf(r.id);
-      return `<li class="bb-card-li" data-id="${r.id}" data-depth="0" style="--bb:${sec.colour}">
-        <button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button>
-        <a class="bb-card" href="#/recipes/${r.id}">
+      const made = from ? [] : makesOf(r.id);
+      const photo = from ? null : photoOf(r.id);
+      const withWho = from ? from.name : sharedWithText({ kind: 'recipe', id: r.id });
+      return `<li class="bb-card-li" ${from ? `data-from="${from.owner_id}" data-rid="${r.id}"` : `data-id="${r.id}" data-depth="0"`} style="--bb:${colourOf(r)}">
+        ${from ? '' : `<button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button>`}
+        <a class="bb-card" href="#/recipes/${r.id}${from ? `/from/${from.owner_id}` : ''}">
         <span class="bb-card-pic">${photo ? `<img src="${photo.thumb}" alt="" loading="lazy">` : `<span class="bb-card-emoji">${sec.emoji}</span>`}</span>
         <span class="bb-card-body">
           <span class="bb-card-title">${esc(r.title || 'Untitled')}</span>
           ${r.description ? `<span class="muted bb-card-desc">${esc(r.description)}</span>` : ''}
           ${(r.tags || []).length ? `<span class="bb-card-tags">${r.tags.map(t => `<span class="chip">${esc(t)}</span>`).join('')}</span>` : ''}
-          <span class="muted bb-card-made">${made.length ? `Made ${made.length}× · last ${shortDate(made[0].date)}` : 'Not made yet'}</span>
+          ${withWho ? `<span class="muted bb-card-made">👥 ${from ? `Shared by ${esc(withWho)}` : `Shared with ${esc(withWho)}`}</span>` : ''}
+          ${from ? '' : `<span class="muted bb-card-made">${made.length ? `Made ${made.length}× · last ${shortDate(made[0].date)}` : 'Not made yet'}</span>`}
         </span>
-      </a></li>`;
+        </a>
+        <div class="bb-card-acts">
+          <button type="button" class="bb-card-make" data-card="make" title="Start a batch of this">🧪 Make</button>
+          <details class="tool-menu bb-card-menu">
+            <summary class="icon-btn" aria-label="More" title="More">${icon('i-more')}</summary>
+            <div class="menu">
+              <button type="button" data-card="copy">📋 Copy to clipboard</button>
+              ${from ? '<button type="button" data-card="dup">⧉ Make a copy of my own</button>' : '<button type="button" data-card="share">👥 Share…</button><button type="button" data-card="dup">⧉ Duplicate</button>'}
+              <button type="button" data-card="print">🖨️ Print</button>
+              ${from ? `<button type="button" data-share-leave="${fromOthers(['recipe']).find(sh => sh.owner_id === from.owner_id && sh.info.id === r.id)?.id || ''}">Leave this shared recipe</button>` : `
+              <button type="button" data-card="colour">🎨 Colour…</button>
+              <span class="menu-label muted">Move to</span>
+              ${sections.filter(x => x.name !== (r.type || '')).map(x => `<button type="button" data-card-book="${esc(x.name)}">${x.emoji} ${esc(x.name || 'No book')}</button>`).join('')}
+              <hr>
+              <button type="button" data-card="archive">Archive</button>
+              <button type="button" class="danger" data-card="delete">Delete</button>`}
+            </div>
+          </details>
+        </div>
+      </li>`;
     }
 
     function batchRow(m) {
@@ -90,7 +124,7 @@ export default {
       const sec = sectionFor(r);
       const abv = abvOf(entriesOf(m.id, 'reading'));
       const photo = photoOf(m.id);
-      return `<a class="bb-batch-row" href="#/recipes/${m.recipe_id}/make/${m.id}" style="--bb:${sec.colour}">
+      return `<a class="bb-batch-row" href="#/recipes/${m.recipe_id}/make/${m.id}${ownerPath()}" style="--bb:${colourOf(r)}">
         ${photo ? `<img class="bb-batch-pic" src="${photo.thumb}" alt="">` : `<span class="bb-batch-emoji">${sec.emoji}</span>`}
         <span class="bb-batch-no">Batch #${esc(m.batch_no || '?')}</span>
         <span class="bb-batch-name">${esc(r?.title || 'Untitled')}${m.description && m.description !== r?.description ? ` <span class="muted">· ${esc(m.description)}</span>` : ''}</span>
@@ -106,38 +140,48 @@ export default {
       </div>`;
     }
 
+    // A book's heading: stays at the top while its recipes scroll under it.
+    const chapter = (name, n) => { const x = sectionOf(sections, name); return `<li class="bb-chapter-title" data-book="${esc(name)}" style="--bb:${x.colour}"><span>${x.emoji}</span> ${esc(name || 'No book')} <span class="muted">${n}</span></li>`; };
+
     function overview() {
       const inSection = data.recipes.filter(r => !state.section || (r.type || '') === state.section);
       const tags = Array.from(new Set(inSection.flatMap(r => r.tags || []))).sort((a, b) => a.localeCompare(b));
       if (state.tag && !tags.includes(state.tag)) state.tag = '';
       const list = shown();
       const ids = new Set(list.map(r => r.id));
-      const batches = data.makes.filter(m => ids.has(m.recipe_id));
+      const batches = data.makes.filter(m => ids.has(m.recipe_id) && (!state.status || (m.status || 'going') === state.status));
       const groups = state.section ? [state.section] : sections.map(x => x.name).filter(n => list.some(r => (r.type || '') === n));
+      const theirs = shared.filter(x => matches(x.r));
+      const invites = invitesHtml(['recipe']);
       return `
-        <div class="bb-head">
-          <button type="button" class="primary" data-act="new">+ New recipe</button>
-          <input type="search" class="bb-search" placeholder="Search recipes…" value="${esc(state.q)}" aria-label="Search recipes">
-          <button type="button" class="bb-batches-btn" data-act="batches" aria-pressed="${state.batches}">🧪 Batches</button>
-          ${cogHtml('recipes', paperHtml())}
-          <details class="tool-menu page-more">
-            <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
-            <div class="menu"><a href="#" data-act="sections">Edit books</a><a href="#/bin/archive/recipes">Show Archive</a><a href="#/bin/bin/recipes">Show Bin</a></div>
-          </details>
-        </div>
-        <div class="bb-sections-bar">
-          <div class="segmented bb-sections" role="tablist" aria-label="Books">
-            <button type="button" data-section="" aria-pressed="${!state.section}">All</button>
-            ${sections.map(x => `<button type="button" data-section="${esc(x.name)}" aria-pressed="${state.section === x.name}" style="--bb:${x.colour}">${x.emoji} ${esc(x.name || 'No book')}</button>`).join('')}
+        <div class="bb-sticky">
+          <div class="bb-head">
+            <button type="button" class="primary" data-act="new">+ New recipe</button>
+            <input type="search" class="bb-search" placeholder="Search recipes…" value="${esc(state.q)}" aria-label="Search recipes">
+            <button type="button" class="bb-batches-btn" data-act="batches" aria-pressed="${state.batches}">🧪 Batches</button>
+            ${cogHtml('recipes', paperHtml())}
+            <details class="tool-menu page-more">
+              <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
+              <div class="menu"><a href="#" data-act="sections">Edit books</a><a href="#/bin/archive/recipes">Show Archive</a><a href="#/bin/bin/recipes">Show Bin</a></div>
+            </details>
           </div>
-          <button type="button" class="icon-btn bb-sections-edit" data-act="sections" title="Edit books" aria-label="Edit books">✎</button>
+          <div class="bb-sections-bar">
+            <div class="segmented bb-sections" role="tablist" aria-label="Books">
+              <button type="button" data-section="" aria-pressed="${!state.section}">All</button>
+              ${sections.map(x => `<button type="button" data-section="${esc(x.name)}" aria-pressed="${state.section === x.name}" style="--bb:${x.colour}">${x.emoji} ${esc(x.name || 'No book')}</button>`).join('')}
+            </div>
+            <button type="button" class="icon-btn bb-sections-edit" data-act="sections" title="Edit books" aria-label="Edit books">✎</button>
+          </div>
+          ${state.batches ? `<div class="segmented bb-status" role="group" aria-label="Status">${[['', 'All']].concat(STATUSES).map(([v, l]) => `<button type="button" data-status="${v}" aria-pressed="${state.status === v}">${l}</button>`).join('')}</div>`
+            : tags.length ? `<div class="bb-tags">${tags.map(t => `<button type="button" class="chip" data-tag="${esc(t)}" aria-pressed="${state.tag === t}">${esc(t)}</button>`).join('')}</div>` : ''}
         </div>
-        ${tags.length ? `<div class="bb-tags">${tags.map(t => `<button type="button" class="chip" data-tag="${esc(t)}" aria-pressed="${state.tag === t}">${esc(t)}</button>`).join('')}</div>` : ''}
-        ${!data.recipes.length ? `<div class="empty"><h2>No recipes yet.</h2><p class="muted">Add a recipe: ingredients, steps, photos and tasting notes. Each time you make it, start a batch: its own copy to change, what you have in and what to buy, readings, a diary and how it turned out.</p></div>`
-        : state.batches ? (batches.length ? `<div class="bb-batches">${batches.map(batchRow).join('')}</div>` : '<div class="empty"><h2>No batches here yet.</h2><p class="muted">Open a recipe and press Make this.</p></div>')
-        : list.length ? `<ul class="bb-grid bb-cards">${groups.map(name => { const x = sectionOf(sections, name); const mine = list.filter(r => (r.type || '') === name); return `
-            ${state.section ? '' : `<li class="bb-chapter-title" data-book="${esc(name)}" style="--bb:${x.colour}"><span>${x.emoji}</span> ${esc(name || 'No book')} <span class="muted">${mine.length}</span></li>`}
-            ${mine.map(card).join('')}`; }).join('')}</ul>` : `<div class="empty"><h2>Nothing here yet.</h2>${state.section && !state.q ? '<p class="muted">Press + New recipe to add one to this book.</p>' : ''}</div>`}`;
+        <div class="bb-body">
+        ${!data.recipes.length && !shared.length && !invites ? `<div class="empty"><h2>No recipes yet.</h2><p class="muted">Add a recipe: ingredients, steps, photos and tasting notes. Each time you make it, start a batch: its own copy to change, what you have in and what to buy, readings, a diary and how it turned out.</p></div>`
+        : state.batches ? (batches.length ? `<div class="bb-batches bb-batch-list">${batches.map(batchRow).join('')}</div>` : `<div class="empty"><h2>No ${state.status ? `${STATUSES.find(s => s[0] === state.status)[1].toLowerCase()} ` : ''}batches here.</h2><p class="muted">Open a recipe and press Make this.</p></div>`)
+        : `${list.length ? `<ul class="bb-grid bb-cards">${groups.map(name => { const mine = list.filter(r => (r.type || '') === name); return chapter(name, mine.length) + mine.map(r => card(r)).join(''); }).join('')}</ul>`
+          : `<div class="empty"><h2>Nothing here yet.</h2>${state.section && !state.q ? '<p class="muted">Press + New recipe to add one to this book.</p>' : ''}</div>`}
+          ${theirs.length || invites ? `<h3 class="bb-chapter-title bb-shared-title" style="--bb:#7a6a55"><span>👥</span> Shared with me</h3>${invites}<ul class="bb-grid bb-shared">${theirs.map(x => card(x.r, x)).join('')}</ul>` : ''}`}
+        </div>`;
     }
 
     // ---------- pieces used on both pages ----------
@@ -225,7 +269,8 @@ export default {
       const sec = sectionFor(r);
       const made = makesOf(r.id);
       return `${top('home', 'Recipes', `<button type="button" class="primary bb-make-btn" data-act="make" title="Start a batch: its own copy of this recipe">🧪 Make this${state.times !== 1 ? ` ×${qtyText(state.times)}` : ''}</button>`)}
-        <article class="bb-paper" data-paper="${paper()}" style="--bb:${sec.colour}">
+        ${state.owner ? theirsHtml(`${theirName()}'s recipe, shared with you`, '<button type="button" data-act="home">Back to my recipes</button>') : ''}
+        <article class="bb-paper" data-paper="${paper()}" style="--bb:${colourOf(r)}">
           ${hero(r.id)}
           <header class="bb-title-row">
             <span class="bb-emoji">${sec.emoji}</span>
@@ -293,14 +338,15 @@ export default {
       const f = m.fields || {};
       const goal = k => `<label><span>${k}</span><input data-field-key="${k}" value="${esc(f[k] || '')}" aria-label="${k}" placeholder="…"></label>`;
       return `${top('to-recipe', r?.title || 'Recipe')}
-        <article class="bb-paper bb-make" data-paper="${paper()}" style="--bb:${sec.colour}">
+        ${state.owner ? theirsHtml(`A batch of ${theirName()}'s recipe, shared with you`, '<button type="button" data-act="home">Back to my recipes</button>') : ''}
+        <article class="bb-paper bb-make" data-paper="${paper()}" style="--bb:${colourOf(r)}">
           ${hero(m.id)}
           <header class="bb-title-row">
             <span class="bb-emoji">${sec.emoji}</span>
             <span class="bb-title bb-batch-title">Batch #<input class="bb-batch-input" data-make="batch_no" value="${esc(m.batch_no || '')}" aria-label="Batch number" size="4"></span>
           </header>
           <div class="bb-rule"></div>
-          <p class="bb-of">${esc(r?.type ? `${r.type}: ` : '')}<a href="#/recipes/${m.recipe_id}">${esc(r?.title || 'Untitled')}</a></p>
+          <p class="bb-of">${esc(r?.type ? `${r.type}: ` : '')}<a href="#/recipes/${m.recipe_id}${ownerPath()}">${esc(r?.title || 'Untitled')}</a></p>
           <h2 class="bb-h bb-h-big"><span>🍯 This batch's recipe</span><span class="muted bb-h-note">a copy: changes here stay on this batch</span></h2>
           ${ingredientsHtml(m, { collection: 'recipe_makes', id: m.id }, { stock: true })}
           ${stepsHtml(m, { collection: 'recipe_makes', id: m.id })}
@@ -341,17 +387,21 @@ export default {
     let adding = null; // a step still being saved: drawn once it's in
     const render = this.render = async () => {
       await adding;
+      store.useSpace(state.owner ? store.spaceOf(state.owner) : null);
+      shared = await loadShared();
+      if (state.owner && !shared.some(x => x.owner_id === state.owner && x.r.id === state.recipe)) { state.owner = null; store.useSpace(null); if (state.recipe) return go('#/recipes'); }
       data = await loadBook();
       atts = await att.byParent();
       settings = await store.getSettings();
       sections = sectionsOf(settings, data.recipes);
       if (state.section && !sections.some(x => x.name === state.section)) state.section = '';
-      if (state.make) lists = (await loadLists()).lists;
+      if (state.make) lists = await inMine(async () => (await loadLists()).lists);
       tasting?.flush();
       tasting = null;
       dirty = false;
       el.innerHTML = `<div class="bb">${state.make ? makePage() : state.recipe ? recipePage() : overview()}</div>`;
       kitFor().attach(el.querySelector('.bb-cards'));
+      watchSticky();
       const box = el.querySelector('.bb-tasting');
       const r = state.recipe && !state.make && recipeOf(state.recipe);
       if (box && r) {
@@ -613,7 +663,7 @@ export default {
         return;
       }
       if (b.dataset.addEntry) {
-        const made = await store.create('recipe_entries', { make_id: state.make, kind: b.dataset.addEntry, date: today(), text: '' });
+        const made = await store.create('recipe_entries', { make_id: state.make, recipe_id: makeOf(state.make)?.recipe_id, kind: b.dataset.addEntry, date: today(), text: '' });
         focusNext = `[data-entry="${made.id}"] textarea`;
         return render();
       }
@@ -630,7 +680,7 @@ export default {
       if (act === 'new') return newRecipe();
       if (act === 'batches') { state.batches = !state.batches; return render(); }
       if (act === 'sections') return editSections();
-      if (act === 'to-recipe') return go(`#/recipes/${makeOf(state.make)?.recipe_id || ''}`);
+      if (act === 'to-recipe') return go(`#/recipes/${makeOf(state.make)?.recipe_id || ''}${ownerPath()}`);
       if (act === 'add-ings') { const ta = b.closest('.bb-ing-edit').querySelector('.bb-ing-new'); return addIngredientLines(ownerOf(ta), ta.value); }
       if (act === 'add-field') {
         const name = (await askText('Add a detail', { placeholder: 'e.g. Oven temperature, Yeast, Serves', ok: 'Add' }))?.trim();
@@ -642,7 +692,7 @@ export default {
       }
       if (act === 'make') return makeThis(recipeOf(state.recipe));
       if (act === 'reading') {
-        const made = await store.create('recipe_entries', { make_id: state.make, kind: 'reading', label: entriesOf(state.make, 'reading').length ? 'SG' : 'OG', gravity: null, date: today(), text: '' });
+        const made = await store.create('recipe_entries', { make_id: state.make, recipe_id: makeOf(state.make)?.recipe_id, kind: 'reading', label: entriesOf(state.make, 'reading').length ? 'SG' : 'OG', gravity: null, date: today(), text: '' });
         focusNext = `[data-entry="${made.id}"] .bb-gravity`;
         return render();
       }
@@ -665,7 +715,7 @@ export default {
       if (act === 'delete-make') {
         const m = makeOf(state.make);
         await store.remove('recipe_makes', m.id);
-        go(`#/recipes/${m.recipe_id}`);
+        go(`#/recipes/${m.recipe_id}${ownerPath()}`);
         undoable(`Deleted Batch #${m.batch_no}`, async () => { await store.restore('recipe_makes', m.id); render(); });
       }
     });
@@ -701,8 +751,8 @@ export default {
     }
 
     // A batch starts as a copy of the recipe (at the scale shown), with its step photos, to change freely.
-    async function makeThis(r) {
-      const times = state.times;
+    async function makeThis(r, owner = state.owner, times = state.times) {
+      store.useSpace(owner ? store.spaceOf(owner) : null);
       const steps = stepsOf(r).map(x => ({ id: store.uuidv7(), text: x.text, from: x.id }));
       const m = await store.create('recipe_makes', {
         recipe_id: r.id, batch_no: nextBatchNo(data.makes, data.recipes, r.type), date: today(), status: 'going',
@@ -713,8 +763,8 @@ export default {
       for (const x of steps) {
         for (const a of atts.get(x.from) || []) await store.create('attachments', { parent_collection: 'recipe_makes', parent_id: x.id, blob_id: a.blob_id, name: a.name, mime: a.mime, kind: a.kind, size: a.size, thumb: a.thumb });
       }
-      go(`#/recipes/${r.id}/make/${m.id}`);
-      undoable(`Started Batch #${m.batch_no}`, async () => { await store.remove('recipe_makes', m.id); go(`#/recipes/${r.id}`); });
+      go(`#/recipes/${r.id}/make/${m.id}${ownerPath(owner)}`);
+      undoable(`Started Batch #${m.batch_no}`, async () => { store.useSpace(owner ? store.spaceOf(owner) : null); await store.remove('recipe_makes', m.id); go(`#/recipes/${r.id}${ownerPath(owner)}`); });
     }
 
     // ---------- books ----------
@@ -788,17 +838,17 @@ export default {
       const stock = Object.assign({}, m.stock), items = Object.assign({}, m.stock_items);
       const was = stock[ingId];
       const patch = {};
-      if (items[ingId]) { await store.remove('list_items', items[ingId]); delete items[ingId]; }
+      if (items[ingId]) { await inMine(() => store.remove('list_items', items[ingId])); delete items[ingId]; }
       if (was === how) delete stock[ingId]; else stock[ingId] = how;
       if (stock[ingId] === 'need') {
         let list = m.list_id && lists.find(l => l.id === m.list_id);
-        if (!list) { list = await createList({ name: batchListName(m), kind: 'list' }); patch.list_id = list.id; }
-        const made = await addToList(list.id, [m.ingredients.find(i => i.id === ingId)]);
+        if (!list) { list = await inMine(() => createList({ name: batchListName(m), kind: 'list' })); patch.list_id = list.id; }
+        const made = await inMine(() => addToList(list.id, [m.ingredients.find(i => i.id === ingId)]));
         items[ingId] = made[0].id;
         if (patch.list_id) toast(`Made the list "${list.name}"`, { action: 'Open list', onAction: () => { location.hash = `#/lists/${list.id}`; } });
       }
       await store.update('recipe_makes', m.id, Object.assign(patch, { stock, stock_items: items }));
-      if (patch.list_id) lists = (await loadLists()).lists;
+      if (patch.list_id) lists = await inMine(async () => (await loadLists()).lists);
       await later();
     }
     // Another list chosen: what's already been added moves over to it.
@@ -806,12 +856,12 @@ export default {
       const m = await store.get('recipe_makes', state.make);
       const items = Object.assign({}, m.stock_items);
       const ings = (m.ingredients || []).filter(i => items[i.id] && (m.stock || {})[i.id] === 'need');
-      for (const i of ings) await store.remove('list_items', items[i.id]);
+      await inMine(async () => { for (const i of ings) await store.remove('list_items', items[i.id]); });
       let target = listId;
-      if (!target && ings.length) target = (await createList({ name: batchListName(m), kind: 'list' })).id;
-      if (target && ings.length) { const made = await addToList(target, ings); ings.forEach((i, n) => { items[i.id] = made[n].id; }); }
+      if (!target && ings.length) target = (await inMine(() => createList({ name: batchListName(m), kind: 'list' }))).id;
+      if (target && ings.length) { const made = await inMine(() => addToList(target, ings)); ings.forEach((i, n) => { items[i.id] = made[n].id; }); }
       await store.update('recipe_makes', m.id, { list_id: target || null, stock_items: items });
-      lists = (await loadLists()).lists;
+      lists = await inMine(async () => (await loadLists()).lists);
       await render();
     }
 
@@ -867,7 +917,11 @@ export default {
     await render();
   },
 
-  route([id, sub, makeId]) {
+  route(parts) {
+    // …/from/<owner id>: someone else's recipe, shared with you
+    const at = parts.indexOf('from');
+    this.state.owner = at >= 0 ? parts[at + 1] || null : null;
+    const [id, sub, makeId] = at >= 0 ? parts.slice(0, at) : parts;
     const recipe = id || null;
     if (recipe !== this.state.recipe) { this.state.times = 1; this.state.edit = {}; }
     this.state.recipe = recipe;
@@ -879,6 +933,8 @@ export default {
   unmount() {
     removeEventListener('keydown', this.onKey);
     this.kit?.destroy();
+    this.stickWatch?.disconnect();
+    store.useSpace(null);
   },
 
   quickAdd() {
