@@ -219,57 +219,6 @@ Anna's recipe. A very moist, dense cake, gooey from the low flour and high fruit
 ## Notes
 Anna's Simnel cake is the same cake with a 2 mm layer of golden marzipan in the middle, a thick marzipan top with wavy edges, and 11 marzipan balls (about 20 g each) brushed with egg yolk and browned with a blowtorch or under a low grill.
 
-# Coloured Sticky Rice with Mango
-Book: Cooking
-Tags: thai, dessert
-
-Difficult! This is a lot of effort, and you really need to find the perfect mangos for it to be excellent.
-
-## Ingredients
-### Rice
-- 4 cup sticky rice (a cup per colour)
-- 50 g pandan leaves (green)
-- green food colouring
-- 20 butterfly pea flowers (blue)
-- ½ tsp turmeric (yellow)
-- ¼ cup black sticky rice (purple)
-- 4 cup water
-- ice cubes
-### Salted coconut sauce
-- 3 ml cornflour
-- 10 ml sauce water
-- 80 ml coconut milk
-- ⅕ tsp table salt
-### Toasted mung beans
-- 2 tbsp mung beans
-- 470 ml bean water
-- oil
-### Coconut syrup
-- syrup coconut milk
-- sugar
-- salt
-### To serve
-- mango
-
-## Method
-1. Wash the {sticky rice|rice} until the water runs clear (5 times).
-2. Colour the water, one cup of rice for each:
-   - Green: blend {pandan leaves} with {1/4 water|1 cup water} (not atomised), add some {green food colouring|green food colour}.
-   - Blue: {butterfly pea flowers} in {1/8 water|½ cup hot water} (off the boil) for 15 mins, drain, then add {1/8 water|½ cup cold} to cool it down.
-   - Yellow: {turmeric} in {1/16 water|¼ cup hot water}, stir to extract the colour, then {3/16 water|¾ cup cold} to cool it down.
-   - Purple: {black sticky rice} with {1/4 water|1 cup off-boil water}, steep 30 mins ({ice cubes} to cool if still hot), then add {sticky rice|¾ cup washed white rice}.
-3. Steep {sticky rice|a cup of rice} in each for 4 hours.
-4. During the soak, salted coconut sauce: stir {cornflour} into {sauce water}, combine in a small pot with {coconut milk} and {table salt}. Medium-high heat, stir constantly until it boils. Remove and cool completely.
-5. {mung beans|Mung beans}: rinse, add to a small pot, cover with {bean water}. Bring to a simmer over medium heat, immediately take off the heat and leave 10 mins. Drain and dry on paper towel. Toast in a pan lightly greased with {oil} over medium-high heat until light golden. Cool on a plate; they keep.
-6. Coconut syrup (any time, but HEAT UP before adding to the rice): {syrup coconut milk|coconut milk}, {sugar} and {salt} in a pan on medium-high. At the FIRST sign of bubbling, take off the heat and COVER. Don't let it reduce!
-7. Steam the rice 20 to 25 mins; make sure there's space for the steam to come up!
-8. Just before it's done, reheat the syrup.
-9. Put the rice in individual bowls and pour the syrup over. STIR to break up lumps, COVER and stand 20 mins. Then fold the bottom of the rice up to the top and WAIT another 20 mins, covered.
-10. Cut the {mango} (long slices across the cheek) and assemble, with the coconut sauce on top and mung beans sprinkled over.
-
-## Notes
-Thai evening running order: 7pm set the table (crackers and chilli sauce, prik nam pla); 7.15 oven on for starters; 7.20 prep cocktails. On arrival: drinks, starters in the oven and served, THEN jasmine rice on; green curry on; pad kra pao heated with basil to serve; peanuts on the som tum.
-
 # Cranberry Sauce
 Book: Cooking
 Tags: christmas, sauce
@@ -292,9 +241,11 @@ Serve it hot, the flavours are brighter.
 4. Take off the heat and beat lightly with a spoon, so some of the berries break up. Serve hot.
 
 `;
-const PHOTOS = { 'Borscht': ['borscht-1.jpg', 'borscht-2.jpg'], 'Chicken Green Curry': ['green-curry-2.jpg'], 'Hot Toddy': ['hot-toddy-1.jpg', 'hot-toddy-2.jpg'], 'Pampushki': ['pampushki-1.jpg', 'pampushki-2.jpg', 'pampushki-3.jpg'], 'Coloured Sticky Rice with Mango': ['sticky-rice-1.jpg', 'sticky-rice-2.jpg'], 'Christmas Cake': ['christmas-cake-1.jpg'], 'Cranberry Sauce': ['cranberry-sauce-1.jpg'] };
+const PHOTOS = { 'Borscht': ['borscht-1.jpg', 'borscht-2.jpg'], 'Chicken Green Curry': ['green-curry-2.jpg'], 'Hot Toddy': ['hot-toddy-1.jpg', 'hot-toddy-2.jpg'], 'Pampushki': ['pampushki-1.jpg', 'pampushki-2.jpg', 'pampushki-3.jpg'], 'Christmas Cake': ['christmas-cake-1.jpg'], 'Cranberry Sauce': ['cranberry-sauce-1.jpg'] };
 // Goes up when photos or recipes are added to the showcase, so books that already have it get the new ones.
-const PHOTOS_VERSION = 9;
+const PHOTOS_VERSION = 10;
+// Taken out of the showcase later: a book that got one and hasn't changed it or made a batch of it loses it once.
+const DROPPED = ['Coloured Sticky Rice with Mango'];   // 1.49.14, Mat asked
 
 // Showcase recipes and photos get ids made from the account and their name, the same on every device and every
 // run, so two devices (or two quick renders on one) adding them at once make one copy that sync merges, not three
@@ -321,11 +272,16 @@ async function addPhotos(recipe, names = PHOTOS[recipe.title] || []) {
 
 // The showcase recipes not there yet (by name), and the photos each is missing (by file name).
 async function addShowcase(fresh = false) {
+  const makes = await store.list('recipe_makes'), atts = await att.byParent();
+  for (const title of DROPPED) {
+    const r = await store.get('recipes', await fixedId(`recipe|${title}`));
+    if (r && r.updated_at === r.created_at && !makes.some(m => m.recipe_id === r.id)) { for (const a of atts.get(r.id) || []) await store.remove('attachments', a.id); await store.remove('recipes', r.id); }
+  }
   const have = (await store.list('recipes')).map(r => r.title.toLowerCase());
   const ever = (await store.list('recipes', { includeDeleted: true })).filter(r => r.deleted_at).map(r => r.id);   // one deleted since it was added stays deleted
   for (const r of parseRecipes(SHOWCASE)) { const id = await fixedId(`recipe|${r.title}`); if (!have.includes(r.title.toLowerCase()) && (fresh || !ever.includes(id))) await store.create('recipes', Object.assign(r, { id, colour: null })); }
-  const atts = await att.byParent();
-  for (const r of await store.list('recipes')) if (PHOTOS[r.title]) { const names = (atts.get(r.id) || []).map(a => a.name); await addPhotos(r, PHOTOS[r.title].filter(n => !names.includes(n))); }
+  const photos = await att.byParent();
+  for (const r of await store.list('recipes')) if (PHOTOS[r.title]) { const names = (photos.get(r.id) || []).map(a => a.name); await addPhotos(r, PHOTOS[r.title].filter(n => !names.includes(n))); }
   await store.updateSettings({ batch_examples: true, batch_wipe: 1, batch_showcase_photos: PHOTOS_VERSION });
 }
 
