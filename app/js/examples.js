@@ -281,6 +281,61 @@ Ukrainian garlic bread rolls, the ones to have with borscht. Mat's own recipe.
 9. Meanwhile the garlic sauce: mince the {garlic} into a bowl, then add the {kosher salt|salt}, {more vegetable oil|vegetable oil}, {cold water|water} and {chopped herbs|chopped parsley}.
 10. When the bread is ready, drizzle the sauce over it in the tin and leave a few mins to soak in. Serve.
 
+# Christmas Cake
+Book: Baking
+Tags: christmas, cake
+Makes: one 8 inch cake
+Time: 3 hours, plus an overnight soak
+Oven: 140 °C fan
+
+Anna's recipe. A very moist, dense cake, gooey from the low flour and high fruit (1.5 kg of it), a bit like a Christmas pudding. How to line the tin: amummytoo.co.uk/idiots-guide-to-lining-a-christmas-cake-tin
+
+## Ingredients
+### Fruit
+- 600 g glacé cherries (3 punnets, halved)
+- 400 g jumbo raisins
+- 200 g dried cranberries
+- 100 g sultanas
+- 50 g dried apricots
+- 1 orange, zested
+- 1 lemon, zested
+- 250 ml cherry brandy (or brandy, or any alcohol you like; 250 ml at least)
+### Cake
+- 250 g salted butter
+- 220 g brown sugar (dark and light mixed)
+- 3 tbsp molasses (or golden syrup)
+- ½ tsp salt
+- 1 tsp allspice
+- 1 tsp cinnamon
+- 1 tsp nutmeg
+- 1 tsp baking powder (flat)
+- 5 eggs
+- 185 g plain flour
+- whole almonds (a handful or two)
+### To finish
+- 500 g white marzipan
+- 500 g golden marzipan (or morello marzipan)
+- white ready-to-roll icing
+- silver balls
+- fresh cherries
+- icing sugar, for dusting
+
+## Method
+1. The night before: soak the {glacé cherries}, {jumbo raisins}, {dried cranberries}, {sultanas}, {dried apricots} and the zest of the {orange} and {lemon} in the {cherry brandy}. Quicker: heat it all gently in a large pan instead. It makes the kitchen smell delicious!
+2. Double line an 8 inch loose-bottomed tin with baking parchment. Wrap several layers of brown paper or parchment round the outside and tie with string.
+3. Oven on to 140 °C fan.
+4. In a large bowl, beat the {salted butter|butter} and {brown sugar|sugar}. Beat in the {molasses}, then the {salt}, {allspice}, {cinnamon}, {nutmeg} and {baking powder}.
+5. Beat in the {eggs} one at a time.
+6. Stir in the {plain flour|flour}, then the boozy fruit, then the {whole almonds|almonds}.
+7. Spoon into the tin, then drop the tin onto the worktop from about 10 cm so the mix fills the air pockets.
+8. Bake 3 hours. Check at 2.5 hours and cover with foil if it's getting too brown (Anna never has to).
+9. When cool, cover with a layer of {white marzipan}, then {golden marzipan}, then the {white ready-to-roll icing|white icing}.
+10. Score the sides in diamonds like a quilt (slightly uneven is fine), with {silver balls|a silver ball} where the lines cross.
+11. Pile {fresh cherries} on top and dust with {icing sugar}.
+
+## Notes
+Anna's Simnel cake is the same cake with a 2 mm layer of golden marzipan in the middle, a thick marzipan top with wavy edges, and 11 marzipan balls (about 20 g each) brushed with egg yolk and browned with a blowtorch or under a low grill.
+
 # Quick Baguette
 Book: Baking
 Tags: bread
@@ -405,11 +460,11 @@ Hanoi grilled pork. First made 2013; made again in 2023 (bought meat pre-minced)
 11. Cook the {vermicelli} per the packet (2 mins?), then blanch in {cold water}.
 12. Mat's way: broth in bowls, then a little greens, a little {vermicelli|vermicelli} and some meatballs (not all). The rest on small plates to share.
 `;
-const PHOTOS = { 'Borscht': ['borscht-1.jpg', 'borscht-2.jpg'], 'Chicken Green Curry': ['green-curry-1.jpg'], 'Hot Toddy': ['hot-toddy-1.jpg', 'hot-toddy-2.jpg'], 'Pampushki': ['pampushki-1.jpg', 'pampushki-2.jpg', 'pampushki-3.jpg'], 'Coloured Sticky Rice with Mango': ['sticky-rice-1.jpg', 'sticky-rice-2.jpg'] };
+const PHOTOS = { 'Borscht': ['borscht-1.jpg', 'borscht-2.jpg'], 'Chicken Green Curry': ['green-curry-1.jpg'], 'Hot Toddy': ['hot-toddy-1.jpg', 'hot-toddy-2.jpg'], 'Pampushki': ['pampushki-1.jpg', 'pampushki-2.jpg', 'pampushki-3.jpg'], 'Coloured Sticky Rice with Mango': ['sticky-rice-1.jpg', 'sticky-rice-2.jpg'], 'Christmas Cake': ['christmas-cake-1.jpg'] };
 // Goes up when photos are added, so books that already have the showcase get the new ones.
-const PHOTOS_VERSION = 5;
+const PHOTOS_VERSION = 6;
 // Recipes added to the showcase later, so books that already have it get them too (unless deleted there).
-const ADDED = ['Hot Toddy', 'Pampushki', 'Coloured Sticky Rice with Mango'];
+const ADDED = ['Hot Toddy', 'Pampushki', 'Coloured Sticky Rice with Mango', 'Christmas Cake'];
 // Showcase names and photo files that changed since a book got them (1.49.02: Mat spells it Borscht).
 const RENAMED = { 'Borsch': 'Borscht', 'borsch-1.jpg': 'borscht-1.jpg' };
 // The examples from 1.47.00 to 1.48.00, which the showcase replaces.
