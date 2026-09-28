@@ -548,3 +548,6 @@ NOTES['1.35.02'] = [
 NOTES['1.35.03'] = [
   F("Tasks: Shift+Enter in a task's name, or in New task, opens More and puts the cursor in the task's note, ready to write."),
 ]
+NOTES['1.35.04'] = [
+  F("The tour's note steps say what's different about notes in Sift: action buttons, formatting (or plain text), phone numbers and emails picked out as contacts, attaching screenshots and PDFs, undo back through earlier versions, and a new step: nothing typed is ever lost, even a note not saved yet."),
+]
