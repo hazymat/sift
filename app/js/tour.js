@@ -34,7 +34,7 @@ function newUserSteps() {
   return [
     { id: 'welcome', title: 'Welcome to Sift', body: `<p>There's a <b>lot</b> in Sift, and this tour shows most of it. It's fine to ignore plenty of it for now and come back to it when you need it.</p>
       <p>Honestly, the best part is just the notes. Sift keeps every change to a note as you type it, so a note is never lost, and any earlier version can come back, whichever device you wrote it on. And a note can turn into something you do. We hope you'll agree it's better than any notes app you've used before, even your phone's own. Seriously!</p>
-      <p>You'll try things for real as you go: anything you make is yours to keep or delete.</p>` },
+      <p>Okay, I lied. The ${w('area_tasks')} app and the ${w('area_planner')} are the best part of this. They're better than other tasks apps you've seen, or your money back. What's that you say? The app is free? Okay: I'll buy you an ice cream 🍦 if you find a better tasks app! Anyway, I'll show you the features now.</p>` },
 
     // ---------- Brain Dump ----------
     { id: 'dump', hash: '#/dump', at: '.dump-capture', focus: '#dump-body .rich-edit', title: `${word('area_dump')}: empty your head`, done: { made: ['thoughts'] },
