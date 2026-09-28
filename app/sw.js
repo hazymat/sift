@@ -18,6 +18,7 @@ const SHELL = [
   'js/thememocks.js',
   'js/slide.js',
   'js/rowswipe.js',
+  'js/keys.js',
   'js/typesheet.js',
   'js/noteundo.js',
   'js/repeat.js',

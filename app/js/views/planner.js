@@ -1013,6 +1013,7 @@ export default {
       title: '.item-title',
       row: '.line.has-item[data-item]',
       key: r => r.dataset.item,
+      done: true,
       html: id => {
         const i = items.find(x => x.id === id);
         if (!i) return '';

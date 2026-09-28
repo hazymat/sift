@@ -1,3 +1,4 @@
+import { keys } from './keys.js';
 // Mockups for the Custom theme editor (customtheme.js): each section drawn
 // with the app's own markup and classes, so the real CSS (and the user's
 // picks) draw it exactly as the app does. data-edit on an element lists the
@@ -55,7 +56,7 @@ export const MOCKS = {
       <div class="rich"><div class="rich-edit hand"${E('dump.note', 'dump.notefont')}><div>Ring the garage about the <b>MOT</b></div></div></div>
       <div class="dump-kinds-row"><span class="dump-caption"${E('dump.muted')}>This is a:</span>
         <div class="dump-kinds"><button type="button" aria-pressed="true"${E('dump.accent')}>Thought</button><button type="button" aria-pressed="false">Idea</button><button type="button" aria-pressed="false">Task</button></div></div>
-      <div class="dump-foot"><span class="spacer"></span><button type="button" class="primary"${E('dump.accent')}>Save <kbd>Ctrl+Enter</kbd></button></div>
+      <div class="dump-foot"><span class="spacer"></span><button type="button" class="primary"${E('dump.accent')}>Save ${keys('Ctrl+Enter')}</button></div>
     </section>
     <section class="dump-find"><div class="dump-h-row"><h2 class="dump-h"${E('dump.handfont', 'dump.text')}>Your notes</h2></div></section>
     <ul class="thought-list">

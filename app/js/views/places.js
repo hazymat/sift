@@ -16,6 +16,7 @@ import * as att from '../attachments.js';
 import { editPills, selectPill } from '../editpills.js';
 import { askText, askYes, askEmptied } from '../ask.js';
 import { word } from '../words.js';
+import { keys } from '../keys.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -227,7 +228,7 @@ export default {
           <textarea id="new-items" class="list-entry" rows="2" placeholder="${esc(word('ph_add_items'))}"></textarea>
           <p class="muted hint">${listHint({ enterAdds: true })} The cube: tap to select, swipe down the cubes to select several, press and hold to drag (sideways to indent; or Tab / Shift+Tab). Changes save as you go; Esc closes.</p>
           <div class="sheet-actions">
-            <button type="button" data-act="add-items">Add items <kbd>${SHORTCUT}</kbd></button>
+            <button type="button" data-act="add-items">Add items ${keys(SHORTCUT)}</button>
             <span class="spacer"></span>
             <label class="inline">Move to <select name="parent_place_id">${sections.map(o => `<option value="${o.id}" ${o.id === s.id ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}</select></label>
             <button type="button" data-act="archive-box">Archive box</button>

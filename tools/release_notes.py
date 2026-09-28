@@ -636,3 +636,7 @@ NOTES['1.35.30'] = [
 NOTES['1.35.31'] = [
   F("Day Planner on a phone: tap an item once to get it ready. Drag it by any part of it to another time, or drag the bar at its bottom down to make it longer; tap it again to edit it. Stretching an item no longer opens it for editing instead."),
 ]
+NOTES['1.35.32'] = [
+  F("Tasks and the Day Planner: Ctrl+Enter (⌘+Enter on a Mac) in a task's or item's name ticks it done, and again unticks it. On a wide screen a ✓ Done chip beside More shows it."),
+  B("Shortcuts shown on buttons draw each key in its own box (Shift, Enter), not one box for both."),
+]

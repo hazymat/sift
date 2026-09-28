@@ -29,6 +29,7 @@ import { pointTo, flash } from '../flash.js';
 import { word, dumpTypes } from '../words.js';
 import { shareSheet, sharedWithText, people, fromOthers, invitesHtml, theirsHtml } from '../sharing.js';
 import { slide } from '../slide.js';
+import { keys } from '../keys.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -101,7 +102,7 @@ export default {
         <div class="dump-foot">
           <button type="button" class="att-add" data-att-add title="Attach photos, PDFs or text files (or drop them onto the box)">${icon('i-clip')}<span>Attach</span></button>
           <span class="spacer"></span>
-          <button type="button" class="primary" data-act="save">Save <kbd>${SHORTCUT}</kbd></button>
+          <button type="button" class="primary" data-act="save">Save ${keys(SHORTCUT)}</button>
         </div>
       </section>
       <section class="dump-find" aria-labelledby="dump-notes-h">

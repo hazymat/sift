@@ -17,6 +17,7 @@ import { tintHex, tintId, colourMenu } from '../colours.js';
 import { rankOf, reorderWrites } from '../order.js';
 import { dateText } from '../days.js';
 import { shareSheet, sharedWithText, people, invitesHtml, theirsHtml } from '../sharing.js';
+import { keys } from '../keys.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -183,7 +184,7 @@ export default {
         <textarea id="list-new" class="list-entry" rows="2" placeholder="${esc(word('ph_add_items'))}"></textarea>
         <p class="muted hint">${listHint({ enterAdds: true })}</p>
         <div class="detail-actions">
-          <button type="button" data-act="add">Add items <kbd>${SHORTCUT}</kbd></button>
+          <button type="button" data-act="add">Add items ${keys(SHORTCUT)}</button>
           <span class="spacer"></span>
           ${from ? '' : `<button type="button" data-act="archive-list">Archive list</button>
           <button type="button" class="danger" data-act="delete-list">Delete list</button>`}
