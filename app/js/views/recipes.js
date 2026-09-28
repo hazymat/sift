@@ -9,7 +9,7 @@
 
 import * as store from '../store.js';
 import * as att from '../attachments.js';
-import { sectionsOf, sectionOf, stepsOf, UNITS, UNIT_GROUPS, parseLine, parseQty, qtyText, amountText, ingredientText, stepHtml, renameRefs, abvOf, nextBatchNo, loadBook, batchName, batchDay } from '../batchbook.js';
+import { sectionsOf, sectionOf, stepsOf, UNITS, parseLine, parseQty, qtyText, amountText, ingredientText, stepHtml, renameRefs, abvOf, nextBatchNo, loadBook, batchName, batchDay } from '../batchbook.js';
 import { loadLists, nestItems, createList, addItems } from '../lists.js';
 import { richText } from '../richtext.js';
 import { debounced } from '../autosave.js';
@@ -212,32 +212,18 @@ export default {
     // ---------- pieces used on both pages ----------
 
     const line = (margin, content, tools = '', attrs = '') => `<div class="bb-line" ${attrs}><span class="bb-margin">${margin}</span><span class="bb-content">${content}</span>${tools ? `<span class="bb-tools">${tools}</span>` : ''}</div>`;
-    const unitSelect = (value, attrs) => `<select ${attrs} aria-label="Unit">${UNIT_GROUPS.map(g => `<optgroup label="${g}">${UNITS.filter(u => u[2] === g).map(u => `<option value="${u[0]}"${u[0] === (value || '') ? ' selected' : ''}>${u[0] ? esc(u[1]) : 'each'}</option>`).join('')}</optgroup>`).join('')}</select>`;
     const hero = id => { const p = (atts.get(id) || []).find(a => a.kind === 'image'); return p ? `<div class="bb-hero" data-hero="${p.id}">${p.thumb ? `<img src="${p.thumb}" alt="">` : ''}</div>` : ''; };
 
     // o = { collection, id }: the recipe or the batch whose ingredients these are.
     // On a batch (stock: true) each ingredient is In stock or Add to list (the batch's list: see listLine).
     function ingredientsHtml(rec, o, { stock = false } = {}) {
       const ings = rec.ingredients || [];
-      const editing = state.edit[`ings:${rec.id}`];
       const isRecipe = o.collection === 'recipes';
       const hasQty = ings.some(i => i.qty != null);
-      const scale = !editing && hasQty ? (isRecipe
+      const scale = hasQty ? (isRecipe
         ? `<span class="segmented bb-scale" aria-label="Scale">${SCALES.map(s => `<button type="button" data-scale="${s}" aria-pressed="${state.times === s}">×${qtyText(s)}</button>`).join('')}</span>`
         : `<span class="segmented bb-scale" aria-label="Scale this batch"><button type="button" data-rescale="0.5" title="Halve every amount">×½</button><button type="button" data-rescale="2" title="Double every amount">×2</button><button type="button" data-rescale="ask" title="Scale every amount">×…</button></span>`) : '';
-      const head = `<h2 class="bb-h"><span>🧺 Ingredients</span>${scale}<button type="button" class="bb-edit" data-edit="ings:${rec.id}">${editing ? 'Done' : ings.length ? 'Edit' : '+ Add'}</button></h2>`;
-      if (editing) return `${head}
-        <div class="bb-ing-edit" data-owner="${o.collection}:${o.id}">
-          ${ings.map((i, n) => `<div class="bb-ing-row" data-ing="${i.id}">
-            <input class="bb-ing-item" data-ing-field="item" value="${esc(i.item)}" placeholder="Ingredient" aria-label="Ingredient">
-            <input class="bb-ing-qty" data-ing-field="qty" value="${esc(i.qty == null ? '' : qtyText(i.qty, i.unit))}" placeholder="Amount" inputmode="decimal" aria-label="Amount">
-            ${unitSelect(i.unit, 'data-ing-field="unit" class="bb-ing-unit"')}
-            <input class="bb-ing-note" data-ing-field="note" value="${esc(i.note || '')}" placeholder="Kind or note" aria-label="Kind or note">
-            <span class="bb-ing-moves"><button type="button" class="icon-btn" data-ing-move="-1" ${n ? '' : 'disabled'} aria-label="Move up">↑</button><button type="button" class="icon-btn" data-ing-remove aria-label="Remove">×</button></span>
-          </div>`).join('')}
-          <textarea class="bb-ing-new no-inline" rows="3" placeholder="Add ingredients, one per line: 250g butter, unsalted · ½ lemon · 1 tsp baking powder"></textarea>
-          <div class="detail-actions"><button type="button" data-act="add-ings">Add these</button></div>
-        </div>`;
+      const head = `<h2 class="bb-h"><span>🧺 Ingredients</span>${scale}</h2>`;
       // Written straight on the lines: the amount in the margin, the ingredient (", note") beside it.
       const times = isRecipe ? state.times : 1;
       const got = rec.stock || {};
@@ -523,6 +509,14 @@ export default {
       if (t.dataset?.entryField === 'text') textSave.flush();
     });
 
+    // A pasted list on the last ingredient line: every line becomes an ingredient.
+    el.addEventListener('paste', ev => {
+      const t = ev.target, text = ev.clipboardData?.getData('text') || '';
+      if (!t.matches?.('.bb-ing-add') || !/\n/.test(text.trim())) return;
+      ev.preventDefault();
+      addIngredientLines(ownerOf(t), text);
+    });
+
     el.addEventListener('input', ev => {
       const t = ev.target;
       if (t.matches('.bb-search')) { state.q = t.value; const at = t.selectionStart; render().then(() => { const s = el.querySelector('.bb-search'); s?.focus(); s?.setSelectionRange(at, at); }); return; }
@@ -532,8 +526,6 @@ export default {
     el.addEventListener('keydown', async ev => {
       const t = ev.target;
       if (ev.isComposing) return;
-      // Enter in "Add ingredients" adds them (Shift+Enter for another line).
-      if (t.matches?.('.bb-ing-new') && ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); return addIngredientLines(ownerOf(t), t.value); }
       if (t.matches?.('[data-step-view]') && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); return openStep(t); }
       if (t.matches?.('.bb-ing-add') && ev.key === 'Enter') { ev.preventDefault(); const text = t.value; t.value = ''; return addIngredientLines(ownerOf(t), text, '.bb-ing-add'); }
       if (t.matches?.('.bb-ing-add') && ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); t.value = ''; t.blur(); return; }
@@ -596,22 +588,6 @@ export default {
         return later();
       }
       if (t.dataset.ingLine) return saveIngLine(t);
-      if (t.dataset.ingField) {
-        const o = ownerOf(t);
-        const rec = recOf(o);
-        const id = t.closest('[data-ing]').dataset.ing;
-        const ing = rec.ingredients.find(i => i.id === id);
-        let value = t.value.trim();
-        if (t.dataset.ingField === 'qty') { value = value === '' ? null : parseQty(value); if (value == null && t.value.trim()) { toast('That amount wasn\'t a number'); t.value = ing.qty ?? ''; return; } }
-        const next = rec.ingredients.map(i => (i.id === id ? Object.assign({}, i, { [t.dataset.ingField]: value }) : i));
-        // Renamed: the steps that mention it follow.
-        if (t.dataset.ingField === 'item' && ing.item && value) {
-          const steps = stepsOf(rec);
-          const renamed = steps.map(x => Object.assign({}, x, { text: renameRefs(x.text, ing.item, value) }));
-          if (renamed.some((x, n) => x.text !== steps[n].text)) await saveSteps(o, renamed);
-        }
-        return saveIngredients(o, next);
-      }
       if (t.dataset.entryField) {
         const id = t.closest('[data-entry]').dataset.entry;
         const f = t.dataset.entryField;
@@ -699,11 +675,6 @@ export default {
       if (b.dataset.tag !== undefined) { state.tag = state.tag === b.dataset.tag ? '' : b.dataset.tag; return render(); }
       if (b.dataset.scale) { state.times = +b.dataset.scale; return render(); }
       if (b.dataset.rescale) return rescale(b.dataset.rescale);
-      if (b.dataset.edit) {
-        state.edit[b.dataset.edit] = !state.edit[b.dataset.edit];
-        if (state.edit[b.dataset.edit] && !(recOf(page).ingredients || []).length) focusNext = '.bb-ing-new';
-        return render();
-      }
       if (b.dataset.ref) {
         const ta = document.activeElement?.closest?.('.bb-steps textarea') ? document.activeElement : el.querySelector('.bb-step-new');
         if (!ta) return;
@@ -714,15 +685,6 @@ export default {
       }
       if (b.dataset.stock) return setStock(b.closest('[data-ing]').dataset.ing, b.dataset.stock);
       if (b.dataset.stepPhoto !== undefined) return att.pick(attParent(b), () => render());
-      if (b.dataset.ingRemove !== undefined || b.dataset.ingMove) {
-        const o = ownerOf(b);
-        const next = recOf(o).ingredients.slice();
-        const at = next.findIndex(i => i.id === b.closest('[data-ing]').dataset.ing);
-        if (b.dataset.ingMove) { const moved = next.splice(at, 1)[0]; next.splice(at - 1, 0, moved); await saveIngredients(o, next); return render(); }
-        const gone = next.splice(at, 1)[0];
-        await saveIngredients(o, next, `Removed ${gone.item || 'ingredient'}`);
-        return render();
-      }
       if (b.dataset.fieldRemove) {
         const rec = recOf(page);
         const fields = Object.assign({}, rec.fields);
@@ -752,7 +714,6 @@ export default {
       if (act === 'batches') { state.batches = !state.batches; return render(); }
       if (act === 'sections') return editSections();
       if (act === 'to-recipe') return go(`#/recipes/${makeOf(state.make)?.recipe_id || ''}${ownerPath()}`);
-      if (act === 'add-ings') { const ta = b.closest('.bb-ing-edit').querySelector('.bb-ing-new'); return addIngredientLines(ownerOf(ta), ta.value); }
       if (act === 'add-field') {
         const name = (await askText('Add a detail', { placeholder: 'e.g. Oven temperature, Yeast, Serves', ok: 'Add' }))?.trim();
         if (!name) return;
@@ -776,7 +737,7 @@ export default {
       }
     });
 
-    async function addIngredientLines(o, text, focus = '.bb-ing-new') {
+    async function addIngredientLines(o, text, focus = '.bb-ing-add') {
       const made = text.split('\n').map(parseLine).filter(Boolean);
       if (!made.length) return;
       if (focus) focusNext = focus;
