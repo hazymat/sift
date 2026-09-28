@@ -853,3 +853,4 @@ NOTES['1.49.00'] = [
 ]
 NOTES['1.49.01'] = [F("Batch Book: the Borscht starter has Mat's own photo. Books that already had the starters get it too.")]
 NOTES['1.49.02'] = [F("Batch Book: Borscht (now spelt that way) has a second photo, of the broth being made.")]
+NOTES['1.49.03'] = [F("Batch Book: the Chicken Green Curry starter has Mat's own photo.")]
