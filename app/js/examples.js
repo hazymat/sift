@@ -408,6 +408,27 @@ Difficult! This is a lot of effort, and you really need to find the perfect mang
 ## Notes
 Thai evening running order: 7pm set the table (crackers and chilli sauce, prik nam pla); 7.15 oven on for starters; 7.20 prep cocktails. On arrival: drinks, starters in the oven and served, THEN jasmine rice on; green curry on; pad kra pao heated with basil to serve; peanuts on the som tum.
 
+# Cranberry Sauce
+Book: Cooking
+Tags: christmas, sauce
+Serves: 6
+Time: 15 mins
+
+Serve it hot, the flavours are brighter.
+
+## Ingredients
+- 250 g fresh cranberries
+- 100 ml white wine
+- 2 tbsp port (a splash)
+- 100 g caster sugar
+- 1 orange (a couple of long strips of zest)
+
+## Method
+1. Put the {fresh cranberries|cranberries}, {white wine}, {port} and {caster sugar} into a pan and bring to the boil.
+2. Cut a couple of long strips of zest from the {orange}, slice them into thin shreds and stir them in.
+3. Simmer gently for 10 mins, until the berries start to burst.
+4. Take off the heat and beat lightly with a spoon, so some of the berries break up. Serve hot.
+
 # Bun Cha
 Book: Cooking
 Tags: vietnamese, pork
@@ -460,11 +481,11 @@ Hanoi grilled pork. First made 2013; made again in 2023 (bought meat pre-minced)
 11. Cook the {vermicelli} per the packet (2 mins?), then blanch in {cold water}.
 12. Mat's way: broth in bowls, then a little greens, a little {vermicelli|vermicelli} and some meatballs (not all). The rest on small plates to share.
 `;
-const PHOTOS = { 'Borscht': ['borscht-1.jpg', 'borscht-2.jpg'], 'Chicken Green Curry': ['green-curry-1.jpg'], 'Hot Toddy': ['hot-toddy-1.jpg', 'hot-toddy-2.jpg'], 'Pampushki': ['pampushki-1.jpg', 'pampushki-2.jpg', 'pampushki-3.jpg'], 'Coloured Sticky Rice with Mango': ['sticky-rice-1.jpg', 'sticky-rice-2.jpg'], 'Christmas Cake': ['christmas-cake-1.jpg'] };
+const PHOTOS = { 'Borscht': ['borscht-1.jpg', 'borscht-2.jpg'], 'Chicken Green Curry': ['green-curry-1.jpg'], 'Hot Toddy': ['hot-toddy-1.jpg', 'hot-toddy-2.jpg'], 'Pampushki': ['pampushki-1.jpg', 'pampushki-2.jpg', 'pampushki-3.jpg'], 'Coloured Sticky Rice with Mango': ['sticky-rice-1.jpg', 'sticky-rice-2.jpg'], 'Christmas Cake': ['christmas-cake-1.jpg'], 'Cranberry Sauce': ['cranberry-sauce-1.jpg'] };
 // Goes up when photos are added, so books that already have the showcase get the new ones.
-const PHOTOS_VERSION = 6;
+const PHOTOS_VERSION = 7;
 // Recipes added to the showcase later, so books that already have it get them too (unless deleted there).
-const ADDED = ['Hot Toddy', 'Pampushki', 'Coloured Sticky Rice with Mango', 'Christmas Cake'];
+const ADDED = ['Hot Toddy', 'Pampushki', 'Coloured Sticky Rice with Mango', 'Christmas Cake', 'Cranberry Sauce'];
 // Showcase names and photo files that changed since a book got them (1.49.02: Mat spells it Borscht).
 const RENAMED = { 'Borsch': 'Borscht', 'borsch-1.jpg': 'borscht-1.jpg' };
 // The examples from 1.47.00 to 1.48.00, which the showcase replaces.
