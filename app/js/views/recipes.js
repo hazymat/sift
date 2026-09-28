@@ -9,7 +9,7 @@
 
 import * as store from '../store.js';
 import * as att from '../attachments.js';
-import { sectionsOf, sectionOf, stepsOf, UNITS, parseLine, parseQty, qtyText, amountText, ingredientText, stepHtml, renameRefs, abvOf, nextBatchNo, loadBook, batchName, batchDay } from '../batchbook.js';
+import { sectionsOf, sectionOf, stepsOf, UNITS, parseLine, parseQty, qtyText, amountText, ingredientText, stepHtml, renameRefs, abvOf, nextBatchNo, loadBook, batchName, newBatchName, batchDay } from '../batchbook.js';
 import { loadLists, nestItems, createList, addItems } from '../lists.js';
 import { richText, plainLines } from '../richtext.js';
 import { debounced } from '../autosave.js';
@@ -27,7 +27,6 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
 const today = () => isoDate(new Date());
 const shortDate = iso => (iso ? dateText(new Date(`${iso.slice(0, 10)}T12:00`), { day: 'numeric', month: 'short', year: 'numeric' }) : '');
-const dayMonth = iso => (iso ? dateText(new Date(`${iso.slice(0, 10)}T12:00`), { day: 'numeric', month: 'short' }) : '');
 const STATUSES = [['planned', 'Planned'], ['going', 'On the go'], ['done', 'Done']];
 const GOALS = ['ABV goal', 'Sweetness goal', 'Final sweetness'];
 const SCALES = [1 / 3, 0.5, 1, 2, 3];
@@ -64,7 +63,7 @@ export default {
     const theirName = () => shared.find(x => x.owner_id === state.owner)?.name || 'Someone';
     // Lists are always your own, even on someone else's batch.
     const inMine = async fn => { store.useSpace(null); try { return await fn(); } finally { store.useSpace(state.owner ? store.spaceOf(state.owner) : null); } };
-    const batchListName = m => `${recipeOf(m.recipe_id)?.title || 'Batch'} – ${dayMonth(m.date || today())}`;
+    const batchListName = m => batchName(m, recipeOf(m.recipe_id)?.title); // the batch's own list is named after it
     const writing = () => !!document.activeElement?.closest?.('input:not([type="checkbox"]), textarea, select, [contenteditable="true"], [data-step-view]') && el.contains(document.activeElement);
 
     // ---------- the recipes ----------
@@ -240,7 +239,7 @@ export default {
       const own = lists.filter(l => l.kind !== 'template');
       return `<div class="bb-listline"><span class="muted">Add to list puts things on</span>
         <select data-batch-list aria-label="Shopping list"><option value="">${list ? 'A new list for this batch' : `A new list: ${esc(batchListName(m))}`}</option>${own.map(l => `<option value="${l.id}"${l.id === list?.id ? ' selected' : ''}>${esc(l.name || 'Untitled')}</option>`).join('')}</select>
-        ${list ? `<a href="#/lists/${list.id}">Open list</a>` : ''}</div>`;
+        ${list ? `<a href="#/lists/${list.id}">Open the shopping list</a><button type="button" class="link-btn" data-act="share-list">Share</button>` : ''}</div>`;
     }
 
     // Steps are written straight on the lines: press one to change it; Enter starts the next.
@@ -398,6 +397,7 @@ export default {
     let tasting = null;
     let adding = null; // a step still being saved: drawn once it's in
     // Tasting notes live on batches (their tasting diary). A recipe's old notes move to its latest batch.
+    // Returns true when anything changed, so the book is loaded again.
     async function moveTastings() {
       let moved = false;
       for (const r of data.recipes.filter(x => x.tasting?.trim())) {
@@ -406,6 +406,11 @@ export default {
         await store.create('recipe_entries', { make_id: latest.id, recipe_id: r.id, kind: 'tasting', date: latest.date || today(), text: plainLines(r.tasting).join('\n').trim() });
         await store.update('recipes', r.id, { tasting: '' });
         moved = true;
+      }
+      // Batches named in 1.42 ("Mead 28 Sep 2026") get the dash ("Mead - 28 Sep 2026").
+      for (const m of data.makes) {
+        const title = recipeOf(m.recipe_id)?.title || 'Untitled';
+        if (m.name && m.name === `${title} ${batchDay(m.date)}`) { await store.update('recipe_makes', m.id, { name: newBatchName(title, m.date) }); moved = true; }
       }
       return moved;
     }
@@ -723,6 +728,7 @@ export default {
       }
       const act = b.dataset.act;
       if (act === 'home') return go('#/recipes');
+      if (act === 'share-list') { const list = lists.find(l => l.id === makeOf(state.make)?.list_id); if (list) shareSheet({ kind: 'list', id: list.id, name: list.name || 'Untitled' }, `"${list.name || 'Untitled'}"`); return; }
       if (act === 'new') return newRecipe();
       if (act === 'batches') { state.batches = !state.batches; return render(); }
       if (act === 'sections') return editSections();
@@ -810,7 +816,7 @@ export default {
       store.useSpace(owner ? store.spaceOf(owner) : null);
       const steps = stepsOf(r).map(x => ({ id: store.uuidv7(), text: x.text, from: x.id }));
       const m = await store.create('recipe_makes', {
-        recipe_id: r.id, name: `${r.title || 'Untitled'} ${batchDay(today())}`, batch_no: nextBatchNo(data.makes, data.recipes, r.type), date: today(), status: 'going',
+        recipe_id: r.id, name: newBatchName(r.title, today()), batch_no: nextBatchNo(data.makes, data.recipes, r.type), date: today(), status: 'going',
         description: r.description || '', state: '', back_sweetened: false, fields: Object.assign({}, r.fields),
         ingredients: (r.ingredients || []).map(i => Object.assign({}, i, { qty: i.qty == null ? null : i.qty * times })), steps, stock: {}, list_id: null,
       });
@@ -1014,7 +1020,7 @@ export default {
         if (!list) { list = await inMine(() => createList({ name: batchListName(m), kind: 'list' })); patch.list_id = list.id; }
         const made = await inMine(() => addToList(list.id, [m.ingredients.find(i => i.id === ingId)]));
         items[ingId] = made[0].id;
-        if (patch.list_id) toast(`Made the list "${list.name}"`, { action: 'Open list', onAction: () => { location.hash = `#/lists/${list.id}`; } });
+        if (patch.list_id) toast(`Created the shopping list "${list.name}" in Lists`, { action: 'Open it', onAction: () => { location.hash = `#/lists/${list.id}`; } });
       }
       await store.update('recipe_makes', m.id, Object.assign(patch, { stock, stock_items: items }));
       if (patch.list_id) lists = await inMine(async () => (await loadLists()).lists);

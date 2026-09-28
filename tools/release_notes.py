@@ -789,3 +789,8 @@ NOTES['1.43.02'] = [
 NOTES['1.44.00'] = [
   F('Batch Book: tasting notes live on each batch (its tasting diary), not on the recipe. A recipe\'s old tasting notes move to its latest batch, or to the first batch you make.'),
 ]
+
+NOTES['1.44.01'] = [
+  F('Batch Book: new batches are named "Recipe - date" (like "Mead - 28 Sep 2026"), and batches named earlier today get the dash too.'),
+  F('Batch Book: the first Add to list on a batch creates its shopping list, named after the batch, and says so. Next to the list: "Open the shopping list" and Share, to share it with another sift user.'),
+]
