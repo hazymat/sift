@@ -22,7 +22,7 @@ export const STARTER_SECTIONS = [
   { name: 'Cooking', emoji: '🍲', colour: '#3f8a5c', readings: false, fields: ['Serves', 'Time'] },
 ];
 // Looks for sections used by recipes but not set up (e.g. from the first version, which had fixed types).
-const KNOWN = { Mead: ['🐝', '#c8961e', true], Winemaking: ['🍷', '#9b2f52', true], Cider: ['🍏', '#6e9a2c', true], Brewing: ['🍺', '#c07a16', true], Breadmaking: ['🍞', '#a8733a', false], Cooking: ['🍲', '#3f8a5c', false], Baking: ['🧁', '#b0663f', false], Drinks: ['🍹', '#2f7f9b', false], Cocktails: ['🍸', '#2f7f9b', false], Household: ['🧴', '#6b7a8f', false] };
+const KNOWN = { Mead: ['🐝', '#c8961e', true], Winemaking: ['🍷', '#9b2f52', true], Cider: ['🍏', '#6e9a2c', true], Brewing: ['🍺', '#c07a16', true], Breadmaking: ['🍞', '#a8733a', false], Cooking: ['🍲', '#3f8a5c', false], Baking: ['🧁', '#b0663f', false], Drinks: ['🍹', '#2f7f9b', false], Cocktails: ['🍸', '#2f7f9b', false], Soups: ['🥣', '#b5452e', false], Fermentations: ['🍷', '#9b2f52', true], Household: ['🧴', '#6b7a8f', false] };
 const plain = name => { const k = KNOWN[name]; return { name, emoji: k ? k[0] : '📖', colour: k ? k[1] : '#7a6a55', readings: k ? k[2] : false, fields: [], auto: true }; };
 // The sections set up, then any a recipe is in that aren't (so nothing is ever hidden).
 export function sectionsOf(settings, recipes) {
