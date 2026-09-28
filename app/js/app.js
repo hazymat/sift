@@ -386,7 +386,8 @@ async function renderSyncStatus() {
 function stepUp(hash) {
   const [id, ...rest] = hash.replace(/^#\/?/, '').split('/');
   if (!rest.length) return null;
-  if (['lists', 'scans', 'contracts'].includes(id)) return `#/${id}`;
+  if (id === 'recipes' && rest[1] === 'make') return `#/recipes/${rest[0]}`;
+  if (['lists', 'scans', 'contracts', 'recipes'].includes(id)) return `#/${id}`;
   if (id === 'contacts') {
     if (rest[0] === 'c') return '#/contacts';
     if (['cases', 'directory'].includes(rest[0]) && rest.length > 1) return `#/contacts/${rest[0]}`;

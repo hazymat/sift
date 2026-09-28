@@ -201,6 +201,9 @@ const strip = r => { const { _dirty_fields, _server_seq, _share_seqs, ...rest } 
 
 async function pull() {
   let changed = 0;
+  // Kinds of record this version knows that an older one skipped (e.g. Batch Book's): fetch everything once more.
+  const kinds = store.COLLECTIONS.join(',');
+  if ((await store.metaGet('sync_collections')) !== kinds) await store.metaSet('sync_last_seq', 0);
   let since = (await store.metaGet('sync_last_seq')) || 0;
   for (;;) {
     const page = await api('GET', `/api/sync/pull?since=${since}&limit=500`);
@@ -212,6 +215,7 @@ async function pull() {
     await store.metaSet('sync_last_seq', since);
     if (!page.more) break;
   }
+  await store.metaSet('sync_collections', kinds);
   return changed;
 }
 

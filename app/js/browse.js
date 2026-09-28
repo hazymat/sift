@@ -98,6 +98,7 @@ const AREAS = {
     open: el => click(el.querySelector('a.c-main')),
   },
   scans: { search: '.scan-search', items: '#main .scan-card', open: el => click(el) },
+  recipes: { search: '.bb-search', items: '#main .bb-card, #main .bb-batch-row', open: el => click(el) },
   contracts: { search: '.contract-search', items: '#main tr[data-id], #main .contract-card', open: el => click(el.querySelector('a') || el) },
 };
 

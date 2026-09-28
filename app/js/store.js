@@ -19,10 +19,11 @@ export const COLLECTIONS = [
   'contracts',
   'comments',
   'note_versions',
+  'recipes', 'recipe_makes', 'recipe_entries',
   'settings',
 ];
 
-const DB_VERSION = 10; // bump when adding object stores; onupgradeneeded only adds what's missing
+const DB_VERSION = 11; // bump when adding object stores; onupgradeneeded only adds what's missing
 const LOCAL_DB = 'sift_local';
 const SYSTEM_FIELDS = new Set(['id', '_field_clocks', '_dirty_fields', '_server_seq', '_share_seqs']);
 const SETTINGS_ID = 'settings'; // fixed id so every device edits the same record

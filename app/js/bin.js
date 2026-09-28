@@ -14,9 +14,10 @@ import { binProvider as lists } from './lists.js';
 import { binProvider as planner } from './days.js';
 import { binProvider as scans } from './scans.js';
 import { binProvider as contracts } from './contracts.js';
+import { binProvider as recipes } from './batchbook.js';
 
 export const BIN_DAYS = 30;
-const PROVIDERS = [planner, tasks, dump, findThings, lists, contacts, scans, contracts];
+const PROVIDERS = [planner, tasks, dump, findThings, lists, contacts, scans, contracts, recipes];
 
 export function binProviders(area = 'all') {
   return PROVIDERS.filter(p => area === 'all' || p.area === area);
