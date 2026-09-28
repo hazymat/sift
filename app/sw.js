@@ -21,6 +21,7 @@ const SHELL = [
   'js/keys.js',
   'js/hold.js',
   'js/undo.js',
+  'js/gcal.js',
   'js/typesheet.js',
   'js/noteundo.js',
   'js/repeat.js',

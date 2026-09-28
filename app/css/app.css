@@ -3755,10 +3755,27 @@ html[data-slide="back"]::view-transition-new(sift-page) { animation-name: sift-i
 @keyframes hold-ripple { from { transform: scale(.3); opacity: .9; } to { transform: scale(var(--reach, 22)); opacity: 1; } }
 /* A sub-task dragged out of its family (listkit.js): it shows as a task of its
    own (whole rounded box), and the row above closes the family off. */
-.task-list > li.dragging.coming-out { border-radius: 14px !important; border-color: var(--active-border) !important; }
+.task-list > li.dragging.coming-out { border-radius: 14px !important; border-color: var(--active-border) !important; margin-top: 0 !important; } /* its own box, apart from the group */
 .task-list > li.dragging.coming-out > .tick { margin-left: 0 !important; }
 .task-list > li.dragging.coming-out > .item-sub { margin-left: var(--title-x, 67px) !important; }
 body.is-dragging .task-list :is(.tree-v, .tree-h) { opacity: 0; } /* the lines joining sub-tasks are redrawn after the drop */
 .task-list > li.heal-end { border-bottom-left-radius: 14px !important; border-bottom-right-radius: 14px !important; border-bottom-color: var(--glass-border) !important; }
 body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none; }
 @media (hover: none) { :is([data-hold-drag] > li :is(.task-title, .item-sub), [data-hold-drag] .line.has-item .item-title):not(:focus) { -webkit-user-select: none; -webkit-touch-callout: none; } }
+
+/* Day Planner: Google Calendar above the schedule (👁 Show Google Calendar; planner.js, gcal.js). */
+.gcal { margin: 4px 0 14px; padding: 10px 14px; border-radius: 14px; background: var(--glass-track); border: 1px solid var(--glass-border); }
+.gcal-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.gcal-head h3 { margin: 0; font-size: .95rem; }
+.gcal-status { font-size: .8rem; flex: 1 1 auto; }
+.gcal-btn { padding: 3px 10px; font-size: .8rem; }
+.gcal-link { background: none; border: 0; box-shadow: none; padding: 0; font-size: .75rem; color: var(--muted); text-decoration: underline; }
+.gcal-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
+.gcal-event { font-size: .9rem; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.gcal-when { flex: none; min-width: 6.5em; color: var(--muted); font-variant-numeric: tabular-nums; }
+.gcal-title { color: var(--text); text-decoration: none; }
+.gcal-title:hover { text-decoration: underline; }
+.gcal-where { font-size: .8rem; }
+.gcal-empty { margin: 6px 0 0; font-size: .85rem; }
+.gcal-add { margin-left: auto; padding: 1px 9px; font-size: .75rem; }
+.gcal-added { margin-left: auto; font-size: .75rem; }

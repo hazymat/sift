@@ -20,6 +20,7 @@ import * as att from '../attachments.js';
 import { typingIn } from '../listkit.js';
 import { rowSwipe } from '../rowswipe.js';
 import { holdToLift, HOLD_SKIP } from '../hold.js';
+import * as gcal from '../gcal.js';
 import { atEdge, caretTo } from '../walk.js';
 import { debounced } from '../autosave.js';
 import { editPills, selectPill, energyPill } from '../editpills.js';
@@ -105,6 +106,7 @@ export default {
       </header>
       <div class="down-day down-note" hidden></div>
       <div class="carry" hidden></div>
+      <section class="gcal" hidden aria-label="Google Calendar"></section>
       <h2 class="schedule-title section-title">${esc(word('day_schedule'))}</h2>
       <section class="paper" aria-label="Plan"><div id="lines"></div></section>
       <div class="day-bottom">
@@ -375,7 +377,7 @@ export default {
     });
     $('.view-menu').addEventListener('keydown', ev => { if (ev.key === 'Enter' && ev.target.dataset.nudgeText) ev.target.blur(); });
     // A 👁 Layout switch changed (here or on another device): Achievements follows it.
-    document.addEventListener('sift-layout', ev => { if (ev.detail?.area === 'planner') { didThings(); renderCarry(); } }, page);
+    document.addEventListener('sift-layout', ev => { if (ev.detail?.area === 'planner') { didThings(); renderCarry(); renderGcal(); } }, page);
     $('.view-menu').addEventListener('click', async ev => {
       const b = ev.target.closest('[data-view-paper], [data-view-slot], [data-view-layout]');
       if (!b) return;
@@ -904,9 +906,90 @@ export default {
       renderLines();
       renderPile();
       renderCarry();
+      renderGcal();
       renderTasks();
       didThings();
     }
+
+    // ---------- Google Calendar (👁 Show Google Calendar; gcal.js) ----------
+    // What's on in your Google Calendar that day, above the schedule. Today and
+    // the next 7 days load by themselves (while Google's permission lasts);
+    // other days say they're not loaded, with Load; Refresh fetches again.
+    let gcalBusy = false;
+    let gcalProblem = '';
+    const hm = when => { const d = new Date(when); return fmt(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`); };
+    const agoText = at => { const m = Math.round((Date.now() - at) / 60000); return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : new Date(at).toDateString() === new Date().toDateString() ? `at ${hm(at)}` : `on ${new Date(at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`; };
+    async function renderGcal() {
+      const box = $('.gcal');
+      if (!box) return;
+      box.hidden = !layoutOn('planner', 'gcal');
+      if (box.hidden) return;
+      const shownDate = date;
+      const got = await gcal.dayEvents(date);
+      if (shownDate !== date) return;
+      const t = gcal.today();
+      const nearby = date >= t && date <= addDays(t, gcal.AHEAD);
+      // Loads by itself: a day in the next week not fetched in the last half hour, while no popup is needed.
+      if (gcal.connected() && gcal.ready() && nearby && !gcalBusy && !gcalProblem && (!got || Date.now() - got.at > 30 * 60000)) { gcalRefresh(); return; }
+      const btn = (act, label, title = '') => `<button type="button" class="gcal-btn" data-gcal="${act}"${title ? ` title="${esc(title)}"` : ''}>${label}</button>`;
+      const status = !gcal.connected() ? 'Not connected'
+        : gcalBusy ? 'Refreshing…'
+        : gcalProblem ? esc(gcalProblem)
+        : got ? `Updated ${agoText(got.at)}${gcal.ready() ? '' : ' · tap ↻ to refresh'}` : '';
+      const actions = !gcal.connected() ? btn('connect', 'Connect Google Calendar')
+        : `${btn('refresh', '↻ Refresh', 'Fetch again: this week and any days loaded ahead')}<button type="button" class="gcal-link" data-gcal="disconnect">Disconnect</button>`;
+      const when = e => (e.allDay ? 'All day' : `${e.start.slice(0, 10) === date ? hm(e.start) : '…'}–${new Date(e.end).toDateString() === parseDate(date).toDateString() ? hm(e.end) : '…'}`);
+      const list = !gcal.connected() ? '<p class="muted gcal-empty">See what\'s on in your Google Calendar each day, here above your plan.</p>'
+        : got ? (got.events.length
+          ? `<ul class="gcal-list">${[...got.events].sort((a, b) => (b.allDay - a.allDay) || String(a.start).localeCompare(String(b.start))).map(e => `<li class="gcal-event${e.allDay ? ' all-day' : ''}"><span class="gcal-when">${when(e)}</span> <a class="gcal-title" href="${esc(e.link)}" target="_blank" rel="noopener">${esc(e.title)}</a>${e.location ? ` <span class="muted gcal-where">· ${esc(e.location)}</span>` : ''}${items.some(i => i.gcal_id === e.id)
+            ? '<span class="muted gcal-added">✓ In your plan</span>'
+            : `<button type="button" class="gcal-add" data-gcal="add" data-event="${esc(e.id)}" title="${e.allDay ? "Add it to this day's tasks" : 'Add it to the plan at its time'}">+ Add to plan</button>`}</li>`).join('')}</ul>`
+          : '<p class="muted gcal-empty">Nothing on.</p>')
+        : `<p class="muted gcal-empty">Calendar not loaded for this day. ${btn('load', 'Load')}</p>`;
+      box.innerHTML = `<div class="gcal-head"><h3>Google Calendar</h3><span class="muted gcal-status" aria-live="polite">${status}</span>${actions}</div>${list}`;
+    }
+    // An event into the plan: an item like any other (with a tick), at its time (all-day: in the
+    // day's tasks), its description as the note; it can be moved like any other.
+    async function gcalAdd(id) {
+      const e = (await gcal.dayEvents(date))?.events.find(x => x.id === id);
+      if (!e) return;
+      const hhmm = when => { const d = new Date(when); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+      const sameDay = when => when && new Date(when).toDateString() === parseDate(date).toDateString();
+      const timed = !e.allDay && sameDay(e.start);
+      const notes = [e.note, e.location ? `📍 ${e.location}` : ''].filter(Boolean).join('\n\n');
+      const made = await addItem(date, { title: e.title, notes, gcal_id: e.id, ...(timed ? { time: hhmm(e.start), end_time: sameDay(e.end) ? hhmm(e.end) : null } : { rank: lastKey(items.filter(i => !i.time)) }) });
+      await render();
+      undoable(`Added "${e.title}" to the plan`, async () => { await store.remove('day_items', made.id); await render(); });
+    }
+    async function gcalDo(job) {
+      gcalBusy = true;
+      gcalProblem = '';
+      renderGcal();
+      try {
+        if (!gcal.ready()) await gcal.connect(); // a popup: this runs from a tap
+        await job();
+      } catch (err) {
+        gcalProblem = err.auth ? 'Tap ↻ to connect again' : err.message || "Couldn't fetch the calendar";
+      } finally {
+        gcalBusy = false;
+        renderGcal();
+      }
+    }
+    // Refresh: this week, the days loaded ahead of it, and the day shown. Without a live
+    // permission and no tap, it just says so (a popup needs a tap).
+    function gcalRefresh(fromTap = false) {
+      if (!gcal.ready() && !fromTap) return renderGcal();
+      return gcalDo(async () => { const days = await gcal.refreshDays(date); await gcal.load(days[0], days.at(-1), days); });
+    }
+    $('.gcal').addEventListener('click', async ev => {
+      const b = ev.target.closest('[data-gcal]');
+      if (!b) return;
+      const act = b.dataset.gcal;
+      if (act === 'connect' || act === 'refresh') return gcalRefresh(true);
+      if (act === 'load') return gcalDo(() => gcal.load(date, date));
+      if (act === 'add') return gcalAdd(b.dataset.event);
+      if (act === 'disconnect') { await gcal.disconnect(); gcalProblem = ''; toast('Google Calendar disconnected on this device'); renderGcal(); }
+    });
 
     async function refresh() {
       paintSharing();

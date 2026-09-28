@@ -685,3 +685,7 @@ NOTES['1.35.42'] = [
 NOTES['1.35.43'] = [
   F("Ctrl+Z (⌘Z) when you're not typing undoes the last thing you did, even after its message has gone, and says what it undid. Ctrl+Y or Ctrl+Shift+Z (⌘⇧Z) redoes it. In a note or field, the keys are still its own."),
 ]
+NOTES['1.35.44'] = [
+  F("Day Planner: Google Calendar (👁 Show Google Calendar). Connect once; what's on shows above the schedule. Today and the next 7 days load by themselves, further days with Load, and Refresh fetches them again. Only your main calendar, only the days you look at, kept on this device. + Add to plan puts an event in the plan at its time (all-day ones in the day's tasks), its description as the note."),
+  B("Tasks: dragging a sub-task out of its group shows the gap it will drop into as a separate rounded box again."),
+]
