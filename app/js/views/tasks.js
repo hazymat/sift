@@ -27,6 +27,7 @@ import { word } from '../words.js';
 import { commentsHtml, mountComments, closingComment } from '../comments.js';
 import { REPEAT_CHOICES, choiceOf, repeatLabel, firstDate } from '../repeat.js';
 import { keys } from '../keys.js';
+import { treeHtml, groupOf, measureRows, slideRows } from '../rows.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -277,43 +278,9 @@ export default {
     const head = (html, attrs = '') => `<li class="list-head"${attrs}>${html}</li>`;
     // A task and its sub-tasks share one card: the parent opens it, sub-tasks
     // sit inside, the last one closes it.
-    // Lines joining a task to its sub-tasks: from just under the task's tick
-    // box, down and across to each sub-task's tick box, an L that carries on
-    // down while more sub-tasks follow. Level k's line runs down the middle of
-    // the tick boxes one level up (the page measures where they sit: CSS
-    // --tick-top / --tick-h on the list).
-    // With the margin shown (👁 Layout) every tick box sits in the margin and
-    // only the text is indented. The line then drops from the ruled line under
-    // the task, down the left of each sub-task, and turns along the sub-task's
-    // own ruled line (which starts there): the joining lines are the ruled
-    // lines, so they never cross them. Level k's line is under the first letter
-    // of the text one level up (CSS: the ruled lines start at 50px + indent).
-    const treeX = k => 49 + (k - 1) * 28;
-    const treeOf = (tasks, n) => {
-      const depthAt = j => tasks[j]?.depth ?? 0;
-      // Does a later row at depth k follow before the family ends?
-      const goesOn = k => { for (let j = n + 1; j < tasks.length; j++) { const dj = depthAt(j); if (dj < k) return false; if (dj === k) return true; } return false; };
-      const d = depthAt(n);
-      const v = (k, top, bottom) => `<i class="tree-v" style="left:${treeX(k)}px;top:${top};bottom:${bottom}"></i>`;
-      const parts = [];
-      if (lay('margin')) {
-        for (let k = 1; k <= d; k++) if (k === d || goesOn(k)) parts.push(`<i class="tree-v" style="left:calc(${50 + k * 28}px + var(--mshift, 0px));top:0;bottom:0"></i>`);
-        return parts.length ? `<span class="tree" aria-hidden="true">${parts.join('')}</span>` : '';
-      }
-      for (let k = 1; k < d; k++) if (goesOn(k)) parts.push(v(k, '0', '0'));
-      if (d > 0) {
-        parts.push(v(d, '0', goesOn(d) ? '0' : 'calc(100% - var(--tick-top) - var(--tick-h) / 2)'));
-        parts.push(`<i class="tree-h" style="left:${treeX(d)}px;width:${40 + d * 28 - 4 - treeX(d)}px"></i>`);
-      }
-      if (depthAt(n + 1) === d + 1 && n + 1 < tasks.length) parts.push(v(d + 1, 'calc(var(--tick-top) + var(--tick-h) + 4px)', '0'));
-      return parts.length ? `<span class="tree" aria-hidden="true">${parts.join('')}</span>` : '';
-    };
+    const treeOf = (tasks, n) => treeHtml(tasks, n, lay('margin'));
     const rowsOf = (tasks, opts) => tasks.map((t, n) => {
-      const d = t.depth ?? 0;
-      const next = tasks[n + 1];
-      const nd = next ? next.depth ?? 0 : 0;
-      const group = d === 0 ? (nd > 0 ? 'group-top' : '') : `group-kid${nd === 0 ? ' group-end' : ''}`;
-      return row(t, { ...opts, group, tree: treeOf(tasks, n) });
+      return row(t, { ...opts, group: groupOf(tasks, n), tree: treeOf(tasks, n) });
     }).join('');
     const listOf = (inner, empty = '') => (inner ? `<ul class="task-list">${inner}</ul>` : empty);
 
@@ -595,26 +562,7 @@ export default {
       fillDates(body);
       wireEntry();
       const ul = body.querySelector('.task-list');
-      // Where tick boxes sit in a row, for the lines joining sub-tasks (CSS).
-      const tk = ul?.querySelector(':scope > li[data-task] .tick');
-      if (tk) {
-        const t = tk.getBoundingClientRect();
-        const top = t.top - tk.closest('li').getBoundingClientRect().top;
-        if (t.height > 0 && top >= 0) { ul.style.setProperty('--tick-top', `${top}px`); ul.style.setProperty('--tick-h', `${t.height}px`); }
-      }
-      // Where a task's text starts, so its pills and "Add note" line (while
-      // editing) start there too, at any width (CSS --title-x, --entry-x).
-      const textX = (input, box) => {
-        const b = box.getBoundingClientRect(), cs = getComputedStyle(box);
-        return input.getBoundingClientRect().left + parseFloat(getComputedStyle(input).paddingLeft) - b.left - parseFloat(cs.paddingLeft) - parseFloat(cs.borderLeftWidth);
-      };
-      const ti = ul?.querySelector(':scope > li[data-task][data-depth="0"] > .task-title');
-      if (ti) { const x = textX(ti, ti.closest('li')); if (x > 0) body.style.setProperty('--title-x', `${x}px`); }
-      const nt = body.querySelector('#task-new'), en = nt?.closest('.task-entry');
-      if (nt && en) { const x = textX(nt, en) - (parseFloat(en.style.getPropertyValue('--ind')) || 0); if (x > 0) body.style.setProperty('--entry-x', `${x}px`); }
-      // Every line the same height: the New task line matches a plain task row (CSS --task-row-h).
-      const plain = [...(ul?.querySelectorAll(':scope > li[data-task]') || [])].map(li => li.getBoundingClientRect().height).filter(h => h > 0);
-      if (plain.length) body.style.setProperty('--task-row-h', `${Math.min(...plain)}px`);
+      measureRows(body, ul, body.querySelector('#task-new'));
       const ordered = state.view === 'list';
       const flatOrder = LISTS.includes(state.view); // Task Dump, Now, Next, Later: drag to reorder, no nesting
       kitOrdered.attach(ordered ? ul : null);
@@ -1324,16 +1272,6 @@ export default {
       for (let r = li.nextElementSibling; r && !(r.matches('li[data-task]') && Number(r.dataset.depth || 0) <= d) && !r.matches('.list-head'); r = r.nextElementSibling) out.push(r);
       return out;
     }
-    // Rows sliding open (from nothing to their height) or closed.
-    const slideRows = (rows, opening) => Promise.all(rows.map(r => {
-      const cs = getComputedStyle(r);
-      const full = { height: `${r.offsetHeight}px`, paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom, opacity: 1 };
-      const none = { height: '0px', paddingTop: '0px', paddingBottom: '0px', opacity: 0 };
-      r.style.overflow = 'hidden'; r.style.minHeight = '0';
-      const anim = r.animate(opening ? [none, full] : [full, none], { duration: 220, easing: 'ease-in-out', fill: opening ? 'none' : 'forwards' });
-      return anim.finished.then(() => { if (opening) { r.style.overflow = ''; r.style.minHeight = ''; } }, () => {});
-    }));
-
     // Delete or archive a task, with its sub-tasks.
     async function retire(task, act) {
       const field = act === 'delete' ? 'deleted_at' : 'archived_at';
