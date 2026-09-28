@@ -605,3 +605,6 @@ NOTES['1.35.20'] = [
 NOTES['1.35.21'] = [
   B("Day Planner on a phone: the day's buttons stay on one line on every paper (Share shows as its icon when there's no room for the word), so the 👁 menu no longer jumps down a line, or off the screen, when you change paper."),
 ]
+NOTES['1.35.22'] = [
+  B("Swiping a task or a Day Planner item: the buttons slide in over it, and once they reach its name the name moves along with them, so you can always see what you're about to delete or tick off."),
+]

@@ -1,6 +1,7 @@
-// Phones: swipe a row of a list sideways, as in a phone's mail app. The row
-// stays where it is (its title still readable) and its actions slide in over
-// it from the side the finger comes from: swipe left for the right-hand ones
+// Phones: swipe a row of a list sideways, as in a phone's mail app. Its
+// actions slide in over the row from the side the finger comes from, and once
+// they reach the name they push the row along, so the name is always there up
+// against them: swipe left for the right-hand ones
 // (e.g. ✓ Done, ⋯ More), right for the left-hand ones (e.g. Delete). Let go
 // past half of them and it stays open for a tap; less and it springs back; a
 // tap anywhere else closes it. Not from a grab bar, a tick, a button or a
@@ -23,25 +24,41 @@ export function rowSwipe(root, { rows, face = null, actions }) {
   let sw = null, openRow = null, shown = null; // shown: the open row's actions
   let closing = false; // this touch closes the open row, and does nothing else
   let quietUntil = 0; // just after a swipe: a click on the row isn't a tap on it
-  // The actions cover x of the row, from its edge.
+  // The actions cover x of the row, from its edge. Once they reach the name's
+  // text they push the row's contents along ahead of them (app.css: .swipe-push),
+  // cut off at the face's edge, so the name stays readable up against them.
+  const gapOf = new WeakMap(); // row → how far the actions come in before they reach the name
   const slideTo = (row, x, animate) => {
     row.classList.toggle('swipe-anim', animate);
     row.style.setProperty('--swipe-w', `${Math.abs(x)}px`);
+    row.style.setProperty('--swipe-p', `${Math.max(0, Math.abs(x) - (gapOf.get(row) ?? Infinity))}px`);
+  };
+  const tidy = row => {
+    row.classList.remove('swiping', 'swipe-anim');
+    row.querySelector(':scope > .row-acts')?.remove();
+    const f = faceOf(row);
+    f.classList.remove('swipe-push', 'left', 'right');
+    for (const mover of f.querySelectorAll(':scope > .swipe-mover')) { mover.classList.remove('swipe-mover'); mover.style.removeProperty('--swipe-off'); }
   };
   const shut = () => {
     const row = openRow;
     openRow = null;
     if (!row) return;
     slideTo(row, 0, true);
-    setTimeout(() => {
-      if (openRow === row) return;
-      row.classList.remove('swiping', 'swipe-anim');
-      row.querySelector(':scope > .row-acts')?.remove();
-    }, 220);
+    setTimeout(() => { if (openRow !== row) tidy(row); }, 220);
+  };
+  // Where the name's text starts and ends on screen (the field itself is wider).
+  const measure = document.createElement('canvas').getContext('2d');
+  const textSpan = field => {
+    const box = field.getBoundingClientRect(), cs = getComputedStyle(field);
+    const start = box.left + parseFloat(cs.borderLeftWidth) + parseFloat(cs.paddingLeft);
+    measure.font = cs.font;
+    const end = Math.min(start + measure.measureText(field.value ?? field.textContent).width, box.right - parseFloat(cs.paddingRight));
+    return { start, end };
   };
   // The actions for that side, over the face's end (its rounded corners too); returns how far it opens.
   const reveal = (row, side) => {
-    row.querySelector(':scope > .row-acts')?.remove();
+    tidy(row);
     shown = actions(row)[side] || [];
     const acts = document.createElement('div');
     acts.className = `row-acts ${side}`;
@@ -52,6 +69,17 @@ export function rowSwipe(root, { rows, face = null, actions }) {
     Object.assign(acts.style, { top: `${top}px`, height: `${faceBox.height}px` });
     if (side === 'left') Object.assign(acts.style, { right: `${rowBox.right - faceBox.right - parseFloat(rowStyle.borderRightWidth)}px`, borderRadius: `0 ${faceStyle.borderTopRightRadius} ${faceStyle.borderBottomRightRadius} 0` });
     else Object.assign(acts.style, { left: `${faceBox.left - rowBox.left - parseFloat(rowStyle.borderLeftWidth)}px`, borderRadius: `${faceStyle.borderTopLeftRadius} 0 0 ${faceStyle.borderBottomLeftRadius}` });
+    // What gets pushed: the face's contents in its flow (not what's placed elsewhere, e.g. a day task's tick in the margin).
+    const inner = { left: faceBox.left + parseFloat(faceStyle.borderLeftWidth), right: faceBox.right - parseFloat(faceStyle.borderRightWidth) };
+    for (const mover of f.children) {
+      if (getComputedStyle(mover).position === 'absolute' || !mover.getClientRects().length) continue;
+      const box = mover.getBoundingClientRect();
+      mover.classList.add('swipe-mover');
+      mover.style.setProperty('--swipe-off', `${side === 'left' ? box.left - inner.left : inner.right - box.right}px`); // room before it's cut off
+    }
+    f.classList.add('swipe-push', side);
+    const name = f.querySelector('.task-title, .item-title'), text = name && textSpan(name), SPACE = 10;
+    gapOf.set(row, text ? Math.max(0, side === 'left' ? faceBox.right - text.end - SPACE : text.start - faceBox.left - SPACE) : Infinity);
     row.append(acts);
     acts.style.width = 'max-content'; // its buttons' own width: how far it opens
     const wide = Math.min(acts.offsetWidth, faceBox.width);
@@ -77,7 +105,7 @@ export function rowSwipe(root, { rows, face = null, actions }) {
       if (Math.abs(dx) < 12) return;
       sw.side = dx < 0 ? 'left' : 'right';
       sw.wide = reveal(sw.row, sw.side);
-      if (!sw.wide) { sw.row.classList.remove('swiping'); sw = null; return; } // nothing on that side
+      if (!sw.wide) { tidy(sw.row); sw = null; return; } // nothing on that side
     }
     ev.preventDefault(); // the page doesn't scroll while a row is swiped
     const most = sw.wide + 40;
