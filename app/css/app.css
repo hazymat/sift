@@ -86,10 +86,13 @@ html {
   background: var(--bg);
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
-  overscroll-behavior-x: none; /* a sideways swipe doesn't go back or forward a page (app.js: installSwipe) */
+  /* The page never bounces past its ends (iPhone's rubber band), so the top and bottom bars never move
+     with it, whatever the finger does; and a sideways swipe doesn't go back or forward a page (app.js: installSwipe). */
+  overscroll-behavior: none;
 }
 
 body {
+  overscroll-behavior: none;
   margin: 0;
   min-height: 100dvh;
   font-family: var(--font);
