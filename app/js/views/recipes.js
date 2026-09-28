@@ -17,7 +17,7 @@ import { toast, undoable } from '../toast.js';
 import { askText, askYes } from '../ask.js';
 import { dateText, isoDate, PAPERS } from '../days.js';
 import { cogHtml } from '../viewcog.js';
-import { rankOf, byRank, reorderWrites } from '../order.js';
+import { rankOf, byRank, keyBetween, reorderWrites } from '../order.js';
 import { createListKit } from '../listkit.js';
 import { shareSheet, sharedWithText, people, fromOthers, invitesHtml, theirsHtml } from '../sharing.js';
 import { TINTS } from '../colours.js';
@@ -154,6 +154,7 @@ export default {
       const theirs = shared.filter(x => matches(x.r));
       const invites = invitesHtml(['recipe']);
       return `
+        <div class="bb-sticky-mark" aria-hidden="true"></div>
         <div class="bb-sticky">
           <div class="bb-head">
             <button type="button" class="primary" data-act="new">+ New recipe</button>
@@ -166,13 +167,13 @@ export default {
             </details>
           </div>
           <div class="bb-sections-bar">
-            <div class="segmented bb-sections" role="tablist" aria-label="Books">
+            <div class="bb-sections" role="tablist" aria-label="Books">
               <button type="button" data-section="" aria-pressed="${!state.section}">All</button>
               ${sections.map(x => `<button type="button" data-section="${esc(x.name)}" aria-pressed="${state.section === x.name}" style="--bb:${x.colour}">${x.emoji} ${esc(x.name || 'No book')}</button>`).join('')}
             </div>
             <button type="button" class="icon-btn bb-sections-edit" data-act="sections" title="Edit books" aria-label="Edit books">✎</button>
           </div>
-          ${state.batches ? `<div class="segmented bb-status" role="group" aria-label="Status">${[['', 'All']].concat(STATUSES).map(([v, l]) => `<button type="button" data-status="${v}" aria-pressed="${state.status === v}">${l}</button>`).join('')}</div>`
+          ${state.batches ? `<div class="bb-status" role="group" aria-label="Status">${[['', 'All']].concat(STATUSES).map(([v, l]) => `<button type="button" data-status="${v}" aria-pressed="${state.status === v}">${l}</button>`).join('')}</div>`
             : tags.length ? `<div class="bb-tags">${tags.map(t => `<button type="button" class="chip" data-tag="${esc(t)}" aria-pressed="${state.tag === t}">${esc(t)}</button>`).join('')}</div>` : ''}
         </div>
         <div class="bb-body">
@@ -400,6 +401,7 @@ export default {
       tasting = null;
       dirty = false;
       el.innerHTML = `<div class="bb">${state.make ? makePage() : state.recipe ? recipePage() : overview()}</div>`;
+      if (printAfter && state.recipe && !state.make) { printAfter = false; setTimeout(() => print(), 300); }
       kitFor().attach(el.querySelector('.bb-cards'));
       watchSticky();
       const box = el.querySelector('.bb-tasting');
@@ -625,6 +627,8 @@ export default {
       b.closest('details')?.removeAttribute('open');
       const page = pageRec();
       if (b.dataset.section !== undefined) { state.section = b.dataset.section; state.tag = ''; return render(); }
+      if (b.dataset.status !== undefined) { state.status = b.dataset.status; return render(); }
+      if (b.dataset.card || b.dataset.cardBook !== undefined) return cardAction(b);
       if (b.dataset.tag !== undefined) { state.tag = state.tag === b.dataset.tag ? '' : b.dataset.tag; return render(); }
       if (b.dataset.scale) { state.times = +b.dataset.scale; return render(); }
       if (b.dataset.rescale) return rescale(b.dataset.rescale);
@@ -696,22 +700,7 @@ export default {
         focusNext = `[data-entry="${made.id}"] .bb-gravity`;
         return render();
       }
-      if (act === 'archive-recipe' || act === 'delete-recipe') {
-        const r = recipeOf(state.recipe);
-        const field = act === 'delete-recipe' ? 'deleted_at' : 'archived_at';
-        const stamp = now();
-        const kids = makesOf(r.id).map(m => m.id);
-        if (field === 'deleted_at' && kids.length && !(await askYes(`Delete "${r.title}" and its ${kids.length} batch${kids.length === 1 ? '' : 'es'}?`, { ok: 'Delete', danger: true, text: 'They go to the Bin for 30 days.' }))) return;
-        await store.updateMany('recipe_makes', kids.map(id => [id, { [field]: stamp }]));
-        await store.update('recipes', r.id, { [field]: stamp });
-        go('#/recipes');
-        undoable(`${field === 'deleted_at' ? 'Deleted' : 'Archived'} "${r.title}"`, async () => {
-          await store.update('recipes', r.id, { [field]: null });
-          await store.updateMany('recipe_makes', kids.map(id => [id, { [field]: null }]));
-          render();
-        });
-        return;
-      }
+      if (act === 'archive-recipe' || act === 'delete-recipe') return retire(recipeOf(state.recipe), act === 'delete-recipe' ? 'deleted_at' : 'archived_at');
       if (act === 'delete-make') {
         const m = makeOf(state.make);
         await store.remove('recipe_makes', m.id);
@@ -824,6 +813,96 @@ export default {
       draw();
       dlg.showModal();
     }
+
+    // ---------- a card's Make and More ----------
+
+    // Recipes others share with you, from each person's space (store.js).
+    async function loadShared() {
+      const out = [];
+      for (const p of people(['recipe'])) {
+        const ids = new Set(p.shares.map(sh => sh.info.id));
+        for (const r of await store.spaceOf(p.owner_id).list('recipes', { filter: x => ids.has(x.id) && !x.archived_at })) out.push({ r, owner_id: p.owner_id, name: p.name });
+      }
+      return out;
+    }
+
+    // The recipe as plain text: name, ingredients, numbered steps (amounts filled in).
+    function recipeText(r) {
+      const div = document.createElement('div');
+      const ings = r.ingredients || [];
+      const steps = stepsOf(r).map((x, n) => { div.innerHTML = stepHtml(x.text, ings, 1, esc); return `${n + 1}. ${div.textContent.trim()}`; });
+      return [r.title || 'Untitled', r.description || '', '', ings.length ? 'Ingredients' : '', ...ings.map(i => `- ${ingredientText(i)}${i.note ? ` (${i.note})` : ''}`), '', steps.length ? 'Steps' : '', ...steps].filter((x, n, all) => x || (all[n - 1] && n < all.length - 1)).join('\n').trim();
+    }
+
+    async function cardAction(b) {
+      const li = b.closest('.bb-card-li');
+      const owner = li.dataset.from || null;
+      const id = li.dataset.id || li.dataset.rid;
+      const r = owner ? shared.find(x => x.owner_id === owner && x.r.id === id)?.r : recipeOf(id);
+      if (!r) return;
+      const act = b.dataset.card;
+      if (b.dataset.cardBook !== undefined) return moveRecipes([id], { type: b.dataset.cardBook }, `Moved to ${b.dataset.cardBook || 'No book'}`);
+      if (act === 'make') return makeThis(r, owner, 1);
+      if (act === 'copy') {
+        try { await navigator.clipboard.writeText(recipeText(r)); toast('Copied the recipe'); } catch { toast('Couldn\'t copy here'); }
+        return;
+      }
+      if (act === 'share') {
+        // Its diary and readings go with it: each needs to say which recipe it's from.
+        const kids = new Set(makesOf(id).map(m => m.id));
+        const loose = data.entries.filter(e => kids.has(e.make_id) && e.recipe_id !== id);
+        if (loose.length) await store.updateMany('recipe_entries', loose.map(e => [e.id, { recipe_id: id }]));
+        return shareSheet({ kind: 'recipe', id, name: r.title }, `"${r.title || 'Untitled'}"`);
+      }
+      if (act === 'dup') {
+        const copy = { title: `${r.title || 'Untitled'}${owner ? '' : ' (copy)'}`, type: r.type || '', tags: (r.tags || []).slice(), description: r.description || '', ingredients: (r.ingredients || []).map(i => Object.assign({}, i)), steps: stepsOf(r).map(x => ({ id: store.uuidv7(), text: x.text })), tasting: r.tasting || '', fields: Object.assign({}, r.fields), colour: r.colour || null };
+        const made = await inMine(() => store.create('recipes', copy));
+        if (!owner) await store.update('recipes', made.id, { rank: keyAfter(r) });
+        toast(owner ? `"${copy.title}" is now in your own recipes too` : 'Duplicated', { action: 'Open', onAction: () => go(`#/recipes/${made.id}`) });
+        return render();
+      }
+      if (act === 'print') { printAfter = true; return go(`#/recipes/${id}${ownerPath(owner)}`); }
+      if (act === 'colour') {
+        const book = sectionFor(r).colour;
+        return pillMenu(li.querySelector('.bb-card-menu summary'), [{ value: '', label: `<span class="swatch" style="--sw:${book}"></span>`, title: 'The book\'s colour', current: !r.colour }].concat(TINTS.map(c => ({ value: c.id, label: `<span class="swatch" style="--sw:${c.hex}"></span>`, title: c.label, current: c.id === r.colour }))),
+          v => moveRecipes([id], { colour: v || null }, 'Colour changed'), { className: 'colour-menu' });
+      }
+      if (act === 'archive' || act === 'delete') return retire(r, act === 'delete' ? 'deleted_at' : 'archived_at');
+    }
+    // Archive or delete a recipe, and its batches with it.
+    async function retire(r, field) {
+      const stamp = now();
+      const kids = makesOf(r.id).map(m => m.id);
+      if (field === 'deleted_at' && kids.length && !(await askYes(`Delete "${r.title}" and its ${kids.length} batch${kids.length === 1 ? '' : 'es'}?`, { ok: 'Delete', danger: true, text: 'They go to the Bin for 30 days.' }))) return;
+      await store.updateMany('recipe_makes', kids.map(id => [id, { [field]: stamp }]));
+      await store.update('recipes', r.id, { [field]: stamp });
+      if (state.recipe) go('#/recipes'); else await render();
+      undoable(`${field === 'deleted_at' ? 'Deleted' : 'Archived'} "${r.title}"`, async () => {
+        await store.update('recipes', r.id, { [field]: null });
+        await store.updateMany('recipe_makes', kids.map(id => [id, { [field]: null }]));
+        render();
+      });
+    }
+    // A key just after this recipe's (a duplicate sits next to it).
+    const keyAfter = r => { const mine = shown().filter(x => (x.type || '') === (r.type || '')); const at = mine.findIndex(x => x.id === r.id); return keyBetween(rankOfRecipe(r), mine[at + 1] ? rankOfRecipe(mine[at + 1]) : null); };
+    let printAfter = false;
+
+    // The bar at the top stays while the recipes scroll; with a glass background once it's stuck.
+    // Each book's heading sticks just under it (--bb-stick: how far down that is).
+    function watchSticky() {
+      this.stickWatch?.disconnect();
+      const bar = el.querySelector('.bb-sticky');
+      if (!bar) return;
+      const mark = el.querySelector('.bb-sticky-mark');
+      const place = () => el.style.setProperty('--bb-stick', `${(parseFloat(getComputedStyle(bar).top) || 0) + bar.offsetHeight}px`);
+      const seen = new IntersectionObserver(([e]) => { bar.classList.toggle('stuck', !e.isIntersecting && e.boundingClientRect.top < 200); place(); }, { rootMargin: `-${parseFloat(getComputedStyle(bar).top) || 0}px 0px 0px 0px` });
+      seen.observe(mark);
+      const size = new ResizeObserver(place);
+      size.observe(bar);
+      this.stickWatch = { disconnect: () => { seen.disconnect(); size.disconnect(); } };
+      place();
+    }
+    watchSticky = watchSticky.bind(this);
 
     // ---------- what's in stock ----------
     // Each ingredient of a batch: In stock, or Add to list (onto the batch's list; the first one
