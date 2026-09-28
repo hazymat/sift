@@ -912,8 +912,26 @@ export default {
       seen.observe(mark);
       const size = new ResizeObserver(place);
       size.observe(bar);
-      this.stickWatch = { disconnect: () => { seen.disconnect(); size.disconnect(); } };
+      // The next book's heading pushes the stuck one up and out (not over it); a heading gets its glass only while stuck.
+      const heads = Array.from(el.querySelectorAll('.bb-cards > .bb-chapter-title'));
+      let queued = 0;
+      const push = () => {
+        queued = 0;
+        const top = parseFloat(el.style.getPropertyValue('--bb-stick')) || 0;
+        heads.forEach((h, n) => {
+          h.style.transform = ''; h.style.opacity = '';
+          const box = h.getBoundingClientRect(), next = heads[n + 1]?.getBoundingClientRect();
+          const stuck = box.top <= top + 0.5 && scrollY > 0;
+          h.classList.toggle('stuck', stuck);
+          // (fading as it goes, so it doesn't show through the glass bar above)
+          if (stuck && next && next.top < box.bottom) { h.style.transform = `translateY(${next.top - box.bottom}px)`; h.style.opacity = String(Math.max(0, 1 - (box.bottom - next.top) / box.height)); }
+        });
+      };
+      const onScroll = () => { if (!queued) queued = requestAnimationFrame(push); };
+      addEventListener('scroll', onScroll, { passive: true });
+      this.stickWatch = { disconnect: () => { seen.disconnect(); size.disconnect(); removeEventListener('scroll', onScroll); } };
       place();
+      push();
     }
     watchSticky = watchSticky.bind(this);
 
