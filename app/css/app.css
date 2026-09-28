@@ -3913,8 +3913,6 @@ body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none
 .bb-paper :where(input, select, textarea):focus { border-color: var(--active-border); background: var(--glass-track); }
 .bb-paper button { box-shadow: none; }
 .bb-paper input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--bb); }
-.bb-hero { margin: calc(-1 * clamp(14px, 4vw, 32px)) calc(-1 * clamp(14px, 4vw, 32px)) 16px; border-radius: 22px 22px 0 0; overflow: hidden; background: var(--bb-soft); }
-.bb-hero img { display: block; width: 100%; max-height: 360px; object-fit: cover; }
 .bb-title-row { display: flex; align-items: center; gap: 14px; }
 .bb-emoji { font-size: clamp(2.4rem, 8vw, 3.8rem); line-height: 1; filter: drop-shadow(0 3px 5px rgba(0, 0, 0, .18)); }
 .bb-title { flex: 1; min-width: 0; font-family: var(--hand); font-size: clamp(2rem, 7vw, 3.2rem) !important; font-weight: 700; color: var(--bb-ink) !important; line-height: 1.15; }
@@ -3997,7 +3995,6 @@ textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
 .bb-foot { margin-top: 14px; }
 @media (max-width: 600px) {
   .bb-paper { padding: 12px 10px; margin: 0 -6px; }
-  .bb-hero { margin: -12px -10px 12px; }
   .bb-lines { --bb-margin: 58px; }
   .bb-details { --bb-margin: minmax(5.5em, 32%); }
   .bb-ings, .bb-steps { --bb-margin: clamp(58px, calc(var(--bb-chars, 0) * .66rem + 26px), 6.8rem); }
