@@ -580,3 +580,6 @@ NOTES['1.35.13'] = [
   F("On a phone, swipe an item in the Day Planner (in the plan or the day's tasks) as in Tasks: left for ✓ Done and ⋯ More, right for Delete."),
   F("Brain Dump: choosing a filter slides the notes across to it. On a phone, a side swipe no longer changes filter; the page just nudges."),
 ]
+NOTES['1.35.14'] = [
+  B("On a phone, closing a swiped task or Day Planner item (tapping it, or swiping it back) could start editing its name."),
+]

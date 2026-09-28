@@ -16,6 +16,8 @@ const SKIP = '.drag-handle, .drag-grip, .resize-grip, .tick, button, .row-acts, 
 export function rowSwipe(root, { rows, actions }) {
   if (!matchMedia('(pointer: coarse)').matches) return;
   let sw = null, openRow = null, shown = null; // shown: the open row's actions
+  let closing = false; // this touch closes the open row, and does nothing else
+  let quietUntil = 0; // just after a swipe: a click on the row isn't a tap on it
   const slideTo = (row, x, animate) => { row.classList.toggle('swipe-anim', animate); row.style.setProperty('--swipe-x', `${x}px`); };
   const shut = () => {
     const row = openRow;
@@ -36,7 +38,12 @@ export function rowSwipe(root, { rows, actions }) {
     return Array.from(acts.children).reduce((w, b) => w + b.offsetWidth, 0);
   };
   root.addEventListener('touchstart', ev => {
-    if (openRow && !ev.target.closest('.row-acts')) shut();
+    closing = false;
+    if (openRow && !ev.target.closest('.row-acts')) {
+      closing = openRow.contains(ev.target); // on the open row: closing it, not editing it
+      shut();
+      if (closing) { sw = null; return; }
+    }
     const row = ev.target.closest(rows);
     sw = row && root.contains(row) && ev.touches.length === 1 && !ev.target.closest(SKIP) && !document.body.classList.contains('has-select-bar')
       ? { row, x: ev.touches[0].clientX, y: ev.touches[0].clientY, dx: 0, side: null, wide: 0 } : null;
@@ -59,14 +66,18 @@ export function rowSwipe(root, { rows, actions }) {
   root.addEventListener('touchend', ev => {
     const s = sw;
     sw = null;
+    // A swipe, or the touch that closed an open row, isn't also a tap (which would start editing the row).
+    if (closing || s?.side) { ev.preventDefault(); quietUntil = Date.now() + 400; }
+    if (closing) { closing = false; ev.stopPropagation(); return; }
     if (!s?.side) return;
     ev.stopPropagation(); // the row's swipe, not the page's
     openRow = s.row;
     if (Math.abs(s.dx) > s.wide / 2) slideTo(s.row, s.side === 'left' ? -s.wide : s.wide, true);
     else shut();
-  });
+  }, { passive: false });
   root.addEventListener('click', ev => {
     const b = ev.target.closest('.row-acts [data-ra]');
+    if (!b && Date.now() < quietUntil && ev.target.closest(rows)) { ev.preventDefault(); ev.stopPropagation(); return; }
     if (!b || !root.contains(b)) return;
     ev.stopPropagation();
     const row = b.closest(rows), act = shown?.[Number(b.dataset.ra)];
