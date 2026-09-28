@@ -598,3 +598,7 @@ NOTES['1.35.18'] = [
 NOTES['1.35.19'] = [
   B("Swiping a task or a Day Planner item: the item stays where it is, with its name still readable, and the buttons slide in over it from the side. In the Day Planner they never cover the time, and a day's task's tick box no longer jumps over its name."),
 ]
+NOTES['1.35.20'] = [
+  B("Sliding to the next list in Tasks: the underline under the tabs no longer flashes; it glides across, and the new tab pulses once, light blue (Brain Dump's filters too)."),
+  B("Phones: a side swipe that starts on the bar of areas at the bottom no longer changes page."),
+]
