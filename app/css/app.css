@@ -3116,6 +3116,8 @@ a.comment-mark:hover { color: var(--text); }
 /* 196: a task dragged over the middle of another previews as its sub-task
    (indented, with ↳); the task it will go under is outlined. */
 .task-list > li.nest-target { outline: 2px dashed var(--active-border, currentColor); outline-offset: -2px; }
+/* The gap a dragged task will drop into (sortable.js): the same dashed outline as dropping onto a task. */
+.drop-slot { position: fixed; z-index: 1; pointer-events: none; box-sizing: border-box; border: 2px dashed var(--active-border, currentColor); }
 .task-list > li.dragging.nest-preview { padding-left: calc(var(--nest-pad, 36px) + 28px); position: relative; }
 .task-list > li.dragging.nest-preview::before { content: "↳"; position: absolute; left: calc(var(--nest-pad, 36px) + 6px); top: .55em; width: auto; background: none; color: var(--muted); font-size: .9rem; line-height: 1; }
 /* A comment's ⋯ menu looks like the glass dropdown lists (.dd-menu): one
@@ -3759,4 +3761,4 @@ html[data-slide="back"]::view-transition-new(sift-page) { animation-name: sift-i
 body.is-dragging .task-list :is(.tree-v, .tree-h) { opacity: 0; } /* the lines joining sub-tasks are redrawn after the drop */
 .task-list > li.heal-end { border-bottom-left-radius: 14px !important; border-bottom-right-radius: 14px !important; border-bottom-color: var(--glass-border) !important; }
 body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none; }
-@media (hover: none) { [data-hold-drag] > li :is(.task-title, .item-sub):not(:focus) { -webkit-user-select: none; -webkit-touch-callout: none; } }
+@media (hover: none) { :is([data-hold-drag] > li :is(.task-title, .item-sub), [data-hold-drag] .line.has-item .item-title):not(:focus) { -webkit-user-select: none; -webkit-touch-callout: none; } }

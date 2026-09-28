@@ -19,6 +19,7 @@ import { loadAll as loadTasks, forDay, suggestions, doneFields, aimDate, addTask
 import * as att from '../attachments.js';
 import { typingIn } from '../listkit.js';
 import { rowSwipe } from '../rowswipe.js';
+import { holdToLift, HOLD_SKIP } from '../hold.js';
 import { atEdge, caretTo } from '../walk.js';
 import { debounced } from '../autosave.js';
 import { editPills, selectPill, energyPill } from '../editpills.js';
@@ -1545,7 +1546,7 @@ export default {
       el.addEventListener('touchend', ev => {
         const t = tap;
         tap = null;
-        if (!t || document.body.classList.contains('has-select-bar')) return;
+        if (!t || document.body.classList.contains('has-select-bar') || Date.now() - hold.liftedAt < 1500) return; // not after a hold picked it up
         ev.preventDefault(); // no click, no cursor: this tap gets it ready, or edits it
         if (armed !== t.id) { armed = t.id; paintArmed(); return; }
         armed = null;
@@ -1579,28 +1580,54 @@ export default {
       if (!press) return;
       if (!press.dragging) {
         if (Math.hypot(ev.clientX - press.x, ev.clientY - press.y) < 6) return;
-        // Pick up: the selection if this item is in it, otherwise just this one.
-        press.dragging = true;
-        press.ids = selected.has(press.id) && selected.size > 1 ? items.filter(i => selected.has(i.id)).map(i => i.id) : [press.id];
-        const carried = items.filter(i => press.ids.includes(i.id));
-        const ghost = document.createElement('div');
-        ghost.className = 'pickup-stack';
-        ghost.innerHTML = carried.slice(0, 4).map(i => `<div class="pickup-row hand">${esc(i.title)}${i.time ? ` <span class="span-tag">${fmt(i.time)}</span>` : ''}</div>`).join('')
-          + (carried.length > 4 ? `<div class="pickup-more">+ ${carried.length - 4} more</div>` : '');
-        document.body.append(ghost);
-        press.ghost = ghost;
-        press.ids.forEach(id => lifted.add(id));
-        renderLines();
-        renderPile();
-        document.body.classList.add('is-dragging');
+        pickUp();
       }
+      carry(ev.clientX, ev.clientY);
+    });
+    // Pick up: the selection if this item is in it, otherwise just this one.
+    function pickUp() {
+      press.dragging = true;
+      press.ids = selected.has(press.id) && selected.size > 1 ? items.filter(i => selected.has(i.id)).map(i => i.id) : [press.id];
+      const carried = items.filter(i => press.ids.includes(i.id));
+      const ghost = document.createElement('div');
+      ghost.className = 'pickup-stack';
+      ghost.innerHTML = carried.slice(0, 4).map(i => `<div class="pickup-row hand">${esc(i.title)}${i.time ? ` <span class="span-tag">${fmt(i.time)}</span>` : ''}</div>`).join('')
+        + (carried.length > 4 ? `<div class="pickup-more">+ ${carried.length - 4} more</div>` : '');
+      document.body.append(ghost);
+      press.ghost = ghost;
+      press.ids.forEach(id => lifted.add(id));
+      renderLines();
+      renderPile();
+      document.body.classList.add('is-dragging');
+    }
+    // The picked-up stack follows the pointer; the day shows where it would land.
+    function carry(x, y) {
       const w = Math.min(420, $('.paper').getBoundingClientRect().width - 80);
-      Object.assign(press.ghost.style, { left: `${ev.clientX - 20}px`, top: `${ev.clientY - press.rowH / 2}px`, width: `${w}px` });
-      press.target = targetAt(ev.clientX, ev.clientY);
+      Object.assign(press.ghost.style, { left: `${x - 20}px`, top: `${y - press.rowH / 2}px`, width: `${w}px` });
+      press.target = targetAt(x, y);
       showPreview(press.target);
+    }
+    // Press and hold anywhere on an item (finger or mouse) picks it up too (hold.js),
+    // as its ⠿ does; on a phone, a first tap still gets it ready to stretch (armed).
+    el.dataset.holdDrag = ''; // holding an item's text drags it, not opens its panel (holdopen.js)
+    const hold = holdToLift(el, {
+      rowAt: t => (t.closest('.line.has-item[data-item] > .content') && !t.closest('.line.armed') ? t.closest('.line.has-item[data-item]') : null),
+      shadeOf: row => row.querySelector(':scope > .content'),
+      skip: `${HOLD_SKIP}, .drag-grip, .resize-grip, .margin, .note-edit`,
+      busy: () => !!press || !!resizing,
+      onLift: (row, x, y, pointerId) => {
+        const item = items.find(i => i.id === row.dataset.item);
+        if (!item) return;
+        try { el.setPointerCapture(pointerId); } catch {}
+        this.pills?.close?.();
+        press = { id: item.id, x, y, rowH: row.getBoundingClientRect().height, dragging: false, body: true };
+        pickUp();
+        carry(x, y);
+      },
     });
 
     const endPress = async ev => {
+      hold.letGo();
       if (resizing) return resizeEnd(ev);
       const p = press;
       press = null;
