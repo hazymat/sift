@@ -4030,7 +4030,9 @@ textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
 .bb-sec-types { grid-column: 2 / -1; }
 .bb-sec-readings { grid-column: 2 / -1; display: flex; align-items: center; gap: 8px; font-size: .9rem; color: var(--text); }
 .bb-ings .bb-content { justify-content: flex-start; }
-.bb-paper ::placeholder { color: var(--muted); opacity: .75; }
+/* Placeholders, chips and faint words follow the paper's own ink (not the theme's, e.g. white placeholders of dark themes on yellow paper). */
+.bb-paper :is(input, textarea)::placeholder, .bb-paper .rich-edit.is-empty::before { color: color-mix(in srgb, var(--text) 52%, transparent) !important; opacity: 1; }
+.bb-paper .chip, .bb-paper .bb-batch-row .muted { color: color-mix(in srgb, var(--text) 78%, transparent); }
 .bb-content > .bb-add-field { align-self: flex-start; }
 
 /* The pills under a task being edited and under the New task line (editpills.js, views/tasks.js):
