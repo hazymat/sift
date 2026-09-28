@@ -725,3 +725,11 @@ NOTES['1.38.00'] = [
   F('Batch Book: Make this is at the top of a recipe. The batch opens straight away, and each ingredient has ✓ In stock and 🛒 Add to list. The first Add to list makes a list for the batch, or pick a list you have; pressing again takes it back off.'),
   F('Batch Book is in the tour.'),
 ]
+
+NOTES['1.39.00'] = [
+  F('Batch Book: the books are a filter bar like Brain Dump\'s, on one line that scrolls sideways, each with its emoji and colour. The bar at the top stays put while you scroll, and each book\'s name and line stay at the top while you scroll through its recipes (with one book picked too).'),
+  F('Batch Book: each recipe card has Make and a More menu: copy to clipboard, share, duplicate, print, its own colour, move to another book, archive and delete.'),
+  F('Batch Book: share a recipe with someone on your sync server, the same way as lists and notes (by sign-in email; they accept; it shows under Shared with me). Its batches, diary and readings are shared too; photos aren\'t yet.'),
+  F('Batch Book: the batches list filters by status (planned, on the go, done), and its rows look like Tasks\' (see-through glass, each in its batch\'s colour).'),
+  F('Phones: a side swipe in Batch Book slides only the recipes or batches, and at the first or last book it gives a nudge instead of sliding to the same page.'),
+]

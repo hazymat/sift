@@ -3807,6 +3807,9 @@ body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none
 .bb-sections, .bb-status { display: flex; gap: 2px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
 .bb-sections::-webkit-scrollbar, .bb-status::-webkit-scrollbar { display: none; }
 .bb-sections button, .bb-status button, .bb-sections-edit { flex: none; width: auto; height: auto; background: none; border: 0; border-bottom: 2px solid transparent; border-radius: 0; box-shadow: none; padding: 6px 9px 5px; font-size: .9rem; line-height: 1.2; color: var(--muted); }
+.bb-sections { flex-wrap: nowrap; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+.bb-sections button { white-space: nowrap; border-bottom-color: color-mix(in srgb, var(--bb, var(--muted)) 35%, transparent); }
+.bb-sections button[aria-pressed="true"] { background: color-mix(in srgb, var(--bb, var(--muted)) 16%, transparent); border-radius: 8px 8px 0 0; }
 .bb-sections button[aria-pressed="true"], .bb-status button[aria-pressed="true"] { color: inherit; font-weight: 600; border-bottom-color: var(--bb, currentColor); }
 .bb-status { margin: 0 0 8px; }
 .bb-status button { font-size: .85rem; }

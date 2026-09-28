@@ -17,7 +17,7 @@ import { toast, undoable } from '../toast.js';
 import { askText, askYes } from '../ask.js';
 import { dateText, isoDate, PAPERS } from '../days.js';
 import { cogHtml } from '../viewcog.js';
-import { rankOf, byRank, keyBetween, reorderWrites } from '../order.js';
+import { rankOf, byRank, reorderWrites } from '../order.js';
 import { createListKit } from '../listkit.js';
 import { shareSheet, sharedWithText, people, fromOthers, invitesHtml, theirsHtml } from '../sharing.js';
 import { TINTS } from '../colours.js';
@@ -857,7 +857,7 @@ export default {
       if (act === 'dup') {
         const copy = { title: `${r.title || 'Untitled'}${owner ? '' : ' (copy)'}`, type: r.type || '', tags: (r.tags || []).slice(), description: r.description || '', ingredients: (r.ingredients || []).map(i => Object.assign({}, i)), steps: stepsOf(r).map(x => ({ id: store.uuidv7(), text: x.text })), tasting: r.tasting || '', fields: Object.assign({}, r.fields), colour: r.colour || null };
         const made = await inMine(() => store.create('recipes', copy));
-        if (!owner) await store.update('recipes', made.id, { rank: keyAfter(r) });
+        if (!owner) await placeAfter(made, r);
         toast(owner ? `"${copy.title}" is now in your own recipes too` : 'Duplicated', { action: 'Open', onAction: () => go(`#/recipes/${made.id}`) });
         return render();
       }
@@ -883,8 +883,13 @@ export default {
         render();
       });
     }
-    // A key just after this recipe's (a duplicate sits next to it).
-    const keyAfter = r => { const mine = shown().filter(x => (x.type || '') === (r.type || '')); const at = mine.findIndex(x => x.id === r.id); return keyBetween(rankOfRecipe(r), mine[at + 1] ? rankOfRecipe(mine[at + 1]) : null); };
+    // A duplicate sits just after the recipe it came from.
+    async function placeAfter(made, r) {
+      const rows = shown().filter(x => (x.type || '') === (r.type || '') && x.id !== made.id);
+      rows.splice(rows.findIndex(x => x.id === r.id) + 1, 0, made);
+      const writes = reorderWrites(rows, rankOfRecipe, [made.id]);
+      if (writes.length) await store.updateMany('recipes', writes.map(([x, k]) => [x.id, { rank: k }]));
+    }
     let printAfter = false;
 
     // The bar at the top stays while the recipes scroll; with a glass background once it's stuck.
