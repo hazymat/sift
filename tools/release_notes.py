@@ -759,3 +759,7 @@ NOTES['1.41.01'] = [
 NOTES['1.41.02'] = [
   F('Batch Book: in the batches list, press a batch\'s status (Planned, On the go, Done) to change it there and then.'),
 ]
+
+NOTES['1.41.03'] = [
+  B('Batch Book: a batch opened from the batches list now goes back to the batches list with Esc or the back button, not to its recipe.'),
+]
