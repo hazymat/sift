@@ -40,18 +40,23 @@ function newUserSteps() {
     { id: 'dump', hash: '#/dump', at: '.dump-capture', focus: '#dump-body .rich-edit', title: `${word('area_dump')}: empty your head`, done: { made: ['thoughts'] },
       body: `<p>Anything goes here: a worry, an idea, a phone number, "ring the dentist". No title, no folder, nothing to decide first.</p>
         <p class="tour-try">Try it: ${KEYS ? `write something, then press ${key(CTRL, 'Enter')} or Save` : 'tap the box and write something, then Done, then Save'}.</p>` },
-    { id: 'becomes', hash: '#/dump', at: '#thoughts > li.thought', title: 'It becomes something, and stays', done: { made: ['tasks', 'day_items'] },
-      body: `<p>Your note is kept. When you're ready, <b>→ Task</b> makes it a task, <b>Plan it</b> puts it on a day's plan, <b>→ Find Things</b> records where something is kept.</p>
-        <p>The note isn't emptied or thrown away, as it would be in other apps: it stays, linked to what it became, and the task links back to it. You never have to decide whether it's safe to delete.</p>
+    { id: 'becomes', hash: '#/dump', at: '#thoughts > li.thought', title: 'Your note, ready for action', done: { made: ['tasks', 'day_items'] },
+      body: `<p>Your note is stored. Its action buttons turn it into a <b>task</b>, or put it on the <b>${word('area_planner')}</b>, which you'll soon see is a really powerful feature.</p>
+        <p>The note isn't moved or thrown away: it stays here, linked to what it became.</p>
         <p class="tour-try">Try it: ${tap} <b>→ Task</b>.</p>` },
-    { id: 'notes', hash: '#/dump', at: '#thoughts > li.thought, .dump-find', title: 'Keeping notes in order, without filing', body: `<p><b>This is a:</b> under the box says what a note is: a thought, an idea, shopping… (<b>+ New</b> adds your own kinds). The row above your notes shows just one kind, or ★ pinned ones.</p>
-        <p>On each note: the dot gives it a colour, ☆ pins it to the top, <b>Archive</b> puts it away when you're done with it, and ⋯ has the rest (copy, share, attach, delete). ${KEYS ? `${key('Alt', 'Enter')} or ⤢` : '⤢'} opens a note full screen, for writing without distractions.</p>` },
-    { id: 'rich', hash: '#/dump', at: '#dump-body', focus: '#dump-body .rich-edit', title: 'Notes that do things', body: `<p>Bold, crossed out, lists and five text sizes, kept wherever the note appears. Pick a line and <b>↗ Make</b> turns it into tasks or a contact; the words stay, as a link.</p>
-        <p>Write a phone number or an email and it becomes a real contact, with a record of every call. Paste a screenshot and it's attached.</p>` },
-    { id: 'undo', hash: '#/dump', at: '#dump-body', only: 'keys', title: 'Undo that remembers yesterday', body: `<p>${key(CTRL, 'Z')} in a note steps back through what you just typed, then keeps going: yesterday's version, last week's, even changes made on your other devices. ${key(CTRL, 'Y')} goes forward again.</p>
+    { id: 'notes', hash: '#/dump', at: '#thoughts > li.thought, .dump-find', title: 'Tidy without filing', body: `<p>On each note, the dot gives it a colour, ☆ pins it to the top, <b>Archive</b> puts it away when you're done with it, and ⋯ has the rest: copy, share, attach, delete.</p>
+        <p>${KEYS ? `${key('Alt', 'Enter')} or ⤢` : '⤢'} opens a note full screen, for writing without distractions.</p>` },
+    { id: 'rich', hash: '#/dump', at: '#dump-body', focus: '#dump-body .rich-edit', title: 'Notes that do things', body: `<p>Notes everywhere in the app can be formatted: with Markdown, with the toolbar, or with keyboard shortcuts${KEYS ? ` (${key(CTRL, 'B')} for bold)` : ''}. Or keep them as plain text, if you prefer.</p>
+        <p>Type a phone number or an email address and it's picked out as a real contact, with a record of every call. Paste a screenshot or a PDF and it's attached to the note.</p>` },
+    { id: 'undo', hash: '#/dump', at: '#dump-body', only: 'keys', title: 'Undo that remembers yesterday', body: `<p><b>This is honestly one of the great features, which I think you'll be impressed with.</b></p>
+        <p>${key(CTRL, 'Z')} in a note steps back through what you just typed, then keeps going: yesterday's version, last week's, even changes made on your other devices. ${key(CTRL, 'Y')} goes forward again.</p>
         <p>Anything else you do shows a message at the bottom with <b>Undo</b>, and ${key(CTRL, 'Z')} does the same while it shows.</p>` },
-    { id: 'undo', hash: '#/dump', at: '#dump-body', only: 'touch', title: 'Undo that remembers yesterday', body: `<p>Every note keeps its earlier versions: yesterday's, last week's, even changes made on your other devices. <b>Aa</b> in a note's toolbar, then 🕘, lists them to go back to.</p>
+    { id: 'undo', hash: '#/dump', at: '#dump-body', only: 'touch', title: 'Undo that remembers yesterday', body: `<p><b>This is honestly one of the great features, which I think you'll be impressed with.</b></p>
+        <p>Every note keeps its earlier versions: yesterday's, last week's, even changes made on your other devices. <b>Aa</b> in a note's toolbar, then 🕘, lists them to go back to.</p>
         <p>Anything else you do shows a message at the bottom with <b>Undo</b>.</p>` },
+
+    { id: 'safe', hash: '#/dump', at: '.dump-capture', title: 'Never lose a note', body: `<p>Everything you type is kept as you type it. If your phone's battery runs out, or your browser closes for an update halfway through a sentence, it's all still there when you come back, even a note you hadn't saved yet.</p>
+        <p>No more worrying about lost notes.</p>` },
 
     // ---------- Tasks ----------
     { id: 'tasks', hash: '#/tasks/now', at: '#task-entry, #task-body', also: nav('tasks'), focus: '#task-new', title: `${word('area_tasks')}: ${word('list_now')}, ${word('list_next')}, ${word('list_later')}`, done: { made: ['tasks'] },
