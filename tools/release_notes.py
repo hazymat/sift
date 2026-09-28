@@ -682,3 +682,6 @@ NOTES['1.35.42'] = [
   F("Tasks: several marked done at once fade out with the \"Transferring to Done list\" note (one on each run of them), as one does."),
   B("The selection bar's ✕ shows Esc; choosing tasks with ⠿ takes the cursor out of New task, so the bar's keys work straight away."),
 ]
+NOTES['1.35.43'] = [
+  F("Ctrl+Z (⌘Z) when you're not typing undoes the last thing you did, even after its message has gone, and says what it undid. Ctrl+Y or Ctrl+Shift+Z (⌘⇧Z) redoes it. In a note or field, the keys are still its own."),
+]

@@ -620,6 +620,8 @@ async function boot() {
     requestAnimationFrame(() => scrollTo(0, y));
   };
 
+  // Ctrl+Z / Ctrl+Y outside anything being typed: undo / redo the last thing done (undo.js).
+  import('./undo.js').then(m => m.installUndoKeys(refreshPage));
   if (await firstVisit()) location.replace('#/welcome');
   await route();
   renderSyncStatus();

@@ -75,14 +75,17 @@ function hide() {
 
 // Show an undo toast for a change that has just been made. The change is
 // also named in History under the same message.
+// (Its Undo is recorded as the undo of that entry, so Ctrl+Z / Ctrl+Y later
+// know it's been undone: undo.js.)
 export function undoable(message, undo, { more } = {}) {
-  labelHistory(message);
+  const entry = labelHistory(message);
   toast(message, {
     more,
     action: 'Undo',
     onAction: async () => {
       await undo();
-      await labelHistory(`Undo: ${message}`);
+      const id = await entry;
+      await labelHistory(`Undo: ${message}`, id ? { undo_of: [id] } : {});
     },
   });
 }
