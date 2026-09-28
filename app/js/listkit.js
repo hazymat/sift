@@ -25,6 +25,7 @@
 //   families: rows keep their depth and a parent carries its children, but there's no indenting
 //   grid: true for cards laid out in rows and columns (drag follows the pointer both ways)
 //   after each render: kit.attach(ul)        on leaving the view: kit.destroy()
+//   kit.toggle(id): select or deselect a row from the view's own gesture
 //   onReorder(rows, label, ul, moved): rows = [{ id, depth }] in the new order; moved =
 //     the ids that were moved (so only they need a new place: order.js); persist them
 //   actions: [{ id, label, danger?, key?, group?, when?, run(ids) }]; ids are in list order;
@@ -469,6 +470,8 @@ export function createListKit({
   return {
     attach,
     clear,
+    // Add a row to the selection, or take it out (e.g. a view's own press and hold, or a tap while choosing).
+    toggle(id) { selected.has(id) ? selected.delete(id) : selected.add(id); anchor = id; cursor = null; paint(); },
     get selected() { return selected; },
     get size() { return selected.size; },
     // Call from the view's Escape handler; returns true if it cleared something.
