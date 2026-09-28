@@ -806,3 +806,7 @@ NOTES['1.44.03'] = [
 NOTES['1.45.00'] = [
   F('Batch Book: the Batches button is now a Recipes | Batches switch at the right of the books bar, just before ⋯.'),
 ]
+
+NOTES['1.45.01'] = [
+  B('Batch Book: a book\'s heading stuck at the top now joins the glass bar above it (same glass, no gap, a thin line in the book\'s colour) instead of sitting in its own dark block.'),
+]

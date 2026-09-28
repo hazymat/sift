@@ -985,6 +985,7 @@ export default {
       const push = () => {
         queued = 0;
         const top = parseFloat(el.style.getPropertyValue('--bb-stick')) || 0;
+        bar.classList.toggle('joined', heads.some(h => h.getBoundingClientRect().top <= top + 0.5 && scrollY > 0));
         heads.forEach((h, n) => {
           h.style.transform = ''; h.style.opacity = '';
           const box = h.getBoundingClientRect(), next = heads[n + 1]?.getBoundingClientRect();
