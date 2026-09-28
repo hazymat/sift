@@ -226,4 +226,5 @@ export const binProvider = {
 
 // A batch's name: its own, else (older batches) its recipe's name and the day it was started.
 export const batchDay = iso => (iso ? dateText(new Date(`${iso.slice(0, 10)}T12:00`), { day: 'numeric', month: 'short', year: 'numeric' }) : '');
-export const batchName = (m, recipeTitle) => m.name || `${recipeTitle || 'Untitled'} ${batchDay(m.date)}`.trim();
+export const newBatchName = (recipeTitle, iso) => `${recipeTitle || 'Untitled'} - ${batchDay(iso)}`;
+export const batchName = (m, recipeTitle) => m.name || newBatchName(recipeTitle, m.date);
