@@ -1,6 +1,6 @@
 // Batch Book's example recipes: what a new Batch Book starts with, from things in UK supermarkets (metric).
-// Added once, on a device that has never had a recipe and isn't signed in to a sync server (so nobody's
-// own book gets them by surprise); an empty book offers them with a button too (recipes.js).
+// Added once, to a book that has never had a recipe, on a device not signed in or signed up as a new account
+// (so no existing account gets them); an empty book offers them with a button too (recipes.js).
 import * as store from './store.js';
 import { parseLine } from './batchbook.js';
 
@@ -54,8 +54,9 @@ export async function addExamples(settings) {
   await store.updateSettings({ batch_examples: true });
 }
 
-// A brand new Batch Book: never had a recipe on this device and not signed in to sync.
+// A brand new Batch Book: never had a recipe, on a device not signed in or signed up here as a new account
+// (an account that already existed is only ever signed in to, so it never gets them).
 export async function isBrandNew(settings, signedIn) {
-  if (settings.batch_examples || signedIn) return false;
+  if (settings.batch_examples || (signedIn && !(await store.metaGet('new_account')))) return false;
   return !(await store.list('recipes', { includeDeleted: true })).length;
 }

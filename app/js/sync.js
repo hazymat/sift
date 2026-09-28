@@ -130,6 +130,7 @@ export async function register(server, email, password) {
     device_name: deviceName(),
   }, server);
   await keep(server, email, login, dataKeyRaw);
+  await store.metaSet('new_account', true); // a brand new account: Batch Book's examples may be added (examples.js)
   return cx.recoveryCode(dataKeyRaw);
 }
 
