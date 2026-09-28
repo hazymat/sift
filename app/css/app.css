@@ -3744,13 +3744,13 @@ html[data-slide="back"]::view-transition-new(sift-page) { animation-name: sift-i
 /* Press and hold anywhere on a task to drag it (sortable.js: anywhere). A
    ripple spreads from the finger or pointer while it's held; when it's done
    the row lifts. */
-.hold-pending { position: relative; }
-.hold-ripple { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; pointer-events: none; z-index: 0; }
+.hold-pending { position: relative; isolation: isolate; } /* the shading goes under its text */
+.hold-ripple { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; pointer-events: none; z-index: -1; }
 .hold-ripple > span { position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 45%, transparent) 0%, color-mix(in srgb, var(--accent) 18%, transparent) 70%, transparent 100%);
-  animation: hold-ripple 300ms cubic-bezier(.3, .6, .3, 1) forwards; }
-.hold-ripple.done { transition: opacity .25s; opacity: 0; }
-@keyframes hold-ripple { from { transform: scale(.2); opacity: .9; } to { transform: scale(22); opacity: .55; } }
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 30%, transparent) 0%, color-mix(in srgb, var(--accent) 24%, transparent) 85%, color-mix(in srgb, var(--accent) 12%, transparent) 100%);
+  animation: hold-ripple 300ms cubic-bezier(.45, 0, .55, 1) forwards; }
+.hold-ripple.done { transition: opacity .3s; opacity: 0; }
+@keyframes hold-ripple { from { transform: scale(.3); opacity: .9; } to { transform: scale(var(--reach, 22)); opacity: 1; } }
 /* A sub-task dragged out of its family (listkit.js): it shows as a task of its
    own (whole rounded box), and the row above closes the family off. */
 .task-list > li.dragging.coming-out { border-radius: 14px !important; border-color: var(--active-border) !important; }

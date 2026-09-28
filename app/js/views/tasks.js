@@ -1363,7 +1363,7 @@ export default {
 
     this.closeDetails = () => { open = null; };
     // Arriving on Tasks (nav, Ctrl+← / →): with the 👁 Layout switch on, the cursor goes in New task.
-    this.arrived = () => { if (lay('new-focus')) focusEntry(); };
+    this.arrived = () => { if (lay('new-focus') && !touch) focusEntry(); }; // phones: the keyboard only for a tap in the line
 
     // Tap a task's title to edit it: pills for energy, time, dates and list
     // open under it, plus More for the whole panel (js/editpills.js).
