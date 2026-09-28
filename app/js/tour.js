@@ -96,7 +96,7 @@ function newUserSteps() {
     { id: 'twoways', hash: '#/planner', at: '.planner .pile', title: 'Tasks, your way', body: `<p>Use tasks however suits you:</p>
       <ul><li><b>One big list</b> in ${w('area_tasks')}, bringing in each day what's for today.</li>
       <li><b>Just for today</b>: small things added straight to the day, that don't belong on your bigger list.</li></ul>
-      <p>Either way, a day's task can stay a simple to-do, or go into a time slot when you want. It's flexible.</p>
+      <p>Either way, they stay on the ${w('area_planner')} for the day they're your focus: as a simple to-do, or in a time slot if you want. It's flexible.</p>
       <p>Mix the two, and change your mind whenever: <b>→ Tasks</b> in a day's task's details moves it onto your main list in one ${tap}.</p>
       <p>Or ignore ${w('area_tasks')} altogether and work from the ${w('area_planner')} alone. It's up to you.</p>` },
     { id: 'focus', hash: '#/planner', at: '.planner .focus-row', title: 'Plan around how you feel', body: `<p><b>Day focus</b>: the one thing that matters today. <b>Energy</b>: how you feel, so the planner can suggest tasks that fit.</p>
