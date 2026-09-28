@@ -705,3 +705,6 @@ NOTES['1.35.48'] = [
 NOTES['1.35.49'] = [
   F("Day Planner: the name of the section after the day ends (Evening plans) is in the same font as the Schedule times, in every theme, including a custom theme's Schedule times font."),
 ]
+NOTES['1.35.50'] = [
+  B("iPhone: pressing Done in a full-screen note showed the note's small inline editor for a moment before going back to the list."),
+]

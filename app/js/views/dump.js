@@ -724,7 +724,7 @@ export default {
     let pressedOn = null;
     addEventListener('pointerdown', ev => { pressedOn = ev.target; }, { capture: true, signal: gone.signal });
     addEventListener('pointerup', () => setTimeout(() => { pressedOn = null; }, 400), { capture: true, signal: gone.signal });
-    const pressingIn = node => !!(pressedOn && node?.contains(pressedOn));
+    const pressingIn = node => !!(pressedOn && node?.contains(pressedOn) && !pressedOn.closest('.note-full-done')); // Done has already done its job
     const afterPress = () => new Promise(done => {
       const go = () => { removeEventListener('click', go, true); clearTimeout(timer); setTimeout(done, 0); };
       addEventListener('click', go, true);

@@ -107,13 +107,37 @@ export function closeFull({ animate = true, blur = true } = {}) {
     box.style.height = '';
     document.documentElement.classList.remove('note-full');
     if (!blur) return;
+    // On a phone the note stays out of sight while the page saves it and
+    // redraws, so its inline editor doesn't flash up on the way back to the list.
+    const hide = PHONE.matches && box.isConnected;
+    if (hide) box.style.opacity = '0';
     if (box.contains(document.activeElement)) document.activeElement.blur();
     // The cursor had already left (keyboard put away): tell the page now.
     else if (left?.isConnected) left.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+    if (hide) showWhenSettled(box);
   };
   if (!animate || !box.animate || !box.isConnected) { finish(); return; }
   const a = box.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(.9)' }], { duration: 170, easing: 'ease-in' });
   a.onfinish = finish;
   a.oncancel = finish;
   setTimeout(finish, 260); // in case the animation never runs (a hidden page)
+}
+
+// Shows the note again once the page has stopped redrawing (a quiet moment,
+// at most 800ms), if it is still on the page (a note that lives inline, such
+// as a task's). A note the redraw took away is simply gone.
+function showWhenSettled(box) {
+  let quiet;
+  const show = () => {
+    watch.disconnect();
+    clearTimeout(quiet);
+    clearTimeout(limit);
+    box.style.opacity = '';
+    if (box.isConnected) box.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 150, easing: 'ease-out' });
+  };
+  const wait = () => { clearTimeout(quiet); quiet = setTimeout(show, 250); };
+  const watch = new MutationObserver(() => { if (!box.isConnected) show(); else wait(); });
+  watch.observe(document.body, { childList: true, subtree: true });
+  const limit = setTimeout(show, 800);
+  wait();
 }
