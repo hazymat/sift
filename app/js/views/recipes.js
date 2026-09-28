@@ -69,15 +69,20 @@ export default {
 
     // ---------- the recipes ----------
 
+    // The ★ Pinned tab: pinned recipes from every book (as Brain Dump's Pinned).
+    const PINNED = '__pinned';
+    const pinnedTab = () => state.section === PINNED;
+    const inBook = r => !state.section || (pinnedTab() ? !!r.pinned : (r.type || '') === state.section);
     const matches = r => {
-      if (state.section && (r.type || '') !== state.section) return false;
+      if (!inBook(r)) return false;
       if (state.tag && !(r.tags || []).includes(state.tag)) return false;
       if (!state.q) return true;
       const text = [r.title, r.type, r.description, (r.tags || []).join(' ')].concat((r.ingredients || []).map(i => `${i.item} ${i.note}`), stepsOf(r).map(x => x.text)).join(' ').toLowerCase();
       return state.q.toLowerCase().split(/\s+/).every(w => text.includes(w));
     };
     const order = r => sections.findIndex(x => x.name === (r.type || ''));
-    const shown = () => data.recipes.filter(matches).sort((a, b) => order(a) - order(b) || byPlace(a, b));
+    // By book; in each, pinned first, then the order they were dragged into.
+    const shown = () => data.recipes.filter(matches).sort((a, b) => order(a) - order(b) || Number(!!b.pinned) - Number(!!a.pinned) || byPlace(a, b));
 
     // A card: its picture, name and how often it's been made; Make and ⋯ More under it.
     // from: a person sharing it with you ({ owner_id, name }); their cards don't drag.
@@ -100,6 +105,7 @@ export default {
         </a>
         <div class="bb-card-acts">
           <button type="button" class="bb-card-make" data-card="make" title="Start a batch of this">🧪 Make</button>
+          ${from ? '' : `<button type="button" class="pin bb-pin" data-card="pin" aria-pressed="${!!r.pinned}" title="${r.pinned ? 'Unpin' : 'Pin: first in its book, and under ★ Pinned'}">${r.pinned ? '★' : '☆'}</button>`}
           <details class="tool-menu bb-card-menu">
             <summary class="icon-btn" aria-label="More" title="More">${icon('i-more')}</summary>
             <div class="menu">
@@ -144,13 +150,13 @@ export default {
     const chapter = (name, n) => { const x = sectionOf(sections, name); return `<li class="bb-chapter-title" data-book="${esc(name)}" style="--bb:${x.colour}"><span>${x.emoji}</span> ${esc(name || 'No book')} <span class="muted">${n}</span></li>`; };
 
     function overview() {
-      const inSection = data.recipes.filter(r => !state.section || (r.type || '') === state.section);
+      const inSection = data.recipes.filter(inBook);
       const tags = Array.from(new Set(inSection.flatMap(r => r.tags || []))).sort((a, b) => a.localeCompare(b));
       if (state.tag && !tags.includes(state.tag)) state.tag = '';
       const list = shown();
       const ids = new Set(list.map(r => r.id));
       const batches = data.makes.filter(m => ids.has(m.recipe_id) && (!state.status || (m.status || 'going') === state.status));
-      const groups = state.section ? [state.section] : sections.map(x => x.name).filter(n => list.some(r => (r.type || '') === n));
+      const groups = state.section && !pinnedTab() ? [state.section] : sections.map(x => x.name).filter(n => list.some(r => (r.type || '') === n));
       const theirs = shared.filter(x => matches(x.r));
       const invites = invitesHtml(['recipe']);
       return `
@@ -170,8 +176,9 @@ export default {
             <div class="bb-sections" role="tablist" aria-label="Books">
               <button type="button" data-section="" aria-pressed="${!state.section}">All</button>
               ${sections.map(x => `<button type="button" data-section="${esc(x.name)}" aria-pressed="${state.section === x.name}" style="--bb:${x.colour}">${x.emoji} ${esc(x.name || 'No book')}</button>`).join('')}
+              <button type="button" data-section="${PINNED}" aria-pressed="${pinnedTab()}">★ Pinned</button>
             </div>
-            <button type="button" class="icon-btn bb-sections-edit" data-act="sections" title="Edit books" aria-label="Edit books">✎</button>
+            <button type="button" class="bb-sections-edit filter-more" data-act="sections" title="Add, rename, reorder or remove books" aria-label="Edit books">⋯</button>
           </div>
           ${state.batches ? `<div class="bb-status" role="group" aria-label="Status">${[['', 'All']].concat(STATUSES).map(([v, l]) => `<button type="button" data-status="${v}" aria-pressed="${state.status === v}">${l}</button>`).join('')}</div>`
             : tags.length ? `<div class="bb-tags">${tags.map(t => `<button type="button" class="chip" data-tag="${esc(t)}" aria-pressed="${state.tag === t}">${esc(t)}</button>`).join('')}</div>` : ''}
@@ -180,7 +187,7 @@ export default {
         ${!data.recipes.length && !shared.length && !invites ? `<div class="empty"><h2>No recipes yet.</h2><p class="muted">Add a recipe: ingredients, steps, photos and tasting notes. Each time you make it, start a batch: its own copy to change, what you have in and what to buy, readings, a diary and how it turned out.</p></div>`
         : state.batches ? (batches.length ? `<div class="bb-batches bb-batch-list">${batches.map(batchRow).join('')}</div>` : `<div class="empty"><h2>No ${state.status ? `${STATUSES.find(s => s[0] === state.status)[1].toLowerCase()} ` : ''}batches here.</h2><p class="muted">Open a recipe and press Make this.</p></div>`)
         : `${list.length ? `<ul class="bb-grid bb-cards">${groups.map(name => { const mine = list.filter(r => (r.type || '') === name); return chapter(name, mine.length) + mine.map(r => card(r)).join(''); }).join('')}</ul>`
-          : `<div class="empty"><h2>Nothing here yet.</h2>${state.section && !state.q ? '<p class="muted">Press + New recipe to add one to this book.</p>' : ''}</div>`}
+          : `<div class="empty"><h2>Nothing here yet.</h2>${pinnedTab() ? '<p class="muted">Press ☆ on a recipe to pin it here.</p>' : state.section && !state.q ? '<p class="muted">Press + New recipe to add one to this book.</p>' : ''}</div>`}
           ${theirs.length || invites ? `<h3 class="bb-chapter-title bb-shared-title" style="--bb:#7a6a55"><span>👥</span> Shared with me</h3>${invites}<ul class="bb-grid bb-shared">${theirs.map(x => card(x.r, x)).join('')}</ul>` : ''}`}
         </div>`;
     }
@@ -395,7 +402,7 @@ export default {
       atts = await att.byParent();
       settings = await store.getSettings();
       sections = sectionsOf(settings, data.recipes);
-      if (state.section && !sections.some(x => x.name === state.section)) state.section = '';
+      if (state.section && !pinnedTab() && !sections.some(x => x.name === state.section)) state.section = '';
       if (state.make) lists = await inMine(async () => (await loadLists()).lists);
       tasting?.flush();
       tasting = null;
@@ -731,7 +738,7 @@ export default {
     }
 
     async function newRecipe() {
-      const section = state.section || sections[0]?.name || '';
+      const section = (!pinnedTab() && state.section) || sections[0]?.name || '';
       const fields = Object.fromEntries(sectionOf(sections, section).fields.map(k => [k, '']));
       const r = await store.create('recipes', { title: 'New recipe', type: section, tags: [], description: '', ingredients: [], steps: [], tasting: '', fields });
       focusNext = '.bb-title';
@@ -843,6 +850,7 @@ export default {
       const act = b.dataset.card;
       if (b.dataset.cardBook !== undefined) return moveRecipes([id], { type: b.dataset.cardBook }, `Moved to ${b.dataset.cardBook || 'No book'}`);
       if (act === 'make') return makeThis(r, owner, 1);
+      if (act === 'pin') return moveRecipes([id], { pinned: !r.pinned }, r.pinned ? 'Unpinned' : 'Pinned');
       if (act === 'copy') {
         try { await navigator.clipboard.writeText(recipeText(r)); toast('Copied the recipe'); } catch { toast('Couldn\'t copy here'); }
         return;
@@ -962,6 +970,8 @@ export default {
         reorder: true, grid: true, noun: 'recipe', onReorder: persistOrder,
         actions: sections.map((x, n) => ({ id: `book${n}`, label: `${x.emoji} ${x.name || 'No book'}`, group: 'Move to', run: ids => moveRecipes(ids, { type: x.name }, `Moved to ${x.name || 'No book'}`) }))
           .concat([
+            { id: 'pin', label: 'Pin', run: ids => moveRecipes(ids, { pinned: true }, 'Pinned') },
+            { id: 'unpin', label: 'Unpin', run: ids => moveRecipes(ids, { pinned: false }, 'Unpinned') },
             { id: 'archive', label: 'Archive', key: 'A', run: ids => moveRecipes(ids, { archived_at: now() }, 'Archived') },
             { id: 'delete', label: 'Delete', danger: true, run: ids => moveRecipes(ids, { deleted_at: now() }, 'Deleted') },
           ]),
@@ -977,10 +987,13 @@ export default {
     async function persistOrder(rows, label, ul, moved) {
       const bookAt = id => { for (let p = ul.querySelector(`li[data-id="${CSS.escape(id)}"]`)?.previousElementSibling; p; p = p.previousElementSibling) if (p.dataset.book !== undefined) return p.dataset.book; return null; };
       const book = new Map(rows.map(r => [r.id, recipeOf(r.id)?.type || '']));
-      if (!state.section) for (const id of moved) { const b = bookAt(id); if (b !== null) book.set(id, b); }
+      if (!state.section || pinnedTab()) for (const id of moved) { const b = bookAt(id); if (b !== null) book.set(id, b); }
       const patch = new Map();
+      // Each book's pinned and unpinned recipes are placed separately (pinned always come first).
       for (const name of new Set(book.values())) {
-        for (const [r, k] of reorderWrites(rows.filter(r => book.get(r.id) === name), r => rankOfRecipe(recipeOf(r.id)), moved)) patch.set(r.id, { rank: k });
+        for (const pinned of [true, false]) {
+          for (const [r, k] of reorderWrites(rows.filter(r => book.get(r.id) === name && !!recipeOf(r.id)?.pinned === pinned), r => rankOfRecipe(recipeOf(r.id)), moved)) patch.set(r.id, { rank: k });
+        }
       }
       for (const [id, b] of book) if (b !== (recipeOf(id)?.type || '')) patch.set(id, Object.assign(patch.get(id) || { rank: rankOfRecipe(recipeOf(id)) }, { type: b }));
       if (!patch.size) return;

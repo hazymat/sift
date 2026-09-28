@@ -733,3 +733,8 @@ NOTES['1.39.00'] = [
   F('Batch Book: the batches list filters by status (planned, on the go, done), and its rows look like Tasks\' (see-through glass, each in its batch\'s colour).'),
   F('Phones: a side swipe in Batch Book slides only the recipes or batches, and at the first or last book it gives a nudge instead of sliding to the same page.'),
 ]
+
+NOTES['1.40.00'] = [
+  F('Batch Book: pin recipes like Brain Dump notes (☆ on a card, or select several): pinned ones come first in their book, and ★ Pinned in the bar shows them all.'),
+  F('Batch Book: ⋯ at the end of the books bar adds, renames, reorders and removes books, as in Brain Dump.'),
+]
