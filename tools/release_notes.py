@@ -742,3 +742,7 @@ NOTES['1.40.00'] = [
 NOTES['1.40.01'] = [
   B('Batch Book: scrolling down, the next book\'s heading slid over the one above it instead of pushing it up and out, and headings had a background even when not stuck at the top (now see-through, with glass only while stuck).'),
 ]
+
+NOTES['1.40.02'] = [
+  F('Batch Book: press and hold a recipe card to select it; the bar comes up, and then a single press on other cards adds them or takes them out. Esc (or ✕) ends it.'),
+]

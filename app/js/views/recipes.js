@@ -605,6 +605,32 @@ export default {
 
     // ---------- pressing things ----------
 
+    // Press and hold a recipe card: it's selected (as a tap on its ⠿ does) and the bar comes up; while
+    // anything is selected, a single press on another card adds it or takes it out. Esc clears (listkit).
+    let hold = null, held = false;
+    const cardAt = t => (t.closest?.('.bb-card-acts, .kit-grip') ? null : t.closest?.('.bb-cards > li[data-id]'));
+    el.addEventListener('pointerdown', ev => {
+      const li = cardAt(ev.target);
+      if (!li || ev.button > 0) return;
+      held = false;
+      const from = { x: ev.clientX, y: ev.clientY };
+      clearTimeout(hold?.timer);
+      hold = { li, from, timer: setTimeout(() => { held = true; kit.toggle(li.dataset.id); navigator.vibrate?.(15); }, 450) };
+    });
+    const letGo = () => { clearTimeout(hold?.timer); hold = null; };
+    el.addEventListener('pointermove', ev => { if (hold && Math.hypot(ev.clientX - hold.from.x, ev.clientY - hold.from.y) > 8) letGo(); });
+    el.addEventListener('pointerup', letGo);
+    el.addEventListener('pointercancel', letGo);
+    el.addEventListener('contextmenu', ev => { if (cardAt(ev.target)) ev.preventDefault(); });
+    el.addEventListener('click', ev => {
+      const li = cardAt(ev.target);
+      if (!li || !(held || kit?.size)) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      if (held) { held = false; return; } // the hold already chose it
+      kit.toggle(li.dataset.id);
+    }, true);
+
     // Pressing an ingredient chip keeps the cursor in the step being written.
     el.addEventListener('mousedown', ev => { if (ev.target.closest('[data-ref]')) ev.preventDefault(); });
 
@@ -1022,6 +1048,11 @@ export default {
       undoable(into ? `Moved to ${into.type || 'No book'}` : 'Moved a recipe', async () => { await store.updateMany('recipes', before); await render(); });
     }
 
+    // Esc with recipes chosen: the choosing ends first (before keyboard browsing's own Esc).
+    this.onEsc = ev => {
+      if (ev.key === 'Escape' && kit?.size && !document.querySelector('dialog[open]') && !writing()) { ev.preventDefault(); ev.stopPropagation(); kit.escape(); }
+    };
+    addEventListener('keydown', this.onEsc, true);
     this.onKey = ev => {
       if (ev.key === 'Escape' && !ev.defaultPrevented && !document.querySelector('dialog[open]') && !writing()) {
         if (kit?.escape()) ev.preventDefault();
@@ -1047,6 +1078,7 @@ export default {
 
   unmount() {
     removeEventListener('keydown', this.onKey);
+    removeEventListener('keydown', this.onEsc, true);
     this.kit?.destroy();
     this.stickWatch?.disconnect();
     store.useSpace(null);

@@ -3825,7 +3825,7 @@ body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none
 .bb-card-li { position: relative; display: flex; flex-direction: column; overflow: hidden; border-radius: 20px; list-style: none; border: 1px solid var(--glass-border); background: var(--glass); box-shadow: var(--glass-highlight), var(--shadow-sm); transition: transform .15s; }
 .bb-card-li:hover { transform: translateY(-2px); }
 .bb-card-li:has(details[open]) { overflow: visible; z-index: 4; transform: none; }
-.bb-card { display: flex; flex-direction: column; flex: 1; min-width: 0; color: var(--text); border-radius: 20px 20px 0 0; overflow: hidden; }
+.bb-card { display: flex; flex-direction: column; flex: 1; min-width: 0; color: var(--text); border-radius: 20px 20px 0 0; overflow: hidden; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 .bb-card-acts { display: flex; align-items: center; gap: 6px; padding: 0 10px 10px 14px; }
 .bb-card-make { padding: 4px 12px; font-size: .85rem; }
 .bb-pin { width: 32px; height: 32px; padding: 0; background: none; border: 0; box-shadow: none; font-size: 1.15rem; color: var(--muted); }
