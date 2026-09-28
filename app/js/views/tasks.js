@@ -26,6 +26,7 @@ import { ask, askText, askEmptied } from '../ask.js';
 import { word } from '../words.js';
 import { commentsHtml, mountComments, closingComment } from '../comments.js';
 import { REPEAT_CHOICES, choiceOf, repeatLabel, firstDate } from '../repeat.js';
+import { keys } from '../keys.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -253,7 +254,7 @@ export default {
             <span class="add-mark" aria-hidden="true"></span>
             <input id="task-new" class="new-task-line no-inline" placeholder="${esc(placeholder)}" autocomplete="off" enterkeyhint="done" aria-label="New task">
             <button type="button" class="entry-add" data-act="add" title="Add (Enter)">Add <kbd>Enter</kbd></button>
-            ${lay('pills-hide') ? '<button type="button" class="entry-chip pill-reveal" data-act="entry-reveal">More<kbd>Shift+Enter</kbd></button>' : ''}
+            ${lay('pills-hide') ? `<button type="button" class="entry-chip pill-reveal" data-act="entry-reveal">More${keys('Shift+Enter')}</button>` : ''}
           </div>
           <div class="task-entry-more">
             <div id="task-new-note" class="add-note" data-ctrl-enter="keep"></div>
@@ -1376,6 +1377,7 @@ export default {
       row: 'li[data-task]',
       key: r => r.dataset.task,
       closed: id => { if (revealed === id) revealed = null; },
+      done: true,
       html: id => {
         const t = data.tasks.find(x => x.id === id);
         if (!t) return '';
@@ -1384,7 +1386,7 @@ export default {
         // With More pressed, a note already there shows in full (Enter in the name goes into it).
         const addNote = !(t.notes || '').trim() ? `<textarea class="entry-note add-note pill-note no-inline" data-pill="notes" rows="1" placeholder="Add note" aria-label="Note"></textarea>`
           : lay('pills-hide') ? `<div class="entry-note note-shown" data-act="note-shown" title="Edit the note (Enter)">${toHtml(t.notes)}</div>` : '';
-        if (lay('pills-hide') && (revealed !== id || lay('more-panel'))) return '<button type="button" class="entry-chip pill-reveal" data-act="pills-reveal">More<kbd>Shift+Enter</kbd></button>';
+        if (lay('pills-hide') && (revealed !== id || lay('more-panel'))) return `<button type="button" class="entry-chip pill-reveal" data-act="pills-reveal">More${keys('Shift+Enter')}</button>`;
         return addNote + energyPill(t.energy)
           + selectPill('estimate_min', 'Estimated time', '⏱', [['', 'Not estimated'], ...hours], t.estimate_min)
           + datePill('start_date', 'Plan for day', '📅', t.start_date, shortDate)

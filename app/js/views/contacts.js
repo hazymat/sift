@@ -23,6 +23,7 @@ import { createListKit } from '../listkit.js';
 import { askText } from '../ask.js';
 import { word } from '../words.js';
 import { tintHex, tintId, colourMenu } from '../colours.js';
+import { keys } from '../keys.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -121,7 +122,7 @@ export default {
       return `
         <div class="c-capture">
           <textarea id="c-new" rows="2" placeholder="${esc(word('ph_contact_capture'))}"></textarea>
-          <button type="button" class="primary" data-act="capture">Save <kbd>${SHORTCUT}</kbd></button>
+          <button type="button" class="primary" data-act="capture">Save ${keys(SHORTCUT)}</button>
         </div>
         <input type="search" id="c-q" class="search" placeholder="${esc(word('ph_contact_search'))}" value="${esc(state.q)}" autocomplete="off">
         <ul class="c-list kit-list">${recent.map(contactCard).join('') || (older.length ? '' : '<li class="empty"><h2>No contacts yet. Paste a number above.</h2></li>')}

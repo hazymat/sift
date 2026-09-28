@@ -1,4 +1,5 @@
 import { labelHistory } from './store.js';
+import { keyEls } from './keys.js';
 
 // Brief message pill above the tab bar.
 //   toast('✓ Saved')
@@ -23,7 +24,7 @@ addEventListener('keydown', ev => {
 addEventListener('beforeinput', () => {
   if (!undoNow) return;
   undoNow = null;
-  el?.querySelector('kbd')?.remove();
+  el?.querySelectorAll('kbd').forEach(k => k.remove());
 }, true);
 
 export function toast(message, { action, onAction, more, ms = action ? 6000 : 1600 } = {}) {
@@ -47,7 +48,7 @@ export function toast(message, { action, onAction, more, ms = action ? 6000 : 16
     };
     btn.addEventListener('click', run, { once: true });
     if (action === 'Undo') {
-      btn.append(Object.assign(document.createElement('kbd'), { textContent: MAC ? '⌘Z' : 'Ctrl+Z' }));
+      btn.append(...keyEls(MAC ? '⌘Z' : 'Ctrl+Z'));
       undoNow = run;
     }
     el.append(btn);

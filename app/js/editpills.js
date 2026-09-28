@@ -15,6 +15,9 @@
 //     html:  key => '<label class="entry-chip" …><select data-pill="energy">…',
 //     change: (key, name, value) => …,        a pill's field changed
 //     closed: key => …,                       (optional) the pills were put away
+//     done: true,                             (optional) the row has a tick box (.tick): Ctrl+Enter
+//                                             (⌘+Enter) in its text ticks or unticks it, and on a wide
+//                                             screen a ✓ Done chip beside More says so
 //   }) → { destroy() }
 //
 // A pill is a label.entry-chip holding a real <select> or date <input> with
@@ -23,6 +26,7 @@
 // this module: it clicks the row's own details (⋯) button.
 
 import { ENERGY } from './days.js';
+import { keys, CTRL_ENTER } from './keys.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 export { esc as escPill };
@@ -70,7 +74,8 @@ export function editPills(root, spec) {
     const box = document.createElement('div');
     box.className = 'edit-pills';
     box.dataset.key = editing;
-    box.innerHTML = `${spec.html(editing)}<button type="button" class="entry-chip pill-more" data-pill-more>More…</button>`;
+    const done = spec.done && row.querySelector('.tick') ? `<button type="button" class="entry-chip pill-done" data-pill-done>${row.classList.contains('done') ? '↺ Not done' : '✓ Done'}${keys(CTRL_ENTER)}</button>` : '';
+    box.innerHTML = `${spec.html(editing)}<button type="button" class="entry-chip pill-more" data-pill-more>More…</button>${done}`;
     fillDates(box);
     // After the note line if there is one, so the pills sit right under the text.
     const sub = host.querySelector(':scope > .item-sub');
@@ -104,6 +109,26 @@ export function editPills(root, spec) {
     const row = rowOf(editing);
     if (row?.contains(ev.target) || ev.target.closest?.('.edit-pills, .pill-menu, .ref-picker, dialog, .toast')) return;
     close();
+  };
+  // Tick or untick the row (its own tick box does the work). From its text (Ctrl+Enter): what's typed
+  // is saved first (leaving the field saves it), and the cursor goes back once the list has redrawn.
+  const toggleDone = (key, fromText) => {
+    const row = rowOf(key), tick = row?.querySelector('.tick');
+    if (!tick) return;
+    if (fromText) row.querySelector(spec.title)?.blur();
+    tick.click();
+    if (!fromText) return;
+    const back = () => { const t = rowOf(key)?.querySelector(spec.title); if (t && document.activeElement !== t) { t.focus(); t.setSelectionRange?.(t.value.length, t.value.length); } };
+    requestAnimationFrame(back); setTimeout(back, 150); setTimeout(back, 400);
+  };
+  // Before inline.js takes Enter as "save and leave" (capture, on the list).
+  const onDoneKey = ev => {
+    if (ev.key !== 'Enter' || !(ev.ctrlKey || ev.metaKey) || ev.shiftKey || ev.altKey || ev.isComposing) return;
+    const row = ev.target.closest?.(spec.title)?.closest(spec.row);
+    if (!row || !root.contains(row)) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    toggleDone(spec.key(row), true);
   };
   const onKey = ev => {
     if (ev.key === 'Escape' && editing && !ev.target.closest?.('.edit-pills select')) {
@@ -140,6 +165,7 @@ export function editPills(root, spec) {
     if (d) { try { d.showPicker(); } catch { /* the tap opens it */ } return; }
     const act = ev.target.closest('[data-pill-act]');
     if (act) { ev.stopPropagation(); spec.change(pills.dataset.key, act.dataset.pillAct, null); return; }
+    if (ev.target.closest('[data-pill-done]')) { ev.stopPropagation(); toggleDone(pills.dataset.key, false); return; }
     if (ev.target.closest('[data-pill-more]')) {
       ev.stopPropagation();
       const row = rowOf(pills.dataset.key);
@@ -150,6 +176,7 @@ export function editPills(root, spec) {
   };
 
   root.addEventListener('focusin', onFocus);
+  if (spec.done) root.addEventListener('keydown', onDoneKey, true);
   root.addEventListener('change', onChange, true);
   root.addEventListener('input', onChange, true);
   root.addEventListener('focusout', onChange, true);
@@ -175,6 +202,7 @@ export function editPills(root, spec) {
     destroy() {
       removeEventListener('keydown', onAnyKey, true);
       root.removeEventListener('focusin', onFocus);
+      root.removeEventListener('keydown', onDoneKey, true);
       root.removeEventListener('change', onChange, true);
       root.removeEventListener('input', onChange, true);
       root.removeEventListener('focusout', onChange, true);

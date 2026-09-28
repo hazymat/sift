@@ -3471,9 +3471,12 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
 .pill-reveal { flex: none; margin-left: auto; padding: 2px 10px; font-size: .78rem; color: var(--text); }
 .task-list > li[data-task] > .edit-pills:has(> .pill-reveal) { display: contents; }
 .task-list > li[data-task] > .edit-pills > .pill-reveal { order: 2; align-self: center; }
+/* ✓ Done beside More, looking the same, and after it. */
+.edit-pills:has(> .pill-reveal) > .pill-done { flex: none; padding: 2px 10px; font-size: .78rem; color: var(--text); margin-left: 6px; }
+.task-list > li[data-task] > .edit-pills > .pill-done { order: 2; align-self: center; }
 #main:not([data-density="tight"]) .task-list > li[data-task]:has(> .edit-pills > .pill-reveal) > .more { order: 3; }
 #main:not([data-density="tight"]) .task-list > li[data-task]:has(> .edit-pills > .pill-reveal) > .item-sub { order: 4; }
-.edit-pills:has(> .pill-reveal) > :not(.pill-reveal) { display: none; }
+.edit-pills:has(> .pill-reveal) > :not(.pill-reveal, .pill-done) { display: none; }
 #main[data-density="tight"] .task-list > li[data-task]:has(> .edit-pills > .pill-reveal):not(:has(> .note-in-place)) { flex-wrap: nowrap; }
 #main[data-density="tight"] .task-list > li[data-task]:has(> .edit-pills > .pill-reveal) > .task-title { flex: 1 1 auto; min-width: 0; }
 .task-entry:not(.typed) .task-add-line > .pill-reveal, .task-entry.revealed .task-add-line > .pill-reveal, .task-entry:has(.task-add-line > .pill-reveal):not(.revealed) .task-entry-more { display: none; }
@@ -3514,7 +3517,12 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
 }
 #main[data-area="tasks"][data-shade="alt"]:not([data-layout-lined]) .task-list > li[data-task]:nth-child(even of li[data-task]) { background-color: color-mix(in srgb, var(--text) 7%, var(--glass-track)); }
 /* The More pill's shortcut (Hide pills behind More). */
-.pill-reveal kbd { margin-left: 5px; }
+.pill-reveal kbd, .pill-done kbd { margin-left: 5px; }
+/* A shortcut of two keys or more: a box each, close together (keys.js). */
+kbd + kbd, .pill-reveal kbd + kbd, .pill-done kbd + kbd { margin-left: 3px; }
+/* ✓ Done beside More (editpills.js): only with a keyboard and room, where its shortcut is the point. */
+.pill-done { display: none; }
+@media (hover: hover) and (pointer: fine) and (min-width: 700px) { .pill-done { display: inline-flex; align-items: center; } }
 /* A task ticked off fades, all but its note saying where it's going (tickAway, views/tasks.js). */
 .task-list > li.ticked-away { transition: none; }
 .task-list > li.ticked-away > :not(.done-note) { transition: opacity var(--fade, 6s) linear; }
