@@ -751,3 +751,7 @@ NOTES['1.41.00'] = [
   F('Batch Book: the batches list is spaced like Tasks, and batches drag into your own order (hold ⠿), or select several to change their status or delete them.'),
   F('Batch Book: a sort menu beside All / Planned / On the go / Done: newest first, oldest first, by name, or Custom, which it switches to by itself when you drag a batch.'),
 ]
+
+NOTES['1.41.01'] = [
+  F('Batch Book: on a phone, press and hold anywhere on a batch to drag it, as with tasks: the others move out of the way and the dotted space shows where it will go.'),
+]
