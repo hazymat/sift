@@ -144,7 +144,7 @@ export default {
       const sec = sectionFor(r);
       const abv = abvOf(entriesOf(m.id, 'reading'));
       const photo = photoOf(m.id);
-      const href = `#/recipes/${m.recipe_id}/make/${m.id}${ownerPath()}`;
+      const href = `#/recipes/${m.recipe_id}/make/${m.id}${draggable ? '/list' : ''}${ownerPath()}`; // /list: Esc and ‹ go back to the batches list
       return `<${draggable ? `div role="link" tabindex="0" data-href="${href}"` : `a href="${href}"`} class="bb-batch-row" style="--bb:${colourOf(r)}">
         ${photo ? `<img class="bb-batch-pic" src="${photo.thumb}" alt="">` : `<span class="bb-batch-emoji">${sec.emoji}</span>`}
         <span class="bb-batch-no">Batch #${esc(m.batch_no || '?')}</span>
@@ -362,7 +362,7 @@ export default {
       const gravity = sec.readings || readings.length > 0;
       const f = m.fields || {};
       const goal = k => `<label><span>${k}</span><input data-field-key="${k}" value="${esc(f[k] || '')}" aria-label="${k}" placeholder="…"></label>`;
-      return `${top('to-recipe', r?.title || 'Recipe')}
+      return `${state.fromList ? top('home', 'Batches') : top('to-recipe', r?.title || 'Recipe')}
         ${state.owner ? theirsHtml(`A batch of ${theirName()}'s recipe, shared with you`, '<button type="button" data-act="home">Back to my recipes</button>') : ''}
         <article class="bb-paper bb-make" data-paper="${paper()}" style="--bb:${colourOf(r)}">
           ${hero(m.id)}
@@ -1127,6 +1127,7 @@ export default {
     if (recipe !== this.state.recipe) { this.state.times = 1; this.state.edit = {}; }
     this.state.recipe = recipe;
     this.state.make = sub === 'make' ? makeId || null : null;
+    this.state.fromList = (at >= 0 ? parts.slice(0, at) : parts)[3] === 'list';
     scrollTo(0, 0);
     return this.render();
   },

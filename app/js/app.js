@@ -386,7 +386,7 @@ async function renderSyncStatus() {
 function stepUp(hash) {
   const [id, ...rest] = hash.replace(/^#\/?/, '').split('/');
   if (!rest.length) return null;
-  if (id === 'recipes' && rest[1] === 'make') return `#/recipes/${rest[0]}`;
+  if (id === 'recipes' && rest[1] === 'make') return rest.includes('list') ? '#/recipes' : `#/recipes/${rest[0]}`; // a batch opened from the batches list goes back to it
   if (['lists', 'scans', 'contracts', 'recipes'].includes(id)) return `#/${id}`;
   if (id === 'contacts') {
     if (rest[0] === 'c') return '#/contacts';
