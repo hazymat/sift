@@ -554,3 +554,6 @@ NOTES['1.35.04'] = [
 NOTES['1.35.05'] = [
   F("The tour's first step owns up: Tasks and the Day Planner are the best part (with an ice cream 🍦 on offer)."),
 ]
+NOTES['1.35.06'] = [
+  F("The tour covers sub-tasks and projects (drag a task onto another, or start it with \"- \"), says sharing a day literally lets you see someone else's Day Planner, and has a few Friends moments."),
+]

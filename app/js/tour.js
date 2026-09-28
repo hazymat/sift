@@ -55,14 +55,14 @@ function newUserSteps() {
         <p>Every note keeps its earlier versions: yesterday's, last week's, even changes made on your other devices. <b>Aa</b> in a note's toolbar, then 🕘, lists them to go back to.</p>
         <p>Anything else you do shows a message at the bottom with <b>Undo</b>.</p>` },
 
-    { id: 'safe', hash: '#/dump', at: '.dump-capture', title: 'Never lose a note', body: `<p>Everything you type is kept as you type it. If your phone's battery runs out, or your browser closes for an update halfway through a sentence, it's all still there when you come back, even a note you hadn't saved yet.</p>
+    { id: 'safe', hash: '#/dump', at: '.dump-capture', title: 'Never lose a note', body: `<p><i>Sift'll be there for you</i>, even when your battery isn't. Everything you type is kept as you type it: if your phone dies, or your browser closes for an update halfway through a sentence, it's all still there when you come back, even a note you hadn't saved yet.</p>
         <p>No more worrying about lost notes.</p>` },
 
     // ---------- Tasks ----------
     { id: 'tasks', hash: '#/tasks/now', at: '#task-entry, #task-body', also: nav('tasks'), focus: '#task-new', title: `${word('area_tasks')}: ${word('list_now')}, ${word('list_next')}, ${word('list_later')}`, done: { made: ['tasks'] },
       body: `<p>Three lists instead of deadlines: what you're doing now, what's next, and one day. ${w('list_inbox')} holds anything not sorted yet, like a task made from a note.</p>
         <p class="tour-try">Try it: type a task and ${KEYS ? `press ${key('Enter')}` : 'tap Add'}.</p>
-        ${KEYS ? `<p>Start it with ${key('-')} and a space to make it a sub-task of the one above. ${key('Shift', 'Enter')} opens <b>More</b>: energy, a day, how long it takes.</p>` : ''}` },
+        ${KEYS ? `<p>${key('Shift', 'Enter')} opens <b>More</b> (energy, a day, how long it takes) and goes on into the task's note.</p>` : ''}` },
     { id: 'task', hash: '#/tasks/now', at: '.task-list > li[data-task]', title: 'Everything about a task', body: `<p>${KEYS ? 'Point at a task and look for <b>⋯</b> on the right' : 'Tap <b>⋯</b> on the right of a task'}: it opens the task, with its note, the energy it needs, how long it takes and which day to do it.</p>
         <p><b>Repeats</b>: "put the bins out, every Tuesday". Ticking it makes the next one, on the right day, with its checklist ready again. Missed ones never pile up.</p>
         <p><b>Comments</b> keep a record of what actually happened: "rang them, need their reference number", "done, cost £40".</p>` },
@@ -70,6 +70,9 @@ function newUserSteps() {
         <ul><li><b>To reorder</b>: hold ⠿ for a second, then move it. Move it sideways to make it a sub-task.</li>
         <li><b>To choose tasks</b>: ${tap} ⠿, or drag down over several ⠿.${KEYS ? ` ${key('Shift')} chooses everything in between, ${key(CTRL)} adds one more.` : ''}</li></ul>
         <p>While anything is chosen, the <b>actions bar</b> appears at the bottom: it does one thing to all of them at once, such as Done, ${word('list_now')}, ${word('list_next')}, ${word('list_later')}, Archive or Delete.${KEYS ? ` ${key('Esc')} lets them go.` : ''} Lists, notes and Find Things work the same way.</p>` },
+    { id: 'subtasks', hash: '#/tasks/now', at: '.task-list, #task-body', title: 'Sub-tasks and projects? We\'ve got you covered', body: `<ul><li>Drag a task onto another task and it becomes its sub-task.</li>
+        <li>Or, if you prefer, start a new task with ${key('-')} and a space and it becomes a sub-task of the one above. Do it again for a sub-sub-task, if you're feeling wild!${KEYS ? ` (${key('Tab')} and ${key('Shift', 'Tab')} do the same.)` : ''}</li>
+        <li><b>Projects</b>: ⋯ at the top, then <b>New project</b>. Give a task its project under <b>More</b> in the task's ⋯, and <b>Projects</b> shows each one with how far along it is.</li></ul>` },
     { id: 'energy', hash: '#/tasks/now', at: '.task-list > li[data-task], #task-body', title: 'Energy: doing what you can manage', body: `<p>Tasks can say how much energy they need: <b>⚡</b> low (desk work, small tasks, admin), <b>⚡⚡</b> medium (meetings, some project work), <b>⚡⚡⚡</b> high (physically active work, starting new things).</p>
         <p>Tell the ${w('area_planner')} how you feel today and it suggests tasks that fit, so a flat day gets gentle things and a good day gets the big ones. What each level means is yours to change in Settings → Your words.</p>` },
 
@@ -100,12 +103,10 @@ function newUserSteps() {
     { id: 'view', hash: '#/planner', at: '.planner .view-menu .menu, .planner .view-menu', open: '.planner .view-menu', title: '👁 Lay the page out your way', body: `<p>👁 is full of ways to lay this page out. Have a play: nothing here can break anything.</p>
         <ul><li>the <b>paper</b>: Glass, Notebook, Dot journal, Techie or Minimal;</li><li><b>timeslots</b> of a quarter, half or whole hour;</li><li>the plan first, or tasks and notes first;</li><li>which parts show, alternate shading, and spacing;</li><li><b>nudges</b>: ▶ at the current time, an evening section, a word when the plan is longer than the day.</li></ul>
         <p>Every page has its own 👁.</p>` },
-    { id: 'share', hash: '#/planner', at: '.planner .share-menu', title: 'Share your day', body: `<p>The simplest way first: <b>Share → Copy to clipboard</b> puts the whole day in one go, ready to paste into WhatsApp or a message for whoever's doing the school run.</p>
-        <p>For more, share <b>this day, this week or your whole diary</b> with family or colleagues who use Sift, and you can both change it. Then <b>Show Anna's day</b> switches to their day, and <b>Show my day</b> switches back. Easier than getting a sofa up the stairs: no shouting "Pivot!" needed.</p>` },
-
-    // ---------- Lists and the rest ----------
+    { id: 'share', hash: '#/planner', at: '.planner .share-menu', title: 'Share your day', body: `<p>The easiest way: <b>Share → Copy to clipboard</b> puts the whole day in one message, ready to paste into WhatsApp for whoever's doing the school run.</p>
+        <p>The more complete way: share <i>your day, your week, your month, or even your year</i> with family or colleagues who use Sift. It literally lets you see their ${word('area_planner')}, and change it too: <b>Show</b> <i>their name</i><b>'s day</b> switches to theirs, and <b>Show my day</b> switches back. Easier than getting a sofa up the stairs: no shouting "Pivot!" needed.</p>` },
     { id: 'lists', hash: '#/lists', at: '.lists-head', title: `${word('area_lists')}, shared with the people who need them`, body: `<p>Shopping, packing, the kids' swimming bag. Make a <b>template</b> once and start a fresh list from it every time.</p>
-        <p><b>👥 Share</b> a list and everyone ticks off the same one: two of you in the supermarket, and the milk is only bought once. Notes in ${w('area_dump')} share the same way, so a family plan or a meeting's notes live in one place instead of a chat.</p>` },
+        <p><b>👥 Share</b> a list and everyone ticks off the same one: two of you in the supermarket, and the milk is only bought once. (Joey doesn't share food, but anyone can share a shopping list.) Notes in ${w('area_dump')} share the same way, so a family plan or a meeting's notes live in one place instead of a chat.</p>` },
     { id: 'places', hash: '#/find-things', at: '#find-grid .find-bar, #main', title: word('area_places'), body: `<p>Where things are kept: the loft, box 4, the drawer in the hall. Photos of what's inside, and search inside every box: "where did we put the passports?" Already have a spreadsheet of your boxes? Import it.</p>` },
     { id: 'contacts', hash: '#/contacts', at: '.c-capture, #c-tabs, #main', title: `${word('area_contacts')}: kept, or just for now`, body: `<p>Two kinds of contact:</p>
         <ul><li><b>Transient</b>: a number you need for a few days, the parking line, the man about the van. Paste it here with a few words, "window cleaner 07700 900123", and it's in <b>Recent</b>. It's never deleted, it just sinks as it gets older; one with no name asks "What was this?".</li>
