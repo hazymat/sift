@@ -93,6 +93,10 @@ const LAYOUTS = {
     { id: 'pills-hide', label: 'Hide pills behind More (editing / new)', def: true },
     { id: 'more-panel', label: 'More goes straight to the full panel', needs: 'pills-hide' },
   ],
+  recipes: [
+    { id: 'lined', label: 'Lined paper', def: true },
+    { id: 'margin', label: 'Show margin', def: true, needs: 'lined' },
+  ],
   planner: [
     { id: 'day-rel', label: 'Show "Today" or "In 5 days" under the date', def: true },
     { id: 'carry', label: 'Show unfinished items from earlier days' },

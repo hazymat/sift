@@ -1,29 +1,38 @@
 // Batch Book: recipes and every batch made from them (views/recipes.js).
-//   recipes:        title, type, description, ingredients[] ({ id, qty, unit, item, note }), method (text with {references}),
-//                   tasting (notes), fields ({ label: value }, e.g. Batch volume), sort_order
+//   recipes:        title, type (its section's name), tags[], description, ingredients[] ({ id, qty, unit, item, note }),
+//                   steps[] ({ id, text with {references} }), tasting (notes), fields ({ label: value }, e.g. Batch volume)
 //   recipe_makes:   recipe_id, batch_no, date (YYYY-MM-DD), status (planned|going|done), description, state,
-//                   fields, back_sweetened, ingredients[] and method (copied from the recipe, so later changes to it
-//                   don't rewrite what was made), stock ({ ingredient id: have|need }), list_id
+//                   fields, back_sweetened, ingredients[] and steps[] (copied from the recipe, then its own to change),
+//                   stock ({ ingredient id: have|need }), list_id
 //   recipe_entries: make_id, kind (diary|tasting|reading), date, text; readings also: label (OG|SG|FG), gravity
-// Photos are attachments on any of the three.
+// Photos are attachments: on a recipe or batch (its result photos, the first is its picture), on a step (by the
+// step's id) or on a diary entry. Sections are the user's own, kept in settings (batch_sections).
 //
-// In a method, {salt} shows the ingredient with its amount ("2 tsp salt"), {1/2 salt} or {50% salt} part of it,
+// In a step, {salt} shows the ingredient with its amount ("2 tsp salt"), {1/2 salt} or {50% salt} part of it,
 // and {salt|a pinch of salt} your own words (still marked as the ingredient).
 
 import * as store from './store.js';
 
-// Each type decides the extra fields a recipe starts with, and whether batches have gravity readings.
-export const TYPES = [
-  { id: 'Mead', emoji: '🐝', colour: '#c8961e', readings: true, fields: ['Batch volume', 'ABV goal', 'Sweetness goal'] },
-  { id: 'Winemaking', emoji: '🍷', colour: '#9b2f52', readings: true, fields: ['Batch volume', 'ABV goal', 'Sweetness goal'] },
-  { id: 'Cider', emoji: '🍏', colour: '#6e9a2c', readings: true, fields: ['Batch volume', 'ABV goal', 'Sweetness goal'] },
-  { id: 'Brewing', emoji: '🍺', colour: '#c07a16', readings: true, fields: ['Batch volume', 'ABV goal'] },
-  { id: 'Breadmaking', emoji: '🍞', colour: '#a8733a', readings: false, fields: ['Makes', 'Hydration'] },
-  { id: 'Cooking', emoji: '🍲', colour: '#3f8a5c', readings: false, fields: ['Serves', 'Time'] },
-  { id: 'Preserves', emoji: '🫙', colour: '#c0502e', readings: false, fields: ['Makes'] },
+// The sections a new Batch Book starts with. A section decides the details its new recipes start
+// with, and whether batches have gravity readings.
+export const STARTER_SECTIONS = [
+  { name: 'Brewing', emoji: '🍷', colour: '#9b2f52', readings: true, fields: ['Batch volume', 'ABV goal', 'Sweetness goal'] },
+  { name: 'Cooking', emoji: '🍲', colour: '#3f8a5c', readings: false, fields: ['Serves', 'Time'] },
 ];
-const OTHER = { emoji: '📖', colour: '#7a6a55', readings: false, fields: [] };
-export const typeOf = id => TYPES.find(t => t.id === id) || Object.assign({}, OTHER, { id: id || '' });
+// Looks for sections used by recipes but not set up (e.g. from the first version, which had fixed types).
+const KNOWN = { Mead: ['🐝', '#c8961e', true], Winemaking: ['🍷', '#9b2f52', true], Cider: ['🍏', '#6e9a2c', true], Brewing: ['🍺', '#c07a16', true], Breadmaking: ['🍞', '#a8733a', false], Cooking: ['🍲', '#3f8a5c', false] };
+const plain = name => { const k = KNOWN[name]; return { name, emoji: k ? k[0] : '📖', colour: k ? k[1] : '#7a6a55', readings: k ? k[2] : false, fields: [], auto: true }; };
+// The sections set up, then any a recipe is in that aren't (so nothing is ever hidden).
+export function sectionsOf(settings, recipes) {
+  const own = (settings.batch_sections || STARTER_SECTIONS).map(x => Object.assign({ fields: [] }, x));
+  for (const r of recipes) if (!own.some(x => x.name === (r.type || ''))) own.push(plain(r.type || ''));
+  return own;
+}
+export const sectionOf = (sections, name) => sections.find(x => x.name === (name || '')) || plain(name || '');
+
+// A recipe from the first version had its method as one text: each line becomes a step (ids fixed, so a
+// photo added before the steps are first saved stays on its step).
+export const stepsOf = rec => rec.steps || (rec.method ? rec.method.split(/\n+/).filter(t => t.trim()).map((text, n) => ({ id: `${rec.id}-s${n}`, text })) : []);
 
 // Units: [id, label, category, size in the category's base (g or ml), other ways of writing it]
 export const UNITS = [
@@ -120,7 +129,7 @@ export function parseLine(line) {
   return { id: store.uuidv7(), qty: null, unit: '', item: text, note };
 }
 
-// ---------- references in a method ----------
+// ---------- references in a step ----------
 
 const REF = /\{([^{}|]+?)(?:\|([^{}]*))?\}/g;
 // "1/2 salt" → [0.5, "salt"]; "25% honey" → [0.25, "honey"]; "salt" → [1, "salt"]
@@ -139,8 +148,8 @@ export function findIngredient(ingredients, name) {
     || ingredients.find(i => i.item.toLowerCase().startsWith(low))
     || ingredients.find(i => i.item.toLowerCase().includes(low));
 }
-// The method as HTML: references become marked amounts; a reference to nothing stays as typed, marked as missing.
-export function methodHtml(text, ingredients, times, esc) {
+// A step as HTML: references become marked amounts; a reference to nothing stays as typed, marked as missing.
+export function stepHtml(text, ingredients, times, esc) {
   return esc(text || '').replace(/\{([^{}|]+?)(?:\|([^{}]*))?\}/g, (whole, body, own) => {
     const [part, name] = refParts(body.replace(/&amp;/g, '&'));
     const ing = findIngredient(ingredients, name);
@@ -171,7 +180,7 @@ export function abvOf(readings) {
   return { og: og.gravity, fg: fg.gravity, abv: (og.gravity - fg.gravity) * 131.25, final: fg.label === 'FG' };
 }
 
-// Next batch number for a type: one more than the highest so far.
+// Next batch number in a section: one more than the highest so far.
 export function nextBatchNo(makes, recipes, type) {
   const ids = new Set(recipes.filter(r => (r.type || '') === (type || '')).map(r => r.id));
   const nums = makes.filter(m => ids.has(m.recipe_id)).map(m => parseInt(m.batch_no, 10)).filter(Number.isFinite);
