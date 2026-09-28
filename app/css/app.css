@@ -1855,7 +1855,6 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 .pile-new .new-task { flex: 1; min-width: 0; background: transparent; border-color: transparent; font-size: 1.1rem; padding: 4px 6px; color: var(--text); }
 .pile-new .new-task:focus { background: var(--glass-track); border-color: var(--active-border); }
 .pile-gap { height: 2.375rem; border-bottom: 1px solid var(--rule); background: color-mix(in srgb, var(--accent) 14%, transparent); list-style: none; }
-.pile-done-head .done-toggle { background: transparent; border: 0; box-shadow: none; padding: 2px 4px; color: var(--muted); font-family: var(--font); font-size: .85rem; letter-spacing: .06em; text-transform: uppercase; }
 .pile-done li[data-pile] { opacity: .75; }
 .pile h2 .task-count, .done-toggle .task-count {
   font-family: var(--font);

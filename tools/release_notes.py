@@ -640,3 +640,6 @@ NOTES['1.35.32'] = [
   F("Tasks and the Day Planner: Ctrl+Enter (⌘+Enter on a Mac) in a task's or item's name ticks it done, and again unticks it. On a wide screen a ✓ Done chip beside More shows it."),
   B("Shortcuts shown on buttons draw each key in its own box (Shift, Enter), not one box for both."),
 ]
+NOTES['1.35.33'] = [
+  F("Day Planner tasks: the New task line is at the top; done tasks stay in view at the bottom, crossed out, after an empty line, instead of folding away under Done."),
+]
