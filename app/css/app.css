@@ -3948,7 +3948,8 @@ textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
 .bb-details { --bb-margin: minmax(6.5em, 30%); }
 .bb-details .bb-margin { font-weight: 700; }
 .bb-details .bb-content > :where(input, select) { font-size: 1.02rem; }
-.bb-ings { --bb-margin: 7.5em; }
+/* Ingredients and steps: one margin down the page, pushed right for long amounts, but only so far (recipes.js workMargin). */
+.bb-ings, .bb-steps { --bb-margin: clamp(76px, calc(var(--bb-chars, 0) * .72rem + 28px), 8.5rem); }
 .bb-ings .bb-margin { font-weight: 700; font-size: 1.05rem; color: var(--bb-ink); padding-right: 4px; }
 /* Written on the paper: amount and ingredient are fields that look like the writing until pressed. */
 .bb-ings .bb-margin input { width: 100%; text-align: right; font: inherit; color: inherit; }
@@ -3996,7 +3997,7 @@ textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
   .bb-hero { margin: -12px -10px 12px; }
   .bb-lines { --bb-margin: 58px; }
   .bb-details { --bb-margin: minmax(5.5em, 32%); }
-  .bb-ings { --bb-margin: 6.2em; }
+  .bb-ings, .bb-steps { --bb-margin: clamp(58px, calc(var(--bb-chars, 0) * .66rem + 26px), 6.8rem); }
   .bb-ings .bb-margin { white-space: nowrap; font-size: .95rem; }
   .bb-diary .bb-line { grid-template-columns: minmax(0, 1fr) auto; }
   .bb-diary .bb-margin { justify-content: flex-start; border-right: 0 !important; padding: 0; }
