@@ -280,6 +280,8 @@ function installSwipe() {
     const t = ev.changedTouches[0], dx = t.clientX - s.x, dy = t.clientY - s.y;
     if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) / 2 || Date.now() - s.at > 700) return;
     if (document.body.classList.contains('is-dragging') || getSelection()?.toString()) return;
+    const areasBar = $('#tabbar')?.getBoundingClientRect();
+    if (areasBar?.height && s.y >= areasBar.top) return; // not from the bar of areas at the bottom (nor below it)
     if (s.el.closest?.('dialog, .rich.is-full, .drag-handle, .kit-grip, .drag-grip, .resize-grip, input[type="range"], .dd-menu, .pill-menu')) return;
     for (let n = s.el; n && n !== document.body; n = n.parentElement) {
       if (n.scrollWidth > n.clientWidth + 1 && /auto|scroll/.test(getComputedStyle(n).overflowX)) return;

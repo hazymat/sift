@@ -3,7 +3,8 @@
 // Chrome; before that the next one just slides in). Used for side swipes on a
 // phone (app.js) and for Brain Dump's filters. Only what changes slides (the
 // tasks, the notes, the day); the rest stays put (app.css names the parts),
-// and a tab bar's highlight glides from the old tab to the new one.
+// and a tab bar's highlight glides from the old tab to the new one, then
+// pulses once, light blue (flash.js).
 //
 //   slide(forward, change)  change(): makes the change and resolves once it's
 //                           drawn, or rejects when there was nothing to change
@@ -11,6 +12,8 @@
 //   drawnAfter(fn)          runs fn, then resolves once #main has been drawn
 //                           again, or rejects if nothing changed
 //   nudge(forward)          a small push that goes nowhere: "nothing that way"
+
+import { flash, SOFT } from './flash.js';
 
 const main = () => document.getElementById('main');
 const still = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -26,19 +29,19 @@ function glide(from) {
   if (!from || !to || still()) return;
   const z = to.getBoundingClientRect();
   if (Math.abs(z.left - from.left) < 1) return;
-  const cs = getComputedStyle(to);
+  // Its look, read before the real one is hidden (app.css: .glide-on).
+  const cs = getComputedStyle(to), look = {
+    background: cs.backgroundColor, borderRadius: cs.borderRadius,
+    border: `${cs.borderTopWidth} solid ${cs.borderTopColor}`, borderBottom: `${cs.borderBottomWidth} solid ${cs.borderBottomColor}`,
+  };
   // Inside the bar (so it's drawn with it, and scrolls with it), placed where the new tab is.
   bar.classList.add('glide-on');
   const b = bar.getBoundingClientRect();
   const ghost = document.createElement('div');
   ghost.className = 'tab-glide';
-  Object.assign(ghost.style, {
-    left: `${z.left - b.left - bar.clientLeft + bar.scrollLeft}px`, top: `${z.top - b.top - bar.clientTop + bar.scrollTop}px`, width: `${z.width}px`, height: `${z.height}px`,
-    background: cs.backgroundColor, borderRadius: cs.borderRadius,
-    border: `${cs.borderTopWidth} solid ${cs.borderTopColor}`, borderBottom: `${cs.borderBottomWidth} solid ${cs.borderBottomColor}`,
-  });
+  Object.assign(ghost.style, look, { left: `${z.left - b.left - bar.clientLeft + bar.scrollLeft}px`, top: `${z.top - b.top - bar.clientTop + bar.scrollTop}px`, width: `${z.width}px`, height: `${z.height}px` });
   bar.append(ghost);
-  const done = () => { ghost.remove(); bar.classList.remove('glide-on'); };
+  const done = () => { ghost.remove(); bar.classList.remove('glide-on'); flash(to, Object.assign({}, SOFT, { scroll: false, colour: '125 195 255' })); };
   ghost.animate([{ transform: `translate(${from.left - z.left}px, ${from.top - z.top}px)`, width: `${from.width}px` }, { transform: 'none', width: `${z.width}px` }],
     { duration: 300, easing: 'cubic-bezier(.2, .8, .2, 1)' }).finished.then(done, done);
 }
