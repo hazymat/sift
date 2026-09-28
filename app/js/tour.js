@@ -44,8 +44,6 @@ function newUserSteps() {
       body: `<p>Your note is stored. Its action buttons turn it into a <b>task</b>, or put it on the <b>${word('area_planner')}</b>, which you'll soon see is a really powerful feature.</p>
         <p>The note isn't moved or thrown away: it stays here, linked to what it became.</p>
         <p class="tour-try">Try it: ${tap} <b>→ Task</b>.</p>` },
-    { id: 'notes', hash: '#/dump', at: '#thoughts > li.thought, .dump-find', title: 'Tidy without filing', body: `<p>On each note, the dot gives it a colour, ☆ pins it to the top, <b>Archive</b> puts it away when you're done with it, and ⋯ has the rest: copy, share, attach, delete.</p>
-        <p>${KEYS ? `${key('Alt', 'Enter')} or ⤢` : '⤢'} opens a note full screen, for writing without distractions.</p>` },
     { id: 'rich', hash: '#/dump', at: '#dump-body', focus: '#dump-body .rich-edit', title: 'Notes that do things', body: `<p>Notes everywhere in the app can be formatted: with Markdown, with the toolbar, or with keyboard shortcuts${KEYS ? ` (${key(CTRL, 'B')} for bold)` : ''}. Or keep them as plain text, if you prefer.</p>
         <p>Type a phone number or an email address and it's picked out as a real contact, with a record of every call. Paste a screenshot or a PDF and it's attached to the note.</p>` },
     { id: 'undo', hash: '#/dump', at: '#dump-body', only: 'keys', title: 'Undo that remembers yesterday', body: `<p><b>This is honestly one of the great features, which I think you'll be impressed with.</b></p>
