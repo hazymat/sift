@@ -702,3 +702,6 @@ NOTES['1.35.47'] = [
 NOTES['1.35.48'] = [
   B("The browser's password manager no longer fills your email into the search box: Sync's sign-in and password boxes are now forms of their own, so it fills those instead."),
 ]
+NOTES['1.35.49'] = [
+  F("Day Planner: the name of the section after the day ends (Evening plans) is in the same font as the Schedule times, in every theme, including a custom theme's Schedule times font."),
+]
