@@ -652,3 +652,6 @@ NOTES['1.35.35'] = [
 NOTES['1.35.36'] = [
   B("The tour's step on the day's tasks now makes clear they're this day's own list, separate from your main Tasks list, which it outlines in the bar."),
 ]
+NOTES['1.35.37'] = [
+  B("Day Planner tasks: the New task line is back under the tasks still to do (above the done ones)."),
+]
