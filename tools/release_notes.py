@@ -768,3 +768,7 @@ NOTES['1.42.00'] = [
   F('Batch Book: a new batch is named after its recipe and the day it was started (like "Mead 28 Sep 2026") instead of "Batch #2". Change the whole name at the top of the batch. Older batches show their recipe and date until you rename them.'),
   B('Batch Book: recipe and batch names at the top of the page are big again on phones.'),
 ]
+
+NOTES['1.42.01'] = [
+  B('Batch Book: a batch\'s recipe heading now just says "Recipe".'),
+]

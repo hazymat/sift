@@ -372,7 +372,7 @@ export default {
           </header>
           <div class="bb-rule"></div>
           <p class="bb-of">${esc(r?.type ? `${r.type}: ` : '')}<a href="#/recipes/${m.recipe_id}${ownerPath()}">${esc(r?.title || 'Untitled')}</a></p>
-          <h2 class="bb-h bb-h-big"><span>🍯 This batch's recipe</span><span class="muted bb-h-note">a copy: changes here stay on this batch</span></h2>
+          <h2 class="bb-h bb-h-big"><span>🍯 Recipe</span></h2>
           ${ingredientsHtml(m, { collection: 'recipe_makes', id: m.id }, { stock: true })}
           ${stepsHtml(m, { collection: 'recipe_makes', id: m.id })}
           <h2 class="bb-h"><span>📋 Batch summary</span></h2>
