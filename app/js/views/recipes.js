@@ -181,7 +181,6 @@ export default {
           <div class="bb-head">
             <button type="button" class="primary" data-act="new">+ New recipe</button>
             <input type="search" class="bb-search" placeholder="Search recipes…" value="${esc(state.q)}" aria-label="Search recipes">
-            <button type="button" class="bb-batches-btn" data-act="batches" aria-pressed="${state.batches}">🧪 Batches</button>
             ${cogHtml('recipes', paperHtml())}
             <details class="tool-menu page-more">
               <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
@@ -194,6 +193,7 @@ export default {
               ${sections.map(x => `<button type="button" data-section="${esc(x.name)}" aria-pressed="${state.section === x.name}" style="--bb:${x.colour}">${x.emoji} ${esc(x.name || 'No book')}</button>`).join('')}
               <button type="button" data-section="${PINNED}" aria-pressed="${pinnedTab()}">★ Pinned</button>
             </div>
+            <div class="bb-mode" role="group" aria-label="Show"><button type="button" data-mode="recipes" aria-pressed="${!state.batches}">📖 Recipes</button><button type="button" data-mode="batches" aria-pressed="${state.batches}">🧪 Batches</button></div>
             <button type="button" class="bb-sections-edit filter-more" data-act="sections" title="Add, rename, reorder or remove books" aria-label="Edit books">⋯</button>
           </div>
           ${state.batches ? `<div class="bb-status-row"><div class="bb-status" role="group" aria-label="Status">${[['', 'All']].concat(STATUSES).map(([v, l, e]) => `<button type="button" data-status="${v}" aria-pressed="${state.status === v}">${e ? `${e} ` : ''}${l}</button>`).join('')}</div>
@@ -692,6 +692,7 @@ export default {
       if (b.dataset.status !== undefined) { state.status = b.dataset.status; return render(); }
       if (b.dataset.card || b.dataset.cardBook !== undefined) return cardAction(b);
       if (b.dataset.tag !== undefined) { state.tag = state.tag === b.dataset.tag ? '' : b.dataset.tag; return render(); }
+      if (b.dataset.mode) { state.batches = b.dataset.mode === 'batches'; return render(); }
       if (b.dataset.scale) { state.times = +b.dataset.scale; return render(); }
       if (b.dataset.rescale) return rescale(b.dataset.rescale);
       if (b.dataset.ref) {
@@ -731,7 +732,7 @@ export default {
       if (act === 'home') return go('#/recipes');
       if (act === 'share-list') { const list = lists.find(l => l.id === makeOf(state.make)?.list_id); if (list) shareSheet({ kind: 'list', id: list.id, name: list.name || 'Untitled' }, `"${list.name || 'Untitled'}"`); return; }
       if (act === 'new') return newRecipe();
-      if (act === 'batches') { state.batches = !state.batches; return render(); }
+
       if (act === 'sections') return editSections();
       if (act === 'to-recipe') return go(`#/recipes/${makeOf(state.make)?.recipe_id || ''}${ownerPath()}`);
       if (act === 'add-field') {
