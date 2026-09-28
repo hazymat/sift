@@ -3633,5 +3633,15 @@ dialog.custom-theme::backdrop { background: rgba(0, 0, 0, .35); }
 .tour-foot { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
 .tour-foot .spacer { flex: 1; }
 .tour-nice { margin-left: auto; color: #8fdcaa; font-weight: 600; }
+.tour-ring.tour-also { box-shadow: none; outline: 2px dashed #ffb020; border-radius: 12px; } /* where the page is in the navigation */
+.tour-card kbd { display: inline-block; min-width: 1.6em; text-align: center; padding: 1px 6px; border-radius: 6px; font-size: .8em; background: rgba(255, 255, 255, .08); box-shadow: 0 1px 0 rgba(255, 255, 255, .25); }
+.tour-card kbd.tour-arrow { font-size: 1.05em; font-weight: 700; padding: 0 7px; }
+.tour-plus { margin: 0 3px; color: #9aa6ba; }
+.tour-or { margin: 0 4px; color: #9aa6ba; font-size: .85em; }
+.tour-keys td:first-child { line-height: 2; }
+.tour-foot { flex-wrap: wrap; }
+.tour-foot button kbd { margin-left: 6px; }
+.tour-later { background: transparent; box-shadow: none; border-color: transparent; color: #9aa6ba; padding-inline: 6px; }
+.welcome-was { margin: -2px 0 4px; font-size: .85rem; }
 .tour-pill { font-weight: 600; color: var(--accent); border-color: var(--active-border); background: var(--active-bg); }
 .note-full .tour-ring, .note-full .tour-card { display: none; } /* writing in a full-screen note: the tour waits */
