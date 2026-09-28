@@ -729,7 +729,7 @@ kbd { font: inherit; font-size: .72em; padding: 1px 5px; margin-left: 4px; borde
 }
 .hand { font-family: var(--hand); }
 
-.day-nav { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px; }
+.day-nav { display: flex; flex-wrap: nowrap; gap: 6px; align-items: center; margin-bottom: 8px; container-type: inline-size; } /* one line on every paper, so its open menus stay put */
 .day-nav button { padding: 6px 14px; }
 .day-nav .share-btn { display: inline-flex; align-items: center; gap: 6px; }
 .day-nav .cal-icon { padding: 6px 10px; display: inline-flex; align-items: center; }
@@ -3688,3 +3688,8 @@ html[data-slide="back"]::view-transition-new(sift-page) { animation-name: sift-i
 .row-acts .ra-done { background: #2e9e5b; }
 .row-acts .ra-more { background: #5a6883; }
 .row-acts .ra-delete { background: #d64545; padding: 0 22px; }
+
+/* Day Planner: the day bar stays on one line (container: .day-nav), after its own button rules. */
+@container (max-width: 400px) { .day-nav .share-word { display: none; } .day-nav .share-menu summary { padding-inline: 12px; } } /* no room for the word: Share is its icon */
+@container (max-width: 340px) { .day-nav .day-step { padding-inline: 7px; } .day-nav .cal-icon { padding-inline: 6px; } .day-nav > button:not(.day-step, .cal-icon) { padding-inline: 6px; } .day-nav .share-menu summary { padding-inline: 8px; } .day-nav .view-menu { margin-left: 0; } } /* the smallest phones: tighter still */
+@media (max-width: 400px) { .day-nav { gap: 3px; } } /* a container can't query itself */
