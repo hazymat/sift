@@ -110,8 +110,8 @@ export default {
         <section class="pile">
           <h2>${esc(word('day_tasks'))} <span class="task-count" hidden></span><button type="button" class="bring-link" data-act="bring-in" title="Claim tasks from the Tasks page for this day"><span class="bring-arrow" aria-hidden="true">↓</span> Bring in from tasks</button></h2>
           <div class="pile-paper">
-            <ul id="pile" class="pile-list"></ul>
             <div class="line pile-new"><span class="margin"></span><span class="content"><input id="dump" class="new-task hand no-inline" placeholder="New task" autocomplete="off" enterkeyhint="done" aria-label="New task"><textarea id="dump-note" class="add-note no-inline" rows="1" placeholder="Add note" aria-label="Note"></textarea><div class="new-pills"></div></span></div>
+            <ul id="pile" class="pile-list"></ul>
             <ul id="pile-done" class="pile-list pile-done"></ul>
             <div id="pile-blank" aria-hidden="true"></div>
           </div>
@@ -667,10 +667,9 @@ export default {
     }
     this.nowTimer = setInterval(placeNowMarker, 30000);
 
-    // Tasks: the untimed items, in order, on lined paper; done ones fold
-    // away under "Done (n)". While dragging over the list, a gap opens where
+    // Tasks: the New task line, then the untimed items in order, on lined
+    // paper; done ones at the bottom, crossed out, after an empty line. While dragging over the list, a gap opens where
     // the item would land and the others shuffle round it.
-    let doneOpen = false;
     const pileOrder = byRank(); // order.js: merges cleanly across devices
     // More planned than the day holds (today or later): a gentle note, e.g.
     // "That's 11h of plan for a 10h day." Timed items count their span, the
@@ -692,13 +691,11 @@ export default {
       if (gapAt != null) rows.splice(Math.min(gapAt, rows.length), 0, '<li class="pile-gap" aria-hidden="true"></li>');
       $('#pile').innerHTML = rows.join('');
       overPlan();
-      $('#pile-done').innerHTML = done.length ? `
-        <li class="line pile-done-head"><span class="margin"></span><span class="content">
-          <button type="button" class="done-toggle" data-act="toggle-done" aria-expanded="${doneOpen}">${doneOpen ? '▾' : '▸'} Done <span class="task-count">${done.length}</span></button>
-        </span></li>
-        ${doneOpen ? done.map(i => `<li data-pile="${i.id}">${itemRow(i, '')}</li>`).join('') : ''}` : '';
+      // Done ones stay in view, crossed out, at the bottom, after one empty ruled line (no Done heading to open).
+      $('#pile-done').innerHTML = done.length ? '<li class="line pile-blank pile-gap-line" aria-hidden="true"><span class="margin"></span><span class="content"></span></li>'
+        + done.map(i => `<li data-pile="${i.id}">${itemRow(i, '')}</li>`).join('') : '';
       // A short list gets a few empty ruled lines under it, like a page (tap one to add a task).
-      $('#pile-blank').innerHTML = '<div class="line pile-blank"><span class="margin"></span><span class="content"></span></div>'.repeat(Math.max(0, 4 - todo.length));
+      $('#pile-blank').innerHTML = '<div class="line pile-blank"><span class="margin"></span><span class="content"></span></div>'.repeat(Math.max(0, 4 - todo.length - (done.length ? done.length + 1 : 0)));
       const count = $('.pile .task-count');
       count.hidden = !all.length;
       count.textContent = `${all.filter(i => i.done_at).length}/${all.length}`;
@@ -1123,7 +1120,6 @@ export default {
       else if (act === 'today') go(isoDate());
       else if (act === 'calendar') openCalendar(date);
       else if (act === 'bring-in') openBring();
-      else if (act === 'toggle-done') { doneOpen = !doneOpen; renderPile(); }
       else if (act === 'paper-week' || act === 'paper-all') resetPapers(act === 'paper-week');
       else if (act === 'clear-day') clearDay();
       else if (act === 'add-at') openLine(t);
