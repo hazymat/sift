@@ -708,3 +708,7 @@ NOTES['1.35.49'] = [
 NOTES['1.35.50'] = [
   B("iPhone: pressing Done in a full-screen note showed the note's small inline editor for a moment before going back to the list."),
 ]
+NOTES['1.36.00'] = [
+  F('Batch Book: a recipe book that keeps every batch made from it. Recipes are grouped by type (Mead, Winemaking, Breadmaking, Cooking and your own), like chapters, with a filter per type and a search; turn the pages with the arrows, ← / → or a side swipe. A recipe has a type, details that depend on it (Batch volume for Mead or Winemaking, Serves for Cooking), photos, ingredients, a method and tasting notes. Ingredients can be typed one per line ("3268g honey, Asda Orange Blossom", "½ onion", "5 UK gallon water"); amounts use units grouped by weight, volume and count, with UK and US cups, pints and gallons, and scale ×½ to ×3. In the method, {salt} shows the salt with its amount, {1/2 salt} half of it and {salt|a pinch} your own words.'),
+  F('Batch Book: Make this starts a batch (Batch #5 and so on) with its own summary, goals and final ABV worked out from the gravity readings, a gravity log with a chart, the recipe as made, a diary and a tasting diary, each entry with photos. It starts with a stock check: one ingredient at a time, got it or need to buy, then what is needed goes on a new list for the batch or on a list you already have.'),
+]
