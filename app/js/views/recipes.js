@@ -24,7 +24,7 @@ import { TINTS } from '../colours.js';
 import { pillMenu } from '../pillmenu.js';
 import { sortable } from '../sortable.js';
 import { signedIn, status as syncStatus } from '../sync.js';
-import { addExamples, isBrandNew, resetToExamples } from '../examples.js';
+import { addExamples, isBrandNew, resetToExamples, swapForShowcase } from '../examples.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -436,6 +436,7 @@ export default {
       if (!state.owner && await isBrandNew(settings, !!signedIn())) { await addExamples(settings); data = await loadBook(); settings = await store.getSettings(); }
       // The one time reset (examples.js), once this device has what the account already has (so no second copy from another device).
       else if (!state.owner && !settings.batch_examples_reset && (!signedIn() || syncStatus.last)) { await resetToExamples(settings); data = await loadBook(); settings = await store.getSettings(); }
+      else if (!state.owner && settings.batch_examples && !settings.batch_showcase && (!signedIn() || syncStatus.last)) { await swapForShowcase(settings); data = await loadBook(); settings = await store.getSettings(); }
       sections = sectionsOf(settings, data.recipes);
       if (state.section && !pinnedTab() && !sections.some(x => x.name === state.section)) state.section = '';
       if (state.make) lists = await inMine(async () => (await loadLists()).lists);
@@ -849,7 +850,7 @@ export default {
     // ---------- importing ----------
     // Recipes as text, pasted or from a file (format in batchbook.js). The AI prompt lets anyone turn notes, photos
     // of cards or web pages into that text with any AI chat. Books not set up yet are added.
-    const AI_PROMPT = `Turn the recipes I give you into plain text in exactly this format, one after another, keeping every recipe and all its details. Put each ingredient on its own line, amount and unit first. Put the recipe in a sensible book (for example Cooking, Baking or Drinks). Reply with just the recipes.\n\n${IMPORT_EXAMPLE}`;
+    const AI_PROMPT = `Turn the recipes I give you into plain text in exactly this format, one after another, keeping every recipe and all its details. Put each ingredient on its own line, amount and unit first, and make sure every ingredient the method uses is in the list. In the method, write each ingredient as its name from the list in curly brackets, without its amount: {flour} for all of it, {1/2 flour} for half (any fraction or percentage), or {flour|a little flour} for your own words; the app shows the amount and scales it. Put each recipe in a sensible book (for example Cooking, Soups, Baking or Cocktails). Reply with just the recipes.\n\n${IMPORT_EXAMPLE}`;
     async function importRecipes() {
       const dlg = document.createElement('dialog');
       dlg.className = 'sheet bb-import-sheet';
@@ -881,9 +882,10 @@ export default {
         const added = Array.from(new Set(got.map(r => r.type).filter(t => t && !known.some(x => x.name === t)))).map(name => { const x = sectionOf(sections, name); return { name, emoji: x.emoji, colour: x.colour, fields: [], readings: x.readings }; });
         if (added.length) await store.updateSettings({ batch_sections: known.concat(added) });
         const made = [];
-        for (const r of got) made.push(await store.create('recipes', Object.assign(r, { fields: Object.assign(Object.fromEntries(sectionOf(sections, r.type).fields.map(k => [k, ''])), r.fields) })));
+        const have = new Set(data.recipes.map(r => r.title.toLowerCase()));
+        for (const r of got) if (!have.has(r.title.toLowerCase())) made.push(await store.create('recipes', Object.assign(r, { fields: Object.assign(Object.fromEntries(sectionOf(sections, r.type).fields.map(k => [k, ''])), r.fields) })));
         dlg.close();
-        undoable(`Imported ${made.length} recipe${made.length === 1 ? '' : 's'}`, async () => { for (const r of made) await store.remove('recipes', r.id); if (added.length) await store.updateSettings({ batch_sections: known }); render(); });
+        undoable(`Imported ${made.length} recipe${made.length === 1 ? '' : 's'}${got.length > made.length ? ` (${got.length - made.length} already here, left as they were)` : ''}`, async () => { for (const r of made) await store.remove('recipes', r.id); if (added.length) await store.updateSettings({ batch_sections: known }); render(); });
       });
       dlg.addEventListener('close', () => { dlg.remove(); render(); });
       dlg.showModal();

@@ -178,7 +178,9 @@ export function renameRefs(text, from, to) {
 //   Book: Cooking / Tags: a, b   lines straight under the title; any other "Name: value" is a detail (Serves: 4)
 //   other text                   the description
 //   ## Ingredients               one per line; a "### For the sauce" line notes the group on the lines under it
-//   ## Method                    numbered or bulleted steps; indented lines stay in their step, a ### line heads the next step
+//   ## Method                    numbered or bulleted steps; indented lines stay in their step, a ### line heads the next step;
+//                                {flour}, {1/2 flour} or {flour|a little flour} in a step is the ingredient with its amount
+//                                (as Put in makes); one not in the list is added to it, with no amount
 //   ## Notes                     the tasting notes
 export const IMPORT_EXAMPLE = `# Quick flatbreads
 Book: Cooking
@@ -195,9 +197,9 @@ Soft flatbreads in 20 minutes.
 - 2 tbsp butter, melted
 
 ## Method
-1. Mix the flour, yoghurt and salt into a soft dough.
+1. Mix the {self-raising flour}, {Greek yoghurt} and {salt} into a soft dough.
 2. Split into 4 and roll out thin.
-3. Dry fry 2 mins each side, then brush with the butter.
+3. Dry fry 2 mins each side, then brush with {1/2 butter}.
    - Keep them warm in a tea towel.
 
 ## Notes
@@ -228,7 +230,10 @@ export function parseRecipes(text) {
     if (step && /^\s/.test(line)) step.text += `\n${bullet ? `- ${bullet[1]}` : trim}`;
     else add(bullet ? bullet[1] : trim);
   }
-  for (const r of recipes) { r.description = r.description.trim(); r.tasting = r.tasting.trim(); }
+  for (const r of recipes) {
+    r.description = r.description.trim(); r.tasting = r.tasting.trim();
+    for (const st of r.steps) for (const [, body] of st.text.matchAll(REF)) { const name = refParts(body)[1]; if (name && !findIngredient(r.ingredients, name)) r.ingredients.push({ id: store.uuidv7(), qty: null, unit: '', item: name, note: '' }); }
+  }
   return recipes.filter(r => r.title);
 }
 
