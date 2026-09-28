@@ -26,7 +26,7 @@ export default {
     const { versionText } = await import('../version.js');
     el.innerHTML = `
       <section class="card" id="install-card">
-        <p class="muted app-version">Sift ${versionText()} <button type="button" class="link-btn" data-act="check-update">Check for updates</button> · <button type="button" class="link-btn" data-act="tour">Take the tour</button></p>
+        <p class="muted app-version">Sift ${versionText()} <button type="button" class="link-btn" data-act="check-update">Check for updates</button> · <button type="button" class="link-btn" data-act="tour">Take the tour</button> · <button type="button" class="link-btn" data-act="tour-reset" title="Next time, the tour starts from the beginning">Reset the tour</button></p>
         <p class="muted sync-top" id="sync-top" hidden></p>
         <h2>Home Screen and your data</h2>
         <div id="install-body"></div>
@@ -634,7 +634,9 @@ export default {
     });
 
     // Check for updates: get the newest version now instead of waiting.
-    el.querySelector('[data-act="tour"]').addEventListener('click', async () => (await import('../tour.js')).startTour());
+    // The tour starts from the welcome page (its three choices); reset makes it start from the beginning next time.
+    el.querySelector('[data-act="tour"]').addEventListener('click', () => { location.hash = '#/welcome'; });
+    el.querySelector('[data-act="tour-reset"]').addEventListener('click', async () => { await (await import('../tour.js')).resetTour(); toast('The tour will start from the beginning'); });
     el.querySelector('[data-act="check-update"]').addEventListener('click', async ev => {
       const b = ev.currentTarget;
       b.disabled = true;

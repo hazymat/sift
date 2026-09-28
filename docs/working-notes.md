@@ -56,7 +56,7 @@ How work on Sift is done: where things are, the rules, and where it has got to. 
 - `app/js/inline.js`: one-line fields: Enter or leaving saves ("Saved · Undo"); Esc saves and leaves.
 - `app/js/listkit.js`: shared list behaviour (select by the grab handle, drag, selection bar, Delete key).
 - `app/js/views/*.js`: one module per area. `smoke.js`: the page check (dev only, not cached).
-- `app/js/views/welcome.js`: the first time Sift is opened on a device with nothing in it (`firstVisit()` in `app.js`): tour now, later (a task with `tour: true`, whose pill starts it), or not at all. `app/js/tour.js`: the tour's steps and how it points at things; a step can wait for something to be tried (`done`).
+- `app/js/views/welcome.js`: the first time Sift is opened on a device with nothing in it (`firstVisit()` in `app.js`): tour now, later (a task with `tour: true`, whose pill starts it), or not at all. `app/js/tour.js`: the tours (`TOURS`: each has its steps, its place kept on the device in `tour_at`, and its task, `tour: <id>`) and how they point at things; a step can wait for something to be tried (`done`).
 - `server/`: the sync server (Node 24, `node:sqlite`), end-to-end encrypted. `node test.js` after any change.
 - `tools/`: `devserver.py`, `make_icons.py` (every icon size from `tools/icon-source.png`), `release.py` and `release_notes.py`, `onenote_to_csv.py`, `make_sift_test.py` (see Sift test below).
 

@@ -538,3 +538,7 @@ NOTES['1.35.00'] = [
   F('A welcome the first time Sift is opened: see the tour now, put it on your to do list (a task with a ▶ Start the tour pill, ticked off when the tour is finished), or just use the app.'),
   F('The tour: a walk round Sift that has you try things for real (writing a note, turning it into a task, adding a task, getting around), and shows sharing, the Day Planner, lists, search and undo. Laptops get the keyboard shortcuts; phones get taps. Settings → Take the tour starts it again.'),
 ]
+NOTES['1.35.01'] = [
+  F('The tour carries on where it was left, and has End tour early on every step: the "Take the tour of Sift" task then waits on Now, highlighted, and its ▶ pill carries on. N and B go to the next and previous steps on a keyboard. Settings → Take the tour opens the welcome page; Reset the tour starts it from the beginning next time.'),
+  F('The tour has more to say: keeping notes in order, choosing and moving several tasks with the actions bar, energy levels, dragging tasks onto a time, the day\'s notes, everything in 👁, copying and sharing a day (and switching to someone else\'s), transient and stored contacts, and themes. Keys are drawn as separate keys, and the page\'s place in the navigation is outlined.'),
+]
