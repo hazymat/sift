@@ -746,3 +746,8 @@ NOTES['1.40.01'] = [
 NOTES['1.40.02'] = [
   F('Batch Book: press and hold a recipe card to select it; the bar comes up, and then a single press on other cards adds them or takes them out. Esc (or ✕) ends it.'),
 ]
+
+NOTES['1.41.00'] = [
+  F('Batch Book: the batches list is spaced like Tasks, and batches drag into your own order (hold ⠿), or select several to change their status or delete them.'),
+  F('Batch Book: a sort menu beside All / Planned / On the go / Done: newest first, oldest first, by name, or Custom, which it switches to by itself when you drag a batch.'),
+]

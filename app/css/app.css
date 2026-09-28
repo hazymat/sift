@@ -3869,7 +3869,12 @@ body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none
 .bb-batch-name { flex: 1 1 10em; min-width: 0; }
 .bb-status-planned { opacity: .7; }
 /* The batches list: rows like Tasks' (see-through until hovered), keeping each batch's colour. */
-.bb-batch-list { gap: 2px; }
+.bb-batch-list { margin: 0; padding: 0; list-style: none; gap: var(--row-gap, 6px); }
+.bb-batch-list > li { display: flex; align-items: center; gap: 2px; border-radius: 14px; }
+.bb-batch-list > li > .bb-batch-row { flex: 1; min-width: 0; }
+.bb-status-row { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
+.bb-status-row .bb-status { margin: 0; }
+.bb-sort { flex: none; width: auto; max-width: 9em; padding: 4px 8px; font-size: .85rem; }
 .bb-batch-list .bb-batch-row { min-height: 42px; padding: 4px 12px; background: color-mix(in srgb, var(--glass) 55%, transparent); border-color: color-mix(in srgb, var(--glass-border) 60%, transparent); border-left: 4px solid var(--bb); }
 .bb-batch-list .bb-batch-row:hover, .bb-batch-list .bb-batch-row.kb-cur { background: var(--glass); border-color: var(--glass-border); border-left-color: var(--bb); }
 /* Printing a recipe (a card's More, Print): just the page. */
