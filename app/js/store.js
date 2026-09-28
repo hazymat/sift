@@ -213,17 +213,20 @@ function noteChange(collection, before, after) {
 }
 
 // Name the action that just happened (called by the undo toast helper).
-export function labelHistory(label, extra = {}) {
+// Resolves to the entry's id (null if nothing was recorded).
+export async function labelHistory(label, extra = {}) {
   if (pending) {
     Object.assign(pending, { label }, extra);
-    return flushHistory();
+    await flushHistory();
+    return lastEntry?.id ?? null;
   }
   // Already flushed moments ago without a name: name it now.
   if (lastEntry && !lastEntry.label && Date.now() - Date.parse(lastEntry.at) < 4000) {
     Object.assign(lastEntry, { label }, extra);
-    return putHistory(lastEntry);
+    await putHistory(lastEntry);
+    return lastEntry.id;
   }
-  return Promise.resolve();
+  return null;
 }
 
 async function putHistory(entry) {

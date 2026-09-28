@@ -20,6 +20,7 @@ const SHELL = [
   'js/rowswipe.js',
   'js/keys.js',
   'js/hold.js',
+  'js/undo.js',
   'js/typesheet.js',
   'js/noteundo.js',
   'js/repeat.js',
