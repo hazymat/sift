@@ -545,3 +545,6 @@ NOTES['1.35.01'] = [
 NOTES['1.35.02'] = [
   F('"⤢ Fullscreen note editor" under a note shows its key, Alt+Enter.'),
 ]
+NOTES['1.35.03'] = [
+  F("Tasks: Shift+Enter in a task's name, or in New task, opens More and puts the cursor in the task's note, ready to write."),
+]
