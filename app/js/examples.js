@@ -148,6 +148,29 @@ This was silky and amazing, Mat liked it more than Anna.
 ## Notes
 Next try: 100 Disaronno, 60 ml lemon, 28.5 whisky, egg white. Shake without then with ice. Serve with 2 cherries, a lemon twist and fresh ice.
 
+# Hot Toddy
+Book: Cocktails
+Tags: cocktail, whisky, hot
+Glass: Mug
+Serves: 1
+
+Is it a cocktail? Is it medicine? Who knows, but it tastes like winter in the Highlands.
+
+## Ingredients
+- 1 lemon, juiced
+- 50 ml whisky (a double shot)
+- 1 tbsp honey (a good glug)
+- 1 lemon wedge
+- 3 cloves
+- 1 cinnamon stick (optional)
+- 200 ml hot water, to top up
+
+## Method
+1. Push the {cloves} into the skin of the {lemon wedge}.
+2. Into a mug: the juice of the {lemon}, the {whisky} and the {honey}. Stir until the honey melts in.
+3. Add the {lemon wedge|clove-studded lemon wedge} and the {cinnamon stick}.
+4. Top up with {hot water}, just off the boil, and stir.
+
 # Pad Kra Pao (basil stir fry)
 Book: Cooking
 Tags: thai
@@ -217,6 +240,46 @@ From Hot Thai Kitchen. Fish sauce: check the ingredients are anchovies, water, s
 7. Simmer 10 mins until the chicken is fork-tender.
 8. Add {bamboo shoots} and bring back to the boil.
 9. Add the {large red chilli|chilli} (big angled cuts, about ½ cm) and {Thai basil|1 cup Thai basil}, and stop the heat. More {fish sauce|fish sauce} if flat.
+
+# Pampushki
+Book: Baking
+Tags: ukrainian, bread
+Makes: 9
+Oven: 180 °C
+
+Ukrainian garlic bread rolls, the ones to have with borscht. Mat's own recipe.
+
+## Ingredients
+### Dough
+- 400 g plain flour
+- 225 g warm water (40 °C)
+- 35 g honey
+- 21 g vegetable oil
+- 5 g salt
+- 5 g lemon juice
+- 9 g dried yeast
+- flour, for shaping
+- oil, for the tin
+### Egg wash
+- 1 egg
+### Garlic sauce
+- 3 cloves garlic, pressed
+- ½ tsp kosher salt
+- 2 tbsp more vegetable oil
+- 3 tbsp cold water
+- 2 tbsp chopped herbs (parsley, coriander)
+
+## Method
+1. Warm the {warm water|water} to 40 °C. Into a mixing bowl with the {dried yeast|yeast} and {honey}. Wait 10 mins.
+2. Add the {vegetable oil}, {salt}, {lemon juice} and {plain flour|flour}. Mix, then leave 20 mins.
+3. Knead in the bowl for 2 mins. Too dry? A splash more water. Too sticky? Leave another 10 mins, then knead again.
+4. Cover with a damp cloth or cling film and leave 1 to 1.5 hours somewhere warm.
+5. Split into 9 equal pieces and shape into balls, with a little {flour} if too sticky. Grease a round tin with {oil} and spread the balls out in it. Cover and leave somewhere warm for 40 mins.
+6. Meanwhile, oven on to 180 °C.
+7. Whisk the {egg} and brush it on. The whole egg: yolk alone burns!
+8. Bake at 180 °C for 25 to 30 mins. After 15 mins, put a bowl of water in the bottom of the oven so the crust doesn't go hard.
+9. Meanwhile the garlic sauce: mince the {garlic} into a bowl, then add the {kosher salt|salt}, {more vegetable oil|vegetable oil}, {cold water|water} and {chopped herbs|chopped parsley}.
+10. When the bread is ready, drizzle the sauce over it in the tin and leave a few mins to soak in. Serve.
 
 # Quick Baguette
 Book: Baking
@@ -291,9 +354,11 @@ Hanoi grilled pork. First made 2013; made again in 2023 (bought meat pre-minced)
 11. Cook the {vermicelli} per the packet (2 mins?), then blanch in {cold water}.
 12. Mat's way: broth in bowls, then a little greens, a little {vermicelli|vermicelli} and some meatballs (not all). The rest on small plates to share.
 `;
-const PHOTOS = { 'Borscht': ['borscht-1.jpg', 'borscht-2.jpg'], 'Chicken Green Curry': ['green-curry-1.jpg'] };
+const PHOTOS = { 'Borscht': ['borscht-1.jpg', 'borscht-2.jpg'], 'Chicken Green Curry': ['green-curry-1.jpg'], 'Hot Toddy': ['hot-toddy-1.jpg', 'hot-toddy-2.jpg'], 'Pampushki': ['pampushki-1.jpg', 'pampushki-2.jpg', 'pampushki-3.jpg'] };
 // Goes up when photos are added, so books that already have the showcase get the new ones.
-const PHOTOS_VERSION = 3;
+const PHOTOS_VERSION = 4;
+// Recipes added to the showcase later, so books that already have it get them too (unless deleted there).
+const ADDED = ['Hot Toddy', 'Pampushki'];
 // Showcase names and photo files that changed since a book got them (1.49.02: Mat spells it Borscht).
 const RENAMED = { 'Borsch': 'Borscht', 'borsch-1.jpg': 'borscht-1.jpg' };
 // The examples from 1.47.00 to 1.48.00, which the showcase replaces.
@@ -334,10 +399,12 @@ export async function swapForShowcase(settings) {
   await addExamples(settings);
 }
 
-// Photos added to the showcase since this book got it: each showcase recipe gets the ones it hasn't got (by file name).
+// Recipes and photos added to the showcase since this book got it: each showcase recipe gets the ones it hasn't got (by file name).
 export async function addNewPhotos() {
   for (const r of await store.list('recipes')) if (RENAMED[r.title]) await store.update('recipes', r.id, { title: RENAMED[r.title] });
   for (const a of await store.list('attachments')) if (a.parent_collection === 'recipes' && RENAMED[a.name]) await store.update('attachments', a.id, { name: RENAMED[a.name] });
+  const titles = (await store.list('recipes', { includeDeleted: true })).map(r => r.title.toLowerCase());
+  for (const r of parseRecipes(SHOWCASE)) if (ADDED.includes(r.title) && !titles.includes(r.title.toLowerCase())) await store.create('recipes', Object.assign(r, { colour: null }));
   const have = await att.byParent();
   for (const r of await store.list('recipes')) if (PHOTOS[r.title]) { const names = (have.get(r.id) || []).map(a => a.name); await addPhotos(r, PHOTOS[r.title].filter(n => !names.includes(n))); }
   await store.updateSettings({ batch_showcase_photos: PHOTOS_VERSION });
