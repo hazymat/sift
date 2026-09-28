@@ -1,7 +1,7 @@
 // Batch Book: recipes in your own books, and every batch made from them.
 // #/recipes                         recipes (a tab per book, with tags and a search) or all batches;
 //                                   cards are dragged like Brain Dump notes (onto another book's heading moves them there)
-// #/recipes/<recipe id>             a recipe: Make this, details, ingredients, steps, result photos, tasting notes, its batches
+// #/recipes/<recipe id>             a recipe: Make this, details, ingredients, steps, result photos, its batches
 // #/recipes/<recipe id>/make/<id>   one batch: its own copy of the recipe to change, each ingredient In stock or
 //                                   Add to list, summary, gravity log, diary, tasting diary
 // Pages are drawn on the same papers as the Day Planner (👁: paper, lined, margin).
@@ -11,7 +11,7 @@ import * as store from '../store.js';
 import * as att from '../attachments.js';
 import { sectionsOf, sectionOf, stepsOf, UNITS, parseLine, parseQty, qtyText, amountText, ingredientText, stepHtml, renameRefs, abvOf, nextBatchNo, loadBook, batchName, batchDay } from '../batchbook.js';
 import { loadLists, nestItems, createList, addItems } from '../lists.js';
-import { richText } from '../richtext.js';
+import { richText, plainLines } from '../richtext.js';
 import { debounced } from '../autosave.js';
 import { toast, undoable } from '../toast.js';
 import { askText, askYes } from '../ask.js';
@@ -201,7 +201,7 @@ export default {
             : tags.length ? `<div class="bb-tags">${tags.map(t => `<button type="button" class="chip" data-tag="${esc(t)}" aria-pressed="${state.tag === t}">${esc(t)}</button>`).join('')}</div>` : ''}
         </div>
         <div class="bb-body">
-        ${!data.recipes.length && !shared.length && !invites ? `<div class="empty"><h2>No recipes yet.</h2><p class="muted">Add a recipe: ingredients, steps, photos and tasting notes. Each time you make it, start a batch: its own copy to change, what you have in and what to buy, readings, a diary and how it turned out.</p></div>`
+        ${!data.recipes.length && !shared.length && !invites ? `<div class="empty"><h2>No recipes yet.</h2><p class="muted">Add a recipe: ingredients, steps and photos. Each time you make it, start a batch: its own copy to change, what you have in and what to buy, readings, a diary and tasting notes.</p></div>`
         : state.batches ? (batches.length ? `<ul class="bb-batches bb-batch-list">${batches.map(m => `<li data-id="${m.id}" data-depth="0"><button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button>${batchRow(m, true)}</li>`).join('')}</ul>` : `<div class="empty"><h2>No ${state.status ? `${STATUSES.find(s => s[0] === state.status)[1].toLowerCase()} ` : ''}batches here.</h2><p class="muted">Open a recipe and press Make this.</p></div>`)
         : `${list.length ? `<ul class="bb-grid bb-cards">${groups.map(name => { const mine = list.filter(r => (r.type || '') === name); return chapter(name, mine.length) + mine.map(r => card(r)).join(''); }).join('')}</ul>`
           : `<div class="empty"><h2>Nothing here yet.</h2>${pinnedTab() ? '<p class="muted">Press ☆ on a recipe to pin it here.</p>' : state.section && !state.q ? '<p class="muted">Press + New recipe to add one to this book.</p>' : ''}</div>`}
@@ -300,8 +300,8 @@ export default {
           ${stepsHtml(r, { collection: 'recipes', id: r.id })}
           <h2 class="bb-h"><span>📸 Result photos</span><span class="muted bb-h-note">the first is the recipe's picture</span></h2>
           ${att.rowHtml(atts.get(r.id), { parent: r.id })}
-          <h2 class="bb-h"><span>🥂 Tasting notes</span></h2>
-          <div class="bb-tasting"></div>
+          ${r.tasting?.trim() ? `<h2 class="bb-h"><span>🥂 Tasting notes</span><span class="muted bb-h-note">these move to the first batch you make</span></h2>
+          <div class="bb-tasting"></div>` : ''}
           <h2 class="bb-h"><span>🧪 Batches</span></h2>
           ${made.length ? `<div class="bb-batches">${made.map(batchRow).join('')}</div>` : '<p class="muted bb-none">Not made yet. Make this (at the top) starts a batch with its own copy of the recipe, to change as you like, and to tick off what you have in.</p>'}
         </article>
@@ -397,12 +397,25 @@ export default {
 
     let tasting = null;
     let adding = null; // a step still being saved: drawn once it's in
+    // Tasting notes live on batches (their tasting diary). A recipe's old notes move to its latest batch.
+    async function moveTastings() {
+      let moved = false;
+      for (const r of data.recipes.filter(x => x.tasting?.trim())) {
+        const latest = data.makes.filter(m => m.recipe_id === r.id).sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.created_at || '').localeCompare(a.created_at || ''))[0];
+        if (!latest) continue;
+        await store.create('recipe_entries', { make_id: latest.id, recipe_id: r.id, kind: 'tasting', date: latest.date || today(), text: plainLines(r.tasting).join('\n').trim() });
+        await store.update('recipes', r.id, { tasting: '' });
+        moved = true;
+      }
+      return moved;
+    }
     const render = this.render = async () => {
       await adding;
       store.useSpace(state.owner ? store.spaceOf(state.owner) : null);
       shared = await loadShared();
       if (state.owner && !shared.some(x => x.owner_id === state.owner && x.r.id === state.recipe)) { state.owner = null; store.useSpace(null); if (state.recipe) return go('#/recipes'); }
       data = await loadBook();
+      if (!state.owner && await moveTastings()) data = await loadBook();
       atts = await att.byParent();
       settings = await store.getSettings();
       sections = sectionsOf(settings, data.recipes);
@@ -786,7 +799,7 @@ export default {
     async function newRecipe() {
       const section = (!pinnedTab() && state.section) || sections[0]?.name || '';
       const fields = Object.fromEntries(sectionOf(sections, section).fields.map(k => [k, '']));
-      const r = await store.create('recipes', { title: 'New recipe', type: section, tags: [], description: '', ingredients: [], steps: [], tasting: '', fields });
+      const r = await store.create('recipes', { title: 'New recipe', type: section, tags: [], description: '', ingredients: [], steps: [], fields });
       focusNext = '.bb-title';
       go(`#/recipes/${r.id}`);
       undoable('New recipe', async () => { await store.remove('recipes', r.id); go('#/recipes'); });

@@ -785,3 +785,7 @@ NOTES['1.43.01'] = [
 NOTES['1.43.02'] = [
   F('Batch Book: scale a recipe or a batch to a third (×⅓) as well as a half.'),
 ]
+
+NOTES['1.44.00'] = [
+  F('Batch Book: tasting notes live on each batch (its tasting diary), not on the recipe. A recipe\'s old tasting notes move to its latest batch, or to the first batch you make.'),
+]
