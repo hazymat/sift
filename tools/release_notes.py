@@ -861,3 +861,7 @@ NOTES['1.49.07'] = [F("Batch Book: a new starter, Mat's Cranberry Sauce (with a 
 NOTES['1.49.08'] = [F("Batch Book: a new photo for the Chicken Green Curry starter.")]
 NOTES['1.49.09'] = [F("Batch Book: new books start with the 7 starter recipes that have photos: Borscht, Chicken Green Curry, Pampushki, Christmas Cake, Coloured Sticky Rice with Mango, Cranberry Sauce and Hot Toddy.")]
 NOTES['1.49.10'] = [F('Batch Book: while recipes or batches are selected, Shift and click selects every one from the last one you picked to this one (e.g. to delete a run of them).')]
+NOTES['1.49.11'] = [
+  B("Batch Book: the starter recipes could be added more than once (each device added its own copy before syncing). They now have fixed ids, so extra adds merge into one."),
+  F("Batch Book: once per account, the whole book is cleared (recipes, batches, diary entries and their photos) and starts again with the 7 starters, as Mat asked."),
+]

@@ -293,64 +293,65 @@ Serve it hot, the flavours are brighter.
 
 `;
 const PHOTOS = { 'Borscht': ['borscht-1.jpg', 'borscht-2.jpg'], 'Chicken Green Curry': ['green-curry-2.jpg'], 'Hot Toddy': ['hot-toddy-1.jpg', 'hot-toddy-2.jpg'], 'Pampushki': ['pampushki-1.jpg', 'pampushki-2.jpg', 'pampushki-3.jpg'], 'Coloured Sticky Rice with Mango': ['sticky-rice-1.jpg', 'sticky-rice-2.jpg'], 'Christmas Cake': ['christmas-cake-1.jpg'], 'Cranberry Sauce': ['cranberry-sauce-1.jpg'] };
-// Goes up when photos are added, so books that already have the showcase get the new ones.
-const PHOTOS_VERSION = 8;
-// Showcase photos that were swapped out, taken off books that got them (1.49.08: Mat's new green curry photo).
-const REMOVED = ['green-curry-1.jpg'];
-// Recipes added to the showcase later, so books that already have it get them too (unless deleted there).
-const ADDED = ['Hot Toddy', 'Pampushki', 'Coloured Sticky Rice with Mango', 'Christmas Cake', 'Cranberry Sauce'];
-// Showcase names and photo files that changed since a book got them (1.49.02: Mat spells it Borscht).
-const RENAMED = { 'Borsch': 'Borscht', 'borsch-1.jpg': 'borscht-1.jpg' };
-// The examples from 1.47.00 to 1.48.00, which the showcase replaces.
-const OLD = ['Aviation', 'Espresso martini', 'Borscht', 'Red lentil and tomato soup', 'Spaghetti carbonara', 'Chicken fajitas', 'Banana bread', 'Rustic white loaf', 'Chocolate chip cookies'];
+// Goes up when photos or recipes are added to the showcase, so books that already have it get the new ones.
+const PHOTOS_VERSION = 9;
 
-async function addPhotos(recipe, names = PHOTOS[recipe.title] || []) {
-  const files = [];
-  for (const name of names) {
-    try { const res = await fetch(`examples/${name}`); if (res.ok) files.push(new File([await res.blob()], name, { type: 'image/jpeg' })); } catch { /* offline: the recipe comes without its photos */ }
-  }
-  if (files.length) await att.addFiles({ collection: 'recipes', id: recipe.id }, files);
+// Showcase recipes and photos get ids made from the account and their name, the same on every device and every
+// run, so two devices (or two quick renders on one) adding them at once make one copy that sync merges, not three
+// (1.49.11: Mat's and Anna's books had them tripled).
+let account = 'local';
+export const setAccount = key => { account = key || 'local'; };
+async function fixedId(name) {
+  const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${account}|${name}`)));
+  const hex = Array.from(hash.slice(0, 16), byte => byte.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
 }
 
-// The example books (any not set up yet) and recipes (any not there yet, by name), in the current space.
-export async function addExamples(settings) {
+// One seeding at a time on this device.
+let seeding = Promise.resolve();
+const serial = job => (seeding = seeding.then(job, job));
+
+async function addPhotos(recipe, names = PHOTOS[recipe.title] || []) {
+  const files = [], ids = [];
+  for (const name of names) {
+    try { const res = await fetch(`examples/${name}`); if (res.ok) { files.push(new File([await res.blob()], name, { type: 'image/jpeg' })); ids.push(await fixedId(`photo|${recipe.title}|${name}`)); } } catch { /* offline: the recipe comes without its photos */ }
+  }
+  if (files.length) await att.addFiles({ collection: 'recipes', id: recipe.id }, files, ids);
+}
+
+// The showcase recipes not there yet (by name), and the photos each is missing (by file name).
+async function addShowcase(fresh = false) {
+  const have = (await store.list('recipes')).map(r => r.title.toLowerCase());
+  const ever = (await store.list('recipes', { includeDeleted: true })).filter(r => r.deleted_at).map(r => r.id);   // one deleted since it was added stays deleted
+  for (const r of parseRecipes(SHOWCASE)) { const id = await fixedId(`recipe|${r.title}`); if (!have.includes(r.title.toLowerCase()) && (fresh || !ever.includes(id))) await store.create('recipes', Object.assign(r, { id, colour: null })); }
+  const atts = await att.byParent();
+  for (const r of await store.list('recipes')) if (PHOTOS[r.title]) { const names = (atts.get(r.id) || []).map(a => a.name); await addPhotos(r, PHOTOS[r.title].filter(n => !names.includes(n))); }
+  await store.updateSettings({ batch_examples: true, batch_wipe: 1, batch_showcase_photos: PHOTOS_VERSION });
+}
+
+// The example books (any not set up yet) and the showcase, in the current space.
+export const addExamples = settings => serial(async () => {
   const books = settings.batch_sections || [];
   const missing = EXAMPLE_BOOKS.filter(x => !books.some(b => b.name === x.name));
   if (missing.length || !settings.batch_sections) await store.updateSettings({ batch_sections: books.concat(missing) });
-  const have = (await store.list('recipes')).map(r => r.title.toLowerCase());
-  for (const r of parseRecipes(SHOWCASE)) if (!have.includes(r.title.toLowerCase())) await addPhotos(await store.create('recipes', Object.assign(r, { colour: null })));
-  await store.updateSettings({ batch_examples: true, batch_examples_reset: true, batch_showcase: true, batch_showcase_photos: PHOTOS_VERSION });
-}
+  await addShowcase();
+});
 
-// Once (1.48.00, Mat asked: his and Anna's Batch Books had nothing in yet): the books go back to the example
-// ones and the example recipes are added. A book of their own with recipes in it stays, after them.
-export async function resetToExamples(settings) {
-  const recipes = await store.list('recipes');
-  const kept = (settings.batch_sections || []).filter(b => !EXAMPLE_BOOKS.some(x => x.name === b.name) && recipes.some(r => r.type === b.name));
-  await store.updateSettings({ batch_sections: EXAMPLE_BOOKS.concat(kept) });
-  await addExamples(await store.getSettings());
-}
+// Once per account (1.49.11, Mat asked: the starters had been added three times): every recipe, batch, diary entry
+// and their photos go, the books go back to the example ones, and the showcase is added fresh. batch_wipe is an
+// account setting, so a second device that has synced sees it and leaves the book alone.
+export const needsWipe = settings => !settings.batch_wipe;
+export const wipeBook = () => serial(async () => {
+  const gone = ['recipes', 'recipe_makes', 'recipe_entries'];
+  for (const a of await store.list('attachments')) if (gone.includes(a.parent_collection)) await store.remove('attachments', a.id);
+  for (const c of gone) for (const r of await store.list(c)) await store.remove(c, r.id);
+  await store.updateSettings({ batch_sections: EXAMPLE_BOOKS, batch_wipe: 1 });
+  await addShowcase(true);
+});
 
-// Once (1.49.00): a Batch Book that got the earlier examples swaps them for the showcase. An earlier example that
-// has batches, or was renamed, stays.
-export async function swapForShowcase(settings) {
-  const makes = await store.list('recipe_makes');
-  for (const r of await store.list('recipes')) if (OLD.includes(r.title) && !makes.some(m => m.recipe_id === r.id)) await store.remove('recipes', r.id);
-  await addExamples(settings);
-}
-
-// Recipes and photos added to the showcase since this book got it: each showcase recipe gets the ones it hasn't got (by file name).
-export async function addNewPhotos() {
-  for (const r of await store.list('recipes')) if (RENAMED[r.title]) await store.update('recipes', r.id, { title: RENAMED[r.title] });
-  for (const a of await store.list('attachments')) if (a.parent_collection === 'recipes' && RENAMED[a.name]) await store.update('attachments', a.id, { name: RENAMED[a.name] });
-  for (const a of await store.list('attachments')) if (a.parent_collection === 'recipes' && REMOVED.includes(a.name)) await store.remove('attachments', a.id);
-  const titles = (await store.list('recipes', { includeDeleted: true })).map(r => r.title.toLowerCase());
-  for (const r of parseRecipes(SHOWCASE)) if (ADDED.includes(r.title) && !titles.includes(r.title.toLowerCase())) await store.create('recipes', Object.assign(r, { colour: null }));
-  const have = await att.byParent();
-  for (const r of await store.list('recipes')) if (PHOTOS[r.title]) { const names = (have.get(r.id) || []).map(a => a.name); await addPhotos(r, PHOTOS[r.title].filter(n => !names.includes(n))); }
-  await store.updateSettings({ batch_showcase_photos: PHOTOS_VERSION });
-}
-export const photosBehind = settings => settings.batch_showcase && (settings.batch_showcase_photos || 0) < PHOTOS_VERSION;
+// Recipes and photos added to the showcase since this book got it.
+export const addNewPhotos = () => serial(addShowcase);
+export const photosBehind = settings => settings.batch_examples && (settings.batch_showcase_photos || 0) < PHOTOS_VERSION;
 
 // A brand new Batch Book: never had a recipe, on a device not signed in or signed up here as a new account
 // (an account that already existed is only ever signed in to, so it never gets them).

@@ -58,14 +58,14 @@ async function thumbnail(file) {
   } catch { return null; }   // a format this browser can't draw: it shows as a file chip
 }
 
-export async function addFiles(parent, files) {
+export async function addFiles(parent, files, ids = []) {
   const made = [];
   const skipped = [];
-  for (const file of files) {
+  for (const [index, file] of files.entries()) {
     const kind = kindOf(file.type, file.name);
     if (!kind) { skipped.push(`${file.name} (only photos, PDFs and text files)`); continue; }
     if (file.size > MAX_BYTES) { skipped.push(`${file.name} (over ${sizeLabel(MAX_BYTES)})`); continue; }
-    const id = store.uuidv7();
+    const id = ids[index] || store.uuidv7();   // fixed ids: examples.js
     await store.putBlob(id, file);
     made.push(await store.create('attachments', {
       id, parent_collection: parent.collection, parent_id: parent.id, blob_id: id,

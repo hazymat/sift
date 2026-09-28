@@ -24,7 +24,7 @@ import { TINTS } from '../colours.js';
 import { pillMenu } from '../pillmenu.js';
 import { sortable } from '../sortable.js';
 import { signedIn, status as syncStatus } from '../sync.js';
-import { addExamples, addNewPhotos, isBrandNew, photosBehind, resetToExamples, swapForShowcase } from '../examples.js';
+import { addExamples, addNewPhotos, isBrandNew, needsWipe, photosBehind, setAccount, wipeBook } from '../examples.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -432,11 +432,11 @@ export default {
       data = await loadBook();
       if (!state.owner && await moveTastings()) data = await loadBook();
       settings = await store.getSettings();
+      setAccount(signedIn()?.user_id);
       if (!state.owner && await isBrandNew(settings, !!signedIn())) { await addExamples(settings); data = await loadBook(); settings = await store.getSettings(); }
-      // The one time reset (examples.js), once this device has what the account already has (so no second copy from another device).
-      else if (!state.owner && !settings.batch_examples_reset && (!signedIn() || syncStatus.last)) { await resetToExamples(settings); data = await loadBook(); settings = await store.getSettings(); }
-      else if (!state.owner && settings.batch_examples && !settings.batch_showcase && (!signedIn() || syncStatus.last)) { await swapForShowcase(settings); data = await loadBook(); settings = await store.getSettings(); }
-      else if (!state.owner && photosBehind(settings) && (!signedIn() || syncStatus.last)) { await addNewPhotos(); settings = await store.getSettings(); }
+      // The one time wipe and the photo catch-up (examples.js), once this device has what the account already has.
+      else if (!state.owner && needsWipe(settings) && (!signedIn() || syncStatus.last)) { await wipeBook(); data = await loadBook(); settings = await store.getSettings(); }
+      else if (!state.owner && photosBehind(settings) && (!signedIn() || syncStatus.last)) { await addNewPhotos(); data = await loadBook(); settings = await store.getSettings(); }
       atts = await att.byParent();
       sections = sectionsOf(settings, data.recipes);
       if (state.section && !pinnedTab() && !sections.some(x => x.name === state.section)) state.section = '';
