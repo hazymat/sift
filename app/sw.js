@@ -37,6 +37,7 @@ const SHELL = [
   'js/history.js',
   'js/lists.js',
   'js/batchbook.js',
+  'js/examples.js',
   'js/views/lists.js',
   'js/listkit.js',
   'js/inline.js',
