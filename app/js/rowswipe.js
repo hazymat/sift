@@ -4,8 +4,9 @@
 // against them: swipe left for the right-hand ones
 // (e.g. ✓ Done, ⋯ More), right for the left-hand ones (e.g. Delete). Let go
 // past half of them and it stays open for a tap; less and it springs back; a
-// tap anywhere else closes it. Not from a grab bar, a tick, a button or a
-// field being typed in, nor while things are chosen (the actions bar is up).
+// tap anywhere else closes it. Not from a grab bar, a tick, a button, a
+// field being typed in or a row got ready to move (.armed: the Day
+// Planner's), nor while things are chosen (the actions bar is up).
 // A row's swipe isn't also the page's (app.js: a side swipe changes page). One
 // place for every list that swipes: Tasks and the Day Planner so far.
 //
@@ -16,7 +17,7 @@
 //     actions(row): { left: [{ label, cls, run(row) }], right: [...] }
 //       left: shown on the right when swiped left; right: on the left when swiped right
 
-const SKIP = '.drag-handle, .drag-grip, .resize-grip, .tick, button, .row-acts, input:focus, textarea:focus, [contenteditable="true"]';
+const SKIP = '.drag-handle, .drag-grip, .resize-grip, .tick, button, .row-acts, .armed, input:focus, textarea:focus, [contenteditable="true"]';
 
 export function rowSwipe(root, { rows, face = null, actions }) {
   if (!matchMedia('(pointer: coarse)').matches) return;
