@@ -18,6 +18,8 @@
 // button that opens sideways (e.g. Move → Now, Next, Later).
 //
 //   const kit = createListKit({ reorder, indent, maxDepth, actions, onReorder, noun, grid, families, holdAnywhere })
+//   sideways: false: dragging sideways doesn't indent or outdent (Tasks: onto a row makes a
+//     sub-item; a sub-item dragged down off the bottom of its family comes out of it)
 //   holdAnywhere: press and hold anywhere on a row drags it too (sortable.js), not only its ⠿
 //     (the ⠿ is still there for choosing several); holding it then doesn't open its panel (holdopen.js)
 //   families: rows keep their depth and a parent carries its children, but there's no indenting
@@ -41,7 +43,7 @@ export const typingIn = el => !!el?.closest?.('input:not([type="checkbox"]):not(
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 export function createListKit({
-  reorder = true, indent = false, maxDepth = 1, actions = [], onReorder, noun = 'item', grid = false, families = false, onNest = null, holdAnywhere = false,
+  reorder = true, indent = false, maxDepth = 1, actions = [], onReorder, noun = 'item', grid = false, families = false, onNest = null, holdAnywhere = false, sideways = true,
 } = {}) {
   const selected = new Set();
   let anchor = null;
@@ -155,6 +157,25 @@ export function createListKit({
     for (const r of targets) r.dataset.depth = Math.max(0, Math.min(maxDepth, depthOf(r) + by));
   }
 
+  // ---------- a sub-item coming out of its family (sideways: false) ----------
+  // Dragged down off the bottom of a family (or between two top-level rows), it
+  // comes out: it shows at the top level, and the row above closes the family.
+  const visibleNext = (r, dir) => { let n = dir < 0 ? r.previousElementSibling : r.nextElementSibling; while (n && (n.hidden || !n.matches('li[data-id]'))) n = dir < 0 ? n.previousElementSibling : n.nextElementSibling; return n; };
+  let liftDepth = 0;
+  let liftHeight = 40;
+  function outOfFamily(item, dy) {
+    if (!liftDepth) return false;
+    const prev = visibleNext(item, -1), next = visibleNext(item, 1);
+    if (next && depthOf(next) >= liftDepth) return false; // still among a family's rows
+    if (!prev || (depthOf(prev) === 0 && prev !== liftParent)) return true; // between top-level rows
+    return dy > liftHeight / 2; // at a family's bottom edge: out, if dragged down to get there
+  }
+  function showOut(item, out) {
+    for (const r of ul.querySelectorAll('.heal-end')) r.classList.remove('heal-end');
+    item.classList.toggle('coming-out', out);
+    if (out) visibleNext(item, -1)?.classList.add('heal-end');
+  }
+
   // ---------- group drag: the others ride along as a stack ----------
   let carried = [];
   let liftParent = null; // the row the dragged one was nested under when lifted
@@ -171,7 +192,8 @@ export function createListKit({
     ghost.style.top = `${-(at - from) * h}px`;
     ghost.classList.toggle('fade-top', from > 0);
     ghost.classList.toggle('fade-bottom', to < group.length);
-    const text = r => r.querySelector('input[name="name"], .task-title, .kit-text, input')?.value ?? r.textContent.trim();
+    // Its name: the first of these it has (not just the first input: that can be its tick box).
+    const text = r => ['input[name="name"]', '.task-title', '.kit-text', 'input:not([type="checkbox"])'].map(q => r.querySelector(q)).find(Boolean)?.value ?? r.textContent.trim();
     ghost.innerHTML = group.slice(from, to).map(r => `
       <div class="ghost-row${depthOf(r) ? ' sub' : ''}${r === held ? ' lead' : ''}">
         <span>${esc(typeof text(r) === 'string' ? text(r) : '')}</span>
@@ -234,12 +256,19 @@ export function createListKit({
         // Where it came from: the row it was nested under (for dragging it out).
         liftParent = null;
         for (let p = li.previousElementSibling; p; p = p.previousElementSibling) if (p.matches('li[data-id]') && depthOf(p) < depthOf(li)) { liftParent = p; break; }
+        liftDepth = depthOf(li);
+        liftHeight = li.getBoundingClientRect().height || 40;
         if (carried.length > 1) liftGroup(li, carried);
       },
       // While dragging sideways, the row snaps to the depth it will land at
       // and says so ("sub-item" / "top level").
-      onDrag: ({ item, dx }) => {
+      onDrag: ({ item, dx, dy }) => {
         if (!indent) return 0;
+        if (!sideways) {
+          const out = outOfFamily(item, dy);
+          showOut(item, out);
+          return 0; // .coming-out shows it (app.css)
+        }
         const by = dx > sideStep ? 1 : dx < -sideStep ? -1 : 0;
         const from = depthOf(item);
         const prev = item.previousElementSibling?.matches('li[data-id]') ? item.previousElementSibling : null;
@@ -281,11 +310,14 @@ export function createListKit({
           carried.slice(at + 1).reverse().forEach(r => item.after(r));
         }
         carried = [];
-        let by = indent ? (dx > sideStep ? 1 : dx < -sideStep ? -1 : 0) : 0;
+        const out = item.classList.contains('coming-out');
+        showOut(item, false);
+        let by = indent && sideways ? (dx > sideStep ? 1 : dx < -sideStep ? -1 : 0) : 0;
+        if (!sideways && out) by = -(liftDepth - (liftParent ? depthOf(liftParent) : 0));
         if (by) shiftDepth(group, by);
         // A nested row dropped between two top-level rows (and not back under
         // the row it came from) comes out to the top level: dragged out.
-        if (indent && !by && depthOf(group[0]) > 0) {
+        if (indent && sideways && !by && depthOf(group[0]) > 0) {
           const prev = [...rows()].slice(0, rows().indexOf(group[0])).reverse().find(r => !group.includes(r));
           const next = group.at(-1).nextElementSibling?.matches('li[data-id]') ? group.at(-1).nextElementSibling : null;
           if ((!prev || depthOf(prev) === 0) && (!next || depthOf(next) === 0) && prev !== liftParent) { by = -depthOf(group[0]); shiftDepth(group, by); }

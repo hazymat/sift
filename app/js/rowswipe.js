@@ -17,7 +17,7 @@
 //     actions(row): { left: [{ label, cls, run(row) }], right: [...] }
 //       left: shown on the right when swiped left; right: on the left when swiped right
 
-const SKIP = '.drag-handle, .drag-grip, .resize-grip, .tick, button, .row-acts, .armed, input:focus, textarea:focus, [contenteditable="true"]';
+const SKIP = '.drag-handle, .drag-grip, .resize-grip, .tick, button:not(.pill-act), .row-acts, .armed, input:focus, textarea:focus, [contenteditable="true"]';
 
 export function rowSwipe(root, { rows, face = null, actions }) {
   if (!matchMedia('(pointer: coarse)').matches) return;

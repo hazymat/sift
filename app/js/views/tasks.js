@@ -1094,13 +1094,13 @@ export default {
       await render();
       undoable(`${moving.length === 1 ? `"${moving[0].title}" is` : `${moving.length} tasks are`} now under "${target.title}"`, async () => { await store.updateMany('tasks', before); await render(); });
     }
-    const kitOrdered = this.kitOrdered = createListKit({ reorder: true, indent: true, maxDepth: MAX_DEPTH, holdAnywhere: true, noun: 'task', actions: taskActions, onReorder: persistOrder, onNest: nestUnder });
+    const kitOrdered = this.kitOrdered = createListKit({ reorder: true, indent: true, maxDepth: MAX_DEPTH, holdAnywhere: true, sideways: false, noun: 'task', actions: taskActions, onReorder: persistOrder, onNest: nestUnder });
     const kitPlain = this.kitPlain = createListKit({ reorder: false, noun: 'task', actions: taskActions });
     // In Task Dump / Now / Next / Later only the order changes: just the moved
     // tasks get a new place (order.js), so tasks on other lists keep theirs.
     // Now / Next / Later: the same drag rules as All tasks (sideways, onto a task,
     // in and out of a task's sub-tasks), with only the moved tasks re-placed.
-    const kitFlat = this.kitFlat = createListKit({ reorder: true, indent: true, maxDepth: MAX_DEPTH, holdAnywhere: true, onNest: (ids, target) => nestUnder(ids, target), noun: 'task', onReorder: persistOrder, actions: taskActions });
+    const kitFlat = this.kitFlat = createListKit({ reorder: true, indent: true, maxDepth: MAX_DEPTH, holdAnywhere: true, sideways: false, onNest: (ids, target) => nestUnder(ids, target), noun: 'task', onReorder: persistOrder, actions: taskActions });
 
         // ---------- editing ----------
 
@@ -1353,9 +1353,10 @@ export default {
       });
     }
 
-    // Tap on the empty part of the page (like Reminders): a new task line opens.
+    // Click on the empty part of the page (like Reminders): a new task line opens.
+    // Not on a phone: the keyboard only comes up for a tap in the New task line itself.
     body.addEventListener('click', ev => {
-      if (ev.target === body || ev.target.matches('.task-entry, .task-list, .list-head')) focusEntry();
+      if (ev.target === body || ev.target.matches('.task-entry, .task-list, .list-head')) { if (!touch) focusEntry(); }
       // Compact spacing: the space right of a short name still edits it.
       else if (ev.target.matches('.task-list > li[data-task]')) ev.target.querySelector(':scope > .task-title')?.focus();
     });
