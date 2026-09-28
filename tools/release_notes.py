@@ -627,3 +627,6 @@ NOTES['1.35.27'] = [
 NOTES['1.35.28'] = [
   B("The yellow flash on a tab or filter is a little brighter and quicker."),
 ]
+NOTES['1.35.29'] = [
+  B("Tasks: the fade at the right of the tab bar goes once it's scrolled to the last tab, so Done is shown clearly."),
+]
