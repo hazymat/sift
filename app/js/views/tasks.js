@@ -1051,12 +1051,13 @@ export default {
       undoable(`${label} ${all.length} task${all.length === 1 ? '' : 's'}`, async () => { await store.updateMany('tasks', before); await render(); });
     }
     const taskActions = [
-      { id: 'done', label: 'Done', run: ids => batchSet(ids, doneFields(true), 'Done:') },
-      { id: 'now', label: 'Now', run: ids => batchSet(ids, { horizon: 'now' }, 'Transferred to Now:') },
-      { id: 'next', label: 'Next', run: ids => batchSet(ids, { horizon: 'next' }, 'Transferred to Next:') },
-      { id: 'later', label: 'Later', run: ids => batchSet(ids, { horizon: 'later' }, 'Transferred to Later:') },
-      { id: 'archive', label: 'Archive', run: ids => batchSet(ids, { archived_at: new Date().toISOString() }, 'Archived', { subs: true }) },
-      { id: 'delete', label: 'Delete', danger: true, run: ids => batchSet(ids, { deleted_at: new Date().toISOString() }, 'Deleted', { subs: true }) },
+      { id: 'done', label: 'Done', key: 'Ctrl+Enter', run: ids => batchSet(ids, doneFields(true), 'Done:') },
+      // Move ▸ opens sideways to the lists, less the one being looked at.
+      { id: 'now', label: 'Now', group: 'Move', when: () => state.view !== 'now', run: ids => batchSet(ids, { horizon: 'now' }, 'Transferred to Now:') },
+      { id: 'next', label: 'Next', group: 'Move', when: () => state.view !== 'next', run: ids => batchSet(ids, { horizon: 'next' }, 'Transferred to Next:') },
+      { id: 'later', label: 'Later', group: 'Move', when: () => state.view !== 'later', run: ids => batchSet(ids, { horizon: 'later' }, 'Transferred to Later:') },
+      { id: 'archive', label: 'Archive', key: 'A', run: ids => batchSet(ids, { archived_at: new Date().toISOString() }, 'Archived', { subs: true }) },
+      { id: 'delete', label: 'Delete', key: 'D', danger: true, run: ids => batchSet(ids, { deleted_at: new Date().toISOString() }, 'Deleted', { subs: true }) },
     ];
 
     // Phones: swipe a task sideways (rowswipe.js): left for ✓ Done and ⋯ More, right for Delete.

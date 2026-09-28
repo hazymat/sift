@@ -5,11 +5,17 @@
 //   swipe down the ⠿s    select a range
 //   ⠿ press and hold     drag (the selection moves as one stack; a parent
 //                        carries its children); sideways = indent / outdent
-//   Tab / Shift+Tab      indent / outdent the row being edited
+//   Tab / Shift+Tab      indent / outdent the row being edited (or, with rows
+//                        selected and nothing being typed, the selected ones)
+//   Shift+↑ / ↓          in a row's text: stop editing, and select it and the row
+//                        above / below; again (nothing typed): the range grows or shrinks
 //   Esc                  clear the selection
 //   Delete / Backspace   the bar's Delete (not while typing; Undo in the message)
-// A bar appears while anything is selected: built-in Indent / Outdent / ↑ / ↓
-// (when enabled) plus the caller's actions.
+//   an action's key      its button (e.g. Ctrl+Enter Done, A Archive, D Delete)
+// A bar appears while anything is selected: built-in Indent / Outdent (only
+// when some of the selection can go that way) / ↑ / ↓ (when enabled) plus the
+// caller's actions, each with its keys; actions sharing a group sit behind one
+// button that opens sideways (e.g. Move → Now, Next, Later).
 //
 //   const kit = createListKit({ reorder, indent, maxDepth, actions, onReorder, noun, grid, families })
 //   families: rows keep their depth and a parent carries its children, but there's no indenting
@@ -17,12 +23,15 @@
 //   after each render: kit.attach(ul)        on leaving the view: kit.destroy()
 //   onReorder(rows, label, ul, moved): rows = [{ id, depth }] in the new order; moved =
 //     the ids that were moved (so only they need a new place: order.js); persist them
-//   actions: [{ id, label, danger?, run(ids) }]; ids are in list order
+//   actions: [{ id, label, danger?, key?, group?, when?, run(ids) }]; ids are in list order;
+//     key: its shortcut ('A', 'Ctrl+Enter'); group: the button it hides behind ('Move');
+//     when(): false hides it (e.g. Now, while looking at Now)
 //   onNest(ids, targetId): rows dropped onto the middle of another row (e.g. to
 //     make them its sub-tasks); while dragging, the row shows indented with ↳
 
 import { sortable } from './sortable.js';
 import { toast } from './toast.js';
+import { keys, CTRL_ENTER } from './keys.js';
 
 // Is the keyboard busy with text (so Delete / Backspace edit it, not the list)?
 export const typingIn = el => !!el?.closest?.('input:not([type="checkbox"]):not([type="radio"]):not([type="button"]), textarea, select, [contenteditable]:not([contenteditable="false"])');
@@ -34,6 +43,7 @@ export function createListKit({
 } = {}) {
   const selected = new Set();
   let anchor = null;
+  let cursor = null; // the moving end of a Shift+↑ / ↓ range (anchor: the fixed end)
   let paintBase = null;
   let ul = null;
 
@@ -42,12 +52,21 @@ export function createListKit({
   bar.className = 'select-bar';
   bar.setAttribute('role', 'toolbar');
   bar.hidden = true;
+  const actionButton = a => `<button type="button" data-kit-action="${a.id}"${a.danger ? ' class="danger"' : ''}>${esc(a.label)}${a.key ? keys(a.key === 'Ctrl+Enter' ? CTRL_ENTER : a.key) : ''}</button>`;
+  // Actions in order; a group's (consecutive or not) sit behind one button, where its first one was.
+  const actionsHtml = actions.map(a => {
+    if (!a.group) return actionButton(a);
+    if (actions.find(x => x.group === a.group) !== a) return '';
+    return `<span class="kit-group"><button type="button" data-kit-group="${esc(a.group)}" aria-expanded="false">${esc(a.group)} ▸</button>`
+      + `<span class="kit-group-items" hidden>${actions.filter(x => x.group === a.group).map(actionButton).join('')}</span></span>`;
+  }).join('');
   bar.innerHTML = `
     <span class="select-count"></span>
-    ${indent ? '<button type="button" data-kit="indent">Indent</button><button type="button" data-kit="outdent">Outdent</button>' : ''}
+    ${indent ? `<button type="button" data-kit="indent">Indent${keys('Tab')}</button><button type="button" data-kit="outdent">Outdent${keys('Shift+Tab')}</button>` : ''}
     ${reorder ? '<button type="button" data-kit="up" aria-label="Move up">↑</button><button type="button" data-kit="down" aria-label="Move down">↓</button>' : ''}
-    ${actions.map(a => `<button type="button" data-kit-action="${a.id}"${a.danger ? ' class="danger"' : ''}>${esc(a.label)}</button>`).join('')}
+    ${actionsHtml}
     <button type="button" data-kit="clear" aria-label="Clear selection">✕</button>`;
+  const closeGroups = () => bar.querySelectorAll('[data-kit-group]').forEach(g => { g.setAttribute('aria-expanded', 'false'); g.textContent = `${g.dataset.kitGroup} ▸`; g.nextElementSibling.hidden = true; });
   document.body.append(bar);
 
   const rows = () => (ul ? [...ul.querySelectorAll(':scope > li[data-id]')] : []);
@@ -65,12 +84,26 @@ export function createListKit({
     for (const id of [...selected]) if (!present.has(id)) selected.delete(id);
     bar.hidden = !selected.size;
     document.body.classList.toggle('has-select-bar', !!selected.size);
-    bar.querySelector('.select-count').textContent = `${selected.size} ${noun}${selected.size === 1 ? '' : 's'} selected`;
+    bar.querySelector('.select-count').textContent = `${selected.size} selected`;
+    if (!selected.size) closeGroups();
+    // Only what can be done: Outdent if any of them is nested; Indent if any has a row above to go under.
+    if (indent) {
+      const sel = rows().filter(r => selected.has(r.dataset.id));
+      const canIn = r => {
+        const prev = r.previousElementSibling?.matches('li[data-id]') ? r.previousElementSibling : null;
+        const d = depthOf(r);
+        return !!prev && depthOf(prev) >= d && d + 1 + Math.max(0, ...withChildren(r).map(x => depthOf(x) - d)) <= maxDepth;
+      };
+      bar.querySelector('[data-kit="indent"]').hidden = !sel.some(canIn);
+      bar.querySelector('[data-kit="outdent"]').hidden = !sel.some(r => depthOf(r) > 0);
+    }
+    for (const a of actions) if (a.when) bar.querySelector(`[data-kit-action="${a.id}"]`).hidden = a.when() === false;
   }
 
   function clear() {
     selected.clear();
     anchor = null;
+    cursor = null;
     paint();
   }
 
@@ -86,6 +119,20 @@ export function createListKit({
     const d = depthOf(r);
     for (let n = r.nextElementSibling; n && n.matches('li[data-id]') && depthOf(n) > d; n = n.nextElementSibling) out.push(n);
     return out;
+  }
+
+  // Shift+↑ / ↓: the range from the anchor grows (or shrinks) by a row.
+  function extend(dir) {
+    const shown = rows().filter(r => r.getClientRects().length);
+    const ids = shown.map(r => r.dataset.id);
+    const at = ids.indexOf(cursor ?? anchor);
+    if (at < 0 || !ids[at + dir]) return;
+    cursor = ids[at + dir];
+    const [a, b] = [ids.indexOf(anchor), at + dir].sort((x, y) => x - y);
+    selected.clear();
+    ids.slice(a, b + 1).forEach(x => selected.add(x));
+    paint();
+    shown[at + dir].scrollIntoView({ block: 'nearest' });
   }
 
   // Current order and (valid) depths, handed to the caller to persist.
@@ -160,6 +207,7 @@ export function createListKit({
           selected.has(id) ? selected.delete(id) : selected.add(id);
         }
         anchor = id;
+        cursor = null;
         paint();
       },
       onPaint: (from, to) => {
@@ -254,6 +302,22 @@ export function createListKit({
     });
     ul.addEventListener('pointerup', () => { paintBase = null; });
 
+    // Shift+↑ / ↓ in a row's text: stop editing it (leaving saves it), and select it and the next row that way.
+    ul.addEventListener('keydown', ev => {
+      if ((ev.key !== 'ArrowUp' && ev.key !== 'ArrowDown') || !ev.shiftKey || ev.ctrlKey || ev.altKey || ev.metaKey || ev.defaultPrevented) return;
+      if (!ev.target.matches('input:not([type="checkbox"])')) return;
+      const li = ev.target.closest('li[data-id]');
+      if (!li || li.parentElement !== ul) return;
+      ev.preventDefault();
+      ev.target.blur();
+      selected.clear();
+      selected.add(li.dataset.id);
+      anchor = li.dataset.id;
+      cursor = null;
+      extend(ev.key === 'ArrowUp' ? -1 : 1);
+      paint();
+    });
+
     // Tab / Shift+Tab while editing a row
     if (indent) {
       ul.addEventListener('keydown', ev => {
@@ -290,6 +354,21 @@ export function createListKit({
   // Delete / Backspace with rows selected does what the bar's Delete does: no
   // "are you sure", the message's Undo is the safety net. Not while typing,
   // and never "Delete forever".
+  // With rows selected and nothing being typed: Shift+↑ / ↓, Tab / Shift+Tab and the actions' keys.
+  const press = btn => { if (!btn || btn.hidden || btn.closest('[hidden]:not(.kit-group-items)')) return false; btn.click(); return true; };
+  const onBarKey = ev => {
+    if (!selected.size || !ul?.isConnected || ev.defaultPrevented || ev.altKey || typingIn(ev.target) || document.querySelector('dialog[open]')) return;
+    const mod = ev.ctrlKey || ev.metaKey;
+    let done = false;
+    if ((ev.key === 'ArrowUp' || ev.key === 'ArrowDown') && ev.shiftKey && !mod) { if (!anchor) anchor = idsInOrder()[ev.key === 'ArrowUp' ? 0 : selected.size - 1]; extend(ev.key === 'ArrowUp' ? -1 : 1); done = true; }
+    else if (ev.key === 'Tab' && !mod && indent) done = press(bar.querySelector(`[data-kit="${ev.shiftKey ? 'outdent' : 'indent'}"]`)) || true;
+    else {
+      const a = actions.find(x => x.key && (x.key === 'Ctrl+Enter' ? ev.key === 'Enter' && mod && !ev.shiftKey : !mod && !ev.shiftKey && ev.key.toUpperCase() === x.key));
+      if (a && !(a.when && a.when() === false)) done = press(bar.querySelector(`[data-kit-action="${a.id}"]`));
+    }
+    if (done) { ev.preventDefault(); ev.stopImmediatePropagation(); }
+  };
+  document.addEventListener('keydown', onBarKey, true);
   const onKey = ev => {
     if ((ev.key !== 'Delete' && ev.key !== 'Backspace') || ev.defaultPrevented || ev.ctrlKey || ev.metaKey || ev.altKey) return;
     if (!selected.size || !ul?.isConnected || typingIn(ev.target) || document.querySelector('dialog[open]')) return;
@@ -304,6 +383,12 @@ export function createListKit({
   bar.addEventListener('click', async ev => {
     const b = ev.target.closest('button');
     if (!b) return;
+    if (b.dataset.kitGroup) {
+      const open = b.getAttribute('aria-expanded') !== 'true';
+      closeGroups();
+      if (open) { b.setAttribute('aria-expanded', 'true'); b.textContent = `${b.dataset.kitGroup} ◂`; b.nextElementSibling.hidden = false; }
+      return;
+    }
     const k = b.dataset.kit;
     if (k === 'clear') return clear();
     if (k === 'indent' || k === 'outdent') {
@@ -334,6 +419,7 @@ export function createListKit({
     const action = actions.find(a => a.id === b.dataset.kitAction);
     if (action) {
       const ids = idsInOrder();
+      closeGroups();
       await action.run(ids);
       if (action.keepSelection !== true) clear();
     }
@@ -348,6 +434,7 @@ export function createListKit({
     escape() { if (!selected.size) return false; clear(); return true; },
     destroy() {
       document.removeEventListener('keydown', onKey);
+      document.removeEventListener('keydown', onBarKey, true);
       bar.remove();
       document.body.classList.remove('has-select-bar', 'is-dragging');
     },
