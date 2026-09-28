@@ -930,6 +930,10 @@ export default {
     // the next 7 days load by themselves (while Google's permission lasts);
     // other days say they're not loaded, with Load; Refresh fetches again.
     let gcalBusy = false;
+    // An item from the calendar added, deleted or undone, any way at all: the box follows straight away.
+    let gcalSoon = 0;
+    const stopWatching = store.subscribe(ch => { if (ch?.collection === 'day_items' && layoutOn('planner', 'gcal')) { clearTimeout(gcalSoon); gcalSoon = setTimeout(renderGcal, 120); } });
+    gone.signal.addEventListener('abort', stopWatching);
     let gcalProblem = '';
     const hm = when => { const d = new Date(when); return fmt(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`); };
     const agoText = at => { const m = Math.round((Date.now() - at) / 60000); return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : new Date(at).toDateString() === new Date().toDateString() ? `at ${hm(at)}` : `on ${new Date(at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`; };
@@ -940,6 +944,7 @@ export default {
       if (box.hidden) return gcalPlace();
       const shownDate = date;
       const got = await gcal.dayEvents(date);
+      const inPlan = new Set((await itemsFor(date)).map(i => i.gcal_id).filter(Boolean)); // (fresh: an item deleted or undone shows straight away)
       if (shownDate !== date) return;
       const t = gcal.today();
       const nearby = date >= t && date <= addDays(t, gcal.AHEAD);
@@ -955,7 +960,7 @@ export default {
       const when = e => (e.allDay ? 'All day' : `${e.start.slice(0, 10) === date ? hm(e.start) : '…'}–${new Date(e.end).toDateString() === parseDate(date).toDateString() ? hm(e.end) : '…'}`);
       const list = !gcal.connected() ? '<p class="muted gcal-empty">See what\'s on in your Google Calendar each day, here above your plan.</p>'
         : got ? (got.events.length
-          ? `<ul class="gcal-list">${[...got.events].sort((a, b) => (b.allDay - a.allDay) || String(a.start).localeCompare(String(b.start))).map(e => `<li class="gcal-event${e.allDay ? ' all-day' : ''}"><span class="gcal-when">${when(e)}</span> <a class="gcal-title" href="${esc(e.link)}" target="_blank" rel="noopener">${esc(e.title)}</a>${e.location ? ` <span class="muted gcal-where">· ${esc(e.location)}</span>` : ''}${items.some(i => i.gcal_id === e.id)
+          ? `<ul class="gcal-list">${[...got.events].sort((a, b) => (b.allDay - a.allDay) || String(a.start).localeCompare(String(b.start))).map(e => `<li class="gcal-event${e.allDay ? ' all-day' : ''}"><span class="gcal-when">${when(e)}</span> <a class="gcal-title" href="${esc(e.link)}" target="_blank" rel="noopener">${esc(e.title)}</a>${e.location ? ` <span class="muted gcal-where">· ${esc(e.location)}</span>` : ''}${inPlan.has(e.id)
             ? '<span class="muted gcal-added">✓ In your plan</span>'
             : `<button type="button" class="gcal-add" data-gcal="add" data-event="${esc(e.id)}" title="${e.allDay ? "Add it to this day's tasks" : 'Add it to the plan at its time'}">+ Add to plan</button>`}</li>`).join('')}</ul>`
           : '<p class="muted gcal-empty">Nothing on.</p>')

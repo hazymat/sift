@@ -693,3 +693,6 @@ NOTES['1.35.45'] = [
   B("Day Planner, Google Calendar: on a very wide screen it sits beside the date, focus and energy, above Tasks (while each line fits); otherwise it takes its own full-width row."),
   F("The tour shows Google Calendar in the Day Planner, with a made-up example day, and where to turn it on or off (👁)."),
 ]
+NOTES['1.35.46'] = [
+  B("Day Planner, Google Calendar: delete (or undo) an event you added to the plan and it shows + Add to plan again straight away, without reloading."),
+]
