@@ -1,8 +1,9 @@
-// Batch Book's example recipes: what a new Batch Book starts with, from things in UK supermarkets (metric).
+// Batch Book's example recipes: what a new Batch Book starts with, a showcase of Mat's own recipes.
 // Added once, to a book that has never had a recipe, on a device not signed in or signed up as a new account
 // (so no existing account gets them); an empty book offers them with a button too (recipes.js).
 import * as store from './store.js';
-import { parseLine } from './batchbook.js';
+import * as att from './attachments.js';
+import { parseRecipes } from './batchbook.js';
 
 export const EXAMPLE_BOOKS = [
   { name: 'Cooking', emoji: '🍳', colour: '#3f8a5c', readings: false, fields: ['Serves', 'Time'] },
@@ -12,48 +13,304 @@ export const EXAMPLE_BOOKS = [
   { name: 'Fermentations', emoji: '🍷', colour: '#9b2f52', readings: true, reading_types: ['Gravity'], fields: ['Batch volume', 'ABV goal', 'Sweetness goal'] },
 ];
 
-// [book, title, description, tags, details, ingredients (one per line), steps ({item} shows it with its amount)]
-const RECIPES = [
-  ['Cocktails', 'Aviation', 'A gin sour with a violet blush: sharp, floral and pale sky blue.', [], { Glass: 'Coupe', Serves: '1' },
-    ['50ml gin', '15ml maraschino liqueur', '7.5ml crème de violette', '20ml lemon juice, freshly squeezed', '1 cocktail cherry, to garnish'],
-    ['Chill a coupe with ice and water.', 'Shake the {gin}, {maraschino liqueur}, {crème de violette} and {lemon juice} hard with plenty of ice for 15 seconds.', 'Empty the coupe, then double strain the drink into it.', 'Drop in the {cocktail cherry}.']],
-  ['Cocktails', 'Espresso martini', 'Strong coffee, vodka and a thick crema on top.', [], { Glass: 'Coupe or martini glass', Serves: '1' },
-    ['50ml vodka', '25ml coffee liqueur, e.g. Kahlúa', '25ml espresso, freshly made and cooled a little', '10ml sugar syrup', '3 coffee beans, to garnish'],
-    ['Make the {espresso} and let it cool for a minute.', 'Shake the {vodka}, {coffee liqueur}, {espresso} and {sugar syrup} very hard with ice, to get a good foam.', 'Strain into a chilled glass and float the {coffee beans} on top.']],
-  ['Soups', 'Borscht', 'Deep red beetroot soup with a swirl of soured cream and dill.', ['vegetarian'], { Serves: '4', Time: '1 hour' },
-    ['500g raw beetroot, peeled and grated', '1 onion, finely chopped', '2 carrots, grated', '2 potatoes, peeled and diced', '¼ white cabbage, finely shredded', '2 garlic cloves, crushed', '2 tbsp tomato purée', '1.2 L vegetable stock', '2 tbsp red wine vinegar', '1 tbsp sunflower oil', '150ml soured cream, to serve', '1 bunch dill, chopped'],
-    ['Soften the {onion} in the {sunflower oil} in a large pan for 5 minutes.', 'Add the {carrots}, {raw beetroot} and {garlic cloves} and cook for 5 minutes more, stirring.', 'Stir in the {tomato purée}, then pour in the {vegetable stock} and add the {potatoes}. Simmer for 20 minutes.', 'Add the {white cabbage} and simmer for 10 minutes, until everything is tender.', 'Stir in the {red wine vinegar} and season with salt and pepper.', 'Serve with a spoonful of {soured cream} and the {dill} on top.']],
-  ['Soups', 'Red lentil and tomato soup', 'Cheap, filling and ready in half an hour.', ['vegan', 'quick'], { Serves: '4', Time: '30 minutes' },
-    ['200g red lentils, rinsed', '1 onion, chopped', '2 garlic cloves, crushed', '1 tsp ground cumin', '400g chopped tomatoes (a tin)', '1 L vegetable stock', '1 tbsp olive oil', '½ lemon, juiced'],
-    ['Soften the {onion} in the {olive oil} for 5 minutes, then add the {garlic cloves} and {ground cumin} for a minute.', 'Add the {red lentils}, {chopped tomatoes} and {vegetable stock}. Simmer for 20 minutes, until the lentils fall apart.', 'Blend until smooth, stir in the {lemon} and season.']],
-  ['Cooking', 'Spaghetti carbonara', 'Silky egg and cheese sauce, no cream.', ['quick'], { Serves: '2', Time: '20 minutes' },
-    ['200g spaghetti', '100g smoked pancetta cubes', '2 eggs', '50g parmesan, finely grated', '1 garlic clove, peeled and squashed', 'black pepper'],
-    ['Cook the {spaghetti} in well salted boiling water.', 'Fry the {smoked pancetta cubes} with the {garlic clove} until crisp, then take out the garlic.', 'Beat the {eggs} with most of the {parmesan} and lots of {black pepper}.', 'Take the pan off the heat. Add the drained spaghetti and a splash of its water, then the egg mix, and toss quickly until creamy.', 'Serve with the rest of the parmesan.']],
-  ['Cooking', 'Chicken fajitas', 'Smoky peppers and chicken, wrapped at the table.', [], { Serves: '4', Time: '30 minutes' },
-    ['500g chicken breast fillets, cut into strips', '3 peppers, mixed colours, sliced', '1 red onion, sliced', '1 tsp smoked paprika', '1 tsp ground cumin', '1 lime, juiced', '1 tbsp olive oil', '8 tortilla wraps', '150g soured cream', '1 pack guacamole'],
-    ['Toss the {chicken breast fillets} with the {smoked paprika}, {ground cumin}, half the {lime} and the {olive oil}.', 'Fry the chicken in a hot pan for 6 to 8 minutes until cooked through. Lift out.', 'Fry the {peppers} and {red onion} for 5 minutes, then put the chicken back with the rest of the lime.', 'Warm the {tortilla wraps} and serve with the {soured cream} and {guacamole}.']],
-  ['Baking', 'Banana bread', 'The best use for black bananas.', ['vegetarian'], { Makes: '1 loaf', Time: '1 hour 15 minutes', Oven: '180°C (160°C fan), gas 4' },
-    ['3 ripe bananas', '100g unsalted butter, melted', '150g light brown soft sugar', '2 eggs', '225g self-raising flour', '1 tsp baking powder', '1 tsp ground cinnamon', '50g walnuts, chopped'],
-    ['Heat the oven and line a 900g (2 lb) loaf tin.', 'Mash the {ripe bananas}, then mix in the {unsalted butter}, {light brown soft sugar} and {eggs}.', 'Fold in the {self-raising flour}, {baking powder}, {ground cinnamon} and {walnuts}.', 'Bake for 50 to 60 minutes, until a skewer comes out clean. Cool in the tin for 10 minutes.']],
-  ['Baking', 'Rustic white loaf', 'A crusty, open loaf with no kneading: mix it the night before, bake it in the morning.', ['vegetarian'], { Makes: '1 loaf', Time: '30 minutes, plus 12 to 18 hours rising', Oven: '230°C (210°C fan), gas 8' },
-    ['500g strong white bread flour', '10g salt', '¼ tsp fast action dried yeast', '375ml lukewarm water', '1 tbsp olive oil, for the bowl'],
-    ['In a big bowl, mix the {strong white bread flour}, {salt} and {fast action dried yeast}, then stir in the {lukewarm water} until there is no dry flour. It will be sticky.', 'Cover and leave at room temperature for 12 to 18 hours, until bubbly and more than doubled.', 'Tip onto a floured worktop and fold the edges into the middle a few times to make a round. Put it seam side down in a bowl rubbed with the {olive oil}, dusted with flour, and leave for 1 to 2 hours.', 'Meanwhile heat the oven with a lidded casserole dish inside for 30 minutes.', 'Turn the dough into the hot dish, slash the top, cover and bake for 30 minutes. Take the lid off and bake for 15 to 20 minutes more, until deep brown and hollow sounding underneath.', 'Cool on a rack for at least an hour before slicing.']],
-  ['Baking', 'Chocolate chip cookies', 'Crisp edges, chewy middles.', ['vegetarian'], { Makes: '16', Time: '30 minutes', Oven: '190°C (170°C fan), gas 5' },
-    ['125g unsalted butter, softened', '100g light brown soft sugar', '75g caster sugar', '1 egg', '1 tsp vanilla extract', '200g plain flour', '½ tsp bicarbonate of soda', '¼ tsp salt', '150g dark chocolate chips'],
-    ['Heat the oven and line two baking trays.', 'Beat the {unsalted butter}, {light brown soft sugar} and {caster sugar} until pale, then beat in the {egg} and {vanilla extract}.', 'Mix in the {plain flour}, {bicarbonate of soda} and {salt}, then the {dark chocolate chips}.', 'Roll into 16 balls, space them well apart and bake for 10 to 12 minutes. Leave on the trays for 5 minutes to firm up.']],
-];
+// The showcase: a handful of Mat's own recipes, in the import format (batchbook.js), with his photos (app/examples/).
+const SHOWCASE = `
+# Borsch
+Book: Soups
+Tags: ukrainian, soup
+
+Based on an online recipe (cravingtasty.com/borsch-recipe) and a chat with Irena. Makes a LARGE amount, as it keeps. Make the broth the day before. Use pork shoulder with fat on, on the bone if possible (ribs: 2 packs of about 750 g from Sainsbury's).
+
+## Ingredients
+- 4 medium beets
+- ½ cabbage (savoy is good, white cabbage ok)
+- 2 medium carrots (get 5)
+- 4 medium potatoes
+- ⅔ cup parsley root (grated, optional)
+- 2 small onions, diced (get 4)
+- 4 tbsp tomato paste
+- 3 tbsp sugar
+- 2 tbsp vinegar
+- 8 tbsp vegetable oil (or olive oil)
+- 4 cloves garlic, minced
+- sea salt (to taste)
+- freshly ground pepper (to taste)
+- lemon (get 4 if making pampushki)
+### For the broth
+- 20 cup water
+- 1.5 kg pork butt or pork ribs (1.5 to 2 kg or more is ok; or include oxtail)
+- 6 bay leaves
+- 20 whole peppercorns
+- 2 carrots (peeled and cut in half)
+- 2 medium onions (peeled and cut in half)
+### Garnish
+- sour cream (smetana)
+- fresh dill
+- fresh parsley
+- spring onions
+### Also
+- cheesecloth, for filtering
+
+## Method
+### Broth (the day before, give it time)
+1. Heat {water|3.5 to 4.2 L of water} in a pan (make the pan full), and add {3/4 whole peppercorns}, {bay leaves} and {pork butt or pork ribs|3 lb pork meat and bones}.
+2. Peel {3/4 carrots}, cut in half, add. Peel {3/4 medium onions}, cut in half, add. LOW HEAT.
+3. After 2 to 3 hours: remove the meat, shred it and keep in the fridge. Filter the broth through the {cheesecloth|cloth} and fridge it.
+### Make the borsch
+4. Bring the broth to the boil, add {sea salt|salt} and {freshly ground pepper|pepper} to taste.
+5. Prep the veg:
+   - {medium beets|3 to 4 medium beets}: peel and julienne (optional: 2 more beets in large chunks)
+   - {3/4 small onions}: halve through the root, then cut into half moons for a fine slice
+   - julienne {medium carrots|3 carrots}
+6. Cook the {medium beets|beets} in {1/8 vegetable oil} (or spray) and the juice of {lemon|1 lemon}.
+   - +5 mins: add the {small onions|onions} and {medium carrots|carrots}
+   - +10 more mins: add {3/4 tomato paste}, {3/4 vinegar} (apple, white wine, pickle juice or lemon), {2/3 sugar} and 1.5 cups of hot broth. Set a timer for 10 mins and keep stirring.
+7. Peel and dice {medium potatoes|3 small potatoes or more} (1 inch pieces) and add them to the broth.
+8. When the beet timer finishes: beets and veg into the broth, meat into the broth, boil for 5 mins more.
+   - Meanwhile: shred {cabbage|half a cabbage}, mince {garlic}, add them.
+9. Cook for another 2 to 5 mins. Taste: more {sea salt|salt} or {freshly ground pepper|pepper}?
+10. Let sit for 20 mins (or don't). Meanwhile prep the garnishes onto a plate: finely chopped {fresh dill|dill}, {fresh parsley|parsley}, {spring onions}, and {sour cream}.
+
+# Ukrainian Smoked Salmon Pirozhki
+Book: Baking
+Tags: ukrainian
+
+No-yeast kefir dough.
+
+## Ingredients
+### Dough
+- 4 cup plain flour (+170 g)
+- 1 tsp salt
+- 1 tsp baking soda
+- 1 cup kefir
+- 1 egg
+- 2 tbsp sunflower oil (any oil)
+- ¼ cup water, if needed
+### Filling
+- dill (a LOT)
+- 4 spring onions
+- parmesan
+- 1 tub mascarpone
+- smoked salmon (ideally a fillet, any soft salmon)
+- filling salt (not much)
+- pepper
+### To finish
+- 1 beaten egg, for egg wash
+
+## Method
+1. Dough in a big bowl: {plain flour|flour}, {salt}, {baking soda}, {kefir}, crack in the {egg}, {sunflower oil|oil}. Mix, maybe add {water}. Cover with a shower cap and rest 20 mins.
+2. Filling in a mixing bowl: chop {dill|a LOT of dill} and the {spring onions}, grate in {parmesan}, {mascarpone|the whole tub of mascarpone}, flake in the {smoked salmon|salmon}, {filling salt|a bit of salt}, {pepper}. Rough mix, improvise.
+3. Roll out a quarter of the dough at a time. Split into 8 discs, then flatten into 100 mm circles with a rolling pin.
+4. Add filling, press up to the top, make the end like a fish and push fins into it.
+5. {beaten egg|Egg wash} and into the oven, 180 °C for 20 to 25 mins.
+
+# Aviation
+Book: Cocktails
+Tags: cocktail, gin
+
+Mat's favourite. From Difford's Guide.
+
+## Ingredients
+- 105 ml gin (Sipsmith)
+- 30 ml Luxardo maraschino
+- 20 ml violette liqueur
+- 35 ml lemon juice
+- ice
+
+## Method
+1. Shake the {gin}, {Luxardo maraschino}, {violette liqueur} and {lemon juice} long and hard with {ice}. Strain into a chilled coupe.
+
+## Notes
+Also tried: 100 Sipsmith, 34 maraschino, 25 violette. Can swap a third of the gin for rum.
+
+# Disaronno Sour (adult)
+Book: Cocktails
+Tags: cocktail, whisky
+
+This was silky and amazing, Mat liked it more than Anna.
+
+## Ingredients
+- 70 ml Disaronno
+- 40 ml whisky
+- 40 ml lemon juice
+- 2 tsp sugar syrup
+- 1 egg white
+- ice, for shaking
+- lemon twists, to serve
+- cherries, to serve
+- clean ice, to serve
+
+## Method
+1. Shake the {Disaronno}, {whisky}, {lemon juice}, {sugar syrup} and {egg white} with NO ice.
+2. Shake WITH {ice}.
+3. Serve over {clean ice} with {lemon twists} and {cherries}.
+
+## Notes
+Next try: 100 Disaronno, 60 ml lemon, 28.5 whisky, egg white. Shake without then with ice. Serve with 2 cherries, a lemon twist and fresh ice.
+
+# Pad Kra Pao (basil stir fry)
+Book: Cooking
+Tags: thai
+
+Serve with a fried egg, prik nam pla and jasmine rice.
+
+## Ingredients
+- protein (anything: raw or cooked meat, even veg)
+- 1 tsp fish sauce, to marinate
+- 4 hot red chillies
+- 2 non-hot red chillies
+- 5 cloves garlic
+- ¼ medium onion
+- basil (holy is best, Thai or even Italian; as much as the rest of the food)
+- veg oil
+- eggs (optional)
+- jasmine rice
+### Sauce (don't double it)
+- 1 tbsp oyster sauce
+- 1 tbsp soy sauce
+- 2 tbsp water
+- 2 tsp sauce fish sauce
+- ½ tsp dark soy (or black Thai soy)
+- 1.5 tsp sugar (palm)
+### Prik nam pla
+- small Thai chillies, chopped (loads, different colours ok)
+- prik nam pla fish sauce (3 parts)
+- lime juice (1 part)
+- prik nam pla garlic, finely sliced
+
+## Method
+1. Prik nam pla: cover the chopped {small Thai chillies|chillies} and {prik nam pla garlic|garlic} with {prik nam pla fish sauce|fish sauce} and {lime juice}, 3 parts fish sauce to 1 part lime.
+2. Cut the {protein} into bite-sized chunks, smaller than a normal stir fry (chicken: nice and small or long). Marinate with {fish sauce}.
+3. Combine the sauce: {oyster sauce}, {soy sauce}, {water}, {sauce fish sauce|fish sauce}, {dark soy} and {sugar}.
+4. Chop and POUND the chillies ({hot red chillies} and {non-hot red chillies}) and {garlic} to a pulp. Chop the {medium onion|onion}.
+5. Wok on MEDIUM-high: {veg oil|oil}, then the chilli garlic mix until the garlic goes golden (2 mins). Add the {medium onion|onion} for 30 seconds.
+6. Get the wok to HIGH heat first!!! Add the protein and sauce, toss for 30 seconds.
+7. Turn off the heat, add the {basil} (lots!) and toss to wilt.
+8. Serve with a fried {eggs|egg} and {jasmine rice}.
+
+# Chicken Green Curry
+Book: Cooking
+Tags: thai, curry, chicken
+
+From Hot Thai Kitchen. Fish sauce: check the ingredients are anchovies, water, salt, sugar and NOTHING more (aim for 70%+ anchovy). Palm sugar: the fudge-like balls, ideally pure. Rice: Thai jasmine (green Thai logo).
+
+## Ingredients
+- chicken thighs
+- 50 g green curry paste (Maeploy, Aroy-D or Namjai)
+- Thai basil (a few leaves + 1 cup)
+- 1 cup chicken stock
+- 1.75 cup full-fat coconut milk (Aroy-D carton)
+- 2 tbsp palm sugar, grated
+- 1 tbsp fish sauce
+- 4 kaffir lime leaves (3 to 4)
+- 1.5 cup bamboo shoots (tinned, ideally thick like chips)
+- 1 large red chilli (or any red pepper)
+- jasmine rice
+
+## Method
+1. Pound {green curry paste|the paste} with {Thai basil|a few basil leaves}. Prep {chicken stock|the stock}.
+2. Reduce {3/7 full-fat coconut milk|¾ cup coconut milk} until thick and a bit brown round the edges, lining the bottom of the pan and separating (if not, don't worry).
+3. Add the {green curry paste|curry paste} and mix, mix, mix until the oil bubbles round the edges.
+4. Add the {chicken thighs|chicken}; once fully mixed, add {4/7 full-fat coconut milk|1 cup coconut milk} AND {chicken stock}.
+5. Add {palm sugar}, {fish sauce} and the {kaffir lime leaves|lime leaves}, torn a bit and bruised.
+6. {jasmine rice|RICE} ON!
+7. Simmer 10 mins until the chicken is fork-tender.
+8. Add {bamboo shoots} and bring back to the boil.
+9. Add the {large red chilli|chilli} (big angled cuts, about ½ cm) and {Thai basil|1 cup Thai basil}, and stop the heat. More {fish sauce|fish sauce} if flat.
+
+# Quick Baguette
+Book: Baking
+Tags: bread
+
+No kneading. Start 10 hours ahead.
+
+## Ingredients
+- 900 g flour
+- 2 tsp salt
+- ¾ tsp dried yeast
+- 730 ml bottled water (room temperature)
+- dusting flour
+
+## Method
+1. Into a bowl: {flour}, {salt}, {dried yeast|yeast}, {bottled water|water}. Mix with the back of a wooden spoon for a minute, that's all. Make sure there's no unmixed flour at the bottom.
+2. Cover with a lid and leave 8 to 10 hours at room temperature.
+3. LOTS of {dusting flour|flour} on the surface. Scrape the dough carefully out onto it; don't press, keep the air in! Loads of {dusting flour|flour} on top.
+4. Form a slightly elongated shape and cut carefully into 4 without losing the air.
+5. Roll each carefully in {dusting flour|flour}, stretch and place on baking paper.
+6. Oven 250 °C for 25 mins.
+
+# Bun Cha
+Book: Cooking
+Tags: vietnamese, pork
+
+Hanoi grilled pork. First made 2013; made again in 2023 (bought meat pre-minced). Not a quick meal: start at 5pm and you'll still be slightly stressed at 8.30. More relaxed: first prep the vermicelli and leave in cold water all day (20 mins: soak 10, cook, then blanch in cold water), then the broth, then the meatballs (not quick at all!). Pickle the veg in advance too.
+
+## Ingredients
+### Meatballs
+- 450 g pork (cubes to mince, or pre-minced)
+- 2 stalks lemongrass
+- 2 cloves garlic
+- 1 large shallot
+- 1 red chilli
+- 2 tbsp honey
+- 2 tbsp olive oil
+- 2 tbsp brown sugar
+- 1 tbsp fish sauce
+- 1 tsp salt
+- 1 tsp pepper (freshly ground)
+- oil (for the griddle)
+### Broth
+- 400 ml water
+- 6 cloves broth garlic
+- 1 broth red chilli (or 3 bird's eye)
+- 2 tbsp broth fish sauce
+- 1 tbsp rice vinegar
+- 3 tsp broth brown sugar
+- 1 green papaya (or kohlrabi)
+- 1 carrot
+- ½ lime
+- extra salt (for the papaya and carrot)
+### To serve
+- 350 g vermicelli (0.8 goes gloopy, 1.2 is quite thick)
+- 2 heads little gem lettuce (or other crisp lettuce)
+- 1 bunch mint
+- 1 bunch coriander
+- cold water
+
+## Method
+1. Thinly slice the {green papaya|papaya} and {carrot}, toss with {extra salt|salt} and leave to stand. (Or pickle: peel, julienne, pour over hot water, sugar, vinegar and salt, no boil, cover and leave 30+ mins.)
+2. Wash the {little gem lettuce|lettuce}, {mint} and {coriander} and leave to soak.
+3. Finely chop the meatball {lemongrass}, {garlic}, {large shallot|shallot} and {red chilli|chilli}.
+4. Mix the {pork} with the above, {honey}, {olive oil|oil}, {brown sugar}, {fish sauce}, {salt} and {pepper}. Stand 10 mins.
+5. Chop the {broth garlic} and {broth red chilli|chilli} and set aside.
+6. Make about 10 meatballs, flattened slightly to make frying easier.
+7. Put the {water} on to boil.
+8. Meanwhile {oil|oil} a griddle and fry the meatballs, in batches if needed. Give it about 20 mins, but carry on.
+9. Meanwhile drain the {little gem lettuce|lettuce} and herbs onto a serving plate.
+10. Once the {water|water} boils, add the {broth garlic|garlic} and {broth red chilli|chilli}, {broth fish sauce|fish sauce}, {rice vinegar} and {broth brown sugar|brown sugar}. STIR until the {broth brown sugar|sugar} dissolves. Wash the {extra salt|salt} off the {green papaya|papaya} and {carrot|carrot} and add them with the {lime|lime juice}.
+11. Cook the {vermicelli} per the packet (2 mins?), then blanch in {cold water}.
+12. Mat's way: broth in bowls, then a little greens, a little {vermicelli|vermicelli} and some meatballs (not all). The rest on small plates to share.
+`;
+const PHOTOS = {};
+// The examples from 1.47.00 to 1.48.00, which the showcase replaces.
+const OLD = ['Aviation', 'Espresso martini', 'Borscht', 'Red lentil and tomato soup', 'Spaghetti carbonara', 'Chicken fajitas', 'Banana bread', 'Rustic white loaf', 'Chocolate chip cookies'];
+
+async function addPhotos(recipe) {
+  const files = [];
+  for (const name of PHOTOS[recipe.title] || []) {
+    try { const res = await fetch(`examples/${name}`); if (res.ok) files.push(new File([await res.blob()], name, { type: 'image/jpeg' })); } catch { /* offline: the recipe comes without its photos */ }
+  }
+  if (files.length) await att.addFiles({ collection: 'recipes', id: recipe.id }, files);
+}
 
 // The example books (any not set up yet) and recipes (any not there yet, by name), in the current space.
 export async function addExamples(settings) {
   const books = settings.batch_sections || [];
   const missing = EXAMPLE_BOOKS.filter(x => !books.some(b => b.name === x.name));
   if (missing.length || !settings.batch_sections) await store.updateSettings({ batch_sections: books.concat(missing) });
-  const have = (await store.list('recipes')).map(r => r.title);
-  for (const [type, title, description, tags, fields, lines, steps] of RECIPES) {
-    if (have.includes(title)) continue;
-    await store.create('recipes', { title, type, tags, description, fields, ingredients: lines.map(parseLine), steps: steps.map(text => ({ id: store.uuidv7(), text })), colour: null });
-  }
-  await store.updateSettings({ batch_examples: true, batch_examples_reset: true });
+  const have = (await store.list('recipes')).map(r => r.title.toLowerCase());
+  for (const r of parseRecipes(SHOWCASE)) if (!have.includes(r.title.toLowerCase())) await addPhotos(await store.create('recipes', Object.assign(r, { colour: null })));
+  await store.updateSettings({ batch_examples: true, batch_examples_reset: true, batch_showcase: true });
 }
 
 // Once (1.48.00, Mat asked: his and Anna's Batch Books had nothing in yet): the books go back to the example
@@ -63,6 +320,14 @@ export async function resetToExamples(settings) {
   const kept = (settings.batch_sections || []).filter(b => !EXAMPLE_BOOKS.some(x => x.name === b.name) && recipes.some(r => r.type === b.name));
   await store.updateSettings({ batch_sections: EXAMPLE_BOOKS.concat(kept) });
   await addExamples(await store.getSettings());
+}
+
+// Once (1.49.00): a Batch Book that got the earlier examples swaps them for the showcase. An earlier example that
+// has batches, or was renamed, stays.
+export async function swapForShowcase(settings) {
+  const makes = await store.list('recipe_makes');
+  for (const r of await store.list('recipes')) if (OLD.includes(r.title) && !makes.some(m => m.recipe_id === r.id)) await store.remove('recipes', r.id);
+  await addExamples(settings);
 }
 
 // A brand new Batch Book: never had a recipe, on a device not signed in or signed up here as a new account
