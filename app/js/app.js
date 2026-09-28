@@ -265,12 +265,37 @@ function installSwipe() {
   const EDGE = 20;
   const safariTab = /iPhone|iPad|iPod/.test(navigator.userAgent) && !navigator.standalone;
   let start = null;
+  // Where a swipe doesn't change page: dragging, choosing text, the bar of areas (and below it), a menu or
+  // full-screen note, anything that scrolls sideways itself.
+  const notHere = s => {
+    if (document.body.classList.contains('is-dragging') || getSelection()?.toString()) return true;
+    const areasBar = $('#tabbar')?.getBoundingClientRect();
+    if (areasBar?.height && s.y >= areasBar.top) return true;
+    if (s.el.closest?.('dialog, .rich.is-full, .drag-handle, .kit-grip, .drag-grip, .resize-grip, input[type="range"], .dd-menu, .pill-menu')) return true;
+    for (let n = s.el; n && n !== document.body; n = n.parentElement) {
+      if (n.scrollWidth > n.clientWidth + 1 && /auto|scroll/.test(getComputedStyle(n).overflowX)) return true;
+    }
+    return false;
+  };
   addEventListener('touchstart', ev => {
     if (ev.touches.length !== 1) { start = null; return; }
     const t = ev.touches[0];
-    start = { x: t.clientX, y: t.clientY, at: Date.now(), el: ev.target };
+    start = { x: t.clientX, y: t.clientY, at: Date.now(), el: ev.target, sideways: false };
     const edge = t.clientX < EDGE || t.clientX > innerWidth - EDGE;
     if (safariTab && edge && !ev.target.closest?.('a, button, input, textarea, select, label, summary, [contenteditable="true"], [role="button"]')) ev.preventDefault();
+  }, { passive: false });
+  // Once a touch is plainly sideways it's the page's swipe: the page doesn't scroll up or down with it.
+  addEventListener('touchmove', ev => {
+    const s = start;
+    if (!s || ev.touches.length !== 1) return;
+    const t = ev.touches[0], dx = t.clientX - s.x, dy = t.clientY - s.y;
+    if (!s.sideways && !s.upDown) {
+      if (Math.abs(dy) > 10 && Math.abs(dy) >= Math.abs(dx)) { s.upDown = true; return; } // scrolling
+      if (Math.abs(dx) < 14 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      if (ev.defaultPrevented || notHere(s) || s.el.closest?.('input:focus, textarea:focus, [contenteditable="true"]')) { s.upDown = true; return; } // a row's swipe, or not a page swipe
+      s.sideways = true;
+    }
+    if (s.sideways && ev.cancelable) ev.preventDefault();
   }, { passive: false });
   addEventListener('touchcancel', () => { start = null; });
   addEventListener('touchend', ev => {
@@ -279,13 +304,7 @@ function installSwipe() {
     if (!s) return;
     const t = ev.changedTouches[0], dx = t.clientX - s.x, dy = t.clientY - s.y;
     if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) / 2 || Date.now() - s.at > 700) return;
-    if (document.body.classList.contains('is-dragging') || getSelection()?.toString()) return;
-    const areasBar = $('#tabbar')?.getBoundingClientRect();
-    if (areasBar?.height && s.y >= areasBar.top) return; // not from the bar of areas at the bottom (nor below it)
-    if (s.el.closest?.('dialog, .rich.is-full, .drag-handle, .kit-grip, .drag-grip, .resize-grip, input[type="range"], .dd-menu, .pill-menu')) return;
-    for (let n = s.el; n && n !== document.body; n = n.parentElement) {
-      if (n.scrollWidth > n.clientWidth + 1 && /auto|scroll/.test(getComputedStyle(n).overflowX)) return;
-    }
+    if (notHere(s)) return;
     const field = document.activeElement?.closest?.('input:not([type="checkbox"]), textarea, [contenteditable="true"]');
     if (field) {
       if ((field.isContentEditable ? field.textContent : field.value).trim()) return;

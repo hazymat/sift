@@ -630,3 +630,6 @@ NOTES['1.35.28'] = [
 NOTES['1.35.29'] = [
   B("Tasks: the fade at the right of the tab bar goes once it's scrolled to the last tab, so Done is shown clearly."),
 ]
+NOTES['1.35.30'] = [
+  B("Phones: the page no longer bounces up or down past its ends, so the top and bottom bars always stay put; and a sideways swipe to change page no longer moves the page up or down with it."),
+]
