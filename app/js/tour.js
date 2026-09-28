@@ -54,8 +54,7 @@ function newUserSteps() {
         <p>Anything else you do shows a message at the bottom with <b>Undo</b>.</p>` },
 
     { id: 'safe', hash: '#/dump', at: '.dump-capture', title: 'Never lose a note', body: `<p><i>Sift'll be there for you, when the rain starts to pour</i>… or when your battery dies before you've saved your note.</p>
-        <p>Everything you type is kept as you type it. If your browser closes for an update halfway through a sentence, it's all still there when you come back, even a note you hadn't saved yet.</p>
-        <p><b>No more losing your grandmother's secret cookie recipe in a fire, only to find it on the back of a bag from Nestlé Toulouse.</b></p>` },
+        <p>Everything you type is kept as you type it. If your browser closes for an update halfway through a sentence, it's all still there when you come back, even a note you hadn't saved yet.</p>` },
     { id: 'tasks', hash: '#/tasks/now', at: '#task-entry, #task-body', also: nav('tasks'), focus: '#task-new', title: `${word('area_tasks')}: ${word('list_now')}, ${word('list_next')}, ${word('list_later')}`, done: { made: ['tasks'] },
       body: `<p>Three lists instead of deadlines: what you're doing now, what's next, and one day. ${w('list_inbox')} holds anything not sorted yet, like a task made from a note.</p>
         <p class="tour-try">Try it: type a task and ${KEYS ? `press ${key('Enter')}` : 'tap Add'}.</p>
