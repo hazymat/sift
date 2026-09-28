@@ -46,7 +46,7 @@ export const SECTIONS = [
     ['day', 'Day title', ['.day-title .weekday, .day-title .date', 'color']], ['dayfont', 'Day title font', ['.day-title .weekday, .day-title .date', 'font-family']],
     ['heads', 'Schedule, Tasks and Notes titles', ['.schedule-title, .pile h2, .day-tasks h2, .day-notes h2', 'color']], ['headsfont', 'Schedule, Tasks and Notes titles font', ['.schedule-title, .pile h2, .day-tasks h2, .day-notes h2', 'font-family']],
     ['labels', 'Day focus and Energy', ['.focus > span, .hand-label', 'color']], ['labelsfont', 'Day focus and Energy font', ['.focus > span, .hand-label', 'font-family']],
-    ['times', 'Schedule times', ['.line .margin', 'color']], ['timesfont', 'Schedule times font', ['.line .margin', 'font-family']],
+    ['times', 'Schedule times', ['.line .margin', 'color']], ['timesfont', 'Schedule times font', ['.line .margin, .line.section-label .content', 'font-family']],
     ['items', 'Schedule and Tasks lines', ['.line .item-title, .day-task-list .task-link', 'color']], ['itemsfont', 'Schedule and Tasks lines font', ['.line .item-title, .day-task-list .task-link', 'font-family']],
     ['notesfont', 'Notes font', ['.day-notes .rich-edit', 'font-family']],
     ['rule', 'Ruled lines', '--rule'], ['margin', 'Margin line', '--margin-rule'], ['focusink', 'Day focus ink', '--focus-ink'], ['energyink', 'Energy ink', '--energy-ink'],
