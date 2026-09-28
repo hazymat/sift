@@ -868,3 +868,4 @@ NOTES['1.49.11'] = [
 NOTES['1.49.12'] = [B('Batch Book: an ingredient like "3 cloves" on its own was read as 3 of the unit clove with no ingredient. It is now 3 cloves (the spice); "3 cloves garlic" still means garlic. Recipes and batches that already had it are fixed once.')]
 NOTES['1.49.13'] = [F('Batch Book: no big photo across the top of a recipe or batch. The first result photo is still its picture on the cards, and all of them are under Result photos.')]
 NOTES['1.49.14'] = [F("Batch Book: Coloured Sticky Rice with Mango is no longer a starter recipe. A book that got it and hasn't changed it or made a batch of it loses it once.")]
+NOTES['1.49.15'] = [F('Batch Book: a recipe\'s or batch\'s photos are a strip across the top, with Add photos and × to remove right there. The first is its picture on the cards.')]

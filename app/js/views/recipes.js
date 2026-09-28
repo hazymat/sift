@@ -216,6 +216,9 @@ export default {
 
     const line = (margin, content, tools = '', attrs = '') => `<div class="bb-line" ${attrs}><span class="bb-margin">${margin}</span><span class="bb-content">${content}</span>${tools ? `<span class="bb-tools">${tools}</span>` : ''}</div>`;
 
+    // Its photos, a strip across the top (the first is its picture on the cards): press one to look, × to remove, + to add.
+    const photoStrip = id => `<div class="bb-photos">${att.rowHtml(atts.get(id), { parent: id, addButton: 'Add photos' })}</div>`;
+
     // Ingredients and steps share one margin, as wide as the longest amount needs (CSS caps it).
     const workMargin = (rec, times) => `--bb-chars:${Math.max(0, ...(rec.ingredients || []).map(i => amountText(i, times).length))}`;
 
@@ -288,6 +291,7 @@ export default {
       return `${top('home', 'Recipes', `<button type="button" class="primary bb-make-btn" data-act="make" title="Start a batch: its own copy of this recipe">🧪 Make this${state.times !== 1 ? ` ×${qtyText(state.times)}` : ''}</button>`)}
         ${state.owner ? theirsHtml(`${theirName()}'s recipe, shared with you`, '<button type="button" data-act="home">Back to my recipes</button>') : ''}
         <article class="bb-paper" data-paper="${paper()}" style="--bb:${colourOf(r)};${workMargin(r, state.times)}">
+          ${photoStrip(r.id)}
           <header class="bb-title-row">
             <span class="bb-emoji">${sec.emoji}</span>
             <textarea class="bb-title one-line" rows="1" data-rec="title" placeholder="Recipe name" aria-label="Recipe name">${esc(r.title)}</textarea>
@@ -302,8 +306,6 @@ export default {
           <button type="button" class="bb-add-field" data-act="add-field">+ Add a detail</button>
           ${ingredientsHtml(r, { collection: 'recipes', id: r.id })}
           ${stepsHtml(r, { collection: 'recipes', id: r.id })}
-          <h2 class="bb-h"><span>📸 Result photos</span><span class="muted bb-h-note">the first is the recipe's picture</span></h2>
-          ${att.rowHtml(atts.get(r.id), { parent: r.id })}
           ${r.tasting?.trim() ? `<h2 class="bb-h"><span>🥂 Tasting notes</span><span class="muted bb-h-note">these move to the first batch you make</span></h2>
           <div class="bb-tasting"></div>` : ''}
           <h2 class="bb-h"><span>🧪 Batches</span></h2>
@@ -358,6 +360,7 @@ export default {
       return `${state.fromList ? top('home', 'Batches') : top('to-recipe', r?.title || 'Recipe')}
         ${state.owner ? theirsHtml(`A batch of ${theirName()}'s recipe, shared with you`, '<button type="button" data-act="home">Back to my recipes</button>') : ''}
         <article class="bb-paper bb-make" data-paper="${paper()}" style="--bb:${colourOf(r)};${workMargin(m, 1)}">
+          ${photoStrip(m.id)}
           <header class="bb-title-row">
             <span class="bb-emoji">${sec.emoji}</span>
             <textarea class="bb-title one-line" rows="1" data-make="name" placeholder="Batch name" aria-label="Batch name">${esc(batchName(m, r?.title))}</textarea>
@@ -390,8 +393,6 @@ export default {
             </div>`).join('') || '<p class="muted bb-none">No readings yet.</p>'}</div>` : ''}
           ${entriesHtml(m, 'diary', '📔 Diary')}
           ${entriesHtml(m, 'tasting', '🥂 Tasting diary')}
-          <h2 class="bb-h"><span>📸 Result photos</span><span class="muted bb-h-note">the first is this batch's picture</span></h2>
-          ${att.rowHtml(atts.get(m.id), { parent: m.id })}
         </article>
         <div class="detail-actions bb-foot">
           <span class="spacer"></span>
