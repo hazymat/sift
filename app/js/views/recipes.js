@@ -214,6 +214,9 @@ export default {
     const line = (margin, content, tools = '', attrs = '') => `<div class="bb-line" ${attrs}><span class="bb-margin">${margin}</span><span class="bb-content">${content}</span>${tools ? `<span class="bb-tools">${tools}</span>` : ''}</div>`;
     const hero = id => { const p = (atts.get(id) || []).find(a => a.kind === 'image'); return p ? `<div class="bb-hero" data-hero="${p.id}">${p.thumb ? `<img src="${p.thumb}" alt="">` : ''}</div>` : ''; };
 
+    // Ingredients and steps share one margin, as wide as the longest amount needs (CSS caps it).
+    const workMargin = (rec, times) => `--bb-chars:${Math.max(0, ...(rec.ingredients || []).map(i => amountText(i, times).length))}`;
+
     // o = { collection, id }: the recipe or the batch whose ingredients these are.
     // On a batch (stock: true) each ingredient is In stock or Add to list (the batch's list: see listLine).
     function ingredientsHtml(rec, o, { stock = false } = {}) {
@@ -282,7 +285,7 @@ export default {
       const made = makesOf(r.id);
       return `${top('home', 'Recipes', `<button type="button" class="primary bb-make-btn" data-act="make" title="Start a batch: its own copy of this recipe">🧪 Make this${state.times !== 1 ? ` ×${qtyText(state.times)}` : ''}</button>`)}
         ${state.owner ? theirsHtml(`${theirName()}'s recipe, shared with you`, '<button type="button" data-act="home">Back to my recipes</button>') : ''}
-        <article class="bb-paper" data-paper="${paper()}" style="--bb:${colourOf(r)}">
+        <article class="bb-paper" data-paper="${paper()}" style="--bb:${colourOf(r)};${workMargin(r, state.times)}">
           ${hero(r.id)}
           <header class="bb-title-row">
             <span class="bb-emoji">${sec.emoji}</span>
@@ -351,7 +354,7 @@ export default {
       const goal = k => `<label><span>${k}</span><input data-field-key="${k}" value="${esc(f[k] || '')}" aria-label="${k}" placeholder="…"></label>`;
       return `${state.fromList ? top('home', 'Batches') : top('to-recipe', r?.title || 'Recipe')}
         ${state.owner ? theirsHtml(`A batch of ${theirName()}'s recipe, shared with you`, '<button type="button" data-act="home">Back to my recipes</button>') : ''}
-        <article class="bb-paper bb-make" data-paper="${paper()}" style="--bb:${colourOf(r)}">
+        <article class="bb-paper bb-make" data-paper="${paper()}" style="--bb:${colourOf(r)};${workMargin(m, 1)}">
           ${hero(m.id)}
           <header class="bb-title-row">
             <span class="bb-emoji">${sec.emoji}</span>
