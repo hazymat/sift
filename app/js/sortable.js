@@ -13,13 +13,12 @@
 //   press and hold, then drag → drag as above (onLift(item) when it lifts)
 
 // With `anywhere` (a hold in ms): press and hold anywhere on a row (not on its
-// buttons, tick box or a field being typed in) lifts it too, after a ripple
+// buttons or tick box; also while its name is being edited) lifts it too, after a ripple
 // spreads from the finger or pointer; a tap, or moving first (scrolling,
 // selecting text), is left alone. While lifted, the page doesn't scroll, and
 // the click that ends it doesn't start editing.
-// While dragging, the other rows slide out of the way (not jump), and the row
-// follows the pointer sideways freely; onDrag's snapped shift (where it would
-// land: indent / outdent) shows as --snap.
+// While dragging, the other rows slide out of the way (not jump). onDrag({ item,
+// dx, dy }) may return the sideways shift to show (e.g. snapped to a depth).
 
 // With `grid: true` the items sit in rows and columns (cards): the dragged one
 // follows the pointer both ways and drops into the card it is over.
@@ -39,6 +38,7 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
   let offsetY = 0;
   let offsetX = 0;
   let startX = 0;
+  let startY = 0;
   let lastX = 0;
   let lastY = 0;
 
@@ -112,6 +112,7 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     offsetY = y - item.getBoundingClientRect().top;
     offsetX = x - item.getBoundingClientRect().left;
     startX = lastX = x;
+    startY = lastY = y;
     item.classList.add('dragging');
     onLift?.(item);
     navigator.vibrate?.(10);
@@ -126,11 +127,14 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     holding = null;
   };
   let quietClick = false; // the click that ends a lift from a row's text doesn't start editing it
+  let quietTouchEnd = false; // nor the touch's end
+  list.addEventListener('touchend', e => { if (quietTouchEnd) { quietTouchEnd = false; if (e.cancelable) e.preventDefault(); } }, { passive: false });
+  list.addEventListener('touchstart', () => { quietTouchEnd = false; }, { passive: true });
   list.addEventListener('click', e => { if (quietClick) { quietClick = false; e.preventDefault(); e.stopPropagation(); } }, true);
   list.addEventListener('pointerdown', e => {
     if (!anywhere || e.button > 0 || dragging || e.target.closest(handle) || e.target.closest(NOT_HERE)) return;
     const item = e.target.closest('li');
-    if (!item || item.parentElement !== list || item.hidden || item.contains(document.activeElement) && e.target === document.activeElement) return;
+    if (!item || item.parentElement !== list || item.hidden) return; // also while it's being edited: a hold leaves the editing and drags it
     dropHold();
     const box = item.getBoundingClientRect();
     const ripple = document.createElement('span'); // a clip the size of the row, holding the spreading circle
@@ -155,6 +159,7 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
         getSelection()?.removeAllRanges();
         quietClick = true;
         setTimeout(() => { quietClick = false; }, 1500);
+        quietTouchEnd = true; // an iPhone focuses the name (keyboard up) as the finger leaves it
         try { list.setPointerCapture(h.pointerId); } catch {}
         lift(h.item, lastX, lastY);
       }, anywhere),
@@ -200,10 +205,8 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     if (!dragging) return;
     // onDrag may return the sideways shift to show (e.g. snapped to a depth).
     if (!grid) {
-      // It follows the pointer sideways; where it would land shows as --snap (app.css).
-      const shown = onDrag?.({ item: dragging, dx: lastX - startX });
-      dragging.style.setProperty('--dx', `${Math.max(-120, Math.min(160, lastX - startX))}px`);
-      dragging.style.setProperty('--snap', `${shown ?? 0}px`);
+      const shown = onDrag?.({ item: dragging, dx: lastX - startX, dy: lastY - startY });
+      dragging.style.setProperty('--dx', `${shown ?? Math.max(-40, Math.min(40, lastX - startX))}px`);
     }
     place(e.clientY, e.clientX);
     follow(e.clientY, e.clientX);
@@ -227,7 +230,6 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     item.classList.remove('dragging');
     item.style.transform = '';
     item.style.removeProperty('--dx');
-    item.style.removeProperty('--snap');
     dragging = null;
     const target = onto;
     if (onto) setOnto(null);

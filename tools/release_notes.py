@@ -665,3 +665,9 @@ NOTES['1.35.38'] = [
 NOTES['1.35.39'] = [
   F("Tasks: press and hold anywhere on a task (finger or mouse) to drag it: a ripple spreads from where you press, then it lifts. Drag up or down (the others slide out of the way), onto another task to make it a sub-task, or sideways to indent or outdent (a bar shows where it will land). Holding a task no longer opens its panel. The ⠿ grab handle still selects several."),
 ]
+NOTES['1.35.40'] = [
+  B("Tasks, press and hold to drag: letting go on an iPhone no longer brings the keyboard up; holding while editing a task leaves the editing and drags it; dragging a task with sub-tasks shows their names (not \"on\")."),
+  B("Tasks: dragging sideways no longer indents (drop onto a task to make a sub-task). A sub-task dragged down off the bottom of its group comes out of it: while dragging, the group closes off above it and it shows as a task of its own."),
+  B("Tasks on a phone: tapping an empty part of the page no longer opens the New task line and the keyboard."),
+  B("Phones: a swipe on a task can start on one of its small pills (e.g. the tour's ▶)."),
+]

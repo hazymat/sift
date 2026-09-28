@@ -3743,8 +3743,7 @@ html[data-slide="back"]::view-transition-new(sift-page) { animation-name: sift-i
 
 /* Press and hold anywhere on a task to drag it (sortable.js: anywhere). A
    ripple spreads from the finger or pointer while it's held; when it's done
-   the row lifts. While dragged it follows the pointer sideways, and a bar at
-   its left shows where it would land (--snap: indent / outdent). */
+   the row lifts. */
 .hold-pending { position: relative; }
 .hold-ripple { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; pointer-events: none; z-index: 0; }
 .hold-ripple > span { position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%;
@@ -3752,6 +3751,12 @@ html[data-slide="back"]::view-transition-new(sift-page) { animation-name: sift-i
   animation: hold-ripple 300ms cubic-bezier(.3, .6, .3, 1) forwards; }
 .hold-ripple.done { transition: opacity .25s; opacity: 0; }
 @keyframes hold-ripple { from { transform: scale(.2); opacity: .9; } to { transform: scale(22); opacity: .55; } }
-[data-hold-drag] > li.dragging:not(.nest-preview)::before { content: ''; position: absolute; top: 6px; bottom: 6px; left: calc(var(--snap, 0px) - var(--dx, 0px) + 2px); width: 3px; border-radius: 2px; background: var(--accent); transition: left .12s; z-index: 1; }
+/* A sub-task dragged out of its family (listkit.js): it shows as a task of its
+   own (whole rounded box), and the row above closes the family off. */
+.task-list > li.dragging.coming-out { border-radius: 14px !important; border-color: var(--active-border) !important; }
+.task-list > li.dragging.coming-out > .tick { margin-left: 0 !important; }
+.task-list > li.dragging.coming-out > .item-sub { margin-left: var(--title-x, 67px) !important; }
+body.is-dragging .task-list :is(.tree-v, .tree-h) { opacity: 0; } /* the lines joining sub-tasks are redrawn after the drop */
+.task-list > li.heal-end { border-bottom-left-radius: 14px !important; border-bottom-right-radius: 14px !important; border-bottom-color: var(--glass-border) !important; }
 body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none; }
 @media (hover: none) { [data-hold-drag] > li :is(.task-title, .item-sub):not(:focus) { -webkit-user-select: none; -webkit-touch-callout: none; } }
