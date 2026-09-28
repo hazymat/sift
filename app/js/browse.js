@@ -33,7 +33,6 @@
 // the page, where the keys above work again (in every area).
 
 import { caretTo } from './walk.js';
-import { layoutOn } from './viewcog.js';
 
 const $ = s => document.querySelector(s);
 const vis = el => !!el && el.getClientRects().length > 0;
@@ -72,8 +71,8 @@ const AREAS = {
     },
   },
   tasks: {
-    // New task line at the top (👁 Layout; always, without the lined paper): ↓ starts typing there too.
-    down: () => (layoutOn('tasks', 'new-top') || !layoutOn('tasks', 'lined') ? focusEnd($('#task-new')) : focusEnd(all('#main li[data-task][data-id] > .task-title')[0]) || focusEnd($('#task-new'))),
+    // The New task line is at the top: ↓ starts typing there too.
+    down: () => focusEnd($('#task-new')),
     enter: () => focusEnd($('#task-new')),
   },
   planner: {
