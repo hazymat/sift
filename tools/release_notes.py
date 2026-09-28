@@ -802,3 +802,7 @@ NOTES['1.44.02'] = [
 NOTES['1.44.03'] = [
   F('Batch Book: batch statuses have little pictures: 📝 Planned, 🫧 On the go, ✅ Done.'),
 ]
+
+NOTES['1.45.00'] = [
+  F('Batch Book: the Batches button is now a Recipes | Batches switch at the right of the books bar, just before ⋯.'),
+]

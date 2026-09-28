@@ -3797,7 +3797,6 @@ body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none
 
 .bb-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
 .bb-head .bb-search { flex: 1 1 12em; min-width: 0; padding: 8px 12px; border-radius: var(--radius-pill); }
-.bb-head .bb-batches-btn[aria-pressed="true"] { background: var(--active-bg); border-color: var(--active-border); }
 /* The top bar stays while the recipes scroll (as Brain Dump's does); stuck, it gets a glass background. */
 .bb-sticky { position: sticky; top: calc(var(--safe-top) + 62px); z-index: 5; margin: 0 -10px 10px; padding: 0 10px; border-radius: 0 0 16px 16px; transition: box-shadow .15s, background-color .15s; }
 .bb-sticky-mark { height: 1px; margin-bottom: -1px; }
@@ -3809,6 +3808,10 @@ body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none
 .bb-sections, .bb-status { display: flex; gap: 2px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
 .bb-sections::-webkit-scrollbar, .bb-status::-webkit-scrollbar { display: none; }
 .bb-sections button, .bb-status button, .bb-sections-edit { flex: none; width: auto; height: auto; background: none; border: 0; border-bottom: 2px solid transparent; border-radius: 0; box-shadow: none; padding: 6px 9px 5px; font-size: .9rem; line-height: 1.2; color: var(--muted); }
+/* Recipes | Batches, at the right of the books bar, just before ⋯ */
+.bb-mode { display: flex; flex: none; align-items: center; gap: 2px; margin-left: 4px; padding-left: 6px; border-left: 1px solid var(--glass-border); }
+.bb-mode button { flex: none; width: auto; height: auto; padding: 4px 9px; border: 1px solid transparent; border-radius: 999px; background: none; box-shadow: none; font-size: .85rem; line-height: 1.2; color: var(--muted); white-space: nowrap; }
+.bb-mode button[aria-pressed="true"] { background: var(--active-bg); border-color: var(--active-border); color: var(--text); }
 .bb-sections { flex-wrap: nowrap; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
 .bb-sections button { white-space: nowrap; border-bottom-color: color-mix(in srgb, var(--bb, var(--muted)) 35%, transparent); }
 .bb-sections button[aria-pressed="true"] { background: color-mix(in srgb, var(--bb, var(--muted)) 16%, transparent); border-radius: 8px 8px 0 0; }
