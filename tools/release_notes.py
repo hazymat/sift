@@ -646,3 +646,6 @@ NOTES['1.35.33'] = [
 NOTES['1.35.34'] = [
   F("The tour shows the ways to use tasks: one big list brought into each day, small things just for today, or both, or the Day Planner alone."),
 ]
+NOTES['1.35.35'] = [
+  B("Day Planner tasks: the empty line before the done tasks no longer shows a faint tick box."),
+]
