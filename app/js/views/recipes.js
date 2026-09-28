@@ -22,6 +22,7 @@ import { createListKit } from '../listkit.js';
 import { shareSheet, sharedWithText, people, fromOthers, invitesHtml, theirsHtml } from '../sharing.js';
 import { TINTS } from '../colours.js';
 import { pillMenu } from '../pillmenu.js';
+import { sortable } from '../sortable.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -882,25 +883,28 @@ export default {
     // Your own books: a name, an emoji, a colour, the details its new recipes start with, and
     // whether its batches have gravity readings. A renamed book takes its recipes with it.
     async function editSections() {
-      const own = sections.filter(x => !x.auto).map(x => ({ was: x.name, name: x.name, emoji: x.emoji, colour: x.colour, fields: x.fields.slice(), readings: !!x.readings }));
+      let own = sections.filter(x => !x.auto).map(x => ({ was: x.name, name: x.name, emoji: x.emoji, colour: x.colour, fields: x.fields.slice(), readings: !!x.readings }));
       const dlg = document.createElement('dialog');
       dlg.className = 'sheet bb-sections-sheet';
       document.body.append(dlg);
-      const row = (x, n) => `<div class="bb-sec-row" data-i="${n}">
+      const row = (x, n) => `<li class="bb-sec-row" data-i="${n}">
+        <button type="button" class="drag-handle bb-sec-grip" aria-label="Move ${esc(x.name || 'book')} up or down" title="Drag to move">${icon('i-grip')}</button>
         <input class="bb-sec-emoji" data-k="emoji" value="${esc(x.emoji)}" aria-label="Emoji" maxlength="8">
         <input class="bb-sec-name" data-k="name" value="${esc(x.name)}" placeholder="Name, e.g. Baking" aria-label="Book name">
         <input type="color" data-k="colour" value="${esc(x.colour)}" aria-label="Colour">
         <button type="button" class="icon-btn bb-x" data-sec-remove="${n}" aria-label="Remove book">×</button>
         <input class="bb-sec-fields" data-k="fields" value="${esc(x.fields.join(', '))}" placeholder="Details its recipes have, e.g. Serves, Oven temperature" aria-label="Details">
         <label class="bb-sec-readings"><input type="checkbox" data-k="readings" ${x.readings ? 'checked' : ''}> Batches have gravity readings</label>
-      </div>`;
+      </li>`;
       const draw = () => {
         dlg.innerHTML = `<div class="sheet-handle"></div>
           <h2>Books</h2>
-          <p class="muted">Each recipe goes in one book. Sort them however suits you: by what they are, where they're from, or when you make them. Tags on a recipe sort them further.</p>
-          <div class="bb-sec-list">${own.map(row).join('')}</div>
+          <p class="muted">Each recipe goes in one book. Sort them however suits you: by what they are, where they're from, or when you make them. Tags on a recipe sort them further. Drag a book by ⠿ to change the order.</p>
+          <ul class="bb-sec-list">${own.map(row).join('')}</ul>
           <button type="button" data-sec-add>+ Add a book</button>
           <div class="sheet-actions"><button type="button" data-sec-cancel>Cancel</button><span class="spacer"></span><button type="button" class="primary" data-sec-save>Save</button></div>`;
+        // Drag a book by its grip to change the order (the books bar follows once saved).
+        sortable(dlg.querySelector('.bb-sec-list'), { onEnd() { read(); own = Array.from(dlg.querySelectorAll('.bb-sec-row')).map(r => own[+r.dataset.i]); draw(); } });
       };
       const read = () => {
         for (const r of dlg.querySelectorAll('.bb-sec-row')) {
