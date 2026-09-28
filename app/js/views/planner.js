@@ -827,6 +827,7 @@ export default {
     // Tasks (rowswipe.js): left for ✓ Done and ⋯ More, right for Delete.
     rowSwipe(el, {
       rows: '#lines .line.has-item, #pile .line.has-item',
+      face: ':scope > .content', // from the grab bar on: the time stays where it is
       actions: line => ({
         left: [
           { label: '⋯ More', cls: 'ra-more', run: row => row.querySelector('.content [data-act="details"]')?.click() },

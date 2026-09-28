@@ -1,41 +1,61 @@
-// Phones: swipe a row of a list sideways, as in a phone's mail app. It follows
-// the finger; its actions are behind it: swipe left for the right-hand ones
-// (e.g. ✓ Done, ⋯ More), right for the left-hand ones (e.g. Delete). Let go
-// past half of them and it stays open for a tap; less and it springs back; a
-// tap anywhere else closes it. Not from a grab bar, a tick, a button or a
-// field being typed in, nor while things are chosen (the actions bar is up).
-// A row's swipe isn't also the page's (app.js: a side swipe changes page).
+// Phones: swipe a row of a list sideways, as in a phone's mail app. The row's
+// block moves with the finger, and its actions fill the gap it leaves (never
+// under it): swipe left for the right-hand ones (e.g. ✓ Done, ⋯ More), right
+// for the left-hand ones (e.g. Delete). Let go past half of them and it stays
+// open for a tap; less and it springs back; a tap anywhere else closes it.
+// Not from a grab bar, a tick, a button or a field being typed in, nor while
+// things are chosen (the actions bar is up). A row's swipe isn't also the
+// page's (app.js: a side swipe changes page). One place for every list that
+// swipes: Tasks and the Day Planner so far.
 //
-//   rowSwipe(root, { rows, actions })
+//   rowSwipe(root, { rows, face, actions })
 //     rows: the swipeable rows inside root (a selector)
+//     face: the part of a row that moves (a selector inside it; none: the whole row),
+//       e.g. a Day Planner line from its grab bar on, leaving the time where it is
 //     actions(row): { left: [{ label, cls, run(row) }], right: [...] }
 //       left: shown on the right when swiped left; right: on the left when swiped right
 
 const SKIP = '.drag-handle, .drag-grip, .resize-grip, .tick, button, .row-acts, input:focus, textarea:focus, [contenteditable="true"]';
 
-export function rowSwipe(root, { rows, actions }) {
+export function rowSwipe(root, { rows, face = null, actions }) {
   if (!matchMedia('(pointer: coarse)').matches) return;
+  const faceOf = row => (face && row.querySelector(face)) || row;
   let sw = null, openRow = null, shown = null; // shown: the open row's actions
   let closing = false; // this touch closes the open row, and does nothing else
   let quietUntil = 0; // just after a swipe: a click on the row isn't a tap on it
-  const slideTo = (row, x, animate) => { row.classList.toggle('swipe-anim', animate); row.style.setProperty('--swipe-x', `${x}px`); };
+  // The block moves by x, and the actions next to it are exactly as wide as the gap.
+  const slideTo = (row, x, animate) => {
+    const f = faceOf(row);
+    f.classList.toggle('swipe-anim', animate);
+    f.style.setProperty('--swipe-x', `${x}px`);
+    f.style.setProperty('--swipe-w', `${Math.abs(x)}px`);
+  };
   const shut = () => {
     const row = openRow;
     openRow = null;
     if (!row) return;
     slideTo(row, 0, true);
-    setTimeout(() => { if (openRow !== row) { row.classList.remove('swiping', 'swipe-anim'); row.querySelector(':scope > .row-acts')?.remove(); } }, 220);
+    setTimeout(() => {
+      if (openRow === row) return;
+      const f = faceOf(row);
+      f.classList.remove('swiping', 'swipe-anim');
+      f.querySelector(':scope > .row-acts')?.remove();
+    }, 220);
   };
-  // The actions for that side, behind the row; returns how far it opens.
+  // The actions for that side, just outside the block; returns how far it opens.
   const reveal = (row, side) => {
-    row.querySelector(':scope > .row-acts')?.remove();
+    const f = faceOf(row);
+    f.querySelector(':scope > .row-acts')?.remove();
     shown = actions(row)[side] || [];
     const acts = document.createElement('div');
     acts.className = `row-acts ${side}`;
     acts.innerHTML = shown.map((a, n) => `<button type="button" class="${a.cls || ''}" data-ra="${n}">${a.label}</button>`).join('');
-    row.prepend(acts);
-    row.classList.add('swiping');
-    return Array.from(acts.children).reduce((w, b) => w + b.offsetWidth, 0);
+    f.append(acts);
+    f.classList.add('swiping');
+    acts.style.width = 'max-content'; // its buttons' own width: how far it opens
+    const wide = acts.offsetWidth;
+    acts.style.width = '';
+    return wide;
   };
   root.addEventListener('touchstart', ev => {
     closing = false;
