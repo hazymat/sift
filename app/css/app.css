@@ -3646,3 +3646,22 @@ dialog.custom-theme::backdrop { background: rgba(0, 0, 0, .35); }
 .welcome-was { margin: -2px 0 4px; font-size: .85rem; }
 .tour-pill { font-weight: 600; color: var(--accent); border-color: var(--active-border); background: var(--active-bg); }
 .note-full .tour-ring, .note-full .tour-card { display: none; } /* writing in a full-screen note: the tour waits */
+
+/* Phones: a side swipe slides the page (app.js: installSwipe), as a phone's own
+   screens do: the old page out, the next one in over it from the side. The bars
+   stay put, above it. */
+html[data-slide] #main { view-transition-name: sift-page; }
+html[data-slide] .appbar { view-transition-name: sift-top; }
+html[data-slide] #tabbar { view-transition-name: sift-tabs; }
+::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+::view-transition-group(sift-page) { animation: none; }
+::view-transition-group(sift-top), ::view-transition-group(sift-tabs) { animation: none; z-index: 2; }
+::view-transition-old(sift-top), ::view-transition-new(sift-top), ::view-transition-old(sift-tabs), ::view-transition-new(sift-tabs) { animation: none; }
+::view-transition-old(sift-page) { animation: .3s cubic-bezier(.2, .8, .2, 1) both sift-out-next; }
+::view-transition-new(sift-page) { animation: .3s cubic-bezier(.2, .8, .2, 1) both sift-in-next; }
+html[data-slide="back"]::view-transition-old(sift-page) { animation-name: sift-out-back; }
+html[data-slide="back"]::view-transition-new(sift-page) { animation-name: sift-in-back; }
+@keyframes sift-out-next { to { transform: translateX(-30%); opacity: 0; } }
+@keyframes sift-in-next { from { transform: translateX(100%); } }
+@keyframes sift-out-back { to { transform: translateX(30%); opacity: 0; } }
+@keyframes sift-in-back { from { transform: translateX(-100%); } }
