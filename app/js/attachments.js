@@ -101,7 +101,7 @@ export function rowHtml(atts = [], { addButton = true, parent = atts[0]?.parent_
       <button type="button" class="att-x" data-att-remove="${a.id}" title="Remove" aria-label="Remove ${esc(a.name)}">×</button>
     </span>`;
   }).join('');
-  const add = addButton ? `<button type="button" class="att-add" data-att-add title="Attach photos, PDFs or text files (or drop them here)">${icon('i-clip')}<span>Attach</span></button>` : '';
+  const add = addButton ? `<button type="button" class="att-add" data-att-add title="Attach photos, PDFs or text files (or drop them here)">${icon('i-clip')}<span>${typeof addButton === 'string' ? esc(addButton) : 'Attach'}</span></button>` : ''; // addButton: true, or its own words
   return `<div class="att-row" data-att-parent="${esc(parent)}">${items}${add}</div>`;
 }
 
@@ -109,7 +109,7 @@ export async function redrawRows(root, parentId) {
   const rows = parentId ? [...root.querySelectorAll(`.att-row[data-att-parent="${CSS.escape(parentId)}"]`)] : [];
   if (!rows.length) return false;
   const list = (await byParent()).get(parentId) || [];
-  for (const r of rows) r.outerHTML = rowHtml(list, { addButton: !!r.querySelector('[data-att-add]'), parent: parentId });
+  for (const r of rows) r.outerHTML = rowHtml(list, { addButton: r.querySelector('[data-att-add] span')?.textContent || false, parent: parentId });
   return true;
 }
 
