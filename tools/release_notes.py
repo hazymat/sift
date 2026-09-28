@@ -839,3 +839,7 @@ NOTES['1.47.02'] = [
   F('Batch Book: the Recipes | Batches switch looks like the rest of the books bar (tabs, not pills).'),
   F('Batch Book: a brand new account made on this device gets the example recipes too. Accounts that already existed never do.'),
 ]
+
+NOTES['1.47.03'] = [
+  F('Batch Book: a new Batch Book\'s books are 🍳 Cooking, 🥣 Soups, 🥖 Baking, 🍸 Cocktails and 🍷 Fermentations (with gravity readings), in that order.'),
+]

@@ -5,11 +5,11 @@ import * as store from './store.js';
 import { parseLine } from './batchbook.js';
 
 export const EXAMPLE_BOOKS = [
-  { name: 'Cooking', emoji: '🍲', colour: '#3f8a5c', readings: false, fields: ['Serves', 'Time'] },
-  { name: 'Baking', emoji: '🧁', colour: '#b0663f', readings: false, fields: ['Makes', 'Time', 'Oven'] },
-  { name: 'Cocktails', emoji: '🍸', colour: '#2f7f9b', readings: false, fields: ['Glass', 'Serves'] },
+  { name: 'Cooking', emoji: '🍳', colour: '#3f8a5c', readings: false, fields: ['Serves', 'Time'] },
   { name: 'Soups', emoji: '🥣', colour: '#b5452e', readings: false, fields: ['Serves', 'Time'] },
-  { name: 'Brewing', emoji: '🍷', colour: '#9b2f52', readings: true, reading_types: ['Gravity'], fields: ['Batch volume', 'ABV goal', 'Sweetness goal'] },
+  { name: 'Baking', emoji: '🥖', colour: '#b0663f', readings: false, fields: ['Makes', 'Time', 'Oven'] },
+  { name: 'Cocktails', emoji: '🍸', colour: '#2f7f9b', readings: false, fields: ['Glass', 'Serves'] },
+  { name: 'Fermentations', emoji: '🍷', colour: '#9b2f52', readings: true, reading_types: ['Gravity'], fields: ['Batch volume', 'ABV goal', 'Sweetness goal'] },
 ];
 
 // [book, title, description, tags, details, ingredients (one per line), steps ({item} shows it with its amount)]
