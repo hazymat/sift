@@ -649,3 +649,6 @@ NOTES['1.35.34'] = [
 NOTES['1.35.35'] = [
   B("Day Planner tasks: the empty line before the done tasks no longer shows a faint tick box."),
 ]
+NOTES['1.35.36'] = [
+  B("The tour's step on the day's tasks now makes clear they're this day's own list, separate from your main Tasks list, which it outlines in the bar."),
+]
