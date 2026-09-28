@@ -627,7 +627,7 @@ label.inline select { width: auto; max-width: 220px; font-size: .85rem; padding:
   gap: 8px;
   padding: 0 10px 0 42px;
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  background: var(--bg);
   border: 1px solid var(--active-border);
   box-shadow: var(--shadow-sm);
   font-size: .95rem;
@@ -3125,6 +3125,11 @@ a.comment-mark:hover { color: var(--text); }
 .task-list > li.nest-target { outline: 2px dashed var(--active-border, currentColor); outline-offset: -2px; }
 /* The gap a dragged task will drop into (sortable.js): the same dashed outline as dropping onto a task. */
 .drop-slot { position: fixed; z-index: 1; pointer-events: none; box-sizing: border-box; border: 2px dashed var(--active-border, currentColor); }
+/* Carried rows hide what they pass over (their glass on the page's own colour). */
+li[data-id].dragging:not(.group-drag) { background: linear-gradient(var(--glass-strong), var(--glass-strong)), var(--bg) !important; }
+/* Dropping onto a task: room opens under it (and its sub-tasks) for the carried one (sortable.js). */
+body.is-dragging .task-list > li[data-id] { transition: margin-bottom .15s; }
+.task-list > li.nest-room { margin-bottom: calc(var(--room, 40px) + 4px) !important; }
 .task-list > li.dragging.nest-preview { padding-left: calc(var(--nest-pad, 36px) + 28px); position: relative; }
 .task-list > li.dragging.nest-preview::before { content: "↳"; position: absolute; left: calc(var(--nest-pad, 36px) + 6px); top: .55em; width: auto; background: none; color: var(--muted); font-size: .9rem; line-height: 1; }
 /* A comment's ⋯ menu looks like the glass dropdown lists (.dd-menu): one

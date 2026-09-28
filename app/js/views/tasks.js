@@ -35,8 +35,6 @@ const LISTS = ['inbox', 'now', 'next', 'later'];   // where a task lives
 const EMPTY = { get inbox() { return `${word('list_inbox')} is empty.`; }, now: 'Nothing for now.', next: 'Nothing lined up next.', later: 'Nothing for later.' };
 // 👁 Layout switches (viewcog.js), all off by default.
 const lay = id => layoutOn('tasks', id);
-// Without the lined paper (cards, as in earlier versions) the New task box is always at the top.
-const entryOnTop = () => lay('new-top') || !lay('lined');
 // Highlight item when added (👁 Layout): the new tasks pulse once, soft blue (flash.js), and
 // the list scrolls to them if they're out of view.
 const showAdded = (root, ids) => { if (lay('added-flash')) ids.forEach((id, n) => flash(root.querySelector(`.task-list > li[data-task="${id}"]`), Object.assign({ scroll: n ? false : 'nearest' }, SOFT))); };
@@ -385,9 +383,8 @@ export default {
         html += listOf(rowsOf(tasks));
         entry = addBox(ph, !tasks.length, word('list_inbox'));
       }
-      // New task line at the top (👁 Layout): before the list, after the project's heading.
-      if (entryOnTop()) html = html.replace('<!--list-->', entry); else html += entry;
-      html = html.replace('<!--list-->', '');
+      // The New task line is at the top: before the list, after the project's heading.
+      html = html.replace('<!--list-->', entry);
       const doneCount = scoped.filter(isDone).length;
       if (doneCount) html += `<p class="muted done-toggle"><button type="button" data-act="toggle-done">${state.showDone ? 'Hide' : 'Show'} ${doneCount} done</button></p>`;
       return html;
@@ -406,7 +403,7 @@ export default {
       const body = (urgent.length ? head('Due or planned') + flat(urgent) + (rest.length ? head('Everything else') : '') : '') + flat(rest);
       const label = HORIZONS.find(x => x.id === h).label;
       const entry = addBox(h === 'inbox' ? 'New task' : `New task for ${word(`list_${h}`)}`, !open.length, label);
-      return entryOnTop() ? entry + listOf(open.length ? body : '') : listOf(open.length ? body : '') + entry;
+      return entry + listOf(open.length ? body : '');
     }
 
     function viewProjects() {
@@ -480,27 +477,17 @@ export default {
       else nextAfter = id; // opens once the saved title is redrawn
     }, { capture: true });
 
-    // The joining lines again, from the rows as they are now (with a new line
-    // in, and the New task line under the list when it's a sub-task).
+    // The joining lines again, from the rows as they are now (with a new line in).
     function redrawTrees() {
       const ul = body.querySelector('.task-list');
       if (!ul) return;
       const rows = [...ul.querySelectorAll(':scope > li[data-task]')];
-      const line = ul.nextElementSibling?.id === 'task-entry' ? ul.nextElementSibling.querySelector('.task-add-line') : null;
-      const tail = line && entryDepth > 0 ? [{ depth: entryDepth }] : [];
-      const depths = [...rows.map(li => ({ depth: Number(li.dataset.depth || 0) })), ...tail];
+      const depths = rows.map(li => ({ depth: Number(li.dataset.depth || 0) }));
       rows.forEach((li, n) => {
         li.querySelector(':scope > .tree')?.remove();
         const html = treeOf(depths, n);
         if (html) li.insertAdjacentHTML('afterbegin', html);
       });
-      line?.querySelector(':scope > .tree')?.remove();
-      if (!tail.length) return;
-      // Where its tick box sits, as for a task row (the lines meet its middle).
-      const mark = line.querySelector('.add-mark');
-      const m = mark.getBoundingClientRect(), l = line.getBoundingClientRect();
-      if (m.height > 0) { line.style.setProperty('--tick-top', `${m.top - l.top}px`); line.style.setProperty('--tick-h', `${m.height}px`); }
-      line.insertAdjacentHTML('afterbegin', treeOf(depths, depths.length - 1));
     }
 
     // Shift+Tab in a task's note (under its name, while editing) goes back to
@@ -732,7 +719,7 @@ export default {
         .filter(li => li.getClientRects().length && li.querySelector(':scope > .task-title'))
         .map(li => ({ li, key: li.dataset.task, title: li.querySelector(':scope > .task-title') }));
       const nt = body.querySelector('#task-new');
-      if (nt?.getClientRects().length) stops[entryOnTop() ? 'unshift' : 'push']({ key: 'entry', title: nt });
+      if (nt?.getClientRects().length) stops.unshift({ key: 'entry', title: nt });
       return stops;
     };
     function walkApply(stop, part, at) {
@@ -900,18 +887,11 @@ export default {
       // Its level: "- " at the start, or Tab / Shift+Tab, make it a sub-task
       // (of the last task above) or bring it back out, straight away.
       const rowsNow = () => [...body.querySelectorAll('.task-list > li[data-task][data-id]')];
-      // At the top (👁 Layout) there's nothing above it to go under.
-      const onTop = entryOnTop();
-      const deepest = () => { const last = !onTop && rowsNow().at(-1); return last ? Math.min(MAX_DEPTH, Number(last.dataset.depth || 0) + 1) : 0; };
       const setDepth = d => { entryDepth = d; entry.dataset.depth = d; entry.style.setProperty('--ind', `${d * 28}px`); redrawTrees(); };
-      setDepth(Math.min(entryDepth, deepest()));
+      setDepth(0);
       const parentAt = d => (d ? [...rowsNow()].reverse().find(li => Number(li.dataset.depth || 0) === d - 1)?.dataset.task || null : null);
-      const deeper = () => {
-        if (onTop || !rowsNow().length) { toast('Nothing above to go under'); return false; }
-        if (entryDepth >= deepest()) { toast(entryDepth >= MAX_DEPTH ? 'Sub-tasks go three levels deep at most' : 'Already as far in as it goes here'); return false; }
-        setDepth(entryDepth + 1);
-        return true;
-      };
+      // At the top there's nothing above it to go under.
+      const deeper = () => { toast('Nothing above to go under'); return false; };
       ta.addEventListener('input', () => {
         const m = ta.value.match(/^[-*•] /);
         if (!m) return;
