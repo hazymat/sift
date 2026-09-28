@@ -608,3 +608,6 @@ NOTES['1.35.21'] = [
 NOTES['1.35.22'] = [
   B("Swiping a task or a Day Planner item: the buttons slide in over it, and once they reach its name the name moves along with them, so you can always see what you're about to delete or tick off."),
 ]
+NOTES['1.35.23'] = [
+  B("Swiping a task right: Delete opens right up to its name, over the grab bar, tick box and a sub-task's lines, then moves the name along."),
+]
