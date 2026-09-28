@@ -246,10 +246,11 @@ export default {
             </div>
             <ul class="sync-devices" hidden></ul>
             <div class="sync-pw" hidden>
-              <div class="settings-grid sync-form">
+              <form class="settings-grid sync-form">
+                <input type="text" name="username" autocomplete="username" value="${esc(acct?.email || '')}" hidden>
                 <label>Current password<input name="oldpw" type="password" autocomplete="current-password" class="no-inline"></label>
                 <label>New password<input name="newpw" type="password" autocomplete="new-password" class="no-inline"></label>
-              </div>
+              </form>
               <div class="backup-row">
                 <button type="button" class="primary" data-sync="pw">Change password</button>
                 <span class="muted" id="sync-msg"></span>
@@ -268,11 +269,11 @@ export default {
         box.innerHTML = `
           <p class="sync-out-reason" hidden></p>
           <p class="muted">${esc(word('ph_sync_intro'))}</p>
-          <div class="settings-grid sync-form">
+          <form class="settings-grid sync-form">
             <label class="wide">Server<input name="server" value="${esc(typed.server_url || '')}" placeholder="https://your-server" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" class="no-inline"></label>
             <label>Email<input name="email" type="email" value="${esc(typed.sync_email || '')}" autocomplete="username" class="no-inline"></label>
             <label>Password<input name="password" type="password" autocomplete="current-password" class="no-inline"></label>
-          </div>
+          </form>
           <p class="sync-reach" hidden><span class="sync-reach-text"></span><button type="button" class="link-btn sync-recheck">Check again</button></p>
           <div class="backup-row">
             <button type="button" class="primary" data-sync="in">Sign in</button>
@@ -304,10 +305,11 @@ export default {
           </details>
           <div class="sync-recover" hidden>
             <p class="muted">${esc(word('ph_sync_recover'))}</p>
-            <div class="settings-grid sync-form">
-              <label class="wide">Recovery code<input name="code" autocomplete="off" autocapitalize="characters" spellcheck="false" class="no-inline"></label>
+            <form class="settings-grid sync-form">
+              <input type="text" name="username" autocomplete="username" value="${esc(typed.sync_email || '')}" hidden>
+              <label class="wide">Recovery code<input name="code" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" class="no-inline"></label>
               <label>New password<input name="newpw" type="password" autocomplete="new-password" class="no-inline"></label>
-            </div>
+            </form>
             <div class="backup-row"><button type="button" class="primary" data-sync="recover">Set new password</button></div>
           </div>`;
         const reason = box.querySelector('.sync-out-reason');
@@ -636,6 +638,8 @@ export default {
     // Check for updates: get the newest version now instead of waiting.
     // The tour starts from the welcome page (its three choices); reset makes it start from the beginning next time.
     el.querySelector('[data-act="tour"]').addEventListener('click', () => { location.hash = '#/welcome'; });
+    // The sign-in and password boxes are forms (so a browser's password manager fills those, not the search box); they're never sent.
+    el.addEventListener('submit', ev => ev.preventDefault());
     el.querySelector('[data-act="tour-reset"]').addEventListener('click', async () => { await (await import('../tour.js')).resetTour(); toast('The tour will start from the beginning'); });
     el.querySelector('[data-act="check-update"]').addEventListener('click', async ev => {
       const b = ev.currentTarget;

@@ -699,3 +699,6 @@ NOTES['1.35.46'] = [
 NOTES['1.35.47'] = [
   B("Day Planner, Google Calendar: ↻ Refresh is a text link like Disconnect, which now has its own icon."),
 ]
+NOTES['1.35.48'] = [
+  B("The browser's password manager no longer fills your email into the search box: Sync's sign-in and password boxes are now forms of their own, so it fills those instead."),
+]
