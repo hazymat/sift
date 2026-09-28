@@ -851,3 +851,4 @@ NOTES['1.49.00'] = [
   F("Batch Book: the starter recipes are now eight of Mat's own (Borsch, Pad Kra Pao, Chicken Green Curry, Bun Cha, Smoked Salmon Pirozhki, Quick Baguette, Aviation, Disaronno Sour). Books that had the earlier examples swap them over once; an example you've made a batch of stays."),
   F('Batch Book import: steps can point at ingredients in curly brackets, e.g. {1/2 butter}, and one not in the list is added to it. Recipes already in the book are skipped. The AI instructions ask for this too.'),
 ]
+NOTES['1.49.01'] = [F("Batch Book: the Borsch starter has Mat's own photo. Books that already had the starters get it too.")]
