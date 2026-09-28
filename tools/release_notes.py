@@ -755,3 +755,7 @@ NOTES['1.41.00'] = [
 NOTES['1.41.01'] = [
   F('Batch Book: on a phone, press and hold anywhere on a batch to drag it, as with tasks: the others move out of the way and the dotted space shows where it will go.'),
 ]
+
+NOTES['1.41.02'] = [
+  F('Batch Book: in the batches list, press a batch\'s status (Planned, On the go, Done) to change it there and then.'),
+]

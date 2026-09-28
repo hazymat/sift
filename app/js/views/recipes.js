@@ -151,7 +151,8 @@ export default {
         <span class="bb-batch-name">${esc(r?.title || 'Untitled')}${m.description && m.description !== r?.description ? ` <span class="muted">· ${esc(m.description)}</span>` : ''}</span>
         <span class="muted">${shortDate(m.date)}</span>
         ${abv ? `<span class="chip">${abv.abv.toFixed(2)}%</span>` : ''}
-        <span class="chip bb-status-${m.status || 'going'}">${STATUSES.find(s => s[0] === (m.status || 'going'))[1]}</span>
+        ${draggable ? `<button type="button" class="chip bb-status-${m.status || 'going'}" data-batch-status="${m.id}" title="Change status">${STATUSES.find(s => s[0] === (m.status || 'going'))[1]} ▾</button>`
+          : `<span class="chip bb-status-${m.status || 'going'}">${STATUSES.find(s => s[0] === (m.status || 'going'))[1]}</span>`}
       </${draggable ? 'div' : 'a'}>`;
     }
 
@@ -663,6 +664,12 @@ export default {
     const openRow = row => { if (!batchKit.size) go(row.dataset.href); };
     el.addEventListener('keydown', ev => { const row = ev.target.closest?.('.bb-batch-row[data-href]'); if (row && ev.key === 'Enter') openRow(row); });
     el.addEventListener('click', async ev => {
+      // A batch's status pill: Planned / On the go / Done, changed in place.
+      const pill = ev.target.closest('[data-batch-status]');
+      if (pill) {
+        const m = makeOf(pill.dataset.batchStatus);
+        return pillMenu(pill, STATUSES.map(([v, l]) => ({ value: v, label: l, current: v === (m.status || 'going') })), v => changeBatches([m.id], { status: v }, `Marked ${STATUSES.find(x => x[0] === v)[1].toLowerCase()}`));
+      }
       const row = ev.target.closest('.bb-batch-row[data-href]');
       if (row) return openRow(row);
       if (att.onClick(ev, attParent, () => render())) return;
