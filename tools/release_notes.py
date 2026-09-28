@@ -589,3 +589,6 @@ NOTES['1.35.15'] = [
 NOTES['1.35.16'] = [
   F("Sliding to the next list or day moves only what changes: in Tasks the list (New task and the tabs stay), in Brain Dump the notes (the box, search and filters stay), in the Day Planner the day (its buttons stay). The underline under the tab or filter glides across to the new one."),
 ]
+NOTES['1.35.17'] = [
+  B("Swiping a task or a Day Planner item sideways: the whole block moves and its buttons fill the gap beside it, instead of showing under the text. In the Day Planner the time stays where it is, and Delete sits to the right of it."),
+]
