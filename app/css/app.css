@@ -3700,3 +3700,8 @@ html[data-slide="back"]::view-transition-new(sift-page) { animation-name: sift-i
 @container (max-width: 400px) { .day-nav .share-word { display: none; } .day-nav .share-menu summary { padding-inline: 12px; } } /* no room for the word: Share is its icon */
 @container (max-width: 340px) { .day-nav .day-step { padding-inline: 7px; } .day-nav .cal-icon { padding-inline: 6px; } .day-nav > button:not(.day-step, .cal-icon) { padding-inline: 6px; } .day-nav .share-menu summary { padding-inline: 8px; } .day-nav .view-menu { margin-left: 0; } } /* the smallest phones: tighter still */
 @media (max-width: 400px) { .day-nav { gap: 3px; } } /* a container can't query itself */
+
+/* Tasks, compact spacing: beside a task's name only its note (📝; and a tour's ▶ pill), no other pills,
+   so the name has room; and none at all while its editing pills are open (they show the same things). */
+#main[data-density="tight"] .task-list > li[data-task] > .item-sub > :not(.item-note, .tour-pill) { display: none; }
+#main[data-density="tight"] .task-list > li[data-task].pills-open > .item-sub { display: none; }
