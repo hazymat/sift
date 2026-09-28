@@ -3,7 +3,7 @@
 //                   steps[] ({ id, text with {references} }), tasting (notes), fields ({ label: value }, e.g. Batch volume)
 //   recipe_makes:   recipe_id, batch_no, date (YYYY-MM-DD), status (planned|going|done), description, state,
 //                   fields, back_sweetened, ingredients[] and steps[] (copied from the recipe, then its own to change),
-//                   stock ({ ingredient id: have|need }), list_id
+//                   stock ({ ingredient id: have|need }), stock_items ({ ingredient id: list item id }), list_id
 //   recipe_entries: make_id, kind (diary|tasting|reading), date, text; readings also: label (OG|SG|FG), gravity
 // Photos are attachments: on a recipe or batch (its result photos, the first is its picture), on a step (by the
 // step's id) or on a diary entry. Sections are the user's own, kept in settings (batch_sections).
