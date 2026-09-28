@@ -834,3 +834,8 @@ NOTES['1.47.00'] = [
 NOTES['1.47.01'] = [
   F('Batch Book: the example recipes include a crusty no-knead white loaf in Baking.'),
 ]
+
+NOTES['1.47.02'] = [
+  F('Batch Book: the Recipes | Batches switch looks like the rest of the books bar (tabs, not pills).'),
+  F('Batch Book: a brand new account made on this device gets the example recipes too. Accounts that already existed never do.'),
+]
