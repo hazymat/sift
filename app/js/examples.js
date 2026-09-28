@@ -15,7 +15,7 @@ export const EXAMPLE_BOOKS = [
 
 // The showcase: a handful of Mat's own recipes, in the import format (batchbook.js), with his photos (app/examples/).
 const SHOWCASE = `
-# Borsch
+# Borscht
 Book: Soups
 Tags: ukrainian, soup
 
@@ -56,7 +56,7 @@ Based on an online recipe (cravingtasty.com/borsch-recipe) and a chat with Irena
 1. Heat {water|3.5 to 4.2 L of water} in a pan (make the pan full), and add {3/4 whole peppercorns}, {bay leaves} and {pork butt or pork ribs|3 lb pork meat and bones}.
 2. Peel {3/4 carrots}, cut in half, add. Peel {3/4 medium onions}, cut in half, add. LOW HEAT.
 3. After 2 to 3 hours: remove the meat, shred it and keep in the fridge. Filter the broth through the {cheesecloth|cloth} and fridge it.
-### Make the borsch
+### Make the borscht
 4. Bring the broth to the boil, add {sea salt|salt} and {freshly ground pepper|pepper} to taste.
 5. Prep the veg:
    - {medium beets|3 to 4 medium beets}: peel and julienne (optional: 2 more beets in large chunks)
@@ -291,9 +291,11 @@ Hanoi grilled pork. First made 2013; made again in 2023 (bought meat pre-minced)
 11. Cook the {vermicelli} per the packet (2 mins?), then blanch in {cold water}.
 12. Mat's way: broth in bowls, then a little greens, a little {vermicelli|vermicelli} and some meatballs (not all). The rest on small plates to share.
 `;
-const PHOTOS = { 'Borsch': ['borsch-1.jpg'] };
+const PHOTOS = { 'Borscht': ['borscht-1.jpg', 'borscht-2.jpg'] };
 // Goes up when photos are added, so books that already have the showcase get the new ones.
-const PHOTOS_VERSION = 1;
+const PHOTOS_VERSION = 2;
+// Showcase names and photo files that changed since a book got them (1.49.02: Mat spells it Borscht).
+const RENAMED = { 'Borsch': 'Borscht', 'borsch-1.jpg': 'borscht-1.jpg' };
 // The examples from 1.47.00 to 1.48.00, which the showcase replaces.
 const OLD = ['Aviation', 'Espresso martini', 'Borscht', 'Red lentil and tomato soup', 'Spaghetti carbonara', 'Chicken fajitas', 'Banana bread', 'Rustic white loaf', 'Chocolate chip cookies'];
 
@@ -334,6 +336,8 @@ export async function swapForShowcase(settings) {
 
 // Photos added to the showcase since this book got it: each showcase recipe gets the ones it hasn't got (by file name).
 export async function addNewPhotos() {
+  for (const r of await store.list('recipes')) if (RENAMED[r.title]) await store.update('recipes', r.id, { title: RENAMED[r.title] });
+  for (const a of await store.list('attachments')) if (a.parent_collection === 'recipes' && RENAMED[a.name]) await store.update('attachments', a.id, { name: RENAMED[a.name] });
   const have = await att.byParent();
   for (const r of await store.list('recipes')) if (PHOTOS[r.title]) { const names = (have.get(r.id) || []).map(a => a.name); await addPhotos(r, PHOTOS[r.title].filter(n => !names.includes(n))); }
   await store.updateSettings({ batch_showcase_photos: PHOTOS_VERSION });
