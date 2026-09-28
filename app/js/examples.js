@@ -306,7 +306,7 @@ No kneading. Start 10 hours ahead.
 Book: Cooking
 Tags: thai, dessert
 
-Difficult!
+Difficult! This is a lot of effort, and you really need to find the perfect mangos for it to be excellent.
 
 ## Ingredients
 ### Rice
