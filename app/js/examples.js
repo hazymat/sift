@@ -481,9 +481,11 @@ Hanoi grilled pork. First made 2013; made again in 2023 (bought meat pre-minced)
 11. Cook the {vermicelli} per the packet (2 mins?), then blanch in {cold water}.
 12. Mat's way: broth in bowls, then a little greens, a little {vermicelli|vermicelli} and some meatballs (not all). The rest on small plates to share.
 `;
-const PHOTOS = { 'Borscht': ['borscht-1.jpg', 'borscht-2.jpg'], 'Chicken Green Curry': ['green-curry-1.jpg'], 'Hot Toddy': ['hot-toddy-1.jpg', 'hot-toddy-2.jpg'], 'Pampushki': ['pampushki-1.jpg', 'pampushki-2.jpg', 'pampushki-3.jpg'], 'Coloured Sticky Rice with Mango': ['sticky-rice-1.jpg', 'sticky-rice-2.jpg'], 'Christmas Cake': ['christmas-cake-1.jpg'], 'Cranberry Sauce': ['cranberry-sauce-1.jpg'] };
+const PHOTOS = { 'Borscht': ['borscht-1.jpg', 'borscht-2.jpg'], 'Chicken Green Curry': ['green-curry-2.jpg'], 'Hot Toddy': ['hot-toddy-1.jpg', 'hot-toddy-2.jpg'], 'Pampushki': ['pampushki-1.jpg', 'pampushki-2.jpg', 'pampushki-3.jpg'], 'Coloured Sticky Rice with Mango': ['sticky-rice-1.jpg', 'sticky-rice-2.jpg'], 'Christmas Cake': ['christmas-cake-1.jpg'], 'Cranberry Sauce': ['cranberry-sauce-1.jpg'] };
 // Goes up when photos are added, so books that already have the showcase get the new ones.
-const PHOTOS_VERSION = 7;
+const PHOTOS_VERSION = 8;
+// Showcase photos that were swapped out, taken off books that got them (1.49.08: Mat's new green curry photo).
+const REMOVED = ['green-curry-1.jpg'];
 // Recipes added to the showcase later, so books that already have it get them too (unless deleted there).
 const ADDED = ['Hot Toddy', 'Pampushki', 'Coloured Sticky Rice with Mango', 'Christmas Cake', 'Cranberry Sauce'];
 // Showcase names and photo files that changed since a book got them (1.49.02: Mat spells it Borscht).
@@ -530,6 +532,7 @@ export async function swapForShowcase(settings) {
 export async function addNewPhotos() {
   for (const r of await store.list('recipes')) if (RENAMED[r.title]) await store.update('recipes', r.id, { title: RENAMED[r.title] });
   for (const a of await store.list('attachments')) if (a.parent_collection === 'recipes' && RENAMED[a.name]) await store.update('attachments', a.id, { name: RENAMED[a.name] });
+  for (const a of await store.list('attachments')) if (a.parent_collection === 'recipes' && REMOVED.includes(a.name)) await store.remove('attachments', a.id);
   const titles = (await store.list('recipes', { includeDeleted: true })).map(r => r.title.toLowerCase());
   for (const r of parseRecipes(SHOWCASE)) if (ADDED.includes(r.title) && !titles.includes(r.title.toLowerCase())) await store.create('recipes', Object.assign(r, { colour: null }));
   const have = await att.byParent();
