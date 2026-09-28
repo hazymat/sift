@@ -256,15 +256,16 @@ export default {
           </div>
           <div class="task-entry-more">
             <div id="task-new-note" class="add-note" data-ctrl-enter="keep"></div>
-            <div class="entry-actions">
+            <div class="entry-actions pill-row">
               <button type="button" class="entry-chip" data-chip="energy" aria-haspopup="menu"><span class="chip-glyph">⚡</span> <span class="chip-text" data-empty="Energy">Energy</span></button>
               <input type="hidden" data-entry="energy" value="">
-              ${dateChip('start_date', 'Plan for day', '📅')}
-              ${dateChip('aim_date', 'Target end date', '⚑')}
               <label class="entry-chip" data-chip="estimate_min">⏱ <span class="chip-text" data-empty="Estimated time">Estimated time</span>
                 <select data-entry="estimate_min" aria-label="Estimated time"><option value="">Not estimated</option>${durationChoices(480).map(m => opt(m, durationLabel(m))).join('')}</select></label>
+              ${dateChip('start_date', 'Plan for day', '📅')}
+              ${dateChip('aim_date', 'Target end date', '⚑')}
               <label class="entry-chip" data-chip="horizon">📥 <span class="chip-text" data-empty="${esc(listName || word('list_inbox'))}">${esc(listName || word('list_inbox'))}</span>
                 <select data-entry="horizon" aria-label="Which list">${HORIZONS.map(x => opt(x.id, x.label, x.label === (listName || word('list_inbox')))).join('')}</select></label>
+              <button type="button" class="entry-chip pill-more" data-act="entry-panel" title="Add it and open its full panel">More…</button>
             </div>
             <p class="muted hint">${esc(word('ph_tasks_entry'))}</p>
           </div>
@@ -818,6 +819,7 @@ export default {
         await store.updateMany('tasks', made.map(id => [id, { deleted_at: new Date().toISOString() }]));
         await render();
       });
+      return made;
     }
 
     // Open the new-task entry (on an empty page it unfolds from the ＋) and put the cursor in it.
@@ -1228,6 +1230,17 @@ export default {
       if (!b) return;
       if (b.dataset.view) { b.closest('details')?.removeAttribute('open'); state.project = null; go(b.dataset.view, null); return; }
       if (b.dataset.act === 'focus-entry') { focusEntry(); return; }
+      // More… on the New task line (as a task's own More… opens its panel): it's added, and its panel opens.
+      if (b.dataset.act === 'entry-panel' || (b.dataset.act === 'entry-reveal' && lay('more-panel'))) {
+        const made = await body.querySelector('#task-entry')?.submitEntry?.({ focus: false });
+        if (!made?.length) { body.querySelector('#task-new')?.focus(); return; }
+        document.activeElement?.blur();
+        await flushNote();
+        open = made[0];
+        await render();
+        body.querySelector(`.task-list > li[data-task="${open}"]`)?.scrollIntoView({ block: 'start' });
+        return;
+      }
       if (b.dataset.act === 'entry-reveal') { b.closest('.task-entry').classList.add('revealed'); body.querySelector('#task-new')?.focus(); return; }
       if (b.dataset.act === 'note-shown') { const row = b.closest('li[data-task]'); walkGo({ li: row, key: row.dataset.task, title: row.querySelector(':scope > .task-title') }, 'note', 0); return; }
       if (b.dataset.act === 'pills-reveal') {

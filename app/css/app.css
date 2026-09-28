@@ -4032,3 +4032,19 @@ textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
 .bb-ings .bb-content { justify-content: flex-start; }
 .bb-paper ::placeholder { color: var(--muted); opacity: .75; }
 .bb-content > .bb-add-field { align-self: flex-start; }
+
+/* The pills under a task being edited and under the New task line (editpills.js, views/tasks.js):
+   one tidy row that scrolls sideways rather than wrapping into bits, ending in More… (the full
+   panel). On phones a pill with nothing set is just its icon; set ones say what they're set to. */
+.edit-pills > .pill-row, .task-entry .pill-row { flex: 1 1 100%; min-width: 0; max-width: 100%; display: flex; flex-wrap: nowrap; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 1px; }
+.pill-row::-webkit-scrollbar { display: none; }
+.pill-row > .entry-chip { flex: none; padding: 5px 11px; white-space: nowrap; }
+@media (max-width: 700px), (pointer: coarse) {
+  .pill-row > .entry-chip:not(.set, .pill-more, .pill-done) .chip-text { display: none; }
+  .pill-row > .entry-chip { padding: 5px 10px; }
+}
+/* Full screen for a note being written in place: a small ⤢ at the right of its first line. */
+.rich.bare:not(.is-full):has(> .bare-full) { display: flex; align-items: flex-start; gap: 8px; }
+.rich.bare:not(.is-full):has(> .bare-full) > .rich-edit { flex: 1 1 auto; min-width: 0; }
+.rich.bare:not(.is-full) > .bare-full { flex: none; margin: 0; padding: 2px 8px; font-size: .8rem; opacity: .7; }
+@media (max-width: 700px), (pointer: coarse) { .rich.bare > .bare-full kbd { display: none; } }
