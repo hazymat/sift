@@ -772,3 +772,8 @@ NOTES['1.42.00'] = [
 NOTES['1.42.01'] = [
   B('Batch Book: a batch\'s recipe heading now just says "Recipe".'),
 ]
+
+NOTES['1.43.00'] = [
+  F('Batch Book: ingredients are written straight on the lines. Press an amount or an ingredient to change it (put a note after a comma, like "honey, local"), type a new one on the last line, or empty one to remove it. Edit still offers units, reordering and pasting a whole list.'),
+  F('Batch Book: the ingredients margin is wider, so amounts and units fit.'),
+]

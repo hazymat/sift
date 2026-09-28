@@ -238,13 +238,14 @@ export default {
           <textarea class="bb-ing-new no-inline" rows="3" placeholder="Add ingredients, one per line: 250g butter, unsalted · ½ lemon · 1 tsp baking powder"></textarea>
           <div class="detail-actions"><button type="button" data-act="add-ings">Add these</button></div>
         </div>`;
-      if (!ings.length) return `${head}<p class="muted bb-none">No ingredients yet.</p>`;
+      // Written straight on the lines: the amount in the margin, the ingredient (", note") beside it.
       const times = isRecipe ? state.times : 1;
       const got = rec.stock || {};
-      return `${head}${stock ? listLine(rec) : ''}<div class="bb-lines bb-ings${stock ? ' bb-stocked' : ''}">${ings.map(i => line(esc(amountText(i, times)),
-        `<span class="bb-ing-name">${esc(i.item)}</span>${i.note ? ` <span class="muted">${esc(i.note)}</span>` : ''}`,
+      const addLine = line('+', `<input class="bb-ing-add no-inline" placeholder="${ings.length ? 'Another ingredient' : 'An ingredient, like 250g butter, unsalted'}" aria-label="Add an ingredient">`);
+      return `${head}${stock && ings.length ? listLine(rec) : ''}<div class="bb-lines bb-ings${stock ? ' bb-stocked' : ''}" data-owner="${o.collection}:${o.id}">${ings.map(i => line(`<input class="bb-ing-amt" data-ing-line="amount" value="${esc(amountText(i, times))}" placeholder="…" aria-label="Amount">`,
+        `<input class="bb-ing-text" data-ing-line="text" value="${esc(i.item + (i.note ? `, ${i.note}` : ''))}" placeholder="Ingredient" aria-label="Ingredient">`,
         stock && i.item ? `<button type="button" class="bb-stock-btn" data-stock="have" aria-pressed="${got[i.id] === 'have'}" title="In stock">✓<span class="bb-stock-word"> In stock</span></button><button type="button" class="bb-stock-btn" data-stock="need" aria-pressed="${got[i.id] === 'need'}" title="Add to list">🛒<span class="bb-stock-word"> ${got[i.id] === 'need' ? 'On the list' : 'Add to list'}</span></button>` : '',
-        stock ? `data-ing="${i.id}" data-got="${got[i.id] || ''}"` : '')).join('')}</div>`;
+        `data-ing="${i.id}"${stock ? ` data-got="${got[i.id] || ''}"` : ''}`)).join('')}${addLine}</div>`;
     }
 
     // Which list Add to list puts things on: a new one for this batch (made on the first add), or one you have.
@@ -518,6 +519,7 @@ export default {
       if (t.matches?.('[data-step-text]')) closeStep(t);
       // Something written in "Next step" and left: it's a step.
       if (t.matches?.('.bb-step-new') && t.value.trim()) { const text = t.value.trim(); t.value = ''; dirty = true; adding = addStep(ownerOf(t), text); }
+      if (t.matches?.('.bb-ing-add') && t.value.trim()) { const text = t.value; t.value = ''; addIngredientLines(ownerOf(t), text, false); }
       if (t.dataset?.entryField === 'text') textSave.flush();
     });
 
@@ -533,6 +535,8 @@ export default {
       // Enter in "Add ingredients" adds them (Shift+Enter for another line).
       if (t.matches?.('.bb-ing-new') && ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); return addIngredientLines(ownerOf(t), t.value); }
       if (t.matches?.('[data-step-view]') && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); return openStep(t); }
+      if (t.matches?.('.bb-ing-add') && ev.key === 'Enter') { ev.preventDefault(); const text = t.value; t.value = ''; return addIngredientLines(ownerOf(t), text, '.bb-ing-add'); }
+      if (t.matches?.('.bb-ing-add') && ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); t.value = ''; t.blur(); return; }
       if (t.matches?.('.bb-step-new') && ev.key === 'Enter' && !ev.shiftKey) {
         ev.preventDefault();
         const text = t.value.trim();
@@ -591,6 +595,7 @@ export default {
         await store.update('recipe_makes', state.make, { [t.dataset.make]: t.type === 'checkbox' ? t.checked : t.value.trim() });
         return later();
       }
+      if (t.dataset.ingLine) return saveIngLine(t);
       if (t.dataset.ingField) {
         const o = ownerOf(t);
         const rec = recOf(o);
@@ -771,12 +776,37 @@ export default {
       }
     });
 
-    async function addIngredientLines(o, text) {
+    async function addIngredientLines(o, text, focus = '.bb-ing-new') {
       const made = text.split('\n').map(parseLine).filter(Boolean);
       if (!made.length) return;
-      focusNext = '.bb-ing-new';
+      if (focus) focusNext = focus;
       await saveIngredients(o, (recOf(o).ingredients || []).concat(made), `Added ${made.length} ingredient${made.length === 1 ? '' : 's'}`);
       await render();
+    }
+
+    // One ingredient changed on the lines: "250g", "2 tsp", "pinch" in the margin; "butter, unsalted" beside it.
+    // A recipe shown ×2 stores what was typed ÷ 2. Emptying the ingredient removes it.
+    async function saveIngLine(t) {
+      const o = ownerOf(t), rec = recOf(o), id = t.closest('[data-ing]').dataset.ing;
+      const ing = rec.ingredients.find(i => i.id === id), value = t.value.trim();
+      const times = o.collection === 'recipes' ? state.times : 1;
+      if (t.dataset.ingLine === 'amount') {
+        const low = value.toLowerCase();
+        const unitOnly = UNITS.find(u => u[0] && (u[0] === low || u[1].toLowerCase() === low || (u[4] || []).includes(low)));
+        const got = !value ? { qty: null, unit: '' } : unitOnly ? { qty: null, unit: unitOnly[0] } : parseLine(`${value} ~`);
+        if (value && !unitOnly && (got.qty == null || got.item !== '~')) { toast('That amount wasn\'t understood: try 250g, 2 tsp or ½'); t.value = amountText(ing, times); return; }
+        return saveIngredients(o, rec.ingredients.map(i => (i.id === id ? Object.assign({}, i, { qty: got.qty == null ? null : got.qty / times, unit: got.unit }) : i)));
+      }
+      if (!value) return saveIngredients(o, rec.ingredients.filter(i => i.id !== id), `Removed ${ing.item || 'an ingredient'}`);
+      const comma = value.indexOf(',');
+      const item = (comma < 0 ? value : value.slice(0, comma)).trim(), note = comma < 0 ? '' : value.slice(comma + 1).trim();
+      // Renamed: the steps that mention it follow.
+      if (ing.item && item && item !== ing.item) {
+        const steps = stepsOf(rec);
+        const renamed = steps.map(x => Object.assign({}, x, { text: renameRefs(x.text, ing.item, item) }));
+        if (renamed.some((x, n) => x.text !== steps[n].text)) await saveSteps(o, renamed);
+      }
+      return saveIngredients(o, rec.ingredients.map(i => (i.id === id ? Object.assign({}, i, { item, note }) : i)));
     }
 
     // Every amount in this batch times a number (the recipe itself stays as it is).
