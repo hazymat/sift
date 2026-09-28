@@ -9,7 +9,7 @@
 
 import * as store from '../store.js';
 import * as att from '../attachments.js';
-import { sectionsOf, sectionOf, stepsOf, UNITS, UNIT_GROUPS, parseLine, parseQty, qtyText, amountText, ingredientText, stepHtml, renameRefs, abvOf, nextBatchNo, loadBook } from '../batchbook.js';
+import { sectionsOf, sectionOf, stepsOf, UNITS, UNIT_GROUPS, parseLine, parseQty, qtyText, amountText, ingredientText, stepHtml, renameRefs, abvOf, nextBatchNo, loadBook, batchName, batchDay } from '../batchbook.js';
 import { loadLists, nestItems, createList, addItems } from '../lists.js';
 import { richText } from '../richtext.js';
 import { debounced } from '../autosave.js';
@@ -92,7 +92,7 @@ export default {
     const sortBatches = list => list.slice().sort({
       new: (a, b) => (b.date || '').localeCompare(a.date || '') || (b.created_at || '').localeCompare(a.created_at || ''),
       old: (a, b) => (a.date || '').localeCompare(b.date || '') || (a.created_at || '').localeCompare(b.created_at || ''),
-      title: (a, b) => (recipeOf(a.recipe_id)?.title || '').localeCompare(recipeOf(b.recipe_id)?.title || '') || (+a.batch_no || 0) - (+b.batch_no || 0),
+      title: (a, b) => batchName(a, recipeOf(a.recipe_id)?.title).localeCompare(batchName(b, recipeOf(b.recipe_id)?.title)),
       custom: byBatchPlace,
     }[batchSort()] || byBatchPlace);
     const shown = () => data.recipes.filter(matches).sort((a, b) => order(a) - order(b) || Number(!!b.pinned) - Number(!!a.pinned) || byPlace(a, b));
@@ -147,9 +147,9 @@ export default {
       const href = `#/recipes/${m.recipe_id}/make/${m.id}${draggable ? '/list' : ''}${ownerPath()}`; // /list: Esc and ‹ go back to the batches list
       return `<${draggable ? `div role="link" tabindex="0" data-href="${href}"` : `a href="${href}"`} class="bb-batch-row" style="--bb:${colourOf(r)}">
         ${photo ? `<img class="bb-batch-pic" src="${photo.thumb}" alt="">` : `<span class="bb-batch-emoji">${sec.emoji}</span>`}
-        <span class="bb-batch-no">Batch #${esc(m.batch_no || '?')}</span>
-        <span class="bb-batch-name">${esc(r?.title || 'Untitled')}${m.description && m.description !== r?.description ? ` <span class="muted">· ${esc(m.description)}</span>` : ''}</span>
-        <span class="muted">${shortDate(m.date)}</span>
+        <span class="bb-batch-no">${esc(batchName(m, r?.title))}</span>
+        <span class="bb-batch-name">${m.name && !m.name.includes(r?.title || '') ? `<span class="muted">${esc(r?.title || 'Untitled')}</span>` : ''}${m.description && m.description !== r?.description ? ` <span class="muted">· ${esc(m.description)}</span>` : ''}</span>
+        ${batchName(m, r?.title).includes(batchDay(m.date)) ? '' : `<span class="muted">${shortDate(m.date)}</span>`}
         ${abv ? `<span class="chip">${abv.abv.toFixed(2)}%</span>` : ''}
         ${draggable ? `<button type="button" class="chip bb-status-${m.status || 'going'}" data-batch-status="${m.id}" title="Change status">${STATUSES.find(s => s[0] === (m.status || 'going'))[1]} ▾</button>`
           : `<span class="chip bb-status-${m.status || 'going'}">${STATUSES.find(s => s[0] === (m.status || 'going'))[1]}</span>`}
@@ -368,7 +368,7 @@ export default {
           ${hero(m.id)}
           <header class="bb-title-row">
             <span class="bb-emoji">${sec.emoji}</span>
-            <span class="bb-title bb-batch-title">Batch #<input class="bb-batch-input" data-make="batch_no" value="${esc(m.batch_no || '')}" aria-label="Batch number" size="4"></span>
+            <textarea class="bb-title one-line" rows="1" data-make="name" placeholder="Batch name" aria-label="Batch name">${esc(batchName(m, r?.title))}</textarea>
           </header>
           <div class="bb-rule"></div>
           <p class="bb-of">${esc(r?.type ? `${r.type}: ` : '')}<a href="#/recipes/${m.recipe_id}${ownerPath()}">${esc(r?.title || 'Untitled')}</a></p>
@@ -767,7 +767,7 @@ export default {
         const m = makeOf(state.make);
         await store.remove('recipe_makes', m.id);
         go(`#/recipes/${m.recipe_id}${ownerPath()}`);
-        undoable(`Deleted Batch #${m.batch_no}`, async () => { await store.restore('recipe_makes', m.id); render(); });
+        undoable(`Deleted ${batchName(m, recipeOf(m.recipe_id)?.title)}`, async () => { await store.restore('recipe_makes', m.id); render(); });
       }
     });
 
@@ -806,7 +806,7 @@ export default {
       store.useSpace(owner ? store.spaceOf(owner) : null);
       const steps = stepsOf(r).map(x => ({ id: store.uuidv7(), text: x.text, from: x.id }));
       const m = await store.create('recipe_makes', {
-        recipe_id: r.id, batch_no: nextBatchNo(data.makes, data.recipes, r.type), date: today(), status: 'going',
+        recipe_id: r.id, name: `${r.title || 'Untitled'} ${batchDay(today())}`, batch_no: nextBatchNo(data.makes, data.recipes, r.type), date: today(), status: 'going',
         description: r.description || '', state: '', back_sweetened: false, fields: Object.assign({}, r.fields),
         ingredients: (r.ingredients || []).map(i => Object.assign({}, i, { qty: i.qty == null ? null : i.qty * times })), steps, stock: {}, list_id: null,
       });
@@ -815,7 +815,7 @@ export default {
         for (const a of atts.get(x.from) || []) await store.create('attachments', { parent_collection: 'recipe_makes', parent_id: x.id, blob_id: a.blob_id, name: a.name, mime: a.mime, kind: a.kind, size: a.size, thumb: a.thumb });
       }
       go(`#/recipes/${r.id}/make/${m.id}${ownerPath(owner)}`);
-      undoable(`Started Batch #${m.batch_no}`, async () => { store.useSpace(owner ? store.spaceOf(owner) : null); await store.remove('recipe_makes', m.id); go(`#/recipes/${r.id}${ownerPath(owner)}`); });
+      undoable(`Started ${m.name}`, async () => { store.useSpace(owner ? store.spaceOf(owner) : null); await store.remove('recipe_makes', m.id); go(`#/recipes/${r.id}${ownerPath(owner)}`); });
     }
 
     // ---------- books ----------
