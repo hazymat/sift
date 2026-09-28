@@ -291,13 +291,15 @@ Hanoi grilled pork. First made 2013; made again in 2023 (bought meat pre-minced)
 11. Cook the {vermicelli} per the packet (2 mins?), then blanch in {cold water}.
 12. Mat's way: broth in bowls, then a little greens, a little {vermicelli|vermicelli} and some meatballs (not all). The rest on small plates to share.
 `;
-const PHOTOS = {};
+const PHOTOS = { 'Borsch': ['borsch-1.jpg'] };
+// Goes up when photos are added, so books that already have the showcase get the new ones.
+const PHOTOS_VERSION = 1;
 // The examples from 1.47.00 to 1.48.00, which the showcase replaces.
 const OLD = ['Aviation', 'Espresso martini', 'Borscht', 'Red lentil and tomato soup', 'Spaghetti carbonara', 'Chicken fajitas', 'Banana bread', 'Rustic white loaf', 'Chocolate chip cookies'];
 
-async function addPhotos(recipe) {
+async function addPhotos(recipe, names = PHOTOS[recipe.title] || []) {
   const files = [];
-  for (const name of PHOTOS[recipe.title] || []) {
+  for (const name of names) {
     try { const res = await fetch(`examples/${name}`); if (res.ok) files.push(new File([await res.blob()], name, { type: 'image/jpeg' })); } catch { /* offline: the recipe comes without its photos */ }
   }
   if (files.length) await att.addFiles({ collection: 'recipes', id: recipe.id }, files);
@@ -310,7 +312,7 @@ export async function addExamples(settings) {
   if (missing.length || !settings.batch_sections) await store.updateSettings({ batch_sections: books.concat(missing) });
   const have = (await store.list('recipes')).map(r => r.title.toLowerCase());
   for (const r of parseRecipes(SHOWCASE)) if (!have.includes(r.title.toLowerCase())) await addPhotos(await store.create('recipes', Object.assign(r, { colour: null })));
-  await store.updateSettings({ batch_examples: true, batch_examples_reset: true, batch_showcase: true });
+  await store.updateSettings({ batch_examples: true, batch_examples_reset: true, batch_showcase: true, batch_showcase_photos: PHOTOS_VERSION });
 }
 
 // Once (1.48.00, Mat asked: his and Anna's Batch Books had nothing in yet): the books go back to the example
@@ -329,6 +331,14 @@ export async function swapForShowcase(settings) {
   for (const r of await store.list('recipes')) if (OLD.includes(r.title) && !makes.some(m => m.recipe_id === r.id)) await store.remove('recipes', r.id);
   await addExamples(settings);
 }
+
+// Photos added to the showcase since this book got it: each showcase recipe gets the ones it hasn't got (by file name).
+export async function addNewPhotos() {
+  const have = await att.byParent();
+  for (const r of await store.list('recipes')) if (PHOTOS[r.title]) { const names = (have.get(r.id) || []).map(a => a.name); await addPhotos(r, PHOTOS[r.title].filter(n => !names.includes(n))); }
+  await store.updateSettings({ batch_showcase_photos: PHOTOS_VERSION });
+}
+export const photosBehind = settings => settings.batch_showcase && (settings.batch_showcase_photos || 0) < PHOTOS_VERSION;
 
 // A brand new Batch Book: never had a recipe, on a device not signed in or signed up here as a new account
 // (an account that already existed is only ever signed in to, so it never gets them).
