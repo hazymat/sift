@@ -82,6 +82,19 @@ export default {
     };
     const order = r => sections.findIndex(x => x.name === (r.type || ''));
     // By book; in each, pinned first, then the order they were dragged into.
+    // The batches list's order (settings.batch_sort, synced): by date either way, by name, or Custom
+    // (the order they were dragged into; dragging switches to it quietly).
+    const SORTS = [['new', 'Newest first'], ['old', 'Oldest first'], ['title', 'By name'], ['custom', 'Custom']];
+    const batchSort = () => settings.batch_sort || 'new';
+    const madeKey = m => -(Date.parse(m.date || m.created_at) / 1e4 || 0);
+    const rankOfBatch = m => rankOf(m, madeKey);
+    const byBatchPlace = byRank(madeKey);
+    const sortBatches = list => list.slice().sort({
+      new: (a, b) => (b.date || '').localeCompare(a.date || '') || (b.created_at || '').localeCompare(a.created_at || ''),
+      old: (a, b) => (a.date || '').localeCompare(b.date || '') || (a.created_at || '').localeCompare(b.created_at || ''),
+      title: (a, b) => (recipeOf(a.recipe_id)?.title || '').localeCompare(recipeOf(b.recipe_id)?.title || '') || (+a.batch_no || 0) - (+b.batch_no || 0),
+      custom: byBatchPlace,
+    }[batchSort()] || byBatchPlace);
     const shown = () => data.recipes.filter(matches).sort((a, b) => order(a) - order(b) || Number(!!b.pinned) - Number(!!a.pinned) || byPlace(a, b));
 
     // A card: its picture, name and how often it's been made; Make and ⋯ More under it.
@@ -155,7 +168,7 @@ export default {
       if (state.tag && !tags.includes(state.tag)) state.tag = '';
       const list = shown();
       const ids = new Set(list.map(r => r.id));
-      const batches = data.makes.filter(m => ids.has(m.recipe_id) && (!state.status || (m.status || 'going') === state.status));
+      const batches = sortBatches(data.makes.filter(m => ids.has(m.recipe_id) && (!state.status || (m.status || 'going') === state.status)));
       const groups = state.section && !pinnedTab() ? [state.section] : sections.map(x => x.name).filter(n => list.some(r => (r.type || '') === n));
       const theirs = shared.filter(x => matches(x.r));
       const invites = invitesHtml(['recipe']);
@@ -180,12 +193,13 @@ export default {
             </div>
             <button type="button" class="bb-sections-edit filter-more" data-act="sections" title="Add, rename, reorder or remove books" aria-label="Edit books">⋯</button>
           </div>
-          ${state.batches ? `<div class="bb-status" role="group" aria-label="Status">${[['', 'All']].concat(STATUSES).map(([v, l]) => `<button type="button" data-status="${v}" aria-pressed="${state.status === v}">${l}</button>`).join('')}</div>`
+          ${state.batches ? `<div class="bb-status-row"><div class="bb-status" role="group" aria-label="Status">${[['', 'All']].concat(STATUSES).map(([v, l]) => `<button type="button" data-status="${v}" aria-pressed="${state.status === v}">${l}</button>`).join('')}</div>
+            <select class="bb-sort" data-batch-sort aria-label="Sort batches">${SORTS.map(([v, l]) => `<option value="${v}"${batchSort() === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div>`
             : tags.length ? `<div class="bb-tags">${tags.map(t => `<button type="button" class="chip" data-tag="${esc(t)}" aria-pressed="${state.tag === t}">${esc(t)}</button>`).join('')}</div>` : ''}
         </div>
         <div class="bb-body">
         ${!data.recipes.length && !shared.length && !invites ? `<div class="empty"><h2>No recipes yet.</h2><p class="muted">Add a recipe: ingredients, steps, photos and tasting notes. Each time you make it, start a batch: its own copy to change, what you have in and what to buy, readings, a diary and how it turned out.</p></div>`
-        : state.batches ? (batches.length ? `<div class="bb-batches bb-batch-list">${batches.map(batchRow).join('')}</div>` : `<div class="empty"><h2>No ${state.status ? `${STATUSES.find(s => s[0] === state.status)[1].toLowerCase()} ` : ''}batches here.</h2><p class="muted">Open a recipe and press Make this.</p></div>`)
+        : state.batches ? (batches.length ? `<ul class="bb-batches bb-batch-list">${batches.map(m => `<li data-id="${m.id}" data-depth="0"><button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button>${batchRow(m)}</li>`).join('')}</ul>` : `<div class="empty"><h2>No ${state.status ? `${STATUSES.find(s => s[0] === state.status)[1].toLowerCase()} ` : ''}batches here.</h2><p class="muted">Open a recipe and press Make this.</p></div>`)
         : `${list.length ? `<ul class="bb-grid bb-cards">${groups.map(name => { const mine = list.filter(r => (r.type || '') === name); return chapter(name, mine.length) + mine.map(r => card(r)).join(''); }).join('')}</ul>`
           : `<div class="empty"><h2>Nothing here yet.</h2>${pinnedTab() ? '<p class="muted">Press ☆ on a recipe to pin it here.</p>' : state.section && !state.q ? '<p class="muted">Press + New recipe to add one to this book.</p>' : ''}</div>`}
           ${theirs.length || invites ? `<h3 class="bb-chapter-title bb-shared-title" style="--bb:#7a6a55"><span>👥</span> Shared with me</h3>${invites}<ul class="bb-grid bb-shared">${theirs.map(x => card(x.r, x)).join('')}</ul>` : ''}`}
@@ -410,6 +424,7 @@ export default {
       el.innerHTML = `<div class="bb">${state.make ? makePage() : state.recipe ? recipePage() : overview()}</div>`;
       if (printAfter && state.recipe && !state.make) { printAfter = false; setTimeout(() => print(), 300); }
       kitFor().attach(el.querySelector('.bb-cards'));
+      batchKit.attach(el.querySelector('.bb-batch-list'));
       watchSticky();
       const box = el.querySelector('.bb-tasting');
       const r = state.recipe && !state.make && recipeOf(state.recipe);
@@ -568,6 +583,7 @@ export default {
         return later();
       }
       if (t.matches('[data-batch-list]')) return moveToList(t.value || null);
+      if (t.matches('[data-batch-sort]')) { settings.batch_sort = t.value; await store.updateSettings({ batch_sort: t.value }); return render(); }
       if (t.dataset.make) {
         await store.update('recipe_makes', state.make, { [t.dataset.make]: t.type === 'checkbox' ? t.checked : t.value.trim() });
         return later();
@@ -1022,6 +1038,32 @@ export default {
       });
       return kit;
     };
+    // The batches list drags like Tasks: the order you leave becomes Custom (quietly).
+    async function batchOrder(rows, label, ul, moved) {
+      const was = batchSort();
+      const writes = reorderWrites(rows, r => rankOfBatch(makeOf(r.id)), was === 'custom' ? moved : rows.map(r => r.id));
+      const before = writes.map(([r]) => [r.id, { rank: makeOf(r.id)?.rank ?? null }]);
+      if (writes.length) await store.updateMany('recipe_makes', writes.map(([r, k]) => [r.id, { rank: k }]));
+      if (was !== 'custom') { settings.batch_sort = 'custom'; await store.updateSettings({ batch_sort: 'custom' }); }
+      await render();
+      undoable(was === 'custom' ? 'Moved a batch' : 'Moved a batch (sorted by Custom now)', async () => {
+        await store.updateMany('recipe_makes', before);
+        if (was !== 'custom') { settings.batch_sort = was; await store.updateSettings({ batch_sort: was }); }
+        await render();
+      });
+    }
+    async function changeBatches(ids, patch, label) {
+      const before = ids.map(id => [id, Object.fromEntries(Object.keys(patch).map(k => [k, makeOf(id)?.[k] ?? null]))]);
+      await store.updateMany('recipe_makes', ids.map(id => [id, patch]));
+      await render();
+      undoable(label, async () => { await store.updateMany('recipe_makes', before); await render(); });
+    }
+    const batchKit = this.batchKit = createListKit({
+      reorder: true, noun: 'batch', onReorder: batchOrder,
+      actions: STATUSES.map(([v, l]) => ({ id: `status-${v}`, label: l, group: 'Status', run: ids => changeBatches(ids, { status: v }, `Marked ${l.toLowerCase()}`) }))
+        .concat([{ id: 'delete', label: 'Delete', danger: true, run: ids => changeBatches(ids, { deleted_at: now() }, `Deleted ${ids.length} batch${ids.length === 1 ? '' : 'es'}`) }]),
+    });
+
     async function moveRecipes(ids, patch, label) {
       const before = ids.map(id => [id, Object.fromEntries(Object.keys(patch).map(k => [k, recipeOf(id)?.[k] ?? (k === 'type' ? '' : null)]))]);
       await store.updateMany('recipes', ids.map(id => [id, patch]));
@@ -1050,7 +1092,7 @@ export default {
 
     // Esc with recipes chosen: the choosing ends first (before keyboard browsing's own Esc).
     this.onEsc = ev => {
-      if (ev.key === 'Escape' && kit?.size && !document.querySelector('dialog[open]') && !writing()) { ev.preventDefault(); ev.stopPropagation(); kit.escape(); }
+      if (ev.key === 'Escape' && (kit?.size || batchKit.size) && !document.querySelector('dialog[open]') && !writing()) { ev.preventDefault(); ev.stopPropagation(); kit?.escape(); batchKit.escape(); }
     };
     addEventListener('keydown', this.onEsc, true);
     this.onKey = ev => {
@@ -1080,6 +1122,7 @@ export default {
     removeEventListener('keydown', this.onKey);
     removeEventListener('keydown', this.onEsc, true);
     this.kit?.destroy();
+    this.batchKit?.destroy();
     this.stickWatch?.disconnect();
     store.useSpace(null);
   },
