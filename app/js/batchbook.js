@@ -102,6 +102,19 @@ export function amountText(ing, times = 1) {
 export const ingredientText = (ing, times = 1) => [amountText(ing, times), ing.item].filter(Boolean).join(' ');
 
 // One typed line → an ingredient: "3268g honey, Asda Orange Blossom", "½ onion", "Honey 3268 g", "2 UK cup flour (strong)"
+// Once (1.49.12, Mat: "3 cloves" had become 3 of the unit clove with no ingredient): an ingredient with a count unit
+// and no name gets the unit's word as its name, and a nameless copy added for a step's {cloves} goes.
+export async function fixBareUnits() {
+  for (const c of ['recipes', 'recipe_makes']) for (const r of await store.list(c)) {
+    const bare = (r.ingredients || []).filter(i => !String(i.item || '').trim() && i.unit && unitGroup(i.unit) === 'Count');
+    if (!bare.length) continue;
+    const words = bare.map(i => (UNITS.find(u => u[0] === i.unit)[4][0] || i.unit));
+    const ingredients = r.ingredients.filter(i => !(i.qty == null && !i.unit && words.includes(String(i.item).toLowerCase()) && !i.note)).map(i => (bare.includes(i) ? Object.assign({}, i, { unit: '', item: words[bare.indexOf(i)] }) : i));
+    await store.update(c, r.id, { ingredients });
+  }
+  await store.updateSettings({ batch_units_fix: 1 });
+}
+
 export function parseLine(line) {
   let text = line.replace(/^\s*[-*•]\s*/, '').trim();
   if (!text) return null;
@@ -119,7 +132,8 @@ export function parseLine(line) {
   const front = text.match(new RegExp(`^${QTY}\\s*(.*)$`));
   if (front) {
     const qty = parseQty(front[1]);
-    const got = unitAt(front[2]);
+    let got = unitAt(front[2]);
+    if (got && !got[1].trim() && unitGroup(got[0]) === 'Count') got = null;   // "3 cloves" alone: 3 of the spice, not 3 cloves of nothing
     return { id: store.uuidv7(), qty, unit: got ? got[0] : '', item: (got ? got[1] : front[2]).trim(), note };
   }
   // The amount at the end: "Honey 3268g", "Water 20.42 L"
