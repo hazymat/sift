@@ -561,3 +561,6 @@ NOTES['1.35.07'] = [
   F('On a phone, a sideways swipe does what ← and → do on a keyboard: Now, Next and Later in Tasks, the next or previous day in the Day Planner, the filters in Brain Dump. It no longer takes the browser back or forward a page (in Safari, from the screen\'s edge too).'),
   F('Settings: Navigation comes third, after Appearance.'),
 ]
+NOTES['1.35.08'] = [
+  F('The tour\'s "Never lose a note" step: when the rain starts to pour, and a lost cookie recipe.'),
+]
