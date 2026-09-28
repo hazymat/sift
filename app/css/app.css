@@ -3871,7 +3871,7 @@ body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none
 /* The batches list: rows like Tasks' (see-through until hovered), keeping each batch's colour. */
 .bb-batch-list { margin: 0; padding: 0; list-style: none; gap: var(--row-gap, 6px); }
 .bb-batch-list > li { display: flex; align-items: center; gap: 2px; border-radius: 14px; }
-.bb-batch-list > li > .bb-batch-row { flex: 1; min-width: 0; }
+.bb-batch-list > li > .bb-batch-row { flex: 1; min-width: 0; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 .bb-status-row { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
 .bb-status-row .bb-status { margin: 0; }
 .bb-sort { flex: none; width: auto; max-width: 9em; padding: 4px 8px; font-size: .85rem; }

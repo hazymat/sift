@@ -138,19 +138,21 @@ export default {
       </li>`;
     }
 
-    function batchRow(m) {
+    // In the batches list a row isn't a link (a hold on a link can't drag, hold.js): pressing it opens the batch.
+    function batchRow(m, draggable = false) {
       const r = recipeOf(m.recipe_id);
       const sec = sectionFor(r);
       const abv = abvOf(entriesOf(m.id, 'reading'));
       const photo = photoOf(m.id);
-      return `<a class="bb-batch-row" href="#/recipes/${m.recipe_id}/make/${m.id}${ownerPath()}" style="--bb:${colourOf(r)}">
+      const href = `#/recipes/${m.recipe_id}/make/${m.id}${ownerPath()}`;
+      return `<${draggable ? `div role="link" tabindex="0" data-href="${href}"` : `a href="${href}"`} class="bb-batch-row" style="--bb:${colourOf(r)}">
         ${photo ? `<img class="bb-batch-pic" src="${photo.thumb}" alt="">` : `<span class="bb-batch-emoji">${sec.emoji}</span>`}
         <span class="bb-batch-no">Batch #${esc(m.batch_no || '?')}</span>
         <span class="bb-batch-name">${esc(r?.title || 'Untitled')}${m.description && m.description !== r?.description ? ` <span class="muted">· ${esc(m.description)}</span>` : ''}</span>
         <span class="muted">${shortDate(m.date)}</span>
         ${abv ? `<span class="chip">${abv.abv.toFixed(2)}%</span>` : ''}
         <span class="chip bb-status-${m.status || 'going'}">${STATUSES.find(s => s[0] === (m.status || 'going'))[1]}</span>
-      </a>`;
+      </${draggable ? 'div' : 'a'}>`;
     }
 
     function paperHtml() {
@@ -199,7 +201,7 @@ export default {
         </div>
         <div class="bb-body">
         ${!data.recipes.length && !shared.length && !invites ? `<div class="empty"><h2>No recipes yet.</h2><p class="muted">Add a recipe: ingredients, steps, photos and tasting notes. Each time you make it, start a batch: its own copy to change, what you have in and what to buy, readings, a diary and how it turned out.</p></div>`
-        : state.batches ? (batches.length ? `<ul class="bb-batches bb-batch-list">${batches.map(m => `<li data-id="${m.id}" data-depth="0"><button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button>${batchRow(m)}</li>`).join('')}</ul>` : `<div class="empty"><h2>No ${state.status ? `${STATUSES.find(s => s[0] === state.status)[1].toLowerCase()} ` : ''}batches here.</h2><p class="muted">Open a recipe and press Make this.</p></div>`)
+        : state.batches ? (batches.length ? `<ul class="bb-batches bb-batch-list">${batches.map(m => `<li data-id="${m.id}" data-depth="0"><button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button>${batchRow(m, true)}</li>`).join('')}</ul>` : `<div class="empty"><h2>No ${state.status ? `${STATUSES.find(s => s[0] === state.status)[1].toLowerCase()} ` : ''}batches here.</h2><p class="muted">Open a recipe and press Make this.</p></div>`)
         : `${list.length ? `<ul class="bb-grid bb-cards">${groups.map(name => { const mine = list.filter(r => (r.type || '') === name); return chapter(name, mine.length) + mine.map(r => card(r)).join(''); }).join('')}</ul>`
           : `<div class="empty"><h2>Nothing here yet.</h2>${pinnedTab() ? '<p class="muted">Press ☆ on a recipe to pin it here.</p>' : state.section && !state.q ? '<p class="muted">Press + New recipe to add one to this book.</p>' : ''}</div>`}
           ${theirs.length || invites ? `<h3 class="bb-chapter-title bb-shared-title" style="--bb:#7a6a55"><span>👥</span> Shared with me</h3>${invites}<ul class="bb-grid bb-shared">${theirs.map(x => card(x.r, x)).join('')}</ul>` : ''}`}
@@ -658,7 +660,11 @@ export default {
       return pageRec();
     };
 
+    const openRow = row => { if (!batchKit.size) go(row.dataset.href); };
+    el.addEventListener('keydown', ev => { const row = ev.target.closest?.('.bb-batch-row[data-href]'); if (row && ev.key === 'Enter') openRow(row); });
     el.addEventListener('click', async ev => {
+      const row = ev.target.closest('.bb-batch-row[data-href]');
+      if (row) return openRow(row);
       if (att.onClick(ev, attParent, () => render())) return;
       const view = ev.target.closest('[data-step-view]');
       if (view && !ev.target.closest('a')) return openStep(view);
@@ -1059,7 +1065,7 @@ export default {
       undoable(label, async () => { await store.updateMany('recipe_makes', before); await render(); });
     }
     const batchKit = this.batchKit = createListKit({
-      reorder: true, noun: 'batch', onReorder: batchOrder,
+      reorder: true, holdAnywhere: true, noun: 'batch', onReorder: batchOrder, // press and hold anywhere on a row drags it, as in Tasks
       actions: STATUSES.map(([v, l]) => ({ id: `status-${v}`, label: l, group: 'Status', run: ids => changeBatches(ids, { status: v }, `Marked ${l.toLowerCase()}`) }))
         .concat([{ id: 'delete', label: 'Delete', danger: true, run: ids => changeBatches(ids, { deleted_at: now() }, `Deleted ${ids.length} batch${ids.length === 1 ? '' : 'es'}`) }]),
     });
