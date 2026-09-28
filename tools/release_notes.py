@@ -738,3 +738,7 @@ NOTES['1.40.00'] = [
   F('Batch Book: pin recipes like Brain Dump notes (☆ on a card, or select several): pinned ones come first in their book, and ★ Pinned in the bar shows them all.'),
   F('Batch Book: ⋯ at the end of the books bar adds, renames, reorders and removes books, as in Brain Dump.'),
 ]
+
+NOTES['1.40.01'] = [
+  B('Batch Book: scrolling down, the next book\'s heading slid over the one above it instead of pushing it up and out, and headings had a background even when not stuck at the top (now see-through, with glass only while stuck).'),
+]
