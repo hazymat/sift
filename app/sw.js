@@ -19,6 +19,7 @@ const SHELL = [
   'js/slide.js',
   'js/rowswipe.js',
   'js/keys.js',
+  'js/hold.js',
   'js/typesheet.js',
   'js/noteundo.js',
   'js/repeat.js',

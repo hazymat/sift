@@ -1043,15 +1043,17 @@ export default {
       ids.forEach(walk);
       return [...out];
     };
-    async function batchSet(ids, fields, label, { subs = false } = {}) {
+    async function batchSet(ids, fields, label, { subs = false, fade = false } = {}) {
       const all = subs ? withSubs(ids) : ids;
       const before = all.map(id => { const t = data.tasks.find(x => x.id === id); return [id, Object.fromEntries(Object.keys(fields).map(k => [k, t?.[k] ?? null]))]; });
+      const leaving = fade ? all.filter(id => { const t = data.tasks.find(x => x.id === id); return t && leavesList(t); }) : [];
       await store.updateMany('tasks', all.map(id => [id, fields]));
-      await render();
+      // Done: they fade out, with a note, as one ticked on its own does (tickAway redraws after).
+      if (leaving.length) tickAway(leaving); else await render();
       undoable(`${label} ${all.length} task${all.length === 1 ? '' : 's'}`, async () => { await store.updateMany('tasks', before); await render(); });
     }
     const taskActions = [
-      { id: 'done', label: 'Done', key: 'Ctrl+Enter', run: ids => batchSet(ids, doneFields(true), 'Done:') },
+      { id: 'done', label: 'Done', key: 'Ctrl+Enter', run: ids => batchSet(ids, doneFields(true), 'Done:', { fade: true }) },
       // Move ▸ opens sideways to the lists, less the one being looked at.
       { id: 'now', label: 'Now', group: 'Move', when: () => state.view !== 'now', run: ids => batchSet(ids, { horizon: 'now' }, 'Transferred to Now:') },
       { id: 'next', label: 'Next', group: 'Move', when: () => state.view !== 'next', run: ids => batchSet(ids, { horizon: 'next' }, 'Transferred to Next:') },
@@ -1121,9 +1123,11 @@ export default {
       const rows = ids.map(x => el.querySelector(`.task-list > li[data-task="${x}"]`)).filter(Boolean);
       if (!rows.length) return render();
       fading++;
-      for (const r of rows) { r.classList.add('done', 'ticked-away'); r.style.setProperty('--fade', `${FADE_MS}ms`); }
-      // On the task ticked: a note while it fades (untick it to keep it here).
-      rows[0].insertAdjacentHTML('beforeend', '<span class="done-note" aria-live="polite"><span class="done-glass" aria-hidden="true">⏳</span> Transferring to Done list</span>');
+      for (const r of rows) { r.classList.add('done', 'ticked-away'); r.style.setProperty('--fade', `${FADE_MS}ms`); const tick = r.querySelector(':scope > .tick'); if (tick) tick.checked = true; }
+      // On the task ticked: a note while it fades (untick it to keep it here). Several
+      // ticked at once: one note on each run of them next to each other.
+      const heads = rows.filter(r => !rows.includes(r.previousElementSibling));
+      heads.forEach((r, n) => r.insertAdjacentHTML('beforeend', `<span class="done-note"${n ? '' : ' aria-live="polite"'}><span class="done-glass" aria-hidden="true">⏳</span> Transferring to Done list</span>`));
       void rows[0].offsetHeight; // start from full view, then fade
       rows.forEach(r => r.classList.add('fading'));
       await new Promise(done => setTimeout(done, FADE_MS));

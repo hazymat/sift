@@ -69,7 +69,7 @@ export function createListKit({
     ${indent ? `<button type="button" data-kit="indent">Indent${keys('Tab')}</button><button type="button" data-kit="outdent">Outdent${keys('Shift+Tab')}</button>` : ''}
     ${reorder ? '<button type="button" data-kit="up" aria-label="Move up">↑</button><button type="button" data-kit="down" aria-label="Move down">↓</button>' : ''}
     ${actionsHtml}
-    <button type="button" data-kit="clear" aria-label="Clear selection">✕</button>`;
+    <button type="button" data-kit="clear" aria-label="Clear selection (Esc)">✕${keys('Esc')}</button>`;
   const closeGroups = () => bar.querySelectorAll('[data-kit-group]').forEach(g => { g.setAttribute('aria-expanded', 'false'); g.textContent = `${g.dataset.kitGroup} ▸`; g.nextElementSibling.hidden = true; });
   document.body.append(bar);
 
@@ -124,6 +124,9 @@ export function createListKit({
     for (let n = r.nextElementSibling; n && n.matches('li[data-id]') && depthOf(n) > d; n = n.nextElementSibling) out.push(n);
     return out;
   }
+
+  // Choosing rows takes the cursor out of any field (e.g. New task), so the bar's keys work.
+  const leaveTyping = () => { if (selected.size && typingIn(document.activeElement)) document.activeElement.blur(); };
 
   // Shift+↑ / ↓: the range from the anchor grows (or shrinks) by a row.
   function extend(dir) {
@@ -234,6 +237,7 @@ export function createListKit({
         }
         anchor = id;
         cursor = null;
+        leaveTyping();
         paint();
       },
       onPaint: (from, to) => {
@@ -244,6 +248,7 @@ export function createListKit({
         paintBase.forEach(x => selected.add(x));
         all.slice(a, b + 1).forEach(r => selected.add(r.dataset.id));
         anchor = from.dataset.id;
+        leaveTyping();
         paint();
       },
       onLift: li => {

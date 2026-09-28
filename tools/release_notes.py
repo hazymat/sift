@@ -675,3 +675,10 @@ NOTES['1.35.41'] = [
   B("Tasks, press and hold to drag: the shading spreads from your finger to the edges of the task as it lifts, and stays until you let go."),
   B("Tasks on an iPhone: holding a task to drag it no longer brings the keyboard up (which also shifted the page under your finger); and arriving on Tasks no longer puts the cursor in New task on a phone."),
 ]
+NOTES['1.35.42'] = [
+  F("Tasks: while dragging a task, a blue dashed outline shows the gap it will drop into (as it does on a task it would drop onto), and the task has a slight twist, as in the Day Planner."),
+  F("Day Planner: press and hold anywhere on an item (finger or mouse) to pick it up and drag it, with the same shading as Tasks. On a phone, a quick tap still gets an item ready to stretch."),
+  B("The shading on a held task no longer pulses again each time the drop place changes."),
+  F("Tasks: several marked done at once fade out with the \"Transferring to Done list\" note (one on each run of them), as one does."),
+  B("The selection bar's ✕ shows Esc; choosing tasks with ⠿ takes the cursor out of New task, so the bar's keys work straight away."),
+]

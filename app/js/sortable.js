@@ -13,10 +13,8 @@
 //   press and hold, then drag → drag as above (onLift(item) when it lifts)
 
 // With `anywhere` (a hold in ms): press and hold anywhere on a row (not on its
-// buttons or tick box; also while its name is being edited) lifts it too, after a ripple
-// spreads from the finger or pointer; a tap, or moving first (scrolling,
-// selecting text), is left alone. While lifted, the page doesn't scroll, and
-// the click that ends it doesn't start editing.
+// buttons or tick box; also while its name is being edited) lifts it too
+// (hold.js: the shading, and the keyboard kept down).
 // While dragging, the other rows slide out of the way (not jump). onDrag({ item,
 // dx, dy }) may return the sideways shift to show (e.g. snapped to a depth).
 
@@ -25,23 +23,17 @@
 //
 // With `onOnto(target | null)`, the middle of a row means "onto it" (e.g. make
 // it a sub-task) rather than before or after it: the list isn't reordered
-// there, onOnto says which row it's over, and onEnd gets it as `onto`.
-const NOT_HERE = 'button, a, select, label, input[type="checkbox"], input[type="radio"], .tick, .edit-pills, .row-acts, .note-in-place, [contenteditable="true"], .task-details';
+// there, onOnto says which row it's over, and onEnd gets it as `onto`. The
+// gap it would drop into otherwise has the same dashed outline (.drop-slot),
+// so there's always one outline saying where it will land.
+import { holdToLift, HOLD_SKIP } from './hold.js';
 
 export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere = 0, keyboard = true, grid = false, onMove, onEnd, onTap, onPaint, onLift, onDrag, onOnto } = {}) {
   let onto = null; // the row the dragged one is over the middle of (onOnto)
-  const setOnto = el => { if (el === onto) return; onto = el; onOnto?.(el); };
+  const setOnto = el => { if (el === onto) return; onto = el; onOnto?.(el); if (slot) slot.hidden = !!el; };
+  let slot = null; // the dashed outline of the gap it will drop into (with onOnto)
   let dragging = null;
   let pending = null; // pressed; waiting to see if it's a tap, swipe or hold
-  let holding = null; // pressed on a row itself (anywhere): waiting for the hold
-  let held = null; // lifted by a hold: its shading and read-only fields, undone when it's let go
-  const letGo = () => {
-    const h = held;
-    held = null;
-    if (!h) return;
-    h.ripple.classList.add('done');
-    setTimeout(() => { h.ripple.remove(); h.item.classList.remove('hold-pending'); for (const f of h.locked) f.readOnly = false; }, 350); // after the touch's end and its click
-  };
   let painting = null;
   let offsetY = 0;
   let offsetX = 0;
@@ -110,9 +102,10 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     // Translate so the item stays under the finger even after DOM moves.
     dragging.style.transform = '';
     const box = dragging.getBoundingClientRect();
+    if (slot) Object.assign(slot.style, { left: `${box.left}px`, top: `${box.top}px`, width: `${box.width}px`, height: `${box.height}px` }); // where it is in the list, before it's moved to follow the pointer
     dragging.style.transform = grid
       ? `translate(${clientX - offsetX - box.left}px, ${clientY - offsetY - box.top}px)`
-      : `translate(var(--dx, 0px), ${clientY - offsetY - box.top}px)`;
+      : `translate(var(--dx, 0px), ${clientY - offsetY - box.top}px) rotate(-.8deg)`; // a slight twist while carried, as in the Day Planner
   }
 
   function lift(item, x, y) {
@@ -123,64 +116,30 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     startY = lastY = y;
     item.classList.add('dragging');
     onLift?.(item);
+    if (onOnto && !grid) {
+      slot = document.createElement('div');
+      slot.className = 'drop-slot';
+      slot.setAttribute('aria-hidden', 'true');
+      slot.style.borderRadius = getComputedStyle(item).borderRadius;
+      document.body.append(slot);
+      follow(y, x);
+    }
     navigator.vibrate?.(10);
   }
 
-  // A hold anywhere on a row: a ripple from the pointer, then it lifts.
-  const dropHold = () => {
-    if (!holding) return;
-    clearTimeout(holding.timer);
-    holding.ripple.remove();
-    holding.item.classList.remove('hold-pending');
-    holding = null;
-  };
-  let quietClick = false; // the click that ends a lift from a row's text doesn't start editing it
-  let quietTouchEnd = false; // nor the touch's end
-  list.addEventListener('touchend', e => { if (quietTouchEnd) { quietTouchEnd = false; if (e.cancelable) e.preventDefault(); } }, { passive: false });
-  list.addEventListener('touchstart', () => { quietTouchEnd = false; }, { passive: true });
-  list.addEventListener('click', e => { if (quietClick) { quietClick = false; e.preventDefault(); e.stopPropagation(); } }, true);
-  list.addEventListener('pointerdown', e => {
-    if (!anywhere || e.button > 0 || dragging || e.target.closest(handle) || e.target.closest(NOT_HERE)) return;
-    const item = e.target.closest('li');
-    if (!item || item.parentElement !== list || item.hidden) return; // also while it's being edited: a hold leaves the editing and drags it
-    dropHold();
-    const box = item.getBoundingClientRect();
-    const ripple = document.createElement('span'); // a clip the size of the row, holding the spreading circle
-    ripple.className = 'hold-ripple';
-    ripple.setAttribute('aria-hidden', 'true');
-    ripple.innerHTML = '<span></span>';
-    // It spreads from the pointer to the row's farthest corner, filling the row just as it lifts.
-    const px = e.clientX - box.left, py = e.clientY - box.top;
-    const reach = Math.max(Math.hypot(px, py), Math.hypot(box.width - px, py), Math.hypot(px, box.height - py), Math.hypot(box.width - px, box.height - py));
-    Object.assign(ripple.firstChild.style, { left: `${px}px`, top: `${py}px`, animationDuration: `${anywhere}ms` });
-    ripple.firstChild.style.setProperty('--reach', (reach / 8) * 1.05); // the circle starts 16px across
-    item.classList.add('hold-pending');
-    item.append(ripple);
-    lastX = e.clientX;
-    lastY = e.clientY;
-    holding = {
-      item, x: e.clientX, y: e.clientY, ripple, pointerId: e.pointerId, locked: [],
-      timer: setTimeout(() => {
-        const h = holding;
-        holding = null;
-        held = h; // its shading stays, filling the row, until it's let go
-        // Lifted: not editing it (sortable-lift: e.g. its editing pills close), nothing half-selected, and the release isn't a click into it.
-        item.dispatchEvent(new CustomEvent('sortable-lift', { bubbles: true }));
-        // Any keyboard goes down too (it would shift the page under the finger).
-        if (item.contains(document.activeElement) || document.activeElement?.matches?.('input, textarea, [contenteditable="true"]')) document.activeElement.blur();
-        getSelection()?.removeAllRanges();
-        quietClick = true;
-        setTimeout(() => { quietClick = false; }, 1500);
-        quietTouchEnd = true; // an iPhone focuses the name (keyboard up) as the finger leaves it
-        // …or, held on a field, after half a second, whatever else happens: its fields are read-only till it's let go.
-        for (const f of item.querySelectorAll('input:not([type="checkbox"]):not([type="radio"]), textarea')) if (!f.readOnly) { f.readOnly = true; h.locked.push(f); }
-        try { list.setPointerCapture(h.pointerId); } catch {}
-        lift(h.item, lastX, lastY);
-      }, anywhere),
-    };
-  });
-  // While a row is lifted by touch, the page doesn't scroll.
-  list.addEventListener('touchmove', e => { if (dragging && e.cancelable) e.preventDefault(); }, { passive: false });
+  // A hold anywhere on a row lifts it too (hold.js).
+  const hold = anywhere ? holdToLift(list, {
+    rowAt: t => { const li = t.closest('li'); return li && li.parentElement === list && !li.hidden ? li : null; },
+    skip: `${handle}, ${HOLD_SKIP}`,
+    ms: anywhere,
+    busy: () => !!dragging,
+    onLift: (li, x, y, pointerId) => {
+      li.dispatchEvent(new CustomEvent('sortable-lift', { bubbles: true })); // e.g. its editing pills close
+      try { list.setPointerCapture(pointerId); } catch {}
+      lastX = x; lastY = y;
+      lift(li, x, y);
+    },
+  }) : null;
 
   list.addEventListener('pointerdown', e => {
     const grip = e.target.closest(handle);
@@ -205,7 +164,6 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
   list.addEventListener('pointermove', e => {
     lastX = e.clientX;
     lastY = e.clientY;
-    if (holding && Math.hypot(e.clientX - holding.x, e.clientY - holding.y) >= 6) dropHold(); // moved first: scrolling, or choosing text
     if (pending) {
       if (Math.hypot(e.clientX - pending.x, e.clientY - pending.y) < 6) return;
       clearTimeout(pending.timer);
@@ -227,8 +185,8 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
   });
 
   const finish = e => {
-    dropHold();
-    letGo();
+    hold?.cancel();
+    hold?.letGo();
     if (pending) {
       clearTimeout(pending.timer);
       const { item, event } = pending;
@@ -242,6 +200,8 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     }
     if (!dragging) return;
     const item = dragging;
+    slot?.remove();
+    slot = null;
     item.classList.remove('dragging');
     item.style.transform = '';
     item.style.removeProperty('--dx');
