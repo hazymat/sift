@@ -17,7 +17,9 @@
 // caller's actions, each with its keys; actions sharing a group sit behind one
 // button that opens sideways (e.g. Move → Now, Next, Later).
 //
-//   const kit = createListKit({ reorder, indent, maxDepth, actions, onReorder, noun, grid, families })
+//   const kit = createListKit({ reorder, indent, maxDepth, actions, onReorder, noun, grid, families, holdAnywhere })
+//   holdAnywhere: press and hold anywhere on a row drags it too (sortable.js), not only its ⠿
+//     (the ⠿ is still there for choosing several); holding it then doesn't open its panel (holdopen.js)
 //   families: rows keep their depth and a parent carries its children, but there's no indenting
 //   grid: true for cards laid out in rows and columns (drag follows the pointer both ways)
 //   after each render: kit.attach(ul)        on leaving the view: kit.destroy()
@@ -39,7 +41,7 @@ export const typingIn = el => !!el?.closest?.('input:not([type="checkbox"]):not(
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 export function createListKit({
-  reorder = true, indent = false, maxDepth = 1, actions = [], onReorder, noun = 'item', grid = false, families = false, onNest = null,
+  reorder = true, indent = false, maxDepth = 1, actions = [], onReorder, noun = 'item', grid = false, families = false, onNest = null, holdAnywhere = false,
 } = {}) {
   const selected = new Set();
   let anchor = null;
@@ -192,8 +194,10 @@ export function createListKit({
     if (!ul) { paint(); return; }
     if (wired.has(ul)) { paint(); return; }
     wired.add(ul);
+    if (holdAnywhere && reorder) ul.dataset.holdDrag = '';
     sortable(ul, {
       handle: '.drag-handle',
+      anywhere: holdAnywhere && reorder ? 300 : 0,
       holdMs: reorder ? 260 : 100000, // without reordering, a hold does nothing
       keyboard: reorder,
       grid,

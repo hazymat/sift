@@ -177,6 +177,8 @@ export function editPills(root, spec) {
   };
 
   root.addEventListener('focusin', onFocus);
+  const onLifted = () => { if (editing) close(); }; // held and lifted to be dragged (sortable.js)
+  root.addEventListener('sortable-lift', onLifted);
   if (spec.done) root.addEventListener('keydown', onDoneKey, true);
   root.addEventListener('change', onChange, true);
   root.addEventListener('input', onChange, true);
@@ -203,6 +205,7 @@ export function editPills(root, spec) {
     destroy() {
       removeEventListener('keydown', onAnyKey, true);
       root.removeEventListener('focusin', onFocus);
+      root.removeEventListener('sortable-lift', onLifted);
       root.removeEventListener('keydown', onDoneKey, true);
       root.removeEventListener('change', onChange, true);
       root.removeEventListener('input', onChange, true);

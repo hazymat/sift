@@ -12,17 +12,29 @@
 //   press and move straight away → onPaint(firstItem, itemUnderPointer) (swipe-select)
 //   press and hold, then drag → drag as above (onLift(item) when it lifts)
 
+// With `anywhere` (a hold in ms): press and hold anywhere on a row (not on its
+// buttons, tick box or a field being typed in) lifts it too, after a ripple
+// spreads from the finger or pointer; a tap, or moving first (scrolling,
+// selecting text), is left alone. While lifted, the page doesn't scroll, and
+// the click that ends it doesn't start editing.
+// While dragging, the other rows slide out of the way (not jump), and the row
+// follows the pointer sideways freely; onDrag's snapped shift (where it would
+// land: indent / outdent) shows as --snap.
+
 // With `grid: true` the items sit in rows and columns (cards): the dragged one
 // follows the pointer both ways and drops into the card it is over.
 //
 // With `onOnto(target | null)`, the middle of a row means "onto it" (e.g. make
 // it a sub-task) rather than before or after it: the list isn't reordered
 // there, onOnto says which row it's over, and onEnd gets it as `onto`.
-export function sortable(list, { handle = '.drag-handle', holdMs = 0, keyboard = true, grid = false, onMove, onEnd, onTap, onPaint, onLift, onDrag, onOnto } = {}) {
+const NOT_HERE = 'button, a, select, label, input[type="checkbox"], input[type="radio"], .tick, .edit-pills, .row-acts, .note-in-place, [contenteditable="true"], .task-details';
+
+export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere = 0, keyboard = true, grid = false, onMove, onEnd, onTap, onPaint, onLift, onDrag, onOnto } = {}) {
   let onto = null; // the row the dragged one is over the middle of (onOnto)
   const setOnto = el => { if (el === onto) return; onto = el; onOnto?.(el); };
   let dragging = null;
   let pending = null; // pressed; waiting to see if it's a tap, swipe or hold
+  let holding = null; // pressed on a row itself (anywhere): waiting for the hold
   let painting = null;
   let offsetY = 0;
   let offsetX = 0;
@@ -38,6 +50,18 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, keyboard =
     return rows.find(r => { const b = r.getBoundingClientRect(); return y >= b.top && y < b.bottom; })
       || (y < rows[0]?.getBoundingClientRect().top ? rows[0] : rows.at(-1));
   };
+
+  // The other rows slide to their new places rather than jump (from where they're showing now).
+  function slid(move) {
+    const others = siblings();
+    const was = new Map(others.map(el => [el, el.getBoundingClientRect().top]));
+    for (const el of others) for (const a of el.getAnimations()) if (a.id === 'make-room') a.cancel();
+    move();
+    for (const el of others) {
+      const d = was.get(el) - el.getBoundingClientRect().top;
+      if (Math.abs(d) > 1) el.animate([{ transform: `translateY(${d}px)` }, { transform: 'none' }], { duration: 150, easing: 'cubic-bezier(.2, .8, .2, 1)', id: 'make-room' });
+    }
+  }
 
   // Where the dragged item's visual centre now is, so the DOM follows it.
   function place(clientY, clientX = 0) {
@@ -63,12 +87,12 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, keyboard =
       const mid = r.top + r.height / 2;
       const before = dragging.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING;
       if (before && clientY < mid) {
-        list.insertBefore(dragging, el);
+        slid(() => list.insertBefore(dragging, el));
         onMove?.(dragging);
         return;
       }
       if (!before && clientY > mid && el.nextElementSibling !== dragging) {
-        el.after(dragging);
+        slid(() => el.after(dragging));
         onMove?.(dragging);
       }
     }
@@ -93,6 +117,52 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, keyboard =
     navigator.vibrate?.(10);
   }
 
+  // A hold anywhere on a row: a ripple from the pointer, then it lifts.
+  const dropHold = () => {
+    if (!holding) return;
+    clearTimeout(holding.timer);
+    holding.ripple.remove();
+    holding.item.classList.remove('hold-pending');
+    holding = null;
+  };
+  let quietClick = false; // the click that ends a lift from a row's text doesn't start editing it
+  list.addEventListener('click', e => { if (quietClick) { quietClick = false; e.preventDefault(); e.stopPropagation(); } }, true);
+  list.addEventListener('pointerdown', e => {
+    if (!anywhere || e.button > 0 || dragging || e.target.closest(handle) || e.target.closest(NOT_HERE)) return;
+    const item = e.target.closest('li');
+    if (!item || item.parentElement !== list || item.hidden || item.contains(document.activeElement) && e.target === document.activeElement) return;
+    dropHold();
+    const box = item.getBoundingClientRect();
+    const ripple = document.createElement('span'); // a clip the size of the row, holding the spreading circle
+    ripple.className = 'hold-ripple';
+    ripple.setAttribute('aria-hidden', 'true');
+    ripple.innerHTML = '<span></span>';
+    Object.assign(ripple.firstChild.style, { left: `${e.clientX - box.left}px`, top: `${e.clientY - box.top}px`, animationDuration: `${anywhere}ms` });
+    item.classList.add('hold-pending');
+    item.append(ripple);
+    lastX = e.clientX;
+    lastY = e.clientY;
+    holding = {
+      item, x: e.clientX, y: e.clientY, ripple, pointerId: e.pointerId,
+      timer: setTimeout(() => {
+        const h = holding;
+        holding = null;
+        h.ripple.classList.add('done');
+        setTimeout(() => { h.ripple.remove(); h.item.classList.remove('hold-pending'); }, 250);
+        // Lifted: not editing it (sortable-lift: e.g. its editing pills close), nothing half-selected, and the release isn't a click into it.
+        item.dispatchEvent(new CustomEvent('sortable-lift', { bubbles: true }));
+        if (item.contains(document.activeElement)) document.activeElement.blur();
+        getSelection()?.removeAllRanges();
+        quietClick = true;
+        setTimeout(() => { quietClick = false; }, 1500);
+        try { list.setPointerCapture(h.pointerId); } catch {}
+        lift(h.item, lastX, lastY);
+      }, anywhere),
+    };
+  });
+  // While a row is lifted by touch, the page doesn't scroll.
+  list.addEventListener('touchmove', e => { if (dragging && e.cancelable) e.preventDefault(); }, { passive: false });
+
   list.addEventListener('pointerdown', e => {
     const grip = e.target.closest(handle);
     if (!grip || !list.contains(grip) || e.button > 0) return;
@@ -116,6 +186,7 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, keyboard =
   list.addEventListener('pointermove', e => {
     lastX = e.clientX;
     lastY = e.clientY;
+    if (holding && Math.hypot(e.clientX - holding.x, e.clientY - holding.y) >= 6) dropHold(); // moved first: scrolling, or choosing text
     if (pending) {
       if (Math.hypot(e.clientX - pending.x, e.clientY - pending.y) < 6) return;
       clearTimeout(pending.timer);
@@ -129,14 +200,17 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, keyboard =
     if (!dragging) return;
     // onDrag may return the sideways shift to show (e.g. snapped to a depth).
     if (!grid) {
+      // It follows the pointer sideways; where it would land shows as --snap (app.css).
       const shown = onDrag?.({ item: dragging, dx: lastX - startX });
-      dragging.style.setProperty('--dx', `${shown ?? Math.max(-40, Math.min(40, lastX - startX))}px`);
+      dragging.style.setProperty('--dx', `${Math.max(-120, Math.min(160, lastX - startX))}px`);
+      dragging.style.setProperty('--snap', `${shown ?? 0}px`);
     }
     place(e.clientY, e.clientX);
     follow(e.clientY, e.clientX);
   });
 
   const finish = e => {
+    dropHold();
     if (pending) {
       clearTimeout(pending.timer);
       const { item, event } = pending;
@@ -153,6 +227,7 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, keyboard =
     item.classList.remove('dragging');
     item.style.transform = '';
     item.style.removeProperty('--dx');
+    item.style.removeProperty('--snap');
     dragging = null;
     const target = onto;
     if (onto) setOnto(null);

@@ -662,3 +662,6 @@ NOTES['1.35.38'] = [
   F("The selection bar says \"2 selected\", shows each button's keys, which work while things are selected (Ctrl+Enter Done, A Archive, D Delete, Tab / Shift+Tab Indent / Outdent), and only shows Indent or Outdent when some of the selection can go that way."),
   F("Tasks: Now, Next and Later sit behind one Move button that opens sideways (without the list you're looking at)."),
 ]
+NOTES['1.35.39'] = [
+  F("Tasks: press and hold anywhere on a task (finger or mouse) to drag it: a ripple spreads from where you press, then it lifts. Drag up or down (the others slide out of the way), onto another task to make it a sub-task, or sideways to indent or outdent (a bar shows where it will land). Holding a task no longer opens its panel. The ⠿ grab handle still selects several."),
+]

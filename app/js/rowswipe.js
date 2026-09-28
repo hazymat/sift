@@ -102,6 +102,7 @@ export function rowSwipe(root, { rows, face = null, actions }) {
   }, { passive: true });
   root.addEventListener('touchmove', ev => {
     if (!sw) return;
+    if (document.body.classList.contains('is-dragging')) { if (sw.side) tidy(sw.row); sw = null; return; } // the row was lifted (held): it's being dragged, not swiped
     const dx = ev.touches[0].clientX - sw.x, dy = ev.touches[0].clientY - sw.y;
     if (!sw.side) {
       if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { sw = null; return; } // scrolling the page
