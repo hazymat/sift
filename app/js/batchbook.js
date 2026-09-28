@@ -21,7 +21,7 @@ export const STARTER_SECTIONS = [
   { name: 'Cooking', emoji: '🍲', colour: '#3f8a5c', readings: false, fields: ['Serves', 'Time'] },
 ];
 // Looks for sections used by recipes but not set up (e.g. from the first version, which had fixed types).
-const KNOWN = { Mead: ['🐝', '#c8961e', true], Winemaking: ['🍷', '#9b2f52', true], Cider: ['🍏', '#6e9a2c', true], Brewing: ['🍺', '#c07a16', true], Breadmaking: ['🍞', '#a8733a', false], Cooking: ['🍲', '#3f8a5c', false] };
+const KNOWN = { Mead: ['🐝', '#c8961e', true], Winemaking: ['🍷', '#9b2f52', true], Cider: ['🍏', '#6e9a2c', true], Brewing: ['🍺', '#c07a16', true], Breadmaking: ['🍞', '#a8733a', false], Cooking: ['🍲', '#3f8a5c', false], Baking: ['🧁', '#b0663f', false], Drinks: ['🍹', '#2f7f9b', false], Cocktails: ['🍸', '#2f7f9b', false], Household: ['🧴', '#6b7a8f', false] };
 const plain = name => { const k = KNOWN[name]; return { name, emoji: k ? k[0] : '📖', colour: k ? k[1] : '#7a6a55', readings: k ? k[2] : false, fields: [], auto: true }; };
 // The sections set up, then any a recipe is in that aren't (so nothing is ever hidden).
 export function sectionsOf(settings, recipes) {
@@ -168,6 +168,67 @@ export function renameRefs(text, from, to) {
     if (name.toLowerCase() !== from.toLowerCase()) return whole;
     return `{${body.slice(0, body.toLowerCase().lastIndexOf(name.toLowerCase()))}${to}${own != null ? `|${own}` : ''}}`;
   });
+}
+
+// ---------- importing recipes as text ----------
+
+// Recipes typed or pasted as plain text (Markdown works), any number in one go:
+//   # Title                      starts a recipe
+//   Book: Cooking / Tags: a, b   lines straight under the title; any other "Name: value" is a detail (Serves: 4)
+//   other text                   the description
+//   ## Ingredients               one per line; a "### For the sauce" line notes the group on the lines under it
+//   ## Method                    numbered or bulleted steps; indented lines stay in their step, a ### line heads the next step
+//   ## Notes                     the tasting notes
+export const IMPORT_EXAMPLE = `# Quick flatbreads
+Book: Cooking
+Tags: bread, quick
+Serves: 4
+
+Soft flatbreads in 20 minutes.
+
+## Ingredients
+- 250 g self-raising flour
+- 250 g Greek yoghurt
+- 1 pinch salt
+### To serve
+- 2 tbsp butter, melted
+
+## Method
+1. Mix the flour, yoghurt and salt into a soft dough.
+2. Split into 4 and roll out thin.
+3. Dry fry 2 mins each side, then brush with the butter.
+   - Keep them warm in a tea towel.
+
+## Notes
+Good with anything saucy.`;
+export function parseRecipes(text) {
+  const recipes = [];
+  let rec = null, part = 'head', group = '', head = '', step = null;
+  const add = t => { step = { id: store.uuidv7(), text: head ? `${head}\n${t}` : t }; head = ''; rec.steps.push(step); };
+  for (const raw of String(text || '').replace(/\r\n?/g, '\n').split('\n')) {
+    const line = raw.replace(/\t/g, '  ').trimEnd(), trim = line.trim();
+    const h = trim.match(/^(#{1,3})\s+(.+)$/);
+    if (h && h[1] === '#') { rec = { title: h[2].trim(), type: '', tags: [], description: '', ingredients: [], steps: [], tasting: '', fields: {} }; recipes.push(rec); part = 'head'; group = head = ''; step = null; continue; }
+    if (!rec) continue;
+    if (h && h[1] === '##') { const name = h[2].toLowerCase(); part = /ingredient|need/.test(name) ? 'ing' : /method|step|direction|instruction/.test(name) ? 'method' : /note|tasting/.test(name) ? 'notes' : 'desc'; group = head = ''; step = null; continue; }
+    if (h) { if (part === 'ing') group = h[2].trim(); else if (part === 'method') head = h[2].trim(), step = null; continue; }
+    if (!trim) { if (part === 'head') part = 'desc'; if (part === 'desc' && rec.description) rec.description += '\n'; if (part === 'notes' && rec.tasting) rec.tasting += '\n'; continue; }
+    if (part === 'head') {
+      const kv = trim.match(/^([A-Za-z][\w ]{0,30}):\s*(.+)$/);
+      if (kv) { const key = kv[1].trim(), low = key.toLowerCase();
+        if (low === 'book') rec.type = kv[2].trim(); else if (low === 'tags') rec.tags = kv[2].split(',').map(t => t.trim().replace(/^#/, '')).filter(Boolean); else rec.fields[key] = kv[2].trim();
+        continue; }
+      part = 'desc';
+    }
+    if (part === 'desc') { rec.description += `${rec.description && !rec.description.endsWith('\n') ? '\n' : ''}${trim}`; continue; }
+    if (part === 'notes') { rec.tasting += `${rec.tasting && !rec.tasting.endsWith('\n') ? '\n' : ''}${line}`; continue; }
+    if (part === 'ing') { const ing = parseLine(trim); if (ing && group) { const g = group[0].toLowerCase() + group.slice(1); ing.note = ing.note ? `${g}; ${ing.note}` : g; } if (ing) rec.ingredients.push(ing); continue; }
+    const bullet = trim.match(/^(?:[-*•]|\d+[.)])\s+(.*)$/);
+    if (step && /^\s/.test(line)) step.text += `\n${bullet ? `- ${bullet[1]}` : trim}`;
+    else add(bullet ? bullet[1] : trim);
+  }
+  for (const r of recipes) { r.description = r.description.trim(); r.tasting = r.tasting.trim(); }
+  return recipes.filter(r => r.title);
 }
 
 // ---------- batches ----------

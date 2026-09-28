@@ -9,7 +9,7 @@
 
 import * as store from '../store.js';
 import * as att from '../attachments.js';
-import { sectionsOf, sectionOf, stepsOf, UNITS, parseLine, parseQty, qtyText, amountText, ingredientText, stepHtml, renameRefs, abvOf, nextBatchNo, loadBook, batchName, newBatchName, batchDay } from '../batchbook.js';
+import { sectionsOf, sectionOf, stepsOf, parseRecipes, IMPORT_EXAMPLE, UNITS, parseLine, parseQty, qtyText, amountText, ingredientText, stepHtml, renameRefs, abvOf, nextBatchNo, loadBook, batchName, newBatchName, batchDay } from '../batchbook.js';
 import { loadLists, nestItems, createList, addItems } from '../lists.js';
 import { richText, plainLines } from '../richtext.js';
 import { debounced } from '../autosave.js';
@@ -184,7 +184,7 @@ export default {
             ${cogHtml('recipes', paperHtml())}
             <details class="tool-menu page-more">
               <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
-              <div class="menu"><a href="#" data-act="sections">Edit books</a><a href="#/bin/archive/recipes">Show Archive</a><a href="#/bin/bin/recipes">Show Bin</a></div>
+              <div class="menu"><a href="#" data-act="sections">Edit books</a><a href="#" data-act="import">Import recipes</a><a href="#/bin/archive/recipes">Show Archive</a><a href="#/bin/bin/recipes">Show Bin</a></div>
             </details>
           </div>
           <div class="bb-sections-bar">
@@ -737,6 +737,7 @@ export default {
       if (act === 'new') return newRecipe();
 
       if (act === 'sections') return editSections();
+      if (act === 'import') return importRecipes();
       if (act === 'to-recipe') return go(`#/recipes/${makeOf(state.make)?.recipe_id || ''}${ownerPath()}`);
       if (act === 'add-field') {
         const name = (await askText('Add a detail', { placeholder: 'e.g. Oven temperature, Yeast, Serves', ok: 'Add' }))?.trim();
@@ -831,6 +832,50 @@ export default {
       }
       go(`#/recipes/${r.id}/make/${m.id}${ownerPath(owner)}`);
       undoable(`Started ${m.name}`, async () => { store.useSpace(owner ? store.spaceOf(owner) : null); await store.remove('recipe_makes', m.id); go(`#/recipes/${r.id}${ownerPath(owner)}`); });
+    }
+
+    // ---------- importing ----------
+    // Recipes as text, pasted or from a file (format in batchbook.js). The AI prompt lets anyone turn notes, photos
+    // of cards or web pages into that text with any AI chat. Books not set up yet are added.
+    const AI_PROMPT = `Turn the recipes I give you into plain text in exactly this format, one after another, keeping every recipe and all its details. Put each ingredient on its own line, amount and unit first. Put the recipe in a sensible book (for example Cooking, Baking or Drinks). Reply with just the recipes.\n\n${IMPORT_EXAMPLE}`;
+    async function importRecipes() {
+      const dlg = document.createElement('dialog');
+      dlg.className = 'sheet bb-import-sheet';
+      dlg.innerHTML = `<div class="sheet-handle"></div>
+        <h2>Import recipes</h2>
+        <p class="muted">Paste recipes below or choose a text file. Each starts with <b># and its name</b>, then its ingredients and method. Recipes somewhere else, in notes, photos or on websites? Copy the instructions, paste them into any AI chat with your recipes, then paste its answer here.</p>
+        <div class="sheet-actions"><button type="button" data-imp="prompt">📋 Copy instructions for an AI chat</button><label class="file-btn">Choose a file…<input type="file" accept=".md,.txt,text/plain,text/markdown" hidden></label></div>
+        <textarea class="bb-import-text no-inline" rows="10" placeholder="${esc(IMPORT_EXAMPLE.split('\n').slice(0, 9).join('\n'))}\n…" aria-label="Recipes to import"></textarea>
+        <p class="muted bb-import-found"></p>
+        <div class="sheet-actions"><button type="button" data-imp="cancel">Cancel</button><span class="spacer"></span><button type="button" class="primary" data-imp="go" disabled>Import</button></div>`;
+      document.body.append(dlg);
+      const box = dlg.querySelector('textarea'), found = dlg.querySelector('.bb-import-found'), go = dlg.querySelector('[data-imp="go"]');
+      let got = [];
+      const read = () => {
+        got = parseRecipes(box.value);
+        const books = Array.from(new Set(got.map(r => r.type || 'No book')));
+        found.textContent = got.length ? `${got.length} recipe${got.length === 1 ? '' : 's'} found, in ${books.join(', ')}` : box.value.trim() ? 'No recipes found: each needs a line starting with # and its name.' : '';
+        go.disabled = !got.length;
+      };
+      box.addEventListener('input', read);
+      dlg.querySelector('input[type=file]').addEventListener('change', async ev => { const f = ev.target.files[0]; if (f) { box.value = await f.text(); read(); } });
+      dlg.addEventListener('click', async ev => {
+        const b = ev.target.closest('[data-imp]');
+        if (!b) return;
+        if (b.dataset.imp === 'cancel') return dlg.close();
+        if (b.dataset.imp === 'prompt') { try { await navigator.clipboard.writeText(AI_PROMPT); toast('Copied: paste it into an AI chat with your recipes'); } catch { toast('Couldn\'t copy here'); } return; }
+        go.disabled = true;
+        const known = settings.batch_sections || sections.filter(x => !x.auto).map(x => ({ name: x.name, emoji: x.emoji, colour: x.colour, fields: x.fields, readings: !!x.readings }));
+        const added = Array.from(new Set(got.map(r => r.type).filter(t => t && !known.some(x => x.name === t)))).map(name => { const x = sectionOf(sections, name); return { name, emoji: x.emoji, colour: x.colour, fields: [], readings: x.readings }; });
+        if (added.length) await store.updateSettings({ batch_sections: known.concat(added) });
+        const made = [];
+        for (const r of got) made.push(await store.create('recipes', Object.assign(r, { fields: Object.assign(Object.fromEntries(sectionOf(sections, r.type).fields.map(k => [k, ''])), r.fields) })));
+        dlg.close();
+        undoable(`Imported ${made.length} recipe${made.length === 1 ? '' : 's'}`, async () => { for (const r of made) await store.remove('recipes', r.id); if (added.length) await store.updateSettings({ batch_sections: known }); render(); });
+      });
+      dlg.addEventListener('close', () => { dlg.remove(); render(); });
+      dlg.showModal();
+      box.focus();
     }
 
     // ---------- books ----------
