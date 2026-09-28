@@ -248,6 +248,51 @@ function installKeyNav() {
   });
 }
 
+// ---------- phones: side swipes ----------
+
+// A side swipe does what ← / → do on a keyboard: the page's tabs (Now, Next…),
+// the Day Planner's days, Brain Dump's filters. Swipe left for the next one.
+// Not from inside something that scrolls sideways, a dialog, a full-screen
+// note, a grab bar or a slider, while text is selected, or while writing in a
+// field (an empty one the page put the cursor in doesn't count: it's left).
+// In Safari, a swipe from the screen's edge would go back or forward a page:
+// touches starting there (not on a button or a field) are kept for the app.
+// (An app on the Home Screen has no such swipe, and Android's own back gesture
+// can't be stopped.) overscroll-behavior-x in app.css stops the same in Chrome.
+function installSwipe() {
+  if (!matchMedia('(pointer: coarse)').matches) return;
+  const EDGE = 20;
+  const safariTab = /iPhone|iPad|iPod/.test(navigator.userAgent) && !navigator.standalone;
+  let start = null;
+  addEventListener('touchstart', ev => {
+    if (ev.touches.length !== 1) { start = null; return; }
+    const t = ev.touches[0];
+    start = { x: t.clientX, y: t.clientY, at: Date.now(), el: ev.target };
+    const edge = t.clientX < EDGE || t.clientX > innerWidth - EDGE;
+    if (safariTab && edge && !ev.target.closest?.('a, button, input, textarea, select, label, summary, [contenteditable="true"], [role="button"]')) ev.preventDefault();
+  }, { passive: false });
+  addEventListener('touchcancel', () => { start = null; });
+  addEventListener('touchend', ev => {
+    const s = start;
+    start = null;
+    if (!s) return;
+    const t = ev.changedTouches[0], dx = t.clientX - s.x, dy = t.clientY - s.y;
+    if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) / 2 || Date.now() - s.at > 700) return;
+    if (document.body.classList.contains('is-dragging') || getSelection()?.toString()) return;
+    if (s.el.closest?.('dialog, .rich.is-full, .drag-handle, .kit-grip, .drag-grip, .resize-grip, input[type="range"], .dd-menu, .pill-menu')) return;
+    for (let n = s.el; n && n !== document.body; n = n.parentElement) {
+      if (n.scrollWidth > n.clientWidth + 1 && /auto|scroll/.test(getComputedStyle(n).overflowX)) return;
+    }
+    const field = document.activeElement?.closest?.('input:not([type="checkbox"]), textarea, [contenteditable="true"]');
+    if (field) {
+      if ((field.isContentEditable ? field.textContent : field.value).trim()) return;
+      field.blur();
+    }
+    const key = dx < 0 ? 'ArrowRight' : 'ArrowLeft';
+    (document.activeElement || document.body).dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+  }, { passive: true });
+}
+
 // ---------- routing ----------
 
 // The very first time Sift is opened on this device, with nothing in it yet
@@ -492,6 +537,7 @@ async function boot() {
   applyDensity = installViewCog(() => current);
   installShare(() => current);
   installKeyNav();
+  installSwipe();
   // A dropdown menu opens inside the screen: flipped to the other side if
   // it would run off the left or right edge.
   document.addEventListener('toggle', ev => {
