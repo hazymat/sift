@@ -12,7 +12,7 @@ It's built around one idea: **getting things out of your head should cost nothin
 
 - **Brain Dump**: write anything, instantly. Notes you can turn into tasks, plans, contacts or stored things, and the note stays, linked to what it became.
 - **Tasks**: lists for Now, Next and Later, sub-tasks, dates, time estimates, energy levels, projects, recurring tasks, and a running record of what actually happened on each one.
-- **Day Planner**: your day on paper. Give tasks times and lengths, see your energy and focus for the day, carry unfinished things over, and let things go without guilt.
+- **Day Planner**: your day on paper. Give tasks times and lengths, see your energy and focus for the day, carry unfinished things over, and let things go without guilt. Your Google Calendar can sit above it, and any event goes into your plan in one tap.
 - **Lists**: shopping, packing, templates you can reuse.
 - **Find Things**: where things are kept, down to the box and shelf, with photos and search.
 - **Contacts and Cases**: every call, letter and task about one saga (a complaint, a claim, a repair) in a single timeline.
@@ -39,6 +39,10 @@ Any task can collect dated comments: "rang them, need their reference number", "
 ### Plans that happen by themselves
 
 Give a task a day and it's on that day's plan; change the day and it moves. Make a task recurring ("put the bins out, every Tuesday") and ticking it makes the next one, on the right day, with its checklist ready again. Missed ones never pile up.
+
+### Your calendar, on your day
+
+Turn on Google Calendar and what's on shows above your plan. Tap **+ Add to plan** and an event becomes part of your day, at its time, with its details as the note, to move like anything else. It only reads your calendar, only the days you look at (a week ahead, further when you ask), and keeps them on your device, so nothing is copied anywhere else.
 
 ### Planning around your energy
 
@@ -69,6 +73,7 @@ Apple Notes and Google Keep are good at keeping notes. Sift is for what happens 
 | Turn a line into a task or a contact, and keep the line | No (copy it by hand) | No (a reminder at most) | Yes, and the line becomes a link |
 | A phone number in a note is a real contact, with a call log | Tap to call only | Tap to call only | Yes |
 | Your day on paper: tasks given times and lengths, unfinished things carried over | No | No | Day Planner |
+| Your Google Calendar beside your plan, events added to it in one tap | No | No | Yes |
 | Recurring tasks that land on the right day | No | Reminders only | Yes |
 | A running record of what happened on each task | No | No | Comments |
 | Energy levels: choose today's tasks by how you feel | No | No | Yes |

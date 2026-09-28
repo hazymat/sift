@@ -55,6 +55,8 @@ How work on Sift is done: where things are, the rules, and where it has got to. 
 - `app/js/browse.js`: keyboard browsing; one table of per-area settings (search box, filter bar, items, what Enter / Down do). The highlight is `.kb-cur` (same look everywhere).
 - `app/js/inline.js`: one-line fields: Enter or leaving saves ("Saved · Undo"); Esc saves and leaves.
 - `app/js/listkit.js`: shared list behaviour (select by the grab handle, drag, selection bar, Delete key).
+- `app/js/gcal.js`: Google Calendar, read only, for the Day Planner (sign-in, day-by-day fetch, device-only cache); the box and **+ Add to plan** are in `views/planner.js` (`renderGcal`).
+- `app/js/hold.js`: press and hold to pick a row up (Tasks via `sortable.js`, the Day Planner). `app/js/undo.js`: Ctrl+Z / Ctrl+Y outside text, from History. `app/js/keys.js`: shortcut key boxes.
 - `app/js/rowswipe.js`: phones, swiping a row for its actions (Tasks, Day Planner items). `app/js/slide.js`: the page sliding sideways (a side swipe, Brain Dump's filters); `installSwipe()` in `app.js` turns a side swipe into ← / →.
 - `app/js/views/*.js`: one module per area. `smoke.js`: the page check (dev only, not cached).
 - `app/js/views/welcome.js`: the first time Sift is opened on a device with nothing in it (`firstVisit()` in `app.js`): tour now, later (a task with `tour: true`, whose pill starts it), or not at all. `app/js/tour.js`: the tours (`TOURS`: each has its steps, its place kept on the device in `tour_at`, and its task, `tour: <id>`) and how they point at things; a step can wait for something to be tried (`done`).

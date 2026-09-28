@@ -20,11 +20,31 @@ const CTRL = MAC ? '⌘' : 'Ctrl';
 // Keys drawn one box each: key('Ctrl', '→') is [Ctrl] + [→]. Arrows are drawn larger.
 const key = (...keys) => keys.map(k => `<kbd${/^[←→↑↓]$/.test(k) ? ' class="tour-arrow"' : ''}>${k}</kbd>`).join('<span class="tour-plus">+</span>');
 
+// While the tour shows Google Calendar: a made-up day of it (unless this device
+// shows the real one), put back as it was when the step is left. The buttons do nothing.
+function sampleCalendar() {
+  const box = document.querySelector('.planner .gcal');
+  if (!box) return null;
+  if (!box.hidden && !box.querySelector('[data-gcal="connect"]')) return () => {}; // the real one's showing
+  const was = { hidden: box.hidden, html: box.innerHTML };
+  const add = '<button type="button" class="gcal-add" tabindex="-1">+ Add to plan</button>';
+  box.hidden = false;
+  box.classList.add('gcal-sample');
+  box.innerHTML = `<div class="gcal-head"><h3>Google Calendar</h3><span class="muted gcal-status">Updated just now (an example)</span><button type="button" class="gcal-btn" tabindex="-1">↻ Refresh</button></div>
+    <ul class="gcal-list">
+      <li class="gcal-event all-day"><span class="gcal-when">All day</span> <span class="gcal-title">School inset day</span>${add}</li>
+      <li class="gcal-event"><span class="gcal-when">9.00–9.30</span> <span class="gcal-title">Dentist</span> <span class="muted gcal-where">· High Street</span>${add}</li>
+      <li class="gcal-event"><span class="gcal-when">14.00–15.00</span> <span class="gcal-title">Team call</span><span class="muted gcal-added">✓ In your plan</span></li>
+    </ul>`;
+  return () => { box.classList.remove('gcal-sample'); box.hidden = was.hidden; box.innerHTML = was.html; };
+}
+
 // A step: { id (where the tour carries on from), hash (go there first), at (what
 // to point at: the first selector in the list with something showing; none: a
 // card in the middle), also (a second thing to outline, e.g. its place in the
 // navigation), open (a menu to open while the step shows), title, body, only
-// ('keys' or 'touch'), focus (put the cursor there), done (how trying it is
+// ('keys' or 'touch'), enter (set something up while the step shows; returns
+// what undoes it), focus (put the cursor there), done (how trying it is
 // noticed: { made: [collections] } something new saved, or { hash } arriving there) }.
 // Built when the tour starts, so areas are called what the user calls them.
 function newUserSteps() {
@@ -100,6 +120,8 @@ function newUserSteps() {
       <p>You could even skip ${w('area_tasks')} altogether and work from here alone.</p>` },
     { id: 'focus', hash: '#/planner', at: '.planner .focus-row', title: 'Plan around how you feel', body: `<p><b>Day focus</b>: the one thing that matters today. <b>Energy</b>: how you feel, so the planner can suggest tasks that fit.</p>
         <p>Days you'd rather rest (Settings → ${word('area_planner')}) get a gentle reminder to do less.</p>` },
+    { id: 'gcal', hash: '#/planner', at: '.planner .gcal', also: '.planner .view-menu > summary', enter: sampleCalendar, title: 'Your Google Calendar, on your day', body: `<p>See what's on in your Google Calendar above your plan. Here are some examples. <b>+ Add to plan</b> puts an event in your plan at its time, with its details as the note, to move like anything else.</p>
+        <p>It only reads your calendar, a week at a time (further ahead when you ask), and keeps it on this device. Turn it on or off in <b>👁 → Show Google Calendar</b>.</p>` },
     { id: 'daynotes', hash: '#/planner', at: '.planner .day-notes', title: "The day's notes", body: `<p>Notes for this day only: what happened, who rang, what to remember tomorrow. Written as you go, they become a diary without you ever sitting down to keep one.</p>
         <p>They're like any note: search finds them, and 📝 links them to a task, a contact or anything else.</p>` },
     { id: 'view', hash: '#/planner', at: '.planner .view-menu .menu, .planner .view-menu', open: '.planner .view-menu', title: '👁 Lay the page out your way', body: `<p>👁 is full of ways to lay this page out. Have a play: nothing here can break anything.</p>
@@ -230,7 +252,8 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
     card.style.left = `${Math.round(Math.max(12, left))}px`;
   };
 
-  const shut = () => { if (opened) { opened.open = false; opened = null; } };
+  let undoEnter = null; // what the step's enter() set up, undone when it's left
+  const shut = () => { if (opened) { opened.open = false; opened = null; } undoEnter?.(); undoEnter = null; };
   async function show(n) {
     stopWaiting();
     shut();
@@ -240,6 +263,7 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
     const last = n === all.length - 1;
     if (step.hash && !location.hash.startsWith(step.hash)) location.hash = step.hash;
     target = extra = null;
+    if (step.enter) { for (let tries = 0; tries < 40 && current(n) && !(undoEnter = step.enter()); tries++) await new Promise(ok => setTimeout(ok, 75)); } // (once the page is drawn)
     const k = letter => (KEYS ? ` <kbd>${letter}</kbd>` : '');
     card.innerHTML = `<div class="tour-head"><span class="tour-count">${n + 1} of ${all.length}</span><button type="button" class="tour-x" data-tour="later" aria-label="End the tour early" title="End the tour early: it waits on your task list">✕</button></div>
       <h3>${step.title}</h3><div class="tour-body">${step.body}</div>

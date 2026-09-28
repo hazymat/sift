@@ -280,7 +280,21 @@ export default {
       const w = planner.offsetWidth;
       if (w > 1000) planner.classList.add('docked');
       else if (w < 960) planner.classList.remove('docked');
+      gcalPlace();
     };
+    // Google Calendar beside the date (very wide screens, app.css) only while every
+    // line in it fits on one line there; otherwise it takes its own row.
+    const wideScreen = matchMedia('(min-width: 1400px)');
+    function gcalPlace() {
+      const box = $('.gcal');
+      planner.classList.remove('gcal-beside');
+      if (!box || box.hidden || !planner.classList.contains('docked') || planner.classList.contains('tasks-first') || !wideScreen.matches) return;
+      planner.classList.add('gcal-beside');
+      const oneRow = el => { const parts = [...el.children].filter(c => c.getClientRects().length); return parts.every(c => Math.abs(c.getBoundingClientRect().top - parts[0].getBoundingClientRect().top) < 16); };
+      const head = box.querySelector('.gcal-head');
+      const headFits = !head || oneRow(head);
+      if (!headFits || ![...box.querySelectorAll('.gcal-event')].every(oneRow)) planner.classList.remove('gcal-beside');
+    }
     dock(); // now as well, so a wide screen doesn't open narrow and then jump
     this.dockWatch?.disconnect();
     this.dockWatch = new ResizeObserver(nextFrame(dock));
@@ -923,7 +937,7 @@ export default {
       const box = $('.gcal');
       if (!box) return;
       box.hidden = !layoutOn('planner', 'gcal');
-      if (box.hidden) return;
+      if (box.hidden) return gcalPlace();
       const shownDate = date;
       const got = await gcal.dayEvents(date);
       if (shownDate !== date) return;
@@ -947,6 +961,7 @@ export default {
           : '<p class="muted gcal-empty">Nothing on.</p>')
         : `<p class="muted gcal-empty">Calendar not loaded for this day. ${btn('load', 'Load')}</p>`;
       box.innerHTML = `<div class="gcal-head"><h3>Google Calendar</h3><span class="muted gcal-status" aria-live="polite">${status}</span>${actions}</div>${list}`;
+      gcalPlace();
     }
     // An event into the plan: an item like any other (with a tick), at its time (all-day: in the
     // day's tasks), its description as the note; it can be moved like any other.

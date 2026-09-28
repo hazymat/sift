@@ -30,7 +30,7 @@
 | Crypto | WebCrypto (built into browser) | PBKDF2, AES-GCM, SHA-256. No dependency. |
 | Sync server | Node.js + SQLite (`better-sqlite3`) + blobs on disk, one Docker container | Small, self-hostable anywhere (home server, Pi, free-tier VPS). |
 | HTTPS | Caddy in front, Let's Encrypt via DNS challenge | Browsers block an HTTPS app calling an HTTP server. DNS challenge works even when the server is only reachable over VPN. |
-| Calendar | Google Calendar API from the browser via Google Identity Services | Free, no server involvement. |
+| Calendar | Google Calendar API from the browser via Google Identity Services (read only, `js/gcal.js`) | Free, no server involvement. |
 
 ### 3.1 Platform storage notes
 
@@ -107,10 +107,12 @@ Each paper sets fonts, colours, spacing and time format through tokens scoped to
 - **Walking breaks**: with the **focus timer** (a Pomodoro-style timer started from any item: e.g. 25 min work / 5 min break), low-energy (laptop) items get a "walk around for 10 minutes" break built in.
 - Other nudges to consider: a gentle warning when the planned minutes exceed the hours in the day ("that's 11 hours of plan for 10 hours"); an automatic "rest" line after lunch on down days; celebrating a done list at the end of the day ("You did 6 things") instead of highlighting what didn't happen; unfinished items move on quietly (carry-over) rather than showing as failures.
 
-**Calendar awareness** (phase 3): real appointments from the connected calendar are drawn on the timeline as busy blocks (read only). Scheduling an item over one warns, and the pile can suggest free slots that fit an item's estimate.
+**Google Calendar** (built, 1.35.44; see §6): 👁 → *Show Google Calendar* puts the day's events above the schedule (on very wide screens beside the date, focus and energy, while each line fits; otherwise a full-width row). **+ Add to plan** makes a normal item from an event.
+
+**Calendar awareness** (later): real appointments drawn on the timeline as busy blocks (read only). Scheduling an item over one warns, and the pile can suggest free slots that fit an item's estimate.
 
 - `days`: `id = date (YYYY-MM-DD, so every device edits the same record), date, focus, energy (high|medium|low)?, notes (markdown), paper? (override of the default paper style)`
-- `day_items`: `date (YYYY-MM-DD), title, notes?, time? (HH:MM), end_time?, estimate_min? (shown as Duration), estimate_unsure ("Not sure yet"), done_at?, dropped_at? (let go), sort_order, task_id?, case_id?, contact_ids[], source_thought_id?, carried_from? (date), merged_from[]? (ids of items combined into this one)`
+- `day_items`: `date (YYYY-MM-DD), title, notes?, time? (HH:MM), end_time?, estimate_min? (shown as Duration), estimate_unsure ("Not sure yet"), done_at?, dropped_at? (let go), sort_order, task_id?, case_id?, contact_ids[], source_thought_id?, carried_from? (date), merged_from[]? (ids of items combined into this one), gcal_id? (the Google Calendar event it was added from)`
   - No `time` = on the day's pile. With `time` = on the timeline, sorted by time.
   - Moving to another day = change `date` (carry-over also sets `carried_from`).
   - Separate records per item (not an array on the day) so edits from two devices merge per item.
@@ -261,13 +263,20 @@ Where it applies (2026-09-25): Brain Dump notes, Find Things boxes and things, L
 
 ## 6. Google Calendar integration
 
-- Scope `https://www.googleapis.com/auth/calendar.events`, requested only when the user enables it.
-- Google Identity Services token client in the browser (no refresh token; ~1h tokens re-acquired silently while the Google session is active).
-- One-way push: task with due date and `calendar_sync = push` creates/updates/deletes an event; `calendar_event_id` stored on the task.
-- Read: the day's events are fetched (read only) and shown as busy blocks in Day Planner, so I don't plan my own work over real appointments. Cached for offline viewing.
-- `calendar.js` is a small connector interface (`list_events(from, to)`, `push_event`, `delete_event`), Google first; CalDAV / ICS feed connectors can follow.
-- Offline: calendar operations queued in `calendar_outbox`, flushed on reconnect.
-- The OAuth client is tied to the GitHub Pages origin; Google app verification (free) needed before >100 users can connect.
+**Built (1.35.44): read only, in the Day Planner** (`js/gcal.js`, `views/planner.js`).
+- Turned on per the 👁 Layout option *Show Google Calendar* (off to start with). A box above the schedule shows the day's events (all-day first, then by time, each with its place and a link to Google), and its state: *Not connected* / *Updated 5 min ago* / *Refreshing…* / *tap ↻ to refresh*, with **Connect Google Calendar**, **↻ Refresh** and **Disconnect**.
+- Scope `https://www.googleapis.com/auth/calendar.readonly`. Google Identity Services token client in the browser: no server, no client secret, no refresh token. The token (about an hour) is kept for the browser session; when it has run out, Refresh / Load / Connect ask again (a popup, so only from a tap). Disconnect revokes it and clears the cache.
+- What's fetched is kept small: the **primary** calendar only; one request per range (`singleEvents=true`, `orderBy=startTime`); only `id, summary, description, start, end, location, status, htmlLink`. Cancelled events are skipped; all-day and multi-day events show on each day they cover.
+- **Which days**: today and the next 7 load by themselves (one request) when the page shows them, while a token is live, if not fetched in the last 30 minutes. Other days show *Calendar not loaded for this day · Load*; a loaded day stays loaded. **Refresh** fetches again: today to +7, every day loaded from today on, and the day shown (one request covering them; only those days are kept). Past days are never fetched again.
+- **Stored on the device only** (`sync_meta`: `gcal:YYYY-MM-DD` = `{ at, events }`, and `gcal:days`), never synced.
+- **+ Add to plan**: makes a normal `day_items` record: title; `time` / `end_time` for a timed event (all-day: in the day's Tasks, at the end); `notes` = the description as plain text, plus `📍 place`; `gcal_id` = the event's id (the event then shows *✓ In your plan*). Undo in the message.
+- The OAuth client (Client ID in `gcal.js`) is tied to the GitHub Pages origin and `http://localhost:5173`; while the Google project is in Testing, only its test users can connect. Google verification (free, for this sensitive scope) is needed before anyone else can.
+
+**Later:**
+- Busy blocks on the timeline (§4.2a *Calendar awareness*).
+- Choosing other calendars besides the primary (Settings).
+- One-way push: a task with a due date and `calendar_sync = push` creates/updates/deletes an event (`calendar.events` scope); `calendar_event_id` stored on the task. Offline pushes queued in `calendar_outbox`.
+- Other connectors (CalDAV, ICS feed) behind the same small interface.
 
 ## 7. Search
 
@@ -390,7 +399,7 @@ Where it applies (2026-09-25): Brain Dump notes, Find Things boxes and things, L
   js/backup.js               backup / restore / CSV import
   js/crypto.js               key derivation, wrap/unwrap, encrypt/decrypt
   js/sync.js                 outbox, push/pull, merge, blob sync
-  js/calendar.js
+  js/gcal.js                 Google Calendar, read only (Day Planner)
   js/views/{tasks,planner,dump,places,contacts,contracts,recipes,scans,settings,bin}.js
   vendor/{minisearch,pdfjs}/
   icons/

@@ -689,3 +689,7 @@ NOTES['1.35.44'] = [
   F("Day Planner: Google Calendar (👁 Show Google Calendar). Connect once; what's on shows above the schedule. Today and the next 7 days load by themselves, further days with Load, and Refresh fetches them again. Only your main calendar, only the days you look at, kept on this device. + Add to plan puts an event in the plan at its time (all-day ones in the day's tasks), its description as the note."),
   B("Tasks: dragging a sub-task out of its group shows the gap it will drop into as a separate rounded box again."),
 ]
+NOTES['1.35.45'] = [
+  B("Day Planner, Google Calendar: on a very wide screen it sits beside the date, focus and energy, above Tasks (while each line fits); otherwise it takes its own full-width row."),
+  F("The tour shows Google Calendar in the Day Planner, with a made-up example day, and where to turn it on or off (👁)."),
+]
