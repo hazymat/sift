@@ -643,3 +643,6 @@ NOTES['1.35.32'] = [
 NOTES['1.35.33'] = [
   F("Day Planner tasks: the New task line is at the top; done tasks stay in view at the bottom, crossed out, after an empty line, instead of folding away under Done."),
 ]
+NOTES['1.35.34'] = [
+  F("The tour shows the ways to use tasks: one big list brought into each day, small things just for today, or both, or the Day Planner alone."),
+]

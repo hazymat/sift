@@ -93,6 +93,12 @@ function newUserSteps() {
     { id: 'drag', hash: '#/planner', at: '.planner .pile', title: 'From tasks to a time', body: `<p>The day's tasks wait here. Drag a task's <b>⠿</b> onto a time in the plan to give it that time, then drag the bottom of it down to say how long it takes.</p>${KEYS ? '' : `
         <p>On a phone, tap an item once to get it ready: then drag it by any part of it to another time, or drag the bar at its bottom down to make it longer. Tap it again to change its words.</p>`}
         <p><b>↓ Bring in from tasks</b> brings in what's planned for today, and ideas that suit today's energy.</p>` },
+    { id: 'twoways', hash: '#/planner', at: '.planner .pile', title: 'Tasks, your way', body: `<p>Use tasks however suits you:</p>
+      <ul><li><b>One big list</b> in ${w('area_tasks')}, bringing in each day what's for today.</li>
+      <li><b>Just for today</b>: small things added straight to the day, that don't belong on your bigger list.</li></ul>
+      <p>Either way, they stay on the ${w('area_planner')} for the day they're your focus: as a simple to-do, or in a time slot if you want. It's flexible.</p>
+      <p>Mix the two, and change your mind whenever: <b>→ Tasks</b> in a day's task's details moves it onto your main list in one ${tap}.</p>
+      <p>Or ignore ${w('area_tasks')} altogether and work from the ${w('area_planner')} alone. It's up to you.</p>` },
     { id: 'focus', hash: '#/planner', at: '.planner .focus-row', title: 'Plan around how you feel', body: `<p><b>Day focus</b>: the one thing that matters today. <b>Energy</b>: how you feel, so the planner can suggest tasks that fit.</p>
         <p>Days you'd rather rest (Settings → ${word('area_planner')}) get a gentle reminder to do less.</p>` },
     { id: 'daynotes', hash: '#/planner', at: '.planner .day-notes', title: "The day's notes", body: `<p>Notes for this day only: what happened, who rang, what to remember tomorrow. Written as you go, they become a diary without you ever sitting down to keep one.</p>
