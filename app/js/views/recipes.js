@@ -215,7 +215,6 @@ export default {
     // ---------- pieces used on both pages ----------
 
     const line = (margin, content, tools = '', attrs = '') => `<div class="bb-line" ${attrs}><span class="bb-margin">${margin}</span><span class="bb-content">${content}</span>${tools ? `<span class="bb-tools">${tools}</span>` : ''}</div>`;
-    const hero = id => { const p = (atts.get(id) || []).find(a => a.kind === 'image'); return p ? `<div class="bb-hero" data-hero="${p.id}">${p.thumb ? `<img src="${p.thumb}" alt="">` : ''}</div>` : ''; };
 
     // Ingredients and steps share one margin, as wide as the longest amount needs (CSS caps it).
     const workMargin = (rec, times) => `--bb-chars:${Math.max(0, ...(rec.ingredients || []).map(i => amountText(i, times).length))}`;
@@ -289,7 +288,6 @@ export default {
       return `${top('home', 'Recipes', `<button type="button" class="primary bb-make-btn" data-act="make" title="Start a batch: its own copy of this recipe">🧪 Make this${state.times !== 1 ? ` ×${qtyText(state.times)}` : ''}</button>`)}
         ${state.owner ? theirsHtml(`${theirName()}'s recipe, shared with you`, '<button type="button" data-act="home">Back to my recipes</button>') : ''}
         <article class="bb-paper" data-paper="${paper()}" style="--bb:${colourOf(r)};${workMargin(r, state.times)}">
-          ${hero(r.id)}
           <header class="bb-title-row">
             <span class="bb-emoji">${sec.emoji}</span>
             <textarea class="bb-title one-line" rows="1" data-rec="title" placeholder="Recipe name" aria-label="Recipe name">${esc(r.title)}</textarea>
@@ -360,7 +358,6 @@ export default {
       return `${state.fromList ? top('home', 'Batches') : top('to-recipe', r?.title || 'Recipe')}
         ${state.owner ? theirsHtml(`A batch of ${theirName()}'s recipe, shared with you`, '<button type="button" data-act="home">Back to my recipes</button>') : ''}
         <article class="bb-paper bb-make" data-paper="${paper()}" style="--bb:${colourOf(r)};${workMargin(m, 1)}">
-          ${hero(m.id)}
           <header class="bb-title-row">
             <span class="bb-emoji">${sec.emoji}</span>
             <textarea class="bb-title one-line" rows="1" data-make="name" placeholder="Batch name" aria-label="Batch name">${esc(batchName(m, r?.title))}</textarea>
@@ -458,13 +455,6 @@ export default {
         richText(box, { value: r.tasting || '', placeholder: 'How it turned out, what to change next time', origin: () => ({ collection: 'recipes', id: r.id, title: r.title, field: 'tasting' }), onChange: md => { pending = md; tasting.trigger(); } });
       }
       if (focusNext) { const f = el.querySelector(focusNext); focusNext = null; if (f) { f.focus(); f.select?.(); } }
-      // The picture at the top, full size once the file is here.
-      const h = el.querySelector('[data-hero]');
-      if (h) {
-        const a = await store.get('attachments', h.dataset.hero);
-        const blob = a && await store.getBlob(a.blob_id);
-        if (blob && h.isConnected) { const img = h.querySelector('img') || h.appendChild(document.createElement('img')); const url = URL.createObjectURL(blob); img.onload = () => URL.revokeObjectURL(url); img.src = url; }
-      }
     };
     // After a sync: redraw unless something is being written in (then when it's left).
     this.refresh = async () => { if (writing()) { dirty = true; return; } await render(); };
