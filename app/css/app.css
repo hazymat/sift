@@ -3740,3 +3740,18 @@ html[data-slide="back"]::view-transition-new(sift-page) { animation-name: sift-i
 .line.has-item.armed > .content { background: var(--active-bg); box-shadow: inset 0 0 0 1px var(--active-border); border-radius: 10px; }
 .line.has-item.armed .resize-grip { opacity: 1; pointer-events: auto; }
 .line.has-item.armed .resize-grip::before { content: ''; position: absolute; inset: -14px -24px; }
+
+/* Press and hold anywhere on a task to drag it (sortable.js: anywhere). A
+   ripple spreads from the finger or pointer while it's held; when it's done
+   the row lifts. While dragged it follows the pointer sideways, and a bar at
+   its left shows where it would land (--snap: indent / outdent). */
+.hold-pending { position: relative; }
+.hold-ripple { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; pointer-events: none; z-index: 0; }
+.hold-ripple > span { position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 45%, transparent) 0%, color-mix(in srgb, var(--accent) 18%, transparent) 70%, transparent 100%);
+  animation: hold-ripple 300ms cubic-bezier(.3, .6, .3, 1) forwards; }
+.hold-ripple.done { transition: opacity .25s; opacity: 0; }
+@keyframes hold-ripple { from { transform: scale(.2); opacity: .9; } to { transform: scale(22); opacity: .55; } }
+[data-hold-drag] > li.dragging:not(.nest-preview)::before { content: ''; position: absolute; top: 6px; bottom: 6px; left: calc(var(--snap, 0px) - var(--dx, 0px) + 2px); width: 3px; border-radius: 2px; background: var(--accent); transition: left .12s; z-index: 1; }
+body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none; }
+@media (hover: none) { [data-hold-drag] > li :is(.task-title, .item-sub):not(:focus) { -webkit-user-select: none; -webkit-touch-callout: none; } }
