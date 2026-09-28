@@ -82,8 +82,10 @@ export function rowSwipe(root, { rows, face = null, actions }) {
     gapOf.set(row, text ? Math.max(0, side === 'left' ? faceBox.right - text.end - SPACE : text.start - faceBox.left - SPACE) : Infinity);
     row.append(acts);
     acts.style.width = 'max-content'; // its buttons' own width: how far it opens
-    const wide = Math.min(acts.offsetWidth, faceBox.width);
+    let wide = Math.min(acts.offsetWidth, faceBox.width);
     acts.style.width = '';
+    // Swiped right, it opens at least as far as the name, over whatever comes before it (grab bar, tick box, a sub-task's lines).
+    if (side === 'right' && gapOf.get(row) < faceBox.width - 40) wide = Math.max(wide, gapOf.get(row));
     return wide;
   };
   root.addEventListener('touchstart', ev => {
