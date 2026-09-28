@@ -667,7 +667,7 @@ export default {
       const pill = ev.target.closest('[data-batch-status]');
       if (pill) {
         const m = makeOf(pill.dataset.batchStatus);
-        return pillMenu(pill, STATUSES.map(([v, l]) => ({ value: v, label: l, current: v === (m.status || 'going') })), v => changeBatches([m.id], { status: v }, `Marked ${STATUSES.find(x => x[0] === v)[1].toLowerCase()}`));
+        return pillMenu(pill, STATUSES.map(([v, l]) => ({ value: v, label: l, current: v === (m.status || 'going') })), v => changeBatches([m.id], { status: v }, `Marked ${STATUSES.find(x => x[0] === v)[1].toLowerCase()}`), { className: 'word-menu' });
       }
       const row = ev.target.closest('.bb-batch-row[data-href]');
       if (row) return openRow(row);
