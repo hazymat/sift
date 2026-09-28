@@ -13,6 +13,7 @@ import { ENERGY, isoDate, dateText, addDays, parseDate, addItem, durationChoices
 import { energyMenu } from '../pillmenu.js';
 import { summarise } from '../summary.js';
 import { createListKit } from '../listkit.js';
+import { rowSwipe } from '../rowswipe.js';
 import { rankOf, reorderWrites, keyBetween } from '../order.js';
 import { toast, undoable } from '../toast.js';
 import { richText, toHtml, previewLine, inlineAll } from '../richtext.js';
@@ -1054,72 +1055,17 @@ export default {
       { id: 'delete', label: 'Delete', danger: true, run: ids => batchSet(ids, { deleted_at: new Date().toISOString() }, 'Deleted', { subs: true }) },
     ];
 
-    // Phones: swipe a task sideways, as in a phone's mail app. It follows the
-    // finger. Left shows ✓ Done and ⋯ More behind it on the right; right shows
-    // Delete on the left. Let go past half of them and it stays open for a tap;
-    // a tap anywhere else closes it. Not from the grab bar, the tick, a button,
-    // or a name being typed in. (A swipe elsewhere on the page still changes list: app.js.)
-    if (matchMedia('(pointer: coarse)').matches) {
-      const WIDE = { left: 156, right: 100 }; // how far each side opens
-      let sw = null, openRow = null;
-      const slideTo = (li, x, animate) => { li.classList.toggle('swipe-anim', animate); li.style.setProperty('--swipe-x', `${x}px`); };
-      const shut = () => {
-        const li = openRow;
-        openRow = null;
-        if (!li) return;
-        slideTo(li, 0, true);
-        setTimeout(() => { if (openRow !== li) { li.classList.remove('swiping', 'swipe-anim'); li.querySelector(':scope > .row-acts')?.remove(); } }, 220);
-      };
-      const reveal = (li, side) => {
-        li.querySelector(':scope > .row-acts')?.remove();
-        const acts = document.createElement('div');
-        acts.className = `row-acts ${side}`;
-        acts.innerHTML = side === 'left'
-          ? `<button type="button" class="ra-more" data-ra="more">⋯ More</button><button type="button" class="ra-done" data-ra="done">${li.classList.contains('done') ? '↺ Not done' : '✓ Done'}</button>`
-          : '<button type="button" class="ra-delete" data-ra="delete">Delete</button>';
-        li.prepend(acts);
-        li.classList.add('swiping');
-      };
-      body.addEventListener('touchstart', ev => {
-        if (openRow && !ev.target.closest('.row-acts')) shut();
-        const li = ev.target.closest('.task-list > li[data-task]');
-        sw = li && ev.touches.length === 1 && !ev.target.closest('.drag-handle, .tick, button, .row-acts, input:focus, [contenteditable="true"]') && !document.body.classList.contains('has-select-bar')
-          ? { li, x: ev.touches[0].clientX, y: ev.touches[0].clientY, dx: 0, side: null } : null;
-      }, { passive: true });
-      body.addEventListener('touchmove', ev => {
-        if (!sw) return;
-        const dx = ev.touches[0].clientX - sw.x, dy = ev.touches[0].clientY - sw.y;
-        if (!sw.side) {
-          if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { sw = null; return; } // scrolling the page
-          if (Math.abs(dx) < 12) return;
-          sw.side = dx < 0 ? 'left' : 'right';
-          reveal(sw.li, sw.side);
-        }
-        ev.preventDefault(); // the page doesn't scroll while a task is swiped
-        const most = WIDE[sw.side] + 40;
-        sw.dx = sw.side === 'left' ? Math.max(-most, Math.min(0, dx)) : Math.min(most, Math.max(0, dx));
-        slideTo(sw.li, sw.dx, false);
-      }, { passive: false });
-      body.addEventListener('touchend', ev => {
-        const s = sw;
-        sw = null;
-        if (!s?.side) return;
-        ev.stopPropagation(); // a task's swipe, not the page's
-        openRow = s.li;
-        if (Math.abs(s.dx) > WIDE[s.side] / 2) slideTo(s.li, s.side === 'left' ? -WIDE.left : WIDE.right, true);
-        else shut();
-      });
-      body.addEventListener('click', ev => {
-        const b = ev.target.closest('.row-acts [data-ra]');
-        if (!b) return;
-        ev.stopPropagation();
-        const li = b.closest('li[data-task]');
-        shut();
-        if (b.dataset.ra === 'done') li.querySelector(':scope > .tick')?.click();
-        else if (b.dataset.ra === 'more') li.querySelector(':scope > [data-act="details"]')?.click();
-        else taskActions.find(x => x.id === 'delete').run([li.dataset.task]);
-      }, true);
-    }
+    // Phones: swipe a task sideways (rowswipe.js): left for ✓ Done and ⋯ More, right for Delete.
+    rowSwipe(body, {
+      rows: '.task-list > li[data-task]',
+      actions: li => ({
+        left: [
+          { label: '⋯ More', cls: 'ra-more', run: row => row.querySelector(':scope > [data-act="details"]')?.click() },
+          { label: li.classList.contains('done') ? '↺ Not done' : '✓ Done', cls: 'ra-done', run: row => row.querySelector(':scope > .tick')?.click() },
+        ],
+        right: [{ label: 'Delete', cls: 'ra-delete', run: row => taskActions.find(x => x.id === 'delete').run([row.dataset.task]) }],
+      }),
+    });
     // Dragged onto the middle of another task: they become its sub-tasks, at the end.
     async function nestUnder(ids, targetId) {
       const target = data.tasks.find(t => t.id === targetId);

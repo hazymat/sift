@@ -16,6 +16,8 @@ const SHELL = [
   'js/comments.js',
   'js/customtheme.js',
   'js/thememocks.js',
+  'js/slide.js',
+  'js/rowswipe.js',
   'js/typesheet.js',
   'js/noteundo.js',
   'js/repeat.js',

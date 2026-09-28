@@ -18,6 +18,7 @@ import { summarise } from '../summary.js';
 import { loadAll as loadTasks, forDay, suggestions, doneFields, aimDate, addTask, horizonOf, planDay } from '../tasks.js';
 import * as att from '../attachments.js';
 import { typingIn } from '../listkit.js';
+import { rowSwipe } from '../rowswipe.js';
 import { atEdge, caretTo } from '../walk.js';
 import { debounced } from '../autosave.js';
 import { editPills, selectPill, energyPill } from '../editpills.js';
@@ -816,6 +817,25 @@ export default {
       });
     });
 
+    async function deleteItem(id) {
+      const gone = items.find(i => i.id === id);
+      await store.remove('day_items', id);
+      await refresh();
+      undoable(`Deleted "${gone?.title || 'item'}"`, async () => { await store.restore('day_items', id); await refresh(); });
+    }
+    // Phones: swipe an item sideways, in the plan or the day's tasks, as in
+    // Tasks (rowswipe.js): left for ✓ Done and ⋯ More, right for Delete.
+    rowSwipe(el, {
+      rows: '#lines .line.has-item, #pile .line.has-item',
+      actions: line => ({
+        left: [
+          { label: '⋯ More', cls: 'ra-more', run: row => row.querySelector('.content [data-act="details"]')?.click() },
+          { label: line.classList.contains('done') ? '↺ Not done' : '✓ Done', cls: 'ra-done', run: row => row.querySelector('.content > .tick')?.click() },
+        ],
+        right: [{ label: 'Delete', cls: 'ra-delete', run: row => { editing = null; deleteItem(row.dataset.item); } }],
+      }),
+    });
+
     let atts = new Map(); // day item id → its attachments
     // Achievements (👁 Layout): what got done is counted, never what didn't, and
     // only once something is done. The words grow with the count.
@@ -1133,10 +1153,7 @@ export default {
         await toTask(items.find(i => i.id === id));
       } else if (act === 'delete') {
         editing = null;
-        const gone = items.find(i => i.id === id);
-        await store.remove('day_items', id);
-        await refresh();
-        undoable(`Deleted "${gone?.title || 'item'}"`, async () => { await store.restore('day_items', id); await refresh(); });
+        await deleteItem(id);
       } else if (act === 'let-go' || act === 'take-back') {
         editing = null;
         const it = items.find(i => i.id === id);

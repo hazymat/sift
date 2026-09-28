@@ -28,6 +28,7 @@ import * as att from '../attachments.js';
 import { pointTo, flash } from '../flash.js';
 import { word, dumpTypes } from '../words.js';
 import { shareSheet, sharedWithText, people, fromOthers, invitesHtml, theirsHtml } from '../sharing.js';
+import { slide } from '../slide.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -528,7 +529,14 @@ export default {
       if (!b) return;
       // Choosing the kind doesn't go back into the note (on a phone that would open it full screen).
       if (b.dataset.kind) { kind = b.dataset.kind; paintKinds(); return; }
-      if (b.dataset.filter) { state.filter = b.dataset.filter; render(); return; }
+      if (b.dataset.filter) {
+        // The notes slide to the chosen filter, from the side it's on (slide.js).
+        const to = b.dataset.filter, from = state.filter;
+        if (to === from) return;
+        const order = Array.from(el.querySelectorAll('#dump-filter [data-filter]'), x => x.dataset.filter);
+        slide(order.indexOf(to) > order.indexOf(from), () => { state.filter = to; return render(); });
+        return;
+      }
       b.closest('details')?.removeAttribute('open');
       const li = b.closest('[data-id]');
       // (From the store: if you were just writing in this note, its latest text.)
