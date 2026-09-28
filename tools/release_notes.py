@@ -798,3 +798,7 @@ NOTES['1.44.01'] = [
 NOTES['1.44.02'] = [
   B('Batch Book: the Planned / On the go / Done menu on a batch uses the normal font instead of squashed letters.'),
 ]
+
+NOTES['1.44.03'] = [
+  F('Batch Book: batch statuses have little pictures: 📝 Planned, 🫧 On the go, ✅ Done.'),
+]

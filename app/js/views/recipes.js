@@ -27,7 +27,8 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
 const today = () => isoDate(new Date());
 const shortDate = iso => (iso ? dateText(new Date(`${iso.slice(0, 10)}T12:00`), { day: 'numeric', month: 'short', year: 'numeric' }) : '');
-const STATUSES = [['planned', 'Planned'], ['going', 'On the go'], ['done', 'Done']];
+const STATUSES = [['planned', 'Planned', '📝'], ['going', 'On the go', '🫧'], ['done', 'Done', '✅']];
+const statusLabel = v => { const st = STATUSES.find(x => x[0] === (v || 'going')); return `${st[2]} ${st[1]}`; };
 const GOALS = ['ABV goal', 'Sweetness goal', 'Final sweetness'];
 const SCALES = [1 / 3, 0.5, 1, 2, 3];
 const now = () => new Date().toISOString();
@@ -150,8 +151,8 @@ export default {
         <span class="bb-batch-name">${m.name && !m.name.includes(r?.title || '') ? `<span class="muted">${esc(r?.title || 'Untitled')}</span>` : ''}${m.description && m.description !== r?.description ? ` <span class="muted">· ${esc(m.description)}</span>` : ''}</span>
         ${batchName(m, r?.title).includes(batchDay(m.date)) ? '' : `<span class="muted">${shortDate(m.date)}</span>`}
         ${abv ? `<span class="chip">${abv.abv.toFixed(2)}%</span>` : ''}
-        ${draggable ? `<button type="button" class="chip bb-status-${m.status || 'going'}" data-batch-status="${m.id}" title="Change status">${STATUSES.find(s => s[0] === (m.status || 'going'))[1]} ▾</button>`
-          : `<span class="chip bb-status-${m.status || 'going'}">${STATUSES.find(s => s[0] === (m.status || 'going'))[1]}</span>`}
+        ${draggable ? `<button type="button" class="chip bb-status-${m.status || 'going'}" data-batch-status="${m.id}" title="Change status">${statusLabel(m.status)} ▾</button>`
+          : `<span class="chip bb-status-${m.status || 'going'}">${statusLabel(m.status)}</span>`}
       </${draggable ? 'div' : 'a'}>`;
     }
 
@@ -195,7 +196,7 @@ export default {
             </div>
             <button type="button" class="bb-sections-edit filter-more" data-act="sections" title="Add, rename, reorder or remove books" aria-label="Edit books">⋯</button>
           </div>
-          ${state.batches ? `<div class="bb-status-row"><div class="bb-status" role="group" aria-label="Status">${[['', 'All']].concat(STATUSES).map(([v, l]) => `<button type="button" data-status="${v}" aria-pressed="${state.status === v}">${l}</button>`).join('')}</div>
+          ${state.batches ? `<div class="bb-status-row"><div class="bb-status" role="group" aria-label="Status">${[['', 'All']].concat(STATUSES).map(([v, l, e]) => `<button type="button" data-status="${v}" aria-pressed="${state.status === v}">${e ? `${e} ` : ''}${l}</button>`).join('')}</div>
             <select class="bb-sort" data-batch-sort aria-label="Sort batches">${SORTS.map(([v, l]) => `<option value="${v}"${batchSort() === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div>`
             : tags.length ? `<div class="bb-tags">${tags.map(t => `<button type="button" class="chip" data-tag="${esc(t)}" aria-pressed="${state.tag === t}">${esc(t)}</button>`).join('')}</div>` : ''}
         </div>
@@ -365,7 +366,7 @@ export default {
           <div class="bb-lines bb-details">
             ${line('Date', `<input type="date" data-make="date" value="${esc(m.date || '')}" aria-label="Date">`)}
             ${line('Description', `<input data-make="description" value="${esc(m.description || '')}" aria-label="Description" placeholder="What makes this batch different">`)}
-            ${line('Status', `<select data-make="status" aria-label="Status">${STATUSES.map(([v, l]) => `<option value="${v}"${(m.status || 'going') === v ? ' selected' : ''}>${l}</option>`).join('')}</select>`)}
+            ${line('Status', `<select data-make="status" aria-label="Status">${STATUSES.map(([v, l, e]) => `<option value="${v}"${(m.status || 'going') === v ? ' selected' : ''}>${e} ${l}</option>`).join('')}</select>`)}
             ${fieldsHtml(m, { goals: gravity })}
             ${gravity ? line('Goals vs actual', `<div class="bb-goals">${goal('Sweetness goal')}${goal('ABV goal')}${goal('Final sweetness')}<label class="bb-abv"><span>${abv?.final ? 'Final ABV' : 'ABV so far'}</span><b>${abv ? `${abv.abv.toFixed(2)}%` : '–'}</b></label></div>`)
               + line('Back-sweetened?', `<input type="checkbox" data-make="back_sweetened" ${m.back_sweetened ? 'checked' : ''} aria-label="Back-sweetened">`) : ''}
@@ -667,7 +668,7 @@ export default {
       const pill = ev.target.closest('[data-batch-status]');
       if (pill) {
         const m = makeOf(pill.dataset.batchStatus);
-        return pillMenu(pill, STATUSES.map(([v, l]) => ({ value: v, label: l, current: v === (m.status || 'going') })), v => changeBatches([m.id], { status: v }, `Marked ${STATUSES.find(x => x[0] === v)[1].toLowerCase()}`), { className: 'word-menu' });
+        return pillMenu(pill, STATUSES.map(([v, l]) => ({ value: v, label: statusLabel(v), current: v === (m.status || 'going') })), v => changeBatches([m.id], { status: v }, `Marked ${STATUSES.find(x => x[0] === v)[1].toLowerCase()}`), { className: 'word-menu' });
       }
       const row = ev.target.closest('.bb-batch-row[data-href]');
       if (row) return openRow(row);
@@ -1083,7 +1084,7 @@ export default {
     }
     const batchKit = this.batchKit = createListKit({
       reorder: true, holdAnywhere: true, noun: 'batch', onReorder: batchOrder, // press and hold anywhere on a row drags it, as in Tasks
-      actions: STATUSES.map(([v, l]) => ({ id: `status-${v}`, label: l, group: 'Status', run: ids => changeBatches(ids, { status: v }, `Marked ${l.toLowerCase()}`) }))
+      actions: STATUSES.map(([v, l, e]) => ({ id: `status-${v}`, label: `${e} ${l}`, group: 'Status', run: ids => changeBatches(ids, { status: v }, `Marked ${l.toLowerCase()}`) }))
         .concat([{ id: 'delete', label: 'Delete', danger: true, run: ids => changeBatches(ids, { deleted_at: now() }, `Deleted ${ids.length} batch${ids.length === 1 ? '' : 'es'}`) }]),
     });
 
