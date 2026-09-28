@@ -602,3 +602,6 @@ NOTES['1.35.20'] = [
   B("Sliding to the next list in Tasks: the underline under the tabs no longer flashes; it glides across, and the new tab pulses once, light blue (Brain Dump's filters too)."),
   B("Phones: a side swipe that starts on the bar of areas at the bottom no longer changes page."),
 ]
+NOTES['1.35.21'] = [
+  B("Day Planner on a phone: the day's buttons stay on one line on every paper (Share shows as its icon when there's no room for the word), so the 👁 menu no longer jumps down a line, or off the screen, when you change paper."),
+]

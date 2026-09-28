@@ -69,7 +69,7 @@ export default {
         <button type="button" data-act="today">Today</button>
         <button type="button" data-act="next" class="day-step" aria-label="Next day"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
         <details class="tool-menu share-menu">
-          <summary class="share-btn" role="button" title="Share (S)"><svg class="icon" aria-hidden="true"><use href="#i-share"/></svg> Share</summary>
+          <summary class="share-btn" role="button" title="Share (S)" aria-label="Share"><svg class="icon" aria-hidden="true"><use href="#i-share"/></svg><span class="share-word"> Share</span></summary>
           <div class="menu">
             <div class="day-people"></div>
             <hr>
