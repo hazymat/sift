@@ -570,3 +570,6 @@ NOTES['1.35.09'] = [
 NOTES['1.35.10'] = [
   F('The tour\'s "Never lose a note" step ends without the cookie recipe.'),
 ]
+NOTES['1.35.11'] = [
+  F("On a phone, a sideways swipe slides the page like a phone's own screens: the page slides away and the next list or day slides in (iOS 18 and later; before that the next one just slides in). With nothing further to go to, the page gives a small nudge."),
+]

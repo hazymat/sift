@@ -288,9 +288,40 @@ function installSwipe() {
       if ((field.isContentEditable ? field.textContent : field.value).trim()) return;
       field.blur();
     }
-    const key = dx < 0 ? 'ArrowRight' : 'ArrowLeft';
-    (document.activeElement || document.body).dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+    slide(dx < 0 ? 'ArrowRight' : 'ArrowLeft');
   }, { passive: true });
+
+  // The page slides the way the finger went, as a phone's own screens do: the
+  // old page out and the next one in over it (View Transitions: iOS 18 on;
+  // before that the next one just slides in). Nothing to go to (the last
+  // list, say): a small nudge instead.
+  function slide(key) {
+    const main = document.getElementById('main');
+    const next = key === 'ArrowRight';
+    // Presses the key, then waits for the page to be drawn again; nothing drawn: nothing to go to.
+    const go = () => new Promise((done, none) => {
+      let changed = false, over = false, quiet = 0;
+      const finish = () => { if (over) return; over = true; seen.disconnect(); changed ? done() : none(); };
+      const seen = new MutationObserver(() => { changed = true; clearTimeout(quiet); quiet = setTimeout(finish, 30); });
+      seen.observe(main, { childList: true, subtree: true, attributes: true, characterData: true });
+      (document.activeElement || document.body).dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+      quiet = setTimeout(finish, 120);
+      setTimeout(finish, 600);
+    });
+    const nudge = () => main.animate([{ transform: 'none' }, { transform: `translateX(${next ? -24 : 24}px)` }, { transform: 'none' }], { duration: 260, easing: 'ease-out' });
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { go().catch(() => {}); return; }
+    if (document.startViewTransition) {
+      const root = document.documentElement;
+      root.dataset.slide = next ? 'next' : 'back'; // app.css: which way the snapshots go
+      const moving = document.startViewTransition(go);
+      moving.updateCallbackDone.catch(nudge);
+      moving.ready.catch(() => {}); // nothing to go to: skipped, which isn't an error
+      const after = () => { delete root.dataset.slide; };
+      moving.finished.then(after, after);
+      return;
+    }
+    go().then(() => main.animate([{ transform: `translateX(${next ? 40 : -40}%)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 300, easing: 'cubic-bezier(.2, .8, .2, 1)' }), nudge);
+  }
 }
 
 // ---------- routing ----------
