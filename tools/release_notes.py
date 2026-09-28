@@ -781,3 +781,7 @@ NOTES['1.43.00'] = [
 NOTES['1.43.01'] = [
   F('Batch Book: no more Edit button for ingredients: change them right on the lines. Type a unit with the amount (like "2 tsp"), and paste a whole list on the last line to add every ingredient at once.'),
 ]
+
+NOTES['1.43.02'] = [
+  F('Batch Book: scale a recipe or a batch to a third (×⅓) as well as a half.'),
+]
