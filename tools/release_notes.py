@@ -843,3 +843,7 @@ NOTES['1.47.02'] = [
 NOTES['1.47.03'] = [
   F('Batch Book: a new Batch Book\'s books are 🍳 Cooking, 🥣 Soups, 🥖 Baking, 🍸 Cocktails and 🍷 Fermentations (with gravity readings), in that order.'),
 ]
+
+NOTES['1.48.00'] = [
+  F('Batch Book: once, on each account, the books go back to 🍳 Cooking, 🥣 Soups, 🥖 Baking, 🍸 Cocktails and 🍷 Fermentations and the example recipes are added (a book of your own with recipes in it stays). It waits until the device has synced, so they only arrive once.'),
+]
