@@ -595,3 +595,6 @@ NOTES['1.35.17'] = [
 NOTES['1.35.18'] = [
   B("Swiping a task or a Day Planner item: its rounded corners go square next to the buttons, and the buttons are exactly as tall as it, so they meet edge to edge."),
 ]
+NOTES['1.35.19'] = [
+  B("Swiping a task or a Day Planner item: the item stays where it is, with its name still readable, and the buttons slide in over it from the side. In the Day Planner they never cover the time, and a day's task's tick box no longer jumps over its name."),
+]

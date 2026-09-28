@@ -3673,18 +3673,12 @@ html[data-slide="back"]::view-transition-new(sift-page) { animation-name: sift-i
 @keyframes sift-out-back { to { transform: translateX(30%); opacity: 0; } }
 @keyframes sift-in-back { from { transform: translateX(-100%); } }
 
-/* Phones: a row swiped sideways (rowswipe.js: tasks, Day Planner items). Its
-   block moves with the finger (a Day Planner line from its grab bar on); its
-   actions sit just outside it, exactly as wide as the gap it leaves, so
-   nothing is ever under the text: ✓ Done and ⋯ More on the right, Delete on the left. */
-.swiping { position: relative; transform: translateX(var(--swipe-x, 0)); }
-.swipe-anim { transition: transform .22s cubic-bezier(.2, .8, .2, 1); }
-.row-acts { position: absolute; top: 0; bottom: 0; width: var(--swipe-w, 0); display: flex; overflow: hidden; }
-.row-acts.left { left: 100%; }
-.row-acts.right { right: 100%; }
-/* The block's corners next to its buttons go square, so they meet edge to edge. */
-.swiping:has(> .row-acts.left) { border-top-right-radius: 0 !important; border-bottom-right-radius: 0 !important; }
-.swiping:has(> .row-acts.right) { border-top-left-radius: 0 !important; border-bottom-left-radius: 0 !important; }
+/* Phones: a row swiped sideways (rowswipe.js: tasks, Day Planner items). The
+   row stays put and its actions slide in over its end (a Day Planner line's
+   from its grab bar on, never over the time): ✓ Done and ⋯ More from the
+   right, Delete from the left. rowswipe.js places them and rounds their outer corners. */
+.swiping { position: relative; }
+.row-acts { position: absolute; z-index: 3; width: var(--swipe-w, 0); display: flex; overflow: hidden; }
 .swipe-anim > .row-acts { transition: width .22s cubic-bezier(.2, .8, .2, 1); }
 .row-acts button { flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; border: 0; border-radius: 0; box-shadow: none; margin: 0; color: #fff; font-weight: 600; font-size: .9rem; padding: 0 12px; }
 .row-acts .ra-done { background: #2e9e5b; }
