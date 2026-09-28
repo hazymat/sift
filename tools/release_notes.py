@@ -848,7 +848,8 @@ NOTES['1.48.00'] = [
   F('Batch Book: once, on each account, the books go back to 🍳 Cooking, 🥣 Soups, 🥖 Baking, 🍸 Cocktails and 🍷 Fermentations and the example recipes are added (a book of your own with recipes in it stays). It waits until the device has synced, so they only arrive once.'),
 ]
 NOTES['1.49.00'] = [
-  F("Batch Book: the starter recipes are now eight of Mat's own (Borsch, Pad Kra Pao, Chicken Green Curry, Bun Cha, Smoked Salmon Pirozhki, Quick Baguette, Aviation, Disaronno Sour). Books that had the earlier examples swap them over once; an example you've made a batch of stays."),
+  F("Batch Book: the starter recipes are now eight of Mat's own (Borscht, Pad Kra Pao, Chicken Green Curry, Bun Cha, Smoked Salmon Pirozhki, Quick Baguette, Aviation, Disaronno Sour). Books that had the earlier examples swap them over once; an example you've made a batch of stays."),
   F('Batch Book import: steps can point at ingredients in curly brackets, e.g. {1/2 butter}, and one not in the list is added to it. Recipes already in the book are skipped. The AI instructions ask for this too.'),
 ]
-NOTES['1.49.01'] = [F("Batch Book: the Borsch starter has Mat's own photo. Books that already had the starters get it too.")]
+NOTES['1.49.01'] = [F("Batch Book: the Borscht starter has Mat's own photo. Books that already had the starters get it too.")]
+NOTES['1.49.02'] = [F("Batch Book: Borscht (now spelt that way) has a second photo, of the broth being made.")]
