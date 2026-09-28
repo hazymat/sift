@@ -718,3 +718,10 @@ NOTES['1.37.00'] = [
   F('Batch Book: the method is now steps, written straight on the lines (Enter starts the next one), each with its own photos. Result photos: the first is the recipe\'s picture, shown at the top and on its card.'),
   F('Batch Book: Make this makes the batch its own copy of the recipe, step photos included, to scale (×½, ×2 or any amount), change or swap ingredients and change steps without touching the recipe. The stock check waits until you press Check stock on the batch.'),
 ]
+
+NOTES['1.38.00'] = [
+  F('Batch Book: sections are now books, one tab each, switched with ← / →, a side swipe, or the keyboard browsing other areas have (↓ from the search box onto the tabs, then onto the recipes).'),
+  F('Batch Book: drag recipe cards around like Brain Dump notes (hold ⠿). Dropped under another book\'s heading, a recipe moves to that book; select several and Move to sends them to a book at once.'),
+  F('Batch Book: Make this is at the top of a recipe. The batch opens straight away, and each ingredient has ✓ In stock and 🛒 Add to list. The first Add to list makes a list for the batch, or pick a list you have; pressing again takes it back off.'),
+  F('Batch Book is in the tour.'),
+]

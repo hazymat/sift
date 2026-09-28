@@ -1,10 +1,11 @@
-// Batch Book: recipes in your own sections, and every batch made from them.
-// #/recipes                         recipes (by section, with tags and a search) or all batches
-// #/recipes/<recipe id>             a recipe: details, ingredients, steps, result photos, tasting notes, its batches
-// #/recipes/<recipe id>/make/<id>   one batch: its own copy of the recipe to change, stock check, summary,
-//                                   gravity log, diary, tasting diary
+// Batch Book: recipes in your own books, and every batch made from them.
+// #/recipes                         recipes (a tab per book, with tags and a search) or all batches;
+//                                   cards are dragged like Brain Dump notes (onto another book's heading moves them there)
+// #/recipes/<recipe id>             a recipe: Make this, details, ingredients, steps, result photos, tasting notes, its batches
+// #/recipes/<recipe id>/make/<id>   one batch: its own copy of the recipe to change, each ingredient In stock or
+//                                   Add to list, summary, gravity log, diary, tasting diary
 // Pages are drawn on the same papers as the Day Planner (👁: paper, lined, margin).
-// Data and units: js/batchbook.js. The stock check and the sections sheet are below.
+// Data and units: js/batchbook.js. A book is stored as a recipe's `type` (settings.batch_sections).
 
 import * as store from '../store.js';
 import * as att from '../attachments.js';
@@ -16,6 +17,8 @@ import { toast, undoable } from '../toast.js';
 import { askText, askYes } from '../ask.js';
 import { dateText, isoDate, PAPERS } from '../days.js';
 import { cogHtml } from '../viewcog.js';
+import { rankOf, byRank, reorderWrites } from '../order.js';
+import { createListKit } from '../listkit.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -26,6 +29,10 @@ const STATUSES = [['planned', 'Planned'], ['going', 'On the go'], ['done', 'Done
 const GOALS = ['ABV goal', 'Sweetness goal', 'Final sweetness'];
 const SCALES = [0.5, 1, 2, 3];
 const now = () => new Date().toISOString();
+// Recipes never dragged sort by when they were made.
+const madeAt = r => Date.parse(r.created_at) / 1e4 || 0;
+const rankOfRecipe = r => rankOf(r, madeAt);
+const byPlace = byRank(madeAt);
 const camera = '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
 
 export default {
@@ -46,6 +53,7 @@ export default {
     const go = hash => { if (location.hash !== hash) location.hash = hash; else render(); };
     const photoOf = id => (atts.get(id) || []).find(a => a.kind === 'image' && a.thumb);
     const paper = () => settings.batch_paper || 'notebook';
+    const batchListName = m => `${recipeOf(m.recipe_id)?.title || 'Batch'} – ${dayMonth(m.date || today())}`;
     const writing = () => !!document.activeElement?.closest?.('input:not([type="checkbox"]), textarea, select, [contenteditable="true"], [data-step-view]') && el.contains(document.activeElement);
 
     // ---------- the recipes ----------
@@ -58,13 +66,15 @@ export default {
       return state.q.toLowerCase().split(/\s+/).every(w => text.includes(w));
     };
     const order = r => sections.findIndex(x => x.name === (r.type || ''));
-    const shown = () => data.recipes.filter(matches).sort((a, b) => order(a) - order(b) || (a.title || '').localeCompare(b.title || ''));
+    const shown = () => data.recipes.filter(matches).sort((a, b) => order(a) - order(b) || byPlace(a, b));
 
     function card(r) {
       const sec = sectionFor(r);
       const made = makesOf(r.id);
       const photo = photoOf(r.id);
-      return `<a class="bb-card" href="#/recipes/${r.id}" style="--bb:${sec.colour}">
+      return `<li class="bb-card-li" data-id="${r.id}" data-depth="0" style="--bb:${sec.colour}">
+        <button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button>
+        <a class="bb-card" href="#/recipes/${r.id}">
         <span class="bb-card-pic">${photo ? `<img src="${photo.thumb}" alt="" loading="lazy">` : `<span class="bb-card-emoji">${sec.emoji}</span>`}</span>
         <span class="bb-card-body">
           <span class="bb-card-title">${esc(r.title || 'Untitled')}</span>
@@ -72,7 +82,7 @@ export default {
           ${(r.tags || []).length ? `<span class="bb-card-tags">${r.tags.map(t => `<span class="chip">${esc(t)}</span>`).join('')}</span>` : ''}
           <span class="muted bb-card-made">${made.length ? `Made ${made.length}× · last ${shortDate(made[0].date)}` : 'Not made yet'}</span>
         </span>
-      </a>`;
+      </a></li>`;
     }
 
     function batchRow(m) {
@@ -112,24 +122,22 @@ export default {
           ${cogHtml('recipes', paperHtml())}
           <details class="tool-menu page-more">
             <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
-            <div class="menu"><a href="#" data-act="sections">Edit sections</a><a href="#/bin/archive/recipes">Show Archive</a><a href="#/bin/bin/recipes">Show Bin</a></div>
+            <div class="menu"><a href="#" data-act="sections">Edit books</a><a href="#/bin/archive/recipes">Show Archive</a><a href="#/bin/bin/recipes">Show Bin</a></div>
           </details>
         </div>
         <div class="bb-sections-bar">
-          <div class="segmented bb-sections" role="tablist" aria-label="Sections">
+          <div class="segmented bb-sections" role="tablist" aria-label="Books">
             <button type="button" data-section="" aria-pressed="${!state.section}">All</button>
-            ${sections.map(x => `<button type="button" data-section="${esc(x.name)}" aria-pressed="${state.section === x.name}" style="--bb:${x.colour}">${x.emoji} ${esc(x.name || 'No section')}</button>`).join('')}
+            ${sections.map(x => `<button type="button" data-section="${esc(x.name)}" aria-pressed="${state.section === x.name}" style="--bb:${x.colour}">${x.emoji} ${esc(x.name || 'No book')}</button>`).join('')}
           </div>
-          <button type="button" class="icon-btn bb-sections-edit" data-act="sections" title="Edit sections" aria-label="Edit sections">✎</button>
+          <button type="button" class="icon-btn bb-sections-edit" data-act="sections" title="Edit books" aria-label="Edit books">✎</button>
         </div>
         ${tags.length ? `<div class="bb-tags">${tags.map(t => `<button type="button" class="chip" data-tag="${esc(t)}" aria-pressed="${state.tag === t}">${esc(t)}</button>`).join('')}</div>` : ''}
-        ${!data.recipes.length ? `<div class="empty"><h2>No recipes yet.</h2><p class="muted">Add a recipe: ingredients, steps, photos and tasting notes. Each time you make it, start a batch: its own copy to change, a stock check, readings, a diary and how it turned out.</p></div>`
+        ${!data.recipes.length ? `<div class="empty"><h2>No recipes yet.</h2><p class="muted">Add a recipe: ingredients, steps, photos and tasting notes. Each time you make it, start a batch: its own copy to change, what you have in and what to buy, readings, a diary and how it turned out.</p></div>`
         : state.batches ? (batches.length ? `<div class="bb-batches">${batches.map(batchRow).join('')}</div>` : '<div class="empty"><h2>No batches here yet.</h2><p class="muted">Open a recipe and press Make this.</p></div>')
-        : list.length ? groups.map(name => { const x = sectionOf(sections, name); const mine = list.filter(r => (r.type || '') === name); return `
-          <section class="bb-chapter" style="--bb:${x.colour}">
-            ${state.section ? '' : `<h3 class="bb-chapter-title"><span>${x.emoji}</span> ${esc(name || 'No section')} <span class="muted">${mine.length}</span></h3>`}
-            <div class="bb-grid">${mine.map(card).join('')}</div>
-          </section>`; }).join('') : `<div class="empty"><h2>Nothing here yet.</h2>${state.section && !state.q ? '<p class="muted">Press + New recipe to add one to this section.</p>' : ''}</div>`}`;
+        : list.length ? `<ul class="bb-grid bb-cards">${groups.map(name => { const x = sectionOf(sections, name); const mine = list.filter(r => (r.type || '') === name); return `
+            ${state.section ? '' : `<li class="bb-chapter-title" data-book="${esc(name)}" style="--bb:${x.colour}"><span>${x.emoji}</span> ${esc(name || 'No book')} <span class="muted">${mine.length}</span></li>`}
+            ${mine.map(card).join('')}`; }).join('')}</ul>` : `<div class="empty"><h2>Nothing here yet.</h2>${state.section && !state.q ? '<p class="muted">Press + New recipe to add one to this book.</p>' : ''}</div>`}`;
     }
 
     // ---------- pieces used on both pages ----------
@@ -139,7 +147,8 @@ export default {
     const hero = id => { const p = (atts.get(id) || []).find(a => a.kind === 'image'); return p ? `<div class="bb-hero" data-hero="${p.id}">${p.thumb ? `<img src="${p.thumb}" alt="">` : ''}</div>` : ''; };
 
     // o = { collection, id }: the recipe or the batch whose ingredients these are.
-    function ingredientsHtml(rec, o, { stock = null } = {}) {
+    // On a batch (stock: true) each ingredient is In stock or Add to list (the batch's list: see listLine).
+    function ingredientsHtml(rec, o, { stock = false } = {}) {
       const ings = rec.ingredients || [];
       const editing = state.edit[`ings:${rec.id}`];
       const isRecipe = o.collection === 'recipes';
@@ -162,9 +171,20 @@ export default {
         </div>`;
       if (!ings.length) return `${head}<p class="muted bb-none">No ingredients yet.</p>`;
       const times = isRecipe ? state.times : 1;
-      return `${head}<div class="bb-lines bb-ings">${ings.map(i => line(esc(amountText(i, times)),
+      const got = rec.stock || {};
+      return `${head}${stock ? listLine(rec) : ''}<div class="bb-lines bb-ings${stock ? ' bb-stocked' : ''}">${ings.map(i => line(esc(amountText(i, times)),
         `<span class="bb-ing-name">${esc(i.item)}</span>${i.note ? ` <span class="muted">${esc(i.note)}</span>` : ''}`,
-        stock ? (stock[i.id] === 'have' ? '<span class="bb-stock-mark" title="In stock">✓</span>' : stock[i.id] === 'need' ? '<span class="bb-stock-mark" title="To buy">🛒</span>' : '') : '')).join('')}</div>`;
+        stock && i.item ? `<button type="button" class="bb-stock-btn" data-stock="have" aria-pressed="${got[i.id] === 'have'}" title="In stock">✓<span class="bb-stock-word"> In stock</span></button><button type="button" class="bb-stock-btn" data-stock="need" aria-pressed="${got[i.id] === 'need'}" title="Add to list">🛒<span class="bb-stock-word"> ${got[i.id] === 'need' ? 'On the list' : 'Add to list'}</span></button>` : '',
+        stock ? `data-ing="${i.id}" data-got="${got[i.id] || ''}"` : '')).join('')}</div>`;
+    }
+
+    // Which list Add to list puts things on: a new one for this batch (made on the first add), or one you have.
+    function listLine(m) {
+      const list = m.list_id && lists.find(l => l.id === m.list_id);
+      const own = lists.filter(l => l.kind !== 'template');
+      return `<div class="bb-listline"><span class="muted">Add to list puts things on</span>
+        <select data-batch-list aria-label="Shopping list"><option value="">${list ? 'A new list for this batch' : `A new list: ${esc(batchListName(m))}`}</option>${own.map(l => `<option value="${l.id}"${l.id === list?.id ? ' selected' : ''}>${esc(l.name || 'Untitled')}</option>`).join('')}</select>
+        ${list ? `<a href="#/lists/${list.id}">Open list</a>` : ''}</div>`;
     }
 
     // Steps are written straight on the lines: press one to change it; Enter starts the next.
@@ -195,7 +215,7 @@ export default {
         `<button type="button" class="icon-btn bb-x" data-field-remove="${esc(k)}" aria-label="Remove ${esc(k)}">×</button>`)).join('');
     }
 
-    const top = (act, label) => `<div class="bb-top"><button type="button" class="back" data-act="${act}">‹ ${esc(label)}</button>${cogHtml('recipes', paperHtml())}</div>`;
+    const top = (act, label, extra = '') => `<div class="bb-top"><button type="button" class="back" data-act="${act}">‹ ${esc(label)}</button><span class="spacer"></span>${extra}${cogHtml('recipes', paperHtml())}</div>`;
 
     // ---------- a recipe ----------
 
@@ -204,7 +224,7 @@ export default {
       if (!r) return '<div class="empty"><h2>That recipe has gone.</h2></div>';
       const sec = sectionFor(r);
       const made = makesOf(r.id);
-      return `${top('home', 'Recipes')}
+      return `${top('home', 'Recipes', `<button type="button" class="primary bb-make-btn" data-act="make" title="Start a batch: its own copy of this recipe">🧪 Make this${state.times !== 1 ? ` ×${qtyText(state.times)}` : ''}</button>`)}
         <article class="bb-paper" data-paper="${paper()}" style="--bb:${sec.colour}">
           ${hero(r.id)}
           <header class="bb-title-row">
@@ -214,7 +234,7 @@ export default {
           <div class="bb-rule"></div>
           <textarea class="bb-desc one-line" rows="1" data-rec="description" placeholder="What it is, in a line" aria-label="Description">${esc(r.description || '')}</textarea>
           <div class="bb-lines bb-details">
-            ${line('Section', `<select data-rec-section aria-label="Section">${sections.map(x => `<option value="${esc(x.name)}"${x.name === (r.type || '') ? ' selected' : ''}>${x.emoji} ${esc(x.name || 'No section')}</option>`).join('')}<option value="__edit">Edit sections…</option></select>`)}
+            ${line('Book', `<select data-rec-section aria-label="Book">${sections.map(x => `<option value="${esc(x.name)}"${x.name === (r.type || '') ? ' selected' : ''}>${x.emoji} ${esc(x.name || 'No book')}</option>`).join('')}<option value="__edit">Edit books…</option></select>`)}
             ${line('Tags', `<input data-rec="tags" value="${esc((r.tags || []).join(', '))}" placeholder="Words to find it by, with commas between" aria-label="Tags">`)}
             ${fieldsHtml(r)}
           </div>
@@ -225,8 +245,8 @@ export default {
           ${att.rowHtml(atts.get(r.id), { parent: r.id })}
           <h2 class="bb-h"><span>🥂 Tasting notes</span></h2>
           <div class="bb-tasting"></div>
-          <h2 class="bb-h"><span>🧪 Batches</span><button type="button" class="primary" data-act="make">Make this${state.times !== 1 ? ` ×${qtyText(state.times)}` : ''}</button></h2>
-          ${made.length ? `<div class="bb-batches">${made.map(batchRow).join('')}</div>` : '<p class="muted bb-none">Not made yet. Make this starts a batch with its own copy of the recipe, to change as you like, and a stock check.</p>'}
+          <h2 class="bb-h"><span>🧪 Batches</span></h2>
+          ${made.length ? `<div class="bb-batches">${made.map(batchRow).join('')}</div>` : '<p class="muted bb-none">Not made yet. Make this (at the top) starts a batch with its own copy of the recipe, to change as you like, and to tick off what you have in.</p>'}
         </article>
         <div class="detail-actions bb-foot">
           <span class="spacer"></span>
@@ -271,9 +291,6 @@ export default {
       const abv = abvOf(readings);
       const gravity = sec.readings || readings.length > 0;
       const f = m.fields || {};
-      const stock = m.stock || {};
-      const have = Object.values(stock).filter(v => v === 'have').length, need = Object.values(stock).filter(v => v === 'need').length;
-      const list = m.list_id && lists.find(l => l.id === m.list_id);
       const goal = k => `<label><span>${k}</span><input data-field-key="${k}" value="${esc(f[k] || '')}" aria-label="${k}" placeholder="…"></label>`;
       return `${top('to-recipe', r?.title || 'Recipe')}
         <article class="bb-paper bb-make" data-paper="${paper()}" style="--bb:${sec.colour}">
@@ -284,10 +301,9 @@ export default {
           </header>
           <div class="bb-rule"></div>
           <p class="bb-of">${esc(r?.type ? `${r.type}: ` : '')}<a href="#/recipes/${m.recipe_id}">${esc(r?.title || 'Untitled')}</a></p>
-          <div class="bb-stockline">
-            <span>${have || need ? `${have ? `✓ ${have} in stock` : ''}${have && need ? ' · ' : ''}${need ? `🛒 ${need} to buy${list ? ` on <a href="#/lists/${list.id}">${esc(list.name)}</a>` : ''}` : ''}` : 'Change the amounts or ingredients below if you like, then check what you have in.'}</span>
-            <button type="button" class="${have || need ? '' : 'primary'}" data-act="stock">${have || need ? 'Check again' : 'Check stock'}</button>
-          </div>
+          <h2 class="bb-h bb-h-big"><span>🍯 This batch's recipe</span><span class="muted bb-h-note">a copy: changes here stay on this batch</span></h2>
+          ${ingredientsHtml(m, { collection: 'recipe_makes', id: m.id }, { stock: true })}
+          ${stepsHtml(m, { collection: 'recipe_makes', id: m.id })}
           <h2 class="bb-h"><span>📋 Batch summary</span></h2>
           <div class="bb-lines bb-details">
             ${line('Date', `<input type="date" data-make="date" value="${esc(m.date || '')}" aria-label="Date">`)}
@@ -308,9 +324,6 @@ export default {
               <textarea class="bb-entry-text no-inline" data-entry-field="text" rows="1" placeholder="Note" aria-label="Note">${esc(e.text || '')}</textarea>
               <button type="button" class="icon-btn bb-reading-x" data-entry-remove aria-label="Remove reading">×</button>
             </div>`).join('') || '<p class="muted bb-none">No readings yet.</p>'}</div>` : ''}
-          <h2 class="bb-h bb-h-big"><span>🍯 This batch's recipe</span><span class="muted bb-h-note">a copy: changes here stay on this batch</span></h2>
-          ${ingredientsHtml(m, { collection: 'recipe_makes', id: m.id }, { stock: have || need ? stock : null })}
-          ${stepsHtml(m, { collection: 'recipe_makes', id: m.id })}
           ${entriesHtml(m, 'diary', '📔 Diary')}
           ${entriesHtml(m, 'tasting', '🥂 Tasting diary')}
           <h2 class="bb-h"><span>📸 Result photos</span><span class="muted bb-h-note">the first is this batch's picture</span></h2>
@@ -338,6 +351,7 @@ export default {
       tasting = null;
       dirty = false;
       el.innerHTML = `<div class="bb">${state.make ? makePage() : state.recipe ? recipePage() : overview()}</div>`;
+      kitFor().attach(el.querySelector('.bb-cards'));
       const box = el.querySelector('.bb-tasting');
       const r = state.recipe && !state.make && recipeOf(state.recipe);
       if (box && r) {
@@ -494,6 +508,7 @@ export default {
         await store.update(page.collection, page.id, { fields: Object.assign({}, rec.fields, { [t.dataset.fieldKey]: t.value.trim() }) });
         return later();
       }
+      if (t.matches('[data-batch-list]')) return moveToList(t.value || null);
       if (t.dataset.make) {
         await store.update('recipe_makes', state.make, { [t.dataset.make]: t.type === 'checkbox' ? t.checked : t.value.trim() });
         return later();
@@ -576,6 +591,7 @@ export default {
         ta.focus();
         return;
       }
+      if (b.dataset.stock) return setStock(b.closest('[data-ing]').dataset.ing, b.dataset.stock);
       if (b.dataset.stepPhoto !== undefined) return att.pick(attParent(b), () => render());
       if (b.dataset.ingRemove !== undefined || b.dataset.ingMove) {
         const o = ownerOf(b);
@@ -625,7 +641,6 @@ export default {
         return render();
       }
       if (act === 'make') return makeThis(recipeOf(state.recipe));
-      if (act === 'stock') return stockCheck(makeOf(state.make));
       if (act === 'reading') {
         const made = await store.create('recipe_entries', { make_id: state.make, kind: 'reading', label: entriesOf(state.make, 'reading').length ? 'SG' : 'OG', gravity: null, date: today(), text: '' });
         focusNext = `[data-entry="${made.id}"] .bb-gravity`;
@@ -702,9 +717,9 @@ export default {
       undoable(`Started Batch #${m.batch_no}`, async () => { await store.remove('recipe_makes', m.id); go(`#/recipes/${r.id}`); });
     }
 
-    // ---------- sections ----------
-    // Your own sections: a name, an emoji, a colour, the details its new recipes start with, and
-    // whether its batches have gravity readings. A renamed section takes its recipes with it.
+    // ---------- books ----------
+    // Your own books: a name, an emoji, a colour, the details its new recipes start with, and
+    // whether its batches have gravity readings. A renamed book takes its recipes with it.
     async function editSections() {
       const own = sections.filter(x => !x.auto).map(x => ({ was: x.name, name: x.name, emoji: x.emoji, colour: x.colour, fields: x.fields.slice(), readings: !!x.readings }));
       const dlg = document.createElement('dialog');
@@ -712,18 +727,18 @@ export default {
       document.body.append(dlg);
       const row = (x, n) => `<div class="bb-sec-row" data-i="${n}">
         <input class="bb-sec-emoji" data-k="emoji" value="${esc(x.emoji)}" aria-label="Emoji" maxlength="8">
-        <input class="bb-sec-name" data-k="name" value="${esc(x.name)}" placeholder="Name, e.g. Baking" aria-label="Section name">
+        <input class="bb-sec-name" data-k="name" value="${esc(x.name)}" placeholder="Name, e.g. Baking" aria-label="Book name">
         <input type="color" data-k="colour" value="${esc(x.colour)}" aria-label="Colour">
-        <button type="button" class="icon-btn bb-x" data-sec-remove="${n}" aria-label="Remove section">×</button>
+        <button type="button" class="icon-btn bb-x" data-sec-remove="${n}" aria-label="Remove book">×</button>
         <input class="bb-sec-fields" data-k="fields" value="${esc(x.fields.join(', '))}" placeholder="Details its recipes have, e.g. Serves, Oven temperature" aria-label="Details">
         <label class="bb-sec-readings"><input type="checkbox" data-k="readings" ${x.readings ? 'checked' : ''}> Batches have gravity readings</label>
       </div>`;
       const draw = () => {
         dlg.innerHTML = `<div class="sheet-handle"></div>
-          <h2>Sections</h2>
-          <p class="muted">Each recipe goes in one section. Sort them however suits you: by what they are, where they're from, or when you make them. Tags on a recipe sort them further.</p>
+          <h2>Books</h2>
+          <p class="muted">Each recipe goes in one book. Sort them however suits you: by what they are, where they're from, or when you make them. Tags on a recipe sort them further.</p>
           <div class="bb-sec-list">${own.map(row).join('')}</div>
-          <button type="button" data-sec-add>+ Add a section</button>
+          <button type="button" data-sec-add>+ Add a book</button>
           <div class="sheet-actions"><button type="button" data-sec-cancel>Cancel</button><span class="spacer"></span><button type="button" class="primary" data-sec-save>Save</button></div>`;
       };
       const read = () => {
@@ -745,14 +760,14 @@ export default {
         if (b.dataset.secSave !== undefined) {
           read();
           const keep = own.filter(x => x.name);
-          if (new Set(keep.map(x => x.name)).size !== keep.length) { toast('Two sections have the same name'); return; }
+          if (new Set(keep.map(x => x.name)).size !== keep.length) { toast('Two books have the same name'); return; }
           const moved = keep.filter(x => x.was && x.was !== x.name);
           for (const x of moved) await store.updateMany('recipes', data.recipes.filter(r => (r.type || '') === x.was).map(r => [r.id, { type: x.name }]));
           await store.updateSettings({ batch_sections: keep.map(x => ({ name: x.name, emoji: x.emoji, colour: x.colour, fields: x.fields, readings: x.readings })) });
           const followed = moved.find(x => x.was === state.section);
           if (followed) state.section = followed.name;
           dlg.close();
-          toast('Sections saved');
+          toast('Books saved');
         }
       });
       dlg.addEventListener('close', () => { dlg.remove(); render(); });
@@ -760,82 +775,92 @@ export default {
       dlg.showModal();
     }
 
-    // ---------- the stock check ----------
-    // One ingredient at a time: got it, or need to buy. Then what's needed goes on a list:
-    // a new one for this batch, or one you already have (the last one used is offered first).
-    async function stockCheck(m) {
-      m = await store.get('recipe_makes', m.id);
-      const r = recipeOf(m.recipe_id);
-      const ings = (m.ingredients || []).filter(i => i.item);
-      if (!ings.length) { toast('This batch has no ingredients to check'); return; }
-      const answers = Object.assign({}, m.stock);
-      let at = 0;
-      const all = (await loadLists()).lists.filter(l => l.kind !== 'template');
-      const dlg = document.createElement('dialog');
-      dlg.className = 'sheet bb-stock';
-      document.body.append(dlg);
-      const draw = () => {
-        if (at < ings.length) {
-          const i = ings[at];
-          dlg.innerHTML = `<div class="sheet-handle"></div>
-            <h2>Stock check <span class="muted">${at + 1} of ${ings.length}</span></h2>
-            <div class="bb-stock-dots">${ings.map((x, n) => `<span class="${answers[x.id] || ''}${n === at ? ' at' : ''}"></span>`).join('')}</div>
-            <div class="bb-stock-card"><span class="bb-stock-name">${esc(i.item)}</span><span class="bb-stock-amount">${esc(amountText(i))}</span>${i.note ? `<span class="muted">${esc(i.note)}</span>` : ''}</div>
-            <div class="bb-stock-buttons">
-              <button type="button" class="primary" data-s="have">✓ Got it <kbd>Y</kbd></button>
-              <button type="button" data-s="need">🛒 Need to buy <kbd>N</kbd></button>
-            </div>
-            <div class="sheet-actions"><button type="button" data-s="back" ${at ? '' : 'disabled'}>‹ Back</button><span class="spacer"></span><button type="button" data-s="end">Stop here</button></div>`;
-          dlg.querySelector('[data-s="have"]').focus();
-          return;
-        }
-        const needed = ings.filter(i => answers[i.id] === 'need');
-        const def = all.find(l => l.id === settings.batch_list_id);
-        const name = `${r?.title || 'Batch'} – ${dayMonth(today())}`;
-        dlg.innerHTML = `<div class="sheet-handle"></div>
-          <h2>${needed.length ? `${needed.length} to buy` : 'Everything\'s in stock'}</h2>
-          ${needed.length ? `<ul class="bb-stock-list">${needed.map(i => `<li><label><input type="checkbox" data-need="${i.id}" checked> ${esc(ingredientText(i))}</label></li>`).join('')}</ul>
-          <p class="muted">Put them on</p>
-          <label class="bb-stock-opt"><input type="radio" name="bb-list" value="new" ${def ? '' : 'checked'}> A new list: <input class="bb-stock-name-in" value="${esc(name)}" aria-label="New list name"></label>
-          ${all.length ? `<label class="bb-stock-opt"><input type="radio" name="bb-list" value="old" ${def ? 'checked' : ''}> A list I have: <select class="bb-stock-pick">${all.map(l => `<option value="${l.id}"${l.id === def?.id ? ' selected' : ''}>${esc(l.name || 'Untitled')}</option>`).join('')}</select></label>` : ''}` : '<p class="muted">Nothing to add to a list.</p>'}
-          <div class="sheet-actions"><button type="button" data-s="back">‹ Back</button><span class="spacer"></span>${needed.length ? '<button type="button" data-s="skip">Don\'t add</button><button type="button" class="primary" data-s="add">Add to the list</button>' : '<button type="button" class="primary" data-s="skip">Done</button>'}</div>`;
-        dlg.querySelector('.primary').focus();
-      };
-      const save = async (listId = m.list_id || null) => store.update('recipe_makes', m.id, { stock: answers, list_id: listId });
-      const answer = s => { answers[ings[at].id] = s; at++; draw(); };
-      dlg.addEventListener('keydown', ev => {
-        if (ev.target.matches('input:not([type="radio"]):not([type="checkbox"]), select') || at >= ings.length) return;
-        const k = ev.key.toLowerCase();
-        if (k === 'y') { ev.preventDefault(); answer('have'); } else if (k === 'n') { ev.preventDefault(); answer('need'); } else if (ev.key === 'Backspace' && at) { ev.preventDefault(); at--; draw(); }
+    // ---------- what's in stock ----------
+    // Each ingredient of a batch: In stock, or Add to list (onto the batch's list; the first one
+    // makes a new list, unless you picked one you have). Pressing either again takes it back off.
+    const itemText = i => ingredientText(i) + (i.note ? ` (${i.note})` : '');
+    async function addToList(listId, ings) {
+      const have = (await store.list('list_items', { filter: x => x.list_id === listId && !x.archived_at })).sort((x, y) => (x.sort_order ?? 0) - (y.sort_order ?? 0));
+      return addItems(listId, ings.map(i => ({ text: itemText(i), sub: false })), nestItems(have));
+    }
+    async function setStock(ingId, how) {
+      const m = await store.get('recipe_makes', state.make);
+      const stock = Object.assign({}, m.stock), items = Object.assign({}, m.stock_items);
+      const was = stock[ingId];
+      const patch = {};
+      if (items[ingId]) { await store.remove('list_items', items[ingId]); delete items[ingId]; }
+      if (was === how) delete stock[ingId]; else stock[ingId] = how;
+      if (stock[ingId] === 'need') {
+        let list = m.list_id && lists.find(l => l.id === m.list_id);
+        if (!list) { list = await createList({ name: batchListName(m), kind: 'list' }); patch.list_id = list.id; }
+        const made = await addToList(list.id, [m.ingredients.find(i => i.id === ingId)]);
+        items[ingId] = made[0].id;
+        if (patch.list_id) toast(`Made the list "${list.name}"`, { action: 'Open list', onAction: () => { location.hash = `#/lists/${list.id}`; } });
+      }
+      await store.update('recipe_makes', m.id, Object.assign(patch, { stock, stock_items: items }));
+      if (patch.list_id) lists = (await loadLists()).lists;
+      await later();
+    }
+    // Another list chosen: what's already been added moves over to it.
+    async function moveToList(listId) {
+      const m = await store.get('recipe_makes', state.make);
+      const items = Object.assign({}, m.stock_items);
+      const ings = (m.ingredients || []).filter(i => items[i.id] && (m.stock || {})[i.id] === 'need');
+      for (const i of ings) await store.remove('list_items', items[i.id]);
+      let target = listId;
+      if (!target && ings.length) target = (await createList({ name: batchListName(m), kind: 'list' })).id;
+      if (target && ings.length) { const made = await addToList(target, ings); ings.forEach((i, n) => { items[i.id] = made[n].id; }); }
+      await store.update('recipe_makes', m.id, { list_id: target || null, stock_items: items });
+      lists = (await loadLists()).lists;
+      await render();
+    }
+
+    // ---------- dragging cards ----------
+    // Like Brain Dump: hold ⠿ and move. Only moved recipes get a new place (order.js). Dropped under
+    // another book's heading (on All), a recipe moves to that book. The bar's Move to lists the books.
+    let kit = null, kitBooks = '';
+    const kitFor = () => {
+      const names = sections.map(x => x.name).join('\n');
+      if (kit && kitBooks === names) return kit;
+      kit?.destroy();
+      kitBooks = names;
+      kit = this.kit = createListKit({
+        reorder: true, grid: true, noun: 'recipe', onReorder: persistOrder,
+        actions: sections.map((x, n) => ({ id: `book${n}`, label: `${x.emoji} ${x.name || 'No book'}`, group: 'Move to', run: ids => moveRecipes(ids, { type: x.name }, `Moved to ${x.name || 'No book'}`) }))
+          .concat([
+            { id: 'archive', label: 'Archive', key: 'A', run: ids => moveRecipes(ids, { archived_at: now() }, 'Archived') },
+            { id: 'delete', label: 'Delete', danger: true, run: ids => moveRecipes(ids, { deleted_at: now() }, 'Deleted') },
+          ]),
       });
-      dlg.addEventListener('click', async ev => {
-        const s = ev.target.closest('[data-s]')?.dataset.s;
-        if (ev.target.closest('.bb-stock-opt select, .bb-stock-name-in')) dlg.querySelector(`[name="bb-list"][value="${ev.target.closest('select') ? 'old' : 'new'}"]`).checked = true;
-        if (!s) return;
-        if (s === 'have' || s === 'need') return answer(s);
-        if (s === 'back') { at = Math.max(0, Math.min(at, ings.length) - 1); return draw(); }
-        if (s === 'end') { at = ings.length; return draw(); }
-        if (s === 'skip') { await save(); dlg.close(); return; }
-        if (s === 'add') {
-          const picked = ings.filter(i => dlg.querySelector(`[data-need="${i.id}"]`)?.checked);
-          const useOld = dlg.querySelector('[name="bb-list"]:checked')?.value === 'old';
-          const list = useOld ? all.find(l => l.id === dlg.querySelector('.bb-stock-pick').value) : await createList({ name: dlg.querySelector('.bb-stock-name-in').value.trim() || 'Shopping', kind: 'list' });
-          const have = await store.list('list_items', { filter: x => x.list_id === list.id && !x.archived_at });
-          const made = await addItems(list.id, picked.map(i => ({ text: ingredientText(i) + (i.note ? ` (${i.note})` : ''), sub: false })), nestItems(have));
-          await store.updateSettings({ batch_list_id: list.id });
-          await save(list.id);
-          dlg.close();
-          toast(`Added ${made.length} to ${list.name}`, { action: 'Open list', onAction: () => { location.hash = `#/lists/${list.id}`; } });
-        }
-      });
-      dlg.addEventListener('close', async () => { dlg.remove(); if (Object.keys(answers).length) { const saved = await store.get('recipe_makes', m.id); if (JSON.stringify(saved.stock || {}) !== JSON.stringify(answers)) await save(); } render(); });
-      draw();
-      dlg.showModal();
+      return kit;
+    };
+    async function moveRecipes(ids, patch, label) {
+      const before = ids.map(id => [id, Object.fromEntries(Object.keys(patch).map(k => [k, recipeOf(id)?.[k] ?? (k === 'type' ? '' : null)]))]);
+      await store.updateMany('recipes', ids.map(id => [id, patch]));
+      await render();
+      undoable(label, async () => { await store.updateMany('recipes', before); await render(); });
+    }
+    async function persistOrder(rows, label, ul, moved) {
+      const bookAt = id => { for (let p = ul.querySelector(`li[data-id="${CSS.escape(id)}"]`)?.previousElementSibling; p; p = p.previousElementSibling) if (p.dataset.book !== undefined) return p.dataset.book; return null; };
+      const book = new Map(rows.map(r => [r.id, recipeOf(r.id)?.type || '']));
+      if (!state.section) for (const id of moved) { const b = bookAt(id); if (b !== null) book.set(id, b); }
+      const patch = new Map();
+      for (const name of new Set(book.values())) {
+        for (const [r, k] of reorderWrites(rows.filter(r => book.get(r.id) === name), r => rankOfRecipe(recipeOf(r.id)), moved)) patch.set(r.id, { rank: k });
+      }
+      for (const [id, b] of book) if (b !== (recipeOf(id)?.type || '')) patch.set(id, Object.assign(patch.get(id) || { rank: rankOfRecipe(recipeOf(id)) }, { type: b }));
+      if (!patch.size) return;
+      const before = Array.from(patch.keys()).map(id => [id, { rank: recipeOf(id)?.rank ?? null, type: recipeOf(id)?.type || '' }]);
+      await store.updateMany('recipes', Array.from(patch.entries()));
+      await render();
+      const into = Array.from(patch.values()).find(x => x.type !== undefined);
+      undoable(into ? `Moved to ${into.type || 'No book'}` : 'Moved a recipe', async () => { await store.updateMany('recipes', before); await render(); });
     }
 
     this.onKey = ev => {
       if (ev.key === 'Escape' && !ev.defaultPrevented && !document.querySelector('dialog[open]') && !writing()) {
-        if (Object.keys(state.edit).some(k => state.edit[k])) { ev.preventDefault(); state.edit = {}; render(); }
+        if (kit?.escape()) ev.preventDefault();
+        else if (Object.keys(state.edit).some(k => state.edit[k])) { ev.preventDefault(); state.edit = {}; render(); }
       }
     };
     addEventListener('keydown', this.onKey);
@@ -853,6 +878,7 @@ export default {
 
   unmount() {
     removeEventListener('keydown', this.onKey);
+    this.kit?.destroy();
   },
 
   quickAdd() {
