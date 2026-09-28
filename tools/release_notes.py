@@ -633,3 +633,6 @@ NOTES['1.35.29'] = [
 NOTES['1.35.30'] = [
   B("Phones: the page no longer bounces up or down past its ends, so the top and bottom bars always stay put; and a sideways swipe to change page no longer moves the page up or down with it."),
 ]
+NOTES['1.35.31'] = [
+  F("Day Planner on a phone: tap an item once to get it ready. Drag it by any part of it to another time, or drag the bar at its bottom down to make it longer; tap it again to edit it. Stretching an item no longer opens it for editing instead."),
+]

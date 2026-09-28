@@ -60,6 +60,7 @@ export default {
     let items = [];
     let day = await getDay(date);
     let editing = null; // item id whose details are open
+    let armed = null; // phones: the item a first tap got ready to stretch or move (a second tap edits it)
     let calMonth = null;
 
     el.innerHTML = `<div class="planner${day.layout === 'tasks-first' ? ' tasks-first' : ''}" data-paper="${esc(day.paper || settings.paper_style)}">
@@ -422,7 +423,7 @@ export default {
     function itemRow(i, label) {
       const span = i.end_time ? `${fmt(i.time)}–${fmt(i.end_time)}` : null;
       return `
-        <div class="line has-item${i.done_at ? ' done' : ''}${i.dropped_at ? ' dropped' : ''}${selected.has(i.id) ? ' selected' : ''}${i._mark ? ` ${i._mark}` : ''}${i.time && (i.end_time || i.estimate_min) ? ' spans' : ''}" data-item="${i.id}"${i.time ? ` data-time="${i.time}"` : ''}>
+        <div class="line has-item${i.done_at ? ' done' : ''}${i.dropped_at ? ' dropped' : ''}${selected.has(i.id) ? ' selected' : ''}${armed === i.id ? ' armed' : ''}${i._mark ? ` ${i._mark}` : ''}${i.time && (i.end_time || i.estimate_min) ? ' spans' : ''}" data-item="${i.id}"${i.time ? ` data-time="${i.time}"` : ''}>
           <span class="margin">${i.time && label ? `<input class="margin-time" value="${label}" data-time-for="${i.id}" aria-label="Start time" inputmode="decimal" autocomplete="off">` : label ?? ''}</span>
           <span class="content">
             <button type="button" class="drag-grip" aria-label="Drag to a time" title="Drag onto a time">⠿</button>
@@ -1526,8 +1527,42 @@ export default {
     let press = null;  // pointer down on a ⠿ (maybe a tap, maybe a drag)
     let resizing = null;
 
+    // Phones: the first tap on an item gets it ready ("armed"): its stretch bar
+    // shows fully, it can be dragged by any part of it, and it isn't edited; a
+    // second tap edits it; a tap anywhere else lets it go. So stretching or
+    // moving an item is never taken for editing it (nor for swiping it: rowswipe.js).
+    const ARM_SKIP = 'button, a, select, input:not(.item-title), textarea:not(.item-title), .tick, .edit-pills, .resize-grip, .drag-grip, .row-acts, .note-edit';
+    const paintArmed = () => el.querySelectorAll('.line.has-item').forEach(r => r.classList.toggle('armed', r.dataset.item === armed));
+    const armedBody = ev => ev.pointerType === 'touch' && armed && ev.target.closest('.line.armed[data-item] > .content') && !ev.target.closest(ARM_SKIP);
+    if (matchMedia('(pointer: coarse)').matches) {
+      let tap = null;
+      el.addEventListener('touchstart', ev => {
+        tap = null;
+        const row = ev.target.closest('.line.has-item[data-item]');
+        if (!row || ev.touches.length !== 1 || !ev.target.closest('.content') || ev.target.closest(ARM_SKIP)) return;
+        if (row.classList.contains('pills-open') || row.contains(document.activeElement)) return; // being edited: taps are the editor's
+        tap = { id: row.dataset.item, x: ev.touches[0].clientX, y: ev.touches[0].clientY };
+      }, { passive: true });
+      el.addEventListener('touchmove', ev => { if (tap && Math.hypot(ev.touches[0].clientX - tap.x, ev.touches[0].clientY - tap.y) > 5) tap = null; }, { passive: true });
+      el.addEventListener('touchcancel', () => { tap = null; });
+      el.addEventListener('touchend', ev => {
+        const t = tap;
+        tap = null;
+        if (!t || document.body.classList.contains('has-select-bar')) return;
+        ev.preventDefault(); // no click, no cursor: this tap gets it ready, or edits it
+        if (armed !== t.id) { armed = t.id; paintArmed(); return; }
+        armed = null;
+        paintArmed();
+        const title = el.querySelector(`.line.has-item[data-item="${CSS.escape(t.id)}"] .item-title`);
+        if (title) { title.focus(); title.setSelectionRange?.(title.value.length, title.value.length); }
+      }, { passive: false });
+      document.addEventListener('pointerdown', ev => {
+        if (armed && !ev.target.closest?.(`.line.has-item[data-item="${CSS.escape(armed)}"]`)) { armed = null; paintArmed(); }
+      }, pageCapture);
+    }
+
     el.addEventListener('pointerdown', ev => {
-      const grip = ev.target.closest('.drag-grip, .resize-grip');
+      const grip = ev.target.closest('.drag-grip, .resize-grip') || (armedBody(ev) ? ev.target : null);
       if (!grip || ev.button > 0) return;
       ev.preventDefault();
       const row = grip.closest('[data-item]');
@@ -1539,7 +1574,7 @@ export default {
         resizing = { item, startY: ev.clientY, base: duration(item), minutes: null, lineH };
         return;
       }
-      press = { id: item.id, x: ev.clientX, y: ev.clientY, rowH: row.getBoundingClientRect().height, dragging: false };
+      press = { id: item.id, x: ev.clientX, y: ev.clientY, rowH: row.getBoundingClientRect().height, dragging: false, body: !grip.closest('.drag-grip') }; // body: pressed on an armed item itself
     });
 
     el.addEventListener('pointermove', ev => {
@@ -1574,6 +1609,7 @@ export default {
       press = null;
       if (!p) return;
       if (!p.dragging) {
+        if (p.body) return; // a tap on an armed item: it's edited (the touchend above)
         // A tap: select / deselect.
         selected.has(p.id) ? selected.delete(p.id) : selected.add(p.id);
         return paintSelection();

@@ -90,7 +90,8 @@ function newUserSteps() {
     // ---------- Day Planner ----------
     { id: 'paper', hash: '#/planner', at: '.planner .paper', also: nav('planner'), title: 'Your day on paper', body: `<p>Write on a time to plan it. Anything unfinished is offered again the next day, or you can let it go.</p>
         <p>Give a task a day in ${w('area_tasks')} and it's here on that day by itself; change the day and it moves.</p>` },
-    { id: 'drag', hash: '#/planner', at: '.planner .pile', title: 'From tasks to a time', body: `<p>The day's tasks wait here. Drag a task's <b>⠿</b> onto a time in the plan to give it that time, then drag the bottom of it down to say how long it takes.</p>
+    { id: 'drag', hash: '#/planner', at: '.planner .pile', title: 'From tasks to a time', body: `<p>The day's tasks wait here. Drag a task's <b>⠿</b> onto a time in the plan to give it that time, then drag the bottom of it down to say how long it takes.</p>${KEYS ? '' : `
+        <p>On a phone, tap an item once to get it ready: then drag it by any part of it to another time, or drag the bar at its bottom down to make it longer. Tap it again to change its words.</p>`}
         <p><b>↓ Bring in from tasks</b> brings in what's planned for today, and ideas that suit today's energy.</p>` },
     { id: 'focus', hash: '#/planner', at: '.planner .focus-row', title: 'Plan around how you feel', body: `<p><b>Day focus</b>: the one thing that matters today. <b>Energy</b>: how you feel, so the planner can suggest tasks that fit.</p>
         <p>Days you'd rather rest (Settings → ${word('area_planner')}) get a gentle reminder to do less.</p>` },
