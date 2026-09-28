@@ -661,7 +661,7 @@ export default {
       ev.preventDefault();
       ev.stopPropagation();
       if (held) { held = false; return; } // the hold already chose it
-      kit.toggle(li.dataset.id);
+      kit.toggle(li.dataset.id, ev.shiftKey); // Shift: every card from the last one picked to this one
     }, true);
 
     // Pressing an ingredient chip keeps the cursor in the step being written.
@@ -675,7 +675,8 @@ export default {
       return pageRec();
     };
 
-    const openRow = row => { if (!batchKit.size) go(row.dataset.href); };
+    // While batches are selected, pressing a row adds it or takes it out (Shift: every row from the last one picked).
+    const openRow = (row, ev) => { const li = row.closest('li[data-id]'); if (!batchKit.size) go(row.dataset.href); else if (li) batchKit.toggle(li.dataset.id, !!ev?.shiftKey); };
     el.addEventListener('keydown', ev => { const row = ev.target.closest?.('.bb-batch-row[data-href]'); if (row && ev.key === 'Enter') openRow(row); });
     el.addEventListener('click', async ev => {
       // A batch's status pill: Planned / On the go / Done, changed in place.
@@ -685,7 +686,7 @@ export default {
         return pillMenu(pill, STATUSES.map(([v, l]) => ({ value: v, label: statusLabel(v), current: v === (m.status || 'going') })), v => changeBatches([m.id], { status: v }, `Marked ${STATUSES.find(x => x[0] === v)[1].toLowerCase()}`), { className: 'word-menu' });
       }
       const row = ev.target.closest('.bb-batch-row[data-href]');
-      if (row) return openRow(row);
+      if (row) return openRow(row, ev);
       if (att.onClick(ev, attParent, () => render())) return;
       const view = ev.target.closest('[data-step-view]');
       if (view && !ev.target.closest('a')) return openStep(view);
