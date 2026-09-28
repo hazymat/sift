@@ -4009,6 +4009,8 @@ textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
 }
 
 .bb-sections-sheet { max-width: 560px; }
+.bb-import-sheet { max-width: 640px; }
+.bb-import-text { width: 100%; box-sizing: border-box; margin-top: 12px; font: inherit; font-size: 0.9rem; resize: vertical; }
 .bb-sec-list { display: grid; gap: 10px; margin: 8px 0 12px; }
 .bb-sec-row { display: grid; grid-template-columns: 3.4em minmax(0, 1fr) 44px 34px; gap: 6px; align-items: center; padding: 8px; border-radius: 14px; background: var(--glass-track); }
 .bb-sec-emoji { text-align: center; font-size: 1.2rem; padding: 6px 2px !important; }

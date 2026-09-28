@@ -814,3 +814,7 @@ NOTES['1.45.01'] = [
 NOTES['1.45.02'] = [
   B('Batch Book: ingredients and steps share one margin down the page. It moves right a little when an amount needs the room, but only so far.'),
 ]
+
+NOTES['1.46.00'] = [
+  F('Batch Book: import recipes as text. ⋯ → Import recipes, then paste or choose a text file: each recipe starts with "# Name", then Book, Tags and details, its ingredients and its method. Recipes kept elsewhere (notes, photos of cards, websites) can be turned into that text by any AI chat: "Copy instructions for an AI chat" copies what to ask it. Books not set up yet are added.'),
+]
