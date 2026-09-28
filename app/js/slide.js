@@ -4,7 +4,7 @@
 // phone (app.js) and for Brain Dump's filters. Only what changes slides (the
 // tasks, the notes, the day); the rest stays put (app.css names the parts),
 // and a tab bar's highlight glides from the old tab to the new one, then
-// rings once, light blue (flash.js), with the bar scrolled to show it and the
+// flashes once, see-through yellow (flash.js), with the bar scrolled to show it and the
 // tab past it. Another swipe straight away stops the last one's glide and ring.
 //
 //   slide(forward, change)  change(): makes the change and resolves once it's
@@ -14,7 +14,7 @@
 //                           again, or rejects if nothing changed
 //   nudge(forward)          a small push that goes nowhere: "nothing that way"
 
-import { flash, unflash, RING } from './flash.js';
+import { flash, unflash, WASH } from './flash.js';
 
 const main = () => document.getElementById('main');
 const still = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -65,11 +65,11 @@ function glide(from) {
   bar.append(ghost);
   const mine = gliding = { bar, ghost };
   keepInView(bar, to);
-  // Arrived: the real one shows again and rings, unless another swipe has taken over (or it isn't the chosen tab now).
+  // Arrived: the real one shows again and flashes, unless another swipe has taken over (or it isn't the chosen tab now).
   const done = () => {
     if (gliding !== mine) return;
     ghost.remove(); bar.classList.remove('glide-on'); gliding = null;
-    if (to.isConnected && to === pressedIn(bar)) flash(to, Object.assign({}, RING, { scroll: false }));
+    if (to.isConnected && to === pressedIn(bar)) flash(to, Object.assign({}, WASH, { scroll: false }));
   };
   ghost.animate([{ transform: `translate(${from.left - z.left}px, ${from.top - z.top}px)`, width: `${from.width}px` }, { transform: 'none', width: `${z.width}px` }],
     { duration: 300, easing: 'cubic-bezier(.2, .8, .2, 1)' }).finished.then(done, done);
