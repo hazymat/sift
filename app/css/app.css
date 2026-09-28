@@ -3912,8 +3912,7 @@ body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none
 .bb-emoji { font-size: clamp(2.4rem, 8vw, 3.8rem); line-height: 1; filter: drop-shadow(0 3px 5px rgba(0, 0, 0, .18)); }
 .bb-title { flex: 1; min-width: 0; font-family: var(--hand); font-size: clamp(2rem, 7vw, 3.2rem) !important; font-weight: 700; color: var(--bb-ink) !important; line-height: 1.15; }
 textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
-.bb-batch-title { display: flex; align-items: baseline; white-space: nowrap; }
-.bb-batch-input { width: 3.5ch !important; field-sizing: content; min-width: 2ch; font: inherit; color: inherit !important; padding: 0 4px !important; }
+#main textarea.bb-title.one-line { font-size: clamp(2rem, 7vw, 3.2rem) !important; } /* beats the 16px phone floor on fields (it has an id in it) */
 .bb-rule { height: 8px; margin: 8px 0 12px; border-radius: 99px; background: var(--bb); }
 .bb-desc { font-family: var(--hand); font-size: 1.15rem; resize: none; field-sizing: content; }
 .bb-of { margin: -4px 0 6px 8px; color: var(--muted); }

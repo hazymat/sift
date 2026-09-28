@@ -1,7 +1,7 @@
 // Batch Book: recipes and every batch made from them (views/recipes.js).
 //   recipes:        title, type (its section's name), tags[], description, ingredients[] ({ id, qty, unit, item, note }),
 //                   steps[] ({ id, text with {references} }), tasting (notes), fields ({ label: value }, e.g. Batch volume)
-//   recipe_makes:   recipe_id, batch_no, date (YYYY-MM-DD), status (planned|going|done), description, state,
+//   recipe_makes:   recipe_id, name, batch_no (older batches' only name), date (YYYY-MM-DD), status (planned|going|done), description, state,
 //                   fields, back_sweetened, ingredients[] and steps[] (copied from the recipe, then its own to change),
 //                   stock ({ ingredient id: have|need }), stock_items ({ ingredient id: list item id }), list_id
 //   recipe_entries: make_id, kind (diary|tasting|reading), date, text; readings also: label (OG|SG|FG), gravity
@@ -12,6 +12,7 @@
 // and {salt|a pinch of salt} your own words (still marked as the ingredient).
 
 import * as store from './store.js';
+import { dateText } from './days.js';
 
 // The sections a new Batch Book starts with. A section decides the details its new recipes start
 // with, and whether batches have gravity readings.
@@ -217,8 +218,12 @@ export const binProvider = {
     const title = new Map(recipes.map(r => [r.id, r.title]));
     for (const m of makes.filter(inState)) {
       if (claimed.has(m.id)) continue;
-      out.push({ collection: 'recipe_makes', id: m.id, kind: 'Batch', title: `Batch #${m.batch_no || '?'}`, subtitle: title.get(m.recipe_id) || '', detail: m.date || '', at: at(m), children: [], search: `${m.batch_no} ${title.get(m.recipe_id) || ''}` });
+      out.push({ collection: 'recipe_makes', id: m.id, kind: 'Batch', title: batchName(m, title.get(m.recipe_id)), subtitle: title.get(m.recipe_id) || '', detail: m.date || '', at: at(m), children: [], search: `${batchName(m, title.get(m.recipe_id))} ${title.get(m.recipe_id) || ''}` });
     }
     return out.sort((a, b) => (b.at || '').localeCompare(a.at || ''));
   },
 };
+
+// A batch's name: its own, else (older batches) its recipe's name and the day it was started.
+export const batchDay = iso => (iso ? dateText(new Date(`${iso.slice(0, 10)}T12:00`), { day: 'numeric', month: 'short', year: 'numeric' }) : '');
+export const batchName = (m, recipeTitle) => m.name || `${recipeTitle || 'Untitled'} ${batchDay(m.date)}`.trim();

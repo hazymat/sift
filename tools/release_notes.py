@@ -763,3 +763,8 @@ NOTES['1.41.02'] = [
 NOTES['1.41.03'] = [
   B('Batch Book: a batch opened from the batches list now goes back to the batches list with Esc or the back button, not to its recipe.'),
 ]
+
+NOTES['1.42.00'] = [
+  F('Batch Book: a new batch is named after its recipe and the day it was started (like "Mead 28 Sep 2026") instead of "Batch #2". Change the whole name at the top of the batch. Older batches show their recipe and date until you rename them.'),
+  B('Batch Book: recipe and batch names at the top of the page are big again on phones.'),
+]
