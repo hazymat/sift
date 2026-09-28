@@ -576,3 +576,7 @@ NOTES['1.35.11'] = [
 NOTES['1.35.12'] = [
   F("On a phone, swipe a task sideways, as in a phone's mail app: left shows ✓ Done and ⋯ More, right shows Delete. A swipe elsewhere on the page still changes list."),
 ]
+NOTES['1.35.13'] = [
+  F("On a phone, swipe an item in the Day Planner (in the plan or the day's tasks) as in Tasks: left for ✓ Done and ⋯ More, right for Delete."),
+  F("Brain Dump: choosing a filter slides the notes across to it. On a phone, a side swipe no longer changes filter; the page just nudges."),
+]
