@@ -3,13 +3,13 @@
 //                                   cards are dragged like Brain Dump notes (onto another book's heading moves them there)
 // #/recipes/<recipe id>             a recipe: Make this, details, ingredients, steps, result photos, its batches
 // #/recipes/<recipe id>/make/<id>   one batch: its own copy of the recipe to change, each ingredient In stock or
-//                                   Add to list, summary, gravity log, diary, tasting diary
+//                                   Add to list, summary, readings (gravity and the book's other kinds), diary, tasting diary
 // Pages are drawn on the same papers as the Day Planner (👁: paper, lined, margin).
 // Data and units: js/batchbook.js. A book is stored as a recipe's `type` (settings.batch_sections).
 
 import * as store from '../store.js';
 import * as att from '../attachments.js';
-import { sectionsOf, sectionOf, stepsOf, parseRecipes, IMPORT_EXAMPLE, UNITS, parseLine, parseQty, qtyText, amountText, ingredientText, stepHtml, renameRefs, abvOf, nextBatchNo, loadBook, batchName, newBatchName, batchDay } from '../batchbook.js';
+import { sectionsOf, sectionOf, stepsOf, parseRecipes, IMPORT_EXAMPLE, UNITS, parseLine, parseQty, qtyText, amountText, ingredientText, stepHtml, renameRefs, abvOf, readingTypesOf, isGravity, nextBatchNo, loadBook, batchName, newBatchName, batchDay } from '../batchbook.js';
 import { loadLists, nestItems, createList, addItems } from '../lists.js';
 import { richText, plainLines } from '../richtext.js';
 import { debounced } from '../autosave.js';
@@ -350,7 +350,9 @@ export default {
       const sec = sectionFor(r);
       const readings = entriesOf(m.id, 'reading');
       const abv = abvOf(readings);
-      const gravity = sec.readings || readings.length > 0;
+      const types = readingTypesOf(sec).slice();
+      for (const e of readings) if (!types.some(x => x.toLowerCase() === (e.type || 'Gravity').toLowerCase())) types.push(e.type || 'Gravity');
+      const gravity = types.some(isGravity);
       const f = m.fields || {};
       const goal = k => `<label><span>${k}</span><input data-field-key="${k}" value="${esc(f[k] || '')}" aria-label="${k}" placeholder="…"></label>`;
       return `${state.fromList ? top('home', 'Batches') : top('to-recipe', r?.title || 'Recipe')}
@@ -377,11 +379,12 @@ export default {
             ${line('Current state', `<input data-make="state" value="${esc(m.state || '')}" aria-label="Current state" placeholder="Where it's up to">`)}
           </div>
           <button type="button" class="bb-add-field" data-act="add-field">+ Add a detail</button>
-          ${gravity ? `<h2 class="bb-h"><span>🌡️ Gravity log</span><button type="button" data-act="reading">+ Log reading</button></h2>
-            ${chart(readings)}
+          ${types.length ? `<h2 class="bb-h"><span>🌡️ Readings</span><span class="bb-reading-adds">${types.map(x => `<button type="button" data-act="reading" data-type="${esc(x)}">+ ${esc(x)}</button>`).join('')}</span></h2>
+            ${gravity ? chart(readings.filter(e => isGravity(e.type))) : ''}
             <div class="bb-readings">${readings.map(e => `<div class="bb-reading" data-entry="${e.id}">
-              <select data-entry-field="label" aria-label="Kind of reading">${['OG', 'SG', 'FG'].map(l => `<option${(e.label || 'SG') === l ? ' selected' : ''}>${l}</option>`).join('')}</select>
-              <input class="bb-gravity" data-entry-field="gravity" value="${e.gravity ? e.gravity.toFixed(3) : ''}" inputmode="decimal" placeholder="1.050" aria-label="Gravity">
+              ${isGravity(e.type) ? `<select data-entry-field="label" aria-label="Kind of reading">${['OG', 'SG', 'FG'].map(l => `<option${(e.label || 'SG') === l ? ' selected' : ''}>${l}</option>`).join('')}</select>
+              <input class="bb-gravity" data-entry-field="gravity" value="${e.gravity ? e.gravity.toFixed(3) : ''}" inputmode="decimal" placeholder="1.050" aria-label="Gravity">`
+              : `<span class="bb-reading-type">${esc(e.type)}</span><input class="bb-reading-value" data-entry-field="value" value="${esc(e.value || '')}" placeholder="21°C" aria-label="${esc(e.type)}">`}
               <input type="date" data-entry-field="date" value="${esc(e.date || '')}" aria-label="Date">
               <textarea class="bb-entry-text no-inline" data-entry-field="text" rows="1" placeholder="Note" aria-label="Note">${esc(e.text || '')}</textarea>
               <button type="button" class="icon-btn bb-reading-x" data-entry-remove aria-label="Remove reading">×</button>
@@ -750,8 +753,10 @@ export default {
       }
       if (act === 'make') return makeThis(recipeOf(state.recipe));
       if (act === 'reading') {
-        const made = await store.create('recipe_entries', { make_id: state.make, recipe_id: makeOf(state.make)?.recipe_id, kind: 'reading', label: entriesOf(state.make, 'reading').length ? 'SG' : 'OG', gravity: null, date: today(), text: '' });
-        focusNext = `[data-entry="${made.id}"] .bb-gravity`;
+        const type = b.dataset.type || 'Gravity', grav = isGravity(type);
+        const made = await store.create('recipe_entries', Object.assign({ make_id: state.make, recipe_id: makeOf(state.make)?.recipe_id, kind: 'reading', type, date: today(), text: '' },
+          grav ? { label: entriesOf(state.make, 'reading').some(e => isGravity(e.type)) ? 'SG' : 'OG', gravity: null } : { value: '' }));
+        focusNext = `[data-entry="${made.id}"] ${grav ? '.bb-gravity' : '.bb-reading-value'}`;
         return render();
       }
       if (act === 'archive-recipe' || act === 'delete-recipe') return retire(recipeOf(state.recipe), act === 'delete-recipe' ? 'deleted_at' : 'archived_at');
@@ -866,7 +871,7 @@ export default {
         if (b.dataset.imp === 'cancel') return dlg.close();
         if (b.dataset.imp === 'prompt') { try { await navigator.clipboard.writeText(AI_PROMPT); toast('Copied: paste it into an AI chat with your recipes'); } catch { toast('Couldn\'t copy here'); } return; }
         go.disabled = true;
-        const known = settings.batch_sections || sections.filter(x => !x.auto).map(x => ({ name: x.name, emoji: x.emoji, colour: x.colour, fields: x.fields, readings: !!x.readings }));
+        const known = settings.batch_sections || sections.filter(x => !x.auto).map(x => ({ name: x.name, emoji: x.emoji, colour: x.colour, fields: x.fields, readings: !!x.readings, reading_types: x.reading_types || [] }));
         const added = Array.from(new Set(got.map(r => r.type).filter(t => t && !known.some(x => x.name === t)))).map(name => { const x = sectionOf(sections, name); return { name, emoji: x.emoji, colour: x.colour, fields: [], readings: x.readings }; });
         if (added.length) await store.updateSettings({ batch_sections: known.concat(added) });
         const made = [];
@@ -883,7 +888,7 @@ export default {
     // Your own books: a name, an emoji, a colour, the details its new recipes start with, and
     // whether its batches have gravity readings. A renamed book takes its recipes with it.
     async function editSections() {
-      let own = sections.filter(x => !x.auto).map(x => ({ was: x.name, name: x.name, emoji: x.emoji, colour: x.colour, fields: x.fields.slice(), readings: !!x.readings }));
+      let own = sections.filter(x => !x.auto).map(x => ({ was: x.name, name: x.name, emoji: x.emoji, colour: x.colour, fields: x.fields.slice(), readings: !!x.readings, reading_types: (x.reading_types || []).slice() }));
       const dlg = document.createElement('dialog');
       dlg.className = 'sheet bb-sections-sheet';
       document.body.append(dlg);
@@ -894,7 +899,8 @@ export default {
         <input type="color" data-k="colour" value="${esc(x.colour)}" aria-label="Colour">
         <button type="button" class="icon-btn bb-x" data-sec-remove="${n}" aria-label="Remove book">×</button>
         <input class="bb-sec-fields" data-k="fields" value="${esc(x.fields.join(', '))}" placeholder="Details its recipes have, e.g. Serves, Oven temperature" aria-label="Details">
-        <label class="bb-sec-readings"><input type="checkbox" data-k="readings" ${x.readings ? 'checked' : ''}> Batches have gravity readings</label>
+        <label class="bb-sec-readings"><input type="checkbox" data-k="readings" ${x.readings ? 'checked' : ''}> Batches have readings</label>
+        <input class="bb-sec-types" data-k="reading_types" value="${esc((x.reading_types.length ? x.reading_types : ['Gravity']).join(', '))}" placeholder="Kinds of reading, e.g. Gravity, Temperature" aria-label="Kinds of reading" ${x.readings ? '' : 'hidden'}>
       </li>`;
       const draw = () => {
         dlg.innerHTML = `<div class="sheet-handle"></div>
@@ -914,12 +920,14 @@ export default {
           x.colour = r.querySelector('[data-k="colour"]').value;
           x.fields = r.querySelector('[data-k="fields"]').value.split(',').map(s => s.trim()).filter(Boolean);
           x.readings = r.querySelector('[data-k="readings"]').checked;
+          x.reading_types = r.querySelector('[data-k="reading_types"]').value.split(',').map(s => s.trim()).filter(Boolean);
         }
       };
+      dlg.addEventListener('change', ev => { if (ev.target.dataset.k === 'readings') ev.target.closest('.bb-sec-row').querySelector('[data-k="reading_types"]').hidden = !ev.target.checked; });
       dlg.addEventListener('click', async ev => {
         const b = ev.target.closest('button');
         if (!b) return;
-        if (b.dataset.secAdd !== undefined) { read(); own.push({ was: null, name: '', emoji: '📖', colour: '#7a6a55', fields: [], readings: false }); draw(); dlg.querySelector('.bb-sec-row:last-child .bb-sec-name').focus(); return; }
+        if (b.dataset.secAdd !== undefined) { read(); own.push({ was: null, name: '', emoji: '📖', colour: '#7a6a55', fields: [], readings: false, reading_types: [] }); draw(); dlg.querySelector('.bb-sec-row:last-child .bb-sec-name').focus(); return; }
         if (b.dataset.secRemove) { read(); own.splice(+b.dataset.secRemove, 1); draw(); return; }
         if (b.dataset.secCancel !== undefined) return dlg.close();
         if (b.dataset.secSave !== undefined) {
@@ -928,7 +936,7 @@ export default {
           if (new Set(keep.map(x => x.name)).size !== keep.length) { toast('Two books have the same name'); return; }
           const moved = keep.filter(x => x.was && x.was !== x.name);
           for (const x of moved) await store.updateMany('recipes', data.recipes.filter(r => (r.type || '') === x.was).map(r => [r.id, { type: x.name }]));
-          await store.updateSettings({ batch_sections: keep.map(x => ({ name: x.name, emoji: x.emoji, colour: x.colour, fields: x.fields, readings: x.readings })) });
+          await store.updateSettings({ batch_sections: keep.map(x => ({ name: x.name, emoji: x.emoji, colour: x.colour, fields: x.fields, readings: x.readings && x.reading_types.length > 0, reading_types: x.reading_types })) });
           const followed = moved.find(x => x.was === state.section);
           if (followed) state.section = followed.name;
           dlg.close();

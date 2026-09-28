@@ -3981,6 +3981,9 @@ textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
 .bb-reading { position: relative; display: grid; grid-template-columns: 4.5em 1fr; gap: 2px 4px; width: 170px; padding: 8px 8px 10px; border-radius: 6px; background: var(--bb-soft); font-size: .9rem; }
 .bb-reading select { font-weight: 600; padding: 3px 4px !important; }
 .bb-reading .bb-gravity { font-weight: 600; font-size: 1.05rem; }
+.bb-reading-type { grid-column: 1 / -1; align-self: center; font-weight: 600; font-size: .85rem; color: var(--bb-ink); }
+.bb-reading .bb-reading-value { grid-column: 1 / -1; font-weight: 600; font-size: 1.05rem; }
+.bb-reading-adds { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
 .bb-reading input[type="date"] { grid-column: 1 / -1; }
 .bb-reading textarea { grid-column: 1 / -1; font-size: .85rem; resize: none; field-sizing: content; min-height: 2em; }
 .bb-reading-x { position: absolute; top: -8px; right: -8px; width: 26px !important; height: 26px !important; border-radius: 50% !important; background: var(--paper-bg, var(--glass-strong)) !important; opacity: 0; transition: opacity .15s; }
@@ -4015,8 +4018,9 @@ textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
 .bb-sec-row { display: grid; grid-template-columns: 28px 3.4em minmax(0, 1fr) 44px 34px; gap: 6px; align-items: center; padding: 8px; border-radius: 14px; background: var(--glass-track); }
 .bb-sec-emoji { text-align: center; font-size: 1.2rem; padding: 6px 2px !important; }
 .bb-sec-row input[type="color"] { width: 40px; height: 36px; padding: 2px; border-radius: 10px; border: 1px solid var(--glass-border); background: none; }
-.bb-sec-grip { grid-row: 1 / span 3; align-self: stretch; width: 28px; height: auto; padding: 0; border: 0; background: none; box-shadow: none; color: var(--muted); cursor: grab; touch-action: none; }
+.bb-sec-grip { grid-row: 1 / span 4; align-self: stretch; width: 28px; height: auto; padding: 0; border: 0; background: none; box-shadow: none; color: var(--muted); cursor: grab; touch-action: none; }
 .bb-sec-fields { grid-column: 2 / -1; }
+.bb-sec-types { grid-column: 2 / -1; }
 .bb-sec-readings { grid-column: 2 / -1; display: flex; align-items: center; gap: 8px; font-size: .9rem; color: var(--text); }
 .bb-ings .bb-content { justify-content: flex-start; }
 .bb-paper ::placeholder { color: var(--muted); opacity: .75; }

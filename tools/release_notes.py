@@ -822,3 +822,7 @@ NOTES['1.46.00'] = [
 NOTES['1.46.01'] = [
   F('Batch Book: in the books editor (Edit books), drag a book by the ⠿ on its left to change the order; the books bar follows once saved.'),
 ]
+
+NOTES['1.46.02'] = [
+  F('Batch Book: "Batches have readings" in the books editor, with the kinds of reading that book\'s batches take (like Gravity, Temperature). On a batch, Readings has a + button for each kind; gravity keeps its OG/SG/FG, chart and ABV, other kinds take what you type (like 21°C). Existing readings stay as gravity.'),
+]
