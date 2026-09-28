@@ -3685,9 +3685,9 @@ dialog.custom-theme::backdrop { background: rgba(0, 0, 0, .35); }
 /* Phones: a side swipe slides the page (app.js: installSwipe), as a phone's own
    screens do: the old page out, the next one in over it from the side. The bars
    stay put, above it. */
-html[data-slide] :is(#task-body, #thoughts, #main .planner), html[data-slide] #main:not(:has(#task-body, #thoughts, .planner)) { view-transition-name: sift-page; }
+html[data-slide] :is(#task-body, #thoughts, #main .planner, #main .bb-body), html[data-slide] #main:not(:has(#task-body, #thoughts, .planner, .bb-body)) { view-transition-name: sift-page; }
 html[data-slide] :is(#task-entry, #main .planner > .day-nav) { view-transition-name: sift-still; } /* inside what slides, but stays */
-html[data-slide] :is(#main .tasks-head, #main .dump-bar) { view-transition-name: sift-bar; } /* stays, over the sliding part when it sticks at the top */
+html[data-slide] :is(#main .tasks-head, #main .dump-bar, #main .bb-sticky, #main .bb-top) { view-transition-name: sift-bar; } /* stays, over the sliding part when it sticks at the top */
 html[data-slide] .appbar { view-transition-name: sift-top; }
 html[data-slide] #tabbar { view-transition-name: sift-tabs; }
 ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
@@ -3796,24 +3796,48 @@ body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none
 .bb-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
 .bb-head .bb-search { flex: 1 1 12em; min-width: 0; padding: 8px 12px; border-radius: var(--radius-pill); }
 .bb-head .bb-batches-btn[aria-pressed="true"] { background: var(--active-bg); border-color: var(--active-border); }
-.bb-sections-bar { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
-.bb-sections button { border-bottom: 3px solid color-mix(in srgb, var(--bb, transparent) 80%, transparent); }
-.bb-sections-edit { width: 34px; height: 34px; font-size: 1rem; }
+/* The top bar stays while the recipes scroll (as Brain Dump's does); stuck, it gets a glass background. */
+.bb-sticky { position: sticky; top: calc(var(--safe-top) + 62px); z-index: 5; margin: 0 -10px 10px; padding: 0 10px; border-radius: 0 0 16px 16px; transition: box-shadow .15s, background-color .15s; }
+.bb-sticky-mark { height: 1px; margin-bottom: -1px; }
+.bb-sticky.stuck { padding-top: 8px; padding-bottom: 4px; background: var(--glass-strong); -webkit-backdrop-filter: blur(18px) saturate(1.3); backdrop-filter: blur(18px) saturate(1.3); box-shadow: 0 10px 18px -10px rgba(0, 0, 0, .55); }
+@media (min-width: 768px) { .bb-sticky { top: 62px; } .bb-sticky.stuck { padding-top: 14px; } }
+@media (max-width: 767px) { .bb-sticky { top: 0; } .bb-sticky.stuck { padding-top: calc(var(--safe-top) + 8px); } }
+/* Books: the same filter bar as Brain Dump's kinds (underlined, in the book's colour). */
+.bb-sections-bar { display: flex; align-items: stretch; margin: 6px 0 8px; border-bottom: 1px solid var(--glass-border); }
+.bb-sections, .bb-status { display: flex; gap: 2px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.bb-sections::-webkit-scrollbar, .bb-status::-webkit-scrollbar { display: none; }
+.bb-sections button, .bb-status button, .bb-sections-edit { flex: none; width: auto; height: auto; background: none; border: 0; border-bottom: 2px solid transparent; border-radius: 0; box-shadow: none; padding: 6px 9px 5px; font-size: .9rem; line-height: 1.2; color: var(--muted); }
+.bb-sections { flex-wrap: nowrap; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+.bb-sections button { white-space: nowrap; border-bottom-color: color-mix(in srgb, var(--bb, var(--muted)) 35%, transparent); }
+.bb-sections button[aria-pressed="true"] { background: color-mix(in srgb, var(--bb, var(--muted)) 16%, transparent); border-radius: 8px 8px 0 0; }
+.bb-sections button[aria-pressed="true"], .bb-status button[aria-pressed="true"] { color: inherit; font-weight: 600; border-bottom-color: var(--bb, currentColor); }
+.bb-status { margin: 0 0 8px; }
+.bb-status button { font-size: .85rem; }
 .bb-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 10px; }
 .bb-tags .chip { padding: 3px 12px; font-size: .85rem; cursor: pointer; }
 .bb-tags .chip[aria-pressed="true"] { background: var(--active-bg); border-color: var(--active-border); color: var(--text); }
 .bb-cards { margin: 0; padding: 0; list-style: none; }
-.bb-chapter-title { grid-column: 1 / -1; list-style: none; display: flex; align-items: baseline; gap: 8px; margin: 12px 4px 0; padding-bottom: 6px; font-family: var(--hand); font-size: 1.5rem; font-weight: 700; color: var(--text); border-bottom: 3px solid var(--bb); }
+.bb-chapter-title { grid-column: 1 / -1; list-style: none; position: sticky; top: var(--bb-stick, 0); z-index: 3; margin-inline: -6px !important; padding-inline: 10px; border-radius: 12px 12px 0 0; background: color-mix(in srgb, var(--bg, #10182a) 55%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); display: flex; align-items: baseline; gap: 8px; margin: 12px 4px 0; padding-bottom: 6px; font-family: var(--hand); font-size: 1.5rem; font-weight: 700; color: var(--text); border-bottom: 3px solid var(--bb); }
 .bb-chapter-title .muted { font-family: var(--font); font-size: .85rem; font-weight: 400; }
 .bb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
-.bb-card { display: flex; flex-direction: column; overflow: hidden; border-radius: 20px; border: 1px solid var(--glass-border); background: var(--glass); box-shadow: var(--glass-highlight), var(--shadow-sm); transition: transform .15s; }
-.bb-card:hover { transform: translateY(-2px); }
-.bb-card-li { position: relative; display: flex; border-radius: 20px; list-style: none; }
-.bb-card-li > .bb-card { flex: 1; min-width: 0; }
+.bb-card-li { position: relative; display: flex; flex-direction: column; overflow: hidden; border-radius: 20px; list-style: none; border: 1px solid var(--glass-border); background: var(--glass); box-shadow: var(--glass-highlight), var(--shadow-sm); transition: transform .15s; }
+.bb-card-li:hover { transform: translateY(-2px); }
+.bb-card-li:has(details[open]) { overflow: visible; z-index: 4; transform: none; }
+.bb-card { display: flex; flex-direction: column; flex: 1; min-width: 0; color: var(--text); border-radius: 20px 20px 0 0; overflow: hidden; }
+.bb-card-acts { display: flex; align-items: center; gap: 6px; padding: 0 10px 10px 14px; }
+.bb-card-make { padding: 4px 12px; font-size: .85rem; }
+.bb-card-menu { margin-left: auto; }
+.bb-card-menu > summary { width: 32px; height: 32px; }
+.bb-card-menu .menu { min-width: 13em; }
+.bb-card-menu .menu > button { display: block; width: 100%; text-align: left; }
+.bb-card-menu .menu-label { display: block; padding: 6px 12px 2px; font-size: .78rem; }
+.bb-card-menu hr { border: 0; border-top: 1px solid var(--glass-border); margin: 4px 0; }
+.bb-shared-title { position: static; margin-top: 22px !important; }
+.bb-shared { margin: 10px 0 0; padding: 0; list-style: none; }
 .bb-card-li > .kit-grip { position: absolute; top: 6px; left: 6px; z-index: 1; width: 30px; height: 30px; border-radius: 10px; background: var(--glass-strong); opacity: 0; }
 .bb-card-li:hover > .kit-grip, .bb-card-li:focus-within > .kit-grip, .bb-card-li.selected > .kit-grip { opacity: .9; }
 @media (pointer: coarse) { .bb-card-li > .kit-grip { opacity: .75; } }
-.bb-card-li.selected > .bb-card { box-shadow: 0 0 0 3px var(--accent); }
+.bb-card-li.selected { box-shadow: 0 0 0 3px var(--accent); }
 .bb-make-btn { white-space: nowrap; }
 .bb-listline { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 2px 0 8px; font-size: .92rem; }
 .bb-listline select { width: auto; max-width: 100%; flex: 0 1 auto; }
@@ -3821,7 +3845,8 @@ body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none
 .bb-stock-btn[aria-pressed="true"][data-stock="have"] { background: color-mix(in srgb, #4caf7a 22%, transparent); border-color: #4caf7a; color: var(--text); }
 .bb-stock-btn[aria-pressed="true"][data-stock="need"] { background: color-mix(in srgb, #e0913a 22%, transparent); border-color: #e0913a; color: var(--text); }
 .bb-line[data-got="have"] .bb-ing-name { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--text) 45%, transparent); }
-@media (max-width: 640px) { .bb-stock-word { display: none; } .bb-stock-btn { padding: 3px 8px; } }.bb-card-pic { display: grid; place-items: center; aspect-ratio: 4 / 3; background: linear-gradient(135deg, color-mix(in srgb, var(--bb) 70%, #fff4d6), color-mix(in srgb, var(--bb) 35%, #fff8e8)); }
+@media (max-width: 640px) { .bb-stock-word { display: none; } .bb-stock-btn { padding: 3px 8px; } }
+.bb-card-pic { display: grid; place-items: center; aspect-ratio: 4 / 3; background: linear-gradient(135deg, color-mix(in srgb, var(--bb) 70%, #fff4d6), color-mix(in srgb, var(--bb) 35%, #fff8e8)); }
 .bb-card-pic img { width: 100%; height: 100%; object-fit: cover; }
 .bb-card-emoji { font-size: 3.4rem; filter: drop-shadow(0 4px 8px rgba(0, 0, 0, .2)); }
 .bb-card-body { display: grid; gap: 3px; padding: 10px 14px 12px; border-top: 4px solid var(--bb); }
@@ -3838,6 +3863,16 @@ body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none
 .bb-batch-no { font-family: var(--hand); font-weight: 700; font-size: 1.1rem; }
 .bb-batch-name { flex: 1 1 10em; min-width: 0; }
 .bb-status-planned { opacity: .7; }
+/* The batches list: rows like Tasks' (see-through until hovered), keeping each batch's colour. */
+.bb-batch-list { gap: 2px; }
+.bb-batch-list .bb-batch-row { min-height: 42px; padding: 4px 12px; background: color-mix(in srgb, var(--glass) 55%, transparent); border-color: color-mix(in srgb, var(--glass-border) 60%, transparent); border-left: 4px solid var(--bb); }
+.bb-batch-list .bb-batch-row:hover, .bb-batch-list .bb-batch-row.kb-cur { background: var(--glass); border-color: var(--glass-border); border-left-color: var(--bb); }
+/* Printing a recipe (a card's More, Print): just the page. */
+@media print {
+  .appbar, #tabbar, #topnav, .bb-top, .bb-foot, .theirs-note, .toast, .select-bar, .bb-tools, .bb-edit, .bb-scale, .bb-ref-picks, .bb-ref-hint, .bb-add-field, .bb-step-new, .att-row button { display: none !important; }
+  body, #main { background: #fff !important; }
+  .bb-paper { box-shadow: none !important; }
+}
 
 .bb-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
 

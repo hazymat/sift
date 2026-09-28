@@ -98,7 +98,7 @@ const AREAS = {
     open: el => click(el.querySelector('a.c-main')),
   },
   scans: { search: '.scan-search', items: '#main .scan-card', open: el => click(el) },
-  recipes: { search: '.bb-search', bar: '#main .bb-sections [data-section]', items: '#main .bb-cards > li[data-id], #main .bb-batch-row', open: el => click(el.querySelector('.bb-card') || el) },
+  recipes: { search: '.bb-search', bar: '#main .bb-sections [data-section]', items: '#main .bb-cards > li[data-id], #main .bb-shared > li, #main .bb-batch-row', open: el => click(el.querySelector('.bb-card') || el) },
   contracts: { search: '.contract-search', items: '#main tr[data-id], #main .contract-card', open: el => click(el.querySelector('a') || el) },
 };
 
