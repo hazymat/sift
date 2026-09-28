@@ -830,3 +830,7 @@ NOTES['1.46.02'] = [
 NOTES['1.47.00'] = [
   F('Batch Book: a brand new Batch Book starts with books for Cooking, Baking, Cocktails, Soups and Brewing, and eight example recipes to try or delete, including the Aviation and borscht. An empty Batch Book also offers "Add some example recipes". Nothing is added to a book that already has recipes.'),
 ]
+
+NOTES['1.47.01'] = [
+  F('Batch Book: the example recipes include a crusty no-knead white loaf in Baking.'),
+]
