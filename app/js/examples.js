@@ -43,15 +43,26 @@ const RECIPES = [
     ['Heat the oven and line two baking trays.', 'Beat the {unsalted butter}, {light brown soft sugar} and {caster sugar} until pale, then beat in the {egg} and {vanilla extract}.', 'Mix in the {plain flour}, {bicarbonate of soda} and {salt}, then the {dark chocolate chips}.', 'Roll into 16 balls, space them well apart and bake for 10 to 12 minutes. Leave on the trays for 5 minutes to firm up.']],
 ];
 
-// The example books (any not set up yet) and recipes, in the current space.
+// The example books (any not set up yet) and recipes (any not there yet, by name), in the current space.
 export async function addExamples(settings) {
   const books = settings.batch_sections || [];
   const missing = EXAMPLE_BOOKS.filter(x => !books.some(b => b.name === x.name));
   if (missing.length || !settings.batch_sections) await store.updateSettings({ batch_sections: books.concat(missing) });
+  const have = (await store.list('recipes')).map(r => r.title);
   for (const [type, title, description, tags, fields, lines, steps] of RECIPES) {
+    if (have.includes(title)) continue;
     await store.create('recipes', { title, type, tags, description, fields, ingredients: lines.map(parseLine), steps: steps.map(text => ({ id: store.uuidv7(), text })), colour: null });
   }
-  await store.updateSettings({ batch_examples: true });
+  await store.updateSettings({ batch_examples: true, batch_examples_reset: true });
+}
+
+// Once (1.48.00, Mat asked: his and Anna's Batch Books had nothing in yet): the books go back to the example
+// ones and the example recipes are added. A book of their own with recipes in it stays, after them.
+export async function resetToExamples(settings) {
+  const recipes = await store.list('recipes');
+  const kept = (settings.batch_sections || []).filter(b => !EXAMPLE_BOOKS.some(x => x.name === b.name) && recipes.some(r => r.type === b.name));
+  await store.updateSettings({ batch_sections: EXAMPLE_BOOKS.concat(kept) });
+  await addExamples(await store.getSettings());
 }
 
 // A brand new Batch Book: never had a recipe, on a device not signed in or signed up here as a new account

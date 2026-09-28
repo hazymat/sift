@@ -647,10 +647,12 @@ async function boot() {
       refreshPage().catch(err => console.warn('Refresh after sync failed:', err));
     };
     document.addEventListener('focusout', () => setTimeout(() => { if (waiting) update(); }, 50));
+    let firstOk = false;
     sync.onStatus(st => {
       renderSyncStatus();
       // New records, or files that were "still arriving" now here: update the page.
-      const records = was === 'syncing' && st.state === 'ok' && st.changed;
+      const records = was === 'syncing' && st.state === 'ok' && (st.changed || (!firstOk && location.hash.startsWith('#/recipes'))); // Batch Book's one time reset waits for the first sync
+      if (st.state === 'ok') firstOk = true;
       const files = wasFiles === 'syncing' && st.files === 'idle' && st.filesArrived;
       if (records || files) update();
       was = st.state;
