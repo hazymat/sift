@@ -598,7 +598,10 @@ export default {
       atts = await att.byParent();
       for (const b of el.querySelectorAll('[data-view]')) b.setAttribute('aria-pressed', b.dataset.view === state.view);
       const tabs = el.querySelector('#task-views');
-      tabs.classList.toggle('overflows', tabs.scrollWidth > tabs.clientWidth + 1);
+      // The fade at the right edge says there are more tabs that way; none once it's scrolled to the end.
+      const fade = () => tabs.classList.toggle('overflows', tabs.scrollLeft + tabs.clientWidth < tabs.scrollWidth - 1);
+      tabs.onscroll = fade;
+      fade();
       body.innerHTML = { list: viewList, inbox: () => viewHorizon('inbox'), now: () => viewHorizon('now'), next: () => viewHorizon('next'), later: () => viewHorizon('later'), projects: viewProjects, done: viewDone }[state.view]();
       fillDates(body);
       wireEntry();
