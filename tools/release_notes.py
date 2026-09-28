@@ -859,3 +859,4 @@ NOTES['1.49.05'] = [F("Batch Book: a new starter, Mat's Coloured Sticky Rice wit
 NOTES['1.49.06'] = [F("Batch Book: a new starter, Anna's Christmas Cake, in Baking with her photo.")]
 NOTES['1.49.07'] = [F("Batch Book: a new starter, Mat's Cranberry Sauce (with a splash of port), in Cooking with his photo.")]
 NOTES['1.49.08'] = [F("Batch Book: a new photo for the Chicken Green Curry starter.")]
+NOTES['1.49.09'] = [F("Batch Book: new books start with the 7 starter recipes that have photos: Borscht, Chicken Green Curry, Pampushki, Christmas Cake, Coloured Sticky Rice with Mango, Cranberry Sauce and Hot Toddy.")]

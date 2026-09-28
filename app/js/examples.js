@@ -13,7 +13,7 @@ export const EXAMPLE_BOOKS = [
   { name: 'Fermentations', emoji: '🍷', colour: '#9b2f52', readings: true, reading_types: ['Gravity'], fields: ['Batch volume', 'ABV goal', 'Sweetness goal'] },
 ];
 
-// The showcase: a handful of Mat's own recipes, in the import format (batchbook.js), with his photos (app/examples/).
+// The showcase: a handful of Mat's own recipes (only ones with his photos), in the import format (batchbook.js), with his photos (app/examples/).
 const SHOWCASE = `
 # Borscht
 Book: Soups
@@ -71,83 +71,6 @@ Based on an online recipe (cravingtasty.com/borsch-recipe) and a chat with Irena
 9. Cook for another 2 to 5 mins. Taste: more {sea salt|salt} or {freshly ground pepper|pepper}?
 10. Let sit for 20 mins (or don't). Meanwhile prep the garnishes onto a plate: finely chopped {fresh dill|dill}, {fresh parsley|parsley}, {spring onions}, and {sour cream}.
 
-# Ukrainian Smoked Salmon Pirozhki
-Book: Baking
-Tags: ukrainian
-
-No-yeast kefir dough.
-
-## Ingredients
-### Dough
-- 4 cup plain flour (+170 g)
-- 1 tsp salt
-- 1 tsp baking soda
-- 1 cup kefir
-- 1 egg
-- 2 tbsp sunflower oil (any oil)
-- ¼ cup water, if needed
-### Filling
-- dill (a LOT)
-- 4 spring onions
-- parmesan
-- 1 tub mascarpone
-- smoked salmon (ideally a fillet, any soft salmon)
-- filling salt (not much)
-- pepper
-### To finish
-- 1 beaten egg, for egg wash
-
-## Method
-1. Dough in a big bowl: {plain flour|flour}, {salt}, {baking soda}, {kefir}, crack in the {egg}, {sunflower oil|oil}. Mix, maybe add {water}. Cover with a shower cap and rest 20 mins.
-2. Filling in a mixing bowl: chop {dill|a LOT of dill} and the {spring onions}, grate in {parmesan}, {mascarpone|the whole tub of mascarpone}, flake in the {smoked salmon|salmon}, {filling salt|a bit of salt}, {pepper}. Rough mix, improvise.
-3. Roll out a quarter of the dough at a time. Split into 8 discs, then flatten into 100 mm circles with a rolling pin.
-4. Add filling, press up to the top, make the end like a fish and push fins into it.
-5. {beaten egg|Egg wash} and into the oven, 180 °C for 20 to 25 mins.
-
-# Aviation
-Book: Cocktails
-Tags: cocktail, gin
-
-Mat's favourite. From Difford's Guide.
-
-## Ingredients
-- 105 ml gin (Sipsmith)
-- 30 ml Luxardo maraschino
-- 20 ml violette liqueur
-- 35 ml lemon juice
-- ice
-
-## Method
-1. Shake the {gin}, {Luxardo maraschino}, {violette liqueur} and {lemon juice} long and hard with {ice}. Strain into a chilled coupe.
-
-## Notes
-Also tried: 100 Sipsmith, 34 maraschino, 25 violette. Can swap a third of the gin for rum.
-
-# Disaronno Sour (adult)
-Book: Cocktails
-Tags: cocktail, whisky
-
-This was silky and amazing, Mat liked it more than Anna.
-
-## Ingredients
-- 70 ml Disaronno
-- 40 ml whisky
-- 40 ml lemon juice
-- 2 tsp sugar syrup
-- 1 egg white
-- ice, for shaking
-- lemon twists, to serve
-- cherries, to serve
-- clean ice, to serve
-
-## Method
-1. Shake the {Disaronno}, {whisky}, {lemon juice}, {sugar syrup} and {egg white} with NO ice.
-2. Shake WITH {ice}.
-3. Serve over {clean ice} with {lemon twists} and {cherries}.
-
-## Notes
-Next try: 100 Disaronno, 60 ml lemon, 28.5 whisky, egg white. Shake without then with ice. Serve with 2 cherries, a lemon twist and fresh ice.
-
 # Hot Toddy
 Book: Cocktails
 Tags: cocktail, whisky, hot
@@ -170,46 +93,6 @@ Is it a cocktail? Is it medicine? Who knows, but it tastes like winter in the Hi
 2. Into a mug: the juice of the {lemon}, the {whisky} and the {honey}. Stir until the honey melts in.
 3. Add the {lemon wedge|clove-studded lemon wedge} and the {cinnamon stick}.
 4. Top up with {hot water}, just off the boil, and stir.
-
-# Pad Kra Pao (basil stir fry)
-Book: Cooking
-Tags: thai
-
-Serve with a fried egg, prik nam pla and jasmine rice.
-
-## Ingredients
-- protein (anything: raw or cooked meat, even veg)
-- 1 tsp fish sauce, to marinate
-- 4 hot red chillies
-- 2 non-hot red chillies
-- 5 cloves garlic
-- ¼ medium onion
-- basil (holy is best, Thai or even Italian; as much as the rest of the food)
-- veg oil
-- eggs (optional)
-- jasmine rice
-### Sauce (don't double it)
-- 1 tbsp oyster sauce
-- 1 tbsp soy sauce
-- 2 tbsp water
-- 2 tsp sauce fish sauce
-- ½ tsp dark soy (or black Thai soy)
-- 1.5 tsp sugar (palm)
-### Prik nam pla
-- small Thai chillies, chopped (loads, different colours ok)
-- prik nam pla fish sauce (3 parts)
-- lime juice (1 part)
-- prik nam pla garlic, finely sliced
-
-## Method
-1. Prik nam pla: cover the chopped {small Thai chillies|chillies} and {prik nam pla garlic|garlic} with {prik nam pla fish sauce|fish sauce} and {lime juice}, 3 parts fish sauce to 1 part lime.
-2. Cut the {protein} into bite-sized chunks, smaller than a normal stir fry (chicken: nice and small or long). Marinate with {fish sauce}.
-3. Combine the sauce: {oyster sauce}, {soy sauce}, {water}, {sauce fish sauce|fish sauce}, {dark soy} and {sugar}.
-4. Chop and POUND the chillies ({hot red chillies} and {non-hot red chillies}) and {garlic} to a pulp. Chop the {medium onion|onion}.
-5. Wok on MEDIUM-high: {veg oil|oil}, then the chilli garlic mix until the garlic goes golden (2 mins). Add the {medium onion|onion} for 30 seconds.
-6. Get the wok to HIGH heat first!!! Add the protein and sauce, toss for 30 seconds.
-7. Turn off the heat, add the {basil} (lots!) and toss to wilt.
-8. Serve with a fried {eggs|egg} and {jasmine rice}.
 
 # Chicken Green Curry
 Book: Cooking
@@ -336,27 +219,6 @@ Anna's recipe. A very moist, dense cake, gooey from the low flour and high fruit
 ## Notes
 Anna's Simnel cake is the same cake with a 2 mm layer of golden marzipan in the middle, a thick marzipan top with wavy edges, and 11 marzipan balls (about 20 g each) brushed with egg yolk and browned with a blowtorch or under a low grill.
 
-# Quick Baguette
-Book: Baking
-Tags: bread
-
-No kneading. Start 10 hours ahead.
-
-## Ingredients
-- 900 g flour
-- 2 tsp salt
-- ¾ tsp dried yeast
-- 730 ml bottled water (room temperature)
-- dusting flour
-
-## Method
-1. Into a bowl: {flour}, {salt}, {dried yeast|yeast}, {bottled water|water}. Mix with the back of a wooden spoon for a minute, that's all. Make sure there's no unmixed flour at the bottom.
-2. Cover with a lid and leave 8 to 10 hours at room temperature.
-3. LOTS of {dusting flour|flour} on the surface. Scrape the dough carefully out onto it; don't press, keep the air in! Loads of {dusting flour|flour} on top.
-4. Form a slightly elongated shape and cut carefully into 4 without losing the air.
-5. Roll each carefully in {dusting flour|flour}, stretch and place on baking paper.
-6. Oven 250 °C for 25 mins.
-
 # Coloured Sticky Rice with Mango
 Book: Cooking
 Tags: thai, dessert
@@ -429,57 +291,6 @@ Serve it hot, the flavours are brighter.
 3. Simmer gently for 10 mins, until the berries start to burst.
 4. Take off the heat and beat lightly with a spoon, so some of the berries break up. Serve hot.
 
-# Bun Cha
-Book: Cooking
-Tags: vietnamese, pork
-
-Hanoi grilled pork. First made 2013; made again in 2023 (bought meat pre-minced). Not a quick meal: start at 5pm and you'll still be slightly stressed at 8.30. More relaxed: first prep the vermicelli and leave in cold water all day (20 mins: soak 10, cook, then blanch in cold water), then the broth, then the meatballs (not quick at all!). Pickle the veg in advance too.
-
-## Ingredients
-### Meatballs
-- 450 g pork (cubes to mince, or pre-minced)
-- 2 stalks lemongrass
-- 2 cloves garlic
-- 1 large shallot
-- 1 red chilli
-- 2 tbsp honey
-- 2 tbsp olive oil
-- 2 tbsp brown sugar
-- 1 tbsp fish sauce
-- 1 tsp salt
-- 1 tsp pepper (freshly ground)
-- oil (for the griddle)
-### Broth
-- 400 ml water
-- 6 cloves broth garlic
-- 1 broth red chilli (or 3 bird's eye)
-- 2 tbsp broth fish sauce
-- 1 tbsp rice vinegar
-- 3 tsp broth brown sugar
-- 1 green papaya (or kohlrabi)
-- 1 carrot
-- ½ lime
-- extra salt (for the papaya and carrot)
-### To serve
-- 350 g vermicelli (0.8 goes gloopy, 1.2 is quite thick)
-- 2 heads little gem lettuce (or other crisp lettuce)
-- 1 bunch mint
-- 1 bunch coriander
-- cold water
-
-## Method
-1. Thinly slice the {green papaya|papaya} and {carrot}, toss with {extra salt|salt} and leave to stand. (Or pickle: peel, julienne, pour over hot water, sugar, vinegar and salt, no boil, cover and leave 30+ mins.)
-2. Wash the {little gem lettuce|lettuce}, {mint} and {coriander} and leave to soak.
-3. Finely chop the meatball {lemongrass}, {garlic}, {large shallot|shallot} and {red chilli|chilli}.
-4. Mix the {pork} with the above, {honey}, {olive oil|oil}, {brown sugar}, {fish sauce}, {salt} and {pepper}. Stand 10 mins.
-5. Chop the {broth garlic} and {broth red chilli|chilli} and set aside.
-6. Make about 10 meatballs, flattened slightly to make frying easier.
-7. Put the {water} on to boil.
-8. Meanwhile {oil|oil} a griddle and fry the meatballs, in batches if needed. Give it about 20 mins, but carry on.
-9. Meanwhile drain the {little gem lettuce|lettuce} and herbs onto a serving plate.
-10. Once the {water|water} boils, add the {broth garlic|garlic} and {broth red chilli|chilli}, {broth fish sauce|fish sauce}, {rice vinegar} and {broth brown sugar|brown sugar}. STIR until the {broth brown sugar|sugar} dissolves. Wash the {extra salt|salt} off the {green papaya|papaya} and {carrot|carrot} and add them with the {lime|lime juice}.
-11. Cook the {vermicelli} per the packet (2 mins?), then blanch in {cold water}.
-12. Mat's way: broth in bowls, then a little greens, a little {vermicelli|vermicelli} and some meatballs (not all). The rest on small plates to share.
 `;
 const PHOTOS = { 'Borscht': ['borscht-1.jpg', 'borscht-2.jpg'], 'Chicken Green Curry': ['green-curry-2.jpg'], 'Hot Toddy': ['hot-toddy-1.jpg', 'hot-toddy-2.jpg'], 'Pampushki': ['pampushki-1.jpg', 'pampushki-2.jpg', 'pampushki-3.jpg'], 'Coloured Sticky Rice with Mango': ['sticky-rice-1.jpg', 'sticky-rice-2.jpg'], 'Christmas Cake': ['christmas-cake-1.jpg'], 'Cranberry Sauce': ['cranberry-sauce-1.jpg'] };
 // Goes up when photos are added, so books that already have the showcase get the new ones.
