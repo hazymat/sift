@@ -34,6 +34,14 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
   let dragging = null;
   let pending = null; // pressed; waiting to see if it's a tap, swipe or hold
   let holding = null; // pressed on a row itself (anywhere): waiting for the hold
+  let held = null; // lifted by a hold: its shading and read-only fields, undone when it's let go
+  const letGo = () => {
+    const h = held;
+    held = null;
+    if (!h) return;
+    h.ripple.classList.add('done');
+    setTimeout(() => { h.ripple.remove(); h.item.classList.remove('hold-pending'); for (const f of h.locked) f.readOnly = false; }, 350); // after the touch's end and its click
+  };
   let painting = null;
   let offsetY = 0;
   let offsetX = 0;
@@ -141,25 +149,31 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     ripple.className = 'hold-ripple';
     ripple.setAttribute('aria-hidden', 'true');
     ripple.innerHTML = '<span></span>';
-    Object.assign(ripple.firstChild.style, { left: `${e.clientX - box.left}px`, top: `${e.clientY - box.top}px`, animationDuration: `${anywhere}ms` });
+    // It spreads from the pointer to the row's farthest corner, filling the row just as it lifts.
+    const px = e.clientX - box.left, py = e.clientY - box.top;
+    const reach = Math.max(Math.hypot(px, py), Math.hypot(box.width - px, py), Math.hypot(px, box.height - py), Math.hypot(box.width - px, box.height - py));
+    Object.assign(ripple.firstChild.style, { left: `${px}px`, top: `${py}px`, animationDuration: `${anywhere}ms` });
+    ripple.firstChild.style.setProperty('--reach', (reach / 8) * 1.05); // the circle starts 16px across
     item.classList.add('hold-pending');
     item.append(ripple);
     lastX = e.clientX;
     lastY = e.clientY;
     holding = {
-      item, x: e.clientX, y: e.clientY, ripple, pointerId: e.pointerId,
+      item, x: e.clientX, y: e.clientY, ripple, pointerId: e.pointerId, locked: [],
       timer: setTimeout(() => {
         const h = holding;
         holding = null;
-        h.ripple.classList.add('done');
-        setTimeout(() => { h.ripple.remove(); h.item.classList.remove('hold-pending'); }, 250);
+        held = h; // its shading stays, filling the row, until it's let go
         // Lifted: not editing it (sortable-lift: e.g. its editing pills close), nothing half-selected, and the release isn't a click into it.
         item.dispatchEvent(new CustomEvent('sortable-lift', { bubbles: true }));
-        if (item.contains(document.activeElement)) document.activeElement.blur();
+        // Any keyboard goes down too (it would shift the page under the finger).
+        if (item.contains(document.activeElement) || document.activeElement?.matches?.('input, textarea, [contenteditable="true"]')) document.activeElement.blur();
         getSelection()?.removeAllRanges();
         quietClick = true;
         setTimeout(() => { quietClick = false; }, 1500);
         quietTouchEnd = true; // an iPhone focuses the name (keyboard up) as the finger leaves it
+        // …or, held on a field, after half a second, whatever else happens: its fields are read-only till it's let go.
+        for (const f of item.querySelectorAll('input:not([type="checkbox"]):not([type="radio"]), textarea')) if (!f.readOnly) { f.readOnly = true; h.locked.push(f); }
         try { list.setPointerCapture(h.pointerId); } catch {}
         lift(h.item, lastX, lastY);
       }, anywhere),
@@ -214,6 +228,7 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
 
   const finish = e => {
     dropHold();
+    letGo();
     if (pending) {
       clearTimeout(pending.timer);
       const { item, event } = pending;

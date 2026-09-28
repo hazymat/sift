@@ -671,3 +671,7 @@ NOTES['1.35.40'] = [
   B("Tasks on a phone: tapping an empty part of the page no longer opens the New task line and the keyboard."),
   B("Phones: a swipe on a task can start on one of its small pills (e.g. the tour's ▶)."),
 ]
+NOTES['1.35.41'] = [
+  B("Tasks, press and hold to drag: the shading spreads from your finger to the edges of the task as it lifts, and stays until you let go."),
+  B("Tasks on an iPhone: holding a task to drag it no longer brings the keyboard up (which also shifted the page under your finger); and arriving on Tasks no longer puts the cursor in New task on a phone."),
+]
