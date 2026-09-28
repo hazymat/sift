@@ -621,3 +621,6 @@ NOTES['1.35.25'] = [
 NOTES['1.35.26'] = [
   B("The tab you land on in Tasks, and the filter in Brain Dump, now flash once with a see-through yellow instead of a ring."),
 ]
+NOTES['1.35.27'] = [
+  B("The yellow flash on a tab or filter keeps its underline straight (only its top corners round)."),
+]
