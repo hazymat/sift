@@ -3650,13 +3650,20 @@ dialog.custom-theme::backdrop { background: rgba(0, 0, 0, .35); }
 /* Phones: a side swipe slides the page (app.js: installSwipe), as a phone's own
    screens do: the old page out, the next one in over it from the side. The bars
    stay put, above it. */
-html[data-slide] #main { view-transition-name: sift-page; }
+html[data-slide] :is(#task-body, #thoughts, #main .planner), html[data-slide] #main:not(:has(#task-body, #thoughts, .planner)) { view-transition-name: sift-page; }
+html[data-slide] :is(#task-entry, #main .planner > .day-nav) { view-transition-name: sift-still; } /* inside what slides, but stays */
+html[data-slide] :is(#main .tasks-head, #main .dump-bar) { view-transition-name: sift-bar; } /* stays, over the sliding part when it sticks at the top */
 html[data-slide] .appbar { view-transition-name: sift-top; }
 html[data-slide] #tabbar { view-transition-name: sift-tabs; }
 ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
 ::view-transition-group(sift-page) { animation: none; }
-::view-transition-group(sift-top), ::view-transition-group(sift-tabs) { animation: none; z-index: 2; }
-::view-transition-old(sift-top), ::view-transition-new(sift-top), ::view-transition-old(sift-tabs), ::view-transition-new(sift-tabs) { animation: none; }
+::view-transition-group(sift-top), ::view-transition-group(sift-tabs), ::view-transition-group(sift-still), ::view-transition-group(sift-bar) { animation: none; z-index: 2; }
+::view-transition-old(sift-top), ::view-transition-new(sift-top), ::view-transition-old(sift-tabs), ::view-transition-new(sift-tabs), ::view-transition-new(sift-still), ::view-transition-new(sift-bar) { animation: none; }
+::view-transition-old(sift-still), ::view-transition-old(sift-bar) { display: none; } /* shown as they are now, straight away */
+/* A tab bar's highlight gliding to the new tab (slide.js); the real one is hidden till it arrives. */
+.tab-glide { position: absolute; z-index: 1; pointer-events: none; box-sizing: border-box; }
+.glide-on { position: relative; }
+.glide-on :is([aria-pressed="true"], [aria-selected="true"]) { border-color: transparent !important; background-color: transparent !important; }
 ::view-transition-old(sift-page) { animation: .3s cubic-bezier(.2, .8, .2, 1) both sift-out-next; }
 ::view-transition-new(sift-page) { animation: .3s cubic-bezier(.2, .8, .2, 1) both sift-in-next; }
 html[data-slide="back"]::view-transition-old(sift-page) { animation-name: sift-out-back; }
