@@ -2087,12 +2087,13 @@ button.att-count { font: inherit; font-size: inherit; padding: 1px 8px; }
 /* A row you were sent to lights up for a moment */
 /* "Here it is" after following a link (js/flash.js): a yellow outline pulsing 5 times. */
 /* Colour, strength and number of pulses can be set per flash (flash.js):
-   --flash-rgb, --flash-a (0 to 1), --flash-n, --flash-ms, --flash-w (ring), --flash-glow. */
+   --flash-rgb, --flash-a (0 to 1), --flash-n, --flash-ms, --flash-w (ring), --flash-glow,
+   --flash-radius, --flash-inset (inset: the ring inside the element). */
 @keyframes here-pulse {
-  0%, 100% { box-shadow: 0 0 0 2px rgb(var(--flash-rgb, 255 214 64) / 0), 0 0 0 rgb(var(--flash-rgb, 255 214 64) / 0); }
-  50% { box-shadow: 0 0 0 var(--flash-w, 3px) rgb(var(--flash-rgb, 255 214 64) / calc(.95 * var(--flash-a, 1))), 0 0 var(--flash-glow, 18px) rgb(var(--flash-rgb, 255 214 64) / calc(.55 * var(--flash-a, 1))); }
+  0%, 100% { box-shadow: var(--flash-inset,) 0 0 0 2px rgb(var(--flash-rgb, 255 214 64) / 0), var(--flash-inset,) 0 0 0 rgb(var(--flash-rgb, 255 214 64) / 0); }
+  50% { box-shadow: var(--flash-inset,) 0 0 0 var(--flash-w, 3px) rgb(var(--flash-rgb, 255 214 64) / calc(.95 * var(--flash-a, 1))), var(--flash-inset,) 0 0 var(--flash-glow, 18px) rgb(var(--flash-rgb, 255 214 64) / calc(.55 * var(--flash-a, 1))); }
 }
-.flash { animation: here-pulse var(--flash-ms, .7s) ease-in-out var(--flash-n, 5); border-radius: 12px; position: relative; z-index: 1; }
+.flash { animation: here-pulse var(--flash-ms, .7s) ease-in-out var(--flash-n, 5); border-radius: var(--flash-radius, 12px); position: relative; z-index: 1; }
 
 .trust-help { margin: 8px 0; font-size: .9rem; }
 .trust-help summary { cursor: pointer; color: var(--muted); }
@@ -3662,9 +3663,8 @@ html[data-slide] #tabbar { view-transition-name: sift-tabs; }
 ::view-transition-old(sift-top), ::view-transition-new(sift-top), ::view-transition-old(sift-tabs), ::view-transition-new(sift-tabs), ::view-transition-new(sift-still), ::view-transition-new(sift-bar) { animation: none; }
 ::view-transition-old(sift-still), ::view-transition-old(sift-bar) { display: none; } /* shown as they are now, straight away */
 /* A tab bar's highlight gliding to the new tab (slide.js); the real one is hidden till it arrives. */
-/* …then pulses once (flash.js); inside the tab, since a tab bar that scrolls clips anything outside it. */
-@keyframes tab-pulse { 0%, 100% { box-shadow: inset 0 0 0 0 rgb(var(--flash-rgb) / 0); } 50% { box-shadow: inset 0 0 12px 2px rgb(var(--flash-rgb) / calc(.6 * var(--flash-a, 1))); } }
-#main :is([role="tablist"], #dump-filter) button.flash { animation-name: tab-pulse; border-radius: 10px 10px 0 0 !important; }
+/* …then pulses once (flash.js: RING), a ring inside the tab, since a tab bar that scrolls clips anything outside it. */
+#main :is([role="tablist"], #dump-filter) button.flash { border-radius: var(--flash-radius, 8px) !important; }
 .tab-glide { position: absolute; z-index: 1; pointer-events: none; box-sizing: border-box; }
 .glide-on { position: relative; }
 #main .glide-on :is([aria-pressed="true"], [aria-selected="true"]) { border-color: transparent !important; background-color: transparent !important; }

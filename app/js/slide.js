@@ -4,7 +4,8 @@
 // phone (app.js) and for Brain Dump's filters. Only what changes slides (the
 // tasks, the notes, the day); the rest stays put (app.css names the parts),
 // and a tab bar's highlight glides from the old tab to the new one, then
-// pulses once, light blue (flash.js).
+// rings once, light blue (flash.js), with the bar scrolled to show it and the
+// tab past it. Another swipe straight away stops the last one's glide and ring.
 //
 //   slide(forward, change)  change(): makes the change and resolves once it's
 //                           drawn, or rejects when there was nothing to change
@@ -13,7 +14,7 @@
 //                           again, or rejects if nothing changed
 //   nudge(forward)          a small push that goes nowhere: "nothing that way"
 
-import { flash, SOFT } from './flash.js';
+import { flash, unflash, RING } from './flash.js';
 
 const main = () => document.getElementById('main');
 const still = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -24,11 +25,32 @@ const region = () => document.querySelector('#task-body, #thoughts, #main .plann
 // where it was to the new tab; the real one shows again when it gets there.
 const tabBar = () => Array.from(document.querySelectorAll('#main [role="tablist"], #main #dump-filter')).find(b => b.offsetParent) || null;
 const pressedIn = bar => bar?.querySelector('[aria-pressed="true"], [aria-selected="true"]') || null;
+let gliding = null; // the glide under way: { bar, ghost }
+function stopGlide() {
+  const bar = gliding?.bar || tabBar();
+  gliding?.ghost.remove();
+  gliding = null;
+  bar?.classList.remove('glide-on');
+  for (const tab of bar?.querySelectorAll('.flash') || []) unflash(tab);
+}
+// The bar scrolls (if it does) to show the chosen tab and the ones either side of it.
+function keepInView(bar, to) {
+  if (!bar || !to || bar.scrollWidth <= bar.clientWidth + 1) return;
+  const b = bar.getBoundingClientRect(), at = el => el.getBoundingClientRect().left - b.left - bar.clientLeft + bar.scrollLeft;
+  const tab = el => (el && !el.classList.contains('tab-glide') && el.offsetParent ? el : null);
+  const first = tab(to.previousElementSibling) || to, last = tab(to.nextElementSibling) || to;
+  let left = bar.scrollLeft;
+  const lo = at(first), hi = at(last) + last.offsetWidth;
+  if (hi > left + bar.clientWidth) left = hi - bar.clientWidth;
+  if (lo < left) left = lo;
+  if (Math.abs(left - bar.scrollLeft) > 1) bar.scrollTo({ left, behavior: still() ? 'auto' : 'smooth' });
+}
 function glide(from) {
+  stopGlide();
   const bar = tabBar(), to = pressedIn(bar);
-  if (!from || !to || still()) return;
+  if (!from || !to || still()) return keepInView(bar, to);
   const z = to.getBoundingClientRect();
-  if (Math.abs(z.left - from.left) < 1) return;
+  if (Math.abs(z.left - from.left) < 1) return keepInView(bar, to);
   // Its look, read before the real one is hidden (app.css: .glide-on).
   const cs = getComputedStyle(to), look = {
     background: cs.backgroundColor, borderRadius: cs.borderRadius,
@@ -41,7 +63,14 @@ function glide(from) {
   ghost.className = 'tab-glide';
   Object.assign(ghost.style, look, { left: `${z.left - b.left - bar.clientLeft + bar.scrollLeft}px`, top: `${z.top - b.top - bar.clientTop + bar.scrollTop}px`, width: `${z.width}px`, height: `${z.height}px` });
   bar.append(ghost);
-  const done = () => { ghost.remove(); bar.classList.remove('glide-on'); flash(to, Object.assign({}, SOFT, { scroll: false, colour: '125 195 255' })); };
+  const mine = gliding = { bar, ghost };
+  keepInView(bar, to);
+  // Arrived: the real one shows again and rings, unless another swipe has taken over (or it isn't the chosen tab now).
+  const done = () => {
+    if (gliding !== mine) return;
+    ghost.remove(); bar.classList.remove('glide-on'); gliding = null;
+    if (to.isConnected && to === pressedIn(bar)) flash(to, Object.assign({}, RING, { scroll: false }));
+  };
   ghost.animate([{ transform: `translate(${from.left - z.left}px, ${from.top - z.top}px)`, width: `${from.width}px` }, { transform: 'none', width: `${z.width}px` }],
     { duration: 300, easing: 'cubic-bezier(.2, .8, .2, 1)' }).finished.then(done, done);
 }
@@ -65,6 +94,7 @@ export function nudge(forward) {
 }
 
 export function slide(forward, whenDone) {
+  stopGlide(); // a swipe straight after another: the last one's glide and ring stop now
   const was = pressedIn(tabBar())?.getBoundingClientRect(); // before the bar is drawn again
   const change = () => Promise.resolve(whenDone()).then(() => glide(was));
   if (still()) return change().catch(() => {});

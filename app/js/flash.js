@@ -8,8 +8,13 @@
 //                             middle), 'nearest' (only if out of view) or false;
 //                             colour 'r g b'; strength 0 to 1; ms per pulse;
 //                             width of the ring and glow (blur), in px.
+//                             inset: the ring inside the element (not clipped by
+//                             a scrolling parent); radius: its corners, in px.
 //   SOFT                      a gentler look: one thin blue pulse (e.g. a task
 //                             just added)
+//   RING                      one crisp light blue 1px ring, no glow (e.g. the tab
+//                             a swipe lands on)
+//   unflash(el)               stop its pulse now
 //
 // installFlash() (from app.js) watches for the item to appear after the page
 // changes, since views draw a moment after the address changes.
@@ -31,7 +36,9 @@ const FIND = {
 
 export const SOFT = { pulses: 1, colour: '60 125 230', strength: .7, ms: 1100, width: 1.5, glow: 8 };
 
-export function flash(el, { scroll = true, pulses = PULSES, colour = null, strength = 1, ms = PULSE_MS, width = 3, glow = 18 } = {}) {
+export const RING = { pulses: 1, colour: '125 195 255', strength: 1, ms: 900, width: 1, glow: 0, inset: true, radius: 8 };
+
+export function flash(el, { scroll = true, pulses = PULSES, colour = null, strength = 1, ms = PULSE_MS, width = 3, glow = 18, inset = false, radius = 12 } = {}) {
   if (!el) return;
   el.classList.remove('flash');
   void el.offsetWidth; // restart the animation
@@ -40,11 +47,19 @@ export function flash(el, { scroll = true, pulses = PULSES, colour = null, stren
   el.style.setProperty('--flash-a', strength);
   el.style.setProperty('--flash-w', `${width}px`);
   el.style.setProperty('--flash-glow', `${glow}px`);
+  el.style.setProperty('--flash-radius', `${radius}px`);
+  if (inset) el.style.setProperty('--flash-inset', 'inset'); else el.style.removeProperty('--flash-inset');
   if (colour) el.style.setProperty('--flash-rgb', colour); else el.style.removeProperty('--flash-rgb');
   el.classList.add('flash');
   if (scroll) el.scrollIntoView({ block: scroll === 'nearest' ? 'nearest' : 'center', behavior: 'smooth' });
   clearTimeout(el._flashT);
   el._flashT = setTimeout(() => el.classList.remove('flash'), ms * pulses + 100);
+}
+
+export function unflash(el) {
+  if (!el) return;
+  clearTimeout(el._flashT);
+  el.classList.remove('flash');
 }
 
 export function pointTo(collection, id) {
