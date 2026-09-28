@@ -442,14 +442,27 @@ export default {
     // task, or a new task. Enter there adds it and opens the next; Esc or
     // leaving it empty drops the line.
     let nextAfter = null; // open a new line after this task once the list is drawn
-    // Shift+Enter in a task's name or the New task line (Hide pills behind More): presses More.
-    body.addEventListener('keydown', ev => {
+    // Shift+Enter in a task's name or the New task line: presses More (when
+    // pills are hidden behind it), then goes on into the task's note, since
+    // Shift+Enter means "and more".
+    body.addEventListener('keydown', async ev => {
       if (ev.key !== 'Enter' || !ev.shiftKey || ev.ctrlKey || ev.metaKey || ev.altKey || ev.isComposing) return;
       const t = ev.target;
-      const more = t.id === 'task-new' ? t.parentElement.querySelector(':scope > .pill-reveal') : t.classList?.contains('task-title') ? t.closest('li[data-task]')?.querySelector('.edit-pills > .pill-reveal') : null;
-      if (!more?.getClientRects().length) return;
+      const id = t.classList?.contains('task-title') ? t.closest('li[data-task]')?.dataset.task : null;
+      if (t.id !== 'task-new' && !id) return;
       ev.preventDefault(); ev.stopPropagation();
-      more.click();
+      const more = id ? t.closest('li[data-task]').querySelector('.edit-pills > .pill-reveal') : t.parentElement.querySelector(':scope > .pill-reveal');
+      if (more?.getClientRects().length) more.click();
+      // The note: New task's own; a task's in its panel, its note shown under it, or "Add note" (drawn a moment after More).
+      for (let tries = 0; tries < 20; tries++) {
+        if (!id) { body.querySelector('#task-new-note .rich-edit')?.focus(); return; }
+        const row = body.querySelector(`li[data-task="${id}"]`);
+        const into = body.querySelector(`.task-details[data-for="${id}"] .task-notes .rich-edit`) || row?.querySelector(':scope > .task-notes .rich-edit');
+        if (into) { into.focus(); return; }
+        const note = row?.querySelector(':scope > .item-sub .item-note, .edit-pills .pill-note');
+        if (note) { note.matches('.item-note') ? note.click() : note.focus(); return; }
+        await new Promise(ok => setTimeout(ok, 50));
+      }
     }, { capture: true });
     body.addEventListener('keydown', ev => {
       const t = ev.target;
