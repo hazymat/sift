@@ -611,3 +611,7 @@ NOTES['1.35.22'] = [
 NOTES['1.35.23'] = [
   B("Swiping a task right: Delete opens right up to its name, over the grab bar, tick box and a sub-task's lines, then moves the name along."),
 ]
+NOTES['1.35.24'] = [
+  B("Sliding between lists in Tasks: the tab bar scrolls to keep the chosen tab (and the one past it) in view."),
+  B("The tab you land on now rings once with a crisp thin light blue border instead of a glow, and swiping again quickly stops the last ring, so it never rings the wrong tab."),
+]
