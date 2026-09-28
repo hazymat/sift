@@ -615,3 +615,6 @@ NOTES['1.35.24'] = [
   B("Sliding between lists in Tasks: the tab bar scrolls to keep the chosen tab (and the one past it) in view."),
   B("The tab you land on now rings once with a crisp thin light blue border instead of a glow, and swiping again quickly stops the last ring, so it never rings the wrong tab."),
 ]
+NOTES['1.35.25'] = [
+  B("Tasks, compact spacing: beside a task's name only its note (📝) shows, not its other pills, so there's room for the name; and while you edit a task, only its editing pills show, not the small ones as well."),
+]
