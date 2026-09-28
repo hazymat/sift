@@ -564,3 +564,6 @@ NOTES['1.35.07'] = [
 NOTES['1.35.08'] = [
   F('The tour\'s "Never lose a note" step: when the rain starts to pour, and a lost cookie recipe.'),
 ]
+NOTES['1.35.09'] = [
+  F('The tour is a step shorter: "Tidy without filing" is gone.'),
+]
