@@ -618,3 +618,6 @@ NOTES['1.35.24'] = [
 NOTES['1.35.25'] = [
   B("Tasks, compact spacing: beside a task's name only its note (📝) shows, not its other pills, so there's room for the name; and while you edit a task, only its editing pills show, not the small ones as well."),
 ]
+NOTES['1.35.26'] = [
+  B("The tab you land on in Tasks, and the filter in Brain Dump, now flash once with a see-through yellow instead of a ring."),
+]
