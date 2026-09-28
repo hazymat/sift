@@ -3774,7 +3774,9 @@ body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none
 .gcal-head h3 { margin: 0; font-size: .95rem; }
 .gcal-status { font-size: .8rem; flex: 1 1 auto; }
 .gcal-btn { padding: 3px 10px; font-size: .8rem; }
-.gcal-link { background: none; border: 0; box-shadow: none; padding: 0; font-size: .75rem; color: var(--muted); text-decoration: underline; }
+.gcal-link { display: inline-flex; align-items: center; gap: 3px; background: none; border: 0; box-shadow: none; padding: 0; font-size: .75rem; color: var(--muted); text-decoration: underline; }
+.gcal-link .icon { width: 13px; height: 13px; }
+.gcal-link:hover { color: var(--text); background: none; }
 .gcal-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
 .gcal-event { font-size: .9rem; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
 .gcal-when { flex: none; min-width: 6.5em; color: var(--muted); font-variant-numeric: tabular-nums; }

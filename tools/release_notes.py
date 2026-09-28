@@ -696,3 +696,6 @@ NOTES['1.35.45'] = [
 NOTES['1.35.46'] = [
   B("Day Planner, Google Calendar: delete (or undo) an event you added to the plan and it shows + Add to plan again straight away, without reloading."),
 ]
+NOTES['1.35.47'] = [
+  B("Day Planner, Google Calendar: ↻ Refresh is a text link like Disconnect, which now has its own icon."),
+]

@@ -956,7 +956,7 @@ export default {
         : gcalProblem ? esc(gcalProblem)
         : got ? `Updated ${agoText(got.at)}${gcal.ready() ? '' : ' · tap ↻ to refresh'}` : '';
       const actions = !gcal.connected() ? btn('connect', 'Connect Google Calendar')
-        : `${btn('refresh', '↻ Refresh', 'Fetch again: this week and any days loaded ahead')}<button type="button" class="gcal-link" data-gcal="disconnect">Disconnect</button>`;
+        : `<button type="button" class="gcal-link" data-gcal="refresh" title="Fetch again: this week and any days loaded ahead">↻ Refresh</button><button type="button" class="gcal-link" data-gcal="disconnect"><svg class="icon" aria-hidden="true"><use href="#i-unlink"/></svg> Disconnect</button>`;
       const when = e => (e.allDay ? 'All day' : `${e.start.slice(0, 10) === date ? hm(e.start) : '…'}–${new Date(e.end).toDateString() === parseDate(date).toDateString() ? hm(e.end) : '…'}`);
       const list = !gcal.connected() ? '<p class="muted gcal-empty">See what\'s on in your Google Calendar each day, here above your plan.</p>'
         : got ? (got.events.length
