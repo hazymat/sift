@@ -9,7 +9,7 @@
 
 import * as store from '../store.js';
 import * as att from '../attachments.js';
-import { sectionsOf, sectionOf, stepsOf, parseRecipes, IMPORT_EXAMPLE, UNITS, parseLine, parseQty, qtyText, amountText, ingredientText, stepHtml, renameRefs, abvOf, readingTypesOf, isGravity, nextBatchNo, loadBook, batchName, newBatchName, batchDay } from '../batchbook.js';
+import { sectionsOf, sectionOf, stepsOf, fixBareUnits, parseRecipes, IMPORT_EXAMPLE, UNITS, parseLine, parseQty, qtyText, amountText, ingredientText, stepHtml, renameRefs, abvOf, readingTypesOf, isGravity, nextBatchNo, loadBook, batchName, newBatchName, batchDay } from '../batchbook.js';
 import { loadLists, nestItems, createList, addItems } from '../lists.js';
 import { richText, plainLines } from '../richtext.js';
 import { debounced } from '../autosave.js';
@@ -437,6 +437,7 @@ export default {
       // The one time wipe and the photo catch-up (examples.js), once this device has what the account already has.
       else if (!state.owner && needsWipe(settings) && (!signedIn() || syncStatus.last)) { await wipeBook(); data = await loadBook(); settings = await store.getSettings(); }
       else if (!state.owner && photosBehind(settings) && (!signedIn() || syncStatus.last)) { await addNewPhotos(); data = await loadBook(); settings = await store.getSettings(); }
+      if (!state.owner && !settings.batch_units_fix) { await fixBareUnits(); data = await loadBook(); settings = await store.getSettings(); }
       atts = await att.byParent();
       sections = sectionsOf(settings, data.recipes);
       if (state.section && !pinnedTab() && !sections.some(x => x.name === state.section)) state.section = '';

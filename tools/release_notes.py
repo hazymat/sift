@@ -865,3 +865,4 @@ NOTES['1.49.11'] = [
   B("Batch Book: the starter recipes could be added more than once (each device added its own copy before syncing). They now have fixed ids, so extra adds merge into one."),
   F("Batch Book: once per account, the whole book is cleared (recipes, batches, diary entries and their photos) and starts again with the 7 starters, as Mat asked."),
 ]
+NOTES['1.49.12'] = [B('Batch Book: an ingredient like "3 cloves" on its own was read as 3 of the unit clove with no ingredient. It is now 3 cloves (the spice); "3 cloves garlic" still means garlic. Recipes and batches that already had it are fixed once.')]
