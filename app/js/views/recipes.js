@@ -23,6 +23,8 @@ import { shareSheet, sharedWithText, people, fromOthers, invitesHtml, theirsHtml
 import { TINTS } from '../colours.js';
 import { pillMenu } from '../pillmenu.js';
 import { sortable } from '../sortable.js';
+import { signedIn } from '../sync.js';
+import { addExamples, isBrandNew } from '../examples.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -202,7 +204,7 @@ export default {
             : tags.length ? `<div class="bb-tags">${tags.map(t => `<button type="button" class="chip" data-tag="${esc(t)}" aria-pressed="${state.tag === t}">${esc(t)}</button>`).join('')}</div>` : ''}
         </div>
         <div class="bb-body">
-        ${!data.recipes.length && !shared.length && !invites ? `<div class="empty"><h2>No recipes yet.</h2><p class="muted">Add a recipe: ingredients, steps and photos. Each time you make it, start a batch: its own copy to change, what you have in and what to buy, readings, a diary and tasting notes.</p></div>`
+        ${!data.recipes.length && !shared.length && !invites ? `<div class="empty"><h2>No recipes yet.</h2><p class="muted">Add a recipe: ingredients, steps and photos. Each time you make it, start a batch: its own copy to change, what you have in and what to buy, readings, a diary and tasting notes.</p><button type="button" data-act="examples">Add some example recipes</button></div>`
         : state.batches ? (batches.length ? `<ul class="bb-batches bb-batch-list">${batches.map(m => `<li data-id="${m.id}" data-depth="0"><button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button>${batchRow(m, true)}</li>`).join('')}</ul>` : `<div class="empty"><h2>No ${state.status ? `${STATUSES.find(s => s[0] === state.status)[1].toLowerCase()} ` : ''}batches here.</h2><p class="muted">Open a recipe and press Make this.</p></div>`)
         : `${list.length ? `<ul class="bb-grid bb-cards">${groups.map(name => { const mine = list.filter(r => (r.type || '') === name); return chapter(name, mine.length) + mine.map(r => card(r)).join(''); }).join('')}</ul>`
           : `<div class="empty"><h2>Nothing here yet.</h2>${pinnedTab() ? '<p class="muted">Press ☆ on a recipe to pin it here.</p>' : state.section && !state.q ? '<p class="muted">Press + New recipe to add one to this book.</p>' : ''}</div>`}
@@ -431,6 +433,7 @@ export default {
       if (!state.owner && await moveTastings()) data = await loadBook();
       atts = await att.byParent();
       settings = await store.getSettings();
+      if (!state.owner && await isBrandNew(settings, !!signedIn())) { await addExamples(settings); data = await loadBook(); settings = await store.getSettings(); }
       sections = sectionsOf(settings, data.recipes);
       if (state.section && !pinnedTab() && !sections.some(x => x.name === state.section)) state.section = '';
       if (state.make) lists = await inMine(async () => (await loadLists()).lists);
@@ -751,6 +754,7 @@ export default {
         focusNext = `[data-field-key="${CSS.escape(name)}"]`;
         return render();
       }
+      if (act === 'examples') { b.disabled = true; await addExamples(settings); toast('Added example recipes: change or delete them as you like'); return render(); }
       if (act === 'make') return makeThis(recipeOf(state.recipe));
       if (act === 'reading') {
         const type = b.dataset.type || 'Gravity', grav = isGravity(type);

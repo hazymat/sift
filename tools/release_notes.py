@@ -826,3 +826,7 @@ NOTES['1.46.01'] = [
 NOTES['1.46.02'] = [
   F('Batch Book: "Batches have readings" in the books editor, with the kinds of reading that book\'s batches take (like Gravity, Temperature). On a batch, Readings has a + button for each kind; gravity keeps its OG/SG/FG, chart and ABV, other kinds take what you type (like 21°C). Existing readings stay as gravity.'),
 ]
+
+NOTES['1.47.00'] = [
+  F('Batch Book: a brand new Batch Book starts with books for Cooking, Baking, Cocktails, Soups and Brewing, and eight example recipes to try or delete, including the Aviation and borscht. An empty Batch Book also offers "Add some example recipes". Nothing is added to a book that already has recipes.'),
+]
