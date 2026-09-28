@@ -818,3 +818,7 @@ NOTES['1.45.02'] = [
 NOTES['1.46.00'] = [
   F('Batch Book: import recipes as text. ⋯ → Import recipes, then paste or choose a text file: each recipe starts with "# Name", then Book, Tags and details, its ingredients and its method. Recipes kept elsewhere (notes, photos of cards, websites) can be turned into that text by any AI chat: "Copy instructions for an AI chat" copies what to ask it. Books not set up yet are added.'),
 ]
+
+NOTES['1.46.01'] = [
+  F('Batch Book: in the books editor (Edit books), drag a book by the ⠿ on its left to change the order; the books bar follows once saved.'),
+]
