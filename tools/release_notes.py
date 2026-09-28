@@ -583,3 +583,6 @@ NOTES['1.35.13'] = [
 NOTES['1.35.14'] = [
   B("On a phone, closing a swiped task or Day Planner item (tapping it, or swiping it back) could start editing its name."),
 ]
+NOTES['1.35.15'] = [
+  B("Day Planner: Bring in from tasks (and Unfinished from earlier days) went off the side of the screen when a task's note had a long web address in it."),
+]
