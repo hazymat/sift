@@ -592,3 +592,6 @@ NOTES['1.35.16'] = [
 NOTES['1.35.17'] = [
   B("Swiping a task or a Day Planner item sideways: the whole block moves and its buttons fill the gap beside it, instead of showing under the text. In the Day Planner the time stays where it is, and Delete sits to the right of it."),
 ]
+NOTES['1.35.18'] = [
+  B("Swiping a task or a Day Planner item: its rounded corners go square next to the buttons, and the buttons are exactly as tall as it, so they meet edge to edge."),
+]

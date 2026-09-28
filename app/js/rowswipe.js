@@ -51,6 +51,8 @@ export function rowSwipe(root, { rows, face = null, actions }) {
     acts.className = `row-acts ${side}`;
     acts.innerHTML = shown.map((a, n) => `<button type="button" class="${a.cls || ''}" data-ra="${n}">${a.label}</button>`).join('');
     f.append(acts);
+    const border = getComputedStyle(f); // flush with the block's outer edge, over its border
+    Object.assign(acts.style, { top: `-${border.borderTopWidth}`, bottom: `-${border.borderBottomWidth}`, margin: side === 'left' ? `0 0 0 ${border.borderRightWidth}` : `0 ${border.borderLeftWidth} 0 0` });
     f.classList.add('swiping');
     acts.style.width = 'max-content'; // its buttons' own width: how far it opens
     const wide = acts.offsetWidth;

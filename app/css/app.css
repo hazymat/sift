@@ -3682,6 +3682,9 @@ html[data-slide="back"]::view-transition-new(sift-page) { animation-name: sift-i
 .row-acts { position: absolute; top: 0; bottom: 0; width: var(--swipe-w, 0); display: flex; overflow: hidden; }
 .row-acts.left { left: 100%; }
 .row-acts.right { right: 100%; }
+/* The block's corners next to its buttons go square, so they meet edge to edge. */
+.swiping:has(> .row-acts.left) { border-top-right-radius: 0 !important; border-bottom-right-radius: 0 !important; }
+.swiping:has(> .row-acts.right) { border-top-left-radius: 0 !important; border-bottom-left-radius: 0 !important; }
 .swipe-anim > .row-acts { transition: width .22s cubic-bezier(.2, .8, .2, 1); }
 .row-acts button { flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; border: 0; border-radius: 0; box-shadow: none; margin: 0; color: #fff; font-weight: 600; font-size: .9rem; padding: 0 12px; }
 .row-acts .ra-done { background: #2e9e5b; }
