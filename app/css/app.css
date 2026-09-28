@@ -86,6 +86,7 @@ html {
   background: var(--bg);
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
+  overscroll-behavior-x: none; /* a sideways swipe doesn't go back or forward a page (app.js: installSwipe) */
 }
 
 body {

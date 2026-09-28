@@ -49,6 +49,12 @@ export default {
         <label class="check-row"><input type="checkbox" id="show-hints"> Show hints <span class="muted">(the grey help text under lists and boxes, e.g. "Enter adds a task…")</span></label>
       </section>
 
+      <section class="card" id="nav-card">
+        <h2>Navigation</h2>
+        <p class="muted">Drag to reorder. The top ${app.MAX_PINNED} go in the bottom bar on your phone; the rest live under More.</p>
+        <ul class="pin-list" id="nav-order"></ul>
+      </section>
+
       <section class="card" id="planner-settings">
         <h2>Day Planner</h2>
         <div class="settings-grid">
@@ -82,12 +88,6 @@ export default {
           <label>Keep note history for<select name="note_history_days"><option value="30">30 days</option><option value="90">90 days</option><option value="365">1 year</option><option value="0">Forever</option></select></label>
         </div>
         <p class="muted">Every note keeps its earlier versions for this long: Ctrl+Z steps back through them once this visit's changes run out, and 🕘 in a note's full toolbar (Aa) lists them.</p>
-      </section>
-
-      <section class="card">
-        <h2>Navigation</h2>
-        <p class="muted">Drag to reorder. The top ${app.MAX_PINNED} go in the bottom bar on your phone; the rest live under More.</p>
-        <ul class="pin-list" id="nav-order"></ul>
       </section>
 
       <section class="card" id="backup-card">

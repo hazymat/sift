@@ -557,3 +557,7 @@ NOTES['1.35.05'] = [
 NOTES['1.35.06'] = [
   F("The tour covers sub-tasks and projects (drag a task onto another, or start it with \"- \"), says sharing a day literally lets you see someone else's Day Planner, and has a few Friends moments."),
 ]
+NOTES['1.35.07'] = [
+  F('On a phone, a sideways swipe does what ← and → do on a keyboard: Now, Next and Later in Tasks, the next or previous day in the Day Planner, the filters in Brain Dump. It no longer takes the browser back or forward a page (in Safari, from the screen\'s edge too).'),
+  F('Settings: Navigation comes third, after Appearance.'),
+]
