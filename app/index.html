@@ -76,7 +76,7 @@
     </nav>
     <div class="top-search">
       <svg class="icon top-search-icon" aria-hidden="true"><use href="#i-search"/></svg>
-      <input type="search" id="top-search" class="search" placeholder="Search everything…" title="Search everything (Ctrl+K)" autocomplete="off" aria-label="Search everything">
+      <input type="search" id="top-search" name="q" class="search" placeholder="Search everything…" title="Search everything (Ctrl+K)" autocomplete="off" data-1p-ignore data-lpignore="true" aria-label="Search everything">
       <div id="top-results" class="menu search-results" hidden></div>
     </div>
     <span id="sync-status" class="pill">Local only</span>
@@ -92,7 +92,7 @@
 
   <dialog id="more-sheet" class="sheet" aria-label="More areas">
     <div class="sheet-handle" tabindex="-1" autofocus></div>
-    <input type="search" id="more-search" class="search" placeholder="Search everything…" autocomplete="off" aria-label="Search everything">
+    <input type="search" id="more-search" name="q" class="search" placeholder="Search everything…" autocomplete="off" data-1p-ignore data-lpignore="true" aria-label="Search everything">
     <div id="more-results" class="search-results" hidden></div>
     <nav id="more-list" class="sheet-list"></nav>
   </dialog>
