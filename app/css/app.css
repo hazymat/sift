@@ -3663,8 +3663,9 @@ html[data-slide] #tabbar { view-transition-name: sift-tabs; }
 ::view-transition-old(sift-top), ::view-transition-new(sift-top), ::view-transition-old(sift-tabs), ::view-transition-new(sift-tabs), ::view-transition-new(sift-still), ::view-transition-new(sift-bar) { animation: none; }
 ::view-transition-old(sift-still), ::view-transition-old(sift-bar) { display: none; } /* shown as they are now, straight away */
 /* A tab bar's highlight gliding to the new tab (slide.js); the real one is hidden till it arrives. */
-/* …then flashes once (flash.js: WASH), inside the tab, since a tab bar that scrolls clips anything outside it. */
-#main :is([role="tablist"], #dump-filter) button.flash { border-radius: var(--flash-radius, 8px) !important; }
+/* …then flashes once (flash.js: WASH), inside the tab, since a tab bar that scrolls clips anything outside it.
+   Only its top corners round, so the underline stays straight. */
+#main :is([role="tablist"], #dump-filter) button.flash { border-radius: var(--flash-radius, 8px) var(--flash-radius, 8px) 0 0 !important; }
 .tab-glide { position: absolute; z-index: 1; pointer-events: none; box-sizing: border-box; }
 .glide-on { position: relative; }
 #main .glide-on :is([aria-pressed="true"], [aria-selected="true"]) { border-color: transparent !important; background-color: transparent !important; }
