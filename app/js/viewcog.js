@@ -92,6 +92,11 @@ const LAYOUTS = {
     { id: 'pills-hide', label: 'Hide pills behind More (editing / new)', def: true },
     { id: 'more-panel', label: 'More goes straight to the full panel', needs: 'pills-hide' },
   ],
+  lists: [
+    { id: 'lined', label: 'Lined Paper' },
+    { id: 'margin', label: 'Show margin', needs: 'lined' },
+    { id: 'added-flash', label: 'Highlight item when added', def: true },
+  ],
   recipes: [
     { id: 'lined', label: 'Lined paper', def: true },
     { id: 'margin', label: 'Show margin', def: true, needs: 'lined' },
