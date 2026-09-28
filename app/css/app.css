@@ -3665,3 +3665,15 @@ html[data-slide="back"]::view-transition-new(sift-page) { animation-name: sift-i
 @keyframes sift-in-next { from { transform: translateX(100%); } }
 @keyframes sift-out-back { to { transform: translateX(30%); opacity: 0; } }
 @keyframes sift-in-back { from { transform: translateX(-100%); } }
+
+/* Phones: a task swiped sideways (views/tasks.js) slides with the finger and
+   shows its actions behind it: ✓ Done and ⋯ More on the right, Delete on the left. */
+.task-list > li[data-task].swiping { position: relative; overflow: hidden; }
+.task-list > li[data-task].swiping > :not(.row-acts) { transform: translateX(var(--swipe-x, 0)); }
+.task-list > li[data-task].swipe-anim > :not(.row-acts) { transition: transform .22s cubic-bezier(.2, .8, .2, 1); }
+.row-acts { position: absolute; inset: 0; display: flex; border-radius: inherit; overflow: hidden; }
+.row-acts.left { justify-content: flex-end; }
+.row-acts button { border: 0; border-radius: 0; box-shadow: none; margin: 0; color: #fff; font-weight: 600; font-size: .9rem; padding: 0 12px; min-width: 78px; }
+.row-acts .ra-done { background: #2e9e5b; }
+.row-acts .ra-more { background: #5a6883; }
+.row-acts .ra-delete { background: #d64545; min-width: 100px; }

@@ -573,3 +573,6 @@ NOTES['1.35.10'] = [
 NOTES['1.35.11'] = [
   F("On a phone, a sideways swipe slides the page like a phone's own screens: the page slides away and the next list or day slides in (iOS 18 and later; before that the next one just slides in). With nothing further to go to, the page gives a small nudge."),
 ]
+NOTES['1.35.12'] = [
+  F("On a phone, swipe a task sideways, as in a phone's mail app: left shows ✓ Done and ⋯ More, right shows Delete. A swipe elsewhere on the page still changes list."),
+]
