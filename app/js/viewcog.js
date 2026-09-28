@@ -99,6 +99,7 @@ const LAYOUTS = {
     { id: 'achievements', label: 'Show achievement count when tasks completed' },
     { id: 'focus', label: 'Show day focus', def: true },
     { id: 'energy', label: 'Show energy', def: true },
+    { id: 'gcal', label: 'Show Google Calendar' },
   ],
 };
 const layoutKey = (area, id) => `sift-layout:${area}:${id}`;

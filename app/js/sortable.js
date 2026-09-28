@@ -102,7 +102,8 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     // Translate so the item stays under the finger even after DOM moves.
     dragging.style.transform = '';
     const box = dragging.getBoundingClientRect();
-    if (slot) Object.assign(slot.style, { left: `${box.left}px`, top: `${box.top}px`, width: `${box.width}px`, height: `${box.height}px` }); // where it is in the list, before it's moved to follow the pointer
+    // Where it is in the list, before it's moved to follow the pointer; its corners as the row's are now (e.g. coming out of a group).
+    if (slot) Object.assign(slot.style, { left: `${box.left}px`, top: `${box.top}px`, width: `${box.width}px`, height: `${box.height}px`, borderRadius: getComputedStyle(dragging).borderRadius });
     dragging.style.transform = grid
       ? `translate(${clientX - offsetX - box.left}px, ${clientY - offsetY - box.top}px)`
       : `translate(var(--dx, 0px), ${clientY - offsetY - box.top}px) rotate(-.8deg)`; // a slight twist while carried, as in the Day Planner
