@@ -38,7 +38,7 @@ const FIND = {
 
 export const SOFT = { pulses: 1, colour: '60 125 230', strength: .7, ms: 1100, width: 1.5, glow: 8 };
 
-export const WASH = { pulses: 1, colour: '255 214 64', strength: .35, ms: 700, width: 60, glow: 0, inset: true, radius: 8 }; // width: enough ring to fill it
+export const WASH = { pulses: 1, colour: '255 224 70', strength: .55, ms: 450, width: 60, glow: 0, inset: true, radius: 8 }; // width: enough ring to fill it
 export const RING = { pulses: 1, colour: '125 195 255', strength: 1, ms: 900, width: 1, glow: 0, inset: true, radius: 8 };
 
 export function flash(el, { scroll = true, pulses = PULSES, colour = null, strength = 1, ms = PULSE_MS, width = 3, glow = 18, inset = false, radius = 12 } = {}) {

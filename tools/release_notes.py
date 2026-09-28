@@ -624,3 +624,6 @@ NOTES['1.35.26'] = [
 NOTES['1.35.27'] = [
   B("The yellow flash on a tab or filter keeps its underline straight (only its top corners round)."),
 ]
+NOTES['1.35.28'] = [
+  B("The yellow flash on a tab or filter is a little brighter and quicker."),
+]
