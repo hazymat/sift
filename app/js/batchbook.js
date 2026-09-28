@@ -1,6 +1,6 @@
 // Batch Book: recipes and every batch made from them (views/recipes.js).
 //   recipes:        title, type (its section's name), tags[], description, ingredients[] ({ id, qty, unit, item, note }),
-//                   steps[] ({ id, text with {references} }), tasting (notes), fields ({ label: value }, e.g. Batch volume)
+//                   steps[] ({ id, text with {references} }), tasting (older notes, moved to the latest batch's tasting diary), fields ({ label: value }, e.g. Batch volume)
 //   recipe_makes:   recipe_id, name, batch_no (older batches' only name), date (YYYY-MM-DD), status (planned|going|done), description, state,
 //                   fields, back_sweetened, ingredients[] and steps[] (copied from the recipe, then its own to change),
 //                   stock ({ ingredient id: have|need }), stock_items ({ ingredient id: list item id }), list_id
