@@ -844,7 +844,7 @@ export default {
       const sel = getSelection();
       const text = sel && !sel.isCollapsed ? sel.toString().trim() : '';
       const body = text && sel.anchorNode?.parentElement?.closest('.thought-body');
-      if (!body || !el.contains(body)) { makeBtn.hidden = true; return; }
+      if (!body || !el.contains(body) || document.body.classList.contains('has-select-bar')) { makeBtn.hidden = true; return; } // not while choosing notes
       const r = sel.getRangeAt(0).getBoundingClientRect();
       makeBtn.hidden = false;
       Object.assign(makeBtn.style, { top: `${r.bottom + 6}px`, left: `${Math.max(8, Math.min(innerWidth - 150, r.left))}px` });

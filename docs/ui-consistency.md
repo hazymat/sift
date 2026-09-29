@@ -142,7 +142,7 @@ Rows and cards inside an area. "Top right" means on the row's own first line, at
 - Recipe cards all the same height, photos cropped square (1.55.17).
 - Find Things: life areas and groups get their own ⋯ (1.56.00); the life areas are a filter bar of underlined tabs like Brain Dump's and Tasks' (1.57.01).
 - Find Things' life areas and groups are managed in the same sheet as Brain Dump's types (1.57.03), now one Life areas / groups sheet with groups indented and no ⋯ beside group names (1.58.00).
-- Choosing several cards by press and hold works in Find Things, Brain Dump, Contacts and Batch Book (1.56.00); every card shows its ⠿ on hover, Find Things' boxes included (1.57.00); the ⠿ is top left on every card grid, always shown on touch screens (1.57.04).
+- Choosing several cards by press and hold works in Find Things, Brain Dump, Contacts and Batch Book (1.56.00); every card shows its ⠿ on hover, Find Things' boxes included (1.57.00); the ⠿ is top left on every card grid, always shown on touch screens (1.57.04).; a selected card shows the same accent ring everywhere, and holding a card on a phone never starts text selection (1.58.14).
 - Brain Dump notes: → Task, Plan it and → Find Things moved from the card into its ⋯, and into the selection bar's Move ▸ (1.57.00).
 - Filter bars are all underlined tabs: Contacts' Recent | Directory | Cases, Scans' kinds, Contracts' views and Tidied's areas moved from pills to the shared bar (1.58.10).
 - Intended, not changing: Brain Dump notes edit from their text only, with no More or Done; list items go straight to the panel.
