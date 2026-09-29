@@ -2,7 +2,7 @@
 
 How every area of Sift shows its controls, to find where areas do the same job in different ways. All new UI follows the **standards** below. Where there's no standard yet, copy what most areas already do and add the choice here. The same text is GitHub issue #284; keep the two in sync.
 
-Audited at 1.54.09 (29 September 2026), updated for 1.55.17.
+Audited at 1.54.09 (29 September 2026), updated for 1.56.00.
 
 ## Standards to follow
 
@@ -19,6 +19,8 @@ Audited at 1.54.09 (29 September 2026), updated for 1.55.17.
 - **Esc on an opened page**: the first Esc leaves the field (keeping what's typed; an Add items box adds it), the next goes back. The back button shows Esc when nothing is being typed (1.55.15).
 
 **Rows, cards and pages**
+- **Choosing several cards** (Find Things' boxes, Brain Dump notes, Batch Book recipes, Contacts): press and hold a card to select; while any are selected, a tap adds or removes one (Shift+tap: a run). Shift+arrows select while browsing. Esc or the bar's ✕ clears. Built into `listkit.js` (`holdSelect`) and `browse.js` (1.56.00).
+- **Headings that hold things** (Find Things' life areas and groups, a project's milestones) get a small ⋯ beside them for Rename, move and Delete, not the page's ⋯. Deleting one with things in it asks first (1.56.00).
 - **Editing a row**: click anywhere on its line to start, anywhere outside to stop.
 - **Sideways rows** (filter bars, tabs, pill rows) scroll with the mouse wheel; at the end the page scrolls. Built once (`installWheelRows` in `app.js`) (1.55.02).
 - **Search boxes** share one style with a ✕ to clear (1.55.11). Tasks, Projects, Lists and the Day Planner have none on purpose: the top bar search covers them.
@@ -88,7 +90,7 @@ Rows and cards inside an area. "Top right" means on the row's own first line, at
 - ★ **Page headers**
   - New buttons: Lists' "+ New list" comes second after the highlighted "+ New template"; Contacts has a New button and a capture box; wording mixes "New" and "Add" (+ Add a detail, + Detail).
   - Switches between parts sit in different places: top left (Tasks), beside the New pill (Contacts), on the right by 👁 (Batch Book), joined to the filters (Tidied).
-  - Filter bars come in two styles: underlined tabs (Brain Dump, Tasks, Batch Book) and pills in glass (Scans, Contracts, Find Things, Tidied), and the glass hugs or fills the row. "All" is first in Scans, last in Contracts.
+  - Filter bars come in two styles: underlined tabs (Brain Dump, Tasks, Batch Book) and pills in glass (Scans, Contracts, Tidied). "All" is first in Scans, last in Contracts.
   - Search sits in the header row, on its own row, beside Share or further down; only Find Things says "(press /)".
 - **Share**
   - One word for two jobs: the Share pill copies text, "👥 Share" shares with a person.
@@ -106,6 +108,7 @@ Rows and cards inside an area. "Top right" means on the row's own first line, at
   - Tick words: "Tick / Untick" in Lists, "Done / Not done" in Tasks and the Day Planner, where "Done" also closes some sheets.
   - Saved messages: "✓ Saved" with no Undo in Settings, "Saved · Undo" elsewhere.
   - Empty states: "Nothing matches." / "Nothing here." / "Nothing found"; Tasks has none apart from Done.
+- **No selection bar** on Scans, Contracts or the Lists page's list cards.
 - **Drag handles**: an icon in most areas, a text "⠿" in the Day Planner; Contacts shows a grip but can't be dragged.
 - **Closing sheets and panels**: ✓ Close top right, "Done" bottom right, "Cancel … Save", ✕, or nothing.
 - **Hard to reach**: History is only linked from Settings; Tidied has no link from Settings.
@@ -129,4 +132,6 @@ Rows and cards inside an area. "Top right" means on the row's own first line, at
 - Esc leaves the Add items box, then the page; back buttons show Esc (1.55.15).
 - Contact cards: long names wrap, "From ..." is a link (1.55.16).
 - Recipe cards all the same height, photos cropped square (1.55.17).
+- Find Things: life areas are small pills that hug like Tasks | Projects; life areas and groups get their own ⋯ (1.56.00).
+- Choosing several cards by press and hold works in Find Things, Brain Dump, Contacts and Batch Book (1.56.00).
 - Intended, not changing: Brain Dump notes edit from their text only, with no More or Done; list items go straight to the panel.
