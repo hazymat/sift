@@ -184,7 +184,7 @@ export default {
         <div class="bb-sticky">
           <div class="bb-head">
             <button type="button" class="primary" data-act="new">+ New recipe</button>
-            <input type="search" class="bb-search" placeholder="Search recipes…" value="${esc(state.q)}" aria-label="Search recipes">
+            <input type="search" class="search bb-search" placeholder="Search recipes…" value="${esc(state.q)}" aria-label="Search recipes">
             <div class="bb-mode segmented" role="group" aria-label="Show"><button type="button" data-mode="recipes" aria-pressed="${!state.batches}">📖 Recipes</button><button type="button" data-mode="batches" aria-pressed="${state.batches}">🧪 Batches</button></div>
             ${cogHtml('recipes', paperHtml())}
             <details class="tool-menu page-more">
