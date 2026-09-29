@@ -150,4 +150,5 @@ Rows and cards inside an area. "Top right" means on the row's own first line, at
 - Brain Dump notes: → Task, Plan it and → Find Things moved from the card into its ⋯, and into the selection bar's Move ▸ (1.57.00).
 - Filter bars are all underlined tabs: Contacts' Recent | Directory | Cases, Scans' kinds, Contracts' views and Tidied's areas moved from pills to the shared bar (1.58.10).
 - Lists page: Lists | Templates (| Shared with me) are underlined tabs in a sticky top instead of plain-text headings, with one + New pill for the tab shown; on phones, Lists', Scans' and Contracts' Share, 👁 and ⋯ stay on the first line (Scans' and Contracts' search goes under them) (1.59.01).
+- Find Things on phones: Share, 👁 and ⋯ stay on the first line with + New box; the other + New pills slide sideways (1.59.02).
 - Intended, not changing: Brain Dump notes edit from their text only, with no More or Done; list items go straight to the panel.

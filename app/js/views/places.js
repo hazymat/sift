@@ -57,9 +57,11 @@ export default {
         <!-- The whole top (+ New, search, life areas) stays while the boxes scroll, as Batch Book's. -->
         <div class="find-sticky">
         <div class="lists-head find-head">
-          <button type="button" class="primary" data-act="add-box">+ New box</button>
-          <button type="button" data-act="add-section">+ New ${GROUP.one}</button>
-          <button type="button" data-act="add-edition">+ New life area</button>
+          <div class="find-new">
+            <button type="button" class="primary" data-act="add-box">+ New box</button>
+            <button type="button" data-act="add-section">+ New ${GROUP.one}</button>
+            <button type="button" data-act="add-edition">+ New life area</button>
+          </div>
           ${shareHtml()}
           ${cogHtml('places')}
           <details class="tool-menu page-more">
