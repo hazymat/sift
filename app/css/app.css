@@ -2533,6 +2533,22 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 .pile-new > .margin { cursor: text; }
 .pile-paper .pile-gap-line > .margin::after { content: none; } /* the empty line before done tasks: nothing to tick */
 .pile-paper .line.has-item .item-sub { margin-left: 6px; }
+/* The name comes first. It starts as wide as its words: a short one keeps its pills beside it, a
+   longer one has them on the line under it (⋯ at the right). Over two lines, the rest fades out at
+   the end of the second (planner.js clampTitles), and shows while it's being written in. */
+.pile-paper .line.has-item > .content > textarea.item-title { flex: 1 1 auto; max-width: 100%; }
+.pile-paper .line.has-item > .content > .more { margin-left: auto; }
+/* ⋯ (shown on hover) floats over the end of the first line rather than taking room from the name;
+   while the name is being written in, its text keeps clear of it. */
+@media (hover: hover) {
+  .pile-paper .line.has-item > .content > .more { position: absolute; right: 6px; top: 2px; margin: 0; background: var(--menu-bg, var(--glass-strong)); border-radius: 999px; }
+  .pile-paper .line.has-item > .content > textarea.item-title:focus, .pile-paper .line.has-item > .content:has(> .more[aria-expanded="true"]) > textarea.item-title { padding-right: 38px; } /* (its panel open: ⋯ stays) */
+}
+.pile-paper .line.has-item > .content > textarea.item-title:not(:focus) { max-height: calc(2.6em + 5px); } /* two lines and the padding above them (not below: a third line would show in it) */
+.pile-paper .line.has-item > .content > textarea.item-title.clamped:not(:focus) {
+  -webkit-mask: linear-gradient(#000 0 0) top / 100% 50% no-repeat, linear-gradient(to left, transparent, #000 4em) bottom / 100% 50% no-repeat;
+  mask: linear-gradient(#000 0 0) top / 100% 50% no-repeat, linear-gradient(to left, transparent, #000 4em) bottom / 100% 50% no-repeat;
+}
 
 /* Day Planner Notes: just the note, no box around it, and the toolbar only
    while you're writing in it (clicking a toolbar button keeps you in it). */
