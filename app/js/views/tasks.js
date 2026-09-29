@@ -728,18 +728,6 @@ export default {
       noteFromTitle = title && document.activeElement === title ? title : null;
       if (noteFromTitle) ev.preventDefault();
     }, true);
-    // With a mouse, a bare part of a task's line being edited, right of its name (not a pill or button): the
-    // cursor goes to the end of the name, to carry on writing it. (Phones: a tap off the name leaves it.)
-    body.addEventListener('pointerdown', ev => {
-      const title = ev.target.closest?.('.task-list > li[data-task].pills-open')?.querySelector(':scope > .task-title');
-      if (!title || ev.button || ev.pointerType === 'touch' || ev.target === title || ev.clientX < title.getBoundingClientRect().left) return;
-      const band = title.getBoundingClientRect(); if (ev.clientY < band.top || ev.clientY > band.bottom) return; // the name's own line only: below it is a click off it
-      if (!title.closest('li').contains(document.activeElement)) return; // already left (a phone's keyboard put away): a tap here is a tap off it
-      if (ev.target.closest('button, a, input, textarea, select, label, [role="button"], [contenteditable], .note-shown, .note-in-place, .task-details')) return;
-      ev.preventDefault();
-      const toEnd = () => { title.focus(); title.setSelectionRange(title.value.length, title.value.length); title.scrollLeft = title.scrollWidth; };
-      toEnd(); requestAnimationFrame(toEnd);
-    }, true);
     // "Add note" under a task being edited: typing goes straight into the notes
     // editor, as for a task's note.
     body.addEventListener('focusin', ev => {
