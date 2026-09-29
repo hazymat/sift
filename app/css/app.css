@@ -2653,13 +2653,14 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
    (the Tasks page and the Day Planner's Tasks). */
 .task-add-line .new-task-line::placeholder, .planner .pile-new .new-task::placeholder { font-style: italic; color: color-mix(in srgb, var(--text) 22%, transparent) !important; opacity: 1; }
 
-/* Tasks page: an open task and its panel are one box that starts where the
-   task's text starts (in line with the ruled lines); the tick box and handle
-   stay outside it. Closed again, it's back to a plain ruled line. */
+/* Tasks page: an open task and its panel are one box across the whole row, its
+   tick box and handle (and the margin) inside it, its edges and corners inside
+   the page (phones: the screen's full width, below). Closed again, it's back to a
+   plain ruled line. */
 .task-list > li[data-task]:has(+ li.task-details) { background: transparent !important; z-index: 0; }
-.task-list > li[data-task]:has(+ li.task-details)::before { content: ''; position: absolute; z-index: -1; left: 65px; right: 0; top: 0; bottom: 0; border: 1px solid var(--glass-border); border-bottom: 0; border-radius: 14px 14px 0 0; background: var(--glass-track); pointer-events: none; }
+.task-list > li[data-task]:has(+ li.task-details)::before { content: ''; position: absolute; z-index: -1; left: 0; right: 0; top: 0; bottom: 0; border: 1px solid var(--glass-border); border-bottom: 0; border-radius: 14px 14px 0 0; background: var(--glass-track); pointer-events: none; }
 .task-list > li[data-task]:has(+ li.task-details)::after { display: none; }
-.task-list > li.task-details { margin: 0 0 10px 65px !important; border-top: 0; border-radius: 0 0 14px 14px; }
+.task-list > li.task-details { margin: 0 0 10px 0 !important; border-top: 0; border-radius: 0 0 14px 14px; }
 
 /* Day Planner: done items are faint the same way whether they take one line or
    several (the whole item fades, tick box included). */
@@ -3775,6 +3776,13 @@ html[data-slide="back"]::view-transition-new(sift-page) { animation-name: sift-i
    so the name has room; and none at all while its editing pills are open (they show the same things). */
 #main[data-density="tight"] .task-list > li[data-task] > .item-sub > :not(.item-note, .tour-pill) { display: none; }
 #main[data-density="tight"] .task-list > li[data-task].pills-open > .item-sub { display: none; }
+/* …except, on a wide screen, its 📝: it stays just after the words while the name is written in (moving
+   as you type), and pressing it goes into the note, as Shift+Enter does (views/tasks.js). */
+@media (min-width: 700px) {
+  #main[data-density="tight"] .task-list > li[data-task].pills-open:has(> .item-sub > .task-note) > .item-sub { display: flex; flex: none; }
+  #main[data-density="tight"] .task-list > li[data-task].pills-open > .item-sub > :not(.task-note) { display: none; }
+  #main[data-density="tight"] .task-list > li[data-task].pills-open:has(> .item-sub > .task-note) > .task-title { flex: 0 1 auto; }
+}
 
 /* Day Planner, phones: an item a first tap got ready (planner.js: armed). It's
    held still for dragging by any part of it, and its stretch bar shows fully,

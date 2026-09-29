@@ -18,7 +18,8 @@
 //     done: true,                             (optional) the row has a tick box (.tick): Ctrl+Enter
 //                                             (⌘+Enter) in its text ticks or unticks it, and on a wide
 //                                             screen a ✓ Done chip beside More says so
-//   }) → { destroy() }
+//   }) → { open(key), close(), editing, destroy() }
+//     open(key): opens (or draws again) a row's pills without its text getting the cursor, e.g. as its note is edited
 //
 // A pill is a label.entry-chip holding a real <select> or date <input> with
 // data-pill="<name>" (so phones show their own pickers), or a button with
@@ -203,6 +204,12 @@ export function editPills(root, spec) {
 
   return {
     close,
+    open(key) {
+      if (key !== editing) close();
+      editing = key;
+      for (const p of root.querySelectorAll('.edit-pills')) p.remove(); // drawn again, as html() has them now
+      place();
+    },
     get editing() { return editing; },
     destroy() {
       removeEventListener('keydown', onAnyKey, true);

@@ -1132,7 +1132,7 @@ export default {
         const i = items.find(x => x.id === id);
         if (!i) return '';
         const mins = [...new Set([...durationChoices(settings.duration_max_min), ...(i.estimate_min ? [Number(i.estimate_min)] : [])])].sort((a, b) => a - b);
-        const addNote = (i.notes || '').trim() ? '' : '<textarea class="add-note pill-note no-inline" data-pill="notes" rows="1" placeholder="Add note" aria-label="Note"></textarea>';
+        const addNote = (i.notes || '').trim() || noteEditing === id ? '' : '<textarea class="add-note pill-note no-inline" data-pill="notes" rows="1" placeholder="Add note" aria-label="Note"></textarea>';
         return addNote + energyPill(i.energy)
           + selectPill('estimate_min', 'Estimated time', '⏱', [['', 'Not estimated'], ['unsure', 'Not sure yet'], ...mins.map(m => [m, durationLabel(m)])], i.estimate_min || (i.estimate_unsure ? 'unsure' : ''));
       },
@@ -1246,6 +1246,7 @@ export default {
         const nid = t.closest('[data-item]').dataset.item;
         noteEditing = nid;
         await refresh();
+        this.pills.open(nid); // its editing pills under it too, as with Shift+Enter in its name
         el.querySelector(`[data-note-for="${nid}"]`)?._editor?.focus();
       }
       else if (act === 'adopt' || act === 'task-to-plan') {
