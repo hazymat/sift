@@ -24,7 +24,7 @@ import * as gcal from '../gcal.js';
 import { atEdge, caretTo } from '../walk.js';
 import { debounced } from '../autosave.js';
 import { editPills, selectPill, energyPill } from '../editpills.js';
-import { keys } from '../keys.js';
+import { keys, CTRL_ENTER } from '../keys.js';
 import { energyMenu } from '../pillmenu.js';
 import { byRank, rankOf, reorderWrites, lastKey } from '../order.js';
 import { askYes, askEmptied } from '../ask.js';
@@ -1519,22 +1519,25 @@ export default {
     bar.className = 'select-bar';
     bar.hidden = true;
     bar.innerHTML = `<span class="select-count"></span>
-      <button type="button" data-sel="done">Done</button>
+      <button type="button" data-sel="done">Done${keys(CTRL_ENTER)}</button>
       <button type="button" data-sel="pile">To place</button>
       <button type="button" data-sel="letgo" title="Didn't do these and they don't need doing">Let go</button>
       <button type="button" data-sel="tomorrow">Tomorrow</button>
-      <button type="button" data-sel="delete" class="danger">Delete</button>
+      <button type="button" data-sel="archive">Archive${keys('A')}</button>
+      <button type="button" data-sel="delete" class="danger">Delete${keys('D')}</button>
       <button type="button" data-sel="clear" aria-label="Clear selection">✕</button>`;
     document.body.append(bar);
     this.bar = bar;
 
-    // Delete / Backspace with items selected: the bar's Delete (not while typing).
+    // With items selected (not while typing): Delete / Backspace or D the bar's Delete, A Archive, Ctrl+Enter Done, as in Tasks.
     document.addEventListener('keydown', ev => {
-      if ((ev.key !== 'Delete' && ev.key !== 'Backspace') || ev.defaultPrevented || ev.ctrlKey || ev.metaKey || ev.altKey) return;
-      if (!selected.size || !el.isConnected || typingIn(ev.target) || document.querySelector('dialog[open]')) return;
-      ev.preventDefault();
-      bar.querySelector('[data-sel="delete"]').click();
-    }, { signal: gone.signal });
+      if (ev.defaultPrevented || ev.altKey || !selected.size || !el.isConnected || typingIn(ev.target) || document.querySelector('dialog[open]')) return;
+      const mod = ev.ctrlKey || ev.metaKey;
+      const sel = ev.key === 'Enter' && mod && !ev.shiftKey ? 'done' : mod || ev.shiftKey ? null : ev.key === 'Delete' || ev.key === 'Backspace' || ev.key.toUpperCase() === 'D' ? 'delete' : ev.key.toUpperCase() === 'A' ? 'archive' : null;
+      if (!sel) return;
+      ev.preventDefault(); ev.stopImmediatePropagation();
+      bar.querySelector(`[data-sel="${sel}"]`).click();
+    }, { signal: gone.signal, capture: true });
 
     function paintSelection() {
       for (const id of [...selected]) if (!items.some(i => i.id === id)) selected.delete(id);
@@ -1573,6 +1576,7 @@ export default {
       if (b.dataset.sel === 'letgo') { const now = new Date().toISOString(); await moveMany(new Map(ids.map(id => [id, { dropped_at: now, archived_at: now }])), `Let go of ${plural} (in the Archive)`); clearSelection(); }
       if (b.dataset.sel === 'pile') await moveMany(new Map(ids.map(id => [id, { time: null, end_time: null }])), `${plural} back to To place`);
       if (b.dataset.sel === 'tomorrow') { await moveMany(new Map(ids.map(id => [id, { date: addDays(date, 1), carried_from: date }])), `${plural} moved to tomorrow`); clearSelection(); }
+      if (b.dataset.sel === 'archive') { await moveMany(new Map(ids.map(id => [id, { archived_at: new Date().toISOString() }])), `Archived ${plural}`); clearSelection(); }
       if (b.dataset.sel === 'delete') { await moveMany(new Map(ids.map(id => [id, { deleted_at: new Date().toISOString() }])), `Deleted ${plural}`); clearSelection(); }
     });
 

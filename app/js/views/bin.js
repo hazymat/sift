@@ -114,7 +114,7 @@ export default {
       noun: 'thing',
       actions: [
         { id: 'restore', label: 'Restore', run: restoreMany },
-        { id: 'to-bin', label: 'Delete', danger: true, run: ids => toBin(pick(ids)) },
+        { id: 'to-bin', label: 'Delete', key: 'D', danger: true, run: ids => toBin(pick(ids)) },
       ],
     });
     const kitBin = this.kitBin = createListKit({
