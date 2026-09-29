@@ -3554,10 +3554,11 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
 .edit-pills:has(> .pill-reveal) > .pill-done { flex: none; padding: 2px 10px; font-size: .78rem; color: var(--text); margin-left: 6px; }
 .task-list > li[data-task] > .edit-pills > .pill-done { order: 2; align-self: center; }
 /* A task's More (in place of ⋯): with a mouse, shown only while the pointer is over a task that isn't being edited
-   (which has its own More at the far right); opens the full panel. Phones: More / More (full) and swiping. */
+   (which has its own More at the far right) or has its panel open; like that More, it opens the name and its pills.
+   The panel's own button (data-act="details") is hidden: More (full), holding and swiping press it. */
 .task-list > li[data-task] > .more { flex: none; align-self: center; margin-left: auto; padding: 2px 10px; font-size: .78rem; color: var(--text); opacity: 1; visibility: hidden; }
 @media (hover: hover) { .task-list > li[data-task]:hover > .more { visibility: visible; } }
-.task-list > li[data-task].pills-open > .more, body.pills-only .task-list > li[data-task] > .more { display: none !important; }
+.task-list > li[data-task]:is(.pills-open, :has(+ li.task-details)) > .more, body.pills-only .task-list > li[data-task] > .more { display: none !important; }
 #main:not([data-density="tight"]) .task-list > li[data-task]:has(> .edit-pills > .pill-reveal) > .item-sub { order: 4; }
 .edit-pills:has(> .pill-reveal) > :not(.pill-reveal, .pill-done) { display: none; }
 #main[data-density="tight"] .task-list > li[data-task]:has(> .edit-pills > .pill-reveal):not(:has(> .note-in-place, > .edit-pills:not(.pill-top))) { flex-wrap: nowrap; }
