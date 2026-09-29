@@ -964,3 +964,4 @@ NOTES['1.56.00'] = [
   F('Find Things: the life areas look like the other switches (Tasks | Projects), with a ⋯ after them to rename, move or delete the one shown. Each group has a ⋯ by its name to rename it, move it up or down, or delete it. Deleting one with boxes in it asks first, and it goes to the Bin with everything in it, to be put back together.'),
   F('Press and hold to select now works on Brain Dump notes and Contacts too, as on Batch Book\'s recipes; Shift+arrows select while browsing their cards.'),
 ]
+NOTES['1.56.01'] = [F('Find Things: in a box, the selection bar has Move to box… to put the chosen things (with their sub-items) into another box, at its end. Tap the cube by a thing to choose it; Undo puts them back.')]
