@@ -3,7 +3,7 @@
 //                                   cards are dragged like Brain Dump notes (onto another book's heading moves them there)
 // #/recipes/<recipe id>             a recipe: Make this, details, ingredients, steps, result photos, its batches
 // #/recipes/<recipe id>/make/<id>   one batch: its own copy of the recipe to change, each ingredient In stock or
-//                                   Add to list, summary, readings (gravity and the book's other kinds), diary, tasting diary
+//                                   Add to list, summary, readings (gravity and the book's other kinds), diary, tasting notes
 // Pages are drawn on the same papers as the Day Planner (👁: paper, lined, margin).
 // Data and units: js/batchbook.js. A book is stored as a recipe's `type` (settings.batch_sections).
 
@@ -11,7 +11,7 @@ import * as store from '../store.js';
 import * as att from '../attachments.js';
 import { sectionsOf, sectionOf, stepsOf, fixBareUnits, parseRecipes, IMPORT_EXAMPLE, UNITS, parseLine, parseQty, qtyText, amountText, ingredientText, stepHtml, renameRefs, abvOf, readingTypesOf, isGravity, nextBatchNo, loadBook, batchName, newBatchName, batchDay } from '../batchbook.js';
 import { loadLists, nestItems, createList, addItems } from '../lists.js';
-import { richText, plainLines } from '../richtext.js';
+import { richText } from '../richtext.js';
 import { debounced } from '../autosave.js';
 import { toast, undoable } from '../toast.js';
 import { askText, askYes } from '../ask.js';
@@ -307,7 +307,7 @@ export default {
           ${ingredientsHtml(r, { collection: 'recipes', id: r.id })}
           ${stepsHtml(r, { collection: 'recipes', id: r.id })}
           ${r.tasting?.trim() ? `<h2 class="bb-h"><span>🥂 Tasting notes</span><span class="muted bb-h-note">these move to the first batch you make</span></h2>
-          <div class="bb-tasting"></div>` : ''}
+          <div class="bb-tasting bb-note"></div>` : ''}
           <h2 class="bb-h"><span>🧪 Batches</span></h2>
           ${made.length ? `<div class="bb-batches">${made.map(batchRow).join('')}</div>` : '<p class="muted bb-none">Not made yet. Make this (at the top) starts a batch with its own copy of the recipe, to change as you like, and to tick off what you have in.</p>'}
         </article>
@@ -392,7 +392,8 @@ export default {
               <button type="button" class="icon-btn bb-reading-x" data-entry-remove aria-label="Remove reading">×</button>
             </div>`).join('') || '<p class="muted bb-none">No readings yet.</p>'}</div>` : ''}
           ${entriesHtml(m, 'diary', '📔 Diary')}
-          ${entriesHtml(m, 'tasting', '🥂 Tasting diary')}
+          <h2 class="bb-h"><span>🥂 Tasting notes</span></h2>
+          <div class="bb-tasting bb-note"></div>
         </article>
         <div class="detail-actions bb-foot">
           <span class="spacer"></span>
@@ -404,15 +405,28 @@ export default {
 
     let tasting = null;
     let adding = null; // a step still being saved: drawn once it's in
-    // Tasting notes live on batches (their tasting diary). A recipe's old notes move to its latest batch.
-    // Returns true when anything changed, so the book is loaded again.
+    // Tasting notes live on batches: one note each (field tasting), written like the Day Planner's notes.
+    // A recipe's old notes move to its latest batch, and the dated tastings of before (entries) join their batch's note,
+    // their photos going to the batch's photos. Returns true when anything changed, so the book is loaded again.
+    const addToNote = (md, more) => (md?.trim() ? `${md.trim()}\n\n${more}` : more);
     async function moveTastings() {
       let moved = false;
       for (const r of data.recipes.filter(x => x.tasting?.trim())) {
         const latest = data.makes.filter(m => m.recipe_id === r.id).sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.created_at || '').localeCompare(a.created_at || ''))[0];
         if (!latest) continue;
-        await store.create('recipe_entries', { make_id: latest.id, recipe_id: r.id, kind: 'tasting', date: latest.date || today(), text: plainLines(r.tasting).join('\n').trim() });
+        await store.update('recipe_makes', latest.id, { tasting: addToNote(latest.tasting, r.tasting.trim()) });
         await store.update('recipes', r.id, { tasting: '' });
+        moved = true;
+      }
+      for (const m of data.makes) {
+        const old = data.entries.filter(e => e.make_id === m.id && e.kind === 'tasting').sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.created_at || '').localeCompare(b.created_at || ''));
+        if (!old.length) continue;
+        const text = old.filter(e => e.text?.trim()).map(e => `${e.date ? `**${batchDay(e.date)}**  \n` : ''}${e.text.trim()}`).join('\n\n');
+        if (text) await store.update('recipe_makes', m.id, { tasting: addToNote(m.tasting, text) });
+        for (const e of old) {
+          for (const a of (await store.list('attachments', { filter: x => x.parent_id === e.id }))) await store.update('attachments', a.id, { parent_id: m.id, parent_collection: 'recipe_makes' });
+          await store.remove('recipe_entries', e.id);
+        }
         moved = true;
       }
       // Batches named in 1.42 ("Mead 28 Sep 2026") get the dash ("Mead - 28 Sep 2026").
@@ -447,12 +461,14 @@ export default {
       kitFor().attach(el.querySelector('.bb-cards'));
       batchKit.attach(el.querySelector('.bb-batch-list'));
       watchSticky();
+      // Tasting notes: a batch's (or a recipe's older ones, until they move to a batch).
       const box = el.querySelector('.bb-tasting');
-      const r = state.recipe && !state.make && recipeOf(state.recipe);
-      if (box && r) {
+      const owner = state.make ? { collection: 'recipe_makes', rec: makeOf(state.make) } : state.recipe ? { collection: 'recipes', rec: recipeOf(state.recipe) } : null;
+      if (box && owner?.rec) {
+        const r = owner.rec;
         let pending = null;
-        tasting = debounced(async () => { if (pending != null) { const md = pending; pending = null; await store.update('recipes', r.id, { tasting: md }); } }, 600);
-        richText(box, { value: r.tasting || '', placeholder: 'How it turned out, what to change next time', origin: () => ({ collection: 'recipes', id: r.id, title: r.title, field: 'tasting' }), onChange: md => { pending = md; tasting.trigger(); } });
+        tasting = debounced(async () => { if (pending != null) { const md = pending; pending = null; await store.update(owner.collection, r.id, { tasting: md }); } }, 600);
+        richText(box, { value: r.tasting || '', placeholder: 'How it tasted, how it turned out, what to change next time', origin: () => ({ collection: owner.collection, id: r.id, title: owner.collection === 'recipes' ? r.title : batchName(r, recipeOf(r.recipe_id)?.title), field: 'tasting' }), onChange: md => { pending = md; tasting.trigger(); } });
       }
       if (focusNext) { const f = el.querySelector(focusNext); focusNext = null; if (f) { f.focus(); f.select?.(); } }
     };
