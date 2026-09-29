@@ -34,8 +34,8 @@ export default {
           <button type="button" data-tab="archive">Archive</button>
           <button type="button" data-tab="bin">Bin</button>
         </div>
-        <div class="segmented" id="bin-areas" aria-label="Area"></div>
       </div>
+      <div class="dump-filter-row"><div class="dump-filter" id="bin-areas" role="group" aria-label="Area"></div></div>
       <div class="segmented bin-filters" id="bin-filters" hidden></div>
       <input type="search" id="bin-q" class="search" placeholder="Search…" autocomplete="off">
       <p class="muted bin-note" id="bin-note"></p>

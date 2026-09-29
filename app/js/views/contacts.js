@@ -50,13 +50,9 @@ export default {
 
     el.innerHTML = `
       <div class="sticky-top-mark" aria-hidden="true"></div>
-      <div class="tasks-head sticky-top">
+      <div class="sticky-top">
+      <div class="tasks-head">
         <button type="button" class="primary c-new-btn" data-act="new-here">+ New contact</button>
-        <div class="segmented" id="c-tabs" role="tablist">
-          <button type="button" data-tab="recent">Recent</button>
-          <button type="button" data-tab="directory">Directory</button>
-          <button type="button" data-tab="cases">Cases</button>
-        </div>
         ${shareHtml()}
           ${cogHtml('contacts')}
         <details class="tool-menu page-more">
@@ -68,6 +64,15 @@ export default {
             <a href="#/bin/bin/contacts">Show Bin</a>
           </div>
         </details>
+      </div>
+      <!-- Recent | Directory | Cases: a filter bar like Brain Dump's and Tasks' (underlined tabs). -->
+      <div class="dump-filter-row">
+        <div class="dump-filter" id="c-tabs" role="tablist" aria-label="Show">
+          <button type="button" data-tab="recent">Recent</button>
+          <button type="button" data-tab="directory">Directory</button>
+          <button type="button" data-tab="cases">Cases</button>
+        </div>
+      </div>
       </div>
       <div id="c-body"></div>`;
     const body = el.querySelector('#c-body');

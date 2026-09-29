@@ -72,9 +72,9 @@ export default {
             <div class="menu"><a href="#/bin/archive/contracts">Show Archive</a><a href="#/bin/bin/contracts">Show Bin</a></div>
           </details>
         </div>
-        <div class="segmented scan-kinds" role="tablist" aria-label="Which contracts">
+        <div class="dump-filter-row scan-kinds"><div class="dump-filter" role="tablist" aria-label="Which contracts">
           ${VIEWS.map(([id, label]) => `<button type="button" data-view="${id}" aria-pressed="${state.view === id}">${label}</button>`).join('')}
-        </div>
+        </div></div>
         ${rows.length ? `
           <table class="contract-table">
             <thead><tr>${COLS.map(([id, label]) => `<th scope="col"><button type="button" class="th-sort" data-sort="${id}" aria-pressed="${state.sort === id}">${label}${state.sort === id ? (state.dir > 0 ? ' ↑' : ' ↓') : ''}</button></th>`).join('')}</tr></thead>
