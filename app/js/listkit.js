@@ -485,7 +485,7 @@ export function createListKit({
     const action = actions.find(a => a.id === b.dataset.kitAction);
     if (action) {
       const ids = idsInOrder();
-      closeGroups();
+      if (!action.keepSelection) closeGroups(); // one that asks first (e.g. Move → Project…) keeps its group open while it asks
       await action.run(ids);
       if (action.keepSelection !== true) clear();
     }
