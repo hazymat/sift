@@ -154,7 +154,7 @@ export default {
           <button type="button" class="drag-handle" aria-label="Select${draggable ? ' or move' : ''} ${esc(t.title)}">${icon('i-grip')}</button>
           <input type="checkbox" class="tick" ${isDone(t) ? 'checked' : ''} aria-label="Done">
           <input class="task-title" value="${esc(t.title)}" aria-label="Task" autocomplete="off">
-          <button type="button" class="more" data-act="details" aria-label="Details" aria-expanded="${open === t.id}">⋯</button>
+          <button type="button" class="more entry-chip" data-act="details" title="Open the task's full panel" aria-expanded="${open === t.id}">More</button>
           ${subLine(t)}
         </li>
         ${open === t.id ? `<li class="task-details" data-for="${t.id}">${details(t)}</li>` : ''}`;
@@ -1411,7 +1411,7 @@ export default {
       },
     });
 
-    // The panel closes with Close, ⋯ again or Esc (not by clicking elsewhere, so
+    // The panel closes with Close, More again or Esc (not by clicking elsewhere, so
     // it stays put while you look around). Whatever you were typing is saved first.
     async function closeDetails() {
       if (!open) return;
