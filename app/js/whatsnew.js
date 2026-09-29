@@ -19,6 +19,7 @@ import { keys } from './keys.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.59.01': [{ text: 'Lists: Lists and Templates are underlined tabs at the top instead of plain headings, and + New makes whichever the tab shows.', go: '#/lists', at: '#main #list-tabs' }, { text: "iPhone: Scans' and Contracts' 👁 and ⋯ stay on the first line with Scan or + New, the search under them; Lists' ⋯ stays up too." }],
   '1.59.00': [{ text: "What's new: after an update, this list shows what changed, each with Show me. Turn it off in Settings, Show update info.", go: '#/settings', at: '#main label:has(#show-update-info)' }],
   '1.58.15': [{ text: "Day Planner, Tight spacing: a task's pills stay together beside its name or all under it, no lone 📝 on its own line." }],
   '1.58.14': [{ text: 'Brain Dump: pressing and holding a note selects it without starting text selection, and a chosen note has a clear ring.', go: '#/dump', at: '#main li.thought', more: 'Contacts, Find Things boxes and Recipes cards behave the same.' }],
