@@ -39,7 +39,7 @@ function copyOver(field, row) {
     boxSizing: 'border-box', borderStyle: 'solid', borderColor: 'transparent', borderWidth: style.borderWidth,
     paddingTop: `${parseFloat(style.paddingTop) + ROOM}px`, paddingBottom: `${parseFloat(style.paddingBottom) + ROOM}px`, paddingLeft: style.paddingLeft, paddingRight: style.paddingRight,
     font: style.font, letterSpacing: style.letterSpacing, wordSpacing: style.wordSpacing, lineHeight: style.lineHeight, textAlign: style.textAlign,
-    color: style.color, opacity: style.opacity, whiteSpace: isInput ? 'pre' : 'pre-wrap', overflowWrap: style.overflowWrap,
+    color: style.color, whiteSpace: isInput ? 'pre' : 'pre-wrap', overflowWrap: style.overflowWrap,
     display: isInput ? 'flex' : 'block', alignItems: 'center', // an input's text sits in the middle of it
     WebkitMaskImage: style.webkitMaskImage, maskImage: style.maskImage,
   });
@@ -54,6 +54,8 @@ function copyOver(field, row) {
     line.append(word);
   }
   copy.append(line);
+  // The field's own dimming, if any, but not as an inline style: the view's fade (tickAway) has to reach the copy too.
+  if (style.opacity !== '1') copy.style.setProperty('--tw-dim', style.opacity);
   return copy;
 }
 
