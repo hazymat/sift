@@ -219,7 +219,9 @@ export default {
               <button type="button" class="drag-handle thing-grip" aria-label="Select or move ${esc(i.name)}" title="Tap to select, hold to drag">${icon('i-places')}</button>
               <input name="name" value="${esc(i.name)}" aria-label="Item">
               ${i.quantity ? `<span class="span-tag qty" title="Quantity">×${i.quantity}</span>` : ''}
-              <button type="button" class="more" data-act="item-details" aria-label="Details" aria-expanded="${openItem === i.id}">⋯</button>
+              <button type="button" class="more entry-chip" data-act="quick-more" title="Edit it, with its pills">More</button>
+              <button type="button" class="details-btn" data-act="item-details" hidden aria-label="Details" aria-expanded="${openItem === i.id}"></button>
+              ${openItem === i.id ? `<button type="button" class="entry-chip close-top" data-act="close-item" title="Close the panel">✓ Close${keys('Esc')}</button>` : ''}
               ${thingSub(i)}
             </li>
             ${openItem === i.id ? thingPanel(i) : ''}`).join('')}
@@ -280,7 +282,6 @@ export default {
           <div class="wide">${att.rowHtml(atts.get(i.id), { parent: i.id })}</div>
         </div>
         <div class="detail-actions">
-          <button type="button" class="close-details" data-act="close-item" title="Close (or Esc)"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Close</button>
           <span class="spacer"></span>
           <button type="button" class="thing-colour" data-act="thing-colour"><span class="swatch" style="--sw:${tintHex(i)}"></span> Colour</button>
           <button type="button" data-act="archive-item">Archive</button>
@@ -506,12 +507,13 @@ export default {
     }
     page.addEventListener('change', ev => saveField(ev.target));
 
-    // Tap a thing's name to edit it: a Quantity pill and More (its panel) open
-    // under it (js/editpills.js).
+    // Tap a thing's name to edit it: a Quantity pill opens under it, and More (full) (its panel) at the far right of
+    // its line, then ✓ Close there, as in Tasks (js/editpills.js).
     this.pills = editPills(page, {
       title: 'li[data-item] > input[name="name"]',
       row: 'li[data-item]',
       key: r => r.dataset.item,
+      top: () => '<button type="button" class="entry-chip pill-reveal" data-pill-more title="Open its full panel">More (full)</button>',
       html: id => {
         const it = findBox(openId)?.b.items.find(x => x.id === id);
         if (!it) return '';
@@ -571,6 +573,9 @@ export default {
         await toggleThing(target.closest('[data-item]').dataset.item);
       } else if (name === 'close-item') {
         await toggleThing(openItem);
+      } else if (name === 'quick-more') { // its More on hover: into its name, with its pills, as in Tasks
+        const title = target.closest('li[data-item]')?.querySelector(':scope > input[name="name"]');
+        title?.focus(); title?.setSelectionRange(title.value.length, title.value.length);
       } else if (name === 'box-colour') {
         const { b: box } = findBox(openId);
         colourMenu(target, tintId(box), v => setColour('places', [box.id], v));

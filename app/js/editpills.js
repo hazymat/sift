@@ -215,6 +215,21 @@ export function editPills(root, spec) {
     if (!ev.target.closest?.(spec.title) && !ev.target.matches?.('.pill-note') && !ev.target.isContentEditable) return;
     setTimeout(() => { if (editing && Date.now() - tapAt > 800 && (document.activeElement === document.body || !document.activeElement) && !document.querySelector('.pill-menu, .ref-picker, dialog[open]')) close(); }, 100);
   });
+  // With a mouse, a click on a bare part of an item's line, right of where its text starts (not a pill, button
+  // or its note): into the text, the cursor at its end, as if the text went right across. Below the text's own
+  // line is a click off it; phones leave a tap off the text alone.
+  const onBare = ev => {
+    if (ev.button || ev.pointerType === 'touch') return;
+    const row = ev.target.closest?.(spec.row), title = row?.querySelector(spec.title);
+    if (!title || !root.contains(row) || ev.target === title) return;
+    const band = title.getBoundingClientRect();
+    if (ev.clientX < band.left || ev.clientY < band.top || ev.clientY > band.bottom) return;
+    if (ev.target.closest('button, a, input, textarea, select, label, [role="button"], [contenteditable], .note-shown, .note-in-place, .note-edit, .task-details, .item-details, .edit-pills')) return;
+    ev.preventDefault();
+    const toEnd = () => { title.focus(); title.setSelectionRange?.(title.value.length, title.value.length); title.scrollLeft = title.scrollWidth; };
+    toEnd(); requestAnimationFrame(toEnd);
+  };
+  root.addEventListener('pointerdown', onBare, true);
   root.addEventListener('click', onClick, true);
   document.addEventListener('pointerdown', onPointer, true);
   document.addEventListener('keydown', onKey);
@@ -240,6 +255,7 @@ export function editPills(root, spec) {
       root.removeEventListener('input', onChange, true);
       root.removeEventListener('focusout', onChange, true);
       root.removeEventListener('click', onClick, true);
+      root.removeEventListener('pointerdown', onBare, true);
       document.removeEventListener('pointerdown', onPointer, true);
       document.removeEventListener('keydown', onKey);
       document.removeEventListener('pointerdown', onTap, true);

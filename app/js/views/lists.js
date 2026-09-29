@@ -12,6 +12,7 @@ import { richText, previewLine } from '../richtext.js';
 import { debounced } from '../autosave.js';
 import * as att from '../attachments.js';
 import { editPills } from '../editpills.js';
+import { keys } from '../keys.js';
 import { word } from '../words.js';
 import { tintHex, tintId, colourMenu } from '../colours.js';
 import { rankOf, reorderWrites } from '../order.js';
@@ -165,14 +166,15 @@ export default {
             <button type="button" class="drag-handle" aria-label="Select or move">${icon('i-grip')}</button>
             ${isTemplate ? '<input type="checkbox" class="tick" disabled tabindex="-1" aria-hidden="true" style="visibility:hidden">' : `<input type="checkbox" class="tick" ${i.checked_at ? 'checked' : ''} aria-label="Ticked">`}
             <input class="task-title" name="text" value="${esc(i.text)}" aria-label="Item" autocomplete="off">
-            <button type="button" class="more" data-act="item-details" aria-label="Details" aria-expanded="${openItem === i.id}">⋯</button>
+            <button type="button" class="more entry-chip" data-act="quick-more" title="Edit it">More</button>
+            <button type="button" class="details-btn" data-act="item-details" hidden aria-label="Details" aria-expanded="${openItem === i.id}"></button>
+            ${openItem === i.id ? `<button type="button" class="entry-chip close-top" data-act="close-item" title="Close the panel">✓ Close${keys('Esc')}</button>` : ''}
             ${subLine(i, isTemplate)}
           </li>
           ${openItem === i.id ? `<li class="task-details list-panel" data-for="${i.id}">
             <div class="list-notes"></div>
             ${att.rowHtml(atts.get(i.id), { parent: i.id })}
             <div class="detail-actions">
-              <button type="button" class="close-details" data-act="close-item" title="Close (or Esc)"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Close</button>
               <span class="spacer"></span>
               <button type="button" data-act="archive-item">Archive</button>
               <button type="button" class="danger" data-act="remove">Delete</button>
@@ -224,8 +226,10 @@ export default {
     // ---------- render ----------
 
     const body = el;
-    // Tap an item to edit it: More (its note and files) opens under it (js/editpills.js).
-    this.pills = editPills(body, { title: '.checklist .task-title', row: '.checklist > li[data-id]', key: r => r.dataset.id, html: () => '', change: () => {} });
+    // Tap an item to edit it: More (its note and files: an item has no quick pills, so it's the full panel) at the far
+    // right of its line, as in Tasks, then ✓ Close in the same place (js/editpills.js).
+    this.pills = editPills(body, { title: '.checklist .task-title', row: '.checklist > li[data-id]', key: r => r.dataset.id, html: () => '', change: () => {},
+      top: () => `<button type="button" class="entry-chip pill-reveal" data-pill-more title="Its note and files">More${keys('Shift+Enter')}</button>` });
     const attDone = async parent => {
       if (att.writingIn(el)) { atts = await att.byParent(); await att.redrawRows(el, parent?.id); return; }
       render();
@@ -599,6 +603,8 @@ export default {
       }
       if (act === 'item-details') return toggleItem(b.closest('li[data-id], li[data-for]').dataset.id || b.closest('li[data-for]').dataset.for);
       if (act === 'close-item') return toggleItem(openItem);
+      // An item's More on hover (not being edited): into its name, as in Tasks.
+      if (act === 'quick-more') { const title = b.closest('li[data-id]')?.querySelector(':scope > .task-title'); title?.focus(); title?.setSelectionRange(title.value.length, title.value.length); return; }
       if (act === 'archive-item') {
         const row = b.closest('li[data-id], li[data-for]');
         const id = row.dataset.id || row.dataset.for;
