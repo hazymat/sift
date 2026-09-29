@@ -409,8 +409,9 @@ export default {
 
     // ---------- rendering ----------
 
-    // What the day is called in buttons and labels: today, or its own name ("Wed 30 Sep").
-    const dayCalled = ({ start = false } = {}) => date !== isoDate() ? dateText(parseDate(date), { weekday: 'short', day: 'numeric', month: 'short' }) : start ? 'Today' : 'today';
+    // What a day is called in buttons and labels: today, or its own name ("Wed 30 Sep").
+    const shortDay = iso => iso === isoDate() ? 'today' : dateText(parseDate(iso), { weekday: 'short', day: 'numeric', month: 'short' });
+    const dayCalled = () => shortDay(date);
 
     function header() {
       const d = parseDate(date);
@@ -753,47 +754,42 @@ export default {
       if (!dlg.open) dlg.showModal();
     }
 
+    // Each task on one clean line: its title, a few words about it (muted), and
+    // Claim / ✓ Did it / Archive. What's in the day's plan already isn't offered
+    // again: it's counted in a tinted strip at the top (open it to see which).
+    let alreadyOpen = false;
     function drawBring() {
       const open = tasks.filter(t => !t.done_at && !t.archived_at && t.status !== 'done');
       const onDay = new Set(items.map(i => i.task_id).filter(Boolean));
-      const { planned, aimed, ongoing } = forDay(open, date);
-      const top = [...new Set([...planned, ...aimed, ...ongoing])];
-      const ideas = suggestions(open, day.energy).filter(t => !top.includes(t));
-      const seen = new Set([...top, ...ideas]);
-      const by = h => open.filter(t => horizonOf(t) === h && !seen.has(t) && !t.parent_task_id);
+      const already = open.filter(t => onDay.has(t.id));
+      const offer = open.filter(t => !onDay.has(t.id));
+      const { planned, aimed, ongoing } = forDay(offer, date);
+      const top = Array.from(new Set(planned.concat(aimed, ongoing)));
+      const ideas = suggestions(offer, day.energy).filter(t => !top.includes(t));
+      const seen = new Set(top.concat(ideas));
+      const by = horizon => offer.filter(t => horizonOf(t) === horizon && !seen.has(t) && !t.parent_task_id);
       const energy = ENERGY.find(e => e.id === day.energy);
       const card = (t, note = '') => {
-        const e = ENERGY.find(x => x.id === t.energy);
+        const bolts = ENERGY.find(x => x.id === t.energy)?.bolts;
         const aim = aimDate(t);
-        const first = (t.notes || '').split('\n').map(l => l.trim()).find(Boolean);
-        const h = horizonOf(t);
+        const about = [note, bolts, aim ? `⚑ ${shortDay(aim)}` : '', t.start_date && t.start_date !== date ? `📅 ${shortDay(t.start_date)}` : ''].filter(Boolean);
         return `<li data-bring="${t.id}">
-          <div class="bring-main">
-            <span class="review-title hand">${esc(t.title)}</span>
-            <span class="bring-info">
-              ${note ? `<span class="span-tag">${esc(note)}</span>` : ''}
-              ${e ? `<span class="span-tag bolts" title="Energy: ${e.label}">${e.bolts}</span>` : ''}
-              ${aim ? `<span class="span-tag" title="Target end date">⚑ ${esc(aim)}</span>` : ''}
-              ${t.start_date && t.start_date !== date ? `<span class="span-tag" title="Planned for">📅 ${esc(t.start_date)}</span>` : ''}
-            </span>
-            ${first ? `<span class="bring-note muted">${previewLine(t.notes).html}</span>` : ''}
-          </div>
+          <div class="bring-main"><span class="review-title hand">${esc(t.title)}</span>${about.length ? `<span class="review-about">${esc(about.join(' · '))}</span>` : ''}</div>
           <span class="review-actions">
-            ${onDay.has(t.id) ? `<span class="span-tag bring-on" title="In this day's plan already">📅 ${dayCalled({ start: true })}</span>` : `<button type="button" class="primary" data-bring-act="claim">Claim for ${dayCalled()}</button>`}
+            <button type="button" class="primary" data-bring-act="claim">Claim for ${dayCalled()}</button>
             <button type="button" data-bring-act="done" title="I did this already">✓ Did it</button>
-            ${h !== 'now' ? '<button type="button" data-bring-act="now">Now</button>' : ''}
-            ${h !== 'next' ? '<button type="button" data-bring-act="next">Next</button>' : ''}
-            ${h !== 'later' ? '<button type="button" data-bring-act="later">Later</button>' : ''}
-            <button type="button" data-bring-act="archive">Archive</button>
+            <button type="button" data-bring-act="archive" title="Not needed any more: to the Archive">Archive</button>
           </span>
         </li>`;
       };
       const section = (title, list, note) => (list.length ? `<h3 class="milestone">${title}</h3><ul class="review-list bring-list">${list.map(t => card(t, typeof note === 'function' ? note(t) : note)).join('')}</ul>` : '');
-      const aimNote = t => (t.start_date === date ? '' : aimDate(t) === date ? 'aim is this day' : 'ongoing');
+      const aimNote = t => (t.start_date === date ? '' : aimDate(t) === date ? `aim is ${dayCalled()}` : 'ongoing');
+      const alreadyWords = date === isoDate() ? "already in today's plan" : `already planned for ${dayCalled()}`;
       $('#bring').innerHTML = `
         <div class="sheet-handle"></div>
         <h2>Bring in from tasks</h2>
-        <p class="muted hint">Claim what you'll do ${date === isoDate() ? 'today' : `on ${dayCalled()}`}. Tick off what's done already, push the rest to Now, Next or Later, or archive what's no longer needed.</p>
+        <p class="muted hint">Claim what you'll do ${date === isoDate() ? 'today' : `on ${dayCalled()}`}. Tick off anything done already, or archive what's no longer needed.</p>
+        ${already.length ? `<details class="bring-already"${alreadyOpen ? ' open' : ''}><summary>📅 ${already.length} ${alreadyWords}</summary><ul>${already.map(t => `<li class="hand">${esc(t.title)}</li>`).join('')}</ul></details>` : ''}
         ${section(`For ${dayCalled()}`, top, aimNote)}
         ${energy ? section(`Ideas for ${energy.bolts} energy`, ideas) : ''}
         ${section(esc(word('list_inbox')), by('inbox'))}
@@ -801,8 +797,10 @@ export default {
         ${section('Next', by('next'))}
         ${section('Later', by('later'))}
         ${open.length ? '' : '<p class="muted">' + esc(word('ph_day_bring_empty')) + '</p>'}
+        ${open.length && !offer.length ? `<p class="muted">Everything open is ${alreadyWords}.</p>` : ''}
         <div class="review-all"><button type="button" data-bring-act="close" class="primary">Done</button></div>`;
     }
+    $('#bring').addEventListener('toggle', ev => { if (ev.target.matches?.('.bring-already')) alreadyOpen = ev.target.open; }, true);
 
     // Claiming makes a plan item linked to the task (with its note and
     // people) and marks the task as planned for this day.
@@ -820,8 +818,6 @@ export default {
         // Onto this day, off any other (a task is on one day only).
         undoPlan = await planDay(task, date);
         await store.update('tasks', task.id, { horizon: 'now' });
-      } else if (act === 'now' || act === 'next' || act === 'later') {
-        await store.update('tasks', task.id, { horizon: act });
       } else if (act === 'archive') {
         await store.update('tasks', task.id, { archived_at: new Date().toISOString() });
       } else if (act === 'done') {
@@ -829,7 +825,7 @@ export default {
       }
       await refresh();
       await renderTasks();
-      const label = { claim: `"${task.title}" is on ${dayCalled()}`, now: `"${task.title}" is for now`, next: `"${task.title}" is for next`, later: `"${task.title}" is for later`, archive: `Archived "${task.title}"`, done: `Done: ${task.title}` }[act];
+      const label = { claim: `"${task.title}" is on ${dayCalled()}`, archive: `Archived "${task.title}"`, done: `Done: ${task.title}` }[act];
       undoable(label, async () => {
         if (undoPlan) await undoPlan();
         await store.update('tasks', task.id, before);
@@ -1817,12 +1813,12 @@ export default {
           <h3 class="milestone">${esc(dayName(d))}</h3>
           <ul class="review-list">${list.map(i => `
             <li data-review-id="${i.id}">
-              <span class="review-title hand">${esc(i.title)}${i.time ? ` <span class="span-tag">${fmt(i.time)}</span>` : ''}</span>
+              <div class="bring-main"><span class="review-title hand">${esc(i.title)}</span>${i.time ? `<span class="review-about">${fmt(i.time)}</span>` : ''}</div>
               <span class="review-actions">
+                <button type="button" class="primary" data-review="bring" title="Put it in this day's To place">→ Bring to ${dayCalled()}</button>
                 <button type="button" data-review="done" title="I did this already">✓ Did it</button>
-                <button type="button" data-review="bring" title="Put it in this day's To place">→ Bring to ${dayCalled()}</button>
                 <button type="button" data-review="letgo" title="Didn't do it and it doesn't need doing any more. It goes to the Archive">Let it go</button>
-                <button type="button" data-review="delete" class="danger" title="Get rid of it completely (to the Bin)">Delete</button>
+                <button type="button" data-review="delete" class="review-delete" title="Get rid of it completely (to the Bin)" aria-label="Delete">🗑</button>
               </span>
             </li>`).join('')}
           </ul>`).join('')}
