@@ -166,7 +166,7 @@ export default {
             <button type="button" class="drag-handle" aria-label="Select or move">${icon('i-grip')}</button>
             ${isTemplate ? '<input type="checkbox" class="tick" disabled tabindex="-1" aria-hidden="true" style="visibility:hidden">' : `<input type="checkbox" class="tick" ${i.checked_at ? 'checked' : ''} aria-label="Ticked">`}
             <input class="task-title" name="text" value="${esc(i.text)}" aria-label="Item" autocomplete="off">
-            <button type="button" class="more entry-chip" data-act="quick-more" title="Edit it">More</button>
+            <button type="button" class="more entry-chip" data-act="quick-more" title="Its note and files">More</button>
             <button type="button" class="details-btn" data-act="item-details" hidden aria-label="Details" aria-expanded="${openItem === i.id}"></button>
             ${openItem === i.id ? `<button type="button" class="entry-chip close-top" data-act="close-item" title="Close the panel">✓ Close${keys('Esc')}</button>` : ''}
             ${subLine(i, isTemplate)}
@@ -604,7 +604,7 @@ export default {
       if (act === 'item-details') return toggleItem(b.closest('li[data-id], li[data-for]').dataset.id || b.closest('li[data-for]').dataset.for);
       if (act === 'close-item') return toggleItem(openItem);
       // An item's More on hover (not being edited): into its name, as in Tasks.
-      if (act === 'quick-more') { const title = b.closest('li[data-id]')?.querySelector(':scope > .task-title'); title?.focus(); title?.setSelectionRange(title.value.length, title.value.length); return; }
+      if (act === 'quick-more') return toggleItem(b.closest('li[data-id]').dataset.id); // straight to the panel; clicking the line is for editing
       if (act === 'archive-item') {
         const row = b.closest('li[data-id], li[data-for]');
         const id = row.dataset.id || row.dataset.for;
