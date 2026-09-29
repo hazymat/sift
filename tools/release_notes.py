@@ -912,3 +912,4 @@ NOTES['1.51.32'] = [B("Day Planner, Unfinished from earlier days: no old time un
 NOTES['1.51.33'] = [B("iPhone and iPad: a side swipe starting at the screen's edge no longer goes back or forward a page in Sift on the Home Screen (it was only stopped in Safari).")]
 NOTES['1.51.34'] = [B("Day Planner, Bring in from tasks and Unfinished from earlier days: each one is in its own box again; 🗑 Delete sits in the box's top corner, away from the other buttons; and the buttons for everything at once are a box of their own (All 2 at once), so nothing wraps.")]
 NOTES['1.51.35'] = [B("Day Planner: Bring in from tasks and Unfinished from earlier days open without a blue focus ring on their first button (the green strip, or a 🗑).")]
+NOTES['1.51.36'] = [B("A long link or unbroken word wraps inside its box instead of running off the side: a task's pills and note while you edit it, Where things are's items and notes, and Batch Book's ingredient picks (with …).")]
