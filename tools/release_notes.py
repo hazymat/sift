@@ -992,3 +992,4 @@ NOTES['1.58.09'] = [F('Day Planner schedule: a task edits as in Tasks. More show
 NOTES['1.58.10'] = [F("Contacts' Recent, Directory and Cases are underlined tabs on their own row, like Tasks' and Brain Dump's filters, instead of pills. Scans' kinds, Contracts' views and Tidied's areas are the same underlined tabs.")]
 NOTES['1.58.11'] = [B('Day Planner: on a task with a note, More covered its time or 📝 pill, whatever the Spacing.')]
 NOTES['1.58.12'] = [B('The "A new version of Sift is ready" banner sat underneath a selection bar, and toasts such as Undo could sit on top of the banner. They now stack: selection bar, then the banner above it, then toasts above both, in every area.')]
+NOTES['1.58.13'] = [B('Brain Dump: a note starting with a link (to a task, note or contact) showed part of the link as raw text under its title, like "e](sift:tasks/…)". A case\'s notes and comments in Contacts showed links the same way.')]

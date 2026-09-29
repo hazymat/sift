@@ -13,7 +13,7 @@ import {
 } from '../contacts.js';
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
-import { richText, previewLine, plainLines } from '../richtext.js';
+import { richText, previewLine, plainLines, inlineAll } from '../richtext.js';
 import { debounced } from '../autosave.js';
 import { mentionsOf } from '../refs.js';
 import { keepDraft, draftCleared } from '../drafts.js';
@@ -295,9 +295,9 @@ export default {
       const comments = await store.list('comments', { filter: c => taskIds.has(c.task_id) });
       const events = [
         ...log.map(i => ({ at: i.at, type: 'log', html: `${HOW.find(h => h.id === i.how)?.icon || ''} <b>${i.direction === 'in' ? 'In' : 'Out'}</b>${i.contact_id ? ` · ${esc(byId(i.contact_id)?.name || '')}` : ''}${i.detail_used ? ` · ${esc(i.detail_used)}` : ''}${i.summary ? `: ${esc(i.summary)}` : ''}` })),
-        ...notes.map(n => ({ at: n.at, type: 'note', html: `✎ ${esc(n.body)}` })),
+        ...notes.map(n => ({ at: n.at, type: 'note', html: `✎ ${inlineAll(n.body)}` })),
         ...tasks.map(t => ({ at: t.created_at, type: 'task', html: `☐ Task: <a href="#/tasks/list">${esc(t.title)}</a>${t.done_at ? ' (done)' : ''}` })),
-        ...comments.map(c => ({ at: c.at, type: 'comment', html: `💬 <a href="#/tasks/list">${esc(taskIds.get(c.task_id).title)}</a>: ${esc(c.body || "📎")}` })),
+        ...comments.map(c => ({ at: c.at, type: 'comment', html: `💬 <a href="#/tasks/list">${esc(taskIds.get(c.task_id).title)}</a>: ${c.body ? inlineAll(c.body) : '📎'}` })),
         ...scans.map(sc => ({ at: sc.letter_date || sc.created_at, type: 'letter', html: `📄 <a href="#/scans/${sc.id}">${esc(sc.title)}</a>${sc.summary ? `: ${esc(sc.summary)}` : ''}` })),
       ].sort((a, b) => b.at.localeCompare(a.at));
       return `

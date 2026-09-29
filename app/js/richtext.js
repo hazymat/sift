@@ -79,6 +79,22 @@ export function inlineAll(md) {
   return (md || '').split('\n').map(l => l.replace(/^(?:#{1,6}|-#|\+#|#\+)\s+/, '').replace(/^\s*[-*]\s+/, '• ').trim()).filter(Boolean).map(inline).join(' <span class="sep">·</span> ');
 }
 
+// Splits a line where its first `len` readable characters end. A link is never
+// split in its markup: a title ending inside a link's name gets that name
+// shortened (head), and the rest of the line starts with the whole link (tail).
+function titleCut(line, len, plain) {
+  const links = [...line.matchAll(LINK_RE)].map(found => ({ from: found.index, to: found.index + found[0].length, label: found[1], ref: `${found[2]}/${found[3]}` }));
+  const inLink = k => links.find(link => k > link.from && k < link.to);
+  const readable = k => { const link = inLink(k); return link ? plain(line.slice(0, link.from)).length + Math.min(Math.max(0, k - link.from - 1), link.label.length) : plain(line.slice(0, k)).length; };
+  let k = Math.min(len, line.length);
+  while (k < line.length && readable(k) < len) k++;
+  const link = inLink(k);
+  if (!link) return { head: line.slice(0, k), tail: line.slice(k) };
+  const room = len - plain(line.slice(0, link.from)).length;
+  if (room >= link.label.length) return { head: line.slice(0, link.to), tail: line.slice(link.to) };
+  return { head: `${line.slice(0, link.from)}[${link.label.slice(0, Math.max(1, room)).trimEnd()}](sift:${link.ref})`, tail: line.slice(link.from) };
+}
+
 // The title as it appears at the start of the note's first line, with that
 // line's formatting; `title` may be shortened ("…"), in which case the
 // formatting is cut at the same place (anything left open is closed).
@@ -90,9 +106,7 @@ export function titleHtml(md, title) {
   if (!want || plain(line).trim().toLowerCase() === want.toLowerCase()) return inline(line);
   if (!plain(line).toLowerCase().startsWith(want.toLowerCase())) return esc(title || '');
   // The shortest start of the line that reads as the title; then close what's open.
-  let k = want.length;
-  while (k < line.length && plain(line.slice(0, k)).length < want.length) k++;
-  let cut = line.slice(0, k);
+  let cut = titleCut(line, want.length, plain).head;
   for (const mark of ['~~', '**']) if ((cut.split(mark).length - 1) % 2) cut += mark;
   // A shortened title starts with a capital (summary.js): so does this. Only the first letter, never a later one ("Ruby" stays "Ruby").
   if (/^[A-Z]/.test(want)) cut = cut.replace(/[A-Za-z]/, c => c.toUpperCase());
@@ -107,11 +121,9 @@ export function afterTitle(md, title) {
   const plain = s => s.replace(LINK_RE, '$1').replace(/\*\*|~~/g, '').replace(/(^|\s)_(\S.*?)_(?=$|[\s).,!?:;])/g, '$1$2');
   const want = (title || '').replace(/…$/, '').trim();
   if (!want || !plain(line).toLowerCase().startsWith(want.toLowerCase())) return null; // not how the line starts
-  let k = want.length;
-  while (k < line.length && plain(line.slice(0, k)).length < want.length) k++;
-  const head = line.slice(0, k);
+  const { head, tail } = titleCut(line, want.length, plain);
   const open = ['~~', '**'].filter(mark => (head.split(mark).length - 1) % 2).join('');
-  const rest = line.slice(k).replace(/^[\s.,:;!?\u2013\u2014-]+/, '');
+  const rest = tail.replace(/^[\s.,:;!?\u2013\u2014-]+/, '');
   return rest.replace(/^(\*\*|~~)+$/, '') ? open + rest : '';
 }
 
