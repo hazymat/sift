@@ -94,6 +94,13 @@ db.exec(`
     PRIMARY KEY (share_id, record_id)
   );
   CREATE INDEX IF NOT EXISTS share_records_by_seq ON share_records (share_id, seq);
+  CREATE TABLE IF NOT EXISTS share_blobs (
+    share_id TEXT NOT NULL REFERENCES shares(id) ON DELETE CASCADE,
+    blob_id TEXT NOT NULL,            -- opaque (keyed hash made by the app with the share's key)
+    size_bytes INTEGER NOT NULL,
+    data BLOB NOT NULL,               -- encrypted by the app with the share's key
+    PRIMARY KEY (share_id, blob_id)
+  );
 `);
 // Sharing: each account's public key, and its private key encrypted by the app.
 for (const col of ['recovery_hash', 'recovery_salt', 'public_key', 'wrapped_private_key']) {
@@ -205,7 +212,8 @@ function replacePassword(userId, body) {
 // Shared records count towards the account that shared them.
 const usage = userId => db.prepare('SELECT COALESCE(SUM(size_bytes), 0) AS bytes FROM records WHERE user_id = ?').get(userId).bytes
   + db.prepare('SELECT COALESCE(SUM(size_bytes), 0) AS bytes FROM blobs WHERE user_id = ?').get(userId).bytes
-  + db.prepare('SELECT COALESCE(SUM(r.size_bytes), 0) AS bytes FROM share_records r JOIN shares s ON s.id = r.share_id WHERE s.owner_id = ?').get(userId).bytes;
+  + db.prepare('SELECT COALESCE(SUM(r.size_bytes), 0) AS bytes FROM share_records r JOIN shares s ON s.id = r.share_id WHERE s.owner_id = ?').get(userId).bytes
+  + db.prepare('SELECT COALESCE(SUM(b.size_bytes), 0) AS bytes FROM share_blobs b JOIN shares s ON s.id = b.share_id WHERE s.owner_id = ?').get(userId).bytes;
 
 // A place records are kept: one account's own (records) or a share (share_records).
 const PERSONAL = { table: 'records', key: 'user_id', counter: 'UPDATE users SET last_seq = last_seq + 1 WHERE id = ? RETURNING last_seq' };
@@ -495,33 +503,37 @@ function match(method, pathname) {
 }
 
 // Attachment files: encrypted bytes under an opaque id. PUT stores (or replaces),
-// GET returns them, GET /api/blobs lists what is held, DELETE removes one.
+// GET returns them, GET lists what is held, DELETE removes one. Your own are at
+// /api/blobs; a share's (photos on shared things, for everyone in it, counted
+// against the owner's quota) at /api/shares/<id>/blobs.
 async function blobs(req, res, url, origin) {
   const dev = authed(req);
-  const m = /^\/api\/blobs(?:\/([0-9a-f]{40}))?$/.exec(url.pathname);
+  const m = /^\/api\/(?:shares\/([0-9a-f-]{36})\/)?blobs(?:\/([0-9a-f]{40}))?$/.exec(url.pathname);
   if (!m) throw new HttpError(400, 'Bad file id');
-  const id = m[1];
+  const share = m[1] ? shareFor(dev.user_id, m[1]) : null;
+  const [table, key, owner, quotaUser] = share ? ['share_blobs', 'share_id', share.id, share.owner_id] : ['blobs', 'user_id', dev.user_id, dev.user_id];
+  const id = m[2];
   const cors = origin && ORIGINS.includes(origin) ? { 'Access-Control-Allow-Origin': origin, Vary: 'Origin' } : {};
   if (!id) {
     if (req.method !== 'GET') throw new HttpError(405, 'Not allowed');
-    return send(res, 200, { blobs: db.prepare('SELECT blob_id AS id, size_bytes AS size FROM blobs WHERE user_id = ?').all(dev.user_id) }, origin);
+    return send(res, 200, { blobs: db.prepare(`SELECT blob_id AS id, size_bytes AS size FROM ${table} WHERE ${key} = ?`).all(owner) }, origin);
   }
   if (req.method === 'PUT') {
     const data = await readRaw(req, MAX_BLOB);
     if (!data.length) throw new HttpError(400, 'Empty file');
-    const had = db.prepare('SELECT size_bytes FROM blobs WHERE user_id = ? AND blob_id = ?').get(dev.user_id, id)?.size_bytes || 0;
-    if (usage(dev.user_id) - had + data.length > QUOTA) throw new HttpError(507, 'Storage quota reached');
-    db.prepare('INSERT OR REPLACE INTO blobs (user_id, blob_id, size_bytes, data) VALUES (?, ?, ?, ?)').run(dev.user_id, id, data.length, data);
+    const had = db.prepare(`SELECT size_bytes FROM ${table} WHERE ${key} = ? AND blob_id = ?`).get(owner, id)?.size_bytes || 0;
+    if (usage(quotaUser) - had + data.length > QUOTA) throw new HttpError(507, 'Storage quota reached');
+    db.prepare(`INSERT OR REPLACE INTO ${table} (${key}, blob_id, size_bytes, data) VALUES (?, ?, ?, ?)`).run(owner, id, data.length, data);
     return send(res, 200, { ok: true, size: data.length }, origin);
   }
   if (req.method === 'GET') {
-    const row = db.prepare('SELECT data FROM blobs WHERE user_id = ? AND blob_id = ?').get(dev.user_id, id);
+    const row = db.prepare(`SELECT data FROM ${table} WHERE ${key} = ? AND blob_id = ?`).get(owner, id);
     if (!row) throw new HttpError(404, 'No such file');
     res.writeHead(200, { 'Content-Type': 'application/octet-stream', 'Content-Length': row.data.length, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', ...cors });
     return res.end(Buffer.from(row.data));
   }
   if (req.method === 'DELETE') {
-    db.prepare('DELETE FROM blobs WHERE user_id = ? AND blob_id = ?').run(dev.user_id, id);
+    db.prepare(`DELETE FROM ${table} WHERE ${key} = ? AND blob_id = ?`).run(owner, id);
     return send(res, 200, { ok: true }, origin);
   }
   throw new HttpError(405, 'Not allowed');
@@ -551,7 +563,7 @@ async function handle(req, res) {
     return res.end();
   }
   const url = new URL(req.url, 'http://x');
-  if (url.pathname.startsWith('/api/blobs')) return blobs(req, res, url, origin);
+  if (/^\/api\/(shares\/[^/]+\/)?blobs(\/|$)/.test(url.pathname)) return blobs(req, res, url, origin);
   const route = match(req.method, url.pathname);
   if (!route) return send(res, 404, { error: 'Not found' }, origin);
   const body = req.method === 'POST' ? await readJson(req, PUBLIC.has(url.pathname) ? MAX_PUBLIC_BODY : MAX_BODY) : {};
