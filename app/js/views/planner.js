@@ -88,6 +88,15 @@ export default {
           <summary class="icon-btn" aria-label="View settings for this day" title="View settings for this day"><svg class="icon" aria-hidden="true"><use href="#i-view"/></svg></summary>
           <div class="menu view-settings"></div>
         </details>
+        <details class="tool-menu page-more">
+          <summary class="icon-btn" aria-label="More actions"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></summary>
+          <div class="menu">
+            <button type="button" data-act="paper-week">Reset this week to this page's paper</button>
+            <button type="button" data-act="paper-all">Reset all pages to today's paper</button>
+            <hr>
+            <button type="button" class="danger" data-act="clear-day">Clear this day…</button>
+          </div>
+        </details>
       </div>
       <div class="day-shared"></div>
       <header class="day-head">
@@ -129,12 +138,6 @@ export default {
         </section>
       </div>
       <footer class="day-housekeeping">
-        <span class="hk-title">Housekeeping:</span>
-        <button type="button" class="hk-link" data-act="paper-week">reset this week to this page's paper</button>
-        <span class="hk-sep" aria-hidden="true">·</span>
-        <button type="button" class="hk-link" data-act="paper-all">reset all pages to today's paper</button>
-        <span class="hk-sep" aria-hidden="true">·</span>
-        <button type="button" class="hk-link danger" data-act="clear-day">clear this day…</button>
         <p class="muted hint">${esc(word('ph_day_view'))}</p>
       </footer>
       </div>
@@ -1287,8 +1290,8 @@ export default {
       else if (act === 'today') go(isoDate());
       else if (act === 'calendar') openCalendar(date);
       else if (act === 'bring-in') openBring();
-      else if (act === 'paper-week' || act === 'paper-all') resetPapers(act === 'paper-week');
-      else if (act === 'clear-day') clearDay();
+      else if (act === 'paper-week' || act === 'paper-all') { t.closest('details')?.removeAttribute('open'); resetPapers(act === 'paper-week'); }
+      else if (act === 'clear-day') { t.closest('details')?.removeAttribute('open'); clearDay(); }
       else if (act === 'add-at') openLine(t);
       else if (act === 'toggle-note') {
         // Clicking an item's note edits it right there, under the title (the
