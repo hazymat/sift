@@ -227,7 +227,7 @@ export default {
           <h3>Contents <span class="muted">${b.items.length}</span></h3>
           <div class="box-add list-entry-box" id="box-entry">
             <label for="new-items" class="drag-handle thing-grip add-cube" aria-hidden="true">${icon('i-places')}</label>
-            <textarea id="new-items" class="list-entry" rows="1" placeholder="${esc(word('ph_add_items'))}" enterkeyhint="done" aria-label="New item"></textarea>
+            <textarea id="new-items" class="list-entry" rows="1" placeholder="${esc(word('ph_box_add'))}" enterkeyhint="done" aria-label="New item"></textarea>
           </div>
           <ul class="item-list">${b.items.map(i => `
             <li data-id="${i.id}" data-item="${i.id}" data-depth="${i.depth}" style="--tint: ${tintHex(i)}">
