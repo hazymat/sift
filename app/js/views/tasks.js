@@ -91,6 +91,7 @@ export default {
     el.innerHTML = `
       <div class="tasks-head">
         <div class="segmented task-mode" role="group" aria-label="Show"><button type="button" data-mode="tasks">Tasks</button><button type="button" data-mode="projects">Projects</button></div>
+        <button type="button" class="primary new-project-btn" data-act="new-project" hidden>+ New project</button>
         <div class="segmented" id="task-views" role="tablist" aria-label="Views">
           ${VIEWS.map(v => `<button type="button" data-view="${v.id}">${v.label}</button>`).join('')}<button type="button" data-view="list">All</button>
         </div>
@@ -423,7 +424,7 @@ export default {
       };
       // Finished ones go under Finished, at the end.
       const finished = data.projects.filter(p => p.status === 'done');
-      return `<div class="project-grid">${data.projects.filter(p => p.status !== 'done').map(p => card(p)).join('')}<button type="button" class="project-card add-card" data-act="new-project">+ New project</button></div>
+      return `<div class="project-grid">${data.projects.filter(p => p.status !== 'done').map(p => card(p)).join('')}</div>
         <p class="muted hint">${esc(word('ph_tasks_projects'))}</p>
         ${shared.length || invitesHtml(['project']) ? `<h3 class="milestone">Shared with me</h3>${invitesHtml(['project'])}
         <div class="project-grid">${shared.map(x => card(x.p, x)).join('')}</div>` : ''}
@@ -621,6 +622,7 @@ export default {
       for (const b of el.querySelectorAll('[data-mode]')) b.setAttribute('aria-pressed', b.dataset.mode === (inProjects ? 'projects' : 'tasks'));
       const tabs = el.querySelector('#task-views');
       tabs.hidden = inProjects;
+      el.querySelector('.new-project-btn').hidden = state.view !== 'projects' || !!state.project;
       // The fade at the right edge says there are more tabs that way; none once it's scrolled to the end.
       const fade = () => tabs.classList.toggle('overflows', tabs.scrollLeft + tabs.clientWidth < tabs.scrollWidth - 1);
       tabs.onscroll = fade;
