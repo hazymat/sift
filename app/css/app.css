@@ -266,9 +266,9 @@ main {
 .banner {
   position: fixed;
   left: 50%;
-  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 16px);
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 16px + var(--sel-lift));
   transform: translateX(-50%);
-  z-index: 20;
+  z-index: 45;
   padding: 10px 12px 10px 18px;
   border-radius: 24px;
   background: var(--glass-strong);
@@ -378,7 +378,7 @@ main {
 @media (min-width: 768px) {
   .tabbar { display: none; }
   main { padding-bottom: 32px; }
-  .banner { bottom: 24px; }
+  .banner { bottom: calc(24px + var(--sel-lift)); }
 }
 
 /* ---------- settings: theme picker + drag list ---------- */
@@ -679,17 +679,19 @@ body.is-dragging .select-bar { opacity: 0; pointer-events: none; }
 .select-bar .kit-group-items:not([hidden]) { animation: kit-open .2s cubic-bezier(.2, .8, .2, 1); }
 .select-bar [data-kit-group][aria-expanded="true"] { background: var(--active-bg); border-color: var(--active-border); }
 @keyframes kit-open { from { clip-path: inset(0 100% 0 0); opacity: .4; } to { clip-path: inset(0); opacity: 1; } }
-body.has-select-bar .toast { bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 72px); }
+/* Things floating above the bottom stack up: selection bar, then the update banner, then toasts. */
+body { --sel-lift: 0px; --upd-lift: 0px; }
+body.has-select-bar { --sel-lift: 58px; }
+body:has(#update-banner:not([hidden])) { --upd-lift: 70px; }
 body.has-select-bar main { padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 80px); }
 @media (min-width: 768px) {
   .select-bar { bottom: 24px; }
   body.is-dragging .select-bar { opacity: 0; pointer-events: none; }
-body.has-select-bar .toast { bottom: 82px; }
 }
 .toast {
   position: fixed;
   left: 50%;
-  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 18px);
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 18px + var(--sel-lift) + var(--upd-lift));
   z-index: 50;
   padding: 8px 16px;
   border-radius: 999px;
@@ -717,7 +719,7 @@ body.has-select-bar .toast { bottom: 82px; }
 @keyframes toast-left { to { stroke-dashoffset: -100; } }
 .toast span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .toast button { padding: 3px 12px; font-weight: 600; color: var(--accent); background: none; box-shadow: none; border-color: var(--glass-border); }
-@media (min-width: 768px) { .toast { bottom: 28px; } }
+@media (min-width: 768px) { .toast { bottom: calc(28px + var(--sel-lift) + var(--upd-lift)); } }
 kbd { font: inherit; font-size: .72em; line-height: 1.2; vertical-align: middle; padding: 1px 5px; margin-left: 4px; border-radius: 6px; border: 1px solid var(--glass-border); opacity: .7; }
 @media (hover: none) { kbd { display: none; } }
 /* A back button's Esc shows only while nothing is being typed: the first Esc leaves the field. */
