@@ -34,13 +34,16 @@ document.addEventListener('touchend', e => { if (quietTouchEnd) { quietTouchEnd 
 // document: if the view redrew it away as the row lifted, it's kept, unseen, till let go.
 const keeper = () => document.getElementById('hold-keep') || document.body.appendChild(Object.assign(document.createElement('div'), { id: 'hold-keep', hidden: true }));
 
-// Carried rows are glass: where the browser can (Chrome), what's under them is bent a little, as
-// through real glass (app.css .glass-lens); elsewhere it's frosted only.
+// Carried rows are glass: where the browser can (Chrome), the colours of what's under them split a
+// little at its edges, as light does through glass (app.css .glass-lens); lines stay straight. Elsewhere it's frosted only.
 const lens = () => {
   if (document.getElementById('glass-lens') || !/Chrome\//.test(navigator.userAgent)) return;
+  const only = rgb => rgb.map((on, n) => `${n === 0 ? on : 0} ${n === 1 ? on : 0} ${n === 2 ? on : 0} 0 0`).join(' ') + ' 0 0 0 1 0';
   document.body.insertAdjacentHTML('beforeend', `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="glass-lens" color-interpolation-filters="sRGB">
-    <feTurbulence type="fractalNoise" baseFrequency=".004 .015" numOctaves="1" seed="4" result="warp"/>
-    <feDisplacementMap in="SourceGraphic" in2="warp" scale="10" xChannelSelector="R" yChannelSelector="G"/></filter></svg>`);
+    <feColorMatrix in="SourceGraphic" type="matrix" values="${only([1, 0, 0])}"/><feOffset dx="-1.2" result="red"/>
+    <feColorMatrix in="SourceGraphic" type="matrix" values="${only([0, 1, 0])}" result="green"/>
+    <feColorMatrix in="SourceGraphic" type="matrix" values="${only([0, 0, 1])}"/><feOffset dx="1.2" result="blue"/>
+    <feBlend in="red" in2="green" mode="screen" result="rg"/><feBlend in="rg" in2="blue" mode="screen"/></filter></svg>`);
   document.documentElement.classList.add('glass-lens');
 };
 
