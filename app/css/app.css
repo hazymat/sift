@@ -1387,13 +1387,18 @@ li[data-id]:hover .kit-grip { opacity: .8; }
 .carry button { margin-left: 4px; }
 .review-sheet { max-width: 640px; }
 @media (min-width: 768px) { .review-sheet { margin: auto; border-radius: var(--radius-card); border-bottom: 1px solid var(--glass-border); } }
-.review-list { list-style: none; margin: 0 0 8px; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; } /* never wider than the sheet, however long a line in it */
-.review-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 12px; border-radius: 14px; background: var(--glass-track); border: 1px solid var(--glass-border); transition: opacity .18s, transform .18s; }
+/* Bring in from tasks and Unfinished from earlier days: plain rows with a line between, never wider than the sheet. */
+.review-list { list-style: none; margin: 0 0 8px; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); }
+.review-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 10px 2px; border-bottom: 1px solid var(--glass-border); transition: opacity .18s, transform .18s; }
+.review-list li:last-child { border-bottom: 0; }
 .review-list li.leaving { opacity: 0; transform: translateX(24px); }
 .review-title { flex: 1 1 200px; font-size: 1.05rem; }
 .review-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .review-actions button { padding: 4px 10px; font-size: .82rem; }
-.review-actions .bring-on { display: inline-flex; align-items: center; padding: 0 10px; font-size: .78rem; } /* the text in the middle of the pill, level with the buttons */
+.review-about { font-size: .8rem; color: var(--muted); }
+.review-sheet .sheet-actions button, .review-sheet .review-all button { padding: 6px 16px; font-size: .92rem; }
+.review-actions .review-delete { padding: 4px 8px; background: none; border-color: transparent; box-shadow: none; opacity: .7; }
+.review-actions .review-delete:hover { opacity: 1; }
 
 .bin-filters { margin: 0 0 8px; }
 .bin-filters button[aria-pressed="true"] { background: var(--active-bg); border-color: var(--active-border); }
@@ -1630,11 +1635,12 @@ main:has(> .planner), main:has(.planner) { max-width: 1600px; }
 .pile-list .line:last-child { border-bottom: 0; }
 .pile-list .line .margin { display: none; }
 .bring-sheet { max-width: 720px; }
-.bring-list li { align-items: flex-start; }
-.bring-main { display: flex; flex-direction: column; gap: 2px; flex: 1 1 220px; min-width: 0; }
+.bring-main { display: flex; flex-direction: column; gap: 1px; flex: 1 1 220px; min-width: 0; }
 .bring-main .review-title { flex: none; }
-.bring-info { display: flex; flex-wrap: wrap; gap: 4px; }
-.bring-note { font-size: .82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* What's in the day's plan already: a tinted strip (green, as ↓ Bring in from tasks), not offered again. */
+.bring-already { margin: 4px 0 12px; padding: 8px 12px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--energy-ink, #4caf7a) 35%, transparent); background: color-mix(in srgb, var(--energy-ink, #4caf7a) 10%, transparent); }
+.bring-already summary { cursor: pointer; font-size: .9rem; }
+.bring-already ul { margin: 6px 0 2px; padding-left: 1.4em; display: grid; gap: 2px; }
 
 /* Share menu in the day nav. */
 .day-nav .share-menu { margin-left: auto; }

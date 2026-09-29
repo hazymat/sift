@@ -42,7 +42,7 @@ Give a task a day and it's on that day's plan; change the day and it moves. Make
 
 ### A daily look through everything you've got on
 
-Planning a day starts with **Bring in from tasks**: your whole task list, with what's meant for today and ideas that suit your energy at the top. Claim what you'll do today, tick off what's already done, push the rest to Now, Next or Later, and archive what's no longer needed. A minute or two each morning, and nothing on your list is forgotten: it's a gentle way to keep in touch with everything you've got on, and to keep getting through it.
+Planning a day starts with **Bring in from tasks**: your whole task list, with what's meant for today and ideas that suit your energy at the top. Claim what you'll do today, tick off what's already done and archive what's no longer needed; what's in the day already is counted at the top, not offered again. A minute or two each morning, and nothing on your list is forgotten: it's a gentle way to keep in touch with everything you've got on, and to keep getting through it.
 
 ### Your calendar, on your day
 
