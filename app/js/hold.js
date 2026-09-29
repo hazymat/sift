@@ -40,9 +40,9 @@ const lens = () => {
   if (document.getElementById('glass-lens') || !/Chrome\//.test(navigator.userAgent)) return;
   const only = rgb => rgb.map((on, n) => `${n === 0 ? on : 0} ${n === 1 ? on : 0} ${n === 2 ? on : 0} 0 0`).join(' ') + ' 0 0 0 1 0';
   document.body.insertAdjacentHTML('beforeend', `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="glass-lens" color-interpolation-filters="sRGB">
-    <feColorMatrix in="SourceGraphic" type="matrix" values="${only([1, 0, 0])}"/><feOffset dx="-1.2" result="red"/>
+    <feColorMatrix in="SourceGraphic" type="matrix" values="${only([1, 0, 0])}"/><feOffset dx="-2" result="red"/>
     <feColorMatrix in="SourceGraphic" type="matrix" values="${only([0, 1, 0])}" result="green"/>
-    <feColorMatrix in="SourceGraphic" type="matrix" values="${only([0, 0, 1])}"/><feOffset dx="1.2" result="blue"/>
+    <feColorMatrix in="SourceGraphic" type="matrix" values="${only([0, 0, 1])}"/><feOffset dx="2" result="blue"/>
     <feBlend in="red" in2="green" mode="screen" result="rg"/><feBlend in="rg" in2="blue" mode="screen"/></filter></svg>`);
   document.documentElement.classList.add('glass-lens');
 };
