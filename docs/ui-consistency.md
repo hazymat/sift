@@ -13,6 +13,7 @@ Audited at 1.54.09 (29 September 2026), updated for 1.54.10, from the code and b
 - **Scans' "Scan" button** has no "New" and no "+": intended (it takes a photo), noted only.
 - **Anything that puts something into a project** (Move, the 📁 Project pill, Brain Dump conversion, any picker) lists projects shared with you too, with 👥.
 - **Editing a row**: clicking anywhere outside it stops editing.
+- **Green means open or close**: a green pill opens something or closes it again (More, More (full), ✓ Close, a note's full-screen ⤢ and its Done). Nothing else is green, and nothing that opens or closes a thing is another colour. The colour is the shared rule in `app.css` (search `.close-top, .md-full`); add new open and close buttons to it.
 - **Sideways rows** (filter bars, tabs, pill rows, anything that scrolls sideways): a mouse wheel over one scrolls it sideways; at its end the page scrolls as usual. Built once for the whole app (`installWheelRows` in `app.js`), so new rows get it for free.
 
 ## 1. Page level: areas that list things
