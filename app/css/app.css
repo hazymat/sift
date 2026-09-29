@@ -3626,8 +3626,9 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
   :is(.pile-paper, #lines) .line.has-item > .content:has(> .edit-pills.pill-top) { --more-room: 96px; }
   :is(.pile-paper, #lines) .line.has-item > .content:has(> .edit-pills.pill-top > .pill-reveal kbd) { --more-room: 148px; }
   :is(.pile-paper, #lines) .line.has-item > .content:has(> .close-top) { --more-room: 116px; }
-  :is(.pile-paper, #lines) .line.has-item > .content > .span-tag:not(:has(~ .span-tag)) { margin-right: var(--more-room); }
-  #main[data-density="tight"] :is(.pile-paper, #lines) .line.has-item > .content:has(> .note-tag) > .span-tag { margin-right: 0; }
+  /* (📝 is a .span-tag too, shown only with Tight spacing: then it is the last one.) */
+  :is(.pile-paper, #lines) .line.has-item > .content > .span-tag:not(.note-tag):not(:has(~ .span-tag:not(.note-tag))) { margin-right: var(--more-room); }
+  #main[data-density="tight"] :is(.pile-paper, #lines) .line.has-item > .content:has(> .note-tag) > .span-tag:not(.note-tag) { margin-right: 0; }
   #main[data-density="tight"] :is(.pile-paper, #lines) .line.has-item > .content > .note-tag { margin-right: var(--more-room); }
 }
 @media (hover: none) { #main .line.has-item > .content:has(> .close-top, > .edit-pills.pill-top) > textarea.item-title { max-width: calc(100% - 104px); } } /* phones: beside the name */
