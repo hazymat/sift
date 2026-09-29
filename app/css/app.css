@@ -2227,6 +2227,7 @@ body.pills-only :is(.task-list, .item-list, .checklist, .planner) .more:not([ari
 .rich.is-full > .rich-edit, .rich.is-full > .rich-raw { flex: 1; min-height: 0 !important; max-height: none !important; overflow-y: auto; border-color: transparent; background: transparent; font-size: 1.1rem; }
 .rich.is-full > .md-bar { order: 9; flex: none; margin: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
 .rich.is-full > .md-bar::-webkit-scrollbar { display: none; }
+}
 .rich.is-full .md-full { background: var(--active-bg); border-color: var(--active-border); }
 @media (min-width: 761px) { .rich.is-full { right: auto; width: min(900px, 100vw); left: max(0px, calc(50vw - 450px)); } }
 /* Nothing on the page behind it scrolls, and nothing on the way up can trap the fixed note. */
@@ -4079,3 +4080,9 @@ textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
 .list-entry-box:not(:focus-within) .list-hint { display: none; }
 .list-entry-box .list-hint { margin: 2px 0 6px 54px; font-size: .75rem; }
 .list-end { margin-top: 18px; }
+
+/* Phones: the toolbar under the note's name and Done, not above the keyboard, where
+   iPhone Safari's own floating bar (↑ ↓ ✓, iOS 26 on) now sits over it and can't be hidden. */
+@media (pointer: coarse) and (max-width: 760px) {
+  .rich.is-full > .md-bar { order: 0; margin: 2px 0 8px; padding-bottom: 0; }
+  .rich.is-full > .md-make-menu { order: 0; }
