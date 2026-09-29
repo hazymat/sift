@@ -1813,22 +1813,23 @@ export default {
           <h3 class="milestone">${esc(dayName(d))}</h3>
           <ul class="review-list">${list.map(i => `
             <li data-review-id="${i.id}">
-              <span class="review-title hand">${esc(i.title)}</span>
+              <div class="review-head"><span class="review-title hand">${esc(i.title)}</span><button type="button" data-review="delete" class="review-delete" title="Get rid of it completely (to the Bin)" aria-label="Delete">🗑</button></div>
               <span class="review-actions">
                 <button type="button" class="primary" data-review="bring" title="Put it in this day's To place">→ Bring to ${dayCalled()}</button>
                 <button type="button" data-review="done" title="I did this already">✓ Did it</button>
                 <button type="button" data-review="letgo" title="Didn't do it and it doesn't need doing any more. It goes to the Archive">Let it go</button>
-                <button type="button" data-review="delete" class="review-delete" title="Get rid of it completely (to the Bin)" aria-label="Delete">🗑</button>
               </span>
             </li>`).join('')}
           </ul>`).join('')}
-        <div class="sheet-actions">
-          <button type="button" data-review-all="bring">Bring the rest to ${dayCalled()}</button>
-          <button type="button" data-review-all="letgo">Let the rest go</button>
-          <button type="button" data-review-all="delete" class="danger">Delete the rest</button>
-          <span class="spacer"></span>
-          <button type="button" data-review-close>Close</button>
-        </div>`;
+        ${left.length > 1 ? `<h3 class="milestone">All ${left.length} at once</h3>
+        <ul class="review-list review-every"><li>
+          <div class="review-head"><span class="review-title">Everything above</span><button type="button" data-review-all="delete" class="review-delete" title="Get rid of them all (to the Bin)" aria-label="Delete them all">🗑</button></div>
+          <span class="review-actions">
+            <button type="button" class="primary" data-review-all="bring">→ Bring all to ${dayCalled()}</button>
+            <button type="button" data-review-all="letgo">Let them all go</button>
+          </span>
+        </li></ul>` : ''}
+        <div class="review-all"><button type="button" data-review-close class="primary">Done</button></div>`;
     }
 
     const reviewFields = (kind, i) => {
