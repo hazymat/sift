@@ -702,6 +702,8 @@ body.has-select-bar .toast { bottom: 82px; }
 @media (min-width: 768px) { .toast { bottom: 28px; } }
 kbd { font: inherit; font-size: .72em; padding: 1px 5px; margin-left: 4px; border-radius: 6px; border: 1px solid var(--glass-border); opacity: .7; }
 @media (hover: none) { kbd { display: none; } }
+/* A back button's Esc shows only while nothing is being typed: the first Esc leaves the field. */
+#main:has(:is(input:not([type="checkbox"], [type="radio"]), textarea, [contenteditable="true"]):focus) .back kbd { display: none; }
 .item-pill.sub { opacity: .55; font-size: .66rem; }
 .item-list li:hover, .item-list li:focus-within { background: var(--glass-track); }
 .item-list input { padding: 5px 10px; background: transparent; border-color: transparent; font-size: .95rem; }

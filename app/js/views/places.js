@@ -199,7 +199,7 @@ export default {
       const sections = tree.flatMap(ed => ed.sections.map(sec => ({ id: sec.id, label: `${ed.name} › ${sec.name}` })));
       page.innerHTML = `
         <div class="box-page-bar">
-          <button type="button" class="back" data-act="back">‹ ${esc(s.name)}</button>
+          <button type="button" class="back" data-act="back">‹ ${esc(s.name)}${keys('Esc')}</button>
           <span class="muted box-path">${esc(e.name)}</span>
         </div>
         <div class="find-bar box-find">
@@ -537,8 +537,13 @@ export default {
       },
     });
 
-    // Escape anywhere in a box: save what's being typed (including lines not
-    // yet added), then zoom back out.
+    async function leaveField(field) {
+      if (field.id === 'new-items' && field.value.trim()) await addItems();
+      else await saveField(field);
+      document.activeElement?.blur?.();
+    }
+
+    // Escape with nothing being typed in a box: save, then zoom back out.
     async function saveAndClose() {
       const active = document.activeElement;
       let changed = false;
@@ -774,6 +779,8 @@ export default {
       if (ev.key === 'Escape' && openItem && !ev.defaultPrevented) { ev.preventDefault(); toggleThing(openItem); return; }
       if (ev.key === 'Escape' && ev.target.id === 'box-q' && ev.target.value) { ev.preventDefault(); ev.target.value = ''; query = ''; q.value = ''; markHits(); return; }
       if (ev.key === 'Escape' && openId && !ev.target.closest('input, textarea, select, [contenteditable]') && kit.escape()) { ev.preventDefault(); return; }
+      // Esc in a field of the box (Add items, a note): keep what's typed and leave the field; the next Esc leaves the box.
+      if (ev.key === 'Escape' && openId && !importSheet.open && page.contains(ev.target) && ev.target.closest('input, textarea, [contenteditable]')) { ev.preventDefault(); leaveField(ev.target); return; }
       if (ev.key === 'Escape' && openId && !importSheet.open) { ev.preventDefault(); saveAndClose(); return; }
       if (ev.key === 'Escape' && document.activeElement === q && q.value) { q.value = ''; query = ''; renderGrid(); }
     };

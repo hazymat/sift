@@ -5,6 +5,7 @@
 // scans too (on a scan's page, more pages of it). IDs (passport, licence) are
 // shown blurred until you tap them, for anyone looking over your shoulder.
 
+import { keys } from '../keys.js';
 import * as store from '../store.js';
 import { cogHtml } from '../viewcog.js';
 import { shareHtml } from '../share.js';
@@ -89,7 +90,7 @@ export default {
       const reminder = s.reminder_task_id;
       return `
         <div class="project-head">
-          <button type="button" class="back" data-act="home">‹ Scans</button>
+          <button type="button" class="back" data-act="home">‹ Scans${keys('Esc')}</button>
           <input class="project-name" name="title" value="${esc(s.title)}" aria-label="Title" placeholder="Title">
         </div>
         <div class="scan-page" data-id="${s.id}">

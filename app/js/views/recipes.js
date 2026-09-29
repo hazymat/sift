@@ -7,6 +7,7 @@
 // Pages are drawn on the same papers as the Day Planner (👁: paper, lined, margin).
 // Data and units: js/batchbook.js. A book is stored as a recipe's `type` (settings.batch_sections).
 
+import { keys } from '../keys.js';
 import * as store from '../store.js';
 import * as att from '../attachments.js';
 import { sectionsOf, sectionOf, stepsOf, fixBareUnits, parseRecipes, IMPORT_EXAMPLE, UNITS, parseLine, parseQty, qtyText, amountText, ingredientText, stepHtml, renameRefs, abvOf, readingTypesOf, isGravity, nextBatchNo, loadBook, batchName, newBatchName, batchDay } from '../batchbook.js';
@@ -329,7 +330,7 @@ export default {
       const who = sharedWithText({ kind: 'recipe', id: r.id });
       return who ? `<button type="button" class="share-btn-people" data-act="share-recipe" data-recipe="${r.id}" title="Shared with ${esc(who)}">👥<span class="share-words"> Shared with ${esc(who)}</span></button>` : '';
     };
-    const top = (act, label, extra = '') => `<div class="bb-top"><button type="button" class="back" data-act="${act}">‹ ${esc(label)}</button><span class="spacer"></span>${extra}${cogHtml('recipes', paperHtml())}</div>`;
+    const top = (act, label, extra = '') => `<div class="bb-top"><button type="button" class="back" data-act="${act}">‹ ${esc(label)}${keys('Esc')}</button><span class="spacer"></span>${extra}${cogHtml('recipes', paperHtml())}</div>`;
 
     // ---------- a recipe ----------
 

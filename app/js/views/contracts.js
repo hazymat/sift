@@ -2,6 +2,7 @@
 // and #/contracts/<id> (one contract). The reference number stays hidden until
 // you ask for it, for anyone looking over your shoulder.
 
+import { keys } from '../keys.js';
 import * as store from '../store.js';
 import { cogHtml } from '../viewcog.js';
 import { shareHtml } from '../share.js';
@@ -111,7 +112,7 @@ export default {
       const renews = c.renewal_date;
       return `
         <div class="project-head">
-          <button type="button" class="back" data-act="home">‹ Contracts</button>
+          <button type="button" class="back" data-act="home">‹ Contracts${keys('Esc')}</button>
           <input class="project-name" name="name" value="${esc(c.name)}" aria-label="Name" placeholder="e.g. Home insurance">
         </div>
         <div class="scan-page contract-page" data-id="${c.id}">
