@@ -777,6 +777,7 @@ export default {
           </div>
           <span class="review-actions">
             ${onDay.has(t.id) ? '<span class="span-tag">on this day</span>' : `<button type="button" class="primary" data-bring-act="claim">Claim for ${date === isoDate() ? 'today' : 'this day'}</button>`}
+            <button type="button" data-bring-act="done" title="I did this already">✓ Did it</button>
             ${h !== 'now' ? '<button type="button" data-bring-act="now">Now</button>' : ''}
             ${h !== 'next' ? '<button type="button" data-bring-act="next">Next</button>' : ''}
             ${h !== 'later' ? '<button type="button" data-bring-act="later">Later</button>' : ''}
@@ -789,7 +790,7 @@ export default {
       $('#bring').innerHTML = `
         <div class="sheet-handle"></div>
         <h2>Bring in from tasks</h2>
-        <p class="muted hint">Claim what you'll do ${date === isoDate() ? 'today' : 'on this day'}. Push the rest to Now, Next or Later, or archive what's no longer needed.</p>
+        <p class="muted hint">Claim what you'll do ${date === isoDate() ? 'today' : 'on this day'}. Tick off what's done already, push the rest to Now, Next or Later, or archive what's no longer needed.</p>
         ${section('For this day', top, aimNote)}
         ${energy ? section(`Ideas for ${energy.bolts} energy`, ideas) : ''}
         ${section(esc(word('list_inbox')), by('inbox'))}
@@ -810,7 +811,7 @@ export default {
       const id = b.closest('[data-bring]')?.dataset.bring;
       const task = tasks.find(t => t.id === id);
       if (!task) return;
-      const before = { horizon: task.horizon ?? null, start_date: task.start_date ?? null, archived_at: task.archived_at ?? null };
+      const before = { horizon: task.horizon ?? null, start_date: task.start_date ?? null, archived_at: task.archived_at ?? null, done_at: task.done_at ?? null, status: task.status ?? 'todo' };
       let undoPlan = null;
       if (act === 'claim') {
         // Onto this day, off any other (a task is on one day only).
@@ -820,16 +821,18 @@ export default {
         await store.update('tasks', task.id, { horizon: act });
       } else if (act === 'archive') {
         await store.update('tasks', task.id, { archived_at: new Date().toISOString() });
+      } else if (act === 'done') {
+        await store.update('tasks', task.id, doneFields(true)); // done already: off the list, into Done
       }
       await refresh();
       await renderTasks();
-      const label = { claim: `"${task.title}" is on ${date === isoDate() ? 'today' : 'this day'}`, now: `"${task.title}" is for now`, next: `"${task.title}" is for next`, later: `"${task.title}" is for later`, archive: `Archived "${task.title}"` }[act];
+      const label = { claim: `"${task.title}" is on ${date === isoDate() ? 'today' : 'this day'}`, now: `"${task.title}" is for now`, next: `"${task.title}" is for next`, later: `"${task.title}" is for later`, archive: `Archived "${task.title}"`, done: `Done: ${task.title}` }[act];
       undoable(label, async () => {
         if (undoPlan) await undoPlan();
         await store.update('tasks', task.id, before);
         await refresh();
         await renderTasks();
-      });
+      }, act === 'done' ? { more: closingComment({ task_id: task.id }) } : undefined);
     });
 
     async function deleteItem(id) {

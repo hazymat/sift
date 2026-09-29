@@ -902,3 +902,4 @@ NOTES['1.51.22'] = [F('Carried items look a little more like glass: more frosted
 NOTES['1.51.23'] = [B('Tasks and Lists: the dashed outline of where a carried item will land stays the item\'s own height once it moves (it had grown taller, over the rows around it, from the item\'s tilt).')]
 NOTES['1.51.24'] = [B("Phones: in the full-screen note editor, the formatting toolbar sits under the note's name and Done, so iPhone Safari's own floating ↑ ↓ ✓ bar (iOS 26) no longer covers it.")]
 NOTES['1.51.25'] = [B("Phones: the full-screen note editor's toolbar is back at the bottom by the keyboard; on iPhones with iOS 26 it sits just above Safari's own floating ↑ ↓ ✓ bar, so that no longer covers it.")]
+NOTES['1.51.26'] = [F("Day Planner, Bring in from tasks: ✓ Did it ticks off a task that's already done (with Undo, and a closing comment if you like), next to Claim for today.")]
