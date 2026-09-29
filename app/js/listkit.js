@@ -25,6 +25,7 @@
 //   families: rows keep their depth and a parent carries its children, but there's no indenting
 //   grid: true for cards laid out in rows and columns (drag follows the pointer both ways)
 //   after each render: kit.attach(ul)        on leaving the view: kit.destroy()
+//   kit.bar: the selection bar (in the body; a list in a dialog appends it to the dialog)
 //   kit.toggle(id, range): select or deselect a row from the view's own gesture (range: Shift, the run from the last one picked)
 //   onReorder(rows, label, ul, moved): rows = [{ id, depth }] in the new order; moved =
 //     the ids that were moved (so only they need a new place: order.js); persist them
@@ -444,9 +445,11 @@ export function createListKit({
   // "are you sure", the message's Undo is the safety net. Not while typing,
   // and never "Delete forever".
   // With rows selected and nothing being typed: Shift+↑ / ↓, Tab / Shift+Tab and the actions' keys.
+  // A dialog open over the list (not the one it's in, e.g. the life areas sheet) keeps the keys.
+  const otherDialog = () => [...document.querySelectorAll('dialog[open]')].some(d => !d.contains(ul));
   const press = btn => { if (!btn || btn.hidden || btn.closest('[hidden]:not(.kit-group-items)')) return false; btn.click(); return true; };
   const onBarKey = ev => {
-    if (!selected.size || !ul?.isConnected || ev.defaultPrevented || ev.altKey || typingIn(ev.target) || document.querySelector('dialog[open]')) return;
+    if (!selected.size || !ul?.isConnected || ev.defaultPrevented || ev.altKey || typingIn(ev.target) || otherDialog()) return;
     const mod = ev.ctrlKey || ev.metaKey;
     let done = false;
     if ((ev.key === 'ArrowUp' || ev.key === 'ArrowDown') && ev.shiftKey && !mod) { if (!anchor) anchor = idsInOrder()[ev.key === 'ArrowUp' ? 0 : selected.size - 1]; extend(ev.key === 'ArrowUp' ? -1 : 1); done = true; }
@@ -460,7 +463,7 @@ export function createListKit({
   document.addEventListener('keydown', onBarKey, true);
   const onKey = ev => {
     if ((ev.key !== 'Delete' && ev.key !== 'Backspace') || ev.defaultPrevented || ev.ctrlKey || ev.metaKey || ev.altKey) return;
-    if (!selected.size || !ul?.isConnected || typingIn(ev.target) || document.querySelector('dialog[open]')) return;
+    if (!selected.size || !ul?.isConnected || typingIn(ev.target) || otherDialog()) return;
     const del = actions.find(a => a.id === 'delete' || a.id === 'to-bin');
     if (!del) return;
     ev.preventDefault();
@@ -529,6 +532,7 @@ export function createListKit({
 
   return {
     attach,
+    bar, // a list in a dialog moves it in there (the top layer hides the body's)
     clear,
     // Add a row to the selection, or take it out (e.g. a view's own press and hold, or a tap while choosing).
     toggle(id, range = false) { pick(id, range); paint(); },
