@@ -2994,6 +2994,11 @@ html:not(.show-hints) #main:not([data-area="settings"]) .hint { display: none; }
 .c-card { position: relative; }
 .c-card .c-main { flex: none; padding-right: 22px; }
 .c-card .c-when { margin-left: 0; margin-top: auto; }
+.c-card { min-width: 0; }
+.c-card :is(.c-name, .c-about) { overflow-wrap: anywhere; }
+.c-card .c-note { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.c-card .c-details { min-width: 0; }
+.c-card .c-details .chip { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #main[data-density="tight"] .c-list { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px; }
 #main[data-density="tight"] .c-card { padding: 8px 12px; gap: 2px; border-radius: 14px; }
 #main[data-density="tight"] .c-card :is(.c-about, .c-details, .what-was-this) { display: none; }
