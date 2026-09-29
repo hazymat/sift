@@ -281,6 +281,22 @@ function installWheelRows() {
   }, { passive: false });
 }
 
+// Phones: with the keyboard up the bottom tabs hide (they'd float above it), and bars stuck at the top
+// stay at the top of what's visible: iPhone slides the whole page up under the keyboard, stuck bars
+// with it, so they're moved back down by as much (--vv-top).
+function installKeyboard() {
+  const vv = window.visualViewport;
+  if (!vv || !matchMedia('(pointer: coarse)').matches) return;
+  const root = document.documentElement;
+  const follow = () => {
+    const open = innerHeight - vv.height > 120;
+    root.classList.toggle('kb-open', open);
+    root.style.setProperty('--vv-top', `${open ? Math.max(0, Math.round(vv.offsetTop)) : 0}px`);
+  };
+  vv.addEventListener('resize', follow);
+  vv.addEventListener('scroll', follow);
+}
+
 function installSwipe() {
   if (!matchMedia('(pointer: coarse)').matches) return;
   const EDGE = 20;
@@ -593,6 +609,7 @@ async function boot() {
   installShare(() => current);
   installKeyNav();
   installSwipe();
+  installKeyboard();
   installWheelRows();
   // A dropdown menu opens inside the screen: flipped to the other side if
   // it would run off the left or right edge.
