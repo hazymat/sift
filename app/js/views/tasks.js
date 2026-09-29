@@ -187,7 +187,7 @@ export default {
       // A "Take the tour" task (tour.js) carries a pill that starts its tour.
       const pills = (t.tour && !isDone(t) ? '<button type="button" class="pill-act tour-pill" data-act="tour" title="Start the tour of Sift">▶ Start the tour</button>' : '')
         + (e ? `<button type="button" class="pill-act bolts" data-act="energy-pill" title="Energy: ${e.label}. Click to edit the task" aria-label="Energy ${e.label}, edit">${e.bolts}</button>` : '')
-        + (h !== 'now' && state.view !== h && !isDone(t) ? `<button type="button" class="pill-act" data-act="horizon-pill" title="For ${h}. Click to edit the task">${h}</button>` : '');
+        + (h !== 'now' && state.view !== h && !isDone(t) && !projectOf(t) ? `<button type="button" class="pill-act" data-act="horizon-pill" title="For ${h}. Click to edit the task">${h}</button>` : '');
       const note = t.notes && open !== t.id ? noteHtml(t) : ''; // the open panel already shows the whole note
       // Expanded spacing: photos attached show as small pictures too.
       const photos = open !== t.id ? (atts.get(t.id) || []).filter(a => a.kind === 'image' && a.thumb) : [];
@@ -229,7 +229,7 @@ export default {
           ${ENERGY.map(e => `<button type="button" class="bolts" data-energy="${e.id}" aria-pressed="${t.energy === e.id}" title="${esc(`${e.label}: ${e.hint}`)}" aria-label="${e.label}">${e.bolts}</button>`).join('')}
         </div>
         <div class="detail-grid">
-          <label>List<select name="horizon">${HORIZONS.map(x => `<option value="${x.id}" ${horizonOf(t) === x.id ? 'selected' : ''}>${x.label}</option>`).join('')}</select></label>
+          <label>List<select name="horizon">${projectOf(t) ? '<option value="" selected>In its project</option>' : ''}${HORIZONS.map(x => `<option value="${x.id}" ${!projectOf(t) && horizonOf(t) === x.id ? 'selected' : ''}>${x.label}</option>`).join('')}</select></label>
           <label>Estimated time<select name="estimate_min"><option value="">Not estimated</option>${durationChoices(480).map(m => `<option value="${m}" ${Number(t.estimate_min) === m ? 'selected' : ''}>${durationLabel(m)}</option>`).join('')}</select></label>
           <label><span class="label-row">Plan for day<span class="date-quick">${t.start_date !== isoDate() ? '<button type="button" class="linklike" data-act="plan-today" title="Plan it for today">Today</button>' : ''}${t.start_date ? '<button type="button" class="linklike date-clear" data-act="plan-clear" title="Remove the date">✕ Remove</button>' : ''}</span></span><input type="date" name="start_date" data-value="${t.start_date || ''}"></label>
           <label>Target end date<input type="date" name="aim_date" data-value="${aim}"></label>
@@ -405,7 +405,8 @@ export default {
     function viewHorizon(h) {
       const today = isoDate();
       // Sub-tasks go with their task, whichever list they were given.
-      const open = data.tasks.filter(t => !isDone(t) && horizonOf(t) === h && (!state.project || t.project_id === state.project)
+      // A task in a project lives in the project, not on a list (moving it either way takes it out of the other).
+      const open = data.tasks.filter(t => !isDone(t) && horizonOf(t) === h && !projectOf(t)
         && !(t.parent_task_id && data.tasks.some(p => p.id === t.parent_task_id && !isDone(p))));
       const flat = list => rowsOf(list.flatMap(t => (collapsed.has(t.id) ? [{ ...t, depth: 0 }] : familyOf(t))));
       const urgent = h === 'now' ? open.filter(t => (aimDate(t) && aimDate(t) <= today) || (t.start_date && t.start_date <= today)) : [];
@@ -1084,6 +1085,10 @@ export default {
       if (leaving.length) tickAway(leaving); else await render();
       undoable(`${label} ${all.length} task${all.length === 1 ? '' : 's'}`, async () => { await store.updateMany('tasks', before); await render(); });
     }
+    // Onto a list: out of any project (a task is in one place or the other).
+    const toList = h => ({ horizon: h, project_id: null, milestone_id: null });
+    // One task onto a list; from a project, its sub-tasks come out with it.
+    const listOne = (t, h) => (projectOf(t) ? batchSet([t.id], toList(h), `Transferred to ${HORIZONS.find(x => x.id === h)?.label || h}:`, { subs: true }) : change(t.id, { horizon: h }, `Transferred to ${HORIZONS.find(x => x.id === h)?.label || h}`));
     // Into a project (or out of one), sub-tasks with them; they start with no milestone.
     const moveToProject = (ids, p) => batchSet(ids, { project_id: p?.id || null, milestone_id: null }, p ? `Moved to ${p.name}:` : 'Taken out of the project:', { subs: true });
     // The projects to move tasks into (the finished ones and the one being looked at left out), as pills.
@@ -1109,9 +1114,9 @@ export default {
     const taskActions = [
       { id: 'done', label: 'Done', key: 'Ctrl+Enter', run: ids => batchSet(ids, doneFields(true), 'Done:', { fade: true }) },
       // Move ▸ opens sideways to the lists, less the one being looked at.
-      { id: 'now', label: 'Now', group: 'Move', when: () => state.view !== 'now', run: ids => batchSet(ids, { horizon: 'now' }, 'Transferred to Now:') },
-      { id: 'next', label: 'Next', group: 'Move', when: () => state.view !== 'next', run: ids => batchSet(ids, { horizon: 'next' }, 'Transferred to Next:') },
-      { id: 'later', label: 'Later', group: 'Move', when: () => state.view !== 'later', run: ids => batchSet(ids, { horizon: 'later' }, 'Transferred to Later:') },
+      { id: 'now', label: 'Now', group: 'Move', when: () => state.view !== 'now' && !state.owner, run: ids => batchSet(ids, toList('now'), 'Transferred to Now:', { subs: true }) },
+      { id: 'next', label: 'Next', group: 'Move', when: () => state.view !== 'next' && !state.owner, run: ids => batchSet(ids, toList('next'), 'Transferred to Next:', { subs: true }) },
+      { id: 'later', label: 'Later', group: 'Move', when: () => state.view !== 'later' && !state.owner, run: ids => batchSet(ids, toList('later'), 'Transferred to Later:', { subs: true }) },
       // Project…: the projects open as pills over the bar; the selection stays until one is picked.
       { id: 'project', label: 'Project…', group: 'Move', keepSelection: true, when: () => !state.owner, run: ids => pickProject(ids) },
       { id: 'archive', label: 'Archive', key: 'A', run: ids => batchSet(ids, { archived_at: new Date().toISOString() }, 'Archived', { subs: true }) },
@@ -1362,6 +1367,8 @@ export default {
         await setPlanDay(task, t.value || null);
       } else if (t.name === 'repeat') {
         await setRepeat(task, t.value);
+      } else if (t.name === 'horizon') {
+        if (t.value) await listOne(task, t.value);
       } else if (t.name) {
         let value = t.value || null;
         if (t.name === 'priority') value = Number(t.value);
@@ -1439,7 +1446,7 @@ export default {
         return;
       }
       if (b.dataset.horizon && id) {
-        await change(id, { horizon: b.dataset.horizon }, `Transferred to ${HORIZONS.find(x => x.id === b.dataset.horizon)?.label || b.dataset.horizon}`);
+        await listOne(task, b.dataset.horizon);
         return;
       }
       if ((act === 'horizon-pill' || act === 'energy-pill') && id) return editInPlace(id);
@@ -1571,7 +1578,7 @@ export default {
           + selectPill('estimate_min', 'Estimated time', '⏱', [['', 'Not estimated'], ...hours], t.estimate_min)
           + datePill('start_date', 'Plan for day', '📅', t.start_date, shortDate)
           + datePill('aim_date', 'Target end date', '⚑', aim, shortDate)
-          + selectPill('horizon', 'List', '📥', HORIZONS.map(h => [h.id, h.label]), horizonOf(t))
+          + selectPill('horizon', 'List', '📥', HORIZONS.map(h => [h.id, h.label]), projectOf(t) ? '' : horizonOf(t))
           + (state.owner || t.parent_task_id ? '' : `<button type="button" class="entry-chip${projectOf(t) ? ' set' : ''}" data-chip="project" data-pill-act="project" aria-haspopup="menu">📁 <span class="chip-text">${esc(projectOf(t)?.name || 'Project')}</span></button>`);
       },
       change: async (id, name, value) => {
@@ -1591,6 +1598,7 @@ export default {
           return;
         }
         if (name === 'start_date') return setPlanDay(t, value || null);
+        if (name === 'horizon') return value ? listOne(t, value) : undefined;
         const v = name === 'estimate_min' ? (value ? Number(value) : null) : value || null;
         await change(id, { [name]: v }, name === 'start_date' && v ? `Planned for ${shortDate(v)}` : name === 'horizon' ? `Transferred to ${HORIZONS.find(x => x.id === v)?.label || v}` : 'Saved');
       },
