@@ -449,6 +449,14 @@ button.danger { color: #ff8a80; }
 /* ---------- Find Things ---------- */
 
 .find-head { margin-bottom: 10px; }
+.find-new { display: flex; flex-wrap: wrap; gap: 8px; }
+/* Phones: the + New pills slide sideways so Share, 👁 and ⋯ stay on the first line (as Scans' and Contracts'). */
+@media (max-width: 560px) {
+  .lists-head.find-head { flex-wrap: nowrap; }
+  .find-new { flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-mask-image: linear-gradient(to right, #000 85%, transparent); mask-image: linear-gradient(to right, #000 85%, transparent); }
+  .find-new::-webkit-scrollbar { display: none; }
+  .find-new > button { flex: none; }
+}
 .find-bar { position: sticky; top: calc(var(--safe-top) + 62px); z-index: 5; margin-bottom: 10px; }
 /* An area's main page: its whole top sticks (Find Things, Tasks, Contacts; Batch Book has its own), glass once stuck; on the boxes page the search inside it doesn't stick by itself. */
 .find-sticky, .sticky-top { position: sticky; top: calc(var(--safe-top) + 62px); z-index: 5; margin: 0 -10px 10px; padding: 0 10px; border-radius: 0 0 16px 16px; transition: box-shadow .15s, background-color .15s; }
