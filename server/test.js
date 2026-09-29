@@ -198,6 +198,20 @@ try {
   const before = (await call('GET', '/api/usage', null, recovered)).json.bytes;
   assert.ok(before >= 'list-fam'.length, 'shared records count towards the owner');
 
+  // a share's files: any member puts and gets them, the owner's quota pays, others can't reach them
+  const sfid = 'ef'.repeat(20);
+  f = await raw('PUT', `/api/shares/${sid}/blobs/${sfid}`, Buffer.from([9, 8, 7]), fam);
+  assert.equal(f.status, 200, 'a member puts a file in the share');
+  f = await raw('GET', `/api/shares/${sid}/blobs/${sfid}`, undefined, recovered);
+  assert.deepEqual([...Buffer.from(await f.arrayBuffer())], [9, 8, 7], 'the owner gets it');
+  f = await raw('GET', `/api/shares/${sid}/blobs`, undefined, fam);
+  assert.deepEqual((await f.json()).blobs, [{ id: sfid, size: 3 }]);
+  f = await raw('GET', `/api/blobs/${sfid}`, undefined, fam);
+  assert.equal(f.status, 404, 'a share\'s files stay out of your own');
+  assert.equal((await call('GET', '/api/usage', null, recovered)).json.bytes, before + 3, 'share files count towards the owner');
+  f = await raw('GET', `/api/shares/${'0'.repeat(8)}-0000-0000-0000-${'0'.repeat(12)}/blobs/${sfid}`, undefined, fam);
+  assert.equal(f.status, 404, 'not a share of yours');
+
   // a member can leave but can't take the owner out; the owner can take someone out
   r = await call('DELETE', `/api/shares/${sid}/members/${'x'}`, null, fam);
   assert.equal(r.status, 403);
