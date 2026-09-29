@@ -13,6 +13,7 @@ Audited at 1.54.09 (29 September 2026), updated for 1.54.10, from the code and b
 - **Scans' "Scan" button** has no "New" and no "+": intended (it takes a photo), noted only.
 - **Anything that puts something into a project** (Move, the 📁 Project pill, Brain Dump conversion, any picker) lists projects shared with you too, with 👥.
 - **Editing a row**: clicking anywhere outside it stops editing.
+- **Sideways rows** (filter bars, tabs, pill rows, anything that scrolls sideways): a mouse wheel over one scrolls it sideways; at its end the page scrolls as usual. Built once for the whole app (`installWheelRows` in `app.js`), so new rows get it for free.
 
 ## 1. Page level: areas that list things
 
@@ -65,7 +66,7 @@ Rows and cards inside an area. "Top right" means on the row's own first line, at
 
 Numbered for reference. ★ marks the ones already raised.
 
-1. ★ **List items didn't edit like tasks** (click anywhere on the line, More top right, Close top right). Fixed in 1.54.10 for Lists and Find Things. Lists' More goes straight to the panel (no quick stage, no ✓ Done): intended. Since 1.55.01 the hover More on a list item opens the panel too; clicking the line is for editing. Still different: Brain Dump notes still only edit from their text and have no More or Done. Brain Dump notes are edited in place like rows, so they should get the same pattern (green More top right, then ✓ Close). Recipe, contact, scan and contract cards open their own page instead, so they don't need it, but their card ⋯ should be one style.
+1. ★ **List items didn't edit like tasks** (click anywhere on the line, More top right, Close top right). Fixed in 1.54.10 for Lists and Find Things. Lists' More goes straight to the panel (no quick stage, no ✓ Done): intended. Since 1.55.01 the hover More on a list item opens the panel too; clicking the line is for editing. Still different: Brain Dump notes only edit from their text and have no More or Done: intended. Recipe, contact, scan and contract cards open their own page instead, so they don't need it, but their card ⋯ should be one style.
 2. **"More" is two different things.** Tasks, Day Planner, Lists, box items: a green "More" pill top right. Brain Dump notes and recipe cards: a plain ⋯ at the bottom right. The Day Planner's "More (full)" has no ⇧Enter hint.
 3. **Shift+Enter** means More in Tasks, the note in place in the Day Planner, and the panel's note in Lists. Ctrl+Enter ticks in Tasks and the Day Planner but does nothing in Lists.
 4. ★ **Lined paper or box** is only offered in Tasks (and project pages) and Lists. Everywhere else is box only, apart from the Day Planner and Batch Book, which have their own Paper styles (Batch Book has both Paper and a Lined paper switch). "Lined Paper" is capitalised differently in Batch Book.
