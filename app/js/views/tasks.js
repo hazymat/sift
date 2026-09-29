@@ -427,6 +427,8 @@ export default {
         task.title = name;
         undoable('Saved', async () => { await store.update('tasks', id, { title: old }); await render(); });
       }
+      // Pressed again (its pills showing): the full panel, as More (full).
+      if (id && revealed === id && !lay('more-panel')) { pills.close(); body.querySelector(`li[data-task="${id}"] > [data-act="details"]`)?.click(); return; }
       const more = id ? t.closest('li[data-task]').querySelector('.edit-pills > [data-act="pills-reveal"]') : t.parentElement.querySelector(':scope > .pill-reveal');
       if (more?.getClientRects().length) more.click();
       // The note: New task's own; a task's in its panel, its note shown under it, or "Add note" (drawn a moment after More).
@@ -1372,7 +1374,7 @@ export default {
       key: r => r.dataset.task,
       closed: id => { if (revealed === id) revealed = null; if (noteStale) { noteStale = false; render(); } },
       done: true,
-      top: id => !lay('pills-hide') ? '' : revealed === id && !lay('more-panel') ? '<button type="button" class="entry-chip pill-reveal" data-pill-more title="Open the task\'s full panel">More (full)</button>'
+      top: id => !lay('pills-hide') ? '' : revealed === id && !lay('more-panel') ? `<button type="button" class="entry-chip pill-reveal" data-pill-more title="Open the task's full panel">More (full)${keys('Shift+Enter')}</button>`
         : `<button type="button" class="entry-chip pill-reveal" data-act="pills-reveal">More${keys('Shift+Enter')}</button>`,
       html: id => {
         const t = data.tasks.find(x => x.id === id);
