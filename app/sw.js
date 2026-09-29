@@ -21,6 +21,7 @@ const SHELL = [
   'js/rowswipe.js',
   'js/keys.js',
   'js/hold.js',
+  'js/weburl.js',
   'js/undo.js',
   'js/gcal.js',
   'js/typesheet.js',

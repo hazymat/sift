@@ -51,6 +51,7 @@ import { word } from './words.js';
 import { noteUndo, showVersions } from './noteundo.js';
 import { flushAll } from './autosave.js';
 import { keys } from './keys.js';
+import { linkUrls } from './weburl.js';
 
 const LINK_RE = /\[([^\]]+)\]\(sift:([a-z_]+)\/([\w-]+)\)/g;
 
@@ -119,12 +120,12 @@ export function afterTitle(md, title) {
 const TRIGGER_BEFORE_LINK = /(?:📞|📝)[\s\u00a0]*(?=\[[^\]]+\]\(sift:)/gu;
 
 function inline(text) {
-  return esc(text)
+  return linkUrls(esc(text)
     .replace(TRIGGER_BEFORE_LINK, '')
     .replace(LINK_RE, (m, label, c, id) => `<span class="ref" data-ref="${c}/${id}" contenteditable="false">${label}</span>`)
     .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
     .replace(/~~(.+?)~~/g, '<s>$1</s>')
-    .replace(/(^|[\s(])_(.+?)_(?=$|[\s).,!?:;])/g, '$1<i>$2</i>');
+    .replace(/(^|[\s(])_(.+?)_(?=$|[\s).,!?:;])/g, '$1<i>$2</i>')); // web addresses as links (weburl.js)
 }
 
 // Bullet and numbered lines as nested lists. `items` are { d: depth, ordered, html };

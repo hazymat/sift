@@ -1748,6 +1748,11 @@ main:has(> .planner), main:has(.planner) { max-width: 1600px; }
 /* Nothing may push the page wider than the screen: long links and long
    unbroken text wrap, and the page never scrolls sideways. */
 .ref { white-space: normal; overflow-wrap: anywhere; }
+/* A web address in text (weburl.js): a link to open, and text to change. While it's being written in, the cursor is a text one. */
+.web-url { color: var(--accent, inherit); text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 45%, transparent); text-underline-offset: 2px; word-break: break-all; cursor: pointer; } /* breaks anywhere, so it starts on the line it belongs to (a one-line preview shows its start) */
+[contenteditable="true"]:focus .web-url { cursor: text; }
+.url-menu { z-index: 1000; gap: 6px; inset: auto; margin: 0; overflow: visible; color: inherit; } /* a popover, so over a sheet too (weburl.js) */
+.url-menu button { white-space: nowrap; }
 .rich-edit, .thought-body, .item-note, .note-body, .review-title { overflow-wrap: anywhere; min-width: 0; }
 html, body { overflow-x: clip; }
 main { min-width: 0; max-width: 100%; }

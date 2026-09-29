@@ -28,6 +28,7 @@ import { energyMenu } from '../pillmenu.js';
 import { byRank, rankOf, reorderWrites, lastKey } from '../order.js';
 import { askYes, askEmptied } from '../ask.js';
 import { word } from '../words.js';
+import { offerUrlAt } from '../weburl.js';
 import { commentsHtml, mountComments, moveComments, closingComment } from '../comments.js';
 import { shareSheet, people, sharedWithText, invitesHtml, theirsHtml, scopeText } from '../sharing.js';
 import { sharesNow, inShare, myUserId, personName } from '../sync.js';
@@ -1637,7 +1638,7 @@ export default {
     // shows fully, it can be dragged by any part of it, and it isn't edited; a
     // second tap edits it; a tap anywhere else lets it go. So stretching or
     // moving an item is never taken for editing it (nor for swiping it: rowswipe.js).
-    const ARM_SKIP = 'button, a, select, input:not(.item-title), textarea:not(.item-title), .tick, .edit-pills, .resize-grip, .drag-grip, .row-acts, .note-edit';
+    const ARM_SKIP = 'button, a, select, input:not(.item-title), textarea:not(.item-title), .tick, .edit-pills, .resize-grip, .drag-grip, .row-acts, .note-edit, .web-url';
     const paintArmed = () => el.querySelectorAll('.line.has-item').forEach(r => r.classList.toggle('armed', r.dataset.item === armed));
     const armedBody = ev => ev.pointerType === 'touch' && armed && ev.target.closest('.line.armed[data-item] > .content') && !ev.target.closest(ARM_SKIP);
     if (matchMedia('(pointer: coarse)').matches) {
@@ -1660,7 +1661,7 @@ export default {
         armed = null;
         paintArmed();
         const title = el.querySelector(`.line.has-item[data-item="${CSS.escape(t.id)}"] .item-title`);
-        if (title) { title.focus(); title.setSelectionRange?.(title.value.length, title.value.length); }
+        if (title) { offerUrlAt(title, t.x, t.y); title.focus(); title.setSelectionRange?.(title.value.length, title.value.length); } // on a web address: Open or Edit text (read before the cursor moves the words)
       }, { passive: false });
       document.addEventListener('pointerdown', ev => {
         if (armed && !ev.target.closest?.(`.line.has-item[data-item="${CSS.escape(armed)}"]`)) { armed = null; paintArmed(); }
