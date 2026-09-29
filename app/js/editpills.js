@@ -17,6 +17,7 @@
 //     closed: key => …,                       (optional) the pills were put away
 //     top: key => html,                       (optional) pills on the text's own line, at the far right (Tasks: More,
 //                                             then More (full)); given, More… isn't added to the pill row
+//     topDone: false,                         (optional) with top, ✓ Done stays in the pill row
 //     done: true,                             (optional) the row has a tick box (.tick): Ctrl+Enter
 //                                             (⌘+Enter) in its text ticks or unticks it, and on a wide
 //                                             screen a ✓ Done chip beside More says so
@@ -79,10 +80,10 @@ export function editPills(root, spec) {
     box.dataset.key = editing;
     const done = spec.done && row.querySelector('.tick') ? `<button type="button" class="entry-chip pill-done" data-pill-done>${row.classList.contains('done') ? '↺ Not done' : '✓ Done'}${keys(CTRL_ENTER)}</button>` : '';
     const topHtml = spec.top?.(editing) || '';
-    if (topHtml) { const top = document.createElement('div'); top.className = 'edit-pills pill-top'; top.dataset.key = editing; top.innerHTML = done + topHtml; if (title) title.after(top); else host.append(top); }
+    if (topHtml) { const top = document.createElement('div'); top.className = 'edit-pills pill-top'; top.dataset.key = editing; top.innerHTML = (spec.topDone === false ? '' : done) + topHtml; if (title) title.after(top); else host.append(top); }
     const html = spec.html(editing);
     if (topHtml && !html) { row.classList.add('pills-open'); return; }
-    box.innerHTML = topHtml ? html : `${html}<button type="button" class="entry-chip pill-more" data-pill-more>More…</button>${done}`;
+    box.innerHTML = topHtml ? html + (spec.topDone === false ? done : '') : `${html}<button type="button" class="entry-chip pill-more" data-pill-more>More…</button>${done}`;
     // The pills in one row of their own, under the note line (not behind a More pill: that stays inline).
     if (!box.querySelector(':scope > .pill-reveal')) { const pillRow = document.createElement('div'); pillRow.className = 'pill-row'; pillRow.append(...box.querySelectorAll(':scope > .entry-chip')); box.append(pillRow); }
     fillDates(box);
@@ -201,6 +202,16 @@ export function editPills(root, spec) {
     if (!editing || ev.relatedTarget || Date.now() - keyAt > 150) return;
     setTimeout(() => { if (editing && (document.activeElement === document.body || !document.activeElement) && !document.querySelector('.pill-menu, .ref-picker, dialog[open]')) close(); });
   });
+  // Phones: the keyboard put away by its own ✓ (no tap on the page) leaves the text: its pills go too, so a tap
+  // below is a tap off the task, not back into it.
+  let tapAt = 0;
+  const onTap = () => { tapAt = Date.now(); };
+  document.addEventListener('pointerdown', onTap, true);
+  root.addEventListener('focusout', ev => {
+    if (!touch || !editing || ev.relatedTarget || Date.now() - tapAt < 800) return;
+    if (!ev.target.closest?.(spec.title) && !ev.target.matches?.('.pill-note') && !ev.target.isContentEditable) return;
+    setTimeout(() => { if (editing && Date.now() - tapAt > 800 && (document.activeElement === document.body || !document.activeElement) && !document.querySelector('.pill-menu, .ref-picker, dialog[open]')) close(); }, 100);
+  });
   root.addEventListener('click', onClick, true);
   document.addEventListener('pointerdown', onPointer, true);
   document.addEventListener('keydown', onKey);
@@ -228,6 +239,7 @@ export function editPills(root, spec) {
       root.removeEventListener('click', onClick, true);
       document.removeEventListener('pointerdown', onPointer, true);
       document.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onTap, true);
       watch.disconnect();
     },
   };
