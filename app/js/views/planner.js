@@ -11,7 +11,7 @@ import {
 } from '../days.js';
 import { listEntry, listHint } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
-import { richText, toHtml, previewLine, inlineAll } from '../richtext.js';
+import { richText, toHtml, previewLine, inlineAll, plainLines } from '../richtext.js';
 import { keepDraft, draftCleared } from '../drafts.js';
 import { autosizeAll } from '../inline.js';
 import { summarise } from '../summary.js';
@@ -501,7 +501,7 @@ export default {
       return `<div class="item-note plan-note" data-act="toggle-note" role="button" tabindex="0" aria-expanded="${editing === i.id}" title="Click to edit">${inlineAll(i.notes)}</div>`;
     }
     const noteTag = i => ((i.notes || '').trim() && editing !== i.id
-      ? `<button type="button" class="span-tag note-tag" data-act="toggle-note" title="${esc(i.notes.split('\n').map(l => l.trim()).find(Boolean)?.slice(0, 120) || 'Note')}">📝</button>` : '');
+      ? `<button type="button" class="span-tag note-tag" data-act="toggle-note" title="${esc(plainLines(i.notes)[0]?.slice(0, 120) || 'Note')}">📝</button>` : '');
 
     // Mount the notes editor wherever a row or details panel asked for one.
     function mountNoteEditors() {
