@@ -2,7 +2,7 @@
 
 A map of how every area of Sift shows its controls, made to find where areas do the same job in different ways. New UI follows the **settled rules** below; where a row has no settled rule yet, copy the way most areas already do it and add the choice here.
 
-Audited at 1.54.09 (29 September 2026), updated for 1.55.11, from the code and by opening every area at phone and computer widths in Tight, Medium and Loose spacing, lined and box. The same audit is GitHub issue #284; keep the two in sync.
+Audited at 1.54.09 (29 September 2026), updated for 1.55.12, from the code and by opening every area at phone and computer widths in Tight, Medium and Loose spacing, lined and box. The same audit is GitHub issue #284; keep the two in sync.
 
 ## Settled rules (as decided)
 
@@ -31,7 +31,7 @@ What each area shows before anything is opened. "Share (copy)" is the Share pill
 | **Search** | "Search your notes…", with ✕ | None (intended) | None (intended) | None (intended) | None (intended) | "Find anything… (press /)", full width, own row above everything, with ✕ | "Search contacts…", Recent tab only, under the capture box, with ✕ | "Search scans…" in the header row, with ✕ | "Search contracts…" in the header row, with ✕ | "Search recipes…" in the header row, with ✕ | "Search…" full width, with ✕ |
 | **Share (copy)** | Pill, top right on the search row | Pill, top right | Pill, top right | Pill "Share" with 👥 options inside | Pill, top right | Pill, row 2 right | Pill, top right | Pill, top right | Pill, top right | **None** | None |
 | **👁 View** | Look, Spacing | Layout (Lined Paper, Show margin, 5 more switches), Look (no Multicolour), Spacing | Same as Tasks | Paper, Timeslots, Layout, Nudges, Look, Spacing | Layout (Lined Paper, Show margin, Highlight), Look, Spacing | Look, Spacing | Look, Spacing | Spacing only | Spacing only | Paper, Layout (Lined paper, Show margin), Spacing | None |
-| **⋯ page menu** | Show Archive, Show Bin | Show Archive, Show Bin | Show Archive, Show Bin | **None** ("Housekeeping:" links at page bottom instead) | Show Archive, Show Bin | Rename life area, Import CSV, Export CSV, Split quantities, Show Archive, Show Bin | New category, Show Archive, Show Bin | Add from files…, Show Archive, Show Bin | Show Archive, Show Bin | Edit books, Import recipes, Add example recipes, Show Archive, Show Bin | None |
+| **⋯ page menu** | Show Archive, Show Bin | Show Archive, Show Bin | Show Archive, Show Bin | Reset this week to this page's paper, Reset all pages to today's paper, Clear this day… | Show Archive, Show Bin | Rename life area, Import CSV, Export CSV, Split quantities, Show Archive, Show Bin | New category, Show Archive, Show Bin | Add from files…, Show Archive, Show Bin | Show Archive, Show Bin | Edit books, Import recipes, Add example recipes, Show Archive, Show Bin | None |
 | **Pinned** | Yes: ☆ top right of card, "★ Pinned" filter | No | No | No | No | No | Yes: ☆ on contact page, pinned sort first, no filter, no Unpin in selection bar | No | No | Yes: ☆ on card, "★ Pinned" tab | No |
 | **Lined paper / box** | Box only | Choice: lined (with or without margin) or box | Cards | Paper styles (always ruled) | Cards | Box only | Box only | Box only | Table (computer), cards (phone) | Cards | Box only |
 | **Sticky header** | Yes, glass once stuck | No | No | No | No | Search bar only | No | No | No | Yes, glass once stuck | No |
@@ -82,15 +82,14 @@ Still open, numbered for reference. ★ marks the ones already raised. Fixed or 
 9. ★ **Pinned** only in Brain Dump, Batch Book and Contacts, each shown differently (☆ top right of card, ☆ in the card's action row, ☆ only on the contact's page). Contacts has no Pinned filter and no Unpin in its selection bar.
 10. **Two different "Share" buttons with the same word.** The page Share pill copies text; "👥 Share" on a list or project shares with a person. Batch Book has no Share pill. An open list has 👥 but no copy Share; the Lists page has copy Share but no 👥. Recipes show 👥 only once already shared.
 11. **Opened pages are built differently.** The area header stays on project and contact pages but not on the others. Back reads "‹ Back", "‹ Projects", "‹ [group name]" and so on. 👁 and ⋯ come and go. "Archive project"/"Archive list"/"Archive box" vs plain "Archive". Batches can't be archived.
-12. **Day Planner has no ⋯**; its rarely used actions are lowercase "Housekeeping:" links at the bottom.
-13. **👁 contents vary with no pattern**: Look is missing from Scans, Contracts and Batch Book; Multicolour from Tasks and the Day Planner. Contracts has alternate-shading styling that can never be switched on.
-14. **Tick wording**: "✓ Tick / Untick" in Lists, "✓ Done / Not done" in Tasks and the Day Planner. "Done" is also the close button on some Day Planner sheets.
-15. **Selection bars**: key hints only in Tasks and Batch Book; drag handles are an icon in most areas and a text "⠿" in the Day Planner; Contacts shows a grip but can't be dragged.
-16. **Closing sheets and panels**: top right (Tasks, Day Planner, Lists, box items), "Done" at bottom right (sharing), "Cancel … Save" (Batch Book sheets), ✕ (photo viewer, custom theme), nothing (most sheets, by design).
-17. **Saved messages**: "✓ Saved" with no Undo in Settings, "Saved · Undo" elsewhere.
-18. **Empty states**: "Nothing matches." / "Nothing here." / "Nothing found"; Tasks has none apart from Done.
-19. **Hard to reach**: History is only linked from Settings (not from any ⋯ as the code says); Tidied has no link from Settings.
-20. **Colours only sometimes show.** Projects, lists and recipes always show their colour. Brain Dump notes, contacts, Find Things' box cards and the things in a box only show theirs when 👁 Look is Multicolour (a box's own page always shows its lid colour). To decide: show them always, the project way, or leave them to Multicolour.
+12. **👁 contents vary with no pattern**: Look is missing from Scans, Contracts and Batch Book; Multicolour from Tasks and the Day Planner. Contracts has alternate-shading styling that can never be switched on.
+13. **Tick wording**: "✓ Tick / Untick" in Lists, "✓ Done / Not done" in Tasks and the Day Planner. "Done" is also the close button on some Day Planner sheets.
+14. **Selection bars**: key hints only in Tasks and Batch Book; drag handles are an icon in most areas and a text "⠿" in the Day Planner; Contacts shows a grip but can't be dragged.
+15. **Closing sheets and panels**: top right (Tasks, Day Planner, Lists, box items), "Done" at bottom right (sharing), "Cancel … Save" (Batch Book sheets), ✕ (photo viewer, custom theme), nothing (most sheets, by design).
+16. **Saved messages**: "✓ Saved" with no Undo in Settings, "Saved · Undo" elsewhere.
+17. **Empty states**: "Nothing matches." / "Nothing here." / "Nothing found"; Tasks has none apart from Done.
+18. **Hard to reach**: History is only linked from Settings (not from any ⋯ as the code says); Tidied has no link from Settings.
+19. **Colours only sometimes show.** Projects, lists and recipes always show their colour. Brain Dump notes, contacts, Find Things' box cards and the things in a box only show theirs when 👁 Look is Multicolour (a box's own page always shows its lid colour). To decide: show them always, the project way, or leave them to Multicolour.
 
 ## 5. Resolved
 
@@ -105,3 +104,4 @@ Still open, numbered for reference. ★ marks the ones already raised. Fixed or 
 - **Find Things' New buttons** (was point 6): "+ New box" (asks which group), "+ New group" and "+ New life area" are pills at the top left, like the other areas' New pills. Its ⋯ keeps only the rarely used things: Rename life area, Import, Export, Split quantities, Show Archive, Show Bin (1.55.09).
 - **Projects' New button** (part of point 5): "+ New project" is a pill at the top left of the Projects page, beside Tasks | Projects, instead of a dashed square at the end of the grid (1.55.10).
 - **Search boxes in Scans, Contracts and Batch Book** (part of point 8) use the shared search box style, with the ✕ to clear while there's text, like Brain Dump, Find Things, Contacts and Tidied (1.55.11).
+- **Day Planner ⋯ menu** (was point 12): a ⋯ at the top right, like the other areas, holds Reset this week to this page's paper, Reset all pages to today's paper and Clear this day…; the "Housekeeping:" line at the bottom of each day is gone (1.55.12).
