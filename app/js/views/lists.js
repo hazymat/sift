@@ -15,7 +15,7 @@ import { editPills } from '../editpills.js';
 import { keys } from '../keys.js';
 import { word } from '../words.js';
 import { tintHex, tintId, colourMenu } from '../colours.js';
-import { rankOf, reorderWrites } from '../order.js';
+import { rankOf, byRank, reorderWrites } from '../order.js';
 import { dateText } from '../days.js';
 import { shareSheet, sharedWithText, people, invitesHtml, theirIconHtml } from '../sharing.js';
 import { askEmptied } from '../ask.js';
@@ -26,12 +26,16 @@ import { tickWave, fadeFold } from '../tickwave.js';
 import { flash, SOFT } from '../flash.js';
 import { touch } from '../editpills.js';
 import { atEdge, caretTo } from '../walk.js';
+import { ZOOM, zoom } from '../zoom.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
 const shortDate = iso => dateText(new Date(iso), { day: 'numeric', month: 'short', year: 'numeric' });
 // 👁 Layout switches (viewcog.js): Lined paper and its margin, as in Tasks.
 const lay = id => layoutOn('lists', id);
+// Lists in use show newest first until dragged into an order of their own (order.js: a list made later sorts above).
+const newestFirst = l => 1.9e9 - (Number(l.sort_order) || 0) / 1e3;
+const rankFor = l => rankOf(l, l.kind === 'template' ? undefined : newestFirst);
 
 export default {
   async mount(el) {
@@ -59,7 +63,8 @@ export default {
       const pr = progress(items);
       const copies = from ? 0 : data.lists.filter(x => x.template_id === l.id).length;
       const who = from ? '' : sharedWithText({ kind: 'list', id: l.id });
-      return `
+      return `<li class="list-card-li" ${from ? `data-list="${l.id}"` : `data-id="${l.id}" data-list="${l.id}" data-depth="0"`}>
+        ${from ? '' : `<button type="button" class="drag-handle kit-grip" aria-label="Select" title="Select (or press and hold the card)">${icon('i-grip')}</button>`}
         <a class="project-card list-card" href="#/lists/${l.id}${from ? `/from/${from.owner_id}` : ''}" style="--tint: ${tintHex(l)}; --c: ${tintHex(l)}">
           <span class="project-title">${esc(l.name || 'Untitled')}</span>
           ${from ? `<span class="muted">👥 from ${esc(from.name)}</span>` : who ? `<span class="muted">👥 shared with ${esc(who)}</span>` : ''}
@@ -67,15 +72,15 @@ export default {
             ? `<span class="muted">${items.length} item${items.length === 1 ? '' : 's'}${copies ? ` · used ${copies}×` : ''}${l.used_at ? ` · last ${shortDate(l.used_at)}` : ''}</span>`
             : `<span class="bar"><span style="width:${pr.pct}%"></span></span><span class="muted">${pr.done} of ${pr.total} ticked</span>`}
           ${!from && l.kind === 'instance' && listOf(l.template_id) ? `<span class="muted">from ${esc(listOf(l.template_id).name)}</span>` : ''}
-        </a>`;
+        </a></li>`;
     }
 
     function overview() {
       const templates = data.lists.filter(l => l.kind === 'template');
-      const inUse = data.lists.filter(l => l.kind !== 'template').sort((a, b) => b.created_at.localeCompare(a.created_at));
+      const inUse = data.lists.filter(l => l.kind !== 'template').sort(byRank(newestFirst));
       if (state.tab === 'shared' && !shared.length) state.tab = 'lists';
       const tab = (id, label) => `<button type="button" data-list-tab="${id}" aria-pressed="${state.tab === id}">${label}</button>`;
-      const grid = (cards, empty) => `<div class="project-grid">${cards.join('') || `<p class="muted">${esc(word(empty))}</p>`}</div>`;
+      const grid = (cards, empty, mine = true) => cards.length ? `<ul class="project-grid list-grid"${mine ? ' data-mine' : ''}>${cards.join('')}</ul>` : `<p class="muted">${esc(word(empty))}</p>`;
       return `
         <div class="sticky-top-mark" aria-hidden="true"></div>
         <div class="sticky-top">
@@ -95,7 +100,7 @@ export default {
         </div>
         ${invitesHtml(['list'])}
         ${state.tab === 'templates' ? `<p class="muted hint">${esc(word('ph_lists_templates'))}</p>${grid(templates.map(l => card(l)), 'ph_lists_no_templates')}`
-          : state.tab === 'shared' ? grid(shared.map(x => card(x.l, x)), 'ph_lists_none')
+          : state.tab === 'shared' ? grid(shared.map(x => card(x.l, x)), 'ph_lists_none', false)
           : grid(inUse.map(l => card(l)), 'ph_lists_none')}`;
     }
 
@@ -187,7 +192,7 @@ export default {
             </div>
           </li>` : ''}`;
       // The name, progress, Reset ticks and Show / hide ticked stay at the top while the items scroll.
-      return `
+      return `<article class="list-page">
         <div class="list-top-mark" aria-hidden="true"></div>
         <div class="list-top">
         <div class="project-head" style="--c:${tintHex(l)}">
@@ -226,7 +231,7 @@ export default {
           <span class="spacer"></span>
           <button type="button" data-act="archive-list">Archive list</button>
           <button type="button" class="danger" data-act="delete-list">Delete list</button>
-        </div>`}`;
+        </div>`}</article>`;
     }
 
     // ---------- render ----------
@@ -255,6 +260,7 @@ export default {
       kit = l?.kind === 'template' ? kitTemplate : kitChecklist;
       (l?.kind === 'template' ? kitChecklist : kitTemplate).attach(null);
       kit.attach(state.id ? body.querySelector('.checklist') : null);
+      gridKit.attach(state.id ? null : body.querySelector('.list-grid[data-mine]'));
       if (nameNext && nameNext === state.id) {
         nameNext = null;
         const n = body.querySelector('[data-list-name]');
@@ -498,6 +504,64 @@ export default {
     const kitTemplate = this.kitTemplate = createListKit({ ...dragRules, actions: common });
     let kit = kitChecklist;
 
+    // ---------- the cards: press and hold chooses (then a tap adds), ⠿ held drags, as Batch Book's cards ----------
+    const listsWord = ids => `${ids.length} list${ids.length === 1 ? '' : 's'}`;
+    async function colourLists(ids, colour) {
+      const before = ids.map(id => [id, { colour: listOf(id)?.colour ?? null }]);
+      await store.updateMany('lists', ids.map(id => [id, { colour }]));
+      await render();
+      undoable(`Coloured ${listsWord(ids)}`, async () => { await store.updateMany('lists', before); render(); });
+    }
+    // Archived or deleted with their items, as Archive list and Delete list.
+    async function putAway(ids, field, label) {
+      const stamp = new Date().toISOString(), items = ids.flatMap(id => itemsOf(id).map(i => i.id));
+      await store.updateMany('list_items', items.map(id => [id, { [field]: stamp }]));
+      await store.updateMany('lists', ids.map(id => [id, { [field]: stamp }]));
+      await render();
+      undoable(`${label} ${listsWord(ids)}`, async () => {
+        await store.updateMany('lists', ids.map(id => [id, { [field]: null }]));
+        await store.updateMany('list_items', items.map(id => [id, { [field]: null }]));
+        render();
+      });
+    }
+    async function cardOrder(rows, label, ul, moved) {
+      const writes = reorderWrites(rows, r => rankFor(listOf(r.id)), moved);
+      const before = writes.map(([r]) => [r.id, { rank: listOf(r.id)?.rank ?? null }]);
+      await store.updateMany('lists', writes.map(([r, rank]) => [r.id, { rank }]));
+      await render();
+      undoable(label, async () => { await store.updateMany('lists', before); render(); });
+    }
+    const gridKit = this.gridKit = createListKit({
+      reorder: true, grid: true, holdSelect: true, noun: 'list', onReorder: cardOrder,
+      actions: [
+        { id: 'colour', label: 'Colour…', run: ids => { colourMenu(document.querySelector('[data-kit-action="colour"]'), null, v => colourLists(ids, v)); } },
+        { id: 'archive', label: 'Archive', key: 'A', run: ids => putAway(ids, 'archived_at', 'Archived') },
+        { id: 'delete', label: 'Delete', key: 'D', danger: true, run: ids => putAway(ids, 'deleted_at', 'Deleted') },
+      ],
+    });
+
+    // Opening a list: its card grows into the page; back, the page shrinks into its card (zoom.js, as Find Things' boxes).
+    let gridScroll = 0;
+    const cardFor = id => body.querySelector(`.list-card-li[data-list="${CSS.escape(id || '')}"]`);
+    this.openList = async ([id, from, owner] = []) => {
+      id = id || null; owner = from === 'from' ? owner || null : null;
+      const leaving = state.id;
+      if (!!id === !!leaving) { state.id = id; state.owner = owner; return render(); } // list to list (a copy's template): no zoom
+      gridKit.clear(); kit.clear();
+      const start = id ? cardFor(id) : body.querySelector('.list-page');
+      if (id) gridScroll = scrollY;
+      if (start) start.style.viewTransitionName = ZOOM;
+      await zoom(async () => {
+        if (start) start.style.viewTransitionName = '';
+        state.id = id; state.owner = owner;
+        await render();
+        const end = id ? body.querySelector('.list-page') : cardFor(leaving);
+        if (end) end.style.viewTransitionName = ZOOM;
+        scrollTo(0, id ? 0 : gridScroll);
+      });
+      body.querySelectorAll('[style*="view-transition-name"]').forEach(n => { n.style.viewTransitionName = ''; });
+    };
+
     // Naming a list: Enter or Tab saves the name and goes on to "Add items".
     body.addEventListener('keydown', ev => {
       const n = ev.target.closest?.('[data-list-name]');
@@ -652,16 +716,14 @@ export default {
 
     this.onKey = ev => {
       if (ev.key === 'Escape' && openItem && !ev.defaultPrevented && !document.querySelector('.ref-picker')) { ev.preventDefault(); toggleItem(openItem); return; }
-      if (ev.key === 'Escape' && !ev.target.closest('input, textarea, select, [contenteditable]') && kit.escape()) ev.preventDefault();
+      if (ev.key === 'Escape' && !ev.target.closest('input, textarea, select, [contenteditable]') && (state.id ? kit : gridKit).escape()) ev.preventDefault();
     };
     addEventListener('keydown', this.onKey);
     await render();
   },
 
-  route([id, from, owner]) {
-    this.state.id = id || null;
-    this.state.owner = from === 'from' ? owner || null : null;
-    return this.render();
+  route(parts) {
+    return this.openList(parts);
   },
 
   unmount() {
@@ -670,6 +732,7 @@ export default {
     this.kitChecklist?.destroy();
     this.pills?.destroy();
     this.kitTemplate?.destroy();
+    this.gridKit?.destroy();
     removeEventListener('keydown', this.onKey);
   },
 

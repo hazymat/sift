@@ -9,6 +9,7 @@ const SHELL = [
   'manifest.webmanifest',
   'css/app.css',
   'js/app.js',
+  'js/zoom.js',
   'js/store.js',
   'js/sortable.js',
   'js/rows.js',

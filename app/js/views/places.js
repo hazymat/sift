@@ -19,28 +19,19 @@ import { ask, askText, askYes, askEmptied } from '../ask.js';
 import { word } from '../words.js';
 import { keys } from '../keys.js';
 import { atEdge, caretTo } from '../walk.js';
+import { ZOOM, zoom } from '../zoom.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
 const EDITION_KEY = 'sift-find-edition';
 // What the headings holding boxes are called (stored as kind "section").
 const GROUP = { one: 'group', One: 'Group' };
-const ZOOM = 'box-zoom'; // view-transition-name shared by a card and its box page
 
 function remember(key, value) {
   try { localStorage.setItem(key, value); } catch {}
 }
 function recall(key) {
   try { return localStorage.getItem(key); } catch { return null; }
-}
-
-// Animate a DOM change as a zoom between a card and the box page, where the
-// browser supports view transitions; otherwise just make the change. With
-// "reduce motion" on, the zoom still runs, a little quicker (see app.css).
-async function zoom(update) {
-  if (!document.startViewTransition) return update();
-  const t = document.startViewTransition(update);
-  await t.finished.catch(() => {});
 }
 
 export default {
