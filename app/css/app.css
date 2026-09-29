@@ -1215,6 +1215,7 @@ a.chip { color: var(--text); text-decoration: none; }
 .dump-filter::-webkit-scrollbar { display: none; }
 .dump-filter-row button { flex: none; background: none; border: 0; border-bottom: 2px solid transparent; border-radius: 0; box-shadow: none; padding: 6px 9px 5px; font-size: .85rem; line-height: 1.2; color: var(--muted); }
 .dump-filter button[aria-pressed="true"] { color: inherit; border-bottom-color: currentColor; font-weight: 600; }
+.dump-filter-row button:hover:not(:disabled) { background: none; color: var(--text); } /* underline tabs never get a box, as Tasks' */
 .thought-list { list-style: none; margin: 10px 0; padding: 0; display: grid; gap: 10px; }
 .thought { padding: 10px 14px 10px; border-radius: 20px; background: var(--glass); border: 1px solid var(--glass-border); }
 .thought.pinned { border-color: var(--active-border); }
@@ -3445,6 +3446,11 @@ dialog.att-view::backdrop { background: rgb(0 0 0 / .82); }
 .scans-head .scan-btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 20px; font-size: 1rem; }
 .scans-head .scan-btn .icon { width: 20px; height: 20px; }
 .scans-head > .search-wrap { flex: 1 1 12em; }
+/* Phones: Scan (or + New contract), Share, 👁 and ⋯ on one line, the search full width under them (as Find Things'). */
+@media (max-width: 560px) {
+  .scans-head > .search-wrap { order: 1; flex-basis: 100%; }
+  .scans-head > .page-share { margin-left: auto; }
+}
 .scan-kinds { margin: 0 0 8px; }
 .scan-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-top: 10px; }
 #main[data-density="tight"] .scan-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
