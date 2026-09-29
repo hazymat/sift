@@ -703,9 +703,6 @@ NOTES['1.35.48'] = [
   B("The browser's password manager no longer fills your email into the search box: Sync's sign-in and password boxes are now forms of their own, so it fills those instead."),
 ]
 NOTES['1.35.49'] = [
-  B("Phones: in the full-screen note editor, the formatting toolbar sits under the note's name and Done, so iPhone Safari's own floating ↑ ↓ ✓ bar (iOS 26) no longer covers it."),
-]
-NOTES['1.35.49'] = [
   F("Day Planner: the name of the section after the day ends (Evening plans) is in the same font as the Schedule times, in every theme, including a custom theme's Schedule times font."),
 ]
 NOTES['1.35.50'] = [
@@ -903,3 +900,4 @@ NOTES['1.51.20'] = [F('Picking an item up gives it a springy wobble: it swings p
 NOTES['1.51.21'] = [F('Carried items are less blue and more see-through; the press and hold shading and its rings match.')]
 NOTES['1.51.22'] = [F('Carried items look a little more like glass: more frosted, a brighter edge, and (in Chrome) a little more colour split, while staying light and see-through.')]
 NOTES['1.51.23'] = [B('Tasks and Lists: the dashed outline of where a carried item will land stays the item\'s own height once it moves (it had grown taller, over the rows around it, from the item\'s tilt).')]
+NOTES['1.51.24'] = [B("Phones: in the full-screen note editor, the formatting toolbar sits under the note's name and Done, so iPhone Safari's own floating ↑ ↓ ✓ bar (iOS 26) no longer covers it.")]
