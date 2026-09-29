@@ -204,6 +204,7 @@ export default {
           <span class="muted box-hits" aria-live="polite"></span>
         </div>
         <article class="box-page" style="--tint: ${tintHex(b)}">
+          <div class="box-lid">
           <header class="box-page-head">
             <button type="button" class="note-dot box-colour" data-act="box-colour" title="Box colour" aria-label="Box colour"><span class="swatch" style="--sw:${tintHex(b)}"></span></button>
             <input class="box-code-input" name="label_code" value="${esc(b.label_code)}" placeholder="Label" aria-label="Label (what is written on it, e.g. A1)" title="Label: what is written on it, e.g. A1" autocomplete="off">
@@ -213,6 +214,8 @@ export default {
             <label>Where it lives<input name="location_note" value="${esc(b.location_note)}" placeholder="${esc(word('ph_box_where'))}" autocomplete="off"></label>
             <label>Notes<input name="notes" value="${esc(b.notes)}" placeholder="${esc(word('ph_box_notes'))}" autocomplete="off"></label>
           </div>
+          </div>
+          <div class="box-inside">
           <h3>Contents <span class="muted">${b.items.length}</span></h3>
           <ul class="item-list">${b.items.map(i => `
             <li data-id="${i.id}" data-item="${i.id}" data-depth="${i.depth}" style="--tint: ${tintHex(i)}">
@@ -228,6 +231,7 @@ export default {
           </ul>
           <datalist id="thing-tags">${allTags().map(t => `<option value="${esc(t)}">`).join('')}</datalist>
           <textarea id="new-items" class="list-entry" rows="2" placeholder="${esc(word('ph_add_items'))}"></textarea>
+          </div>
           <p class="muted hint">${listHint({ enterAdds: true })} The cube: tap to select, swipe down the cubes to select several, press and hold to drag (sideways to indent; or Tab / Shift+Tab). Changes save as you go; Esc closes.</p>
           <div class="sheet-actions">
             <button type="button" data-act="add-items">Add items ${keys(SHORTCUT)}</button>
