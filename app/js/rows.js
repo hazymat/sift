@@ -62,8 +62,10 @@ export function measureRows(page, ul, entryInput = null) {
   if (ti) { const x = textX(ti, ti.closest('li')); if (x > 0) page.style.setProperty('--title-x', `${x}px`); }
   const en = entryInput?.closest('.task-entry');
   if (en) { const x = textX(entryInput, en) - (parseFloat(en.style.getPropertyValue('--ind')) || 0); if (x > 0) page.style.setProperty('--entry-x', `${x}px`); }
-  // Every line the same height: the new line matches a plain row.
-  const plain = [...(ul?.querySelectorAll(':scope > li[data-task]') || [])].map(li => li.getBoundingClientRect().height).filter(h => h > 0);
+  // Every line the same height: the new line matches a plain row, measured to the bottom of its
+  // text (a note, chips or pills under a row don't count, even when every row has them).
+  const lineH = li => { const b = li.getBoundingClientRect(), t = li.querySelector(':scope > .task-title')?.getBoundingClientRect(), cs = getComputedStyle(li); return t?.height ? t.bottom - b.top + parseFloat(cs.paddingBottom) + parseFloat(cs.borderBottomWidth) : b.height; };
+  const plain = [...(ul?.querySelectorAll(':scope > li[data-task]') || [])].map(lineH).filter(h => h > 0);
   if (plain.length) page.style.setProperty('--task-row-h', `${Math.min(...plain)}px`);
 }
 
