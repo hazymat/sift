@@ -257,14 +257,15 @@ function installKeyNav() {
 // Not from inside something that scrolls sideways, a dialog, a full-screen
 // note, a grab bar or a slider, while text is selected, or while writing in a
 // field (an empty one the page put the cursor in doesn't count: it's left).
-// In Safari, a swipe from the screen's edge would go back or forward a page:
-// touches starting there (not on a button or a field) are kept for the app.
-// (An app on the Home Screen has no such swipe, and Android's own back gesture
-// can't be stopped.) overscroll-behavior-x in app.css stops the same in Chrome.
+// On iPhone and iPad a swipe from the screen's edge goes back or forward a page,
+// in Safari and in an app on the Home Screen alike: touches starting there (not
+// on a button or a field) are kept for the app. That's checked before anything
+// else on the page sees the touch, so nothing can let one through. (Android's
+// own back gesture can't be stopped.) overscroll-behavior-x in app.css stops the same in Chrome.
 function installSwipe() {
   if (!matchMedia('(pointer: coarse)').matches) return;
   const EDGE = 20;
-  const safariTab = /iPhone|iPad|iPod/.test(navigator.userAgent) && !navigator.standalone;
+  const apple = /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1); // (an iPad says it's a Mac)
   let start = null;
   // Where a swipe doesn't change page: dragging, choosing text, the bar of areas (and below it), a menu or
   // full-screen note, anything that scrolls sideways itself.
@@ -278,13 +279,16 @@ function installSwipe() {
     }
     return false;
   };
+  if (apple) addEventListener('touchstart', ev => {
+    const t = ev.touches[0];
+    if (ev.touches.length !== 1 || (t.clientX >= EDGE && t.clientX <= innerWidth - EDGE)) return;
+    if (!ev.target.closest?.('a, button, input, textarea, select, label, summary, [contenteditable="true"], [role="button"]')) ev.preventDefault();
+  }, { passive: false, capture: true });
   addEventListener('touchstart', ev => {
     if (ev.touches.length !== 1) { start = null; return; }
     const t = ev.touches[0];
     start = { x: t.clientX, y: t.clientY, at: Date.now(), el: ev.target, sideways: false };
-    const edge = t.clientX < EDGE || t.clientX > innerWidth - EDGE;
-    if (safariTab && edge && !ev.target.closest?.('a, button, input, textarea, select, label, summary, [contenteditable="true"], [role="button"]')) ev.preventDefault();
-  }, { passive: false });
+  }, { passive: true });
   // Once a touch is plainly sideways it's the page's swipe: the page doesn't scroll up or down with it.
   addEventListener('touchmove', ev => {
     const s = start;
