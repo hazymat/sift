@@ -134,6 +134,11 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     startX = lastX = x;
     startY = lastY = y;
     item.classList.add('dragging');
+    // The finger's events can stop reaching the list once it lifts (the view redraws the row, or
+    // the phone doesn't hand the touch over): follow them on the whole page till let go.
+    addEventListener('pointermove', strayMove);
+    addEventListener('pointerup', strayEnd);
+    addEventListener('pointercancel', strayEnd);
     onLift?.(item);
     if (onOnto && !grid) {
       slot = document.createElement('div');
@@ -160,6 +165,9 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     },
   }) : null;
 
+  // A drag still on from a touch whose end never came: put it down before a new press starts.
+  list.addEventListener('pointerdown', () => { if (dragging) finish({ type: 'pointercancel' }); }, true);
+
   list.addEventListener('pointerdown', e => {
     const grip = e.target.closest(handle);
     if (!grip || !list.contains(grip) || e.button > 0) return;
@@ -180,7 +188,8 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     };
   });
 
-  list.addEventListener('pointermove', e => {
+  list.addEventListener('pointermove', e => onMove(e));
+  function onMove(e) {
     lastX = e.clientX;
     lastY = e.clientY;
     if (pending) {
@@ -201,9 +210,13 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     }
     place(e.clientY, e.clientX);
     follow(e.clientY, e.clientX);
-  });
+  }
+  // Events outside the list while carrying (inside it, the list's own listeners have them).
+  const stray = e => dragging && !list.contains(e.target);
+  const strayMove = e => { if (stray(e)) onMove(e); };
+  const strayEnd = e => { if (stray(e)) finish(e); };
 
-  const finish = e => {
+  function finish(e) {
     hold?.cancel();
     hold?.letGo();
     if (pending) {
@@ -218,6 +231,9 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
       return;
     }
     if (!dragging) return;
+    removeEventListener('pointermove', strayMove);
+    removeEventListener('pointerup', strayEnd);
+    removeEventListener('pointercancel', strayEnd);
     const item = dragging;
     slot?.remove();
     slot = null;
@@ -227,8 +243,9 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     dragging = null;
     const target = onto;
     if (onto) setOnto(null);
-    onEnd?.({ item, dx: lastX - startX, onto: target });
-  };
+    if (item.isConnected) onEnd?.({ item, dx: lastX - startX, onto: target });
+    else document.body.classList.remove('is-dragging'); // the view drew the list again meanwhile: nothing to put down
+  }
   list.addEventListener('pointerup', finish);
   list.addEventListener('pointercancel', finish);
 
