@@ -74,8 +74,9 @@ export default {
         <div class="find-bar">
           <input type="search" id="find-q" class="search" placeholder="${esc(word('ph_find_search'))}" autocomplete="off" enterkeyhint="search">
         </div>
-        <div class="find-tools">
-          <div class="segmented" id="editions" role="tablist" aria-label="Life areas"></div>
+        <!-- Life areas: a filter bar like Brain Dump's and Tasks' (underlined tabs), ⋯ at its end. -->
+        <div class="dump-filter-row find-areas">
+          <div class="dump-filter" id="editions" role="tablist" aria-label="Life areas"></div>
           <button type="button" class="filter-more area-more" data-act="edition-menu" title="Rename, move or remove this life area" aria-label="Life area: rename, move or remove">⋯</button>
         </div>
         <div id="find-body"></div>
@@ -145,8 +146,7 @@ export default {
       tabs.innerHTML = tree.map(e =>
         `<button type="button" role="tab" data-edition="${e.id}" aria-pressed="${e.id === current?.id}">${esc(e.name)}</button>`
       ).join('');
-      tabs.hidden = query !== '' || tree.length === 0;
-      el.querySelector('.area-more').hidden = tabs.hidden;
+      el.querySelector('.find-areas').hidden = query !== '' || tree.length === 0;
 
       if (query) {
         const results = search(tree, query);
