@@ -22,7 +22,7 @@
 import * as store from './store.js';
 
 const CLIENT_ID = '608204699309-s1aumq1dur7r79pu1al0t8gmggheeml5.apps.googleusercontent.com';
-const SCOPE = 'https://www.googleapis.com/auth/calendar.readonly';
+const SCOPE = 'https://www.googleapis.com/auth/calendar.events.readonly'; // narrowest scope that reads event details (Google reviews it)
 const API = 'https://www.googleapis.com/calendar/v3';
 const CONNECTED = 'sift-gcal';
 const TOKEN = 'sift-gcal-token';
