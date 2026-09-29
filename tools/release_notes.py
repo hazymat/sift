@@ -904,3 +904,4 @@ NOTES['1.51.24'] = [B("Phones: in the full-screen note editor, the formatting to
 NOTES['1.51.25'] = [B("Phones: the full-screen note editor's toolbar is back at the bottom by the keyboard; on iPhones with iOS 26 it sits just above Safari's own floating ↑ ↓ ✓ bar, so that no longer covers it.")]
 NOTES['1.51.26'] = [F("Day Planner, Bring in from tasks: ✓ Did it ticks off a task that's already done (with Undo, and a closing comment if you like), next to Claim for today.")]
 NOTES['1.51.27'] = [F("Batch Book: lots of tags no longer fill the top of the page. They sit on one line that scrolls sideways (a chosen tag comes first), and All ▾ drops them all down over the recipes.")]
+NOTES['1.51.28'] = [F("Batch Book: 📖 Recipes / 🧪 Batches sit up by the search, so on a phone the books have the whole line under it.")]

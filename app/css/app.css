@@ -3817,9 +3817,10 @@ body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none
 .bb-sections::-webkit-scrollbar, .bb-status::-webkit-scrollbar { display: none; }
 .bb-sections button, .bb-status button, .bb-sections-edit { flex: none; width: auto; height: auto; background: none; border: 0; border-bottom: 2px solid transparent; border-radius: 0; box-shadow: none; padding: 6px 9px 5px; font-size: .9rem; line-height: 1.2; color: var(--muted); }
 /* Recipes | Batches, at the right of the books bar, just before ⋯ */
-.bb-mode { display: flex; flex: none; align-items: stretch; gap: 2px; margin-left: 4px; padding-left: 6px; border-left: 1px solid var(--glass-border); }
-.bb-mode button { flex: none; width: auto; height: auto; padding: 6px 9px 5px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; box-shadow: none; font-size: .9rem; line-height: 1.2; color: var(--muted); white-space: nowrap; }
-.bb-mode button[aria-pressed="true"] { color: inherit; font-weight: 600; border-bottom-color: currentColor; background: color-mix(in srgb, var(--muted) 16%, transparent); border-radius: 8px 8px 0 0; }
+/* Recipes / Batches: up with New recipe and the search, so the books have the whole line under them
+   (on a phone it starts the second line, which otherwise only has the page's buttons at its end). */
+.bb-mode { flex: none; flex-wrap: nowrap; margin-right: auto; padding: 3px; gap: 3px; }
+.bb-mode button { padding: 5px 12px; font-size: .88rem; line-height: 1.2; white-space: nowrap; }
 .bb-sections { flex-wrap: nowrap; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
 .bb-sections button { white-space: nowrap; border-bottom-color: color-mix(in srgb, var(--bb, var(--muted)) 35%, transparent); }
 .bb-sections button[aria-pressed="true"] { background: color-mix(in srgb, var(--bb, var(--muted)) 16%, transparent); border-radius: 8px 8px 0 0; }
