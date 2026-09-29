@@ -690,6 +690,12 @@ body.has-select-bar .toast { bottom: 82px; }
   max-width: calc(100vw - 32px);
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+/* The countdown: how long it stays, running down from the top (toast.js). */
+.toast-timer { flex: none; width: 16px; height: 16px; margin: 0 -4px 0 -6px; transform: rotate(-90deg); }
+.toast-timer circle { fill: none; stroke-width: 2.6; }
+.toast-timer .toast-track { stroke: color-mix(in srgb, var(--text) 16%, transparent); }
+.toast-timer .toast-left { stroke: var(--accent, var(--text)); stroke-linecap: round; stroke-dasharray: 100; animation: toast-left var(--ms, 6s) linear forwards; }
+@keyframes toast-left { to { stroke-dashoffset: -100; } }
 .toast span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .toast button { padding: 3px 12px; font-weight: 600; color: var(--accent); background: none; box-shadow: none; border-color: var(--glass-border); }
 @media (min-width: 768px) { .toast { bottom: 28px; } }
