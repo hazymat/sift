@@ -897,3 +897,4 @@ NOTES['1.51.17'] = [F('Carried items are a little more see-through, and lines un
 NOTES['1.51.18'] = [F('A lifted item turns its slight tilt in smoothly, and when let go it glides into its place and straightens, rather than snapping.')]
 NOTES['1.51.19'] = [B('Tasks and Lists: an item dragged and put back where it was no longer says "Moved" with Undo, and adds nothing to undo.')]
 NOTES['1.51.20'] = [F('Picking an item up gives it a springy wobble: it swings past its tilt, back and again, settling at the tilt. Putting it down, it wobbles straight the same way.')]
+NOTES['1.51.21'] = [F('Carried items are less blue and more see-through; the press and hold shading and its rings match.')]
