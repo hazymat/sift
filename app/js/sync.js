@@ -257,9 +257,14 @@ const IN_SCOPE = {
   days: (info, c, r) => (c === 'days' || c === 'day_items') && !!r.date && (!info.from || r.date >= info.from) && (!info.to || r.date <= info.to),
   project: (info, c, r) => (c === 'projects' && r.id === info.id) || ((c === 'milestones' || c === 'tasks' || c === 'comments') && r.project_id === info.id),
 };
-const SHAREABLE = ['lists', 'list_items', 'thoughts', 'days', 'day_items', 'recipes', 'recipe_makes', 'recipe_entries', 'projects', 'milestones', 'tasks', 'comments'];
+const SHAREABLE = ['lists', 'list_items', 'thoughts', 'days', 'day_items', 'recipes', 'recipe_makes', 'recipe_entries', 'projects', 'milestones', 'tasks', 'comments', 'attachments'];
 // A comment goes where its task goes: it carries task_id, so its task's project is looked up.
+// An attachment (a photo, a file) goes where the thing it's on goes: its parent, looked up (_parent).
 async function scoped(space, c, r) {
+  if (c === 'attachments') {
+    const parent = r.parent_collection && r.parent_id && await space.get(r.parent_collection, r.parent_id, { includeDeleted: true });
+    return Object.assign({}, r, { _parent: parent ? [r.parent_collection, await scoped(space, r.parent_collection, parent)] : null });
+  }
   if (c !== 'comments') return r;
   const task = r.task_id && await space.get('tasks', r.task_id, { includeDeleted: true });
   return Object.assign({}, r, { project_id: task?.project_id || null });
@@ -270,7 +275,7 @@ async function idsWhere(space, c, test) {
   for (const r of await space.list(c, { includeDeleted: true })) if (test(await scoped(space, c, r))) out.push(r.id);
   return out;
 }
-export const inShare = (sh, c, r) => !!IN_SCOPE[sh.info?.kind]?.(sh.info, c, r);
+export const inShare = (sh, c, r) => (c === 'attachments' ? !!r._parent && inShare(sh, r._parent[0], r._parent[1]) : !!IN_SCOPE[sh.info?.kind]?.(sh.info, c, r));
 function routes(space, c, r) {
   return shares.filter(sh => sh.accepted && (space.isLocal ? sh.mine : !sh.mine && space === store.spaceOf(sh.owner_id)) && inShare(sh, c, r)).map(sh => sh.id);
 }
@@ -287,6 +292,14 @@ async function push() {
       if (ids.length) await space.queue('comments', ids, null);
     }
     await store.metaSet('comments_shared', true);
+  }
+  // Once (1.55.00): files (photos…) on shared things weren't shared before; they go up now.
+  if (!await store.metaGet('files_shared')) {
+    for (const space of spaces) {
+      const ids = await idsWhere(space, 'attachments', r => shares.some(sh => sh.accepted && inShare(sh, 'attachments', r)));
+      if (ids.length) await space.queue('attachments', ids, null);
+    }
+    await store.metaSet('files_shared', true);
   }
   for (let round = 0; round < 5; round++) {
     let conflicts = 0;
@@ -305,13 +318,17 @@ async function pushSpace(space) {
       const rec = await space.get(e.collection, e.id, { includeDeleted: true });
       if (!rec) { await space.markPushed(e.collection, e.id, {}, e.queued_at); continue; }
       const inShares = routes(space, e.collection, await scoped(space, e.collection, rec));
-      // A task into or out of a share: its comments follow (queued, they go next round).
-      if (e.collection === 'tasks') {
-        const was = Object.keys(rec._share_seqs || {}).filter(id => rec._share_seqs[id]).sort().join();
-        if (was !== [...inShares].sort().join()) {
+      // Into or out of a share: what hangs on it follows (queued, it goes next round): a task's comments,
+      // and the files on anything; a file's own copy goes (again) to wherever it now belongs.
+      const was = Object.keys(rec._share_seqs || {}).filter(id => rec._share_seqs[id]).sort().join();
+      if (was !== [...inShares].sort().join()) {
+        if (e.collection === 'tasks') {
           const ids = (await space.list('comments', { includeDeleted: true, filter: k => k.task_id === rec.id })).map(k => k.id);
           if (ids.length) await space.queue('comments', ids, null);
         }
+        const files = (await space.list('attachments', { includeDeleted: true, filter: a => a.parent_id === rec.id })).map(a => a.id);
+        if (files.length) await space.queue('attachments', files, null);
+        if (e.collection === 'attachments' && inShares.length) { const blob = await space.getBlob(rec.blob_id); if (blob) await space.putBlob(rec.blob_id, blob); }
       }
       // Just taken out of a share (a task moved out of a shared project): that share has it once more,
       // so everyone sharing sees it go, and then no more (its seq there is set to 0 below).
@@ -482,8 +499,11 @@ export async function loadShares() { if (account && keys) { try { await refreshS
 
 const MAX_AUTO_DOWNLOAD = 5 * 1024 * 1024; // bigger files are fetched when you open them
 
-async function fileRequest(method, id, body) {
-  const res = await timedFetch(`${account.server}/api/blobs/${await cx.opaqueId(keys, 'blobs', id)}`, {
+// A file lives where its record does: in your own files, or (on something shared) in the share's,
+// under the share's key, where everyone in it can fetch it. `sh` is that share, or null for your own.
+async function fileRequest(method, id, body, sh = null) {
+  const placeKeys = sh ? sh.keys : keys;
+  const res = await timedFetch(`${account.server}/api${sh ? `/shares/${sh.id}` : ''}/blobs/${await cx.opaqueId(placeKeys, 'blobs', id)}`, {
     method, headers: { Authorization: `Bearer ${account.token}` }, body,
   }, 5 * 60 * 1000); // files may be big: up to 5 minutes
   if (res.status === 401 || (!res.ok && res.status !== 404)) {
@@ -493,42 +513,63 @@ async function fileRequest(method, id, body) {
   }
   return res;
 }
+// Your own space and the spaces of people sharing with you.
+const fileSpaces = () => [store.local, ...new Set(shares.filter(sh => sh.accepted && !sh.mine).map(sh => store.spaceOf(sh.owner_id)))];
+// Where an attachment's file goes: the shares its record is in, or your own files (null).
+async function filePlaces(space, a) {
+  const ids = routes(space, 'attachments', await scoped(space, 'attachments', a));
+  return ids.length ? ids.map(id => shares.find(sh => sh.id === id)) : space.isLocal ? [null] : [];
+}
 
 async function pushFiles() {
-  for (const row of await store.blobsToUpload()) {
-    const att = await store.get('attachments', row.blob_id, { includeDeleted: true });
-    if (!att || att.deleted_at) continue; // removed again: nothing to send
-    const sealed = await cx.sealBlob(keys, new Uint8Array(await row.data.arrayBuffer()));
-    await fileRequest('PUT', row.blob_id, sealed);
-    await store.markBlobUploaded(row.blob_id);
+  for (const space of fileSpaces()) {
+    for (const row of await space.blobsToUpload()) {
+      const att = await space.get('attachments', row.blob_id, { includeDeleted: true });
+      if (!att || att.deleted_at) continue; // removed again: nothing to send
+      const places = await filePlaces(space, att);
+      if (!places.length) continue;
+      const bytes = new Uint8Array(await row.data.arrayBuffer());
+      for (const sh of places) {
+        const res = await fileRequest('PUT', row.blob_id, await cx.sealBlob(sh ? sh.keys : keys, bytes), sh);
+        if (!res.ok) throw new Error('Your sync server needs updating before photos on shared things can be shared');
+      }
+      await space.markBlobUploaded(row.blob_id);
+    }
   }
 }
 
-// Fetch one attachment's file from the server (null if it isn't there yet).
-export async function downloadFile(a) {
+// Fetch one attachment's file from the server (null if it isn't there yet), into the space it's in.
+export async function downloadFile(a, space = store.space()) {
   if (!account || !keys) return null;
-  const res = await fileRequest('GET', a.blob_id);
-  if (res.status === 404) return null;
-  const plain = await cx.openBlob(keys, new Uint8Array(await res.arrayBuffer()));
-  const blob = new Blob([plain], { type: a.mime });
-  await store.putBlob(a.blob_id, blob, { uploaded: true });
-  return blob;
+  for (const sh of await filePlaces(space, a)) {
+    const res = await fileRequest('GET', a.blob_id, undefined, sh);
+    if (res.status === 404) continue;
+    const plain = await cx.openBlob(sh ? sh.keys : keys, new Uint8Array(await res.arrayBuffer()));
+    const blob = new Blob([plain], { type: a.mime });
+    await space.putBlob(a.blob_id, blob, { uploaded: true });
+    return blob;
+  }
+  return null;
 }
 
 async function pullFiles() {
   let arrived = 0;
-  for (const a of await store.list('attachments')) {
-    if (a.size > MAX_AUTO_DOWNLOAD || await store.hasBlob(a.blob_id)) continue;
-    await downloadFile(a);
-    arrived++;
-    setStatus({ filesWaiting: Math.max(0, status.filesWaiting - 1) });
+  for (const space of fileSpaces()) {
+    for (const a of await space.list('attachments')) {
+      if (a.size > MAX_AUTO_DOWNLOAD || await space.hasBlob(a.blob_id)) continue;
+      if (await downloadFile(a, space)) arrived++;
+      setStatus({ filesWaiting: Math.max(0, status.filesWaiting - 1) });
+    }
   }
   return arrived;
 }
 // How many files are still to go up or come down to this device.
 async function filesWaiting() {
-  let n = (await store.blobsToUpload()).length;
-  for (const a of await store.list('attachments')) if (a.size <= MAX_AUTO_DOWNLOAD && !await store.hasBlob(a.blob_id)) n++;
+  let n = 0;
+  for (const space of fileSpaces()) {
+    n += (await space.blobsToUpload()).length;
+    for (const a of await space.list('attachments')) if (a.size <= MAX_AUTO_DOWNLOAD && !await space.hasBlob(a.blob_id)) n++;
+  }
   return n;
 }
 
@@ -540,10 +581,10 @@ function syncFiles() {
   if (filesRunning) return filesRunning;
   filesRunning = (async () => {
     try {
-      setStatus({ files: 'syncing', filesWaiting: await filesWaiting(), filesWaitingUp: (await store.blobsToUpload()).length });
+      setStatus({ files: 'syncing', filesWaiting: await filesWaiting(), filesWaitingUp: (await Promise.all(fileSpaces().map(sp => sp.blobsToUpload()))).flat().length });
       await pushFiles();
       const arrived = await pullFiles();
-      setStatus({ files: 'idle', fileError: null, filesWaiting: await filesWaiting(), filesWaitingUp: (await store.blobsToUpload()).length, filesArrived: arrived });
+      setStatus({ files: 'idle', fileError: null, filesWaiting: await filesWaiting(), filesWaitingUp: (await Promise.all(fileSpaces().map(sp => sp.blobsToUpload()))).flat().length, filesArrived: arrived });
     } catch (e) {
       console.warn('Files not synced:', e.message);
       setStatus({ files: 'error', fileError: e.message });
