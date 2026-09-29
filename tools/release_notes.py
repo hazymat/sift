@@ -976,3 +976,4 @@ NOTES['1.57.03'] = [F('Find Things: the ⋯ after the life areas, and the ⋯ by
 NOTES['1.57.04'] = [F('Find Things boxes and Contacts cards: the ⠿ now sits in the top left corner, as on Batch Book\'s recipe cards, with the name moved over to make room. On a computer it shows when you point at the card; on a phone it is always there.')]
 NOTES['1.57.05'] = [F('On a phone, swiping sideways on an open box goes back to the boxes, as swiping on a project goes back to Projects. The same swipe goes back from an open list, contact, case, recipe, batch, scan or contract.')]
 NOTES['1.57.06'] = [F('Find Things: in an open box, Add items is now at the top of the contents, as in Tasks and Lists, with an Add button beside it.')]
+NOTES['1.57.07'] = [F('Find Things: an open box\'s Add items is a single line in line with the things in it, with a faint cube on its left, instead of a box.')]
