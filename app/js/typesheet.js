@@ -9,8 +9,11 @@
 //     list() → [{ id, label }] (read again after every change); rename(id, label), reorder(ids, movedId),
 //     remove(id) (may ask first), add(label), defaults() (optional "Put back the defaults"); all may be async.
 //     keepOne: the last one can't be removed.
+//     nested: two levels (Find Things' life areas and their groups): list() gives each a depth (0 or 1), rows
+//     drag, drop onto a row and indent the Tasks way (listkit.js), and arrange(rows, moved) gets [{ id, depth }].
 
 import { sortable } from './sortable.js';
+import { createListKit } from './listkit.js';
 import { toast } from './toast.js';
 import { word, dumpTypes, setDumpTypes, DEFAULT_TYPES, applyWords } from './words.js';
 
@@ -46,17 +49,29 @@ export async function openTypesSheet(changed) {
   });
 }
 
-export function openManager({ title, intro = '', placeholder = '', list, rename, reorder, remove, add, defaults = null, keepOne = false }) {
+export function openManager({ title, intro = '', placeholder = '', list, rename, reorder, remove, add, defaults = null, keepOne = false, nested = false, arrange }) {
   const dlg = document.createElement('dialog');
   dlg.className = 'sheet words-sheet';
   document.body.append(dlg);
-  dlg.addEventListener('close', () => dlg.remove());
+  // Nested: the Tasks list behaviour (hold and drag, drop onto a row, Tab / Shift+Tab, ⠿ to choose several).
+  const kit = nested ? createListKit({ reorder: true, indent: true, maxDepth: 1, holdAnywhere: true, sideways: false, noun: 'row',
+    onReorder: async (rows, label, ul, moved) => { await arrange(rows, moved); draw(); },
+    onNest: async (ids, target) => {
+      const rows = list().filter(t => !ids.includes(t.id)), at = rows.findIndex(t => t.id === target);
+      let end = at + 1;
+      while (end < rows.length && rows[end].depth > rows[at].depth) end++;
+      rows.splice(end, 0, ...list().filter(t => ids.includes(t.id)).map(t => ({ ...t, depth: rows[at].depth + 1 })));
+      await arrange(rows.map(t => ({ id: t.id, depth: t.depth })), ids);
+      draw();
+    } }) : null;
+  dlg.addEventListener('close', () => { kit?.destroy(); dlg.remove(); });
+  dlg.addEventListener('cancel', e => { if (kit?.escape()) e.preventDefault(); }); // Esc: the selection first
   const draw = () => {
     const items = list();
     dlg.innerHTML = `<div class="sheet-handle"></div><h2>${esc(title)}</h2>
-      ${intro ? `<p class="muted">${esc(intro)}</p>` : ''}
-      <ul class="types-list">${items.map(t => `
-        <li data-id="${esc(t.id)}">
+      ${intro ? `<p class="muted${nested ? ' manager-hint' : ''}">${esc(intro)}</p>` : ''}
+      <ul class="types-list${nested ? ' nested' : ''}">${items.map(t => `
+        <li data-id="${esc(t.id)}"${nested ? ` data-depth="${t.depth}"` : ''}>
           <button type="button" class="drag-handle" aria-label="Move ${esc(t.label)}">${icon('i-grip')}</button>
           <input data-type-label value="${esc(t.label)}" aria-label="Name" autocomplete="off">
           <button type="button" class="icon-btn small" data-type="remove" ${items.length > 1 || !keepOne ? '' : 'disabled'} aria-label="Remove">×</button>
@@ -64,6 +79,7 @@ export function openManager({ title, intro = '', placeholder = '', list, rename,
       </ul>
       <form class="types-add"><input name="new" placeholder="${esc(placeholder)}" autocomplete="off"><button type="submit">Add</button></form>
       ${defaults ? '<div class="backup-row"><button type="button" data-type="defaults">Put back the defaults</button></div>' : ''}`;
+    if (kit) { kit.attach(dlg.querySelector('.types-list')); dlg.append(kit.bar); return; }
     // Drag one by its grip (or focus the grip and use the arrow keys).
     sortable(dlg.querySelector('.types-list'), {
       async onEnd({ item }) {

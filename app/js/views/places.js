@@ -77,7 +77,7 @@ export default {
         <!-- Life areas: a filter bar like Brain Dump's and Tasks' (underlined tabs), ⋯ at its end. -->
         <div class="dump-filter-row find-areas">
           <div class="dump-filter" id="editions" role="tablist" aria-label="Life areas"></div>
-          <button type="button" class="filter-more area-more" data-act="edition-menu" title="Add, rename, reorder or remove life areas" aria-label="Manage life areas">⋯</button>
+          <button type="button" class="filter-more area-more" data-act="edition-menu" title="Life areas and groups: add, rename, move or remove" aria-label="Manage life areas and groups">⋯</button>
         </div>
         <div id="find-body"></div>
       </div>
@@ -181,7 +181,7 @@ export default {
       }
       body.innerHTML = current.sections.map(s => `
         <section class="find-section">
-          <h2>${esc(s.name)}${s.location_note ? ` <span class="box-where">${esc(s.location_note)}</span>` : ''}<button type="button" class="group-more" data-act="group-menu" data-group="${s.id}" title="Add, rename, reorder or remove ${GROUP.one}s" aria-label="Manage ${GROUP.one}s">⋯</button></h2>
+          <h2>${esc(s.name)}${s.location_note ? ` <span class="box-where">${esc(s.location_note)}</span>` : ''}</h2>
           <div class="box-grid">${s.boxes.map(b => card(b)).join('')}
             <button type="button" class="box-card add-card" data-act="add-box" data-section="${s.id}">+ New box</button>
           </div>
@@ -539,15 +539,8 @@ export default {
       ],
     });
 
-    // ---------- life areas and groups: their ⋯ opens the manager sheet (typesheet.js, as Brain Dump's types) ----------
+    // ---------- life areas and groups: the life areas ⋯ opens the manager sheet (typesheet.js, as Brain Dump's types) ----------
 
-    // Dragged in the sheet: only the moved one gets a new place, between its new neighbours.
-    async function reorderPlaces(recs, ids, moved) {
-      const at = ids.indexOf(moved), byId = id => recs.find(r => r.id === id);
-      const rank = keyBetween(at > 0 ? rankOf(byId(ids[at - 1])) : null, at < ids.length - 1 ? rankOf(byId(ids[at + 1])) : null);
-      await store.update('places', moved, { rank });
-      await reload();
-    }
     async function renamePlace(id, name) {
       const was = (await store.get('places', id))?.name;
       await store.update('places', id, { name });
@@ -577,28 +570,62 @@ export default {
         await reload();
       });
     }
+    // One sheet for both: life areas with their groups indented under them. Dragging, dropping onto a life area
+    // and Tab / Shift+Tab work as in Tasks. A group taken out to the top becomes a life area of the same name
+    // (holding that group, as boxes live in groups); a life area put under another becomes a group there, if it's empty.
+    const findRec = id => tree.find(e => e.id === id) || tree.flatMap(e => e.sections).find(sec => sec.id === id);
+    async function arrangePlaces(rows, moved) {
+      const before = [], writes = [], made = [];
+      const change = (rec, fields) => { before.push([rec.id, { kind: rec.kind, parent_place_id: rec.parent_place_id ?? null, rank: rec.rank ?? null }]); writes.push([rec.id, fields]); };
+      const areas = [], groupsOf = new Map();
+      let area = null;
+      for (const { id, depth } of rows) {
+        const rec = findRec(id);
+        if (!rec) continue;
+        if (depth === 0) {
+          if (rec.kind === 'section') {
+            // Out to the top: a new life area named after it, with the group moved inside.
+            const fresh = { id: null, name: rec.name, kind: 'edition', from: rec };
+            made.push(fresh); areas.push(fresh); groupsOf.set(fresh, [rec]); area = fresh;
+          } else { areas.push(rec); groupsOf.set(rec, []); area = rec; }
+        } else {
+          if (rec.kind === 'edition' && rec.sections.length) { toast(`A life area with ${GROUP.one}s in it can't go inside another`); return; }
+          if (area) groupsOf.get(area).push(rec);
+        }
+      }
+      for (const fresh of made) fresh.id = (await store.create('places', { kind: 'edition', name: fresh.name, parent_place_id: null, notes: '' })).id;
+      const areaWrites = reorderWrites(areas, x => rankOf(x), areas.filter(x => !x.rank || moved.includes(x.id) || made.includes(x)).map(x => x.id));
+      for (const [rec, rank] of areaWrites) { if (made.includes(rec)) writes.push([rec.id, { rank }]); else change(rec, { rank }); }
+      for (const [parent, groups] of groupsOf) {
+        const shifted = groups.filter(g => g.kind === 'edition' || g.parent_place_id !== parent.id).map(g => g.id);
+        const ranks = new Map(reorderWrites(groups, g => rankOf(g), shifted.concat(moved)).map(([g, rank]) => [g.id, rank]));
+        for (const g of groups) {
+          const fields = {};
+          if (g.kind === 'edition') fields.kind = 'section';
+          if (g.parent_place_id !== parent.id) fields.parent_place_id = parent.id;
+          if (ranks.has(g.id)) fields.rank = ranks.get(g.id);
+          if (Object.keys(fields).length) change(g, fields);
+        }
+      }
+      await store.updateMany('places', writes);
+      await reload();
+      const label = made.length ? `Made ${made.map(x => x.name).join(', ')} a life area` : 'Moved';
+      undoable(label, async () => {
+        await store.updateMany('places', before);
+        for (const fresh of made) await store.remove('places', fresh.id);
+        await reload();
+      });
+    }
     function areasSheet() {
       if (edition()) editionId = edition().id; // the one shown stays shown while they move
       openManager({
-        title: 'Life areas', placeholder: word('ph_new_area'),
-        list: () => tree.map(e => ({ id: e.id, label: e.name })),
+        title: `Life areas / ${GROUP.one}s`, placeholder: word('ph_new_area'), nested: true,
+        intro: `Hold and drag to move. Drop one onto a life area, or press Tab, to make it a ${GROUP.one} in it; drag it back out, or Shift+Tab, to make it a life area.`,
+        list: () => tree.flatMap(e => [{ id: e.id, label: e.name, depth: 0 }].concat(e.sections.map(sec => ({ id: sec.id, label: sec.name, depth: 1 })))),
         rename: renamePlace,
-        reorder: (ids, moved) => reorderPlaces(tree, ids, moved),
-        remove: id => deletePlace(tree.find(e => e.id === id), 'life area'),
+        arrange: arrangePlaces,
+        remove: id => { const rec = findRec(id); return deletePlace(rec, rec.kind === 'edition' ? 'life area' : GROUP.one); },
         add: async name => { await store.create('places', { kind: 'edition', name, parent_place_id: null, notes: '', rank: lastKey(tree) }); await reload(); },
-      });
-    }
-    function groupsSheet() {
-      const e = edition();
-      if (!e) return;
-      const secs = () => tree.find(x => x.id === e.id)?.sections || [];
-      openManager({
-        title: `${GROUP.One}s in ${e.name}`, placeholder: word('ph_new_group'),
-        list: () => secs().map(sec => ({ id: sec.id, label: sec.name })),
-        rename: renamePlace,
-        reorder: (ids, moved) => reorderPlaces(secs(), ids, moved),
-        remove: id => deletePlace(secs().find(sec => sec.id === id), GROUP.one),
-        add: async name => { await store.create('places', { kind: 'section', name, parent_place_id: e.id, location_note: '', notes: '', rank: lastKey(secs()) }); await reload(); },
       });
     }
 
@@ -824,8 +851,6 @@ export default {
         await reload();
       } else if (name === 'edition-menu') {
         areasSheet();
-      } else if (name === 'group-menu') {
-        groupsSheet();
       } else if (name === 'add-section') {
         const ed = current || await store.create('places', { kind: 'edition', name: 'Standard', parent_place_id: null, notes: '', sort_order: 0 });
         const n = await askText(`New ${GROUP.one || GROUP.One.toLowerCase()}`, { placeholder: word('ph_new_group'), ok: 'Add' });
