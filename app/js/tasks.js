@@ -165,7 +165,7 @@ export const binProvider = {
       const count = kids.filter(([c]) => c === 'tasks').length;
       out.push({ collection: 'projects', id: p.id, kind: 'Project', title: p.name, subtitle: '', detail: count ? `${count} task${count === 1 ? '' : 's'}` : '', at: at(p), children: kids.map(([c, r]) => ({ collection: c, id: r.id })), search: `${p.name} ${p.description || ''}` });
     }
-    const gone = tasks.filter(t => inState(t) && !withProject.has(t.id));
+    const gone = tasks.filter(t => inState(t) && !withProject.has(t.id) && !t.moved_away); // moved into someone's shared project: not binned
     const goneIds = new Set(gone.map(t => t.id));
     for (const t of gone) {
       if (t.parent_task_id && goneIds.has(t.parent_task_id)) continue; // comes back with its parent
