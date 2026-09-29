@@ -511,8 +511,8 @@ export default {
       ta.hidden = true;
       const view = row.querySelector('[data-step-view]');
       view.hidden = false;
+      if (!text && !(atts.get(steps[at].id) || []).length) { await saveSteps(o, steps.filter((x, n) => n !== at), steps[at].text ? 'Step removed' : null); return render(); } // (a new step left empty too; one with photos stays)
       if (text === steps[at].text) return;
-      if (!text) { await saveSteps(o, steps.filter((x, n) => n !== at), 'Step removed'); return render(); }
       await saveSteps(o, steps.map((x, n) => (n === at ? Object.assign({}, x, { text }) : x)));
       view.innerHTML = stepHtml(text, recOf(o).ingredients || [], o.collection === 'recipes' ? state.times : 1, esc);
     }
@@ -564,6 +564,15 @@ export default {
       }
       if (!t.matches?.('[data-step-text]')) return;
       if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); t.blur(); return; }
+      // Backspace in an empty step: it goes, and the one above opens at its end.
+      if (ev.key === 'Backspace' && !t.value) {
+        ev.preventDefault();
+        const above = t.closest('[data-step]').previousElementSibling?.dataset.step;
+        await closeStep(t);
+        const view = above && el.querySelector(`[data-step="${above}"] [data-step-view]`);
+        if (view) openStep(view); else el.querySelector('.bb-step-new')?.focus();
+        return;
+      }
       // Enter: this step is done, and the next one starts under it.
       if (ev.key === 'Enter' && !ev.shiftKey) {
         ev.preventDefault();
