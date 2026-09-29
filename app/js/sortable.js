@@ -29,7 +29,13 @@
 // dashed outline (.drop-slot), so there's always one outline saying where it lands.
 import { holdToLift, HOLD_SKIP } from './hold.js';
 
-const TILT = '-.8deg';
+const TILT = -.8; // degrees: the slight twist of a carried row
+// A springy wobble, as a physical thing picked up or put down: from `from` it swings past `to`, back,
+// and again, less each time, settling at `to` (degrees; keyframes for the rotate property).
+const wobble = (from, to, kick) => Array.from({ length: 41 }, (_, n) => {
+  const t = n / 40 * 0.7, fade = Math.exp(-t / 0.16), turn = 2 * Math.PI * 3.2 * t;
+  return { rotate: `${(to + (from - to) * fade * Math.cos(turn) + kick * fade * Math.sin(turn)).toFixed(3)}deg` };
+});
 
 export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere = 0, keyboard = true, grid = false, onMove, onEnd, onTap, onPaint, onLift, onDrag, onOnto } = {}) {
   let onto = null; // the row the dragged one is over the middle of (onOnto)
@@ -140,7 +146,7 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     startX = lastX = x;
     startY = lastY = y;
     item.classList.add('dragging');
-    if (!grid) { item.style.rotate = TILT; item.animate([{ rotate: '0deg' }, { rotate: TILT }], { duration: 180, easing: 'ease-out' }); } // the twist comes in, not at once
+    if (!grid) { item.style.rotate = `${TILT}deg`; item.animate(wobble(0, TILT, -2.2), { duration: 700 }); } // it twists in with a wobble
     baseMargin = parseFloat(getComputedStyle(item).marginBottom) || 0;
     // The finger's events can stop reaching the list once it lifts (the view redraws the row, or
     // the phone doesn't hand the touch over): follow them on the whole page till let go.
@@ -254,13 +260,30 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     dragging = null;
     const target = onto;
     if (onto) setOnto(null);
+    const id = item.dataset.id;
     const put = () => {
       if (item.isConnected) onEnd?.({ item, dx, onto: target });
       else document.body.classList.remove('is-dragging'); // the view drew the list again meanwhile: nothing to put down
+      if (!grid && id) settle(item, id);
     };
-    // Into its gap: it settles there and untwists, then it's put down (onto a row, it goes under it at once).
-    if (!grid && !target && item.isConnected) item.animate([{ transform: from === 'none' ? 'none' : from, rotate: TILT }, { transform: 'none', rotate: '0deg' }], { duration: 160, easing: 'cubic-bezier(.2, .8, .2, 1)' }).finished.then(put, put);
+    // Into its gap: it glides there, then it's put down (onto a row, it goes under it at once).
+    if (!grid && !target && item.isConnected) item.animate([{ transform: from === 'none' ? 'none' : from, rotate: `${TILT}deg` }, { transform: 'none', rotate: `${TILT}deg` }], { duration: 160, easing: 'cubic-bezier(.2, .8, .2, 1)' }).finished.then(put, put);
     else put();
+  }
+  // Put down, it wobbles straight. The view usually draws the list again after a drop: the new row
+  // carries on the same wobble from where the old one was.
+  function settle(item, id) {
+    const keys = wobble(TILT, 0, 1.2), start = performance.now();
+    let row = item;
+    if (item.isConnected) item.animate(keys, { duration: 700 });
+    const watch = () => {
+      const gone = performance.now() - start;
+      if (gone > 700) return;
+      const now = [...document.querySelectorAll('li[data-id]')].find(r => r.dataset.id === id);
+      if (now && now !== row) { row = now; const a = now.animate(keys, { duration: 700 }); a.currentTime = gone; }
+      requestAnimationFrame(watch);
+    };
+    requestAnimationFrame(watch);
   }
   list.addEventListener('pointerup', finish);
   list.addEventListener('pointercancel', finish);
