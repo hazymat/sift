@@ -894,3 +894,4 @@ NOTES['1.51.14'] = [B('Tasks and Lists: the first press and hold after opening t
 NOTES['1.51.15'] = [F('Pressing and holding an item sends rings out from your finger like ripples on water, each with a bright crest, bending what they pass over (most in Chrome). The shading under them is lighter.')]
 NOTES['1.51.16'] = [F('Carried items are the see-through blue of 1.36 again, now frosted (and in Chrome still slightly bent), and the press and hold shading is that same colour. The water rings are faint and soft.')]
 NOTES['1.51.17'] = [F('Carried items are a little more see-through, and lines under them stay straight: the glass only frosts and, in Chrome, splits colours a little at edges. A carried group is one block of glass with one edge round the outside. The water rings are softer and fainter.')]
+NOTES['1.51.18'] = [F('A lifted item turns its slight tilt in smoothly, and when let go it glides into its place and straightens, rather than snapping.')]
