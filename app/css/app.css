@@ -3541,17 +3541,19 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
 #main[data-layout-margin] .task-entry .task-add-line .new-task-line { margin-left: calc(7px + var(--mshift) + var(--ind, 0px)); }
 #task-entry:has(+ .task-list) { margin-bottom: 0; }
 /* Hide pills behind More (👁 Layout, views/tasks.js): while editing, only a More pill, at the
-   right of the name on the same line (the name scrolls under the cursor), until it's pressed. */
+   far right of the name on the same line (the name scrolls under the cursor), in place of ⋯. Pressed,
+   the pills show under the name and it becomes More (full), in the same place (editpills.js .pill-top). */
+.edit-pills.pill-top { display: contents; }
 .pill-reveal { flex: none; margin-left: auto; padding: 2px 10px; font-size: .78rem; color: var(--text); }
 .task-list > li[data-task] > .edit-pills:has(> .pill-reveal) { display: contents; }
 .task-list > li[data-task] > .edit-pills > .pill-reveal { order: 2; align-self: center; }
 /* ✓ Done beside More, looking the same, and after it. */
 .edit-pills:has(> .pill-reveal) > .pill-done { flex: none; padding: 2px 10px; font-size: .78rem; color: var(--text); margin-left: 6px; }
 .task-list > li[data-task] > .edit-pills > .pill-done { order: 2; align-self: center; }
-#main:not([data-density="tight"]) .task-list > li[data-task]:has(> .edit-pills > .pill-reveal) > .more { order: 3; }
+.task-list > li[data-task]:has(> .edit-pills > .pill-reveal) > .more:not([aria-expanded="true"]) { display: none; }
 #main:not([data-density="tight"]) .task-list > li[data-task]:has(> .edit-pills > .pill-reveal) > .item-sub { order: 4; }
 .edit-pills:has(> .pill-reveal) > :not(.pill-reveal, .pill-done) { display: none; }
-#main[data-density="tight"] .task-list > li[data-task]:has(> .edit-pills > .pill-reveal):not(:has(> .note-in-place)) { flex-wrap: nowrap; }
+#main[data-density="tight"] .task-list > li[data-task]:has(> .edit-pills > .pill-reveal):not(:has(> .note-in-place, > .edit-pills:not(.pill-top))) { flex-wrap: nowrap; }
 #main[data-density="tight"] .task-list > li[data-task]:has(> .edit-pills > .pill-reveal) > .task-title { flex: 1 1 auto; min-width: 0; }
 .task-entry:not(.typed) .task-add-line > .pill-reveal, .task-entry.revealed .task-add-line > .pill-reveal, .task-entry:has(.task-add-line > .pill-reveal):not(.revealed) .task-entry-more { display: none; }
 .layout-opt[hidden] { display: none; }
@@ -3595,7 +3597,12 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
 kbd + kbd, .pill-reveal kbd + kbd, .pill-done kbd + kbd { margin-left: 3px; }
 /* ✓ Done beside More (editpills.js): only with a keyboard and room, where its shortcut is the point. */
 .pill-done { display: none; }
-@media (hover: hover) and (pointer: fine) and (min-width: 700px) { .pill-done { display: inline-flex; align-items: center; } }
+@media (hover: hover) and (pointer: fine) and (min-width: 700px) {
+  .pill-done { display: inline-flex; align-items: center; }
+  /* ✓ Done before More, so More is always at the far right. */
+  .edit-pills.pill-top > .pill-done { margin-left: auto; }
+  .edit-pills.pill-top > .pill-done + .pill-reveal { margin-left: 6px; }
+}
 /* A task ticked off: once its wave has passed (tickwave.js) it fades a little, then folds away
    (tickAway, views/tasks.js). */
 .task-list > li.ticked-away { transition: none; }
@@ -3790,7 +3797,7 @@ html[data-slide="back"]::view-transition-new(sift-page) { animation-name: sift-i
 /* …except, on a wide screen, its 📝: it stays just after the words while the name is written in (moving
    as you type), and pressing it goes into the note, as Shift+Enter does (views/tasks.js). */
 @media (min-width: 700px) {
-  #main[data-density="tight"] .task-list > li[data-task].pills-open:has(> .item-sub > .task-note) > .item-sub { display: flex; flex: none; }
+  #main[data-density="tight"] .task-list > li[data-task].pills-open:has(> .item-sub > .task-note) > .item-sub { display: flex; flex: none; margin-left: 11px; } /* 📝 about 25px after the words */
   #main[data-density="tight"] .task-list > li[data-task].pills-open > .item-sub > :not(.task-note) { display: none; }
   #main[data-density="tight"] .task-list > li[data-task].pills-open:has(> .item-sub > .task-note) > .task-title { flex: 0 1 auto; }
 }
@@ -4112,7 +4119,7 @@ textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
 /* The pills under a task being edited and under the New task line (editpills.js, views/tasks.js):
    one tidy row that scrolls sideways rather than wrapping into bits, ending in More… (the full
    panel). On phones a pill with nothing set is just its icon; set ones say what they're set to. */
-.edit-pills > .pill-row, .task-entry .pill-row { flex: 1 1 100%; min-width: 0; max-width: 100%; display: flex; flex-wrap: nowrap; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 1px; }
+.edit-pills > .pill-row, .task-entry .pill-row { flex: 1 1 100%; min-width: 0; max-width: 100%; display: flex; flex-wrap: nowrap; gap: 6px; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: none; padding-bottom: 1px; }
 .pill-row::-webkit-scrollbar { display: none; }
 .pill-row > .entry-chip { flex: none; padding: 5px 11px; white-space: nowrap; }
 @media (max-width: 700px), (pointer: coarse) {
