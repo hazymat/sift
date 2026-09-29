@@ -18,7 +18,7 @@ import { createListKit } from '../listkit.js';
 import { rowSwipe } from '../rowswipe.js';
 import { rankOf, reorderWrites, keyBetween } from '../order.js';
 import { toast, undoable } from '../toast.js';
-import { richText, toHtml, previewLine, inlineAll } from '../richtext.js';
+import { richText, toHtml, previewLine, inlineAll, plainLines } from '../richtext.js';
 import { loadContacts } from '../contacts.js';
 import * as att from '../attachments.js';
 import { atEdge, caretTo } from '../walk.js';
@@ -196,7 +196,7 @@ export default {
       // ("… more" if longer). Medium and loose start on their own line under the pills.
       const long = t.notes.split('\n').length > 8 || t.notes.length > 480;
       return `<span class="item-note task-note${long ? ' is-long' : ''}" data-act="toggle-note" role="button" tabindex="0" aria-expanded="${open === t.id}" title="${open === t.id ? 'Close' : 'Open to read or edit'}">`
-        + `<span class="note-icon" title="${esc(t.notes.split('\n').map(l => l.trim()).find(Boolean)?.slice(0, 120) || 'Note')}">📝</span>`
+        + `<span class="note-icon" title="${esc(plainLines(t.notes)[0]?.slice(0, 120) || 'Note')}">📝</span>`
         + `<span class="note-medium">${inlineAll(t.notes)}</span>`
         + `<span class="note-loose">${toHtml(t.notes)}</span>${long ? '<span class="note-more">… more</span>' : ''}</span>`;
     }
