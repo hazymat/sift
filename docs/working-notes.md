@@ -43,6 +43,7 @@ How work on Sift is done: where things are, the rules, and where it has got to. 
 - **Commits** keep the author already used in this repo: `Mat <7063284+hazymat@users.noreply.github.com>`. No co-author or "generated with" lines in commits, pull requests, issues or files.
 - **Writing** (UI text, docs, issues, commit messages): plain British English, short, in the UI's words; no em dashes. Issues and docs are written without referring to anyone ("to be checked", not who will check it).
 - **Design priority:** distraction-free, but discoverable. No new buttons that need explaining; show advanced options only where and when they're relevant.
+- **UI consistency:** new UI must follow `docs/ui-consistency.md` (where each kind of control goes, in every area). When a new control has no settled rule there yet, do it the way most areas already do and add it to that file.
 - **Code:** plain HTML, CSS and JS in `app/`, no build step, no framework. Libraries vendored in `app/vendor`, never from a CDN. Comments only where the reason isn't obvious. Multi-line edits are easier with a small script than with shell heredocs (they mangle `\n` inside quoted code).
 
 ## Map of the code
