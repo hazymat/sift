@@ -14,7 +14,7 @@ import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import * as att from '../attachments.js';
 import { editPills, selectPill } from '../editpills.js';
-import { askText, askYes, askEmptied } from '../ask.js';
+import { ask, askText, askYes, askEmptied } from '../ask.js';
 import { word } from '../words.js';
 import { keys } from '../keys.js';
 import { atEdge, caretTo } from '../walk.js';
@@ -52,19 +52,15 @@ export default {
 
     el.innerHTML = `
       <div id="find-grid">
-        <div class="find-bar">
-          <input type="search" id="find-q" class="search" placeholder="${esc(word('ph_find_search'))}" autocomplete="off" enterkeyhint="search">
-        </div>
-        <div class="find-tools">
-          <div class="segmented" id="editions" role="tablist" aria-label="Life areas"></div>
+        <div class="lists-head find-head">
+          <button type="button" class="primary" data-act="add-box">+ New box</button>
+          <button type="button" data-act="add-section">+ New ${GROUP.one}</button>
+          <button type="button" data-act="add-edition">+ New life area</button>
           ${shareHtml()}
           ${cogHtml('places')}
           <details class="tool-menu page-more">
             <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
             <div class="menu">
-              <button type="button" data-act="add-box">Add box</button>
-              <button type="button" data-act="add-section">Add ${GROUP.one}</button>
-              <button type="button" data-act="add-edition">New life area</button>
               <button type="button" data-act="rename-edition">Rename life area</button>
               <button type="button" data-act="import">Import CSV</button>
               <button type="button" data-act="export">Export CSV</button>
@@ -74,6 +70,12 @@ export default {
               <a href="#/bin/bin/places">Show Bin</a>
             </div>
           </details>
+        </div>
+        <div class="find-bar">
+          <input type="search" id="find-q" class="search" placeholder="${esc(word('ph_find_search'))}" autocomplete="off" enterkeyhint="search">
+        </div>
+        <div class="find-tools">
+          <div class="segmented" id="editions" role="tablist" aria-label="Life areas"></div>
         </div>
         <div id="find-body"></div>
       </div>
@@ -169,7 +171,7 @@ export default {
           <h2>Where is everything?</h2>
           <p class="muted">${esc(word('ph_find_empty'))}</p>
           <p><button type="button" class="primary" data-act="import">Import CSV</button>
-             <button type="button" data-act="add-box">Add a box</button></p>
+             <button type="button" data-act="add-box">+ New box</button></p>
         </div>`;
         return;
       }
@@ -177,7 +179,7 @@ export default {
         <section class="find-section">
           <h2>${esc(s.name)}${s.location_note ? ` <span class="box-where">${esc(s.location_note)}</span>` : ''}</h2>
           <div class="box-grid">${s.boxes.map(b => card(b)).join('')}
-            <button type="button" class="box-card add-card" data-act="add-box" data-section="${s.id}">+ Add box</button>
+            <button type="button" class="box-card add-card" data-act="add-box" data-section="${s.id}">+ New box</button>
           </div>
         </section>`).join('') || '<div class="empty"><p class="muted">' + esc(word('ph_find_area_empty')) + '</p></div>';
       requestAnimationFrame(() => fitPills());
@@ -665,6 +667,12 @@ export default {
         await reload();
       } else if (name === 'add-box') {
         let sectionId = target?.dataset.section;
+        // "+ New box" at the top asks which group, when there's more than one to choose from.
+        if (!sectionId && current?.sections.length > 1) {
+          const r = await ask({ title: 'New box', ok: 'Add', fields: [{ name: 'section', label: `Which ${GROUP.one}?`, type: 'select', value: current.sections.at(-1).id, options: current.sections.map(sec => [sec.id, sec.name]) }] });
+          if (!r) return;
+          sectionId = r.section;
+        }
         if (!sectionId) {
           const ed = current || await store.create('places', { kind: 'edition', name: 'Standard', parent_place_id: null, notes: '', sort_order: 0 });
           const sec = current?.sections.at(-1) || await store.create('places', { kind: 'section', name: 'Boxes', parent_place_id: ed.id, location_note: '', notes: '', sort_order: 0 });
