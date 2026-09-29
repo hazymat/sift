@@ -25,6 +25,7 @@ import { TINTS } from '../colours.js';
 import { pillMenu } from '../pillmenu.js';
 import { sortable } from '../sortable.js';
 import { signedIn, status as syncStatus } from '../sync.js';
+import { linkUrls } from '../weburl.js';
 import { addExamples, addNewPhotos, isBrandNew, needsWipe, photosBehind, setUpBooks, wipeBook } from '../examples.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -304,7 +305,7 @@ export default {
         ${ings.length ? `<div class="bb-ref-picks"><span class="muted">Put in:</span>${ings.map(i => `<button type="button" class="chip" data-ref="${esc(i.item)}">${esc(i.item)}</button>`).join('')}</div>` : ''}
         <div class="bb-lines bb-steps">
           ${steps.map((x, n) => line(`${n + 1}`, `
-            <div class="bb-step-view" data-step-view tabindex="0" role="button" title="Press to change">${stepHtml(x.text, ings, times, esc) || '<span class="muted">Empty step</span>'}</div>
+            <div class="bb-step-view" data-step-view tabindex="0" role="button" title="Press to change">${linkUrls(stepHtml(x.text, ings, times, esc)) || '<span class="muted">Empty step</span>'}</div>
             <textarea class="bb-step-edit no-inline" data-step-text rows="1" hidden aria-label="Step ${n + 1}">${esc(x.text)}</textarea>
             ${(atts.get(x.id) || []).length ? att.rowHtml(atts.get(x.id), { parent: x.id, addButton: false }) : ''}`,
             `<button type="button" class="icon-btn" data-step-photo title="Add a photo to this step" aria-label="Add a photo">${camera}</button>`, `data-step="${x.id}"`)).join('')}
