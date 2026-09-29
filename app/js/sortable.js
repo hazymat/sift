@@ -83,9 +83,8 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
       return;
     }
     if (onOnto) {
-      // Over the middle of a row (all but a thin band at its top and bottom edges, so a
-      // tall row's name counts too): onto it, no reordering.
-      const over = siblings().find(el => { const r = el.getBoundingClientRect(), edge = Math.min(r.height / 3, 14); return clientY > r.top + edge && clientY < r.bottom - edge; });
+      // Over the middle third of a row: onto it, no reordering.
+      const over = siblings().find(el => { const r = el.getBoundingClientRect(); return clientY > r.top + r.height / 3 && clientY < r.bottom - r.height / 3; });
       setOnto(over || null);
       if (over) return;
     }
