@@ -964,4 +964,10 @@ NOTES['1.56.00'] = [
   F('Find Things: the life areas look like the other switches (Tasks | Projects), with a ⋯ after them to rename, move or delete the one shown. Each group has a ⋯ by its name to rename it, move it up or down, or delete it. Deleting one with boxes in it asks first, and it goes to the Bin with everything in it, to be put back together.'),
   F('Press and hold to select now works on Brain Dump notes and Contacts too, as on Batch Book\'s recipes; Shift+arrows select while browsing their cards.'),
 ]
-NOTES['1.56.01'] = [B("Key hints on buttons (Alt Enter on a note's full-screen ⤢, Ctrl Enter on Save, Esc on ‹ Lists and the rest) sat a little low in their pill. They're centred now, everywhere.")]
+NOTES['1.56.01'] = [F('Find Things: in a box, the selection bar has Move to box… to put the chosen things (with their sub-items) into another box, at its end. Tap the cube by a thing to choose it; Undo puts them back.')]
+NOTES['1.56.02'] = [F("Ticking something off is more of a moment, the same in Tasks, Projects, the Day Planner and Lists: the tick box springs and sends out a ring, the letters hop higher as the wave passes, the light is brighter and the line through is bolder, then it fades and folds away. Lists now get the wave too.")]
+NOTES['1.57.00'] = [
+  F('Brain Dump: a note\'s → Task, Plan it and → Find Things are in its ⋯ menu instead of pills along the bottom, which keeps Archive and ⋯. With notes chosen (press and hold one), the bar\'s Move ▸ opens out to → Tasks, Plan it… and → Find Things… for all of them.'),
+  F('Find Things: each box shows a ⠿ in its corner on hover (as Batch Book\'s cards do); clicking it chooses the box.'),
+]
+NOTES['1.57.01'] = [B("Key hints on buttons (Alt Enter on a note's full-screen ⤢, Ctrl Enter on Save, Esc on ‹ Lists and the rest) sat a little low in their pill. They're centred now, everywhere.")]

@@ -9,7 +9,7 @@ import { richText, previewLine } from '../richtext.js';
 import { debounced } from '../autosave.js';
 import { createListKit } from '../listkit.js';
 import { tintHex, tintId, colourMenu } from '../colours.js';
-import { rankOf, reorderWrites, keyBetween } from '../order.js';
+import { rankOf, reorderWrites, keyBetween, lastKey } from '../order.js';
 import { pillMenu } from '../pillmenu.js';
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
@@ -112,6 +112,7 @@ export default {
     function card(box, { path, highlight } = {}) {
       const items = highlight ?? box.items;
       return `<div class="box-card${box.label_code ? '' : ' no-code'}" data-box="${box.id}" data-id="${box.id}" style="--tint: ${tintHex(box)}" role="button" tabindex="0" aria-label="${esc(box.label_code ? `${box.label_code} ${box.name}` : box.name)}">
+        <button type="button" class="kit-grip" data-act="pick-box" aria-label="Select" title="Select (or press and hold the box)">${icon('i-grip')}</button>
         ${path ? `<span class="box-path">${esc(path)}</span>` : ''}
         <span class="box-head">
           ${box.label_code ? `<span class="box-code">${esc(box.label_code)}</span>` : ''}
@@ -433,6 +434,28 @@ export default {
       });
     }
 
+    // Selected things (with their sub-items) into another box, at its end.
+    async function moveThings(ids) {
+      const all = withSubs(ids);
+      const boxes = tree.flatMap(ed => ed.sections.flatMap(sec => sec.boxes.filter(bx => bx.id !== openId).map(bx => [bx.id, `${ed.name} › ${sec.name} › ${bx.label_code ? `${bx.label_code} ` : ''}${bx.name || 'Untitled box'}`])));
+      if (!boxes.length) return toast('There is no other box to move them to');
+      const r = await ask({ title: `Move ${all.length} thing${all.length === 1 ? '' : 's'}`, ok: 'Move', fields: [{ name: 'to', label: 'To which box?', type: 'select', value: boxes[0][0], options: boxes }] });
+      const target = r?.to && findBox(r.to)?.b;
+      if (!target) return;
+      const items = findBox(openId)?.b.items || [];
+      let rank = lastKey(target.items);
+      const changes = [], before = [];
+      for (const i of items.filter(x => all.includes(x.id))) {
+        const keepParent = i.parent_item_id && all.includes(i.parent_item_id);
+        changes.push([i.id, { place_id: target.id, parent_item_id: keepParent ? i.parent_item_id : null, rank }]);
+        before.push([i.id, { place_id: openId, parent_item_id: i.parent_item_id ?? null, rank: i.rank ?? null }]);
+        rank = keyBetween(rank, null);
+      }
+      await store.updateMany('items', changes);
+      await reload();
+      undoable(`Moved ${all.length} to ${target.label_code || target.name}`, async () => { await store.updateMany('items', before); await reload(); });
+    }
+
     const kit = this.kit = createListKit({
       reorder: true,
       indent: true,
@@ -440,6 +463,7 @@ export default {
       noun: 'item',
       onReorder: (rows, label, ul, moved) => persistOrder(rows, label, ul, moved),
       actions: [
+        { id: 'move', label: 'Move to box…', run: ids => moveThings(ids) },
         { id: 'colour', label: 'Colour…', run: ids => { colourMenu(document.querySelector('[data-kit-action="colour"]'), null, v => setColour('items', ids, v)); } },
         { id: 'archive', label: 'Archive', key: 'A', run: ids => batch(ids, 'archived_at', 'Archived') },
         { id: 'delete', label: 'Delete', key: 'D', danger: true, run: ids => batch(ids, 'deleted_at', 'Removed') },
@@ -855,6 +879,7 @@ export default {
       if (ev.target.closest('.quick-add')) return;
       const t = ev.target.closest('[data-act], [data-box], [data-edition]');
       if (!t || importSheet.contains(t)) return;
+      if (t.dataset.act === 'pick-box') { gridKit.toggle(t.closest('[data-box]').dataset.box, ev.shiftKey); return; } // its ⠿: select (Shift: a run)
       if (t.dataset.edition) {
         editionId = t.dataset.edition; remember(EDITION_KEY, editionId);
         renderGrid();

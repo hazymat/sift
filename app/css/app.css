@@ -475,6 +475,12 @@ button.danger { color: #ff8a80; }
 .find-section > h2 .group-more { margin-left: 8px; vertical-align: .2em; font-weight: 400; }
 :is(.find-tools .area-more, .find-section > h2 .group-more):hover { border-color: var(--active-border); }
 .box-card.selected { box-shadow: 0 0 0 3px var(--accent); }
+/* Its ⠿, as on Batch Book's cards: on hover (always, faintly, on touch screens); a click selects it. */
+.box-card[data-id] { position: relative; }
+.box-card > .kit-grip { position: absolute; top: 6px; right: 6px; z-index: 1; width: 30px; height: 30px; padding: 0; border-radius: 10px; background: var(--glass-strong); opacity: 0; transition: opacity .12s; }
+.box-card:hover > .kit-grip, .box-card:focus-within > .kit-grip, .box-card.selected > .kit-grip { opacity: .9; }
+.box-card.selected > .kit-grip { color: var(--accent); }
+@media (pointer: coarse) { .box-card > .kit-grip { opacity: .5; } }
 .tool-menu { position: relative; }
 .tool-menu summary { list-style: none; cursor: pointer; }
 .tool-menu summary::-webkit-details-marker { display: none; }
@@ -3291,21 +3297,17 @@ dialog.att-view::backdrop { background: rgb(0 0 0 / .82); }
 .av-open:hover:not(:disabled) { background: rgb(255 255 255 / .28); }
 .av-missing { max-width: 30ch; text-align: center; font-size: .85rem; opacity: .8; }
 @media (max-width: 560px) { .av-arrow { top: auto; bottom: calc(4px + env(safe-area-inset-bottom)); transform: none; } .av-stage { bottom: calc(60px + env(safe-area-inset-bottom)); } .av-name { left: 64px; right: 64px; } }
-/* A task ticked off a list: crossed out, fades while its message shows, then
-   the rows below slide up (tickAway in views/tasks.js). */
 /* Ticking off (tickwave.js): the name's copy while the wave passes (its letters bob, a line is drawn
    through it), and a band of soft blue light crossing the row. The tick box is never covered for pressing. */
 .tw-copy { position: absolute; z-index: 2; margin: 0; overflow: hidden; pointer-events: none; }
 .tw-copy > .tw-line { opacity: var(--tw-dim, 1); }
 .tw-word { position: relative; display: inline-block; white-space: pre; }
 .tw-ch { display: inline-block; white-space: pre; }
-.tw-strike { position: absolute; left: 0; right: 0; top: 55%; height: 1.5px; background: currentColor; opacity: .8; transform: scaleX(0); transform-origin: left; }
+.tw-strike { position: absolute; left: 0; right: 0; top: 55%; height: 2px; margin-top: -.5px; border-radius: 1px; background: currentColor; opacity: .85; transform: scaleX(0); transform-origin: left; }
+.tw-ring { position: absolute; z-index: 3; width: 28px; height: 28px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--accent, #6fb0ff) 75%, transparent); pointer-events: none; opacity: 0; }
 .tw-sweep { position: absolute; z-index: 1; overflow: hidden; pointer-events: none; border-radius: inherit; }
-.tw-band { position: absolute; top: 0; bottom: 0; left: 0; width: 38%; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent, #6fb0ff) 30%, transparent), transparent); }
-.task-list > li.ticked-away { transition: opacity var(--fade, 6s) linear; }
-.task-list > li.ticked-away .task-title { text-decoration: line-through; }
-.task-list > li.ticked-away.fading { opacity: 0; }
-.task-list > li.ticked-away.closing { transition: height .26s ease, padding .26s ease, margin .26s ease, border-width .26s ease; height: 0 !important; padding-top: 0; padding-bottom: 0; margin-top: 0; margin-bottom: 0; border-width: 0; }
+.tw-band { position: absolute; top: 0; bottom: 0; left: 0; width: 45%; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent, #6fb0ff) 48%, transparent), transparent); }
+.task-list > li.ticked-away .task-title { text-decoration: line-through; } /* then fadeFold (tickwave.js) */
 /* A Brain Dump note just saved pulses above the dimming while the next is written. */
 .thought.flash { z-index: 901; }
 /* Brain Dump: Plan it / → Find Things pop up by their button, over the page
@@ -3664,14 +3666,6 @@ kbd + kbd, .pill-reveal kbd + kbd, .pill-done kbd + kbd { margin-left: 3px; }
   .edit-pills.pill-top > .pill-done { margin-left: auto; }
   .edit-pills.pill-top > .pill-done + .pill-reveal { margin-left: 6px; }
 }
-/* A task ticked off: once its wave has passed (tickwave.js) it fades a little, then folds away
-   (tickAway, views/tasks.js). */
-.task-list > li.ticked-away { transition: none; }
-.task-list > li.ticked-away > * { transition: opacity var(--fade, 1.2s) ease; }
-.task-list > li.ticked-away.fading { opacity: 1; }
-.task-list > li.ticked-away.fading > * { opacity: .4; }
-.task-list > li.ticked-away .tree > i { transition: opacity var(--fade, 1.2s) ease; }
-.task-list > li.ticked-away.fading .tree > i { opacity: .4; }
 
 /* Share pill in every area, left of 👁 and ⋯ (the Day Planner's look). */
 .page-share { margin-left: auto; flex: none; }
