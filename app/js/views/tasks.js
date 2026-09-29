@@ -226,7 +226,7 @@ export default {
             <label>Status<select name="status">${STATUSES.map(s => `<option value="${s.id}" ${t.status === s.id ? 'selected' : ''}>${s.label}</option>`).join('')}</select></label>
             <label>Project<select name="project_id"><option value="">None</option>${data.projects.map(p => `<option value="${p.id}" ${t.project_id === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}<option value="__new">+ New project…</option></select></label>
             ${t.project_id ? `<label>Milestone<select name="milestone_id"><option value="">None</option>${ms.map(m => `<option value="${m.id}" ${t.milestone_id === m.id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}<option value="__new">+ New milestone…</option></select></label>` : ''}
-            <label>People<select name="add_contact"><option value="">+ Add a contact…</option>${people.contacts.filter(c => !(t.contact_ids || []).includes(c.id)).map(c => `<option value="${c.id}">${esc(c.name || '(no name)')}</option>`).join('')}</select></label>
+            <label>People<select name="add_contact" data-filled="${(t.contact_ids || []).length ? 1 : ''}"><option value="">+ Add a contact…</option>${people.contacts.filter(c => !(t.contact_ids || []).includes(c.id)).map(c => `<option value="${c.id}">${esc(c.name || '(no name)')}</option>`).join('')}</select></label>
             <label>Case<select name="case_id"><option value="">None</option>${people.cases.map(k => `<option value="${k.id}" ${t.case_id === k.id ? 'selected' : ''}>${esc(k.title)}</option>`).join('')}</select></label>
             ${(t.contact_ids || []).length ? `<div class="energy-pick"><span>With</span>${t.contact_ids.map(cid => people.contacts.find(c => c.id === cid)).filter(Boolean).map(c => `<span class="chip">${esc(c.name)} <button type="button" class="chip-x" data-act="remove-contact" data-id="${c.id}" aria-label="Remove">×</button></span>`).join('')}</div>` : ''}
           </div>
@@ -560,6 +560,7 @@ export default {
       fade();
       body.innerHTML = { list: viewList, inbox: () => viewHorizon('inbox'), now: () => viewHorizon('now'), next: () => viewHorizon('next'), later: () => viewHorizon('later'), projects: viewProjects, done: viewDone }[state.view]();
       fillDates(body);
+      markFilled(body);
       wireEntry();
       const ul = body.querySelector('.task-list');
       measureRows(body, ul, body.querySelector('#task-new'));
@@ -1089,6 +1090,12 @@ export default {
       const t = ev.target;
       if (t.type === 'date' && t.name && !touch && !t.value && !t.validity.badInput) t.blur();
     });
+    // Filled-in details look switched on, like a set pill; defaults and empty ones stay plain.
+    function markFilled(root) {
+      const unset = { horizon: 'now', priority: '3', status: 'todo' };
+      for (const field of root.querySelectorAll('.task-details .detail-grid :is(select, input)')) field.closest('label')?.classList.toggle('is-set', field.name === 'add_contact' ? !!field.dataset.filled : !!field.value && field.value !== unset[field.name]);
+    }
+    for (const type of ['change', 'input']) body.addEventListener(type, ev => { if (ev.target.closest?.('.task-details .detail-grid')) markFilled(body); });
     body.addEventListener('change', async ev => {
       const t = ev.target;
       const li = t.closest('[data-task], [data-for]');

@@ -3283,6 +3283,8 @@ dialog.att-view::backdrop { background: rgb(0 0 0 / .82); }
 .date-quick .date-clear { color: var(--muted); }
 .date-quick .date-clear:hover { color: var(--text); }
 .detail-more { margin: 0 0 10px; }
+.task-details .detail-grid label.is-set { color: var(--text); }
+.task-details .detail-grid label.is-set > :is(select, input) { background: var(--active-bg); border-color: var(--active-border); }
 .detail-more > summary { list-style: none; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--glass); color: var(--text); font-size: .85rem; cursor: pointer; user-select: none; -webkit-user-select: none; }
 .detail-more > summary::-webkit-details-marker { display: none; }
 .detail-more > summary::before { content: ''; flex: none; width: 6px; height: 6px; margin: 0 3px 2px 1px; border-right: 1.75px solid currentColor; border-bottom: 1.75px solid currentColor; transform: rotate(-45deg); opacity: .7; transition: transform .15s; }
