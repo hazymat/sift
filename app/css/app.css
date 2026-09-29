@@ -4220,8 +4220,9 @@ textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
 .box-page { padding: 0; overflow: hidden; border-width: 2px; border-color: color-mix(in srgb, var(--tint) 45%, var(--glass-border)); }
 .box-lid { padding: 18px 22px 16px; background: linear-gradient(to bottom, color-mix(in srgb, var(--tint) 26%, transparent), color-mix(in srgb, var(--tint) 14%, transparent)); border-bottom: 3px solid color-mix(in srgb, var(--tint) 40%, #000); box-shadow: 0 6px 14px -6px rgba(0, 0, 0, .55); position: relative; z-index: 1; }
 .box-lid .box-fields input { background: color-mix(in srgb, #000 18%, transparent); }
-.box-page .box-page-head input.box-code-input { background: #f3eee2; color: #2a2620; border: 0; box-shadow: 0 1px 2px rgba(0, 0, 0, .45), inset 0 0 0 1px rgba(0, 0, 0, .08); transform: rotate(-1.2deg); }
-.box-page .box-page-head input.box-code-input::placeholder { color: #8a8272; opacity: 1; }
+.box-page .box-page-head input.box-code-input { font-family: "Arial Narrow", "Helvetica Neue", Arial, sans-serif; font-weight: 500; font-size: 1.45rem; max-width: 14ch; text-transform: uppercase; letter-spacing: .16em; padding: 6px 10px 6px 14px; border-radius: 2px; border: 0; color: #eceae4; background: linear-gradient(to bottom, #3a3a3a 0, #121212 18%, #0a0a0a 55%, #161616 100%); text-shadow: 0 1px 0 rgba(255, 255, 255, .35), 0 -1px 0 rgba(0, 0, 0, .9), 0 0 1px rgba(255, 255, 255, .5); box-shadow: 0 2px 3px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .18), inset 0 -1px 0 rgba(0, 0, 0, .8); transform: rotate(-1.2deg); }
+.box-page .box-page-head input.box-code-input::placeholder { color: #8d8b86; opacity: 1; text-shadow: none; }
+.box-page .box-page-head input.box-code-input:placeholder-shown { font-size: 1.05rem; min-width: 6.4em; }
 .box-inside { margin: 14px 14px 0; padding: 6px 12px 12px; border-radius: 18px; background: color-mix(in srgb, #000 22%, transparent); box-shadow: inset 0 10px 18px -8px rgba(0, 0, 0, .6), inset 0 0 0 1px color-mix(in srgb, var(--tint) 18%, transparent); }
 .box-inside > h3 { margin: 6px 4px 4px; }
 .box-inside .list-entry { background: color-mix(in srgb, var(--text) 5%, transparent); }
