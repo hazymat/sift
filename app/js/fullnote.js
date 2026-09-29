@@ -72,7 +72,7 @@ export function openFull(box, { label = 'Note' } = {}) {
   if (!head) {
     head = document.createElement('div');
     head.className = 'note-full-head';
-    head.innerHTML = '<span class="note-full-label"></span><button type="button" class="note-full-done">Done</button>';
+    head.innerHTML = '<span class="note-full-label"></span><button type="button" class="note-full-done">Done<kbd>Esc</kbd></button>';
     box.prepend(head);
   }
   head.querySelector('.note-full-label').textContent = label;
