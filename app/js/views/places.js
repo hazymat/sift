@@ -11,7 +11,7 @@ import { createListKit } from '../listkit.js';
 import { tintHex, tintId, colourMenu } from '../colours.js';
 import { rankOf, reorderWrites, keyBetween, lastKey } from '../order.js';
 import { openManager } from '../typesheet.js';
-import { listEntry, listHint, SHORTCUT } from '../listentry.js';
+import { listEntry, listHint } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import * as att from '../attachments.js';
 import { editPills, selectPill } from '../editpills.js';
@@ -225,6 +225,14 @@ export default {
           </div>
           <div class="box-inside">
           <h3>Contents <span class="muted">${b.items.length}</span></h3>
+          <div class="task-entry list-entry-box" id="box-entry">
+            <div class="task-add-line">
+              <span class="add-mark" aria-hidden="true"></span>
+              <textarea id="new-items" class="new-task-line list-entry" rows="1" placeholder="${esc(word('ph_add_items'))}" enterkeyhint="done" aria-label="New item"></textarea>
+              <button type="button" class="entry-add" data-act="add-items" title="Add (Enter)">Add <kbd>Enter</kbd></button>
+            </div>
+            <p class="muted hint list-hint">${listHint({ enterAdds: true })}</p>
+          </div>
           <ul class="item-list">${b.items.map(i => `
             <li data-id="${i.id}" data-item="${i.id}" data-depth="${i.depth}" style="--tint: ${tintHex(i)}">
               <button type="button" class="drag-handle thing-grip" aria-label="Select or move ${esc(i.name)}" title="Tap to select, hold to drag">${icon('i-places')}</button>
@@ -238,11 +246,9 @@ export default {
             ${openItem === i.id ? thingPanel(i) : ''}`).join('')}
           </ul>
           <datalist id="thing-tags">${allTags().map(t => `<option value="${esc(t)}">`).join('')}</datalist>
-          <textarea id="new-items" class="list-entry" rows="2" placeholder="${esc(word('ph_add_items'))}"></textarea>
           </div>
-          <p class="muted hint">${listHint({ enterAdds: true })} The cube: tap to select, swipe down the cubes to select several, press and hold to drag (sideways to indent; or Tab / Shift+Tab). Changes save as you go; Esc closes.</p>
+          <p class="muted hint">The cube: tap to select, swipe down the cubes to select several, press and hold to drag (sideways to indent; or Tab / Shift+Tab). Changes save as you go; Esc closes.</p>
           <div class="sheet-actions">
-            <button type="button" data-act="add-items">Add items ${keys(SHORTCUT)}</button>
             <span class="spacer"></span>
             <label class="inline">Move to <select name="parent_place_id">${sections.map(o => `<option value="${o.id}" ${o.id === s.id ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}</select></label>
             <button type="button" data-act="archive-box">Archive box</button>
@@ -250,7 +256,13 @@ export default {
           </div>
         </article>`;
       kit.attach(page.querySelector('.item-list'));
-      addItems = listEntry(page.querySelector('#new-items'), addLines, { draft: `places:${openId}`, enterAdds: true });
+      const entry = page.querySelector('#new-items');
+      addItems = listEntry(entry, addLines, { draft: `places:${openId}`, enterAdds: true });
+      // One line, growing with what's typed or pasted (as an open list's).
+      const fit = () => { if (!entry.getClientRects().length) return; entry.style.height = 'auto'; entry.style.height = `${entry.scrollHeight}px`; };
+      entry.addEventListener('input', fit);
+      entry.addEventListener('focus', fit);
+      fit();
       mountThingNotes();
       page.querySelector('#box-q').addEventListener('input', ev => {
         query = ev.target.value.trim(); // the same search as the grid's; stays in this box
@@ -822,14 +834,14 @@ export default {
     }
 
     // ↑ / ↓ in a box's thing name: straight to the thing above / below (as Tasks and Lists);
-    // from the last one down into Add items, and from Add items' top line back up.
+    // from Add items down into the first one, and from the first one back up (Add items is at the top, as an open list's).
     page.addEventListener('keydown', ev => {
       if ((ev.key !== 'ArrowUp' && ev.key !== 'ArrowDown') || ev.defaultPrevented || ev.shiftKey || ev.ctrlKey || ev.altKey || ev.metaKey || ev.isComposing) return;
       const t = ev.target;
       if (!t.matches?.('#new-items, .item-list > li[data-item] > input[name="name"]')) return;
       const up = ev.key === 'ArrowUp';
       if (t.id === 'new-items' && !atEdge(t, up ? 'up' : 'down')) return;
-      const stops = [...page.querySelectorAll('.item-list > li[data-item] > input[name="name"]'), page.querySelector('#new-items')].filter(f => f?.getClientRects().length);
+      const stops = [page.querySelector('#new-items'), ...page.querySelectorAll('.item-list > li[data-item] > input[name="name"]')].filter(f => f?.getClientRects().length);
       const to = stops[stops.indexOf(t) + (up ? -1 : 1)];
       if (!to) return;
       ev.preventDefault();
