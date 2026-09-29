@@ -185,7 +185,7 @@ export default {
         <div class="list-top-mark" aria-hidden="true"></div>
         <div class="list-top">
         <div class="project-head" style="--c:${tintHex(l)}">
-          <button type="button" class="back" data-act="home">‹ Lists</button>
+          <button type="button" class="back" data-act="home">‹ Lists${keys('Esc')}</button>
           <button type="button" class="note-dot list-colour" data-act="list-colour" title="List colour" aria-label="List colour"><span class="swatch" style="--sw:${tintHex(l)}"></span></button>
           <input class="project-name" name="name" value="${esc(l.name)}" data-list-name="${l.id}" aria-label="List name" placeholder="${esc(word('ph_list_name'))}">
           ${isTemplate ? '<span class="chip">Template</span>' : ''}
@@ -262,6 +262,13 @@ export default {
         const fit = () => { ta.style.height = 'auto'; ta.style.height = `${ta.scrollHeight}px`; };
         ta.addEventListener('input', fit);
         fit();
+        // Esc keeps what's typed (adds it, as Enter) and leaves the box; the next Esc leaves the list.
+        ta.addEventListener('keydown', async ev => {
+          if (ev.key !== 'Escape' || ev.isComposing || ev.defaultPrevented || document.querySelector('.ref-picker')) return;
+          ev.preventDefault(); ev.stopPropagation();
+          if (ta.value.trim()) await addEntry();
+          document.activeElement?.blur?.();
+        });
       }
       measureRows(body, body.querySelector('.checklist'), ta);
       // The top gets a glass backing once it sticks (as Brain Dump's bar).
