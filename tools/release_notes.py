@@ -883,3 +883,4 @@ NOTES['1.51.03'] = [B('Tasks and Lists, lined paper: the new task (or new item) 
 NOTES['1.51.04'] = [B('The blue background\'s light in the top corners now fades out smoothly, with no visible edge where it ends. It is just as bright at the corner as before.')]
 NOTES['1.51.05'] = [B('Tasks and Lists, lined paper: editing a task or item lights its whole line once, the same as the new task line, instead of the line plus a second shade on the name.')]
 NOTES['1.51.06'] = [F('Tasks, lined paper: the extra empty ruled lines under an empty list are gone, and so is their option (Show additional lines when list is empty).')]
+NOTES['1.51.07'] = [F('Tasks and Lists: dragging an item with sub-items (or several selected) carries the real rows, tick boxes and all, as one pane of frosted glass instead of plain coloured blocks. Cards get a faint light along their top edge, and on lined paper the rows of an open list now touch like Tasks rows.')]
