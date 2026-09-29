@@ -22,7 +22,10 @@ export const HOLD_SKIP = 'button, a, select, label, input[type="checkbox"], inpu
 // whole document, since a view may redraw the row under the finger as it's picked up
 // (the touch's events then no longer reach the view).
 let carrying = 0;
+let pressing = 0;
 let quietTouchEnd = false;
+// Something is pressed and held, or carried: the page mustn't be drawn again under it (app.js waits with a sync's update).
+export const holdBusy = () => carrying + pressing > 0 || document.body.classList.contains('is-dragging');
 document.addEventListener('touchstart', () => { quietTouchEnd = false; }, { passive: true, capture: true });
 document.addEventListener('touchmove', e => { if (carrying && e.cancelable) e.preventDefault(); }, { passive: false, capture: true });
 document.addEventListener('touchend', e => { if (quietTouchEnd) { quietTouchEnd = false; if (e.cancelable) e.preventDefault(); } }, { passive: false, capture: true });
@@ -30,6 +33,16 @@ document.addEventListener('touchend', e => { if (quietTouchEnd) { quietTouchEnd 
 // The element a touch began on must stay in the page for the touch's events to reach the
 // document: if the view redrew it away as the row lifted, it's kept, unseen, till let go.
 const keeper = () => document.getElementById('hold-keep') || document.body.appendChild(Object.assign(document.createElement('div'), { id: 'hold-keep', hidden: true }));
+
+// Carried rows are glass: where the browser can (Chrome), what's under them is bent a little, as
+// through real glass (app.css .glass-lens); elsewhere it's frosted only.
+const lens = () => {
+  if (document.getElementById('glass-lens') || !/Chrome\//.test(navigator.userAgent)) return;
+  document.body.insertAdjacentHTML('beforeend', `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="glass-lens" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency=".004 .015" numOctaves="1" seed="4" result="warp"/>
+    <feDisplacementMap in="SourceGraphic" in2="warp" scale="10" xChannelSelector="R" yChannelSelector="G"/></filter></svg>`);
+  document.documentElement.classList.add('glass-lens');
+};
 
 export function holdToLift(root, { rowAt, shadeOf = row => row, skip = HOLD_SKIP, ms = 300, busy = () => false, onLift }) {
   let holding = null; // pressed, waiting for the hold
@@ -40,6 +53,7 @@ export function holdToLift(root, { rowAt, shadeOf = row => row, skip = HOLD_SKIP
 
   const cancel = () => {
     if (!holding) return;
+    pressing = Math.max(0, pressing - 1);
     clearTimeout(holding.timer);
     holding.ripple.remove();
     holding.shade.classList.remove('hold-pending');
@@ -70,19 +84,19 @@ export function holdToLift(root, { rowAt, shadeOf = row => row, skip = HOLD_SKIP
     const px = e.clientX - box.left, py = e.clientY - box.top;
     const reach = (Math.max(Math.hypot(px, py), Math.hypot(box.width - px, py), Math.hypot(px, box.height - py), Math.hypot(box.width - px, box.height - py)) / 8) * 1.05; // the circle starts 16px across
     const dot = ripple.firstChild;
-    // Nothing shows for a quick tap (into a field): it starts once the press is plainly a hold.
-    const wait = Math.min(150, ms / 2);
-    Object.assign(dot.style, { left: `${px}px`, top: `${py}px`, animationDuration: `${ms - wait}ms`, animationDelay: `${wait}ms` });
+    Object.assign(dot.style, { left: `${px}px`, top: `${py}px`, animationDuration: `${ms}ms` });
     dot.style.setProperty('--reach', reach);
     shade.classList.add('hold-pending');
     shade.append(ripple);
     x = e.clientX; y = e.clientY;
+    pressing++;
     holding = {
       row, shade, ripple, x, y, pointerId: e.pointerId, locked: [], target: e.target,
       timer: setTimeout(() => {
         const h = holding;
         holding = null;
         held = h;
+        pressing = Math.max(0, pressing - 1);
         carrying++;
         liftedAt = Date.now();
         // Full now, and it stays so: no animation to start again when the row moves in the page.
@@ -94,6 +108,7 @@ export function holdToLift(root, { rowAt, shadeOf = row => row, skip = HOLD_SKIP
         setTimeout(() => { quietClick = false; }, 1500);
         quietTouchEnd = true;
         navigator.vibrate?.(10);
+        lens();
         onLift(h.row, x, y, h.pointerId);
         if (!h.target.isConnected) keeper().append(h.target);
       }, ms),

@@ -3,6 +3,7 @@ import { slide, drawnAfter, nudge } from './slide.js';
 import { installInlineEditing } from './inline.js';
 import { installRefLinks } from './refs.js';
 import { installHoldToOpen } from './holdopen.js';
+import { holdBusy } from './hold.js';
 import { installSheets } from './sheets.js';
 import { installSearchClear } from './searchclear.js';
 import { installFlash } from './flash.js';
@@ -642,11 +643,12 @@ async function boot() {
     };
     let waiting = false;
     const update = () => {
-      if (typing()) { waiting = true; return; }
+      if (typing() || holdBusy()) { waiting = true; return; } // (or a row pressed or carried: redrawn, it would be dropped)
       waiting = false;
       refreshPage().catch(err => console.warn('Refresh after sync failed:', err));
     };
     document.addEventListener('focusout', () => setTimeout(() => { if (waiting) update(); }, 50));
+    for (const type of ['pointerup', 'pointercancel']) addEventListener(type, () => setTimeout(() => { if (waiting) update(); }, 450)); // after a drop has been put down
     let firstOk = false;
     sync.onStatus(st => {
       renderSyncStatus();
