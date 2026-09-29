@@ -15,6 +15,8 @@
 //     html:  key => '<label class="entry-chip" …><select data-pill="energy">…',
 //     change: (key, name, value) => …,        a pill's field changed
 //     closed: key => …,                       (optional) the pills were put away
+//     top: key => html,                       (optional) pills on the text's own line, at the far right (Tasks: More,
+//                                             then More (full)); given, More… isn't added to the pill row
 //     done: true,                             (optional) the row has a tick box (.tick): Ctrl+Enter
 //                                             (⌘+Enter) in its text ticks or unticks it, and on a wide
 //                                             screen a ✓ Done chip beside More says so
@@ -76,7 +78,11 @@ export function editPills(root, spec) {
     box.className = 'edit-pills';
     box.dataset.key = editing;
     const done = spec.done && row.querySelector('.tick') ? `<button type="button" class="entry-chip pill-done" data-pill-done>${row.classList.contains('done') ? '↺ Not done' : '✓ Done'}${keys(CTRL_ENTER)}</button>` : '';
-    box.innerHTML = `${spec.html(editing)}<button type="button" class="entry-chip pill-more" data-pill-more>More…</button>${done}`;
+    const topHtml = spec.top?.(editing) || '';
+    if (topHtml) { const top = document.createElement('div'); top.className = 'edit-pills pill-top'; top.dataset.key = editing; top.innerHTML = done + topHtml; if (title) title.after(top); else host.append(top); }
+    const html = spec.html(editing);
+    if (topHtml && !html) { row.classList.add('pills-open'); return; }
+    box.innerHTML = topHtml ? html : `${html}<button type="button" class="entry-chip pill-more" data-pill-more>More…</button>${done}`;
     // The pills in one row of their own, under the note line (not behind a More pill: that stays inline).
     if (!box.querySelector(':scope > .pill-reveal')) { const pillRow = document.createElement('div'); pillRow.className = 'pill-row'; pillRow.append(...box.querySelectorAll(':scope > .entry-chip')); box.append(pillRow); }
     fillDates(box);
