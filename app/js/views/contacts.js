@@ -49,7 +49,8 @@ export default {
     let editors = [];
 
     el.innerHTML = `
-      <div class="tasks-head">
+      <div class="sticky-top-mark" aria-hidden="true"></div>
+      <div class="tasks-head sticky-top">
         <button type="button" class="primary c-new-btn" data-act="new-here">+ New contact</button>
         <div class="segmented" id="c-tabs" role="tablist">
           <button type="button" data-tab="recent">Recent</button>
@@ -70,6 +71,11 @@ export default {
       </div>
       <div id="c-body"></div>`;
     const body = el.querySelector('#c-body');
+    // The top stays while the page scrolls; glass once it's stuck (as Find Things' and Batch Book's).
+    const stickyTop = el.querySelector('.sticky-top');
+    this.topWatch?.disconnect();
+    this.topWatch = new IntersectionObserver(([e]) => stickyTop.classList.toggle('stuck', !e.isIntersecting && e.boundingClientRect.top < 200), { rootMargin: `-${parseFloat(getComputedStyle(stickyTop).top) || 0}px 0px 0px 0px` });
+    this.topWatch.observe(el.querySelector('.sticky-top-mark'));
     const go = hash => { if (location.hash !== hash) location.hash = hash; else render(); };
 
     const byId = id => data.contacts.find(c => c.id === id);
@@ -621,6 +627,7 @@ export default {
 
   unmount() {
     this.kit?.destroy();
+    this.topWatch?.disconnect();
     removeEventListener('keydown', this.onKey);
   },
 
