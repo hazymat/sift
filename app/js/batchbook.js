@@ -94,7 +94,8 @@ export function qtyText(qty, unit = '') {
 // "3268 g", "5 UK gallon", "½" (a counted thing needs no unit)
 export function amountText(ing, times = 1) {
   const qty = ing.qty == null ? null : ing.qty * times;
-  const label = unitLabel(ing.unit);
+  const unit = unitOf(ing.unit);
+  const label = unit[2] === 'Count' && unit[0] && qty > 1 && unit[4][0] ? unit[4][0] : unit[1];   // 3 cloves, 2 tins
   const num = qtyText(qty, ing.unit);
   if (!num) return label;
   return label ? `${num}${/^(g|kg|mg|ml|L)$/.test(label) ? '' : ' '}${label}` : num;
@@ -164,6 +165,7 @@ export function findIngredient(ingredients, name) {
     || ingredients.find(i => i.item.toLowerCase().startsWith(low))
     || ingredients.find(i => i.item.toLowerCase().includes(low));
 }
+const OWN_AMOUNT = /[\d½¼¾⅓⅔⅛]|^\s*(?:the|a|an|some|half|more|loads?|lots?|bit|knob|handful|drizzle|glug|splash|few|and|all|rest|remaining|whole|plenty|season)\b/i;
 // A step as HTML: references become marked amounts; a reference to nothing stays as typed, marked as missing.
 export function stepHtml(text, ingredients, times, esc) {
   return esc(text || '').replace(/\{([^{}|]+?)(?:\|([^{}]*))?\}/g, (whole, body, own) => {
@@ -171,8 +173,11 @@ export function stepHtml(text, ingredients, times, esc) {
     const ing = findIngredient(ingredients, name);
     if (!ing) return `<span class="bb-ref bb-ref-missing" title="No ingredient called that">${whole}</span>`;
     const full = ingredientText(ing, times);
-    const shown = own != null ? own : ingredientText(ing, times * part);
-    return `<span class="bb-ref" title="${esc(part === 1 ? full : `${qtyText(part)} of ${full}`)}">${own != null ? shown : esc(shown)}</span>`;
+    const amount = amountText(ing, times * part);
+    // own words get the amount too ("the stock" → "the 200ml stock"), unless they already say how much ("3 cloves", "a bit of salt", "the rest")
+    const [, the = '', words = own] = (own || '').match(/^(\s*the\s+)(.*)$/is) || [];
+    const shown = own == null ? esc(ingredientText(ing, times * part)) : amount && !OWN_AMOUNT.test(words) ? `${the}${esc(amount)} ${words}` : own;
+    return `<span class="bb-ref" title="${esc(part === 1 ? full : `${qtyText(part)} of ${full}`)}">${shown}</span>`;
   }).replace(/\n/g, '<br>');
 }
 // An ingredient renamed: its references follow.

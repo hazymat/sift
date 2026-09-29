@@ -267,7 +267,7 @@ export default {
             `<button type="button" class="icon-btn" data-step-photo title="Add a photo to this step" aria-label="Add a photo">${camera}</button>`, `data-step="${x.id}"`)).join('')}
           ${line('+', `<textarea class="bb-step-new no-inline" rows="1" placeholder="${steps.length ? 'Next step' : 'First step'}" aria-label="New step"></textarea>`)}
         </div>
-        <p class="muted hint bb-ref-hint">{salt} shows the salt with its amount. {1/2 salt} or {25% salt} shows part of it; {salt|a pinch} shows your own words. Enter starts the next step.</p>
+        <p class="muted hint bb-ref-hint">{salt} shows the salt with its amount. {1/2 salt} or {25% salt} shows part of it; {stock|hot stock} shows the amount with your own words ("200ml hot stock"), and {salt|a pinch} shows just your words. Enter starts the next step.</p>
       </div>`;
     }
 
@@ -844,7 +844,7 @@ export default {
     // ---------- importing ----------
     // Recipes as text, pasted or from a file (format in batchbook.js). The AI prompt lets anyone turn notes, photos
     // of cards or web pages into that text with any AI chat. Books not set up yet are added.
-    const AI_PROMPT = `Turn the recipes I give you into plain text in exactly this format, one after another, keeping every recipe and all its details. Put each ingredient on its own line, amount and unit first, and make sure every ingredient the method uses is in the list. In the method, write each ingredient as its name from the list in curly brackets, without its amount: {flour} for all of it, {1/2 flour} for half (any fraction or percentage), or {flour|a little flour} for your own words; the app shows the amount and scales it. Put each recipe in a sensible book (for example Cooking, Soups, Baking or Cocktails). Reply with just the recipes.\n\n${IMPORT_EXAMPLE}`;
+    const AI_PROMPT = `Turn the recipes I give you into plain text in exactly this format, one after another, keeping every recipe and all its details. Put each ingredient on its own line, amount and unit first, and make sure every ingredient the method uses is in the list. In the method, write each ingredient as its name from the list in curly brackets, without its amount: {flour} for all of it, {1/2 flour} for half (any fraction or percentage), or {flour|sifted flour} for your own words (the app puts the amount in front; own words that already say how much, like {flour|a little flour}, show as written); the app shows the amount and scales it. Put each recipe in a sensible book (for example Cooking, Soups, Baking or Cocktails). Reply with just the recipes.\n\n${IMPORT_EXAMPLE}`;
     async function importRecipes() {
       const dlg = document.createElement('dialog');
       dlg.className = 'sheet bb-import-sheet';
