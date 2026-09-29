@@ -475,6 +475,12 @@ button.danger { color: #ff8a80; }
 .find-section > h2 .group-more { margin-left: 8px; vertical-align: .2em; font-weight: 400; }
 :is(.find-tools .area-more, .find-section > h2 .group-more):hover { border-color: var(--active-border); }
 .box-card.selected { box-shadow: 0 0 0 3px var(--accent); }
+/* Its ⠿, as on Batch Book's cards: on hover (always, faintly, on touch screens); a click selects it. */
+.box-card[data-id] { position: relative; }
+.box-card > .kit-grip { position: absolute; top: 6px; right: 6px; z-index: 1; width: 30px; height: 30px; padding: 0; border-radius: 10px; background: var(--glass-strong); opacity: 0; transition: opacity .12s; }
+.box-card:hover > .kit-grip, .box-card:focus-within > .kit-grip, .box-card.selected > .kit-grip { opacity: .9; }
+.box-card.selected > .kit-grip { color: var(--accent); }
+@media (pointer: coarse) { .box-card > .kit-grip { opacity: .5; } }
 .tool-menu { position: relative; }
 .tool-menu summary { list-style: none; cursor: pointer; }
 .tool-menu summary::-webkit-details-marker { display: none; }
