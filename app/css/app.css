@@ -4225,9 +4225,18 @@ textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
 
 /* Box page reads as a box: a lid in the box's colour with a stuck-on paper
    label, and the contents sunk into a darker inside with shadowed walls. */
-.box-page { padding: 0; overflow: hidden; border-width: 2px; border-color: color-mix(in srgb, var(--tint) 45%, var(--glass-border)); }
-.box-lid { padding: 18px 22px 16px; background: linear-gradient(to bottom, color-mix(in srgb, var(--tint) 26%, transparent), color-mix(in srgb, var(--tint) 14%, transparent)); border-bottom: 3px solid color-mix(in srgb, var(--tint) 40%, #000); box-shadow: 0 6px 14px -6px rgba(0, 0, 0, .55); position: relative; z-index: 1; }
-.box-lid .box-fields input { background: color-mix(in srgb, #000 18%, transparent); }
+.box-page { padding: 0; overflow: clip; border-width: 2px; border-color: color-mix(in srgb, var(--tint) 45%, var(--glass-border)); }
+.box-lid { padding: 18px 22px 4px; background: color-mix(in srgb, var(--tint) 26%, transparent); }
+.box-lid .box-page-head { margin-bottom: 0; }
+.box-lid-more { padding: 12px 22px 16px; background: linear-gradient(to bottom, color-mix(in srgb, var(--tint) 26%, transparent), color-mix(in srgb, var(--tint) 14%, transparent)); border-bottom: 3px solid color-mix(in srgb, var(--tint) 40%, #000); box-shadow: 0 6px 14px -6px rgba(0, 0, 0, .55); position: relative; z-index: 1; }
+.box-lid-more .box-fields input { background: color-mix(in srgb, #000 18%, transparent); }
+/* Scrolling down a long box, its top stays in view: back and search, then the lid with its label, each with a backing once stuck. */
+.box-top { position: sticky; top: calc(var(--safe-top) + 62px); z-index: 6; margin: 0 -10px; padding: 0 10px; border-radius: 0 0 16px 16px; transition: box-shadow .15s, background-color .15s; }
+.box-top.stuck { padding-top: 8px; background: var(--glass-strong); -webkit-backdrop-filter: blur(18px) saturate(1.3); backdrop-filter: blur(18px) saturate(1.3); box-shadow: 0 10px 18px -10px rgba(0, 0, 0, .55); }
+.box-lid { position: sticky; top: calc(var(--safe-top) + 62px + var(--box-top-h, 0px)); z-index: 4; }
+.box-lid.stuck { padding-bottom: 12px; background: linear-gradient(color-mix(in srgb, var(--tint) 26%, transparent), color-mix(in srgb, var(--tint) 26%, transparent)), var(--bg, #1b2231); border-bottom: 3px solid color-mix(in srgb, var(--tint) 40%, #000); box-shadow: 0 6px 14px -6px rgba(0, 0, 0, .55); }
+@media (min-width: 768px) { .box-top { top: 62px; } .box-lid { top: calc(62px + var(--box-top-h, 0px)); } .box-top.stuck { padding-top: 14px; } }
+@media (max-width: 767px) { .box-top { top: 0; } .box-lid { top: var(--box-top-h, 0px); } .box-top.stuck { padding-top: calc(var(--safe-top) + 8px); } }
 .box-page .box-page-head input.box-code-input { font-family: "Arial Narrow", "Helvetica Neue", Arial, sans-serif; font-weight: 500; font-size: 1.45rem; max-width: 14ch; text-transform: uppercase; letter-spacing: .16em; padding: 6px 10px 6px 14px; border-radius: 2px; border: 0; color: #eceae4; background: linear-gradient(to bottom, #3a3a3a 0, #121212 18%, #0a0a0a 55%, #161616 100%); text-shadow: 0 1px 0 rgba(255, 255, 255, .35), 0 -1px 0 rgba(0, 0, 0, .9), 0 0 1px rgba(255, 255, 255, .5); box-shadow: 0 2px 3px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .18), inset 0 -1px 0 rgba(0, 0, 0, .8); transform: rotate(-1.2deg); }
 .box-page .box-page-head input.box-code-input::placeholder { color: #8d8b86; opacity: 1; text-shadow: none; }
 .box-page .box-page-head input.box-code-input:placeholder-shown { font-size: 1.05rem; min-width: 6.4em; }
@@ -4244,7 +4253,8 @@ textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
 .box-page > .sheet-actions { margin-bottom: 18px; }
 @media (max-width: 560px) {
   .box-page { padding: 0; }
-  .box-lid { padding: 14px 16px 12px; }
+  .box-lid { padding: 14px 16px 2px; }
+  .box-lid-more { padding: 10px 16px 12px; }
   .box-inside { margin: 10px 8px 0; padding: 4px 6px 10px; }
   .box-page > .hint, .box-page > .sheet-actions { margin-left: 14px; margin-right: 14px; }
 }

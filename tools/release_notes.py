@@ -978,3 +978,4 @@ NOTES['1.57.05'] = [F('On a phone, swiping sideways on an open box goes back to 
 NOTES['1.57.06'] = [F('Find Things: in an open box, Add items is now at the top of the contents, as in Tasks and Lists, with an Add button beside it.')]
 NOTES['1.57.07'] = [F('Find Things: an open box\'s Add items is a single line in line with the things in it, with a faint cube on its left, instead of a box.')]
 NOTES['1.57.08'] = [F('Find Things: the line at the top of an open box now just says Add (change it in Settings, Your words).')]
+NOTES['1.57.09'] = [F('Find Things: scrolling down a long box keeps its top in view: the back button, the search and the lid with its label stay at the top of the screen.')]
