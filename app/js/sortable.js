@@ -42,10 +42,13 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
   let baseMargin = 0; // the dragged row's own bottom margin
   // A row's place as if the dragged one still took its room (rows after it move up while it takes none),
   // so going onto a row doesn't move that row out from under the finger.
+  // Rows still sliding to make room count where they're going, not where they show mid-slide.
   const rectOf = el => {
-    const r = el.getBoundingClientRect();
+    const b = el.getBoundingClientRect(), t = getComputedStyle(el).transform;
+    const sliding = t !== 'none' && el.getAnimations().some(a => a.id === 'make-room') ? new DOMMatrixReadOnly(t).m42 : 0;
+    const r = { top: b.top - sliding, bottom: b.bottom - sliding };
     const closed = dragging && el !== dragging && (dragging.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING) ? baseMargin - parseFloat(getComputedStyle(dragging).marginBottom) : 0;
-    return { top: r.top + closed, bottom: r.bottom + closed, height: r.height };
+    return { top: r.top + closed, bottom: r.bottom + closed, height: b.height };
   };
   let slot = null; // the dashed outline of the gap it will drop into (with onOnto)
   let dragging = null;
@@ -95,23 +98,26 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     if (onOnto) {
       // Over the middle third of a row: onto it, no reordering.
       const over = siblings().find(el => { const r = rectOf(el); return clientY > r.top + r.height / 3 && clientY < r.bottom - r.height / 3; });
-      setOnto(over || null);
-      if (over) return;
+      if (over) { if (over !== onto) slid(() => setOnto(over)); return; }
+      // Off it again: its own room comes back and it takes its new place in one go, so the rows
+      // only slide to where they end up (not back to where they were first).
+      if (onto) { const to = spotFor(clientY); slid(() => { setOnto(null); if (to) to.before ? list.insertBefore(dragging, to.el) : to.el.after(dragging); }); if (to) onMove?.(dragging); return; }
     }
+    const to = spotFor(clientY);
+    if (!to) return;
+    slid(() => to.before ? list.insertBefore(dragging, to.el) : to.el.after(dragging));
+    onMove?.(dragging);
+  }
+  // Where the dragged row belongs for the pointer at clientY: before or after which row (null: where it is).
+  function spotFor(clientY) {
+    let after = null;
     for (const el of siblings()) {
-      const r = rectOf(el);
-      const mid = r.top + r.height / 2;
+      const r = rectOf(el), mid = r.top + r.height / 2;
       const before = dragging.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING;
-      if (before && clientY < mid) {
-        slid(() => list.insertBefore(dragging, el));
-        onMove?.(dragging);
-        return;
-      }
-      if (!before && clientY > mid && el.nextElementSibling !== dragging) {
-        slid(() => el.after(dragging));
-        onMove?.(dragging);
-      }
+      if (before && clientY < mid) return { el, before: true };
+      if (!before && clientY > mid && el.nextElementSibling !== dragging) after = { el };
     }
+    return after;
   }
 
   function follow(clientY, clientX = 0) {
