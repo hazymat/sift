@@ -302,7 +302,7 @@ export function richText(container, { value = '', onChange, placeholder = '', or
   container.classList.toggle('bare', bare);
   container.innerHTML = `
     <div class="md-bar" role="toolbar" aria-label="Formatting">
-      <button type="button" class="md-full" title="Full screen: just this note" aria-label="Edit full screen">⤢</button>
+      <button type="button" class="md-full" title="Full screen: just this note (Alt+Enter; Esc comes back)" aria-label="Edit full screen">⤢<span class="md-full-in">${keys('Alt+Enter')}</span><span class="md-full-out">${keys('Esc')}</span></button>
       ${colour ? '<button type="button" class="md-colour" title="Note colour" aria-label="Note colour" aria-haspopup="menu"><span class="swatch"></span></button>' : ''}
       <button type="button" class="md-mode" aria-pressed="false" title="Full toolbar: text size">Aa</button>
       <button type="button" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>

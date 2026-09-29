@@ -2244,6 +2244,9 @@ body.pills-only :is(.task-list, .item-list, .checklist, .planner) .more:not([ari
 /* A note full screen (js/fullnote.js): on phones when you tap into a note, on a
    laptop from the ⤢ button. Toolbar at the bottom, just above the keyboard. */
 .md-full { font-size: 1rem !important; }
+/* Its key: Alt+Enter goes full screen, Esc comes back (kbd hides on touch screens). */
+.md-full kbd { font-size: .62rem; }
+.rich.is-full .md-full-in, .rich:not(.is-full) .md-full-out { display: none; }
 .note-full-head { display: none; }
 .rich.is-full {
   position: fixed; left: 0; right: 0; top: 0; height: 100dvh; z-index: 1000;
