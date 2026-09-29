@@ -216,8 +216,11 @@ export default {
 
     const line = (margin, content, tools = '', attrs = '') => `<div class="bb-line" ${attrs}><span class="bb-margin">${margin}</span><span class="bb-content">${content}</span>${tools ? `<span class="bb-tools">${tools}</span>` : ''}</div>`;
 
-    // Its photos, a strip across the top (the first is its picture on the cards): press one to look, × to remove, + to add.
-    const photoStrip = id => `<div class="bb-photos">${att.rowHtml(atts.get(id), { parent: id, addButton: 'Add photos' })}</div>`;
+    // Its photos: small across the top, just to look at (none, nothing there), and added or removed in Photos at the bottom.
+    // The first is its picture on the cards.
+    const photoStrip = id => ((atts.get(id) || []).some(a => a.kind === 'image') ? `<div class="bb-photos">${att.rowHtml((atts.get(id) || []).filter(a => a.kind === 'image'), { parent: id, addButton: false })}</div>` : '');
+    const photosHtml = (id, whose) => `<h2 class="bb-h"><span>📸 Photos</span><span class="muted bb-h-note">the first is ${whose} picture</span></h2>
+          ${att.rowHtml(atts.get(id), { parent: id, addButton: 'Add photos' })}`;
 
     // Ingredients and steps share one margin, as wide as the longest amount needs (CSS caps it).
     const workMargin = (rec, times) => `--bb-chars:${Math.max(0, ...(rec.ingredients || []).map(i => amountText(i, times).length))}`;
@@ -308,6 +311,7 @@ export default {
           ${stepsHtml(r, { collection: 'recipes', id: r.id })}
           ${r.tasting?.trim() ? `<h2 class="bb-h"><span>🥂 Tasting notes</span><span class="muted bb-h-note">these move to the first batch you make</span></h2>
           <div class="bb-tasting bb-note"></div>` : ''}
+          ${photosHtml(r.id, 'the recipe\'s')}
           <h2 class="bb-h"><span>🧪 Batches</span></h2>
           ${made.length ? `<div class="bb-batches">${made.map(batchRow).join('')}</div>` : '<p class="muted bb-none">Not made yet. Make this (at the top) starts a batch with its own copy of the recipe, to change as you like, and to tick off what you have in.</p>'}
         </article>
@@ -394,6 +398,7 @@ export default {
           ${entriesHtml(m, 'diary', '📔 Diary')}
           <h2 class="bb-h"><span>🥂 Tasting notes</span></h2>
           <div class="bb-tasting bb-note"></div>
+          ${photosHtml(m.id, 'this batch\'s')}
         </article>
         <div class="detail-actions bb-foot">
           <span class="spacer"></span>
