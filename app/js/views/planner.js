@@ -156,7 +156,7 @@ export default {
     });
     $('#dump-note').addEventListener('input', ev => { ev.target.style.height = 'auto'; ev.target.style.height = `${ev.target.scrollHeight}px`; });
 
-    // Shift+Enter in an item's title: save the title, then its full panel (as More).
+    // Shift+Enter in an item's title: save the title, then (in the schedule) its note and pills, then its full panel, as More.
     el.addEventListener('keydown', async ev => {
       const t = ev.target;
       if (ev.key === 'Enter' && ev.shiftKey && t.classList?.contains('item-title')) {
@@ -164,13 +164,14 @@ export default {
         const id = t.closest('[data-item]').dataset.item;
         const it = items.find(i => i.id === id);
         const title = t.value.trim();
-        this.pills.close();
-        noteEditing = null;
-        editing = id;
         if (title && title !== it.title) {
           await store.update('day_items', id, { title });
           undoable('Saved', async () => { await store.update('day_items', id, { title: it.title }); await refresh(); });
         }
+        if (scheduled(id) && revealed !== id) { await reveal(id); return; }
+        this.pills.close();
+        noteEditing = null;
+        editing = id;
         await refresh();
         el.querySelector(`[data-note-for="${id}"]`)?._editor?.focus();
         return;
@@ -495,6 +496,17 @@ export default {
 
     // Notes under items: clicking one edits it in place.
     let noteEditing = null; // item whose notes are being typed (Shift+Enter)
+    let revealed = null; // schedule item showing its note and pills (its More pressed)
+    const scheduled = id => !!items.find(x => x.id === id)?.time;
+    // A schedule item's More: its note (to edit, if it has one) and pills under its name, the cursor staying in the name.
+    const reveal = async id => {
+      revealed = id;
+      if ((items.find(x => x.id === id)?.notes || '').trim()) noteEditing = id;
+      await refresh();
+      const title = linesEl.querySelector(`.line.has-item[data-item="${CSS.escape(id)}"] .item-title`);
+      title?.focus(); title?.setSelectionRange(title.value.length, title.value.length);
+      this.pills.open(id);
+    };
     // Like Tasks, by the page's spacing (CSS): tight = no note here, just 📝 on
     // the item's line; medium = one line; loose = up to three lines.
     function noteHtml(i) {
@@ -519,7 +531,7 @@ export default {
           it.notes = text;
         }, 700);
         box._flush = auto.flush;
-        box._editor = richText(box, { value: it.notes || '', origin: () => ({ collection: 'day_items', id: it.id, title: it.title, field: 'notes' }), onChange: () => auto.trigger() });
+        box._editor = richText(box, { value: it.notes || '', origin: () => ({ collection: 'day_items', id: it.id, title: it.title, field: 'notes' }), onChange: () => auto.trigger(), bare: box.classList.contains('note-edit') }); // under the name: no toolbar, as in Tasks
       }
       mountComments(el, refresh);
     }
@@ -1151,16 +1163,30 @@ export default {
       return made;
     }
 
-    // Tap an item's text to edit it: More at the far right of its line goes straight to the full panel (no pills
-    // under it, as in Lists), then ✓ Close in the same place (js/editpills.js).
+    // Tap an item's text to edit it (js/editpills.js). In the schedule, as in Tasks: More at the far right of its line
+    // shows its note (to edit) and pills under it, then More (full) opens the full panel, then ✓ Close in the same place.
+    // Day tasks (no time) go straight to the full panel, as in Lists.
     this.pills = editPills(planner, {
       title: '.item-title',
       row: '.line.has-item[data-item]',
       key: r => r.dataset.item,
       done: true,
       topDone: false, // ✓ Done stays with the pills: the columns are narrow
-      top: () => `<button type="button" class="entry-chip pill-reveal" data-pill-more title="Open its full panel">More${keys('Shift+Enter')}</button>`,
-      html: () => '',
+      closed: id => {
+        if (revealed === id) revealed = null;
+        const row = linesEl.querySelector(`.line.has-item[data-item="${CSS.escape(id)}"]`);
+        if (noteEditing === id && !row?.contains(document.activeElement)) { noteEditing = null; refresh(); } // its note shown but not written in
+      },
+      top: id => scheduled(id) && revealed !== id ? `<button type="button" class="entry-chip pill-reveal" data-act="pills-reveal" title="Its note and pills">More${keys('Shift+Enter')}</button>`
+        : `<button type="button" class="entry-chip pill-reveal" data-pill-more title="Open its full panel">${scheduled(id) ? 'More (full)' : 'More'}${keys('Shift+Enter')}</button>`,
+      html: id => {
+        const i = items.find(x => x.id === id);
+        if (!i || !scheduled(id) || revealed !== id) return '';
+        const mins = [...new Set([...durationChoices(settings.duration_max_min), ...(i.estimate_min ? [Number(i.estimate_min)] : [])])].sort((a, b) => a - b);
+        const addNote = (i.notes || '').trim() || noteEditing === id ? '' : '<textarea class="add-note pill-note no-inline" data-pill="notes" rows="1" placeholder="Add note" aria-label="Note"></textarea>';
+        return addNote + energyPill(i.energy)
+          + selectPill('estimate_min', 'Estimated time', '⏱', [['', 'Not estimated'], ['unsure', 'Not sure yet'], ...mins.map(m => [m, durationLabel(m)])], i.estimate_min || (i.estimate_unsure ? 'unsure' : ''));
+      },
       change: async (id, name, v) => {
         if (name === 'notes') { if (v.trim()) await change(id, { notes: v.trim() }, 'Note saved'); return; }
         if (name === 'energy') {
@@ -1261,8 +1287,8 @@ export default {
         return;
       }
       if (act === 'energy-edit') { openEnergy(); return; }
-      // An item's More on hover (not being edited): its full panel.
-      if (act === 'quick-more') { t.closest('.content')?.querySelector('[data-act="details"]')?.click(); return; } // straight to the panel, as in Lists
+      // An item's More (on hover, or while editing its name): in the schedule its note and pills, as in Tasks; a day task's full panel, as in Lists.
+      if ((act === 'quick-more' || act === 'pills-reveal') && id) { if (scheduled(id)) reveal(id); else t.closest('.content')?.querySelector('[data-act="details"]')?.click(); return; }
       if (t.dataset.energy) {
         const old = day.energy || null;
         const energy = t.dataset.energy === 'none' || day.energy === t.dataset.energy ? null : t.dataset.energy;
@@ -1284,6 +1310,7 @@ export default {
         // full panel stays under ⋯).
         const nid = t.closest('[data-item]').dataset.item;
         noteEditing = nid;
+        if (scheduled(nid)) revealed = nid;
         await refresh();
         this.pills.open(nid); // its editing pills under it too, as with Shift+Enter in its name
         el.querySelector(`[data-note-for="${nid}"]`)?._editor?.focus();
