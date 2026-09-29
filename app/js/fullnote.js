@@ -2,7 +2,8 @@
 //
 // On a phone, tapping into any note opens it like this: the note fills the
 // screen and nothing scrolls behind it, "Done" is at the top, and the
-// formatting toolbar sits just above the keyboard. Only Done (or Esc) closes
+// formatting toolbar sits just under it (app.css: above the keyboard, iPhone
+// Safari's own floating ↑ ↓ ✓ bar would cover it). Only Done (or Esc) closes
 // it: taps outside it and putting the keyboard away don't. On a laptop the ⤢
 // button on the toolbar does the same, for when you want to focus on one note.
 //
