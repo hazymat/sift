@@ -22,6 +22,7 @@ const SHELL = [
   'js/keys.js',
   'js/hold.js',
   'js/weburl.js',
+  'js/tickwave.js',
   'js/undo.js',
   'js/gcal.js',
   'js/typesheet.js',
