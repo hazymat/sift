@@ -154,7 +154,8 @@ export default {
           <button type="button" class="drag-handle" aria-label="Select${draggable ? ' or move' : ''} ${esc(t.title)}">${icon('i-grip')}</button>
           <input type="checkbox" class="tick" ${isDone(t) ? 'checked' : ''} aria-label="Done">
           <input class="task-title" value="${esc(t.title)}" aria-label="Task" autocomplete="off">
-          <button type="button" class="more entry-chip" data-act="details" title="Open the task's full panel" aria-expanded="${open === t.id}">More</button>
+          <button type="button" class="more entry-chip" data-act="quick-more" title="Edit the task, with its pills">More</button>
+          <button type="button" class="details-btn" data-act="details" hidden aria-label="Details" aria-expanded="${open === t.id}"></button>
           ${subLine(t)}
         </li>
         ${open === t.id ? `<li class="task-details" data-for="${t.id}">${details(t)}</li>` : ''}`;
@@ -1246,6 +1247,15 @@ export default {
       }
       if (b.dataset.act === 'entry-reveal') { b.closest('.task-entry').classList.add('revealed'); body.querySelector('#task-new')?.focus(); return; }
       if (b.dataset.act === 'note-shown') { const row = b.closest('li[data-task]'); walkGo({ li: row, key: row.dataset.task, title: row.querySelector(':scope > .task-title') }, 'note', 0); return; }
+      // A task's More on hover (not being edited): as its More while editing, the name and its pills.
+      if (b.dataset.act === 'quick-more') {
+        const row = b.closest('li[data-task]'), title = row?.querySelector(':scope > .task-title');
+        if (lay('more-panel') || !lay('pills-hide')) { row?.querySelector(':scope > [data-act="details"]')?.click(); return; }
+        title?.focus(); title?.setSelectionRange(title.value.length, title.value.length);
+        revealed = row.dataset.task;
+        this.pills.open(revealed);
+        return;
+      }
       if (b.dataset.act === 'pills-reveal') {
         const row = b.closest('li[data-task]');
         if (lay('more-panel')) { this.pills.close(); row?.querySelector(':scope > [data-act="details"]')?.click(); return; }
@@ -1411,7 +1421,7 @@ export default {
       },
     });
 
-    // The panel closes with Close, More again or Esc (not by clicking elsewhere, so
+    // The panel closes with Close or Esc (not by clicking elsewhere, so
     // it stays put while you look around). Whatever you were typing is saved first.
     async function closeDetails() {
       if (!open) return;
