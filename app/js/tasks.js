@@ -156,10 +156,16 @@ export const binProvider = {
     const pname = new Map(projects.map(p => [p.id, p.name]));
     const at = r => (kind === 'bin' ? r.deleted_at : r.archived_at);
     const out = [];
+    // A project archived or deleted takes its tasks and milestones with it (the same moment): they come back with it.
+    const milestones = await store.list('milestones', { includeDeleted: true });
+    const withProject = new Set();
     for (const p of projects.filter(inState)) {
-      out.push({ collection: 'projects', id: p.id, kind: 'Project', title: p.name, subtitle: '', detail: '', at: at(p), children: [], search: `${p.name} ${p.description || ''}` });
+      const kids = [...tasks.map(t => ['tasks', t]), ...milestones.map(m => ['milestones', m])].filter(([, r]) => r.project_id === p.id && inState(r) && at(r) === at(p));
+      kids.forEach(([, r]) => withProject.add(r.id));
+      const count = kids.filter(([c]) => c === 'tasks').length;
+      out.push({ collection: 'projects', id: p.id, kind: 'Project', title: p.name, subtitle: '', detail: count ? `${count} task${count === 1 ? '' : 's'}` : '', at: at(p), children: kids.map(([c, r]) => ({ collection: c, id: r.id })), search: `${p.name} ${p.description || ''}` });
     }
-    const gone = tasks.filter(inState);
+    const gone = tasks.filter(t => inState(t) && !withProject.has(t.id));
     const goneIds = new Set(gone.map(t => t.id));
     for (const t of gone) {
       if (t.parent_task_id && goneIds.has(t.parent_task_id)) continue; // comes back with its parent

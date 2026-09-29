@@ -4167,3 +4167,11 @@ textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
 .tasks-head .task-mode button { flex: none; padding: 5px 12px; font-size: .88rem; line-height: 1.2; white-space: nowrap; }
 .tasks-head:has(.task-mode) .page-share { margin-left: auto; }
 @media (max-width: 480px) { .tasks-head:has(.task-mode) { flex-wrap: wrap; } .tasks-head #task-views { order: 1; flex-basis: 100%; } }
+/* A project's page: its top as an open list's (Lists), not sticky; milestone headings get a ⋯. */
+.list-top.project-top { position: static; }
+.pill-menu.ms-menu button { font-family: inherit; letter-spacing: normal; padding: 4px 12px; font-size: .88rem; }
+.task-list .list-head .ms-more { margin-left: 4px; padding: 0 8px; opacity: .6; }
+.task-list .list-head .ms-more:hover { opacity: 1; }
+.task-list .list-head[data-done] { opacity: .6; }
+.project-card.paused { opacity: .7; }
+.project-grid.finished .project-card { opacity: .6; }
