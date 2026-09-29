@@ -10,7 +10,7 @@ import { debounced } from '../autosave.js';
 import { createListKit } from '../listkit.js';
 import { tintHex, tintId, colourMenu } from '../colours.js';
 import { rankOf, reorderWrites, keyBetween, lastKey } from '../order.js';
-import { pillMenu } from '../pillmenu.js';
+import { openManager } from '../typesheet.js';
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import * as att from '../attachments.js';
@@ -77,7 +77,7 @@ export default {
         <!-- Life areas: a filter bar like Brain Dump's and Tasks' (underlined tabs), ⋯ at its end. -->
         <div class="dump-filter-row find-areas">
           <div class="dump-filter" id="editions" role="tablist" aria-label="Life areas"></div>
-          <button type="button" class="filter-more area-more" data-act="edition-menu" title="Rename, move or remove this life area" aria-label="Life area: rename, move or remove">⋯</button>
+          <button type="button" class="filter-more area-more" data-act="edition-menu" title="Add, rename, reorder or remove life areas" aria-label="Manage life areas">⋯</button>
         </div>
         <div id="find-body"></div>
       </div>
@@ -181,7 +181,7 @@ export default {
       }
       body.innerHTML = current.sections.map(s => `
         <section class="find-section">
-          <h2>${esc(s.name)}${s.location_note ? ` <span class="box-where">${esc(s.location_note)}</span>` : ''}<button type="button" class="group-more" data-act="group-menu" data-group="${s.id}" title="Rename, move or remove this ${GROUP.one}" aria-label="${GROUP.One}: rename, move or remove">⋯</button></h2>
+          <h2>${esc(s.name)}${s.location_note ? ` <span class="box-where">${esc(s.location_note)}</span>` : ''}<button type="button" class="group-more" data-act="group-menu" data-group="${s.id}" title="Add, rename, reorder or remove ${GROUP.one}s" aria-label="Manage ${GROUP.one}s">⋯</button></h2>
           <div class="box-grid">${s.boxes.map(b => card(b)).join('')}
             <button type="button" class="box-card add-card" data-act="add-box" data-section="${s.id}">+ New box</button>
           </div>
@@ -508,15 +508,20 @@ export default {
       ],
     });
 
-    // ---------- life areas and groups: their ⋯ ----------
+    // ---------- life areas and groups: their ⋯ opens the manager sheet (typesheet.js, as Brain Dump's types) ----------
 
-    // Move one of a run (life areas, a life area's groups) up or down, between its new neighbours.
-    async function shift(list, rec, by) {
-      const at = list.indexOf(rec), to = at + by;
-      if (to < 0 || to >= list.length) return;
-      const rank = by < 0 ? keyBetween(to > 0 ? rankOf(list[to - 1]) : null, rankOf(list[to])) : keyBetween(rankOf(list[to]), to + 1 < list.length ? rankOf(list[to + 1]) : null);
-      await store.update('places', rec.id, { rank });
+    // Dragged in the sheet: only the moved one gets a new place, between its new neighbours.
+    async function reorderPlaces(recs, ids, moved) {
+      const at = ids.indexOf(moved), byId = id => recs.find(r => r.id === id);
+      const rank = keyBetween(at > 0 ? rankOf(byId(ids[at - 1])) : null, at < ids.length - 1 ? rankOf(byId(ids[at + 1])) : null);
+      await store.update('places', moved, { rank });
       await reload();
+    }
+    async function renamePlace(id, name) {
+      const was = (await store.get('places', id))?.name;
+      await store.update('places', id, { name });
+      await reload();
+      undoable('Renamed', async () => { await store.update('places', id, { name: was }); await reload(); });
     }
     const count = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
     // A life area or group goes to the Bin with everything in it; with boxes in it, it asks first.
@@ -541,45 +546,29 @@ export default {
         await reload();
       });
     }
-    function editionMenu(b) {
-      const e = edition();
-      if (!e) return;
-      editionId = e.id; // it stays the one shown while it moves
-      const at = tree.indexOf(e);
-      const options = [{ value: 'rename', label: 'Rename' }];
-      if (at > 0) options.push({ value: 'left', label: '←', title: 'Move left' });
-      if (at < tree.length - 1) options.push({ value: 'right', label: '→', title: 'Move right' });
-      options.push({ value: 'delete', label: 'Delete' });
-      pillMenu(b, options, async v => {
-        if (v === 'rename') {
-          const n = await askText('Rename life area', { value: e.name, ok: 'Rename' });
-          if (!n?.trim() || n.trim() === e.name) return;
-          await store.update('places', e.id, { name: n.trim() });
-          await reload();
-          undoable('Renamed', async () => { await store.update('places', e.id, { name: e.name }); await reload(); });
-        } else if (v === 'left' || v === 'right') await shift(tree, e, v === 'left' ? -1 : 1);
-        else if (v === 'delete') await deletePlace(e, 'life area');
+    function areasSheet() {
+      if (edition()) editionId = edition().id; // the one shown stays shown while they move
+      openManager({
+        title: 'Life areas', placeholder: word('ph_new_area'),
+        list: () => tree.map(e => ({ id: e.id, label: e.name })),
+        rename: renamePlace,
+        reorder: (ids, moved) => reorderPlaces(tree, ids, moved),
+        remove: id => deletePlace(tree.find(e => e.id === id), 'life area'),
+        add: async name => { await store.create('places', { kind: 'edition', name, parent_place_id: null, notes: '', rank: lastKey(tree) }); await reload(); },
       });
     }
-    function groupMenu(b) {
-      const e = edition(), sec = e?.sections.find(x => x.id === b.dataset.group);
-      if (!sec) return;
-      const at = e.sections.indexOf(sec);
-      const options = [{ value: 'rename', label: 'Rename', title: `Rename, or change where it is` }];
-      if (at > 0) options.push({ value: 'up', label: '↑', title: 'Move up' });
-      if (at < e.sections.length - 1) options.push({ value: 'down', label: '↓', title: 'Move down' });
-      options.push({ value: 'delete', label: 'Delete' });
-      pillMenu(b, options, async v => {
-        if (v === 'rename') {
-          const r = await ask({ title: `Rename ${GROUP.one}`, ok: 'Save', fields: [{ name: 'name', label: 'Name', value: sec.name }, { name: 'where', label: 'Where it is (optional)', value: sec.location_note || '' }] });
-          if (!r?.name?.trim()) return;
-          const before = { name: sec.name, location_note: sec.location_note || '' };
-          await store.update('places', sec.id, { name: r.name.trim(), location_note: (r.where || '').trim() });
-          await reload();
-          undoable('Saved', async () => { await store.update('places', sec.id, before); await reload(); });
-        } else if (v === 'up' || v === 'down') await shift(e.sections, sec, v === 'up' ? -1 : 1);
-        else if (v === 'delete') await deletePlace(sec, GROUP.one);
-      }, { className: 'ms-menu' });
+    function groupsSheet() {
+      const e = edition();
+      if (!e) return;
+      const secs = () => tree.find(x => x.id === e.id)?.sections || [];
+      openManager({
+        title: `${GROUP.One}s in ${e.name}`, placeholder: word('ph_new_group'),
+        list: () => secs().map(sec => ({ id: sec.id, label: sec.name })),
+        rename: renamePlace,
+        reorder: (ids, moved) => reorderPlaces(secs(), ids, moved),
+        remove: id => deletePlace(secs().find(sec => sec.id === id), GROUP.one),
+        add: async name => { await store.create('places', { kind: 'section', name, parent_place_id: e.id, location_note: '', notes: '', rank: lastKey(secs()) }); await reload(); },
+      });
     }
 
     // Show the grid or the open box. `name` pairs the card and page for the zoom.
@@ -803,9 +792,9 @@ export default {
         editionId = e.id; remember(EDITION_KEY, e.id);
         await reload();
       } else if (name === 'edition-menu') {
-        editionMenu(target);
+        areasSheet();
       } else if (name === 'group-menu') {
-        groupMenu(target);
+        groupsSheet();
       } else if (name === 'add-section') {
         const ed = current || await store.create('places', { kind: 'edition', name: 'Standard', parent_place_id: null, notes: '', sort_order: 0 });
         const n = await askText(`New ${GROUP.one || GROUP.One.toLowerCase()}`, { placeholder: word('ph_new_group'), ok: 'Add' });

@@ -972,3 +972,4 @@ NOTES['1.57.00'] = [
 ]
 NOTES['1.57.01'] = [F('Find Things: the life areas are a filter bar of underlined tabs, like Brain Dump\'s and Tasks\', with the ⋯ at its end; ← / → switch between them.')]
 NOTES['1.57.02'] = [B("Key hints on buttons (Alt Enter on a note's full-screen ⤢, Ctrl Enter on Save, Esc on ‹ Lists and the rest) sat a little low in their pill. They're centred now, everywhere.")]
+NOTES['1.57.03'] = [F('Find Things: the ⋯ after the life areas, and the ⋯ by each group\'s name, open the same sheet as Brain Dump\'s types: add, rename, drag to reorder or remove life areas or groups.')]
