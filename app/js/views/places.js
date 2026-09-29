@@ -225,13 +225,9 @@ export default {
           </div>
           <div class="box-inside">
           <h3>Contents <span class="muted">${b.items.length}</span></h3>
-          <div class="task-entry list-entry-box" id="box-entry">
-            <div class="task-add-line">
-              <span class="add-mark" aria-hidden="true"></span>
-              <textarea id="new-items" class="new-task-line list-entry" rows="1" placeholder="${esc(word('ph_add_items'))}" enterkeyhint="done" aria-label="New item"></textarea>
-              <button type="button" class="entry-add" data-act="add-items" title="Add (Enter)">Add <kbd>Enter</kbd></button>
-            </div>
-            <p class="muted hint list-hint">${listHint({ enterAdds: true })}</p>
+          <div class="box-add list-entry-box" id="box-entry">
+            <label for="new-items" class="drag-handle thing-grip add-cube" aria-hidden="true">${icon('i-places')}</label>
+            <textarea id="new-items" class="list-entry" rows="1" placeholder="${esc(word('ph_add_items'))}" enterkeyhint="done" aria-label="New item"></textarea>
           </div>
           <ul class="item-list">${b.items.map(i => `
             <li data-id="${i.id}" data-item="${i.id}" data-depth="${i.depth}" style="--tint: ${tintHex(i)}">
@@ -247,7 +243,7 @@ export default {
           </ul>
           <datalist id="thing-tags">${allTags().map(t => `<option value="${esc(t)}">`).join('')}</datalist>
           </div>
-          <p class="muted hint">The cube: tap to select, swipe down the cubes to select several, press and hold to drag (sideways to indent; or Tab / Shift+Tab). Changes save as you go; Esc closes.</p>
+          <p class="muted hint">${listHint({ enterAdds: true })} The cube: tap to select, swipe down the cubes to select several, press and hold to drag (sideways to indent; or Tab / Shift+Tab). Changes save as you go; Esc closes.</p>
           <div class="sheet-actions">
             <span class="spacer"></span>
             <label class="inline">Move to <select name="parent_place_id">${sections.map(o => `<option value="${o.id}" ${o.id === s.id ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}</select></label>
