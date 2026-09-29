@@ -5,7 +5,7 @@
 // (e.g. ✓ Done, ⋯ More), right for the left-hand ones (e.g. Delete). Let go
 // past half of them and it stays open for a tap; less and it springs back; a
 // tap anywhere else closes it. Not from a grab bar, a tick, a button, a
-// field being typed in or a row got ready to move (.armed: the Day
+// field being typed in, a row being edited (its pills slide instead), or a row got ready to move (.armed: the Day
 // Planner's), nor while things are chosen (the actions bar is up).
 // A row's swipe isn't also the page's (app.js: a side swipe changes page). One
 // place for every list that swipes: Tasks and the Day Planner so far.
@@ -17,6 +17,9 @@
 //     actions(row): { left: [{ label, cls, run(row) }], right: [...] }
 //       left: shown on the right when swiped left; right: on the left when swiped right
 
+// A row being edited (its text, its note or its pills) doesn't swipe: its pills slide sideways instead.
+const editing = row => row.classList.contains('pills-open') || !!row.querySelector('.edit-pills, .note-in-place, .note-edit')
+  || (row.contains(document.activeElement) && !!document.activeElement.matches?.('input:not([type="checkbox"]), textarea, [contenteditable="true"]'));
 const SKIP = '.drag-handle, .drag-grip, .resize-grip, .tick, button:not(.pill-act), .row-acts, .armed, input:focus, textarea:focus, [contenteditable="true"]';
 
 export function rowSwipe(root, { rows, face = null, actions }) {
@@ -97,7 +100,7 @@ export function rowSwipe(root, { rows, face = null, actions }) {
       if (closing) { sw = null; return; }
     }
     const row = ev.target.closest(rows);
-    sw = row && root.contains(row) && ev.touches.length === 1 && !ev.target.closest(SKIP) && !document.body.classList.contains('has-select-bar')
+    sw = row && root.contains(row) && ev.touches.length === 1 && !ev.target.closest(SKIP) && !document.body.classList.contains('has-select-bar') && !editing(row)
       ? { row, x: ev.touches[0].clientX, y: ev.touches[0].clientY, dx: 0, side: null, wide: 0 } : null;
   }, { passive: true });
   root.addEventListener('touchmove', ev => {

@@ -303,6 +303,18 @@ export function createListKit({
           target?.classList.add('nest-target');
         },
       } : {}),
+      // Esc (or a release never seen): back where it was, the rows carried with it shown again, nothing saved.
+      onCancel: ({ item }) => {
+        item.classList.remove('nest-preview');
+        for (const r of ul.querySelectorAll('.nest-target')) r.classList.remove('nest-target');
+        delete item.dataset.dropDepth;
+        delete item.dataset.dropLabel;
+        showOut(item, false);
+        if (carried.length > 1) dropGroup(item, carried);
+        carried = [];
+        lifted = null;
+        document.body.classList.remove('is-dragging');
+      },
       onEnd: ({ item, dx, onto }) => {
         item.classList.remove('nest-preview');
         if (onto && onNest) {
