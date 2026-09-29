@@ -8,7 +8,7 @@ import { cogHtml, layoutOn } from '../viewcog.js';
 import { shareHtml } from '../share.js';
 import { flash, SOFT, WASH } from '../flash.js';
 import * as store from '../store.js';
-import { shareSheet, sharedWithText, invitesHtml, theirsHtml } from '../sharing.js';
+import { shareSheet, sharedWithText, invitesHtml, theirIconHtml } from '../sharing.js';
 import { sharedProjects, sharedValue, sharedFrom, moveIntoShared, loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES, HORIZONS, horizonOf, planDay, MAX_DEPTH, depthIn, levelsUnder } from '../tasks.js';
 import { ENERGY, isoDate, dateText, addDays, parseDate, addItem, durationChoices, durationLabel } from '../days.js';
 import { energyMenu, pillMenu } from '../pillmenu.js';
@@ -328,13 +328,12 @@ export default {
         // As an open list's top (Lists): back, colour, name and ⋯; then progress, aim date and + Milestone.
         html += `
           <div class="list-top project-top">
-          ${from ? theirsHtml(`${from.name} shared this project with you. You can both change it.`, `<button type="button" data-share-leave="${from.share.id}">Leave</button>`) : ''}
           <div class="project-head" style="--c:${projectHex(project)}">
             <button type="button" class="back" data-act="all-projects">‹ Projects</button>
             <button type="button" class="note-dot list-colour" data-act="project-colour" title="Project colour" aria-label="Project colour"><span class="swatch" style="--sw:${projectHex(project)}"></span></button>
             <input class="project-name" value="${esc(project.name)}" aria-label="Project name" data-project="${project.id}">
             ${status !== 'active' ? `<span class="chip">${status === 'done' ? 'Finished' : 'Paused'}</span>` : ''}
-            ${from ? '' : `<button type="button" class="share-btn-people" data-act="share-project" title="${who ? `Shared with ${esc(who)}` : 'Share with someone on your server'}">👥<span class="share-words"> ${who ? `Shared with ${esc(who)}` : 'Share'}</span></button>`}
+            ${from ? theirIconHtml(from.share) : `<button type="button" class="share-btn-people" data-act="share-project" title="${who ? `Shared with ${esc(who)}` : 'Share with someone on your server'}">👥<span class="share-words"> ${who ? `Shared with ${esc(who)}` : 'Share'}</span></button>`}
           </div>
           <div class="list-actions">
             <div class="bar list-bar"><span style="width:${pr.pct}%"></span></div>
