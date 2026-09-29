@@ -17,6 +17,7 @@ Audited at 1.54.09 (29 September 2026), updated for 1.54.10, from the code and b
 - **Shift+Enter goes one step further**: from an item's name to quick edit (with its note), and from there, the name or the note, to the full panel. Lists go straight to the panel.
 - **Green means open or close**: a green pill opens something or closes it again (More, More (full), ✓ Close, a note's full-screen ⤢ and its Done). Buttons that open or close a thing aren't another colour. (The Day Planner's green "↓ Bring in from tasks" doesn't open or close anything, so it breaks this: to decide.) The colour is the shared rule in `app.css` (search `.close-top, .md-full`); add new open and close buttons to it.
 - **Sideways rows** (filter bars, tabs, pill rows, anything that scrolls sideways): a mouse wheel over one scrolls it sideways; at its end the page scrolls as usual. Built once for the whole app (`installWheelRows` in `app.js`), so new rows get it for free.
+- **A thing's colour shows the same way everywhere it has one**: a list looks like a project, a 4px coloured edge along the top of its card, down the left of its open page's head, and its progress bar in its colour, whatever the Look. Built on `--c`, as projects already were (1.55.08).
 
 ## 1. Page level: areas that list things
 
@@ -90,3 +91,4 @@ Numbered for reference. ★ marks the ones already raised.
 18. **Saved messages**: "✓ Saved" with no Undo in Settings, "Saved · Undo" elsewhere.
 19. **Empty states**: "Nothing matches." / "Nothing here." / "Nothing found"; Tasks has none apart from Done.
 20. **Hard to reach**: History is only linked from Settings (not from any ⋯ as the code says); Tidied has no link from Settings.
+21. **Colours only sometimes show.** Projects, lists and recipes always show their colour. Brain Dump notes, contacts, Find Things' box cards and the things in a box only show theirs when 👁 Look is Multicolour (a box's own page always shows its lid colour). To decide: show them always, the project way, or leave them to Multicolour.
