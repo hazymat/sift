@@ -36,6 +36,16 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     onto = el;
     onOnto?.(el);
     if (slot) slot.hidden = !!el; // the row it's over has the dashed outline instead (.nest-target)
+    // Going under that row, it takes no place of its own in the list meanwhile: no empty gap.
+    if (dragging) dragging.style.marginBottom = el ? `${baseMargin - dragging.offsetHeight - (parseFloat(getComputedStyle(list).rowGap) || 0)}px` : '';
+  };
+  let baseMargin = 0; // the dragged row's own bottom margin
+  // A row's place as if the dragged one still took its room (rows after it move up while it takes none),
+  // so going onto a row doesn't move that row out from under the finger.
+  const rectOf = el => {
+    const r = el.getBoundingClientRect();
+    const closed = dragging && el !== dragging && (dragging.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING) ? baseMargin - parseFloat(getComputedStyle(dragging).marginBottom) : 0;
+    return { top: r.top + closed, bottom: r.bottom + closed, height: r.height };
   };
   let slot = null; // the dashed outline of the gap it will drop into (with onOnto)
   let dragging = null;
@@ -84,12 +94,12 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     }
     if (onOnto) {
       // Over the middle third of a row: onto it, no reordering.
-      const over = siblings().find(el => { const r = el.getBoundingClientRect(); return clientY > r.top + r.height / 3 && clientY < r.bottom - r.height / 3; });
+      const over = siblings().find(el => { const r = rectOf(el); return clientY > r.top + r.height / 3 && clientY < r.bottom - r.height / 3; });
       setOnto(over || null);
       if (over) return;
     }
     for (const el of siblings()) {
-      const r = el.getBoundingClientRect();
+      const r = rectOf(el);
       const mid = r.top + r.height / 2;
       const before = dragging.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING;
       if (before && clientY < mid) {
@@ -122,6 +132,7 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     startX = lastX = x;
     startY = lastY = y;
     item.classList.add('dragging');
+    baseMargin = parseFloat(getComputedStyle(item).marginBottom) || 0;
     // The finger's events can stop reaching the list once it lifts (the view redraws the row, or
     // the phone doesn't hand the touch over): follow them on the whole page till let go.
     addEventListener('pointermove', strayMove);
@@ -227,6 +238,7 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     slot = null;
     item.classList.remove('dragging');
     item.style.transform = '';
+    item.style.marginBottom = '';
     item.style.removeProperty('--dx');
     dragging = null;
     const target = onto;
