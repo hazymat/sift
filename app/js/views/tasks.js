@@ -8,6 +8,7 @@ import { cogHtml, layoutOn } from '../viewcog.js';
 import { shareHtml } from '../share.js';
 import { flash, SOFT } from '../flash.js';
 import * as store from '../store.js';
+import { shareSheet, sharedWithText, people as sharers, invitesHtml, theirsHtml } from '../sharing.js';
 import { loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES, HORIZONS, horizonOf, planDay, MAX_DEPTH, depthIn, levelsUnder } from '../tasks.js';
 import { ENERGY, isoDate, dateText, addDays, parseDate, addItem, durationChoices, durationLabel } from '../days.js';
 import { energyMenu, pillMenu } from '../pillmenu.js';
@@ -64,11 +65,12 @@ export default {
     // not one per redraw of the list).
     let pressing = false;
     addEventListener('pointerup', () => setTimeout(() => { pressing = false; }, 400), { passive: true, signal: gone.signal });
-    const state = this.state = { view: 'now', project: null, showDone: false };
+    const state = this.state = { view: 'now', project: null, owner: null, showDone: false }; // owner: whose shared project is open
     // A 👁 Layout switch changed: draw the list again the new way.
     document.addEventListener('sift-layout', ev => { if (ev.detail?.area === 'tasks') render(); }, { signal: gone.signal });
     let aimTimeFor = null; // a task whose panel is showing the aim time field
     let data = { tasks: [], projects: [], milestones: [] };
+    let shared = []; // projects others share with you: [{ p, tasks, owner_id, name, share }]
     let people = { contacts: [], cases: [] };
     let atts = new Map(); // task id → its attachments
     let open = null; // task id with details open
@@ -107,10 +109,24 @@ export default {
       <div id="task-body"></div>`;
 
     const body = el.querySelector('#task-body');
-    const go = (view, project = state.project) => {
-      const url = `#/tasks/${view}${project ? `/${project}` : ''}`;
+    const go = (view, project = state.project, owner = project && project === state.project ? state.owner : null) => {
+      const url = `#/tasks/${view}${project ? `/${project}${owner ? `/from/${owner}` : ''}` : ''}`;
       if (location.hash !== url) location.hash = url; else render();
     };
+
+    // Projects others share with you, from each person's space (store.js).
+    async function loadShared() {
+      const out = [];
+      for (const who of sharers(['project'])) {
+        const space = store.spaceOf(who.owner_id);
+        const ids = new Set(who.shares.map(sh => sh.info.id));
+        const projects = await space.list('projects', { filter: p => ids.has(p.id) && !p.archived_at });
+        const tasks = await space.list('tasks', { filter: t => ids.has(t.project_id) && !t.archived_at });
+        for (const p of projects) out.push({ p, tasks: tasks.filter(t => t.project_id === p.id), owner_id: who.owner_id, name: who.name, share: who.shares.find(sh => sh.info.id === p.id) });
+      }
+      return out;
+    }
+    const theirs = () => state.owner && shared.find(x => x.owner_id === state.owner && x.p.id === state.project);
 
     // ---------- pieces ----------
 
@@ -228,7 +244,7 @@ export default {
           <div class="detail-grid">
             <label>Priority<select name="priority">${PRIORITIES.map(p => `<option value="${p.id}" ${Number(t.priority) === p.id ? 'selected' : ''}>${p.label}</option>`).join('')}</select></label>
             <label>Status<select name="status">${STATUSES.map(s => `<option value="${s.id}" ${t.status === s.id ? 'selected' : ''}>${s.label}</option>`).join('')}</select></label>
-            <label>Project<select name="project_id"><option value="">None</option>${data.projects.map(p => `<option value="${p.id}" ${t.project_id === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}<option value="__new">+ New project…</option></select></label>
+            <label>Project<select name="project_id"><option value="">None</option>${data.projects.map(p => `<option value="${p.id}" ${t.project_id === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}${state.owner ? '' : '<option value="__new">+ New project…</option>'}</select></label>
             ${t.project_id ? `<label>Milestone<select name="milestone_id"><option value="">None</option>${ms.map(m => `<option value="${m.id}" ${t.milestone_id === m.id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}<option value="__new">+ New milestone…</option></select></label>` : ''}
             <label>People<select name="add_contact" data-filled="${(t.contact_ids || []).length ? 1 : ''}"><option value="">+ Add a contact…</option>${people.contacts.filter(c => !(t.contact_ids || []).includes(c.id)).map(c => `<option value="${c.id}">${esc(c.name || '(no name)')}</option>`).join('')}</select></label>
             <label>Case<select name="case_id"><option value="">None</option>${people.cases.map(k => `<option value="${k.id}" ${t.case_id === k.id ? 'selected' : ''}>${esc(k.title)}</option>`).join('')}</select></label>
@@ -321,14 +337,18 @@ export default {
       if (project) {
         const pr = progress(scoped);
         const status = project.status || 'active';
+        const from = theirs();
+        const who = sharedWithText({ kind: 'project', id: project.id });
         // As an open list's top (Lists): back, colour, name and ⋯; then progress, aim date and + Milestone.
         html += `
           <div class="list-top project-top">
+          ${from ? theirsHtml(`${from.name} shared this project with you. You can both change it.`, `<button type="button" data-share-leave="${from.share.id}">Leave</button>`) : ''}
           <div class="project-head" style="--c:${projectHex(project)}">
             <button type="button" class="back" data-act="all-projects">‹ Projects</button>
             <button type="button" class="note-dot list-colour" data-act="project-colour" title="Project colour" aria-label="Project colour"><span class="swatch" style="--sw:${projectHex(project)}"></span></button>
             <input class="project-name" value="${esc(project.name)}" aria-label="Project name" data-project="${project.id}">
             ${status !== 'active' ? `<span class="chip">${status === 'done' ? 'Finished' : 'Paused'}</span>` : ''}
+            ${from ? '' : `<button type="button" class="share-btn-people" data-act="share-project" title="${who ? `Shared with ${esc(who)}` : 'Share with someone on your server'}">👥<span class="share-words"> ${who ? `Shared with ${esc(who)}` : 'Share'}</span></button>`}
           </div>
           <div class="list-actions">
             <div class="bar list-bar"><span style="width:${pr.pct}%"></span></div>
@@ -375,8 +395,8 @@ export default {
           <button type="button" data-act="project-status" data-status="${status === 'paused' ? 'active' : 'paused'}">${status === 'paused' ? 'Resume' : 'Pause'}</button>
           <button type="button" data-act="project-status" data-status="${status === 'done' ? 'active' : 'done'}">${status === 'done' ? 'Reopen' : '✓ Mark finished'}</button>
           <span class="spacer"></span>
-          <button type="button" data-act="project-retire" data-how="archive">Archive project</button>
-          <button type="button" class="danger" data-act="project-retire" data-how="delete">Delete project</button>
+          ${theirs() ? '' : `<button type="button" data-act="project-retire" data-how="archive">Archive project</button>
+          <button type="button" class="danger" data-act="project-retire" data-how="delete">Delete project</button>`}
         </div>`;
       }
       return html;
@@ -399,13 +419,15 @@ export default {
     }
 
     function viewProjects() {
-      const card = p => {
-        const tasks = data.tasks.filter(t => t.project_id === p.id);
+      const card = (p, from = null) => {
+        const tasks = from ? from.tasks : data.tasks.filter(t => t.project_id === p.id);
         const pr = progress(tasks);
         const next = tasks.filter(t => !isDone(t) && !t.parent_task_id).slice(0, 3);
+        const who = from ? '' : sharedWithText({ kind: 'project', id: p.id });
         return `
-          <button type="button" class="project-card${p.status === 'paused' ? ' paused' : ''}" data-open-project="${p.id}" style="--c:${projectHex(p)}">
+          <button type="button" class="project-card${p.status === 'paused' ? ' paused' : ''}" data-open-project="${p.id}"${from ? ` data-owner="${from.owner_id}"` : ''} style="--c:${projectHex(p)}">
             <span class="project-title">${esc(p.name)}${p.status === 'paused' ? ' <span class="chip">Paused</span>' : ''}</span>
+            ${from ? `<span class="muted">👥 from ${esc(from.name)}</span>` : who ? `<span class="muted">👥 shared with ${esc(who)}</span>` : ''}
             <span class="bar"><span style="width:${pr.pct}%"></span></span>
             <span class="muted">${pr.done} of ${pr.total} done${p.due_date ? ` · ⚑ ${shortDate(p.due_date)}` : ''}</span>
             ${next.length && p.status !== 'done' ? `<span class="project-next">${next.map(t => `<span>${esc(t.title)}</span>`).join('')}</span>` : ''}
@@ -413,9 +435,11 @@ export default {
       };
       // Finished ones go under Finished, at the end.
       const finished = data.projects.filter(p => p.status === 'done');
-      return `<div class="project-grid">${data.projects.filter(p => p.status !== 'done').map(card).join('')}<button type="button" class="project-card add-card" data-act="new-project">+ New project</button></div>
+      return `<div class="project-grid">${data.projects.filter(p => p.status !== 'done').map(p => card(p)).join('')}<button type="button" class="project-card add-card" data-act="new-project">+ New project</button></div>
         <p class="muted hint">${esc(word('ph_tasks_projects'))}</p>
-        ${finished.length ? `<h3 class="milestone">Finished</h3><div class="project-grid finished">${finished.map(card).join('')}</div>` : ''}`;
+        ${shared.length || invitesHtml(['project']) ? `<h3 class="milestone">Shared with me</h3>${invitesHtml(['project'])}
+        <div class="project-grid">${shared.map(x => card(x.p, x)).join('')}</div>` : ''}
+        ${finished.length ? `<h3 class="milestone">Finished</h3><div class="project-grid finished">${finished.map(p => card(p)).join('')}</div>` : ''}`;
     }
 
     function viewDone() {
@@ -587,6 +611,10 @@ export default {
 
     // After a sync the app calls refresh(): redraw from fresh data, keeping what's open.
     const render = this.render = this.refresh = async () => {
+      // A project someone shares with you is read and changed in their space (as Lists does).
+      store.useSpace(state.owner ? store.spaceOf(state.owner) : null);
+      shared = await loadShared();
+      if (state.owner && !theirs()) { state.owner = null; store.useSpace(null); if (state.project) return go('projects', null); }
       data = await loadAll();
       people = await loadContacts();
       atts = await att.byParent();
@@ -1376,7 +1404,7 @@ export default {
         return;
       }
       if (b.dataset.act === 'aim-time') { aimTimeFor = b.closest('[data-for]')?.dataset.for; render(); return; }
-      if (b.dataset.openProject) { go('list', b.dataset.openProject); return; }
+      if (b.dataset.openProject) { go('list', b.dataset.openProject, b.dataset.owner || null); return; }
       const li = b.closest('[data-task], [data-for]');
       const id = li?.dataset.task || li?.dataset.for;
       const task = data.tasks.find(x => x.id === id);
@@ -1421,6 +1449,9 @@ export default {
       } else if (act === 'new-project') {
         const p = await newProject();
         if (p) go('list', p.id);
+      } else if (act === 'share-project') {
+        const p = data.projects.find(x => x.id === state.project);
+        if (p) shareSheet({ kind: 'project', id: p.id, name: p.name }, `"${p.name}"`);
       } else if (act === 'project-colour' || act === 'project-aim' || act === 'project-status' || act === 'project-retire') {
         await projectAct(act, b);
       } else if (act === 'milestone-menu') {
@@ -1563,11 +1594,12 @@ export default {
     await render();
   },
 
-  async route([view, project]) {
+  async route([view, project, from, owner]) {
     // Old links to Today / Upcoming land on Now.
     const v = { today: 'now', upcoming: 'now' }[view] || view;
     this.state.view = ['inbox', 'now', 'next', 'later', 'list', 'projects', 'done'].includes(v) ? v : 'now';
     this.state.project = view === 'list' ? project || null : null;
+    this.state.owner = this.state.project && from === 'from' ? owner || null : null; // #/tasks/list/<project>/from/<owner>: shared with you
     this.closeDetails?.();
     await this.render();
   },
