@@ -250,9 +250,9 @@ export default {
           </div>
           <ul class="item-list">${b.items.map(i => `
             <li data-id="${i.id}" data-item="${i.id}" data-depth="${i.depth}" style="--tint: ${tintHex(i)}">
-              <button type="button" class="drag-handle thing-grip" aria-label="Select or move ${esc(i.name)}" title="Tap to select, hold to drag">${icon('i-places')}</button>
-              <input name="name" value="${esc(i.name)}" aria-label="Item">
+              <button type="button" class="drag-handle thing-grip" aria-label="Select or move ${esc(i.name)}" title="Tap to select">${icon('i-places')}</button>
               ${i.quantity ? `<span class="span-tag qty" title="Quantity">×${i.quantity}</span>` : ''}
+              <input name="name" value="${esc(i.name)}" aria-label="Item">
               <button type="button" class="more entry-chip" data-act="quick-more" title="Edit it, with its pills">More</button>
               <button type="button" class="details-btn" data-act="item-details" hidden aria-label="Details" aria-expanded="${openItem === i.id}"></button>
               ${openItem === i.id ? `<button type="button" class="entry-chip close-top" data-act="close-item" title="Close the panel">✓ Close${keys('Esc')}</button>` : ''}
@@ -262,7 +262,7 @@ export default {
           </ul>
           <datalist id="thing-tags">${allTags().map(t => `<option value="${esc(t)}">`).join('')}</datalist>
           </div>
-          <p class="muted hint">${listHint({ enterAdds: true })} The cube: tap to select, swipe down the cubes to select several, press and hold to drag (sideways to indent; or Tab / Shift+Tab). Changes save as you go; Esc closes.</p>
+          <p class="muted hint">${listHint({ enterAdds: true })} Press and hold a thing to move it, as in Tasks; drop it onto another to put it inside (or Tab / Shift+Tab). Tap a cube to select (swipe down the cubes for several). Changes save as you go; Esc closes.</p>
           <div class="sheet-actions">
             <span class="spacer"></span>
             <label class="inline">Move to <select name="parent_place_id">${sections.map(o => `<option value="${o.id}" ${o.id === s.id ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}</select></label>
@@ -433,6 +433,26 @@ export default {
       });
     }
 
+    // Dropped onto a thing: they go inside it (or inside its parent, when it is inside one), at the end.
+    async function nestUnder(ids, targetId) {
+      const items = findBox(openId)?.b.items || [];
+      const target = items.find(i => i.id === targetId);
+      if (!target) return reload();
+      const parentId = target.parent_item_id || target.id;
+      const moving = ids.map(id => items.find(i => i.id === id)).filter(i => i && i.id !== parentId && i.id !== targetId);
+      if (!moving.length) return reload();
+      if (moving.some(m => items.some(k => k.parent_item_id === m.id))) { toast('Things go one level deep'); return reload(); }
+      const rest = items.filter(i => !moving.includes(i));
+      const after = (target.parent_item_id ? [target] : rest.filter(i => i.id === parentId || i.parent_item_id === parentId)).map(i => rankOf(i)).sort().at(-1);
+      const next = rest.map(i => rankOf(i)).filter(k => k > after).sort()[0] || null;
+      const before = moving.map(i => [i.id, { parent_item_id: i.parent_item_id ?? null, rank: i.rank ?? null }]);
+      let rank = after;
+      await store.updateMany('items', moving.map(i => { rank = keyBetween(rank, next); return [i.id, { parent_item_id: parentId, rank }]; }));
+      await reload();
+      const parent = items.find(i => i.id === parentId);
+      undoable(`${moving.length === 1 ? `"${moving[0].name}" is` : `${moving.length} things are`} now inside "${parent?.name || ''}"`, async () => { await store.updateMany('items', before); await reload(); });
+    }
+
     // Persist the list as the kit reports it: order, and each sub-item's
     // parent (the nearest top-level item above it).
     // Only the moved things get a new place (order.js) and only changed
@@ -502,10 +522,15 @@ export default {
       undoable(`Moved ${all.length} to ${target.label_code || target.name}`, async () => { await store.updateMany('items', before); await reload(); });
     }
 
+    // A box's things pick up and move as tasks and list items do: press and hold anywhere on
+    // one and drag it; drop it onto another to put it inside that one.
     const kit = this.kit = createListKit({
       reorder: true,
       indent: true,
       maxDepth: 1,
+      holdAnywhere: true,
+      sideways: false,
+      onNest: (ids, target) => nestUnder(ids, target),
       noun: 'item',
       onReorder: (rows, label, ul, moved) => persistOrder(rows, label, ul, moved),
       actions: [
