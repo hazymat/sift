@@ -24,6 +24,7 @@ import * as gcal from '../gcal.js';
 import { atEdge, caretTo } from '../walk.js';
 import { debounced } from '../autosave.js';
 import { editPills, selectPill, energyPill } from '../editpills.js';
+import { keys } from '../keys.js';
 import { energyMenu } from '../pillmenu.js';
 import { byRank, rankOf, reorderWrites, lastKey } from '../order.js';
 import { askYes, askEmptied } from '../ask.js';
@@ -455,7 +456,9 @@ export default {
             ${span ? `<span class="span-tag">${span}</span>` : i.estimate_min ? `<span class="span-tag">~${durationLabel(Number(i.estimate_min))}</span>` : ''}
             ${i.energy ? `<button type="button" class="span-tag bolts" data-act="energy-pill" title="Energy: ${esc(ENERGY.find(e => e.id === i.energy)?.label || '')}. Click to change" aria-haspopup="menu">${ENERGY.find(e => e.id === i.energy)?.bolts || ''}</button>` : ''}
             ${noteTag(i)}
-            <button type="button" class="more" data-act="details" aria-label="Details" aria-expanded="${editing === i.id}">⋯</button>
+            <button type="button" class="more entry-chip" data-act="quick-more" title="Edit it, with its pills">More</button>
+            <button type="button" class="details-btn" data-act="details" hidden aria-label="Details" aria-expanded="${editing === i.id}"></button>
+            ${editing === i.id ? `<button type="button" class="entry-chip close-top" data-act="close-details" title="Close the panel">✓ Close${keys('Esc')}</button>` : ''}
             ${noteEditing === i.id
               ? `<div class="note-edit" data-note-for="${i.id}"></div>`
               : subLine(i)}
@@ -529,7 +532,6 @@ export default {
           <div class="wide">${att.rowHtml(atts.get(i.id), { parent: i.id })}</div>
           <div class="wide">${commentsHtml(i.task_id ? { task_id: i.task_id } : { item_id: i.id })}</div>
           <div class="detail-actions">
-            <button type="button" class="close-details" data-act="close-details" title="Close (or Esc)"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Close</button>
             ${i.time ? '<button type="button" data-act="unschedule" title="Remove the start and end time and put it back in To place">Unallocate time</button>' : ''}
             ${i.dropped_at
               ? '<button type="button" data-act="take-back" title="It needs doing after all">Take back</button>'
@@ -1145,6 +1147,8 @@ export default {
       row: '.line.has-item[data-item]',
       key: r => r.dataset.item,
       done: true,
+      topDone: false, // ✓ Done stays with the pills: the columns are narrow
+      top: () => '<button type="button" class="entry-chip pill-reveal" data-pill-more title="Open its full panel">More (full)</button>',
       html: id => {
         const i = items.find(x => x.id === id);
         if (!i) return '';
@@ -1260,6 +1264,8 @@ export default {
         return;
       }
       if (act === 'energy-edit') { openEnergy(); return; }
+      // An item's More on hover (not being edited): into its name, with its pills (as a tap on it), and More (full) there.
+      if (act === 'quick-more') { const title = t.closest('.content')?.querySelector('.item-title'); title?.focus(); title?.setSelectionRange(title.value.length, title.value.length); return; }
       if (t.dataset.energy) {
         const old = day.energy || null;
         const energy = t.dataset.energy === 'none' || day.energy === t.dataset.energy ? null : t.dataset.energy;
