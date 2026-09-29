@@ -56,6 +56,7 @@ export function holdToLift(root, { rowAt, shadeOf = row => row, skip = HOLD_SKIP
     pressing = Math.max(0, pressing - 1);
     clearTimeout(holding.timer);
     holding.ripple.remove();
+    holding.waves.remove();
     holding.shade.classList.remove('hold-pending');
     holding = null;
   };
@@ -66,7 +67,7 @@ export function holdToLift(root, { rowAt, shadeOf = row => row, skip = HOLD_SKIP
     carrying = Math.max(0, carrying - 1);
     setTimeout(() => { if (h.target.parentElement?.id === 'hold-keep') h.target.remove(); }, 400);
     h.ripple.classList.add('done');
-    setTimeout(() => { h.ripple.remove(); h.shade.classList.remove('hold-pending'); for (const f of h.locked) f.readOnly = false; }, 350); // after the touch's end and its click
+    setTimeout(() => { h.ripple.remove(); h.waves.remove(); h.shade.classList.remove('hold-pending'); for (const f of h.locked) f.readOnly = false; }, 350); // after the touch's end and its click
   };
 
   root.addEventListener('pointerdown', e => {
@@ -74,6 +75,7 @@ export function holdToLift(root, { rowAt, shadeOf = row => row, skip = HOLD_SKIP
     const row = rowAt(e.target);
     if (!row) return;
     cancel();
+    lens();
     const shade = shadeOf(row) || row;
     const box = shade.getBoundingClientRect();
     const ripple = document.createElement('span'); // a clip the size of the row, holding the spreading circle
@@ -87,11 +89,17 @@ export function holdToLift(root, { rowAt, shadeOf = row => row, skip = HOLD_SKIP
     Object.assign(dot.style, { left: `${px}px`, top: `${py}px`, animationDuration: `${ms}ms` });
     dot.style.setProperty('--reach', reach);
     shade.classList.add('hold-pending');
-    shade.append(ripple);
+    // Over it, rings spread out from the pointer as on water, bending what's under them (app.css .hold-waves).
+    const waves = document.createElement('span');
+    waves.className = 'hold-waves';
+    waves.setAttribute('aria-hidden', 'true');
+    const across = Math.min(reach * 16, 560); // unhurried, like water: they keep spreading (and fading) once it's lifted
+    waves.innerHTML = [0, 1, 2].map(n => `<span style="left:${px}px;top:${py}px;width:${across}px;height:${across}px;margin:${-across / 2}px 0 0 ${-across / 2}px;animation-delay:${n * 240}ms"></span>`).join('');
+    shade.append(ripple, waves);
     x = e.clientX; y = e.clientY;
     pressing++;
     holding = {
-      row, shade, ripple, x, y, pointerId: e.pointerId, locked: [], target: e.target,
+      row, shade, ripple, waves, x, y, pointerId: e.pointerId, locked: [], target: e.target,
       timer: setTimeout(() => {
         const h = holding;
         holding = null;
@@ -108,7 +116,6 @@ export function holdToLift(root, { rowAt, shadeOf = row => row, skip = HOLD_SKIP
         setTimeout(() => { quietClick = false; }, 1500);
         quietTouchEnd = true;
         navigator.vibrate?.(10);
-        lens();
         onLift(h.row, x, y, h.pointerId);
         if (!h.target.isConnected) keeper().append(h.target);
       }, ms),
