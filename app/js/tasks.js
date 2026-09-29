@@ -5,6 +5,7 @@
 import * as store from './store.js';
 import { byRank, firstKey } from './order.js';
 import { word } from './words.js';
+import { people as sharers } from './sharing.js';
 
 export const STATUSES = [
   { id: 'todo', label: 'To do' },
@@ -142,6 +143,43 @@ export const horizonOf = t => t.horizon || 'now';
 export function suggestions(tasks, energy, limit = 5) {
   if (!energy) return [];
   return tasks.filter(t => !isDone(t) && !t.start_date && t.energy === energy && !t.parent_task_id).slice(0, limit);
+}
+
+// ---------- projects shared with you ----------
+
+// Projects others share with you, from each person's space (store.js): [{ p, tasks, owner_id, name, share }].
+// Every place that puts something into a project lists these too, after your own (docs/working-notes.md).
+export async function sharedProjects() {
+  const out = [];
+  for (const who of sharers(['project'])) {
+    const space = store.spaceOf(who.owner_id);
+    const ids = new Set(who.shares.map(sh => sh.info.id));
+    const projects = await space.list('projects', { filter: p => ids.has(p.id) && !p.archived_at });
+    const tasks = await space.list('tasks', { filter: t => ids.has(t.project_id) && !t.archived_at });
+    for (const p of projects) out.push({ p, tasks: tasks.filter(t => t.project_id === p.id), owner_id: who.owner_id, name: who.name, share: who.shares.find(sh => sh.info.id === p.id) });
+  }
+  return out;
+}
+// A picker's value for a project someone shares with you, and back.
+export const sharedValue = x => `from:${x.owner_id}:${x.p.id}`;
+export const sharedFrom = (shared, value) => { const [, owner, pid] = String(value).split(':'); return String(value).startsWith('from:') ? shared.find(x => x.owner_id === owner && x.p.id === pid) || null : null; };
+
+// Your tasks (give sub-tasks too) into a project someone shares with you: made in their space with new ids,
+// yours taken away (moved_away keeps them out of the Bin). Returns the undo. Photos and comments stay behind.
+export async function moveIntoShared(tasks, x) {
+  const space = store.spaceOf(x.owner_id);
+  const newId = new Map(tasks.map(t => [t.id, store.uuidv7()]));
+  for (const t of tasks) {
+    const fields = {};
+    for (const [k, v] of Object.entries(t)) if (!k.startsWith('_') && k !== 'id' && k !== 'moved_away') fields[k] = v;
+    await space.create('tasks', Object.assign(fields, { id: newId.get(t.id), project_id: x.p.id, milestone_id: null, parent_task_id: newId.get(t.parent_task_id) || null }));
+  }
+  const stamp = new Date().toISOString();
+  await store.updateMany('tasks', tasks.map(t => [t.id, { deleted_at: stamp, moved_away: true }]));
+  return async () => {
+    await space.updateMany('tasks', tasks.map(t => [newId.get(t.id), { deleted_at: new Date().toISOString() }]));
+    await store.updateMany('tasks', tasks.map(t => [t.id, { deleted_at: null, moved_away: null }]));
+  };
 }
 
 // ---------- archive & bin ----------
