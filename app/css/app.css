@@ -2971,7 +2971,7 @@ html:not(.show-hints) #main:not([data-area="settings"]) .hint { display: none; }
    Alternate shading: every other item (and card) a touch darker. */
 #main[data-shade="colour"] .list-card[style*="--tint"] {
   background: linear-gradient(135deg, color-mix(in srgb, var(--tint) 17%, transparent), color-mix(in srgb, var(--tint) 5%, transparent) 70%), var(--glass);
-  border-color: color-mix(in srgb, var(--tint) 32%, var(--glass-border));
+  border-color: color-mix(in srgb, var(--tint) 32%, var(--glass-border)); border-top-color: var(--c);
 }
 #main[data-shade="colour"] .checklist[style*="--tint"] > li[data-id] { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--tint) 75%, transparent); background: color-mix(in srgb, var(--tint) 5%, transparent); }
 #main[data-shade="alt"] .checklist:not(.task-list) > li[data-id]:nth-child(even of li[data-id]),
