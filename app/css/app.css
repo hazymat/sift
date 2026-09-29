@@ -2130,7 +2130,10 @@ button.att-count { font: inherit; font-size: inherit; padding: 1px 8px; }
 .tasks-head .segmented button { flex: 1 1 0; min-width: 0; padding: 7px 4px; text-align: center; }
 @media (max-width: 480px) { .tasks-head .segmented button { font-size: .85rem; padding: 7px 2px; } }
 /* Contacts: + New contact (+ New case on Cases) at the left, as in Contracts and Batch Book; on phones the tabs go under it. */
-.c-new-btn { flex: none; white-space: nowrap; }
+.c-new-btn, .new-project-btn { flex: none; white-space: nowrap; }
+.new-project-btn[hidden] { display: none; }
+.tasks-head .new-project-btn { padding: 5px 12px; font-size: .88rem; line-height: 1.2; align-self: center; }
+@media (max-width: 480px) { .tasks-head .new-project-btn { order: 1; } }
 @media (max-width: 480px) { .tasks-head:has(.c-new-btn) { flex-wrap: wrap; } .tasks-head .c-new-btn { margin-right: auto; } .tasks-head #c-tabs { order: 1; flex-basis: 100%; } }
 .task-list .item-sub { flex-wrap: wrap; row-gap: 4px; }
 .task-list .item-sub .chips { display: inline-flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
