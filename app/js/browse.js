@@ -93,6 +93,7 @@ const AREAS = {
   // A box's page, the same: ↓ into its first thing's name (or Add items). The grid browses boxes.
   places: {
     search: '#find-q, #box-q',
+    bar: '#editions [data-edition]',
     items: '#main .box-card',
     down: () => focusEnd(all('#main .item-list > li[data-item] > input[name="name"]')[0]) || focusEnd($('#new-items')) || false,
     enter: () => focusEnd($('#new-items')),
