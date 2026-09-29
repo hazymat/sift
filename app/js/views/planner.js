@@ -614,6 +614,7 @@ export default {
       linesEl.innerHTML = out.join('');
       mountNoteEditors();
       autosizeAll(linesEl); // long titles wrap onto more lines…
+      clampTitles(); // (two at most, the pills under a long one)
       fitSpanBlocks();
       markAlt(linesEl);
       placeNowMarker(); // …so the ▶ is measured after that
@@ -627,7 +628,7 @@ export default {
     nowMarker.textContent = '▶';
     // Wrapped text changes height when the handwriting font arrives or the
     // window changes width: fit again, then put the ▶ back in place.
-    const refit = () => { if (!linesEl.isConnected) return; autosizeAll(linesEl); fitSpanBlocks(); placeNowMarker(); clampTitles(); };
+    const refit = () => { if (!linesEl.isConnected) return; autosizeAll(linesEl); clampTitles(); fitSpanBlocks(); placeNowMarker(); };
     document.fonts?.ready.then(refit);
     this.onRefit = () => { clearTimeout(this.refitTimer); this.refitTimer = setTimeout(refit, 150); };
     addEventListener('resize', this.onRefit, page);
@@ -706,11 +707,26 @@ export default {
       box.hidden = !over;
       box.textContent = over ? `That's ${durationLabel(minutes)} of plan for a ${durationLabel(length)} day. Something could move to another day.` : '';
     }
-    // Day tasks: a name longer than two lines shows two, fading at the end (app.css); these are the ones cut short.
+    // Day tasks and the schedule: a name longer than two lines shows two, fading at the end (app.css); these
+    // are the ones cut short. In the schedule, pills that go under a long name start under the name, not
+    // under its ⠿ and tick box (which stay beside it, in the middle of it as before).
     function clampTitles() {
-      for (const t of el.querySelectorAll('.pile-paper .line.has-item textarea.item-title')) t.classList.toggle('clamped', t.scrollHeight > t.clientHeight + 2);
+      for (const title of el.querySelectorAll('.line.has-item textarea.item-title')) {
+        const style = getComputedStyle(title);
+        const lines = (title.scrollHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)) / parseFloat(style.lineHeight);
+        title.classList.toggle('clamped', lines > 2.3); // more than two lines (not the padding under two)
+      }
+      for (const content of linesEl.querySelectorAll('.line.has-item > .content')) {
+        const title = content.querySelector(':scope > .item-title');
+        const pills = [...content.querySelectorAll(':scope > :is(.span-tag, .note-tag)')];
+        if (!title || !pills.length) continue;
+        pills.forEach(pill => { pill.style.marginLeft = ''; });
+        const under = pills.find(pill => pill.offsetTop >= title.offsetTop + title.offsetHeight - 4);
+        if (under) under.style.marginLeft = `${title.offsetLeft - under.offsetLeft}px`;
+      }
     }
-    el.addEventListener('focusout', ev => { if (ev.target.matches?.('.pile-paper textarea.item-title')) requestAnimationFrame(clampTitles); }); // back to two lines
+    el.addEventListener('focusout', ev => { if (ev.target.matches?.('.line textarea.item-title')) requestAnimationFrame(clampTitles); }); // back to two lines
+    el.addEventListener('input', ev => { if (ev.target.matches?.('#lines textarea.item-title')) requestAnimationFrame(clampTitles); }); // pills going under as it grows
 
     function renderPile(gapAt = null) {
       const all = items.filter(i => !i.time);
