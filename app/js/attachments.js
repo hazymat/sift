@@ -21,7 +21,7 @@ import { toast, undoable } from './toast.js';
 
 const MAX_BYTES = 25 * 1024 * 1024;
 // What files can be attached to (a pasted screenshot in any other note is refused).
-export const ATTACHABLE = ['thoughts', 'tasks', 'day_items', 'list_items', 'items', 'comments', 'scans', 'contracts', 'recipes', 'recipe_makes', 'recipe_entries'];
+export const ATTACHABLE = ['thoughts', 'tasks', 'day_items', 'list_items', 'items', 'comments', 'scans', 'contracts', 'recipes', 'recipe_makes', 'recipe_entries', 'places'];
 const THUMB = 240;
 export const ACCEPT = 'image/*,application/pdf,text/plain,text/markdown,text/csv,.txt,.md,.csv,.pdf';
 
