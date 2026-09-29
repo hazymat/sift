@@ -1096,11 +1096,40 @@ export default {
     // The projects to move tasks into (the finished ones and the one being looked at left out), as pills.
     function projectPills(current) {
       const options = data.projects.filter(p => p.status !== 'done' && p.id !== state.project).map(p => ({ value: p.id, label: `<span class="swatch" style="--sw:${projectHex(p)}"></span> ${esc(p.name)}`, title: p.name, current: p.id === current }));
+      // Projects others share with you: the tasks move into their project (and out of yours).
+      for (const x of shared) if (x.p.status !== 'done') options.push({ value: `from:${x.owner_id}:${x.p.id}`, label: `<span class="swatch" style="--sw:${projectHex(x.p)}"></span> ${esc(x.p.name)} <span class="muted">👥 ${esc(x.name)}</span>`, title: `${x.p.name} (${x.name}'s)` });
       if (current || state.project) options.push({ value: '', label: 'No project' });
       options.push({ value: '__new', label: '+ New project' });
       return options;
     }
+    // Into a project someone shares with you: the tasks (sub-tasks too) are made in their space, with new ids,
+    // and taken out of yours; undo puts them back. Their photos and comments stay behind in yours.
+    async function moveToTheirs(ids, x) {
+      const all = withSubs(ids).map(id => data.tasks.find(t => t.id === id)).filter(Boolean);
+      const space = store.spaceOf(x.owner_id);
+      const newId = new Map(all.map(t => [t.id, store.uuidv7()]));
+      for (const t of all) {
+        const fields = {};
+        for (const [k, v] of Object.entries(t)) if (!k.startsWith('_') && k !== 'id' && k !== 'moved_away') fields[k] = v;
+        await space.create('tasks', Object.assign(fields, { id: newId.get(t.id), project_id: x.p.id, milestone_id: null, parent_task_id: newId.get(t.parent_task_id) || null }));
+      }
+      const stamp = new Date().toISOString();
+      await store.updateMany('tasks', all.map(t => [t.id, { deleted_at: stamp, moved_away: true }]));
+      await render();
+      undoable(`Moved to ${x.p.name} (${x.name}'s): ${all.length} task${all.length === 1 ? '' : 's'}`, async () => {
+        await space.updateMany('tasks', all.map(t => [newId.get(t.id), { deleted_at: new Date().toISOString() }]));
+        await store.updateMany('tasks', all.map(t => [t.id, { deleted_at: null, moved_away: null }]));
+        await render();
+      });
+    }
     async function projectPicked(ids, v) {
+      if (v.startsWith('from:')) {
+        const [, owner, pid] = v.split(':');
+        const x = shared.find(y => y.owner_id === owner && y.p.id === pid);
+        if (!x) return false;
+        await moveToTheirs(ids, x);
+        return true;
+      }
       const p = v === '__new' ? await newProject() : data.projects.find(x => x.id === v) || null;
       if (v === '__new' && !p) return false;
       await moveToProject(ids, p);
