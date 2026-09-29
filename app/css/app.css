@@ -3621,6 +3621,7 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
   :is(.pile-paper, #lines) :is(.line.has-item > .content > .close-top, .line.has-item > .content > .edit-pills.pill-top > .pill-reveal) { position: absolute; right: 6px; top: 2px; margin: 0; z-index: 1; background: color-mix(in srgb, var(--energy-ink, #4caf7a) 13%, var(--menu-bg, var(--glass-strong))); }
   :is(.pile-paper, #lines) .line.has-item > .content:has(> .close-top, > .edit-pills.pill-top) > textarea.item-title { padding-right: 96px; }
   :is(.pile-paper, #lines) .line.has-item > .content:has(> .edit-pills.pill-top > .pill-reveal kbd) > textarea.item-title { padding-right: 144px; }
+  #lines .line.has-item > .content:has(> .edit-pills.pill-top > .pill-reveal[data-pill-more] kbd) > textarea.item-title { padding-right: 196px; }
   /* Pills beside a short name keep clear of that spot, as a task's do (always, so nothing moves on hover). */
   :is(.pile-paper, #lines) .line.has-item > .content { --more-room: 54px; }
   :is(.pile-paper, #lines) .line.has-item > .content:has(> .edit-pills.pill-top) { --more-room: 96px; }
@@ -3631,6 +3632,8 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
   #main[data-density="tight"] :is(.pile-paper, #lines) .line.has-item > .content > .note-tag { margin-right: var(--more-room); }
 }
 @media (hover: none) { #main .line.has-item > .content:has(> .close-top, > .edit-pills.pill-top) > textarea.item-title { max-width: calc(100% - 104px); } } /* phones: beside the name */
+/* A schedule item being edited: its time and note pills go (the pills under it say the same), as a task's chips do. */
+#lines .line.has-item.pills-open > .content > :is(.span-tag, .note-tag) { display: none; }
 :is(.pill-reveal, .task-list > li[data-task] > .more, .line.has-item > .content > .more, .item-list > li[data-item] > .more, .close-top, .md-full, .bare-full, .note-full-done) { color: var(--text); border-color: color-mix(in srgb, var(--energy-ink, #4caf7a) 40%, transparent); background: color-mix(in srgb, var(--energy-ink, #4caf7a) 13%, transparent); }
 :is(.pill-reveal, .task-list > li[data-task] > .more, .line.has-item > .content > .more, .item-list > li[data-item] > .more, .close-top, .md-full, .bare-full, .note-full-done):is(:hover, :focus-visible) { border-color: color-mix(in srgb, var(--energy-ink, #4caf7a) 65%, transparent); background: color-mix(in srgb, var(--energy-ink, #4caf7a) 24%, transparent); outline: none; }
 #main:not([data-density="tight"]) .task-list > li[data-task]:has(> .edit-pills > .pill-reveal) > .item-sub { order: 4; }
