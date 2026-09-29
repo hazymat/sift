@@ -19,6 +19,7 @@ import { keys } from './keys.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.00': [{ text: 'Lists: press and hold a list or template card to choose it (then tap more), hold its ⠿ to drag it into place, and opening a list zooms out of its card as Find Things\' boxes do.', go: '#/lists', at: '#main .list-grid', more: 'The Templates tab works the same; shared lists zoom open too.' }],
   '1.59.03': [{ text: "New app icon: a hand sifting golden sand under a rainbow. On an iPhone, remove Sift from the Home Screen and add it again to see it (sync first: removing it clears that copy).", go: '#/settings', at: '#main a[href="about.html"]', more: 'The browser tab and the About and Privacy pages show it too.' }],
   '1.59.02': [{ text: "iPhone, Find Things: Share, 👁 and ⋯ stay on the first line with + New box; the other + New buttons slide sideways.", go: '#/find-things', at: '#main .find-new' }],
   '1.59.01': [{ text: 'Lists: Lists and Templates are underlined tabs at the top instead of plain headings, and + New makes whichever the tab shows.', go: '#/lists', at: '#main #list-tabs' }, { text: "iPhone: Scans' and Contracts' 👁 and ⋯ stay on the first line with Scan or + New, the search under them; Lists' ⋯ stays up too." }],
