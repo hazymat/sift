@@ -6,6 +6,8 @@ Audited at 1.54.09 (29 September 2026), updated for 1.56.00.
 
 ## Standards to follow
 
+Every version that changes something on screen adds a What's new entry with a Show me pointing at it (`app/js/whatsnew.js`, see "What's new" in `docs/working-notes.md`).
+
 **Buttons and menus**
 - **+ New [thing]** is a pill at the top left of the page. Scans' "Scan" button is the one exception (it takes a photo).
 - **⋯ menus** hold only rarely used things (Show Archive, Show Bin, import, export, example data). Primary actions never go in one. ⋯ menus open below the top bar and sticky bars and scroll inside if long (1.55.03).
