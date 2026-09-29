@@ -18,6 +18,7 @@ Audited at 1.54.09 (29 September 2026), updated for 1.56.00.
 - **↑ / ↓** move editing between rows edited in place (Tasks, Day Planner, an open list, a box's things); **Shift+↑ / ↓** select. The blue browsing box is only for cards and grids (1.55.07).
 - **Ticking off** (one tick, or Done / Tick on a selection bar) plays the same animation everywhere: `tickWave` then `fadeFold` in `tickwave.js` (tick springs with a ring, letters hop, light passes, line drawn, then fade and fold if the row is leaving). Tasks, Projects, Day Planner, Lists (1.56.02).
 - **Selection bars**: A Archive, D (or Delete) Delete, Ctrl+Enter Done or Tick, each key shown on its button. Built into `listkit.js` (1.55.13).
+- **Things floating at the bottom** stack, never overlap: the selection bar lowest, then the "new version" banner, then toasts (Undo, Moved, Saved). One set of CSS variables (`--sel-lift`, `--upd-lift` in `app.css`) does it for every area (1.58.12).
 - **Esc on an opened page**: the first Esc leaves the field (keeping what's typed; an Add items box adds it), the next goes back. The back button shows Esc when nothing is being typed (1.55.15).
 
 **Rows, cards and pages**
