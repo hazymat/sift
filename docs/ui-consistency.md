@@ -28,7 +28,7 @@ Audited at 1.54.09 (29 September 2026), updated for 1.56.00.
 - **Editing a row**: click anywhere on its line to start, anywhere outside to stop.
 - **Sideways rows** (filter bars, tabs, pill rows) scroll with the mouse wheel; at the end the page scrolls. Built once (`installWheelRows` in `app.js`) (1.55.02).
 - **Search boxes** share one style with a ✕ to clear (1.55.11). Tasks, Projects, Lists and the Day Planner have none on purpose: the top bar search covers them.
-- **Sticky top**: on an area's main page, the whole top (+ New pills, 👁, ⋯, search, filter bar) stays in view while scrolling, with a glass background once stuck (Batch Book, Find Things 1.58.01).
+- **Sticky top**: on an area's main page, the whole top (+ New pills, 👁, ⋯, search, filter bar) stays in view while scrolling, with a glass background once stuck (Batch Book, Find Things 1.58.01, Tasks, Projects and Contacts 1.58.03). Brain Dump keeps its New note box scrolling away and pins its search and types.
 - **👁 Spacing on card grids** changes the cards' size: Tight is small cards (more on screen), Loose is big ones showing more of each (Find Things' boxes 1.58.01).
 - **Cards with a photo** keep one shape: the photo is cropped to its frame (square on recipe cards, 4:3 on scans) and never sets the card's height (1.55.17).
 - **A thing's colour** shows the project way wherever it has one: a 4px coloured edge on its card and page head, and its progress bar in its colour, whatever the Look. Built on `--c` (1.55.08).
@@ -49,7 +49,7 @@ What each area shows before anything is opened. "Share (copy)" is the Share pill
 | **⋯ page menu** | Show Archive, Show Bin | Show Archive, Show Bin | Show Archive, Show Bin | Reset this week to this page's paper, Reset all pages to today's paper, Clear this day… | Show Archive, Show Bin | Import CSV, Export CSV, Split quantities, Show Archive, Show Bin | New category, Show Archive, Show Bin | Add from files…, Show Archive, Show Bin | Show Archive, Show Bin | Edit books, Import recipes, Add example recipes, Show Archive, Show Bin | None |
 | **Pinned** | Yes: ☆ top right of card, "★ Pinned" filter | No | No | No | No | No | Yes: ☆ on contact page, pinned sort first, no filter, no Unpin in selection bar | No | No | Yes: ☆ on card, "★ Pinned" tab | No |
 | **Lined paper / box** | Box only | Choice: lined (with or without margin) or box | Cards | Paper styles (always ruled) | Cards | Box only | Box only | Box only | Table (computer), cards (phone) | Cards | Box only |
-| **Sticky header** | Yes, glass once stuck | No | No | No | No | Yes: the whole top (pills, search, life areas), glass once stuck (1.58.01) | No | No | No | Yes, glass once stuck | No |
+| **Sticky header** | Search and types only (the New note box scrolls away), glass once stuck | Yes, glass once stuck (1.58.03) | Yes, glass once stuck (1.58.03) | No | No | Yes: the whole top (pills, search, life areas), glass once stuck (1.58.01) | Yes, glass once stuck (1.58.03) | No | No | Yes, glass once stuck | No |
 
 ## 2. Page level: an opened thing
 
