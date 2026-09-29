@@ -895,3 +895,4 @@ NOTES['1.51.15'] = [F('Pressing and holding an item sends rings out from your fi
 NOTES['1.51.16'] = [F('Carried items are the see-through blue of 1.36 again, now frosted (and in Chrome still slightly bent), and the press and hold shading is that same colour. The water rings are faint and soft.')]
 NOTES['1.51.17'] = [F('Carried items are a little more see-through, and lines under them stay straight: the glass only frosts and, in Chrome, splits colours a little at edges. A carried group is one block of glass with one edge round the outside. The water rings are softer and fainter.')]
 NOTES['1.51.18'] = [F('A lifted item turns its slight tilt in smoothly, and when let go it glides into its place and straightens, rather than snapping.')]
+NOTES['1.51.19'] = [B('Tasks and Lists: an item dragged and put back where it was no longer says "Moved" with Undo, and adds nothing to undo.')]
