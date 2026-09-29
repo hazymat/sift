@@ -434,6 +434,7 @@ main {
 }
 input:focus, select:focus, textarea:focus { border-color: var(--active-border); }
 textarea { resize: vertical; }
+textarea { min-width: 0; } /* one sized to its words (field-sizing) in a row still wraps a long link, not grows past its box */
 label { display: grid; gap: 4px; font-size: .8rem; color: var(--muted); }
 label > input, label > select { font-size: 1rem; color: var(--text); }
 button.primary { background: var(--active-bg); border-color: var(--active-border); }
@@ -604,7 +605,7 @@ label.inline select { width: auto; max-width: 220px; font-size: .85rem; padding:
   ::view-transition-old(root), ::view-transition-new(root) { animation-duration: .15s; }
 }
 
-.item-list { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 2px; }
+.item-list { list-style: none; margin: 0 0 10px; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; } /* never wider than the page, however long a name or note */
 .item-list li { display: flex; gap: 4px; align-items: center; border-radius: var(--radius-sm); }
 .item-list li[data-depth="1"] { margin-left: 28px; }
 .item-list li[data-depth="1"] input[name="name"] { font-size: .88rem; color: var(--muted); }
@@ -2212,7 +2213,7 @@ select:focus option:checked { background-color: var(--active-border, #35507a); }
 :is(.rich-edit, .thought-body, .note-body, .note-loose) ol li::marker { font-family: system-ui, sans-serif; }
 
 /* Pills under an item being edited in place (js/editpills.js). */
-.edit-pills { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 8px 52px; }
+.edit-pills { flex-basis: 100%; min-width: 0; display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 8px 52px; }
 .task-list .edit-pills { margin: -2px 0 8px 64px; }
 .item-list .edit-pills { margin: 0 0 6px 36px; }
 .checklist .edit-pills { margin: -2px 0 8px 64px; }
@@ -3997,7 +3998,7 @@ textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
 .bb-ref { padding: 0 4px; border-radius: 5px; background: color-mix(in srgb, var(--bb) 28%, transparent); font-weight: 600; white-space: nowrap; }
 .bb-ref-missing { background: rgba(200, 40, 40, .15); font-weight: 400; text-decoration: underline wavy rgba(200, 40, 40, .6); }
 .bb-ref-picks { display: flex; visibility: hidden; flex-wrap: wrap; align-items: center; gap: 5px; margin: 0 0 6px; }
-.bb-ref-picks .chip { cursor: pointer; }
+.bb-ref-picks .chip { cursor: pointer; max-width: 100%; overflow: hidden; text-overflow: ellipsis; } /* a long ingredient name ends in …, not off the page */
 .bb-ref-hint { display: none; margin: 4px 0 0; }
 .bb-method:has(.bb-steps :focus) .bb-ref-picks { visibility: visible; }
 .bb-method:has(.bb-steps textarea:focus) .bb-ref-hint { display: block; }
