@@ -24,7 +24,7 @@ import { TINTS } from '../colours.js';
 import { pillMenu } from '../pillmenu.js';
 import { sortable } from '../sortable.js';
 import { signedIn, status as syncStatus } from '../sync.js';
-import { addExamples, addNewPhotos, isBrandNew, needsWipe, photosBehind, setAccount, wipeBook } from '../examples.js';
+import { addExamples, addNewPhotos, isBrandNew, needsWipe, photosBehind, setUpBooks, wipeBook } from '../examples.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -187,7 +187,7 @@ export default {
             ${cogHtml('recipes', paperHtml())}
             <details class="tool-menu page-more">
               <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
-              <div class="menu"><a href="#" data-act="sections">Edit books</a><a href="#" data-act="import">Import recipes</a><a href="#/bin/archive/recipes">Show Archive</a><a href="#/bin/bin/recipes">Show Bin</a></div>
+              <div class="menu"><a href="#" data-act="sections">Edit books</a><a href="#" data-act="import">Import recipes</a><a href="#" data-act="examples">Add example recipes</a><a href="#/bin/archive/recipes">Show Archive</a><a href="#/bin/bin/recipes">Show Bin</a></div>
             </details>
           </div>
           <div class="bb-sections-bar">
@@ -430,8 +430,7 @@ export default {
       data = await loadBook();
       if (!state.owner && await moveTastings()) data = await loadBook();
       settings = await store.getSettings();
-      setAccount(signedIn()?.user_id);
-      if (!state.owner && await isBrandNew(settings, !!signedIn())) { await addExamples(settings); data = await loadBook(); settings = await store.getSettings(); }
+      if (!state.owner && await isBrandNew(settings, !!signedIn())) { await setUpBooks(); data = await loadBook(); settings = await store.getSettings(); }
       // The one time wipe and the photo catch-up (examples.js), once this device has what the account already has.
       else if (!state.owner && needsWipe(settings) && (!signedIn() || syncStatus.last)) { await wipeBook(); data = await loadBook(); settings = await store.getSettings(); }
       else if (!state.owner && photosBehind(settings) && (!signedIn() || syncStatus.last)) { await addNewPhotos(); data = await loadBook(); settings = await store.getSettings(); }
@@ -751,7 +750,7 @@ export default {
         focusNext = `[data-field-key="${CSS.escape(name)}"]`;
         return render();
       }
-      if (act === 'examples') { b.disabled = true; await addExamples(settings); toast('Added example recipes: change or delete them as you like'); return render(); }
+      if (act === 'examples') { b.disabled = true; await addExamples(); toast('Added example recipes: change or delete them as you like'); return render(); }
       if (act === 'make') return makeThis(recipeOf(state.recipe));
       if (act === 'reading') {
         const type = b.dataset.type || 'Gravity', grav = isGravity(type);

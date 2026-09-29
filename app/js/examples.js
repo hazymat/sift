@@ -1,7 +1,7 @@
 // Batch Book's example recipes: what a new Batch Book starts with, a showcase of Mat's own recipes.
-// Added once, to a book that has never had a recipe, on a device not signed in or signed up as a new account
-// (so no existing account gets them); an empty book offers them with a button too (recipes.js).
+// Only added when asked (Mat, 1.50.02): the button in an empty book (recipes.js) or Settings > Batch Book.
 import * as store from './store.js';
+import { signedIn } from './sync.js';
 import * as att from './attachments.js';
 import { parseRecipes } from './batchbook.js';
 
@@ -250,10 +250,8 @@ const DROPPED = ['Coloured Sticky Rice with Mango'];   // 1.49.14, Mat asked
 // Showcase recipes and photos get ids made from the account and their name, the same on every device and every
 // run, so two devices (or two quick renders on one) adding them at once make one copy that sync merges, not three
 // (1.49.11: Mat's and Anna's books had them tripled).
-let account = 'local';
-export const setAccount = key => { account = key || 'local'; };
 async function fixedId(name) {
-  const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${account}|${name}`)));
+  const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${signedIn()?.user_id || 'local'}|${name}`)));
   const hex = Array.from(hash.slice(0, 16), byte => byte.toString(16).padStart(2, '0')).join('');
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
 }
@@ -285,13 +283,14 @@ async function addShowcase(fresh = false) {
   await store.updateSettings({ batch_examples: true, batch_wipe: 1, batch_showcase_photos: PHOTOS_VERSION });
 }
 
-// The example books (any not set up yet) and the showcase, in the current space.
-export const addExamples = settings => serial(async () => {
-  const books = settings.batch_sections || [];
+// The example books not set up yet; with the showcase too when asked for (again brings back any deleted, never a second copy).
+const addBooks = async () => {
+  const settings = await store.getSettings(), books = settings.batch_sections || [];
   const missing = EXAMPLE_BOOKS.filter(x => !books.some(b => b.name === x.name));
-  if (missing.length || !settings.batch_sections) await store.updateSettings({ batch_sections: books.concat(missing) });
-  await addShowcase();
-});
+  await store.updateSettings({ batch_sections: books.concat(missing), batch_wipe: 1, batch_books: 1 });
+};
+export const setUpBooks = () => serial(addBooks);
+export const addExamples = () => serial(async () => { await addBooks(); await addShowcase(true); });
 
 // Once per account (1.49.11, Mat asked: the starters had been added three times): every recipe, batch, diary entry
 // and their photos go, the books go back to the example ones, and the showcase is added fresh. batch_wipe is an
@@ -309,9 +308,9 @@ export const wipeBook = () => serial(async () => {
 export const addNewPhotos = () => serial(addShowcase);
 export const photosBehind = settings => settings.batch_examples && (settings.batch_showcase_photos || 0) < PHOTOS_VERSION;
 
-// A brand new Batch Book: never had a recipe, on a device not signed in or signed up here as a new account
-// (an account that already existed is only ever signed in to, so it never gets them).
+// A brand new Batch Book: never set up, never had a recipe, on a device not signed in or signed up here as a new
+// account (an account that already existed is only ever signed in to). It gets the books; the recipes wait for the button.
 export async function isBrandNew(settings, signedIn) {
-  if (settings.batch_examples || (signedIn && !(await store.metaGet('new_account')))) return false;
+  if (settings.batch_examples || settings.batch_books || (signedIn && !(await store.metaGet('new_account')))) return false;
   return !(await store.list('recipes', { includeDeleted: true })).length;
 }
