@@ -20,7 +20,7 @@ Audited at 1.54.09 (29 September 2026), updated for 1.56.00.
 - **Esc on an opened page**: the first Esc leaves the field (keeping what's typed; an Add items box adds it), the next goes back. The back button shows Esc when nothing is being typed (1.55.15).
 
 **Rows, cards and pages**
-- **Choosing several cards** (Find Things' boxes, Brain Dump notes, Batch Book recipes, Contacts): press and hold a card to select; while any are selected, a tap adds or removes one (Shift+tap: a run). Shift+arrows select while browsing. Esc or the bar's ✕ clears. Built into `listkit.js` (`holdSelect`) and `browse.js` (1.56.00).
+- **Choosing several cards**: things shown as cards or boxes (Find Things' boxes, Brain Dump notes, Batch Book recipes, Contacts) can be chosen by pressing and holding one, which brings up the selection bar, as in Batch Book; while any are chosen, a tap adds or removes one (Shift+tap: a run). Shift+arrows select while browsing. Esc or the bar's ✕ clears. Each card has a ⠿ that shows on hover on a computer (faint all the time on touch screens); clicking it chooses the card. Built into `listkit.js` (`holdSelect`) and `browse.js` (1.56.00, 1.57.00).
 - **Headings that hold things** (Find Things' life areas and groups, a project's milestones) get a small ⋯ beside them for Rename, move and Delete, not the page's ⋯. Deleting one with things in it asks first (1.56.00).
 - **Editing a row**: click anywhere on its line to start, anywhere outside to stop.
 - **Sideways rows** (filter bars, tabs, pill rows) scroll with the mouse wheel; at the end the page scrolls. Built once (`installWheelRows` in `app.js`) (1.55.02).
@@ -63,7 +63,7 @@ Rows and cards inside an area. "Top right" means on the row's own first line, at
 
 | | Task (Tasks, project page) | Day Planner item | List item | Brain Dump note | Box item (Find Things) | Recipe card | Contact card | Scan / contract |
 |---|---|---|---|---|---|---|---|---|
-| **Resting** | ⠿ (hover), tick, title, chips, note | ⠿ (text glyph), tick, title, tags, note | ⠿, tick, text, ▾ n/m, note line | Head row (⠿, type, time, ☆), text, action row | Cube grip, name, ×qty, tags | Photo, title, tags, Make, ☆, ⋯ | Grip, name, about, chips | Card or table row |
+| **Resting** | ⠿ (hover), tick, title, chips, note | ⠿ (text glyph), tick, title, tags, note | ⠿, tick, text, ▾ n/m, note line | Head row (⠿, type, time, ☆), text, Archive and ⋯ (→ Task, Plan it, → Find Things are in the ⋯) | Cube grip, name, ×qty, tags | Photo, title, tags, Make, ☆, ⋯ | Grip, name, about, chips | Card or table row |
 | **Computer hover** | Green **"More"** top right | Green **"More"** top right | Green **"More"** top right | Action row brightens; **⋯ bottom right** | Green **"More"** top right | Card lifts; grip shows | Grip brightens | Background only |
 | **Start editing** | Click anywhere on the line | Click anywhere on the line | Click anywhere on the line | Click the body text only | Click anywhere on the line | Open the page | Open the page | Open the page |
 | **While editing: More** | "More ⇧Enter" **top right**, then "More (full) ⇧Enter" in the same spot; "✓ Done Ctrl+Enter" beside it | "More (full)" top right (no key hint); pills show straight away; ✓ Done in pill row | "More ⇧Enter" top right, goes straight to the panel (no quick stage, intended); no Done. The hover More opens the panel, it doesn't start editing | No More, no Done: click away or Esc | "More (full)" top right; Quantity pill underneath | n/a | n/a | n/a |
@@ -73,7 +73,7 @@ Rows and cards inside an area. "Top right" means on the row's own first line, at
 | **↑ / ↓ keys** | Move editing row to row; Shift selects | Same | Same (since 1.55.07) | Blue box browses cards | Same as Tasks (since 1.55.07) | Blue box browses cards | Blue box browses cards | Blue box browses cards |
 | **Ctrl+Enter** | Tick | Tick | Nothing | Save / finish | Add items (box page) | n/a | n/a | n/a |
 | **Phone** | Swipe: ⋯ More, ✓ Done / Delete; hold drags | Swipe: ⋯ More, ✓ Done / Delete; tap arms, tap edits | Swipe: ⋯ More, **✓ Tick** / Delete | No swipe; hold selects | No swipe; ⋯ hidden (a box card: hold selects) | Hold selects | No swipe; hold selects | No swipe |
-| **Selection bar** | Indent, Outdent, ↑ ↓, Done Ctrl+Enter, Move ▸, Archive A, Delete D | Done Ctrl+Enter, To place, Let go, Tomorrow, Archive A, Delete D | Indent, Outdent, ↑ ↓, Tick Ctrl+Enter, Untick, Add to template, Archive A, Delete D | ↑ ↓, Colour…, → Tasks, Pin, Unpin, Archive A, Delete D | Indent, Outdent, ↑ ↓, Move to box…, Colour…, Archive A, Delete D (the boxes themselves: Move to…, Colour…, Archive A, Delete D) | ↑ ↓, Move to ▸, Pin, Unpin, Archive A, Delete D | Colour…, Store, Pin, Archive A, Delete D (no Unpin) | None |
+| **Selection bar** | Indent, Outdent, ↑ ↓, Done Ctrl+Enter, Move ▸, Archive A, Delete D | Done Ctrl+Enter, To place, Let go, Tomorrow, Archive A, Delete D | Indent, Outdent, ↑ ↓, Tick Ctrl+Enter, Untick, Add to template, Archive A, Delete D | ↑ ↓, Colour…, Move ▸ (→ Tasks, Plan it…, → Find Things…), Pin, Unpin, Archive A, Delete D | Indent, Outdent, ↑ ↓, Move to box…, Colour…, Archive A, Delete D (the boxes themselves: Move to…, Colour…, Archive A, Delete D) | ↑ ↓, Move to ▸, Pin, Unpin, Archive A, Delete D | Colour…, Store, Pin, Archive A, Delete D (no Unpin) | None |
 | **Drag** | Hold anywhere | Hold anywhere | Hold anywhere | Hold ⠿ only | Hold grip | Hold ⠿ | None (grip shown but no drag) | None |
 | **Sub-items** | 3 levels | None | 1 level | None | 1 level | n/a | n/a | n/a |
 
@@ -134,5 +134,6 @@ Rows and cards inside an area. "Top right" means on the row's own first line, at
 - Contact cards: long names wrap, "From ..." is a link (1.55.16).
 - Recipe cards all the same height, photos cropped square (1.55.17).
 - Find Things: life areas are small pills that hug like Tasks | Projects; life areas and groups get their own ⋯ (1.56.00).
-- Choosing several cards by press and hold works in Find Things, Brain Dump, Contacts and Batch Book (1.56.00).
+- Choosing several cards by press and hold works in Find Things, Brain Dump, Contacts and Batch Book (1.56.00); every card shows its ⠿ on hover, Find Things' boxes included (1.57.00).
+- Brain Dump notes: → Task, Plan it and → Find Things moved from the card into its ⋯, and into the selection bar's Move ▸ (1.57.00).
 - Intended, not changing: Brain Dump notes edit from their text only, with no More or Done; list items go straight to the panel.
