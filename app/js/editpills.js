@@ -119,6 +119,9 @@ export function editPills(root, spec) {
     if (!editing) return;
     const row = rowOf(editing);
     if (row?.contains(ev.target) || ev.target.closest?.('.edit-pills, .pill-menu, .ref-picker, dialog, .toast')) return;
+    // An iPhone keeps the cursor (and keyboard) in the text when the tap lands on something that can't take it.
+    const tapIntoField = ev.target.closest?.('input, textarea, select, [contenteditable="true"]');
+    if (touch && !tapIntoField && row?.contains(document.activeElement)) document.activeElement.blur();
     close();
   };
   // Tick or untick the row (its own tick box does the work). From its text (Ctrl+Enter): what's typed
