@@ -12,6 +12,7 @@ import * as att from '../attachments.js';
 import { sectionsOf, sectionOf, stepsOf, fixBareUnits, parseRecipes, IMPORT_EXAMPLE, UNITS, parseLine, parseQty, qtyText, amountText, ingredientText, stepHtml, renameRefs, abvOf, readingTypesOf, isGravity, nextBatchNo, loadBook, batchName, newBatchName, batchDay } from '../batchbook.js';
 import { loadLists, nestItems, createList, addItems } from '../lists.js';
 import { richText } from '../richtext.js';
+import { atEdge, caretTo } from '../walk.js';
 import { debounced } from '../autosave.js';
 import { toast, undoable } from '../toast.js';
 import { askText, askYes } from '../ask.js';
@@ -476,6 +477,7 @@ export default {
         richText(box, { value: r.tasting || '', placeholder: 'How it tasted, how it turned out, what to change next time', origin: () => ({ collection: owner.collection, id: r.id, title: owner.collection === 'recipes' ? r.title : batchName(r, recipeOf(r.recipe_id)?.title), field: 'tasting' }), onChange: md => { pending = md; tasting.trigger(); } });
       }
       if (focusNext) { const f = el.querySelector(focusNext); focusNext = null; if (f) { f.focus(); f.select?.(); } }
+      if (walkNext) { const w = walkNext; walkNext = null; const f = el.querySelector(w.key); if (f && !el.contains(document.activeElement)) arrive(f, w.at); }
     };
     // After a sync: redraw unless something is being written in (then when it's left).
     this.refresh = async () => { if (writing()) { dirty = true; return; } await render(); };
@@ -606,6 +608,62 @@ export default {
         if (view) openStep(view);
       }
     });
+
+    // ---------- moving between lines (as in Tasks and the Day Planner) ----------
+    // ↑ / ↓ on a field's first / last line go to the line above / below: title, description, details, ingredients,
+    // steps, readings, diary. Enter moves on too (amount → ingredient → the next line); Backspace in an empty
+    // last line goes up. A line that saves and redraws as it's left is found again by its key (walkNext).
+    let walkNext = null;
+    const FIELDS = 'input:not([type="checkbox"], [type="date"], [type="file"], [type="color"]), textarea:not([hidden]), [data-step-view]:not([hidden])';
+    const walkRows = () => Array.from(el.querySelectorAll('.bb-paper :is(.bb-title-row, .bb-desc, .bb-line)')).map(r => ({ row: r, fields: r.matches('textarea') ? [r] : Array.from(r.querySelectorAll(FIELDS)).filter(f => f.offsetParent) })).filter(r => r.fields.length);
+    const keyOf = f => {
+      const own = ['data-rec', 'data-make', 'data-ing-line', 'data-entry-field', 'data-field-key'].find(a => f.hasAttribute(a));
+      const sel = own ? `[${own}="${CSS.escape(f.getAttribute(own))}"]` : f.matches('[data-step-text]') ? '[data-step-view]' : f.matches('[data-step-view]') ? '[data-step-view]' : ['bb-ing-add', 'bb-step-new', 'bb-gravity', 'bb-reading-value'].map(c => `.${c}`).find(c => f.matches(c));
+      if (!sel) return null;
+      const box = f.closest('[data-ing], [data-step], [data-entry]');
+      return box ? `[${box.hasAttribute('data-ing') ? 'data-ing' : box.hasAttribute('data-step') ? 'data-step' : 'data-entry'}="${CSS.escape(box.dataset.ing || box.dataset.step || box.dataset.entry)}"] ${sel}` : sel;
+    };
+    function arrive(f, at) {
+      if (f.matches('[data-step-view]')) { openStep(f); f = f.parentElement.querySelector('[data-step-text]'); }
+      f.focus();
+      caretTo(f, at);
+    }
+    function walk(from, dir) {
+      const rows = walkRows();
+      const i = rows.findIndex(r => r.fields.includes(from) || (from.matches('[data-step-text]') && r.row.contains(from)));
+      const to = rows[i + (dir === 'up' ? -1 : 1)];
+      if (i < 0 || !to) return false;
+      const col = rows[i].fields.indexOf(from), last = col === rows[i].fields.length - 1 || col < 0;
+      const f = last ? to.fields[to.fields.length - 1] : to.fields[Math.min(col, to.fields.length - 1)];
+      const at = dir === 'up' ? 'end' : 'start';
+      walkNext = { key: keyOf(f), at };
+      arrive(f, at);
+      if (el.contains(document.activeElement)) setTimeout(() => { walkNext = null; }, 1500); // not redrawn: nothing to find again
+      return true;
+    }
+    el.addEventListener('pointerdown', () => { walkNext = null; }, true);
+    el.addEventListener('keydown', ev => {
+      const t = ev.target;
+      if (ev.defaultPrevented || ev.ctrlKey || ev.altKey || ev.metaKey || ev.isComposing || !t.closest?.('.bb-paper') || t.closest('.bb-note, .is-full')) return;
+      if (document.querySelector('.ref-picker, .pill-menu, .ref-menu')) return;
+      const field = t.matches(FIELDS) || t.matches('[data-step-text]');
+      if (!field || t.matches('select')) return;
+      if ((ev.key === 'ArrowUp' || ev.key === 'ArrowDown') && !ev.shiftKey) {
+        const dir = ev.key === 'ArrowUp' ? 'up' : 'down';
+        if (!t.matches('[data-step-view]') && !atEdge(t, dir)) return;
+        if (walk(t, dir)) ev.preventDefault();
+        return;
+      }
+      // Enter: an amount goes on to its ingredient, anything else one-line to the line below.
+      if (ev.key === 'Enter' && !ev.shiftKey && t.matches('input') && !t.matches('.bb-ing-add')) {
+        ev.preventDefault();
+        if (t.dataset.ingLine === 'amount') { const x = t.closest('.bb-line').querySelector('[data-ing-line="text"]'); walkNext = { key: keyOf(x), at: 'end' }; arrive(x, 'end'); }
+        else walk(t, 'down');
+        return;
+      }
+      if (ev.key === 'Backspace' && !t.value && t.matches('.bb-ing-add, .bb-step-new') && walk(t, 'up')) ev.preventDefault();
+      if (ev.key === 'Escape' && !t.matches('[data-step-text], .bb-ing-add')) { ev.preventDefault(); ev.stopPropagation(); t.blur(); }
+    }, true);
 
     el.addEventListener('change', async ev => {
       const t = ev.target;
