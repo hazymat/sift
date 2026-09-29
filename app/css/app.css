@@ -4185,3 +4185,5 @@ textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
 .task-list .list-head[data-done] { opacity: .6; }
 .project-card.paused { opacity: .7; }
 .project-grid.finished .project-card { opacity: .6; }
+.pill-menu.project-pills { z-index: 1200; flex-wrap: wrap; max-width: min(520px, calc(100vw - 16px)); } /* over the toast; wraps when there are many projects */
+.pill-menu.project-pills .swatch { width: 12px; height: 12px; }

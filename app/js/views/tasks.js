@@ -1084,12 +1084,36 @@ export default {
       if (leaving.length) tickAway(leaving); else await render();
       undoable(`${label} ${all.length} task${all.length === 1 ? '' : 's'}`, async () => { await store.updateMany('tasks', before); await render(); });
     }
+    // Into a project (or out of one), sub-tasks with them; they start with no milestone.
+    const moveToProject = (ids, p) => batchSet(ids, { project_id: p?.id || null, milestone_id: null }, p ? `Moved to ${p.name}:` : 'Taken out of the project:', { subs: true });
+    // The projects to move tasks into (the finished ones and the one being looked at left out), as pills.
+    function projectPills(current) {
+      const options = data.projects.filter(p => p.status !== 'done' && p.id !== state.project).map(p => ({ value: p.id, label: `<span class="swatch" style="--sw:${projectHex(p)}"></span> ${esc(p.name)}`, title: p.name, current: p.id === current }));
+      if (current || state.project) options.push({ value: '', label: 'No project' });
+      options.push({ value: '__new', label: '+ New project' });
+      return options;
+    }
+    async function projectPicked(ids, v) {
+      const p = v === '__new' ? await newProject() : data.projects.find(x => x.id === v) || null;
+      if (v === '__new' && !p) return false;
+      await moveToProject(ids, p);
+      return true;
+    }
+    function pickProject(ids) {
+      const same = new Set(ids.map(id => data.tasks.find(t => t.id === id)?.project_id || ''));
+      const anchor = [...document.querySelectorAll('.select-bar:not([hidden]) [data-kit-action="project"]')].at(-1);
+      pillMenu(anchor, projectPills(same.size === 1 ? [...same][0] : null), async v => {
+        if (await projectPicked(ids, v)) for (const kit of [kitOrdered, kitPlain, kitFlat]) kit.clear();
+      }, { className: 'ms-menu project-pills' });
+    }
     const taskActions = [
       { id: 'done', label: 'Done', key: 'Ctrl+Enter', run: ids => batchSet(ids, doneFields(true), 'Done:', { fade: true }) },
       // Move ▸ opens sideways to the lists, less the one being looked at.
       { id: 'now', label: 'Now', group: 'Move', when: () => state.view !== 'now', run: ids => batchSet(ids, { horizon: 'now' }, 'Transferred to Now:') },
       { id: 'next', label: 'Next', group: 'Move', when: () => state.view !== 'next', run: ids => batchSet(ids, { horizon: 'next' }, 'Transferred to Next:') },
       { id: 'later', label: 'Later', group: 'Move', when: () => state.view !== 'later', run: ids => batchSet(ids, { horizon: 'later' }, 'Transferred to Later:') },
+      // Project…: the projects open as pills over the bar; the selection stays until one is picked.
+      { id: 'project', label: 'Project…', group: 'Move', keepSelection: true, when: () => !state.owner, run: ids => pickProject(ids) },
       { id: 'archive', label: 'Archive', key: 'A', run: ids => batchSet(ids, { archived_at: new Date().toISOString() }, 'Archived', { subs: true }) },
       { id: 'delete', label: 'Delete', key: 'D', danger: true, run: ids => batchSet(ids, { deleted_at: new Date().toISOString() }, 'Deleted', { subs: true }) },
     ];
@@ -1547,7 +1571,8 @@ export default {
           + selectPill('estimate_min', 'Estimated time', '⏱', [['', 'Not estimated'], ...hours], t.estimate_min)
           + datePill('start_date', 'Plan for day', '📅', t.start_date, shortDate)
           + datePill('aim_date', 'Target end date', '⚑', aim, shortDate)
-          + selectPill('horizon', 'List', '📥', HORIZONS.map(h => [h.id, h.label]), horizonOf(t));
+          + selectPill('horizon', 'List', '📥', HORIZONS.map(h => [h.id, h.label]), horizonOf(t))
+          + (state.owner || t.parent_task_id ? '' : `<button type="button" class="entry-chip${projectOf(t) ? ' set' : ''}" data-chip="project" data-pill-act="project" aria-haspopup="menu">📁 <span class="chip-text">${esc(projectOf(t)?.name || 'Project')}</span></button>`);
       },
       change: async (id, name, value) => {
         const t = data.tasks.find(x => x.id === id);
@@ -1559,6 +1584,10 @@ export default {
         if (name === 'notes') { if (value.trim()) await change(id, { notes: value.trim() }, 'Note saved'); return; }
         if (name === 'energy') {
           energyMenu(body.querySelector('.edit-pills [data-pill-act="energy"]'), t.energy, v => change(id, { energy: v }, v ? 'Energy saved' : 'Energy cleared'));
+          return;
+        }
+        if (name === 'project') {
+          pillMenu(body.querySelector('.edit-pills [data-pill-act="project"]'), projectPills(t.project_id), v => projectPicked([t.id], v), { className: 'ms-menu project-pills' });
           return;
         }
         if (name === 'start_date') return setPlanDay(t, value || null);
