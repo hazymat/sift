@@ -203,6 +203,7 @@ export default {
       const { e, s, b } = found;
       const sections = tree.flatMap(ed => ed.sections.map(sec => ({ id: sec.id, label: `${ed.name} › ${sec.name}` })));
       page.innerHTML = `
+        <div class="box-top">
         <div class="box-page-bar">
           <button type="button" class="back" data-act="back">‹ ${esc(s.name)}${keys('Esc')}</button>
           <span class="muted box-path">${esc(e.name)}</span>
@@ -211,6 +212,7 @@ export default {
           <input type="search" id="box-q" class="search" placeholder="${esc(word('ph_find_box_search'))}" value="${esc(query)}" autocomplete="off" enterkeyhint="search">
           <span class="muted box-hits" aria-live="polite"></span>
         </div>
+        </div>
         <article class="box-page" style="--tint: ${tintHex(b)}">
           <div class="box-lid">
           <header class="box-page-head">
@@ -218,6 +220,8 @@ export default {
             <input class="box-code-input" name="label_code" value="${esc(b.label_code)}" placeholder="Label" aria-label="Label (what is written on it, e.g. A1)" title="Label: what is written on it, e.g. A1" autocomplete="off">
             <input class="box-name-input" name="name" value="${esc(b.name)}" placeholder="Box name" aria-label="Name" autocomplete="off">
           </header>
+          </div>
+          <div class="box-lid-more">
           <div class="box-fields">
             <label>Where it lives<input name="location_note" value="${esc(b.location_note)}" placeholder="${esc(word('ph_box_where'))}" autocomplete="off"></label>
             <label>Notes<input name="notes" value="${esc(b.notes)}" placeholder="${esc(word('ph_box_notes'))}" autocomplete="off"></label>
@@ -266,7 +270,26 @@ export default {
         markHits();
       });
       markHits(true);
+      stickTop();
       return true;
+    }
+
+    // The top of an open box stays in view as its contents scroll: the back and search
+    // bar, and under it the lid with the label; each gets a backing once stuck (as an open list's top).
+    const view = this;
+    function stickTop() {
+      const top = page.querySelector('.box-top'), lid = page.querySelector('.box-lid'), more = page.querySelector('.box-lid-more');
+      view.boxSize?.disconnect();
+      view.boxSize = new ResizeObserver(() => page.style.setProperty('--box-top-h', `${top.offsetHeight}px`));
+      view.boxSize.observe(top);
+      removeEventListener('scroll', view.onBoxScroll);
+      view.onBoxScroll = () => {
+        if (!page.contains(top) || !top.offsetParent) return;
+        top.classList.toggle('stuck', scrollY > 0 && top.getBoundingClientRect().top <= parseFloat(getComputedStyle(top).top) + 1);
+        lid.classList.toggle('stuck', more.getBoundingClientRect().top < lid.getBoundingClientRect().bottom - 1);
+      };
+      addEventListener('scroll', view.onBoxScroll, { passive: true });
+      view.onBoxScroll();
     }
 
     // ---------- a thing's panel: note, quantity, tags ----------
@@ -944,6 +967,8 @@ export default {
     this.pills?.destroy();
     removeEventListener('keydown', this.onKey);
     removeEventListener('resize', this.onResize);
+    removeEventListener('scroll', this.onBoxScroll);
+    this.boxSize?.disconnect();
   },
 
   quickAdd() {
