@@ -1393,6 +1393,7 @@ li[data-id]:hover .kit-grip { opacity: .8; }
 .review-title { flex: 1 1 200px; font-size: 1.05rem; }
 .review-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .review-actions button { padding: 4px 10px; font-size: .82rem; }
+.review-actions .bring-on { display: inline-flex; align-items: center; padding: 0 10px; font-size: .78rem; } /* the text in the middle of the pill, level with the buttons */
 
 .bin-filters { margin: 0 0 8px; }
 .bin-filters button[aria-pressed="true"] { background: var(--active-bg); border-color: var(--active-border); }
