@@ -338,6 +338,10 @@ function installSwipe() {
     // don't change by swiping, but the page nudges, so the swipe was felt.
     const next = dx < 0, key = next ? 'ArrowRight' : 'ArrowLeft';
     if (current === 'dump') { nudge(next); return; }
+    // On an opened thing (a box, list, contact, recipe, batch, scan, contract, case), either way goes back, as its ‹ button does.
+    // Tasks does the same for a project through ← / → (tasks.js).
+    const back = current === 'tasks' ? null : Array.from(document.querySelectorAll('#main button.back')).find(b => b.offsetParent);
+    if (back && !document.querySelector('dialog[open], details.tool-menu[open], .pill-menu, .edit-pills, .select-bar:not([hidden])')) { slide(false, () => drawnAfter(() => back.click())); return; }
     slide(next, () => drawnAfter(() => (document.activeElement || document.body).dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }))));
   }, { passive: true });
 }
