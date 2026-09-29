@@ -2,7 +2,7 @@
 
 A map of how every area of Sift shows its controls, made to find where areas do the same job in different ways. New UI follows the **settled rules** below; where a row has no settled rule yet, copy the way most areas already do it and add the choice here.
 
-Audited at 1.54.09 (29 September 2026), from the code and by opening every area at phone and computer widths in Tight, Medium and Loose spacing, lined and box. The same audit is kept as a GitHub issue ("UI consistency audit"); keep the two in sync.
+Audited at 1.54.09 (29 September 2026), from the code and by opening every area at phone and computer widths in Tight, Medium and Loose spacing, lined and box. The same audit is GitHub issue #284; keep the two in sync.
 
 ## Settled rules (as decided)
 
