@@ -255,8 +255,9 @@ const IN_SCOPE = {
   note: (info, c, r) => c === 'thoughts' && r.id === info.id,
   recipe: (info, c, r) => (c === 'recipes' && r.id === info.id) || ((c === 'recipe_makes' || c === 'recipe_entries') && r.recipe_id === info.id),
   days: (info, c, r) => (c === 'days' || c === 'day_items') && !!r.date && (!info.from || r.date >= info.from) && (!info.to || r.date <= info.to),
+  project: (info, c, r) => (c === 'projects' && r.id === info.id) || ((c === 'milestones' || c === 'tasks') && r.project_id === info.id),
 };
-const SHAREABLE = ['lists', 'list_items', 'thoughts', 'days', 'day_items', 'recipes', 'recipe_makes', 'recipe_entries'];
+const SHAREABLE = ['lists', 'list_items', 'thoughts', 'days', 'day_items', 'recipes', 'recipe_makes', 'recipe_entries', 'projects', 'milestones', 'tasks'];
 export const inShare = (sh, c, r) => !!IN_SCOPE[sh.info?.kind]?.(sh.info, c, r);
 function routes(space, c, r) {
   return shares.filter(sh => sh.accepted && (space.isLocal ? sh.mine : !sh.mine && space === store.spaceOf(sh.owner_id)) && inShare(sh, c, r)).map(sh => sh.id);
@@ -284,9 +285,12 @@ async function pushSpace(space) {
       const rec = await space.get(e.collection, e.id, { includeDeleted: true });
       if (!rec) { await space.markPushed(e.collection, e.id, {}, e.queued_at); continue; }
       const inShares = routes(space, e.collection, rec);
-      const valid = space.isLocal && !inShares.length ? ['personal'] : inShares;
+      // Just taken out of a share (a task moved out of a shared project): that share has it once more,
+      // so everyone sharing sees it go, and then no more (its seq there is set to 0 below).
+      const left = e.places ? [] : Object.keys(rec._share_seqs || {}).filter(id => rec._share_seqs[id] && !inShares.includes(id) && shares.some(sh => sh.id === id && sh.accepted && (space.isLocal ? sh.mine : !sh.mine)));
+      const valid = [...(space.isLocal && !inShares.length ? ['personal'] : inShares), ...left];
       const places = e.places ? e.places.filter(p => valid.includes(p)) : valid;
-      results.set(e.id, { e, rec, places, seqs: {}, conflicted: false });
+      results.set(e.id, { e, rec, places, left, seqs: {}, conflicted: false });
       for (const place of places) {
         if (!byPlace.has(place)) byPlace.set(place, []);
         byPlace.get(place).push({ e, rec });
@@ -322,6 +326,7 @@ async function pushSpace(space) {
       await api('POST', '/api/sync/forget', { record_ids: await Promise.all(moved.map(x => cx.opaqueId(keys, x.e.collection, x.e.id))) });
       for (const x of moved) x.seqs.personal = 0;
     }
+    for (const x of results.values()) for (const place of x.left) if (x.seqs[place]) x.seqs[place] = 0;
     for (const { e, seqs, conflicted } of results.values()) await space.markPushed(e.collection, e.id, seqs, e.queued_at, !conflicted);
   }
   return conflicts;
@@ -330,7 +335,7 @@ async function pushSpace(space) {
 // ---------- sharing ----------
 // Shares this account is in (its own, and others' it accepted or is invited
 // to), each with its key and what it holds (info: { kind: 'list' | 'note' |
-// 'recipe' | 'days', id | from, to, name }). Kept on this device between syncs.
+// 'recipe' | 'project' | 'days', id | from, to, name }). Kept on this device between syncs.
 
 let shares = [];
 let privateKey = null;
