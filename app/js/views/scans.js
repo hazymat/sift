@@ -73,10 +73,10 @@ export default {
             <div class="menu"><button type="button" data-act="files">Add from files…</button><a href="#/bin/archive/scans">Show Archive</a><a href="#/bin/bin/scans">Show Bin</a></div>
           </details>
         </div>
-        <div class="segmented scan-kinds" role="tablist" aria-label="Kinds">
+        <div class="dump-filter-row scan-kinds"><div class="dump-filter" role="tablist" aria-label="Kinds">
           <button type="button" data-kind="all" aria-pressed="${state.kind === 'all'}">All</button>
           ${KINDS.map(k => `<button type="button" data-kind="${k.id}" aria-pressed="${state.kind === k.id}">${k.plural}</button>`).join('')}
-        </div>
+        </div></div>
         <p class="muted hint">${COARSE ? 'Scan takes a photo; it is saved straight away.' : 'Scan picks photos or PDFs, or drop them anywhere on this page. Each is saved straight away.'}</p>
         <div class="scan-grid">${shown.map(card).join('') || `<div class="empty"><h2>${scans.length ? 'Nothing matches.' : 'No scans yet.'}</h2>${scans.length ? '' : '<p class="muted">Receipts, warranties, letters and IDs, kept on this device (and your server, if you sync).</p>'}</div>`}</div>`;
     }
