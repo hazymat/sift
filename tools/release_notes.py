@@ -1,4 +1,5 @@
-# Release notes by version, for tools/release.py. Add NOTES['x.y.zz'] = [F(...), B(...)] for each new version.
+# Release notes by version, for tools/release.py. Add NOTES['x.y.zz'] = [F(...), B(...)] for each new version,
+# and its What's new entry (with Show me) to WHATS_NEW in app/js/whatsnew.js.
 # Feature: a short sentence, then how to find it or how it works. Bug: how it showed; " Fixed." is added.
 F = lambda s: f'- **Feature** {s}'
 B = lambda s: f'- **Bug** {s} Fixed.'
@@ -995,3 +996,4 @@ NOTES['1.58.12'] = [B('The "A new version of Sift is ready" banner sat underneat
 NOTES['1.58.13'] = [B('Brain Dump: a note starting with a link (to a task, note or contact) showed part of the link as raw text under its title, like "e](sift:tasks/…)". A case\'s notes and comments in Contacts showed links the same way.')]
 NOTES['1.58.14'] = [B('Brain Dump on iPhone: pressing and holding a note started text selection (Copy / Look Up menu and a stray "Make contact" pill). Holding a card now only selects it, in Brain Dump, Contacts, Find Things boxes and Recipes.'), B('A selected card now shows a clear accent ring, the same as Batch Book, in Brain Dump, Contacts, Find Things boxes and Recipes.')]
 NOTES['1.58.15'] = [B('Day Planner, Tight spacing: a task\'s 📝 no longer drops onto a line of its own under a longer name. Its pills stay together, beside the name or all under it.')]
+NOTES['1.59.00'] = [F("What's new: after pressing Reload on \"A new version of Sift is ready\", a sheet lists what changed since the version you had, one line each, with Show me to go to it and make it pulse. Close it (Esc, tap outside) or Save to Brain Dump for later. Settings: Show update info turns it off; What's new shows it again.")]
