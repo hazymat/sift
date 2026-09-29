@@ -56,7 +56,7 @@ How work on Sift is done: where things are, the rules, and where it has got to. 
 - `app/js/autosave.js`: `debounced(save, delay)` with `trigger()` / `flush()`; `flushAll()` runs on leaving a note, changing page, going into the background and before an update reload. Every note editor uses it.
 - `app/js/browse.js`: keyboard browsing; one table of per-area settings (search box, filter bar, items, what Enter / Down do). The highlight is `.kb-cur` (same look everywhere).
 - `app/js/inline.js`: one-line fields: Enter or leaving saves ("Saved · Undo"); Esc saves and leaves.
-- `app/js/listkit.js`: shared list behaviour (select by the grab handle, drag, selection bar, Delete key).
+- `app/js/listkit.js`: shared list behaviour (select by the grab handle, drag, selection bar, Delete key); `holdSelect` for card grids (press and hold selects, then a tap adds), `rowSel` when the rows aren't one list's `li`s (Find Things' boxes across groups). Shift+arrows while browsing cards reach it from `browse.js` (`browse-select`).
 - `app/js/gcal.js`: Google Calendar, read only, for the Day Planner (sign-in, day-by-day fetch, device-only cache); the box and **+ Add to plan** are in `views/planner.js` (`renderGcal`).
 - `app/js/rows.js`: rows drawn the Tasks way (Tasks, and an open list's items): the lines joining sub-rows, the card classes, measuring where ticks and text sit, rows sliding open and closed.
 - `app/js/hold.js`: press and hold to pick a row up (Tasks via `sortable.js`, the Day Planner). `app/js/undo.js`: Ctrl+Z / Ctrl+Y outside text, from History. `app/js/keys.js`: shortcut key boxes.

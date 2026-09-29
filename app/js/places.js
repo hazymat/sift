@@ -113,7 +113,34 @@ export const binProvider = {
     };
     const out = [];
     const claimed = new Set();
-    for (const b of places.filter(p => p.kind === 'box' && inState(p))) {
+    // A life area or group deleted with what's in it comes back with it: what was deleted at the same moment.
+    const together = (a, b) => !a.purged_at && !!a.deleted_at && a.deleted_at === b.deleted_at;
+    const under = p => places.filter(x => x.parent_place_id === p.id && together(x, p)).flatMap(x => [x, ...under(x)]);
+    if (kind === 'bin') {
+      for (const p of places.filter(x => x.kind === 'edition' && inState(x)).concat(places.filter(x => x.kind === 'section' && inState(x)))) {
+        if (claimed.has(p.id)) continue;
+        const inner = under(p);
+        const boxes = inner.filter(x => x.kind === 'box');
+        const things = items.filter(i => boxes.some(b => b.id === i.place_id) && together(i, p));
+        [...inner, ...things].forEach(x => claimed.add(x.id));
+        out.push({
+          collection: 'places', id: p.id, kind: p.kind === 'edition' ? 'Life area' : 'Group',
+          title: p.name,
+          subtitle: path(p),
+          detail: boxes.length ? `${boxes.length} box${boxes.length === 1 ? '' : 'es'}` : 'empty',
+          at: p.deleted_at,
+          children: [...inner.map(x => ({ collection: 'places', id: x.id })), ...things.map(i => ({ collection: 'items', id: i.id }))],
+          search: [p.name, ...boxes.flatMap(b => [b.label_code, b.name])].join(' '),
+        });
+      }
+    }
+    // Put back on its own, a box or thing brings back the group and life area it was in, if they were deleted.
+    const lost = id => {
+      const out = [];
+      for (let cur = byId.get(id); cur; cur = byId.get(cur.parent_place_id)) if (kind === 'bin' && cur.deleted_at && !cur.purged_at) out.push({ collection: 'places', id: cur.id });
+      return out;
+    };
+    for (const b of places.filter(p => p.kind === 'box' && inState(p) && !claimed.has(p.id))) {
       const inside = items.filter(i => i.place_id === b.id && !i.purged_at);
       // Items deleted together with the box come back with it.
       const kids = kind === 'bin'
@@ -128,6 +155,7 @@ export const binProvider = {
         detail: count ? `${count} item${count === 1 ? '' : 's'}` : 'empty',
         at: kind === 'bin' ? b.deleted_at : b.archived_at,
         children: kids.map(i => ({ collection: 'items', id: i.id })),
+        revive: lost(b.parent_place_id),
         search: [b.label_code, b.name, b.location_note, b.notes, ...inside.map(i => i.name)].join(' '),
       });
     }
@@ -141,6 +169,7 @@ export const binProvider = {
         detail: i.notes || '',
         at: kind === 'bin' ? i.deleted_at : i.archived_at,
         children: [],
+        revive: box?.deleted_at ? lost(box.id) : [],
         search: `${i.name} ${i.notes || ''}`,
       });
     }

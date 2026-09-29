@@ -9,7 +9,8 @@ import { richText, previewLine } from '../richtext.js';
 import { debounced } from '../autosave.js';
 import { createListKit } from '../listkit.js';
 import { tintHex, tintId, colourMenu } from '../colours.js';
-import { rankOf, reorderWrites } from '../order.js';
+import { rankOf, reorderWrites, keyBetween } from '../order.js';
+import { pillMenu } from '../pillmenu.js';
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import * as att from '../attachments.js';
@@ -61,7 +62,6 @@ export default {
           <details class="tool-menu page-more">
             <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
             <div class="menu">
-              <button type="button" data-act="rename-edition">Rename life area</button>
               <button type="button" data-act="import">Import CSV</button>
               <button type="button" data-act="export">Export CSV</button>
               <button type="button" data-act="split-quantities">Split "3x …" quantities out of names</button>
@@ -76,6 +76,7 @@ export default {
         </div>
         <div class="find-tools">
           <div class="segmented" id="editions" role="tablist" aria-label="Life areas"></div>
+          <button type="button" class="filter-more area-more" data-act="edition-menu" title="Rename, move or remove this life area" aria-label="Life area: rename, move or remove">⋯</button>
         </div>
         <div id="find-body"></div>
       </div>
@@ -110,7 +111,7 @@ export default {
     // clipped to a few lines and fitPills() fills in "+ n more".
     function card(box, { path, highlight } = {}) {
       const items = highlight ?? box.items;
-      return `<div class="box-card${box.label_code ? '' : ' no-code'}" data-box="${box.id}" style="--tint: ${tintHex(box)}" role="button" tabindex="0" aria-label="${esc(box.label_code ? `${box.label_code} ${box.name}` : box.name)}">
+      return `<div class="box-card${box.label_code ? '' : ' no-code'}" data-box="${box.id}" data-id="${box.id}" style="--tint: ${tintHex(box)}" role="button" tabindex="0" aria-label="${esc(box.label_code ? `${box.label_code} ${box.name}` : box.name)}">
         ${path ? `<span class="box-path">${esc(path)}</span>` : ''}
         <span class="box-head">
           ${box.label_code ? `<span class="box-code">${esc(box.label_code)}</span>` : ''}
@@ -144,6 +145,7 @@ export default {
         `<button type="button" role="tab" data-edition="${e.id}" aria-pressed="${e.id === current?.id}">${esc(e.name)}</button>`
       ).join('');
       tabs.hidden = query !== '' || tree.length === 0;
+      el.querySelector('.area-more').hidden = tabs.hidden;
 
       if (query) {
         const results = search(tree, query);
@@ -164,6 +166,7 @@ export default {
           hint.hidden = false;
         });
         requestAnimationFrame(() => fitPills());
+        gridKit.attach(body);
         return;
       }
       if (!current) {
@@ -177,12 +180,13 @@ export default {
       }
       body.innerHTML = current.sections.map(s => `
         <section class="find-section">
-          <h2>${esc(s.name)}${s.location_note ? ` <span class="box-where">${esc(s.location_note)}</span>` : ''}</h2>
+          <h2>${esc(s.name)}${s.location_note ? ` <span class="box-where">${esc(s.location_note)}</span>` : ''}<button type="button" class="group-more" data-act="group-menu" data-group="${s.id}" title="Rename, move or remove this ${GROUP.one}" aria-label="${GROUP.One}: rename, move or remove">⋯</button></h2>
           <div class="box-grid">${s.boxes.map(b => card(b)).join('')}
             <button type="button" class="box-card add-card" data-act="add-box" data-section="${s.id}">+ New box</button>
           </div>
         </section>`).join('') || '<div class="empty"><p class="muted">' + esc(word('ph_find_area_empty')) + '</p></div>';
       requestAnimationFrame(() => fitPills());
+      gridKit.attach(body);
     }
 
     // ---------- box page ----------
@@ -442,7 +446,119 @@ export default {
       ],
     });
 
-    // Show the grid or the open box.    // Show the grid or the open box. `name` pairs the card and page for the zoom.
+    // ---------- choosing several boxes (the grid) ----------
+    // Press and hold a box, or Shift+arrows while browsing them; then a tap adds or takes out.
+    const now = () => new Date().toISOString();
+    const boxOf = id => findBox(id)?.b;
+    async function boxesDo(ids, fields, label) {
+      const before = ids.map(id => [id, Object.fromEntries(Object.keys(fields).map(k => [k, boxOf(id)?.[k] ?? null]))]);
+      await store.updateMany('places', ids.map(id => [id, fields]));
+      await reload();
+      undoable(`${label} ${ids.length} box${ids.length === 1 ? '' : 'es'}`, async () => { await store.updateMany('places', before); await reload(); });
+    }
+    // Deleted with what's in them (the Bin brings them back together).
+    async function deleteBoxes(ids) {
+      const stamp = now();
+      const things = ids.flatMap(id => (boxOf(id)?.items || []).map(i => i.id));
+      await store.updateMany('items', things.map(i => [i, { deleted_at: stamp }]));
+      await store.updateMany('places', ids.map(id => [id, { deleted_at: stamp }]));
+      await reload();
+      undoable(`Deleted ${ids.length} box${ids.length === 1 ? '' : 'es'}`, async () => {
+        await store.updateMany('places', ids.map(id => [id, { deleted_at: null }]));
+        await store.updateMany('items', things.map(i => [i, { deleted_at: null }]));
+        await reload();
+      });
+    }
+    async function moveBoxes(ids) {
+      const groups = tree.flatMap(ed => ed.sections.map(sec => [sec.id, `${ed.name} › ${sec.name}`]));
+      const r = await ask({ title: `Move ${ids.length} box${ids.length === 1 ? '' : 'es'}`, ok: 'Move', fields: [{ name: 'to', label: `To which ${GROUP.one}?`, type: 'select', value: findBox(ids[0])?.s.id, options: groups }] });
+      if (r?.to) await boxesDo(ids, { parent_place_id: r.to }, 'Moved');
+    }
+    const gridKit = this.gridKit = createListKit({
+      reorder: false, holdSelect: true, rowSel: '.box-card[data-id]', noun: 'box',
+      actions: [
+        { id: 'move', label: 'Move to…', run: ids => moveBoxes(ids) },
+        { id: 'colour', label: 'Colour…', run: ids => { colourMenu(document.querySelector('[data-kit-action="colour"]'), null, v => setColour('places', ids, v)); } },
+        { id: 'archive', label: 'Archive', key: 'A', run: ids => boxesDo(ids, { archived_at: now() }, 'Archived') },
+        { id: 'delete', label: 'Delete', key: 'D', danger: true, run: ids => deleteBoxes(ids) },
+      ],
+    });
+
+    // ---------- life areas and groups: their ⋯ ----------
+
+    // Move one of a run (life areas, a life area's groups) up or down, between its new neighbours.
+    async function shift(list, rec, by) {
+      const at = list.indexOf(rec), to = at + by;
+      if (to < 0 || to >= list.length) return;
+      const rank = by < 0 ? keyBetween(to > 0 ? rankOf(list[to - 1]) : null, rankOf(list[to])) : keyBetween(rankOf(list[to]), to + 1 < list.length ? rankOf(list[to + 1]) : null);
+      await store.update('places', rec.id, { rank });
+      await reload();
+    }
+    const count = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+    // A life area or group goes to the Bin with everything in it; with boxes in it, it asks first.
+    async function deletePlace(rec, what) {
+      const sections = rec.kind === 'edition' ? rec.sections : [rec];
+      const boxes = sections.flatMap(sec => sec.boxes);
+      const things = boxes.flatMap(b => b.items);
+      if (boxes.length) {
+        const holds = [rec.kind === 'edition' && sections.length ? count(sections.length, GROUP.one) : '', count(boxes.length, 'box', 'boxes'), things.length ? count(things.length, 'thing') : ''].filter(Boolean).join(', ');
+        if (!await askYes(`Delete ${what} "${rec.name}"?`, { text: `What's in it (${holds}) goes to the Bin with it, where it can all be put back for 30 days.`, ok: 'Delete', danger: true })) return;
+      }
+      const stamp = now();
+      const placeIds = [rec.id, ...(rec.kind === 'edition' ? sections.map(sec => sec.id) : []), ...boxes.map(b => b.id)];
+      await store.updateMany('items', things.map(i => [i.id, { deleted_at: stamp }]));
+      await store.updateMany('places', placeIds.map(id => [id, { deleted_at: stamp }]));
+      if (rec.id === editionId) { editionId = tree.find(e => e.id !== rec.id)?.id || null; remember(EDITION_KEY, editionId || ''); }
+      await reload();
+      undoable(`Deleted ${what} ${rec.name}`, async () => {
+        await store.updateMany('places', placeIds.map(id => [id, { deleted_at: null }]));
+        await store.updateMany('items', things.map(i => [i.id, { deleted_at: null }]));
+        editionId = rec.kind === 'edition' ? rec.id : editionId;
+        await reload();
+      });
+    }
+    function editionMenu(b) {
+      const e = edition();
+      if (!e) return;
+      editionId = e.id; // it stays the one shown while it moves
+      const at = tree.indexOf(e);
+      const options = [{ value: 'rename', label: 'Rename' }];
+      if (at > 0) options.push({ value: 'left', label: '←', title: 'Move left' });
+      if (at < tree.length - 1) options.push({ value: 'right', label: '→', title: 'Move right' });
+      options.push({ value: 'delete', label: 'Delete' });
+      pillMenu(b, options, async v => {
+        if (v === 'rename') {
+          const n = await askText('Rename life area', { value: e.name, ok: 'Rename' });
+          if (!n?.trim() || n.trim() === e.name) return;
+          await store.update('places', e.id, { name: n.trim() });
+          await reload();
+          undoable('Renamed', async () => { await store.update('places', e.id, { name: e.name }); await reload(); });
+        } else if (v === 'left' || v === 'right') await shift(tree, e, v === 'left' ? -1 : 1);
+        else if (v === 'delete') await deletePlace(e, 'life area');
+      });
+    }
+    function groupMenu(b) {
+      const e = edition(), sec = e?.sections.find(x => x.id === b.dataset.group);
+      if (!sec) return;
+      const at = e.sections.indexOf(sec);
+      const options = [{ value: 'rename', label: 'Rename', title: `Rename, or change where it is` }];
+      if (at > 0) options.push({ value: 'up', label: '↑', title: 'Move up' });
+      if (at < e.sections.length - 1) options.push({ value: 'down', label: '↓', title: 'Move down' });
+      options.push({ value: 'delete', label: 'Delete' });
+      pillMenu(b, options, async v => {
+        if (v === 'rename') {
+          const r = await ask({ title: `Rename ${GROUP.one}`, ok: 'Save', fields: [{ name: 'name', label: 'Name', value: sec.name }, { name: 'where', label: 'Where it is (optional)', value: sec.location_note || '' }] });
+          if (!r?.name?.trim()) return;
+          const before = { name: sec.name, location_note: sec.location_note || '' };
+          await store.update('places', sec.id, { name: r.name.trim(), location_note: (r.where || '').trim() });
+          await reload();
+          undoable('Saved', async () => { await store.update('places', sec.id, before); await reload(); });
+        } else if (v === 'up' || v === 'down') await shift(e.sections, sec, v === 'up' ? -1 : 1);
+        else if (v === 'delete') await deletePlace(sec, GROUP.one);
+      }, { className: 'ms-menu' });
+    }
+
+    // Show the grid or the open box. `name` pairs the card and page for the zoom.
     function show() {
       const opening = openId && renderPage();
       grid.hidden = !!opening;
@@ -462,6 +578,7 @@ export default {
     async function openBox(id) {
       if (id === openId) return;
       kit.clear();
+      gridKit.clear();
       const leaving = openId;
       if (id) {
         gridScroll = scrollY;
@@ -661,9 +778,10 @@ export default {
         const e = await store.create('places', { kind: 'edition', name: n.trim(), parent_place_id: null, notes: '', sort_order: tree.length });
         editionId = e.id; remember(EDITION_KEY, e.id);
         await reload();
-      } else if (name === 'rename-edition' && current) {
-        const n = await askText('Rename life area', { value: current.name, ok: 'Rename' });
-        if (n?.trim()) { await store.update('places', current.id, { name: n.trim() }); await reload(); }
+      } else if (name === 'edition-menu') {
+        editionMenu(target);
+      } else if (name === 'group-menu') {
+        groupMenu(target);
       } else if (name === 'add-section') {
         const ed = current || await store.create('places', { kind: 'edition', name: 'Standard', parent_place_id: null, notes: '', sort_order: 0 });
         const n = await askText(`New ${GROUP.one || GROUP.One.toLowerCase()}`, { placeholder: word('ph_new_group'), ok: 'Add' });
@@ -778,7 +896,7 @@ export default {
       if (ev.key === '/' && !openId && !ev.target.closest('input, textarea, select, [contenteditable]')) { ev.preventDefault(); q.focus(); }
       if (ev.key === 'Escape' && openItem && !ev.defaultPrevented) { ev.preventDefault(); toggleThing(openItem); return; }
       if (ev.key === 'Escape' && ev.target.id === 'box-q' && ev.target.value) { ev.preventDefault(); ev.target.value = ''; query = ''; q.value = ''; markHits(); return; }
-      if (ev.key === 'Escape' && openId && !ev.target.closest('input, textarea, select, [contenteditable]') && kit.escape()) { ev.preventDefault(); return; }
+      if (ev.key === 'Escape' && !ev.target.closest('input, textarea, select, [contenteditable]') && (openId ? kit : gridKit).escape()) { ev.preventDefault(); return; }
       // Esc in a field of the box (Add items, a note): keep what's typed and leave the field; the next Esc leaves the box.
       if (ev.key === 'Escape' && openId && !importSheet.open && page.contains(ev.target) && ev.target.closest('input, textarea, [contenteditable]')) { ev.preventDefault(); leaveField(ev.target); return; }
       if (ev.key === 'Escape' && openId && !importSheet.open) { ev.preventDefault(); saveAndClose(); return; }
@@ -800,6 +918,7 @@ export default {
 
   unmount() {
     this.kit?.destroy();
+    this.gridKit?.destroy();
     this.pills?.destroy();
     removeEventListener('keydown', this.onKey);
     removeEventListener('resize', this.onResize);
