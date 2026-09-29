@@ -3553,9 +3553,11 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
 /* ✓ Done beside More, looking the same, and after it. */
 .edit-pills:has(> .pill-reveal) > .pill-done { flex: none; padding: 2px 10px; font-size: .78rem; color: var(--text); margin-left: 6px; }
 .task-list > li[data-task] > .edit-pills > .pill-done { order: 2; align-self: center; }
-/* No ⋯ on tasks: the full panel is More, then More (full), or Shift+Enter twice (and a phone's swipe). It stays in
-   the page, hidden, as what they press. */
-.task-list > li[data-task] > .more { display: none !important; }
+/* A task's More (in place of ⋯): with a mouse, shown only while the pointer is over a task that isn't being edited
+   (which has its own More at the far right); opens the full panel. Phones: More / More (full) and swiping. */
+.task-list > li[data-task] > .more { flex: none; align-self: center; margin-left: auto; padding: 2px 10px; font-size: .78rem; color: var(--text); opacity: 1; visibility: hidden; }
+@media (hover: hover) { .task-list > li[data-task]:hover > .more { visibility: visible; } }
+.task-list > li[data-task].pills-open > .more, body.pills-only .task-list > li[data-task] > .more { display: none !important; }
 #main:not([data-density="tight"]) .task-list > li[data-task]:has(> .edit-pills > .pill-reveal) > .item-sub { order: 4; }
 .edit-pills:has(> .pill-reveal) > :not(.pill-reveal, .pill-done) { display: none; }
 #main[data-density="tight"] .task-list > li[data-task]:has(> .edit-pills > .pill-reveal):not(:has(> .note-in-place, > .edit-pills:not(.pill-top))) { flex-wrap: nowrap; }
