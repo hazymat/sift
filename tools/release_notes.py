@@ -908,3 +908,4 @@ NOTES['1.51.28'] = [F("Batch Book: 📖 Recipes / 🧪 Batches sit up by the sea
 NOTES['1.51.29'] = [B("Day Planner, Bring in from tasks: For today (or the day's name) at the top, and a task already in the day shows 📅 Today, its words in the middle of the pill.")]
 NOTES['1.51.30'] = [B("Day Planner, Unfinished from earlier days: → Bring to today (or the day's name, never \"this day\"), and Bring the rest to today; Bring in from tasks says the day's name too.")]
 NOTES['1.51.31'] = [F("Day Planner: Bring in from tasks and Unfinished from earlier days are cleaner: one line per task with a few muted words and just Claim (or Bring to today), ✓ Did it and Archive (or Let it go); no notes, no Now / Next / Later. What's in the day's plan already is counted in a green strip at the top instead of offered again.")]
+NOTES['1.51.32'] = [B("Day Planner, Unfinished from earlier days: no old time under an item; brought to today it's untimed anyway.")]
