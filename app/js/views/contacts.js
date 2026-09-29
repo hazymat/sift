@@ -50,6 +50,7 @@ export default {
 
     el.innerHTML = `
       <div class="tasks-head">
+        <button type="button" class="primary c-new-btn" data-act="new-here">+ New contact</button>
         <div class="segmented" id="c-tabs" role="tablist">
           <button type="button" data-tab="recent">Recent</button>
           <button type="button" data-tab="directory">Directory</button>
@@ -60,9 +61,7 @@ export default {
         <details class="tool-menu page-more">
           <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
           <div class="menu">
-            <button type="button" data-act="new-contact">New contact</button>
             <button type="button" data-act="new-category">New category</button>
-            <button type="button" data-act="new-case">New case</button>
             <hr>
             <a href="#/bin/archive/contacts">Show Archive</a>
             <a href="#/bin/bin/contacts">Show Bin</a>
@@ -328,6 +327,7 @@ export default {
     const render = this.render = this.refresh = async () => {
       data = await loadContacts();
       for (const b of el.querySelectorAll('[data-tab]')) b.setAttribute('aria-pressed', b.dataset.tab === (state.tab === 'contact' ? '' : state.tab));
+      el.querySelector('.c-new-btn').textContent = state.tab === 'cases' ? '+ New case' : '+ New contact';
       body.innerHTML = state.tab === 'directory' ? viewDirectory()
         : state.tab === 'cases' ? await viewCases()
         : state.tab === 'contact' ? await viewContact()
@@ -448,7 +448,8 @@ export default {
         return;
       }
       if (act === 'capture') return capture();
-      if (act === 'new-contact') { const n = await createContact({ name: '' }); go(`#/contacts/c/${n.id}`); return; }
+      if (act === 'new-here' && state.tab === 'cases') return newCase();
+      if (act === 'new-contact' || act === 'new-here') { const n = await createContact({ name: '' }); go(`#/contacts/c/${n.id}`); return; }
       if (act === 'new-category') { const cat = await newCategory(); if (cat) go(`#/contacts/directory/${cat.id}`); return; }
       if (act === 'new-case') return newCase();
       if (act === 'dir-home') return go('#/contacts/directory');
