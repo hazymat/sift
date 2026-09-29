@@ -196,19 +196,30 @@ export function createListKit({
     let from = Math.max(0, at - Math.floor((max - 1) / 2));
     const to = Math.min(group.length, from + max);
     from = Math.max(0, to - max);
-    const ghost = document.createElement('div');
-    ghost.className = 'drag-ghost';
-    ghost.style.setProperty('--row', `${h}px`);
-    ghost.style.top = `${-(at - from) * h}px`;
+    // The rows themselves, copied into a list like theirs laid over the held row, so the stack looks
+    // like the same rows lifted up (tick boxes, lines, spacing). The copies are only a picture.
+    const ghost = document.createElement(ul.tagName);
+    ghost.className = `${ul.className} drag-ghost drag-stack`;
+    ghost.style.cssText = ul.style.cssText;
+    ghost.setAttribute('aria-hidden', 'true');
+    ghost.inert = true;
+    const box = held.getBoundingClientRect(), list = ul.getBoundingClientRect();
+    Object.assign(ghost.style, { top: `${group[from].getBoundingClientRect().top - box.top - held.clientTop}px`, left: `${list.left - box.left - held.clientLeft}px`, width: `${list.width}px` });
     ghost.classList.toggle('fade-top', from > 0);
     ghost.classList.toggle('fade-bottom', to < group.length);
-    // Its name: the first of these it has (not just the first input: that can be its tick box).
-    const text = r => ['input[name="name"]', '.task-title', '.kit-text', 'input:not([type="checkbox"])'].map(q => r.querySelector(q)).find(Boolean)?.value ?? r.textContent.trim();
-    ghost.innerHTML = group.slice(from, to).map(r => `
-      <div class="ghost-row${depthOf(r) ? ' sub' : ''}${r === held ? ' lead' : ''}">
-        <span>${esc(typeof text(r) === 'string' ? text(r) : '')}</span>
-        ${r === held ? `<span class="ghost-count">${group.length} ${noun}s</span>` : ''}
-      </div>`).join('');
+    for (const r of group.slice(from, to)) {
+      const copy = r.cloneNode(true);
+      copy.removeAttribute('data-id'); copy.removeAttribute('id');
+      copy.classList.remove('dragging', 'selected', 'pills-open', 'nest-room', 'nest-target', 'nest-preview', 'coming-out', 'heal-end', 'holding', 'hold-pending');
+      copy.style.transform = ''; copy.style.transition = '';
+      for (const el of copy.querySelectorAll('[id]')) el.removeAttribute('id');
+      for (const el of copy.querySelectorAll('.edit-pills, .task-details, .row-acts, .hold-ripple')) el.remove();
+      // Typed values aren't copied by cloneNode.
+      const inputs = r.querySelectorAll('input, textarea'), copies = copy.querySelectorAll('input, textarea');
+      inputs.forEach((el, n) => { if (copies[n]) { if (el.type === 'checkbox') copies[n].checked = el.checked; else copies[n].value = el.value; } });
+      if (r === held && (from > 0 || to < group.length)) copy.insertAdjacentHTML('beforeend', `<span class="ghost-count">${group.length} ${noun}s</span>`);
+      ghost.append(copy);
+    }
     held.append(ghost);
     held.classList.add('group-drag');
     group.forEach(r => { if (r !== held) r.hidden = true; });

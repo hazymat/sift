@@ -621,23 +621,11 @@ label.inline select { width: auto; max-width: 220px; font-size: .85rem; padding:
 .drag-ghost.fade-top { -webkit-mask-image: linear-gradient(transparent, #000 30%); mask-image: linear-gradient(transparent, #000 30%); }
 .drag-ghost.fade-bottom { -webkit-mask-image: linear-gradient(#000 70%, transparent); mask-image: linear-gradient(#000 70%, transparent); }
 .drag-ghost.fade-top.fade-bottom { -webkit-mask-image: linear-gradient(transparent, #000 25%, #000 75%, transparent); mask-image: linear-gradient(transparent, #000 25%, #000 75%, transparent); }
-.ghost-row {
-  height: var(--row);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 10px 0 42px;
-  border-radius: var(--radius-sm);
-  background: var(--bg);
-  border: 1px solid var(--active-border);
-  box-shadow: var(--shadow-sm);
-  font-size: .95rem;
-  overflow: hidden;
-}
-.ghost-row > span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ghost-row.sub { padding-left: 70px; font-size: .88rem; }
-.ghost-row.lead { background: color-mix(in srgb, var(--bg) 70%, #4a8cff 30%); }
 .ghost-count { flex: none; font-size: .72rem; padding: 1px 8px; border-radius: 999px; background: var(--active-bg); border: 1px solid var(--active-border); }
+/* A group being dragged (listkit.js): copies of its rows, lifted as one pane of glass. */
+.drag-ghost.drag-stack { right: auto; margin: 0 !important; padding: 0; z-index: 1; }
+.drag-stack > li { visibility: visible !important; box-shadow: 0 10px 20px -8px rgba(0, 0, 0, .4) !important; }
+.drag-stack > li > .ghost-count { align-self: center; margin-left: auto; }
 .item-list .drag-handle { touch-action: none; }
 .select-bar {
   position: fixed;
@@ -1939,6 +1927,7 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 #main[data-density="tight"] { --row-gap: 2px; --row-pad: 2px; }
 #main[data-density="loose"] { --row-gap: 10px; --row-pad: 10px; }
 #main .item-list, #main .checklist, #main .thought-list { display: grid; gap: var(--row-gap); }
+#main .checklist.task-list { gap: 0; } /* an open list drawn as Tasks: ruled lines touch on lined paper (the cards look sets its own gap) */
 #main .thought { padding-block: var(--row-pad); }
 
 /* Tasks: each task on its own card. */
@@ -3125,7 +3114,8 @@ a.comment-mark:hover { color: var(--text); }
 /* The gap a dragged task will drop into (sortable.js): the same dashed outline as dropping onto a task. */
 .drop-slot { position: fixed; z-index: 1; pointer-events: none; box-sizing: border-box; border: 2px dashed var(--active-border, currentColor); }
 /* Carried rows hide what they pass over (their glass on the page's own colour). */
-li[data-id].dragging:not(.group-drag) { background: linear-gradient(var(--glass-strong), var(--glass-strong)), var(--bg) !important; }
+/* A lifted row, alone or in a group: frosted glass over the page, the rows under it blurred. */
+:is(li[data-id].dragging:not(.group-drag), .drag-stack > li) { background: linear-gradient(var(--glass-strong), var(--glass-strong)), color-mix(in srgb, var(--bg) 88%, transparent) !important; -webkit-backdrop-filter: blur(14px) saturate(1.4); backdrop-filter: blur(14px) saturate(1.4); }
 /* Dropping onto a task: room opens under it (and its sub-tasks) for the carried one (sortable.js). */
 body.is-dragging .task-list > li[data-id] { transition: margin-bottom .15s; }
 .task-list > li.nest-room { margin-bottom: calc(var(--room, 40px) + 4px) !important; }
@@ -3526,7 +3516,7 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
   #task-entry + .task-list { margin-top: 0; }
   #task-entry .task-add-line { margin-bottom: 15px; } /* room between New task and the tasks */
   .task-list { gap: var(--row-gap, 6px); }
-  .task-list > li[data-task] { background: var(--glass-track); border: 1px solid var(--glass-border); border-radius: 14px; }
+  .task-list > li[data-task] { background: var(--glass-track); border: 1px solid var(--glass-border); border-radius: 14px; box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 7%, transparent); } /* glass: a faint light along the top edge */
   .task-list > li[data-task]:hover, .task-list > li[data-task]:focus-within { background: var(--glass); border-color: var(--glass-border); }
   .task-list > li[data-task]::after { display: none; }
   .task-list > li[data-task] > .task-title:focus { background: color-mix(in srgb, var(--text) var(--line-lit), transparent); }
