@@ -131,7 +131,9 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
   function follow(clientY, clientX = 0) {
     // Translate so the item stays under the finger even after DOM moves.
     dragging.style.transform = '';
-    const box = dragging.getBoundingClientRect();
+    // Its own box, untwisted: a turned row's bounding box is taller (the twist turns it about its middle).
+    const turned = dragging.getBoundingClientRect(), w = dragging.offsetWidth, h = dragging.offsetHeight;
+    const box = { left: turned.left + turned.width / 2 - w / 2, top: turned.top + turned.height / 2 - h / 2, width: w, height: h };
     // Where it is in the list, before it's moved to follow the pointer; its corners as the row's are now (e.g. coming out of a group).
     if (slot) Object.assign(slot.style, { left: `${box.left}px`, top: `${box.top}px`, width: `${box.width}px`, height: `${box.height}px`, borderRadius: getComputedStyle(dragging).borderRadius });
     dragging.style.transform = grid
