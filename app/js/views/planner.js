@@ -759,6 +759,8 @@ export default {
       const seen = new Set([...top, ...ideas]);
       const by = h => open.filter(t => horizonOf(t) === h && !seen.has(t) && !t.parent_task_id);
       const energy = ENERGY.find(e => e.id === day.energy);
+      // Today, or the day's own name ("Wed 30 Sep"), as on the Tasks page's 📅 pills.
+      const dayName = date === isoDate() ? 'Today' : parseDate(date).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
       const card = (t, note = '') => {
         const e = ENERGY.find(x => x.id === t.energy);
         const aim = aimDate(t);
@@ -776,7 +778,7 @@ export default {
             ${first ? `<span class="bring-note muted">${previewLine(t.notes).html}</span>` : ''}
           </div>
           <span class="review-actions">
-            ${onDay.has(t.id) ? '<span class="span-tag">on this day</span>' : `<button type="button" class="primary" data-bring-act="claim">Claim for ${date === isoDate() ? 'today' : 'this day'}</button>`}
+            ${onDay.has(t.id) ? `<span class="span-tag bring-on" title="In this day's plan already">📅 ${dayName}</span>` : `<button type="button" class="primary" data-bring-act="claim">Claim for ${date === isoDate() ? 'today' : 'this day'}</button>`}
             <button type="button" data-bring-act="done" title="I did this already">✓ Did it</button>
             ${h !== 'now' ? '<button type="button" data-bring-act="now">Now</button>' : ''}
             ${h !== 'next' ? '<button type="button" data-bring-act="next">Next</button>' : ''}
@@ -791,7 +793,7 @@ export default {
         <div class="sheet-handle"></div>
         <h2>Bring in from tasks</h2>
         <p class="muted hint">Claim what you'll do ${date === isoDate() ? 'today' : 'on this day'}. Tick off what's done already, push the rest to Now, Next or Later, or archive what's no longer needed.</p>
-        ${section('For this day', top, aimNote)}
+        ${section(`For ${dayName === 'Today' ? 'today' : dayName}`, top, aimNote)}
         ${energy ? section(`Ideas for ${energy.bolts} energy`, ideas) : ''}
         ${section(esc(word('list_inbox')), by('inbox'))}
         ${section('Now', by('now'))}
