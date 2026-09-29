@@ -945,3 +945,4 @@ NOTES['1.55.00'] = [F("Sharing: photos and files on shared things are shared too
 NOTES['1.55.01'] = [F("Lists: the green More that shows when you hover over an item opens its panel (note and files) straight away. To edit the item's text, click its line.")]
 NOTES['1.55.02'] = [F("With a mouse, the wheel over any row that scrolls sideways (filter bars, tabs, pill rows) scrolls that row. At its end the page scrolls as usual.")]
 NOTES['1.55.03'] = [B("Batch Book: a recipe card's ⋯ menu near the top or bottom of the screen ran up under the books bar and got mixed up with it. A ⋯ menu now always stays clear of the top bar and any bar stuck at the top, and scrolls if it's taller than the room it has.")]
+NOTES['1.55.04'] = [F("Green means open or close: a note's full-screen ⤢ button is green like More and ✓ Close, and so is Done in full screen.")]
