@@ -3921,8 +3921,8 @@ body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none
 .bb-photos { margin: -4px 0 12px; }
 .bb-photos .att-row { flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x proximity; padding: 8px 8px 6px 2px; margin: 0; scrollbar-width: thin; }
 .bb-photos .att { flex: none; scroll-snap-align: start; }
-.bb-photos .att-img .att-open img { height: 92px; max-width: 150px; }
-.bb-photos .att-add { flex: none; height: 92px; flex-direction: column; justify-content: center; padding: 0 14px; }
+.bb-photos .att-img .att-open img { height: 72px; max-width: 120px; }
+.bb-photos .att-x { display: none !important; } /* removed in Photos at the bottom */
 .bb-title-row { display: flex; align-items: center; gap: 14px; }
 .bb-emoji { font-size: clamp(2.4rem, 8vw, 3.8rem); line-height: 1; filter: drop-shadow(0 3px 5px rgba(0, 0, 0, .18)); }
 .bb-title { flex: 1; min-width: 0; font-family: var(--hand); font-size: clamp(2rem, 7vw, 3.2rem) !important; font-weight: 700; color: var(--bb-ink) !important; line-height: 1.15; }
