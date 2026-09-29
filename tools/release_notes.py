@@ -954,3 +954,4 @@ NOTES['1.55.09'] = [F('Find Things: "+ New box", "+ New group" and "+ New life a
 NOTES['1.55.10'] = [F('Tasks > Projects: "+ New project" is a button at the top left, beside Tasks | Projects, like New in the other areas, instead of a dashed square at the end of the projects.')]
 NOTES['1.55.11'] = [F('Scans, Contracts and Batch Book: the search box looks like the one in Brain Dump and Find Things, with a ✕ to clear it while there\'s text.')]
 NOTES['1.55.12'] = [F('Day Planner: a ⋯ menu at the top right, like the other areas, holds Reset this week to this page\'s paper, Reset all pages to today\'s paper and Clear this day…. The "Housekeeping:" line at the bottom of the day is gone.')]
+NOTES['1.55.13'] = [F('Every selection bar takes the same keys as Tasks, shown on its buttons: A Archive, D Delete, Ctrl+Enter Done (Tick in Lists). The Day Planner\'s bar has Archive too.')]

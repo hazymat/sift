@@ -2,7 +2,7 @@
 
 A map of how every area of Sift shows its controls, made to find where areas do the same job in different ways. New UI follows the **settled rules** below; where a row has no settled rule yet, copy the way most areas already do it and add the choice here.
 
-Audited at 1.54.09 (29 September 2026), updated for 1.55.12, from the code and by opening every area at phone and computer widths in Tight, Medium and Loose spacing, lined and box. The same audit is GitHub issue #284; keep the two in sync.
+Audited at 1.54.09 (29 September 2026), updated for 1.55.13, from the code and by opening every area at phone and computer widths in Tight, Medium and Loose spacing, lined and box. The same audit is GitHub issue #284; keep the two in sync.
 
 ## Settled rules (as decided)
 
@@ -17,6 +17,7 @@ Audited at 1.54.09 (29 September 2026), updated for 1.55.12, from the code and b
 - **Shift+Enter goes one step further**: from an item's name to quick edit (with its note), and from there, the name or the note, to the full panel. Lists go straight to the panel.
 - **Green means open or close**: a green pill opens something or closes it again (More, More (full), ✓ Close, a note's full-screen ⤢ and its Done). Buttons that open or close a thing aren't another colour. (The Day Planner's green "↓ Bring in from tasks" doesn't open or close anything, so it breaks this: to decide.) The colour is the shared rule in `app.css` (search `.close-top, .md-full`); add new open and close buttons to it.
 - **Sideways rows** (filter bars, tabs, pill rows, anything that scrolls sideways): a mouse wheel over one scrolls it sideways; at its end the page scrolls as usual. Built once for the whole app (`installWheelRows` in `app.js`), so new rows get it for free.
+- **Selection bars** take the same keys everywhere, shown on their buttons: A Archive, D (or Delete) Delete, Ctrl+Enter Done or Tick. Built into `listkit.js` (an action's `key`); the Day Planner's own bar does the same (1.55.13).
 - **A thing's colour shows the same way everywhere it has one**: a list looks like a project, a 4px coloured edge along the top of its card, down the left of its open page's head, and its progress bar in its colour, whatever the Look. Built on `--c`, as projects already were (1.55.08).
 
 ## 1. Page level: areas that list things
@@ -63,7 +64,7 @@ Rows and cards inside an area. "Top right" means on the row's own first line, at
 | **↑ / ↓ keys** | Move editing row to row; Shift selects | Same | Same (since 1.55.07) | Blue box browses cards | Same as Tasks (since 1.55.07) | Blue box browses cards | Blue box browses cards | Blue box browses cards |
 | **Ctrl+Enter** | Tick | Tick | Nothing | Save / finish | Add items (box page) | n/a | n/a | n/a |
 | **Phone** | Swipe: ⋯ More, ✓ Done / Delete; hold drags | Swipe: ⋯ More, ✓ Done / Delete; tap arms, tap edits | Swipe: ⋯ More, **✓ Tick** / Delete | No swipe | No swipe; ⋯ hidden | Hold selects | No swipe | No swipe |
-| **Selection bar** | Indent, Outdent, ↑ ↓, Done Ctrl+Enter, Move ▸, Archive A, Delete D | Done, To place, Let go, Tomorrow, Delete (no key hints) | Indent, Outdent, ↑ ↓, Tick, Untick, Add to template, Archive, Delete | ↑ ↓, Colour…, → Tasks, Pin, Unpin, Archive, Delete (no key hints) | Indent, Outdent, ↑ ↓, Colour…, Archive, Delete | ↑ ↓, Move to ▸, Pin, Unpin, Archive A, Delete | Colour…, Store, Pin, Archive, Delete (no Unpin) | None |
+| **Selection bar** | Indent, Outdent, ↑ ↓, Done Ctrl+Enter, Move ▸, Archive A, Delete D | Done Ctrl+Enter, To place, Let go, Tomorrow, Archive A, Delete D | Indent, Outdent, ↑ ↓, Tick Ctrl+Enter, Untick, Add to template, Archive A, Delete D | ↑ ↓, Colour…, → Tasks, Pin, Unpin, Archive A, Delete D | Indent, Outdent, ↑ ↓, Colour…, Archive A, Delete D | ↑ ↓, Move to ▸, Pin, Unpin, Archive A, Delete D | Colour…, Store, Pin, Archive A, Delete D (no Unpin) | None |
 | **Drag** | Hold anywhere | Hold anywhere | Hold anywhere | Hold ⠿ only | Hold grip | Hold ⠿ | None (grip shown but no drag) | None |
 | **Sub-items** | 3 levels | None | 1 level | None | 1 level | n/a | n/a | n/a |
 
@@ -84,7 +85,7 @@ Still open, numbered for reference. ★ marks the ones already raised. Fixed or 
 11. **Opened pages are built differently.** The area header stays on project and contact pages but not on the others. Back reads "‹ Back", "‹ Projects", "‹ [group name]" and so on. 👁 and ⋯ come and go. "Archive project"/"Archive list"/"Archive box" vs plain "Archive". Batches can't be archived.
 12. **👁 contents vary with no pattern**: Look is missing from Scans, Contracts and Batch Book; Multicolour from Tasks and the Day Planner. Contracts has alternate-shading styling that can never be switched on.
 13. **Tick wording**: "✓ Tick / Untick" in Lists, "✓ Done / Not done" in Tasks and the Day Planner. "Done" is also the close button on some Day Planner sheets.
-14. **Selection bars**: key hints only in Tasks and Batch Book; drag handles are an icon in most areas and a text "⠿" in the Day Planner; Contacts shows a grip but can't be dragged.
+14. **Selection bars**: drag handles are an icon in most areas and a text "⠿" in the Day Planner; Contacts shows a grip but can't be dragged.
 15. **Closing sheets and panels**: top right (Tasks, Day Planner, Lists, box items), "Done" at bottom right (sharing), "Cancel … Save" (Batch Book sheets), ✕ (photo viewer, custom theme), nothing (most sheets, by design).
 16. **Saved messages**: "✓ Saved" with no Undo in Settings, "Saved · Undo" elsewhere.
 17. **Empty states**: "Nothing matches." / "Nothing here." / "Nothing found"; Tasks has none apart from Done.
@@ -105,3 +106,4 @@ Still open, numbered for reference. ★ marks the ones already raised. Fixed or 
 - **Projects' New button** (part of point 5): "+ New project" is a pill at the top left of the Projects page, beside Tasks | Projects, instead of a dashed square at the end of the grid (1.55.10).
 - **Search boxes in Scans, Contracts and Batch Book** (part of point 8) use the shared search box style, with the ✕ to clear while there's text, like Brain Dump, Find Things, Contacts and Tidied (1.55.11).
 - **Day Planner ⋯ menu** (was point 12): a ⋯ at the top right, like the other areas, holds Reset this week to this page's paper, Reset all pages to today's paper and Clear this day…; the "Housekeeping:" line at the bottom of each day is gone (1.55.12).
+- **Selection bar keys** (part of point 14): A Archive, D Delete and Ctrl+Enter Done or Tick, with the key on the button, in every selection bar (Tasks, Day Planner, Lists, Brain Dump, Find Things, Contacts, Batch Book, Tidied). The Day Planner's bar gained Archive (1.55.13). Now a settled rule.
