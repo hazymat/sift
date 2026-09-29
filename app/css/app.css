@@ -3114,10 +3114,10 @@ a.comment-mark:hover { color: var(--text); }
 /* The gap a dragged task will drop into (sortable.js): the same dashed outline as dropping onto a task. */
 .drop-slot { position: fixed; z-index: 1; pointer-events: none; box-sizing: border-box; border: 2px dashed var(--active-border, currentColor); }
 /* A lifted row, alone or in a group: clear glass. What it passes over shows through, lightly frosted,
-   with a shine along its top edge; in Chrome it also bends what's under it (hold.js .glass-lens). */
-:is(li[data-id].dragging:not(.group-drag), .drag-stack > li) { background: linear-gradient(170deg, color-mix(in srgb, #fff 14%, transparent), transparent 55%), color-mix(in srgb, var(--accent) 10%, transparent), color-mix(in srgb, var(--glass-strong) 45%, transparent) !important; -webkit-backdrop-filter: blur(3px) saturate(1.7) brightness(1.06); backdrop-filter: blur(3px) saturate(1.7) brightness(1.06); box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 40%, transparent), inset 0 0 0 1px color-mix(in srgb, #fff 16%, transparent), 0 14px 26px -12px rgba(0, 0, 0, .45) !important; }
-.glass-lens :is(li[data-id].dragging:not(.group-drag), .drag-stack > li) { -webkit-backdrop-filter: url(#glass-lens) blur(2px) saturate(1.7) brightness(1.06); backdrop-filter: url(#glass-lens) blur(2px) saturate(1.7) brightness(1.06); }
-li[data-id].dragging > .hold-ripple { opacity: .5; } /* the held row's shading, lighter so it stays see-through */
+   in the same colour as the hold's shading; in Chrome it also bends what's under it (hold.js .glass-lens). */
+:is(li[data-id].dragging:not(.group-drag), .drag-stack > li) { background: var(--glass-strong) !important; -webkit-backdrop-filter: blur(3px) saturate(1.4); backdrop-filter: blur(3px) saturate(1.4); box-shadow: var(--shadow) !important; }
+:root .drag-ghost.drag-stack > li { background: linear-gradient(color-mix(in srgb, var(--accent) 24%, transparent), color-mix(in srgb, var(--accent) 24%, transparent)), var(--glass-strong) !important; } /* the held row's shading, so the whole group is one colour */
+.glass-lens :is(li[data-id].dragging:not(.group-drag), .drag-stack > li) { -webkit-backdrop-filter: url(#glass-lens) blur(2px) saturate(1.4); backdrop-filter: url(#glass-lens) blur(2px) saturate(1.4); }
 /* Dropping onto a task: room opens under it (and its sub-tasks) for the carried one (sortable.js). */
 .task-list > li.dragging.nest-preview { padding-left: calc(var(--nest-pad, 36px) + 28px); position: relative; }
 .task-list > li.dragging.nest-preview::before { content: "↳"; position: absolute; left: calc(var(--nest-pad, 36px) + 6px); top: .55em; width: auto; background: none; color: var(--muted); font-size: .9rem; line-height: 1; }
@@ -3752,19 +3752,19 @@ html[data-slide="back"]::view-transition-new(sift-page) { animation-name: sift-i
 .hold-pending { position: relative; isolation: isolate; } /* the shading goes under its text */
 .hold-ripple { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; pointer-events: none; z-index: -1; }
 .hold-ripple > span { position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 18%, transparent) 0%, color-mix(in srgb, var(--accent) 14%, transparent) 85%, color-mix(in srgb, var(--accent) 6%, transparent) 100%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 30%, transparent) 0%, color-mix(in srgb, var(--accent) 24%, transparent) 85%, color-mix(in srgb, var(--accent) 12%, transparent) 100%);
   animation: hold-ripple 300ms cubic-bezier(.45, 0, .55, 1) forwards; }
 .hold-ripple.done { transition: opacity .3s; opacity: 0; }
 @keyframes hold-ripple { from { transform: scale(.3); opacity: .9; } to { transform: scale(var(--reach, 22)); opacity: 1; } }
-/* Water rings from the press (hold.js): a bright crest and a dark trough on each ring, and inside the ring
-   what's under it is bent and lifted a little, as through a wave on water (in Chrome, bent by #glass-lens). */
+/* Water rings from the press (hold.js): faint, soft rings in the shading's colour, blurring (in Chrome also
+   bending, #glass-lens) what they pass over. */
 .hold-waves { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; pointer-events: none; z-index: 2; }
-.hold-waves > span { position: absolute; border-radius: 50%; opacity: 0; transform: scale(.02); animation: hold-wave 1100ms cubic-bezier(.25, .45, .45, 1) both;
-  background: radial-gradient(circle closest-side, transparent calc(100% - 20px), color-mix(in srgb, #000 18%, transparent) calc(100% - 14px), color-mix(in srgb, #fff 50%, transparent) calc(100% - 7px), color-mix(in srgb, var(--accent) 28%, transparent) calc(100% - 3px), transparent 100%);
-  -webkit-mask-image: radial-gradient(circle closest-side, transparent calc(100% - 24px), #000 calc(100% - 16px), #000 calc(100% - 3px), transparent 100%); mask-image: radial-gradient(circle closest-side, transparent calc(100% - 24px), #000 calc(100% - 16px), #000 calc(100% - 3px), transparent 100%);
-  -webkit-backdrop-filter: blur(.8px) brightness(1.2) saturate(1.4); backdrop-filter: blur(.8px) brightness(1.2) saturate(1.4); }
-.glass-lens .hold-waves > span { -webkit-backdrop-filter: url(#glass-lens) brightness(1.2) saturate(1.4); backdrop-filter: url(#glass-lens) brightness(1.2) saturate(1.4); }
-@keyframes hold-wave { 0% { transform: scale(.02); opacity: 0; } 12% { opacity: 1; } 70% { opacity: .8; } 100% { transform: scale(1); opacity: 0; } }
+.hold-waves > span { position: absolute; border-radius: 50%; opacity: 0; transform: scale(.02); animation: hold-wave 1100ms cubic-bezier(.25, .45, .45, 1) both; filter: blur(5px);
+  background: radial-gradient(circle closest-side, transparent calc(100% - 26px), color-mix(in srgb, var(--accent) 22%, transparent) calc(100% - 12px), transparent 100%);
+  -webkit-mask-image: radial-gradient(circle closest-side, transparent calc(100% - 28px), #000 calc(100% - 14px), transparent 100%); mask-image: radial-gradient(circle closest-side, transparent calc(100% - 28px), #000 calc(100% - 14px), transparent 100%);
+  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
+.glass-lens .hold-waves > span { -webkit-backdrop-filter: url(#glass-lens) blur(1.5px); backdrop-filter: url(#glass-lens) blur(1.5px); }
+@keyframes hold-wave { 0% { transform: scale(.02); opacity: 0; } 15% { opacity: .6; } 100% { transform: scale(1); opacity: 0; } }
 /* A sub-task dragged out of its family (listkit.js): it shows as a task of its
    own (whole rounded box), and the row above closes the family off. */
 .task-list > li.dragging.coming-out { border-radius: 14px !important; border-color: var(--active-border) !important; margin-top: 0 !important; } /* its own box, apart from the group */
