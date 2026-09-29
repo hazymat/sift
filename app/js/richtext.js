@@ -93,8 +93,8 @@ export function titleHtml(md, title) {
   while (k < line.length && plain(line.slice(0, k)).length < want.length) k++;
   let cut = line.slice(0, k);
   for (const mark of ['~~', '**']) if ((cut.split(mark).length - 1) % 2) cut += mark;
-  // A shortened title starts with a capital (summary.js): so does this.
-  if (/^[A-Z]/.test(want)) cut = cut.replace(/[a-z]/, c => c.toUpperCase());
+  // A shortened title starts with a capital (summary.js): so does this. Only the first letter, never a later one ("Ruby" stays "Ruby").
+  if (/^[A-Z]/.test(want)) cut = cut.replace(/[A-Za-z]/, c => c.toUpperCase());
   return inline(cut) + (title.endsWith('…') ? '…' : '');
 }
 
