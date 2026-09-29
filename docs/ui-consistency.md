@@ -2,7 +2,7 @@
 
 A map of how every area of Sift shows its controls, made to find where areas do the same job in different ways. New UI follows the **settled rules** below; where a row has no settled rule yet, copy the way most areas already do it and add the choice here.
 
-Audited at 1.54.09 (29 September 2026), updated for 1.54.10, from the code and by opening every area at phone and computer widths in Tight, Medium and Loose spacing, lined and box. The same audit is GitHub issue #284; keep the two in sync.
+Audited at 1.54.09 (29 September 2026), updated for 1.55.08, from the code and by opening every area at phone and computer widths in Tight, Medium and Loose spacing, lined and box. The same audit is GitHub issue #284; keep the two in sync.
 
 ## Settled rules (as decided)
 
@@ -69,11 +69,11 @@ Rows and cards inside an area. "Top right" means on the row's own first line, at
 
 ## 4. Main inconsistencies
 
-Numbered for reference. ★ marks the ones already raised.
+Still open, numbered for reference. ★ marks the ones already raised. Fixed or settled ones move to section 5.
 
-1. ★ **List items didn't edit like tasks** (click anywhere on the line, More top right, Close top right). Fixed in 1.54.10 for Lists and Find Things. Lists' More goes straight to the panel (no quick stage, no ✓ Done): intended. Since 1.55.01 the hover More on a list item opens the panel too; clicking the line is for editing. Still different: Brain Dump notes only edit from their text and have no More or Done: intended. Recipe, contact, scan and contract cards open their own page instead, so they don't need it, but their card ⋯ should be one style.
-2. **"More" is two different things.** Tasks, Day Planner, Lists, box items: a green "More" pill top right. Brain Dump notes and recipe cards: a plain ⋯ at the bottom right. The Day Planner's "More (full)" has no ⇧Enter hint.
-3. **Shift+Enter** goes one step further each press: name, then quick edit with the note, then the full panel (Tasks, and the Day Planner since 1.55.05, from the note as well as the name). Lists skip the quick step and go straight to the panel's note. Ctrl+Enter ticks in Tasks and the Day Planner but does nothing in Lists.
+1. ★ **Card ⋯ menus come in different styles.** Recipe, contact, scan and contract cards open their own page, so they don't need More, but the ⋯ on their cards should be one style.
+2. **"More" is two different things.** Tasks, Day Planner, Lists, box items: a green "More" pill top right. Brain Dump notes and recipe cards: a plain ⋯ at the bottom right (Brain Dump notes having no More is intended). The Day Planner's "More (full)" has no ⇧Enter hint.
+3. **Ctrl+Enter** ticks in Tasks and the Day Planner but does nothing in Lists.
 4. ★ **Lined paper or box** is only offered in Tasks (and project pages) and Lists. Everywhere else is box only, apart from the Day Planner and Batch Book, which have their own Paper styles (Batch Book has both Paper and a Lined paper switch). "Lined Paper" is capitalised differently in Batch Book.
 5. ★ **New buttons differ in form and place.** "+ New project" is a dashed square at the end of the grid; "+ New list" is a pill top left, and it comes second after "+ New template", which is the highlighted one. Find Things has no New button at all ("+ Add box" tiles, the rest in ⋯). Contacts has both a New button and a capture box. Wording mixes "New" and "Add" (New life area, Add box, Add group, + Add a detail, + Detail).
 6. ★ **Find Things ⋯ holds primary actions**: Add box, Add group, New life area, Rename life area. No other area's ⋯ has "New"/"Add" items (Scans' "Add from files…" and Contacts' "New category" are smaller cases of the same).
@@ -92,3 +92,14 @@ Numbered for reference. ★ marks the ones already raised.
 19. **Empty states**: "Nothing matches." / "Nothing here." / "Nothing found"; Tasks has none apart from Done.
 20. **Hard to reach**: History is only linked from Settings (not from any ⋯ as the code says); Tidied has no link from Settings.
 21. **Colours only sometimes show.** Projects, lists and recipes always show their colour. Brain Dump notes, contacts, Find Things' box cards and the things in a box only show theirs when 👁 Look is Multicolour (a box's own page always shows its lid colour). To decide: show them always, the project way, or leave them to Multicolour.
+
+## 5. Resolved
+
+- **List items edit like tasks** (was point 1): click anywhere on the line to edit, More top right, ✓ Close top right. Fixed in 1.54.10 for Lists and Find Things. Lists' More goes straight to the panel, with no quick stage and no ✓ Done: intended. Since 1.55.01 the hover More on a list item opens the panel; clicking the line is for editing.
+- **Brain Dump notes** edit from their text only and have no More or Done: intended.
+- **Shift+Enter** (was point 3) goes one step further each press, from the note as well as the name, in Tasks and the Day Planner (1.55.05). Lists go straight to the panel: intended. Now a settled rule.
+- **Mouse wheel over sideways rows** scrolls them (1.55.02). Now a settled rule.
+- **Recipe card ⋯ menu** no longer runs up under the sticky books bar; ⋯ menus stay below the top bar and sticky bars (1.55.03).
+- **Full-screen ⤢ and its Done are green** like More (1.55.04). Now part of the "green means open or close" rule.
+- **Arrow keys in an open list and a box's things** work like Tasks: ↑ / ↓ move editing, Shift selects, no blue box (1.55.07). Now a settled rule.
+- **List colours** show the way project colours do, whatever the Look (1.55.08). Now a settled rule.
