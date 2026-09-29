@@ -3263,6 +3263,14 @@ dialog.att-view::backdrop { background: rgb(0 0 0 / .82); }
 @media (max-width: 560px) { .av-arrow { top: auto; bottom: calc(4px + env(safe-area-inset-bottom)); transform: none; } .av-stage { bottom: calc(60px + env(safe-area-inset-bottom)); } .av-name { left: 64px; right: 64px; } }
 /* A task ticked off a list: crossed out, fades while its message shows, then
    the rows below slide up (tickAway in views/tasks.js). */
+/* Ticking off (tickwave.js): the name's copy while the wave passes (its letters bob, a line is drawn
+   through it), and a band of soft blue light crossing the row. The tick box is never covered for pressing. */
+.tw-copy { position: absolute; z-index: 2; margin: 0; overflow: hidden; pointer-events: none; }
+.tw-word { position: relative; display: inline-block; white-space: pre; }
+.tw-ch { display: inline-block; white-space: pre; }
+.tw-strike { position: absolute; left: 0; right: 0; top: 55%; height: 1.5px; background: currentColor; opacity: .8; transform: scaleX(0); transform-origin: left; }
+.tw-sweep { position: absolute; z-index: 1; overflow: hidden; pointer-events: none; border-radius: inherit; }
+.tw-band { position: absolute; top: 0; bottom: 0; left: 0; width: 38%; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent, #6fb0ff) 30%, transparent), transparent); }
 .task-list > li.ticked-away { transition: opacity var(--fade, 6s) linear; }
 .task-list > li.ticked-away .task-title { text-decoration: line-through; }
 .task-list > li.ticked-away.fading { opacity: 0; }
@@ -3588,17 +3596,14 @@ kbd + kbd, .pill-reveal kbd + kbd, .pill-done kbd + kbd { margin-left: 3px; }
 /* ✓ Done beside More (editpills.js): only with a keyboard and room, where its shortcut is the point. */
 .pill-done { display: none; }
 @media (hover: hover) and (pointer: fine) and (min-width: 700px) { .pill-done { display: inline-flex; align-items: center; } }
-/* A task ticked off fades, all but its note saying where it's going (tickAway, views/tasks.js). */
+/* A task ticked off: once its wave has passed (tickwave.js) it fades a little, then folds away
+   (tickAway, views/tasks.js). */
 .task-list > li.ticked-away { transition: none; }
-.task-list > li.ticked-away > :not(.done-note) { transition: opacity var(--fade, 6s) linear; }
+.task-list > li.ticked-away > * { transition: opacity var(--fade, 1.2s) ease; }
 .task-list > li.ticked-away.fading { opacity: 1; }
-.task-list > li.ticked-away.fading > :not(.done-note) { opacity: 0; }
-.done-note { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 2; display: inline-flex; align-items: center; gap: 6px; padding: 3px 12px; border-radius: 999px; font-size: .8rem; white-space: nowrap; color: var(--text); background: var(--menu-bg, var(--glass-strong)); border: 1px solid var(--glass-border); box-shadow: var(--shadow); pointer-events: none; }
-.done-glass { display: inline-block; animation: done-glass 1.5s ease-in-out infinite; }
-@keyframes done-glass { 0%, 40% { transform: rotate(0); } 50%, 90% { transform: rotate(180deg); } 100% { transform: rotate(360deg); } }
-.task-list > li.ticked-away.closing > .done-note { display: none; }
-.task-list > li.ticked-away .tree > i { transition: opacity var(--fade, 6s) linear; }
-.task-list > li.ticked-away.fading .tree > i { opacity: 0; }
+.task-list > li.ticked-away.fading > * { opacity: .4; }
+.task-list > li.ticked-away .tree > i { transition: opacity var(--fade, 1.2s) ease; }
+.task-list > li.ticked-away.fading .tree > i { opacity: .4; }
 
 /* Share pill in every area, left of 👁 and ⋯ (the Day Planner's look). */
 .page-share { margin-left: auto; flex: none; }

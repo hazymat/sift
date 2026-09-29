@@ -29,6 +29,7 @@ import { byRank, rankOf, reorderWrites, lastKey } from '../order.js';
 import { askYes, askEmptied } from '../ask.js';
 import { word } from '../words.js';
 import { offerUrlAt } from '../weburl.js';
+import { tickWave } from '../tickwave.js';
 import { commentsHtml, mountComments, moveComments, closingComment } from '../comments.js';
 import { shareSheet, people, sharedWithText, invitesHtml, theirsHtml, scopeText } from '../sharing.js';
 import { sharesNow, inShare, myUserId, personName } from '../sync.js';
@@ -1151,12 +1152,31 @@ export default {
       },
     });
 
-    async function change(id, fields, label = 'Saved', opts) {
+    // (wait: something to finish before the day is drawn again, e.g. a ticked item's wave; its message shows at once)
+    async function change(id, fields, label = 'Saved', opts, wait = null) {
       const before = await store.get('day_items', id);
       const old = Object.fromEntries(Object.keys(fields).map(k => [k, before[k] ?? null]));
       await store.update('day_items', id, fields);
+      const say = () => undoable(label, async () => { await store.update('day_items', id, old); await refresh(); }, opts);
+      if (wait) { say(); await wait(); await refresh(); return; }
       await refresh();
-      undoable(label, async () => { await store.update('day_items', id, old); await refresh(); }, opts);
+      say();
+    }
+    // Ticked off (tickwave.js): a wave runs along it. A day task then fades a little and folds away (it's
+    // drawn again among the done ones below); a scheduled item stays in its time, drawn again crossed out.
+    // Several ticked at once (Done on the selection bar) go one after another, 200ms apart.
+    async function tickedOff(row, n = 0) {
+      const content = row.querySelector(':scope > .content');
+      await tickWave(row, { title: row.querySelector('.item-title'), parts: row.querySelectorAll('.content > :is(.span-tag, .note-tag), .content > .item-sub .pill-act'), lane: content || row, delay: 100 + n * 200 }).done;
+      if (!row.closest('.pile-paper') || !row.isConnected) return;
+      row.style.transition = 'opacity 1.2s ease';
+      row.style.opacity = '.4';
+      await new Promise(done => setTimeout(done, 1400));
+      if (!row.isConnected) return;
+      Object.assign(row.style, { height: `${row.offsetHeight}px`, minHeight: '0', overflow: 'hidden' });
+      void row.offsetHeight;
+      Object.assign(row.style, { transition: 'height .28s ease, opacity .2s ease, border-width .28s ease', height: '0px', opacity: '0', borderBottomWidth: '0px' });
+      await new Promise(done => setTimeout(done, 300));
     }
 
     // Inline input on an empty line: Enter adds an item at that time.
@@ -1295,8 +1315,9 @@ export default {
       } else if (t.classList.contains('tick') && id) {
         // A plan item that came from a task ticks the task too (js/link.js).
         const it = items.find(i => i.id === id);
+        const row = t.closest('.line.has-item');
         await change(id, { done_at: t.checked ? new Date().toISOString() : null }, t.checked ? 'Done' : 'Not done',
-          t.checked && it ? { more: closingComment(it.task_id ? { task_id: it.task_id } : { item_id: it.id }) } : undefined);
+          t.checked && it ? { more: closingComment(it.task_id ? { task_id: it.task_id } : { item_id: it.id }) } : undefined, t.checked && row ? () => tickedOff(row) : null);
       } else if (t.classList.contains('item-title') && id) {
         const it = items.find(i => i.id === id);
         if (t.value.trim()) await change(id, { title: t.value.trim() });
@@ -1491,15 +1512,18 @@ export default {
     }
     const clearSelection = () => { selected.clear(); paintSelection(); };
 
-    async function moveMany(fieldsById, label) {
+    async function moveMany(fieldsById, label, wait = null) {
       const before = [...fieldsById.keys()].map(id => {
         const i = items.find(x => x.id === id);
         return [id, Object.fromEntries(Object.keys(fieldsById.get(id)).map(k => [k, i?.[k] ?? null]))];
       });
       await store.updateMany('day_items', [...fieldsById]);
+      const say = () => undoable(label, async () => { await store.updateMany('day_items', before); await refresh(); paintSelection(); });
+      if (wait) say();
+      if (wait) await wait();
       await refresh();
       paintSelection();
-      undoable(label, async () => { await store.updateMany('day_items', before); await refresh(); paintSelection(); });
+      if (!wait) say();
     }
 
     bar.addEventListener('click', async ev => {
@@ -1509,7 +1533,10 @@ export default {
       const n = ids.length;
       const plural = `${n} item${n === 1 ? '' : 's'}`;
       if (b.dataset.sel === 'clear') return clearSelection();
-      if (b.dataset.sel === 'done') await moveMany(new Map(ids.map(id => [id, { done_at: new Date().toISOString() }])), `Done: ${plural}`);
+      if (b.dataset.sel === 'done') {
+        const rows = ids.map(id => el.querySelector(`.line.has-item[data-item="${CSS.escape(id)}"]`)).filter(Boolean);
+        await moveMany(new Map(ids.map(id => [id, { done_at: new Date().toISOString() }])), `Done: ${plural}`, () => Promise.all(rows.map((row, n) => tickedOff(row, n))));
+      }
       if (b.dataset.sel === 'letgo') { const now = new Date().toISOString(); await moveMany(new Map(ids.map(id => [id, { dropped_at: now, archived_at: now }])), `Let go of ${plural} (in the Archive)`); clearSelection(); }
       if (b.dataset.sel === 'pile') await moveMany(new Map(ids.map(id => [id, { time: null, end_time: null }])), `${plural} back to To place`);
       if (b.dataset.sel === 'tomorrow') { await moveMany(new Map(ids.map(id => [id, { date: addDays(date, 1), carried_from: date }])), `${plural} moved to tomorrow`); clearSelection(); }
