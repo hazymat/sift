@@ -22,6 +22,7 @@ import { askEmptied } from '../ask.js';
 import { rowSwipe } from '../rowswipe.js';
 import { keyBetween } from '../order.js';
 import { treeHtml, groupOf, measureRows, slideRows } from '../rows.js';
+import { tickWave, fadeFold } from '../tickwave.js';
 import { flash, SOFT } from '../flash.js';
 import { touch } from '../editpills.js';
 import { atEdge, caretTo } from '../walk.js';
@@ -31,7 +32,6 @@ const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></s
 const shortDate = iso => dateText(new Date(iso), { day: 'numeric', month: 'short', year: 'numeric' });
 // 👁 Layout switches (viewcog.js): Lined paper and its margin, as in Tasks.
 const lay = id => layoutOn('lists', id);
-const wait = ms => new Promise(done => setTimeout(done, ms));
 
 export default {
   async mount(el) {
@@ -321,10 +321,20 @@ export default {
       undoable(label, async () => { await store.updateMany('list_items', before); render(); });
     }
 
-    async function batch(ids, fields, label, { subs = true } = {}) {
+    // Ticked (tickwave.js): the wave, as in Tasks and the Day Planner; with ticked ones hidden they then
+    // fade and fold away, the items below sliding up. Several at once go one after another, 200ms apart.
+    async function tickedOff(rows) {
+      rows.forEach(li => { const tick = li.querySelector(':scope > .tick'); if (tick) tick.checked = true; });
+      await Promise.all(rows.map((li, n) => tickWave(li, { title: li.querySelector(':scope > .task-title'), parts: li.querySelectorAll(':scope > .item-sub :is(.chip, .task-note)'), delay: 100 + n * 200 }).done));
+      rows.forEach(li => li.classList.add('done', 'ticked-away'));
+      if (state.hideTicked) await fadeFold(rows);
+    }
+    async function batch(ids, fields, label, { subs = true, wave = false } = {}) {
       const all = subs ? [...new Set([...ids, ...data.items.filter(i => ids.includes(i.parent_id)).map(i => i.id)])] : ids;
       const before = all.map(id => { const i = data.items.find(x => x.id === id); return [id, Object.fromEntries(Object.keys(fields).map(k => [k, i?.[k] ?? null]))]; });
+      const rows = wave ? all.filter(id => !data.items.find(x => x.id === id)?.checked_at).map(id => el.querySelector(`.task-list > li[data-id="${id}"]`)).filter(Boolean) : [];
       await store.updateMany('list_items', all.map(id => [id, fields]));
+      if (rows.length) await tickedOff(rows);
       await render();
       undoable(`${label} ${all.length} item${all.length === 1 ? '' : 's'}`, async () => { await store.updateMany('list_items', before); render(); });
     }
@@ -472,7 +482,7 @@ export default {
     const kitChecklist = this.kitChecklist = createListKit({
       ...dragRules,
       actions: [
-        { id: 'tick', label: 'Tick', key: 'Ctrl+Enter', run: ids => batch(ids, { checked_at: new Date().toISOString() }, 'Ticked', { subs: false }) },
+        { id: 'tick', label: 'Tick', key: 'Ctrl+Enter', run: ids => batch(ids, { checked_at: new Date().toISOString() }, 'Ticked', { subs: false, wave: true }) },
         { id: 'untick', label: 'Untick', run: ids => batch(ids, { checked_at: null }, 'Unticked', { subs: false }) },
         { id: 'to-template', label: 'Add to template', run: addToTemplate },
         ...common,
@@ -511,15 +521,7 @@ export default {
       if (t.classList.contains('tick')) {
         const old = item.checked_at;
         await store.update('list_items', item.id, { checked_at: t.checked ? new Date().toISOString() : null });
-        // With ticked ones hidden it fades and the items below slide up into its place.
-        if (t.checked && state.hideTicked) {
-          li.classList.add('done', 'ticked-away');
-          li.style.setProperty('--fade', '700ms');
-          void li.offsetHeight;
-          li.classList.add('fading');
-          await wait(700);
-          await slideRows([li], false);
-        }
+        if (t.checked) await tickedOff([li]);
         await render();
         undoable(t.checked ? `Ticked "${item.text}"` : `Unticked "${item.text}"`, async () => { await store.update('list_items', item.id, { checked_at: old }); render(); });
       } else if (t.name === 'text' && !t.value.trim()) {
