@@ -44,7 +44,7 @@ export default {
     let nameNext = null; // a list just made: select its name for typing
     let atts = new Map(); // list item id → its attachments
     let focusAdd = false; // Enter or Tab from the list name carries on into "Add items"
-    const state = this.state = { id: null, owner: null, hideTicked: false };
+    const state = this.state = { id: null, owner: null, hideTicked: false, tab: 'lists' };
     let data = { lists: [], items: [] };
     let shared = []; // lists others share with you: [{ l, items, owner_id, name, share }]
 
@@ -73,10 +73,14 @@ export default {
     function overview() {
       const templates = data.lists.filter(l => l.kind === 'template');
       const inUse = data.lists.filter(l => l.kind !== 'template').sort((a, b) => b.created_at.localeCompare(a.created_at));
+      if (state.tab === 'shared' && !shared.length) state.tab = 'lists';
+      const tab = (id, label) => `<button type="button" data-list-tab="${id}" aria-pressed="${state.tab === id}">${label}</button>`;
+      const grid = (cards, empty) => `<div class="project-grid">${cards.join('') || `<p class="muted">${esc(word(empty))}</p>`}</div>`;
       return `
+        <div class="sticky-top-mark" aria-hidden="true"></div>
+        <div class="sticky-top">
         <div class="lists-head">
-          <button type="button" class="primary" data-act="new-template">+ New template</button>
-          <button type="button" data-act="new-list">+ New list</button>
+          ${state.tab === 'templates' ? '<button type="button" class="primary" data-act="new-template">+ New template</button>' : '<button type="button" class="primary" data-act="new-list">+ New list</button>'}
           ${shareHtml()}
           ${cogHtml('lists')}
           <details class="tool-menu page-more">
@@ -84,13 +88,15 @@ export default {
             <div class="menu"><a href="#/bin/archive/lists">Show Archive</a><a href="#/bin/bin/lists">Show Bin</a></div>
           </details>
         </div>
-        <h3 class="milestone">Templates</h3>
-        <p class="muted hint">${esc(word('ph_lists_templates'))}</p>
-        <div class="project-grid">${templates.map(card).join('') || '<p class="muted">' + esc(word('ph_lists_no_templates')) + '</p>'}</div>
-        <h3 class="milestone">Lists</h3>
-        <div class="project-grid">${inUse.map(l => card(l)).join('') || '<p class="muted">' + esc(word('ph_lists_none')) + '</p>'}</div>
-        ${shared.length || invitesHtml(['list']) ? `<h3 class="milestone">Shared with me</h3>${invitesHtml(['list'])}
-        <div class="project-grid">${shared.map(x => card(x.l, x)).join('')}</div>` : ''}`;
+        <!-- Lists | Templates (| Shared with me): a filter bar like Brain Dump's and Tasks' (underlined tabs). -->
+        <div class="dump-filter-row">
+          <div class="dump-filter" id="list-tabs" role="tablist" aria-label="Show">${tab('lists', 'Lists')}${tab('templates', 'Templates')}${shared.length ? tab('shared', 'Shared with me') : ''}</div>
+        </div>
+        </div>
+        ${invitesHtml(['list'])}
+        ${state.tab === 'templates' ? `<p class="muted hint">${esc(word('ph_lists_templates'))}</p>${grid(templates.map(l => card(l)), 'ph_lists_no_templates')}`
+          : state.tab === 'shared' ? grid(shared.map(x => card(x.l, x)), 'ph_lists_none')
+          : grid(inUse.map(l => card(l)), 'ph_lists_none')}`;
     }
 
     // Lists others share with you, from each person's space (store.js).
@@ -244,6 +250,7 @@ export default {
       data = await loadLists();
       atts = await att.byParent();
       const l = state.id && listOf(state.id);
+      if (state.id) state.tab = state.owner ? 'shared' : l?.kind === 'template' ? 'templates' : 'lists'; // back to the tab it's on
       body.innerHTML = state.id ? page() : overview();
       kit = l?.kind === 'template' ? kitTemplate : kitChecklist;
       (l?.kind === 'template' ? kitChecklist : kitTemplate).attach(null);
@@ -273,7 +280,7 @@ export default {
       measureRows(body, body.querySelector('.checklist'), ta);
       // The top gets a glass backing once it sticks (as Brain Dump's bar).
       this.topWatch?.disconnect();
-      const mark = body.querySelector('.list-top-mark'), top = body.querySelector('.list-top');
+      const mark = body.querySelector('.list-top-mark, .sticky-top-mark'), top = body.querySelector('.list-top, .sticky-top');
       if (mark && top) {
         this.topWatch = new IntersectionObserver(([e]) => top.classList.toggle('stuck', !e.isIntersecting && e.boundingClientRect.top < 200), { rootMargin: `-${parseFloat(getComputedStyle(top).top) || 0}px 0px 0px 0px` });
         this.topWatch.observe(mark);
@@ -540,6 +547,8 @@ export default {
 
     el.addEventListener('click', async ev => {
       if (att.onClick(ev, b => { const id = b.closest('[data-for]')?.dataset.for; return id ? { collection: 'list_items', id } : null; }, attDone)) return;
+      const tabBtn = ev.target.closest('[data-list-tab]');
+      if (tabBtn) { state.tab = tabBtn.dataset.listTab; return render(); }
       const b = ev.target.closest('[data-act]');
       if (!b) return;
       b.closest('details')?.removeAttribute('open');
@@ -666,6 +675,6 @@ export default {
 
   quickAdd() {
     const ta = document.querySelector('#list-new');
-    if (ta) ta.focus(); else document.querySelector('[data-act="new-list"]')?.click();
+    if (ta) ta.focus(); else document.querySelector('[data-act="new-list"], [data-act="new-template"]')?.click();
   },
 };
