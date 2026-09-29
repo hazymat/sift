@@ -65,6 +65,12 @@ const byPlace = byRank(orderKey);
 const byOrder = (a, b) => Number(!!b.pinned) - Number(!!a.pinned) || byPlace(a, b);
 const rankOfNote = t => rankOf(t, orderKey);
 
+// A note added from elsewhere (What's new: Save to Brain Dump), at the top of the notes.
+export async function addNote(body) {
+  const first = (await store.list('thoughts')).map(rankOfNote).sort()[0] || null;
+  return store.create('thoughts', { title: titleFrom(body), body, kind: dumpTypes()[0]?.id || 'thought', pinned: false, converted_to: null, rank: keyBetween(null, first) });
+}
+
 export default {
   async mount(el) {
     // Page-wide listeners are tied to this signal and removed in unmount().

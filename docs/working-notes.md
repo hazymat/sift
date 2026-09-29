@@ -23,10 +23,20 @@ How work on Sift is done: where things are, the rules, and where it has got to. 
    - any new JS file goes into `SHELL` in `app/sw.js`;
    - syntax check each changed JS file: copy it to a `.mjs` file somewhere temporary and run `node --check` on that;
    - add the release note to `tools/release_notes.py`;
+   - add the version's What's new entry to `WHATS_NEW` in `app/js/whatsnew.js` (see below); every version gets one;
    - write **How to test** steps in the pull request (see below).
 3. One pull request per change or small batch, with the issue numbers it closes (`Closes #n`).
 4. **Publishing is merging the pull request.** Nothing is merged until it has been asked for.
 5. After merging: check the deploy (`gh run watch`, then `curl -s "https://hazymat.github.io/sift/js/version.js?x=$RANDOM" | grep VERSION`), create the Releases (`python tools/release.py <version> <full commit hash> ...`), and close the issues it fixed with a comment naming the version. The overview issues tick themselves.
+
+## What's new (every version)
+
+After an update, Sift shows a What's new sheet listing every version since the one the device had (Settings, Show update info; on unless turned off; Settings, What's new shows it again). Its entries are `WHATS_NEW` in `app/js/whatsnew.js`, one per version bump, added with the release note:
+
+- `text`: one plain line per change, in the UI's words, saying where it is ("Find Things: ...").
+- `go`, `open`, `at`: the Show me target. `go` is the address (`#/find-things`), `open` the selectors clicked in turn to get there (e.g. the first box), `at` the element that changed, which is scrolled to and pulses. Check each target with a Show me before merging.
+- `more`: when one change reached many places, one Show me for the main one and the rest in words here.
+- A bug fix with nothing to point at, or a phone gesture, has no `at` (no Show me).
 
 ## How to test
 
@@ -63,6 +73,7 @@ How work on Sift is done: where things are, the rules, and where it has got to. 
 - `app/js/rowswipe.js`: phones, swiping a row for its actions (Tasks, Day Planner items). `app/js/slide.js`: the page sliding sideways (a side swipe, Brain Dump's filters); `installSwipe()` in `app.js` turns a side swipe into ← / →.
 - `app/js/batchbook.js`: Batch Book data (recipes, batches, entries), books (the user's own, stored as a recipe's `type` and in settings `batch_sections`), steps, units, reading ingredient lines, {references} in a step, ABV, reading recipes imported as text (`parseRecipes`, format in its comment; the Import recipes sheet is in `views/recipes.js`); the pages, dragging cards (listkit, `rank`), each batch ingredient's In stock / Add to list (`stock`, `stock_items`, `list_id`), each card's Make and More menu (a recipe's own `colour` overrides its book's; sharing kind `recipe` in sync.js IN_SCOPE covers its batches and entries by `recipe_id`) and the books sheet are in `views/recipes.js`. Recipe and batch pages use the Day Planner's papers (`.bb-paper[data-paper]` shares the paper tokens in `app.css`).
 - `app/js/views/*.js`: one module per area. `smoke.js`: the page check (dev only, not cached).
+- `app/js/whatsnew.js`: What's new after an update (`WHATS_NEW`, the sheet, Show me, Save to Brain Dump); `markUpdating()` runs in `applyUpdate()` in `app.js`, `afterUpdate()` on the next start.
 - `app/js/views/welcome.js`: the first time Sift is opened on a device with nothing in it (`firstVisit()` in `app.js`): tour now, later (a task with `tour: true`, whose pill starts it), or not at all. `app/js/tour.js`: the tours (`TOURS`: each has its steps, its place kept on the device in `tour_at`, and its task, `tour: <id>`) and how they point at things; a step can wait for something to be tried (`done`).
 - `server/`: the sync server (Node 24, `node:sqlite`), end-to-end encrypted. `node test.js` after any change.
 - `tools/`: `devserver.py`, `make_icons.py` (every icon size from `tools/icon-source.png`), `release.py` and `release_notes.py`, `onenote_to_csv.py`, `make_sift_test.py` (see Sift test below).
