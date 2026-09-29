@@ -987,3 +987,4 @@ NOTES['1.58.04'] = [F('Find Things: things in an open box move as tasks do: pres
 NOTES['1.58.05'] = [F('Find Things: a box\'s Notes example now reads "e.g. Clear 9-litre box".')]
 NOTES['1.58.06'] = [F('Day Planner: More on a task goes straight to its full panel, with no row of pills under the name first, and the panel no longer has start and end times (drag it onto the schedule instead). More no longer covers the task\'s time pill.')]
 NOTES['1.58.07'] = [B('Find Things: scrolling an open box on a phone, the lid slid part way under the search bar before stopping, and turned darker once it stuck.')]
+NOTES['1.58.08'] = [B('On iPhone, typing near the bottom of a long page (a new task, a list or a box) slid the pinned top off the screen and left the bottom tabs floating above the keyboard. The top now stays and the tabs hide while the keyboard is up.')]
