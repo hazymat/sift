@@ -99,8 +99,6 @@ export default {
         <details class="tool-menu page-more">
           <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
           <div class="menu">
-            <button type="button" data-act="toggle-done">Show / hide done</button>
-            <hr>
             <a href="#/bin/archive/tasks">Show Archive</a>
             <a href="#/bin/bin/tasks">Show Bin</a>
           </div>
