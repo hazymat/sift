@@ -156,7 +156,7 @@ export default {
     });
     $('#dump-note').addEventListener('input', ev => { ev.target.style.height = 'auto'; ev.target.style.height = `${ev.target.scrollHeight}px`; });
 
-    // Shift+Enter in an item's title: save the title, then type its notes.
+    // Shift+Enter in an item's title: save the title, then its full panel (as More).
     el.addEventListener('keydown', async ev => {
       const t = ev.target;
       if (ev.key === 'Enter' && ev.shiftKey && t.classList?.contains('item-title')) {
@@ -164,7 +164,9 @@ export default {
         const id = t.closest('[data-item]').dataset.item;
         const it = items.find(i => i.id === id);
         const title = t.value.trim();
-        noteEditing = id;
+        this.pills.close();
+        noteEditing = null;
+        editing = id;
         if (title && title !== it.title) {
           await store.update('day_items', id, { title });
           undoable('Saved', async () => { await store.update('day_items', id, { title: it.title }); await refresh(); });
@@ -174,7 +176,7 @@ export default {
         return;
       }
       const box = t.closest?.('[data-note-for]');
-      // Shift+Enter again, in the note under the item (or its Add note): on to the full panel, as More (full).
+      // Shift+Enter in the note under the item: on to the full panel, as More.
       const shiftEnter = ev.key === 'Enter' && ev.shiftKey && !ev.ctrlKey && !ev.metaKey && !ev.altKey && !ev.isComposing;
       if (shiftEnter && (box?.classList.contains('note-edit') || t.matches?.('.pill-note')) && !t.closest('.rich.is-full')) {
         ev.preventDefault(); ev.stopPropagation();
@@ -467,7 +469,7 @@ export default {
             ${span ? `<span class="span-tag">${span}</span>` : i.estimate_min ? `<span class="span-tag">~${durationLabel(Number(i.estimate_min))}</span>` : ''}
             ${i.energy ? `<button type="button" class="span-tag bolts" data-act="energy-pill" title="Energy: ${esc(ENERGY.find(e => e.id === i.energy)?.label || '')}. Click to change" aria-haspopup="menu">${ENERGY.find(e => e.id === i.energy)?.bolts || ''}</button>` : ''}
             ${noteTag(i)}
-            <button type="button" class="more entry-chip" data-act="quick-more" title="Edit it, with its pills">More</button>
+            <button type="button" class="more entry-chip" data-act="quick-more" title="Open its full panel">More</button>
             <button type="button" class="details-btn" data-act="details" hidden aria-label="Details" aria-expanded="${editing === i.id}"></button>
             ${editing === i.id ? `<button type="button" class="entry-chip close-top" data-act="close-details" title="Close the panel">✓ Close${keys('Esc')}</button>` : ''}
             ${noteEditing === i.id
@@ -526,8 +528,6 @@ export default {
       return `
         <div class="item-details" data-for="${i.id}">
           <div class="panel-sec detail-sec wide"><span class="panel-h">Details</span><div class="detail-grid">
-          <label>Time<input type="time" name="time" value="${i.time || ''}"></label>
-          <label>Until<input type="time" name="end_time" value="${i.end_time || ''}"></label>
           <label>Estimated time<select name="estimate_min">
             <option value="" ${!i.estimate_min && !i.estimate_unsure ? 'selected' : ''}>Not estimated</option>
             <option value="unsure" ${i.estimate_unsure && !i.estimate_min ? 'selected' : ''}>Not sure yet</option>
@@ -1151,23 +1151,16 @@ export default {
       return made;
     }
 
-    // Tap an item's text to edit it: pills for energy and duration open
-    // under it, plus More for the whole panel (js/editpills.js).
+    // Tap an item's text to edit it: More at the far right of its line goes straight to the full panel (no pills
+    // under it, as in Lists), then ✓ Close in the same place (js/editpills.js).
     this.pills = editPills(planner, {
       title: '.item-title',
       row: '.line.has-item[data-item]',
       key: r => r.dataset.item,
       done: true,
       topDone: false, // ✓ Done stays with the pills: the columns are narrow
-      top: () => '<button type="button" class="entry-chip pill-reveal" data-pill-more title="Open its full panel">More (full)</button>',
-      html: id => {
-        const i = items.find(x => x.id === id);
-        if (!i) return '';
-        const mins = [...new Set([...durationChoices(settings.duration_max_min), ...(i.estimate_min ? [Number(i.estimate_min)] : [])])].sort((a, b) => a - b);
-        const addNote = (i.notes || '').trim() || noteEditing === id ? '' : '<textarea class="add-note pill-note no-inline" data-pill="notes" rows="1" placeholder="Add note" aria-label="Note"></textarea>';
-        return addNote + energyPill(i.energy)
-          + selectPill('estimate_min', 'Estimated time', '⏱', [['', 'Not estimated'], ['unsure', 'Not sure yet'], ...mins.map(m => [m, durationLabel(m)])], i.estimate_min || (i.estimate_unsure ? 'unsure' : ''));
-      },
+      top: () => `<button type="button" class="entry-chip pill-reveal" data-pill-more title="Open its full panel">More${keys('Shift+Enter')}</button>`,
+      html: () => '',
       change: async (id, name, v) => {
         if (name === 'notes') { if (v.trim()) await change(id, { notes: v.trim() }, 'Note saved'); return; }
         if (name === 'energy') {
@@ -1268,8 +1261,8 @@ export default {
         return;
       }
       if (act === 'energy-edit') { openEnergy(); return; }
-      // An item's More on hover (not being edited): into its name, with its pills (as a tap on it), and More (full) there.
-      if (act === 'quick-more') { const title = t.closest('.content')?.querySelector('.item-title'); title?.focus(); title?.setSelectionRange(title.value.length, title.value.length); return; }
+      // An item's More on hover (not being edited): its full panel.
+      if (act === 'quick-more') { t.closest('.content')?.querySelector('[data-act="details"]')?.click(); return; } // straight to the panel, as in Lists
       if (t.dataset.energy) {
         const old = day.energy || null;
         const energy = t.dataset.energy === 'none' || day.energy === t.dataset.energy ? null : t.dataset.energy;

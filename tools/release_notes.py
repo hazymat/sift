@@ -985,3 +985,4 @@ NOTES['1.58.02'] = [F('Find Things: an open box keeps all of its top in view (la
 NOTES['1.58.03'] = [F('Tasks, Projects and Contacts: the top of the page (+ New, the tabs, 👁 and ⋯) stays in view while scrolling, as in Find Things and Batch Book.')]
 NOTES['1.58.04'] = [F('Find Things: things in an open box move as tasks do: press and hold anywhere on one and drag it; drop it onto another to put it inside. A thing\'s quantity (×3) now sits on the left, before its name.')]
 NOTES['1.58.05'] = [F('Find Things: a box\'s Notes example now reads "e.g. Clear 9-litre box".')]
+NOTES['1.58.06'] = [F('Day Planner: More on a task goes straight to its full panel, with no row of pills under the name first, and the panel no longer has start and end times (drag it onto the schedule instead). More no longer covers the task\'s time pill.')]
