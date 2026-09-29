@@ -2,7 +2,8 @@
 // (sortable.js) and the Day Planner. A shading spreads from the pointer to the
 // row's edges while it's held; when it's full the row lifts, and it stays full
 // (not pulsing again as the row moves) until the drag ends. A tap, or moving
-// first (scrolling, choosing text), is left alone. While lifted: its fields
+// first (scrolling, choosing text), is left alone; so is a finger in the text
+// already being written in (a mouse held there still lifts the row). While lifted: its fields
 // are read-only and any keyboard goes down (an iPhone focuses a held field
 // after half a second, and the keyboard shifts the page under the finger), the
 // page doesn't scroll, and the release isn't a tap or click into it.
@@ -54,8 +55,19 @@ export function holdToLift(root, { rowAt, shadeOf = row => row, skip = HOLD_SKIP
   let x = 0, y = 0;
   let liftedAt = 0;
 
+  // While a press waits to lift, its moves and its release count wherever they happen: let go
+  // off the list (e.g. at the screen's edge) and the row doesn't lift later with nothing held.
+  const moved = e => {
+    x = e.clientX; y = e.clientY;
+    if (holding && Math.hypot(e.clientX - holding.x, e.clientY - holding.y) >= 6) cancel(); // moved first: scrolling, or choosing text
+  };
+  const follow = on => {
+    for (const type of ['pointerup', 'pointercancel']) (on ? addEventListener : removeEventListener)(type, cancel, true);
+    (on ? addEventListener : removeEventListener)('pointermove', moved, true);
+  };
   const cancel = () => {
     if (!holding) return;
+    follow(false);
     pressing = Math.max(0, pressing - 1);
     clearTimeout(holding.timer);
     holding.ripple.remove();
@@ -75,6 +87,8 @@ export function holdToLift(root, { rowAt, shadeOf = row => row, skip = HOLD_SKIP
 
   root.addEventListener('pointerdown', e => {
     if (e.button > 0 || busy() || held || e.target.closest(skip)) return;
+    // A finger in the text being written in: the phone's own (moving the cursor, its magnifier), not a lift.
+    if (e.pointerType !== 'mouse' && e.target === document.activeElement && e.target.matches('input, textarea')) return;
     const row = rowAt(e.target);
     if (!row) return;
     cancel();
@@ -101,11 +115,13 @@ export function holdToLift(root, { rowAt, shadeOf = row => row, skip = HOLD_SKIP
     shade.append(ripple, waves);
     x = e.clientX; y = e.clientY;
     pressing++;
+    follow(true);
     holding = {
       row, shade, ripple, waves, x, y, pointerId: e.pointerId, locked: [], target: e.target,
       timer: setTimeout(() => {
         const h = holding;
         holding = null;
+        follow(false);
         held = h;
         pressing = Math.max(0, pressing - 1);
         carrying++;
@@ -124,11 +140,7 @@ export function holdToLift(root, { rowAt, shadeOf = row => row, skip = HOLD_SKIP
       }, ms),
     };
   });
-  root.addEventListener('pointermove', e => {
-    x = e.clientX; y = e.clientY;
-    if (holding && Math.hypot(e.clientX - holding.x, e.clientY - holding.y) >= 6) cancel(); // moved first: scrolling, or choosing text
-  });
-  for (const type of ['pointerup', 'pointercancel']) root.addEventListener(type, cancel);
+  root.addEventListener('pointermove', e => { x = e.clientX; y = e.clientY; }); // (the pointer's latest place, for the lift)
   root.addEventListener('click', e => { if (quietClick) { quietClick = false; e.preventDefault(); e.stopPropagation(); } }, true);
 
   return { letGo, cancel, get held() { return !!held; }, get liftedAt() { return liftedAt; } };

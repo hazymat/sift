@@ -2,10 +2,15 @@
 // Pointer events rather than HTML5 drag and drop, which doesn't work on
 // iOS touch. Keyboard: focus a handle and use the arrow keys.
 //
-//   sortable(ul, { onMove(item), onEnd({ item, dx }) })
+//   sortable(ul, { onMove(item), onEnd({ item, dx }), onCancel({ item }) })
 //   onMove runs after each step so callers can enforce rules (e.g. a limit);
 //   onEnd({ item, dx }) runs once when the drag finishes; dx is the sideways
 //   distance dragged (used for indenting), 0 for keyboard moves.
+//
+// Esc while dragging puts it back where it was picked up, and nothing is
+// saved: onCancel({ item }) instead of onEnd, to undo the view's own marks.
+// So does a drag whose release never came (a mouse moving with no button
+// held, or a new press while it's still up).
 //
 // With `holdMs`, the grip does three things:
 //   tap                       → onTap(item, event)
@@ -37,7 +42,8 @@ const wobble = (from, to, kick) => Array.from({ length: 41 }, (_, n) => {
   return { rotate: `${(to + (from - to) * fade * Math.cos(turn) + kick * fade * Math.sin(turn)).toFixed(3)}deg` };
 });
 
-export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere = 0, keyboard = true, grid = false, onMove, onEnd, onTap, onPaint, onLift, onDrag, onOnto } = {}) {
+export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere = 0, keyboard = true, grid = false, onMove, onEnd, onCancel, onTap, onPaint, onLift, onDrag, onOnto } = {}) {
+  let origin = null; // where the dragged row was picked up: { parent, next }
   let onto = null; // the row the dragged one is over the middle of (onOnto)
   const setOnto = el => {
     if (el === onto) return;
@@ -143,6 +149,7 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
 
   function lift(item, x, y) {
     dragging = item;
+    origin = { parent: item.parentNode, next: item.nextSibling };
     offsetY = y - item.getBoundingClientRect().top;
     offsetX = x - item.getBoundingClientRect().left;
     startX = lastX = x;
@@ -155,6 +162,7 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     addEventListener('pointermove', strayMove);
     addEventListener('pointerup', strayEnd);
     addEventListener('pointercancel', strayEnd);
+    addEventListener('keydown', escKey, true);
     onLift?.(item);
     if (onOnto && !grid) {
       slot = document.createElement('div');
@@ -181,8 +189,19 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     },
   }) : null;
 
-  // A drag still on from a touch whose end never came: put it down before a new press starts.
-  list.addEventListener('pointerdown', () => { if (dragging) finish({ type: 'pointercancel' }); }, true);
+  // A drag still on from a touch whose end never came: put back before a new press starts.
+  list.addEventListener('pointerdown', () => { if (dragging) putBack(); }, true);
+
+  // Put back where it was picked up (the view's own marks undone by onCancel), nothing saved.
+  function putBack() {
+    if (!dragging) return;
+    const item = dragging;
+    if (origin?.parent?.isConnected) origin.parent.insertBefore(item, origin.next?.parentNode === origin.parent ? origin.next : null);
+    lastX = startX; lastY = startY; // no sideways shift either
+    setOnto(null);
+    finish({ type: 'pointercancel' }, true);
+  }
+  const escKey = e => { if (e.key === 'Escape' && dragging) { e.preventDefault(); e.stopImmediatePropagation(); putBack(); } }; // only the drag: not also the selection or the editing
 
   list.addEventListener('pointerdown', e => {
     const grip = e.target.closest(handle);
@@ -206,6 +225,7 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
 
   list.addEventListener('pointermove', e => onMove(e));
   function onMove(e) {
+    if (e.pointerType === 'mouse' && !e.buttons && (dragging || pending)) { if (dragging) putBack(); else { clearTimeout(pending.timer); pending = null; } return; } // let go where it wasn't seen
     lastX = e.clientX;
     lastY = e.clientY;
     if (pending) {
@@ -232,7 +252,7 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
   const strayMove = e => { if (stray(e)) onMove(e); };
   const strayEnd = e => { if (stray(e)) finish(e); };
 
-  function finish(e) {
+  function finish(e, cancelled = false) {
     hold?.cancel();
     hold?.letGo();
     if (pending) {
@@ -250,6 +270,7 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     removeEventListener('pointermove', strayMove);
     removeEventListener('pointerup', strayEnd);
     removeEventListener('pointercancel', strayEnd);
+    removeEventListener('keydown', escKey, true);
     const item = dragging;
     slot?.remove();
     slot = null;
@@ -264,7 +285,7 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     if (onto) setOnto(null);
     const id = item.dataset.id;
     const put = () => {
-      if (item.isConnected) onEnd?.({ item, dx, onto: target });
+      if (item.isConnected) { if (cancelled) onCancel?.({ item }); else onEnd?.({ item, dx, onto: target }); }
       else document.body.classList.remove('is-dragging'); // the view drew the list again meanwhile: nothing to put down
       if (!grid && id) settle(item, id);
     };

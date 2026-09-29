@@ -1692,6 +1692,9 @@ export default {
     });
 
     el.addEventListener('pointermove', ev => {
+      // Let go where it wasn't seen (a mouse moving with no button held): back as it was, nothing saved.
+      if ((resizing || press?.dragging) && ev.pointerType === 'mouse' && !ev.buttons) return endPress({ type: 'pointercancel' });
+      if (press && !press.dragging && ev.pointerType === 'mouse' && !ev.buttons) { press = null; return; }
       if (resizing) return resizeMove(ev);
       if (!press) return;
       if (!press.dragging) {
@@ -1766,6 +1769,13 @@ export default {
     };
     el.addEventListener('pointerup', endPress);
     el.addEventListener('pointercancel', endPress);
+    // Esc while moving or stretching an item: back as it was, nothing saved (only that: not also the selection).
+    addEventListener('keydown', ev => {
+      if (ev.key !== 'Escape' || !(press?.dragging || resizing)) return;
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+      endPress({ type: 'pointercancel' });
+    }, pageCapture);
 
     // Stretching an item: redraw the day live (lines it covers blocked out,
     // anything in the way pushed on), save on release.
