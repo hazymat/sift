@@ -29,7 +29,7 @@ import { word } from '../words.js';
 import { commentsHtml, mountComments, closingComment } from '../comments.js';
 import { REPEAT_CHOICES, choiceOf, repeatLabel, firstDate } from '../repeat.js';
 import { keys } from '../keys.js';
-import { tickWave } from '../tickwave.js';
+import { tickWave, fadeFold } from '../tickwave.js';
 import { treeHtml, groupOf, measureRows, slideRows } from '../rows.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -1068,7 +1068,7 @@ export default {
       const before = all.map(id => { const t = data.tasks.find(x => x.id === id); return [id, Object.fromEntries(Object.keys(fields).map(k => [k, t?.[k] ?? null]))]; });
       const leaving = fade ? all.filter(id => { const t = data.tasks.find(x => x.id === id); return t && leavesList(t); }) : [];
       await store.updateMany('tasks', all.map(id => [id, fields]));
-      // Done: they fade out, with a note, as one ticked on its own does (tickAway redraws after).
+      // Done: the wave, then they fade and fold away, as one ticked on its own does (tickAway redraws after).
       if (leaving.length) tickAway(leaving); else await render();
       undoable(`${label} ${all.length} task${all.length === 1 ? '' : 's'}`, async () => { await store.updateMany('tasks', before); await render(); });
     }
@@ -1178,28 +1178,21 @@ export default {
       undoable(label, async () => { await store.update('tasks', id, old); await render(); }, opts);
     }
 
-    // A task ticked off a list doesn't vanish at once: a wave runs along it (tickwave.js: its letters and
-    // pills bob, a line is drawn through it, a band of light passes), then it fades a little and folds
-    // away, the rows below sliding up into its place. Several ticked at once (Done on the selection bar,
-    // or a task with its sub-tasks) go one after another, 200ms apart. Unticking it meanwhile keeps it.
-    const FADE_MS = 1200;
+    // A task ticked off a list doesn't vanish at once: a wave runs along it (tickwave.js: the tick springs,
+    // its letters and pills hop, a line is drawn through it, a band of light passes), then it fades and
+    // folds away (fadeFold), the rows below sliding up into its place. Several ticked at once (Done on the
+    // selection bar, or a task with its sub-tasks) go one after another, 200ms apart.
     let fading = 0;
     const waveOf = (row, n = 0) => tickWave(row, { title: row.querySelector(':scope > .task-title'), parts: row.querySelectorAll(':scope > .item-sub :is(.chip, .pill-act, .task-note)'), delay: 100 + n * 200 });
     async function tickAway(ids) {
       const rows = ids.map(x => el.querySelector(`.task-list > li[data-task="${x}"]`)).filter(Boolean);
       if (!rows.length) return render();
       fading++;
-      for (const r of rows) { r.classList.add('ticked-away'); r.style.setProperty('--fade', `${FADE_MS}ms`); const tick = r.querySelector(':scope > .tick'); if (tick) tick.checked = true; }
+      for (const r of rows) { r.classList.add('ticked-away'); const tick = r.querySelector(':scope > .tick'); if (tick) tick.checked = true; }
       await Promise.all(rows.map((r, n) => waveOf(r, n).done));
-      rows.forEach(r => r.classList.add('done', 'fading'));
-      await new Promise(done => setTimeout(done, FADE_MS + 200));
-      if (rows.some(r => r.isConnected)) {
-        for (const r of rows) { r.style.height = `${r.offsetHeight}px`; r.style.overflow = 'hidden'; }
-        void rows[0].offsetHeight;
-        rows.forEach(r => r.classList.add('closing'));
-        await new Promise(done => setTimeout(done, 280));
-        rows.forEach(r => r.remove());
-      }
+      rows.forEach(r => r.classList.add('done'));
+      await fadeFold(rows);
+      rows.forEach(r => r.remove());
       if (--fading === 0) render();
     }
     // Would ticking this task take it off the list being shown? (A sub-task
