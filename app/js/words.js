@@ -67,7 +67,7 @@ export const WORDS = [
   { group: "Phrases: Find Things", key: 'ph_find_empty', default: "Import a CSV of your boxes, or start adding them.", hint: "When there are no boxes yet." },
   { group: "Phrases: Find Things", key: 'ph_find_area_empty', default: "No boxes in this life area yet.", hint: "A life area with no boxes." },
   { group: "Phrases: Find Things", key: 'ph_box_where', default: "e.g. Top shelf, garage", hint: "The example in a box's \"Where it lives\"." },
-  { group: "Phrases: Find Things", key: 'ph_box_notes', default: "e.g. Clear 10-litre box", hint: "The example in a box's Notes." },
+  { group: "Phrases: Find Things", key: 'ph_box_notes', default: "e.g. Clear 9-litre box", hint: "The example in a box's Notes." },
   { group: "Phrases: Find Things", key: 'ph_new_area', default: "e.g. Home, Garage, Allotment", hint: "The example in the New life area box." },
   { group: "Phrases: Find Things", key: 'ph_new_group', default: "e.g. Wardrobe, Shed shelves", hint: "The example in the New group box." },
   { group: "Phrases: Contacts", key: 'ph_contact_capture', default: "A number and a few words about it, e.g. Window cleaner 07700 900123", hint: "The grey prompt in the quick-capture box on Recent." },
