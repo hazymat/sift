@@ -81,7 +81,7 @@ Numbered for reference. ★ marks the ones already raised.
 14. **👁 contents vary with no pattern**: Look is missing from Scans, Contracts and Batch Book; Multicolour from Tasks and the Day Planner. Contracts has alternate-shading styling that can never be switched on.
 15. **Tick wording**: "✓ Tick / Untick" in Lists, "✓ Done / Not done" in Tasks and the Day Planner. "Done" is also the close button on some Day Planner sheets.
 16. **Selection bars**: key hints only in Tasks and Batch Book; drag handles are an icon in most areas and a text "⠿" in the Day Planner; Contacts shows a grip but can't be dragged.
-17. **Closing sheets and panels**: top right (Tasks, Day Planner), bottom left (Lists, box items), "Done" at bottom right (sharing), "Cancel … Save" (Batch Book sheets), ✕ (photo viewer, custom theme), nothing (most sheets, by design).
+17. **Closing sheets and panels**: top right (Tasks, Day Planner, Lists, box items), "Done" at bottom right (sharing), "Cancel … Save" (Batch Book sheets), ✕ (photo viewer, custom theme), nothing (most sheets, by design).
 18. **Saved messages**: "✓ Saved" with no Undo in Settings, "Saved · Undo" elsewhere.
 19. **Empty states**: "Nothing matches." / "Nothing here." / "Nothing found"; Tasks has none apart from Done.
 20. **Hard to reach**: History is only linked from Settings (not from any ⋯ as the code says); Tidied has no link from Settings.
