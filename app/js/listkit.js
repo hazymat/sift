@@ -380,7 +380,7 @@ export function createListKit({
       const skip = 'button, summary, details[open], select, label, input, textarea, [contenteditable="true"], .drag-handle, .kit-grip, .edit-pills, .row-acts';
       const rowAt = t => rows().find(r => r.contains(t)) || null;
       let justHeld = false; // the hold's own release isn't a tap
-      const hold = holdToLift(ul, { rowAt, skip, ms: 450, onLift: row => { hold.letGo(); justHeld = true; pick(row.dataset.id); leaveTyping(); paint(); } });
+      const hold = holdToLift(ul, { rowAt, skip, ms: 450, onLift: row => { hold.letGo(); justHeld = true; getSelection()?.removeAllRanges(); pick(row.dataset.id); leaveTyping(); paint(); } });
       ul.addEventListener('pointerdown', () => { justHeld = false; }, true);
       ul.addEventListener('click', ev => {
         if (justHeld) { justHeld = false; return; }
