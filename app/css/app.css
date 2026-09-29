@@ -3574,6 +3574,12 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
 .task-list > li[data-task] > .close-top { flex: none; align-self: center; margin-left: auto; padding: 2px 10px; font-size: .78rem; }
 #main[data-density="tight"] .task-list > li[data-task] > .close-top { order: 3; }
 .close-top kbd { margin-left: 5px; }
+/* Find Things' things the same (places.js). */
+.item-list > li[data-item] > .more { opacity: 1; margin-left: auto; padding: 2px 10px; font-size: .78rem; visibility: hidden; }
+@media (hover: hover) { .item-list > li[data-item]:hover > .more { visibility: visible; } }
+.item-list > li[data-item]:is(.pills-open, :has(> .close-top)) > .more { display: none !important; }
+.item-list > li[data-item] > .edit-pills.pill-top { display: contents; }
+:is(.item-list > li[data-item] > .close-top, .item-list > li[data-item] > .edit-pills.pill-top > .pill-reveal) { flex: none; margin-left: auto; padding: 2px 10px; font-size: .78rem; }
 /* The Day Planner the same (planner.js): More on hover (it goes into the name, with the pills), More (full) while
    editing, ✓ Close with the panel open; floating at the end of the first line where ⋯ was. */
 .line.has-item > .content > .more { opacity: 1; padding: 2px 10px; font-size: .78rem; }
@@ -3586,8 +3592,8 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
   :is(.pile-paper, #lines) .line.has-item > .content:has(> .close-top, > .edit-pills.pill-top) > textarea.item-title { padding-right: 96px; }
 }
 @media (hover: none) { #main .line.has-item > .content:has(> .close-top, > .edit-pills.pill-top) > textarea.item-title { max-width: calc(100% - 104px); } } /* phones: beside the name */
-:is(.pill-reveal, .task-list > li[data-task] > .more, .line.has-item > .content > .more, .close-top) { color: var(--text); border-color: color-mix(in srgb, var(--energy-ink, #4caf7a) 40%, transparent); background: color-mix(in srgb, var(--energy-ink, #4caf7a) 13%, transparent); }
-:is(.pill-reveal, .task-list > li[data-task] > .more, .line.has-item > .content > .more, .close-top):is(:hover, :focus-visible) { border-color: color-mix(in srgb, var(--energy-ink, #4caf7a) 65%, transparent); background: color-mix(in srgb, var(--energy-ink, #4caf7a) 24%, transparent); outline: none; }
+:is(.pill-reveal, .task-list > li[data-task] > .more, .line.has-item > .content > .more, .item-list > li[data-item] > .more, .close-top) { color: var(--text); border-color: color-mix(in srgb, var(--energy-ink, #4caf7a) 40%, transparent); background: color-mix(in srgb, var(--energy-ink, #4caf7a) 13%, transparent); }
+:is(.pill-reveal, .task-list > li[data-task] > .more, .line.has-item > .content > .more, .item-list > li[data-item] > .more, .close-top):is(:hover, :focus-visible) { border-color: color-mix(in srgb, var(--energy-ink, #4caf7a) 65%, transparent); background: color-mix(in srgb, var(--energy-ink, #4caf7a) 24%, transparent); outline: none; }
 #main:not([data-density="tight"]) .task-list > li[data-task]:has(> .edit-pills > .pill-reveal) > .item-sub { order: 4; }
 .edit-pills:has(> .pill-reveal) > :not(.pill-reveal, .pill-done) { display: none; }
 #main[data-density="tight"] .task-list > li[data-task]:has(> .edit-pills > .pill-reveal):not(:has(> .note-in-place, > .edit-pills:not(.pill-top))) { flex-wrap: nowrap; }
