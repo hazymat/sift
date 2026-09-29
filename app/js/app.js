@@ -454,6 +454,7 @@ export async function checkForUpdate() {
 }
 export async function applyUpdate() {
   const reg = await navigator.serviceWorker?.getRegistration();
+  await (await import('./whatsnew.js')).markUpdating(); // after the reload: what's new since this version
   if (reg?.waiting) reg.waiting.postMessage('skip-waiting'); else { await flushBeforeReload(); location.reload(); }
 }
 
@@ -667,6 +668,7 @@ async function boot() {
     if (currentView?.refresh) await currentView.refresh(); else await route(true);
     requestAnimationFrame(() => scrollTo(0, y));
   };
+  addEventListener('sift:refresh', () => refreshPage()); // something outside the page changed it (what's new: Save to Brain Dump)
 
   // Ctrl+Z / Ctrl+Y outside anything being typed: undo / redo the last thing done (undo.js).
   import('./undo.js').then(m => m.installUndoKeys(refreshPage));
@@ -674,6 +676,7 @@ async function boot() {
   await route();
   renderSyncStatus();
   import('./install.js').then(m => m.showBanner());
+  import('./whatsnew.js').then(m => m.afterUpdate()); // just updated: what's new
   // Sync: runs in the background once signed in. When another device's
   // changes arrive, the page you're on is updated (unless you're typing).
   import('./sync.js').then(sync => {

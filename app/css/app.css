@@ -2309,6 +2309,18 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
 /* The app's own questions (js/ask.js). */
 .ask-sheet { max-width: 460px; }
 @media (min-width: 768px) { .ask-sheet { margin: auto; border-radius: var(--radius-card); border-bottom: 1px solid var(--glass-border); } }
+/* What's new after an update (whatsnew.js): one row per change, Show me on the right. */
+.whatsnew-sheet { max-width: 620px; }
+@media (min-width: 768px) { .whatsnew-sheet { margin: auto; border-radius: var(--radius-card); border-bottom: 1px solid var(--glass-border); } }
+.whatsnew-head { display: flex; align-items: center; gap: 10px; }
+.whatsnew-head h2 { margin: 0; flex: 1; }
+.whatsnew-list { list-style: none; margin: 10px 0 0; padding: 0; max-height: 58vh; overflow-y: auto; }
+.whatsnew-list li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--glass-border); }
+.whatsnew-text { flex: 1; line-height: 1.35; }
+.whatsnew-more, .whatsnew-v { display: block; font-size: .85rem; margin-top: 3px; }
+.whatsnew-v { font-size: .75rem; }
+.whatsnew-list .pill-act { flex: none; }
+#install-card > .check-row { margin: 2px 0 12px; } /* Show update info, under the version line */
 .ask-field { display: grid; gap: 4px; margin: 10px 0 0; font-size: .85rem; color: var(--muted); }
 .ask-field input, .ask-field select { width: 100%; box-sizing: border-box; font-size: 16px; color: var(--text); }
 
