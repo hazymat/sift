@@ -450,6 +450,14 @@ button.danger { color: #ff8a80; }
 
 .find-head { margin-bottom: 10px; }
 .find-bar { position: sticky; top: calc(var(--safe-top) + 62px); z-index: 5; margin-bottom: 10px; }
+/* The boxes page: its whole top sticks (as Batch Book's), so the search inside it doesn't stick by itself. */
+.find-sticky { position: sticky; top: calc(var(--safe-top) + 62px); z-index: 5; margin: 0 -10px 10px; padding: 0 10px; border-radius: 0 0 16px 16px; transition: box-shadow .15s, background-color .15s; }
+.find-sticky .find-bar { position: static; }
+.find-sticky .find-areas { margin-bottom: 6px; }
+.find-sticky-mark { height: 1px; margin-bottom: -1px; }
+.find-sticky.stuck { padding-top: 8px; padding-bottom: 2px; background: var(--glass-strong); -webkit-backdrop-filter: blur(18px) saturate(1.3); backdrop-filter: blur(18px) saturate(1.3); box-shadow: 0 10px 18px -10px rgba(0, 0, 0, .55); }
+@media (min-width: 768px) { .find-sticky { top: 62px; } .find-sticky.stuck { padding-top: 14px; } }
+@media (max-width: 767px) { .find-sticky { top: 0; } .find-sticky.stuck { padding-top: calc(var(--safe-top) + 8px); } }
 .search {
   font-size: 1.05rem;
   padding: 12px 18px !important;
@@ -520,7 +528,12 @@ button.danger { color: #ff8a80; }
 .find-section > h2 .box-where { font-size: .9rem; margin-left: 6px; }
 .result-count { margin: 0 4px 10px; }
 
-.box-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 10px; }
+/* Spacing sets the boxes' size: Tight is small boxes (more on screen), Loose is big ones showing more of each box. */
+.box-grid { --box-min: 150px; --box-lines: 6; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(var(--box-min), 100%), 1fr)); gap: 10px; }
+#main[data-density="tight"] .box-grid { --box-min: 108px; --box-lines: 4; gap: 6px; }
+#main[data-density="loose"] .box-grid { --box-min: 230px; --box-lines: 14; gap: 14px; }
+#main[data-density="tight"] .box-card { padding: 7px 8px 8px; border-radius: 14px; }
+#main[data-density="tight"] .box-code { font-size: 1.1rem; }
 .box-card {
   display: flex;
   flex-direction: column;
@@ -548,33 +561,27 @@ button.danger { color: #ff8a80; }
 .box-notes, .box-path { font-size: .72rem; color: var(--muted); }
 .box-card { cursor: pointer; }
 .box-card:focus-visible { outline: 2px solid var(--active-border); outline-offset: 2px; }
-.box-pills { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 3px; margin-top: 5px; max-height: calc(3 * 1.45rem); overflow: hidden; }
+.box-pills { display: block; margin-top: 4px; font-size: .74rem; line-height: 1.4; max-height: calc(var(--box-lines) * 1.4em); overflow: hidden; overflow-wrap: anywhere; }
+.box-item { margin-right: .55em; }
+.box-item.sub { opacity: .6; }
+.box-item .nowrap { white-space: nowrap; }
+.box-item svg { width: 1em; height: 1em; margin-right: 2px; vertical-align: -.15em; opacity: .55; }
 .box-pills.all { max-height: none; }
-.item-pill {
-  max-width: 100%;
-  padding: 1px 7px;
-  border-radius: 999px;
-  font-size: .7rem;
-  line-height: 1.3rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  background: var(--glass-track);
-  border: 1px solid var(--glass-border);
-  color: var(--text);
-  opacity: .85;
-}
 .box-more { font-size: .7rem; }
 .box-more:empty { display: none; }
+/* Big enough to tap on a phone; always faintly there, at the bottom of the box. */
 .quick-add {
-  margin-top: 4px;
-  padding: 3px 8px !important;
-  font-size: .75rem;
+  margin-top: auto;
+  min-height: 34px;
+  padding: 6px 10px !important;
+  font-size: .8rem;
   border-radius: 999px !important;
-  background: transparent !important;
+  background: color-mix(in srgb, var(--glass-track) 55%, transparent) !important;
   border-color: transparent !important;
   color: var(--text);
 }
+.box-card .box-more { margin-bottom: 6px; }
+#main[data-density="tight"] .quick-add { min-height: 30px; padding: 4px 8px !important; font-size: .74rem; }
 .quick-add::placeholder { color: var(--muted); opacity: .6; }
 .box-card:hover .quick-add, .quick-add:focus { background: var(--glass-track) !important; border-color: var(--glass-border) !important; }
 .quick-add:focus { border-color: var(--active-border) !important; }
@@ -715,7 +722,6 @@ kbd { font: inherit; font-size: .72em; line-height: 1.2; vertical-align: middle;
 @media (hover: none) { kbd { display: none; } }
 /* A back button's Esc shows only while nothing is being typed: the first Esc leaves the field. */
 #main:has(:is(input:not([type="checkbox"], [type="radio"]), textarea, [contenteditable="true"]):focus) .back kbd { display: none; }
-.item-pill.sub { opacity: .55; font-size: .66rem; }
 .item-list li:hover, .item-list li:focus-within { background: var(--glass-track); }
 .item-list input { padding: 5px 10px; background: transparent; border-color: transparent; font-size: .95rem; }
 .item-list input:focus { background: var(--glass-track); border-color: var(--active-border); }
