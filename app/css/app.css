@@ -710,7 +710,7 @@ body.has-select-bar .toast { bottom: 82px; }
 .toast span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .toast button { padding: 3px 12px; font-weight: 600; color: var(--accent); background: none; box-shadow: none; border-color: var(--glass-border); }
 @media (min-width: 768px) { .toast { bottom: 28px; } }
-kbd { font: inherit; font-size: .72em; padding: 1px 5px; margin-left: 4px; border-radius: 6px; border: 1px solid var(--glass-border); opacity: .7; }
+kbd { font: inherit; font-size: .72em; line-height: 1.2; vertical-align: middle; padding: 1px 5px; margin-left: 4px; border-radius: 6px; border: 1px solid var(--glass-border); opacity: .7; }
 @media (hover: none) { kbd { display: none; } }
 /* A back button's Esc shows only while nothing is being typed: the first Esc leaves the field. */
 #main:has(:is(input:not([type="checkbox"], [type="radio"]), textarea, [contenteditable="true"]):focus) .back kbd { display: none; }
