@@ -395,7 +395,7 @@ async function refreshShares() {
     try {
       const shareKeys = known[s.id] || (known[s.id] = await cx.workingKeys(await cx.openShareKey(privateKey, s.wrapped_key)));
       next.push({ id: s.id, wrapped_key: s.wrapped_key, mine: s.mine, owner_id: s.owner_id, owner_email: s.owner_email, accepted: !!s.accepted_at, created_at: s.created_at, keys: shareKeys, info: await cx.openJson(shareKeys, s.info),
-        members: s.members.map(m => ({ user_id: m.user_id, email: m.email, accepted: !!m.accepted_at })) });
+        members: s.members.map(m => ({ user_id: m.user_id, email: m.email, accepted: !!m.accepted_at, added_at: m.added_at || null })) });
     } catch (e) { console.warn('A share could not be opened:', e.message); }
   }
   // Gone (stopped, or you were taken out or left): what came from it goes from this device.

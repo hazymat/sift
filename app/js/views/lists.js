@@ -16,7 +16,7 @@ import { word } from '../words.js';
 import { tintHex, tintId, colourMenu } from '../colours.js';
 import { rankOf, reorderWrites } from '../order.js';
 import { dateText } from '../days.js';
-import { shareSheet, sharedWithText, people, invitesHtml, theirsHtml } from '../sharing.js';
+import { shareSheet, sharedWithText, people, invitesHtml, theirIconHtml } from '../sharing.js';
 import { askEmptied } from '../ask.js';
 import { rowSwipe } from '../rowswipe.js';
 import { keyBetween } from '../order.js';
@@ -182,13 +182,12 @@ export default {
       return `
         <div class="list-top-mark" aria-hidden="true"></div>
         <div class="list-top">
-        ${from ? theirsHtml(`${from.name} shared this ${isTemplate ? 'template' : 'list'} with you. You can both change it.`, `<button type="button" data-share-leave="${from.share.id}">Leave</button>`) : ''}
         <div class="project-head">
           <button type="button" class="back" data-act="home">‹ Lists</button>
           <button type="button" class="note-dot list-colour" data-act="list-colour" title="List colour" aria-label="List colour"><span class="swatch" style="--sw:${tintHex(l)}"></span></button>
           <input class="project-name" name="name" value="${esc(l.name)}" data-list-name="${l.id}" aria-label="List name" placeholder="${esc(word('ph_list_name'))}">
           ${isTemplate ? '<span class="chip">Template</span>' : ''}
-          ${from ? '' : `<button type="button" class="share-btn-people" data-act="share-people" title="${who ? `Shared with ${esc(who)}` : 'Share with someone on your server'}">👥<span class="share-words"> ${who ? `Shared with ${esc(who)}` : 'Share'}</span></button>`}
+          ${from ? theirIconHtml(from.share) : `<button type="button" class="share-btn-people" data-act="share-people" title="${who ? `Shared with ${esc(who)}` : 'Share with someone on your server'}">👥<span class="share-words"> ${who ? `Shared with ${esc(who)}` : 'Share'}</span></button>`}
           ${cogHtml('lists')}
         </div>
         ${isTemplate ? `
