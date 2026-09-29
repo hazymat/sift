@@ -906,3 +906,4 @@ NOTES['1.51.26'] = [F("Day Planner, Bring in from tasks: ✓ Did it ticks off a 
 NOTES['1.51.27'] = [F("Batch Book: lots of tags no longer fill the top of the page. They sit on one line that scrolls sideways (a chosen tag comes first), and All ▾ drops them all down over the recipes.")]
 NOTES['1.51.28'] = [F("Batch Book: 📖 Recipes / 🧪 Batches sit up by the search, so on a phone the books have the whole line under it.")]
 NOTES['1.51.29'] = [B("Day Planner, Bring in from tasks: For today (or the day's name) at the top, and a task already in the day shows 📅 Today, its words in the middle of the pill.")]
+NOTES['1.51.30'] = [B("Day Planner, Unfinished from earlier days: → Bring to today (or the day's name, never \"this day\"), and Bring the rest to today; Bring in from tasks says the day's name too.")]
