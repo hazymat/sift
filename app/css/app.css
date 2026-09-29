@@ -38,8 +38,9 @@
 :root, :root[data-theme="blue"] {
   --bg: #0f172a;
   --bg-image:
-    radial-gradient(circle at top left, #4b6cb7 0%, transparent 40%),
-    radial-gradient(circle at top right, #182848 0%, transparent 40%),
+    /* eased (smoothstep) fades: same colour at the centre, fully gone at 40%, no hard edge where they end */
+    radial-gradient(circle at top left, rgba(75, 108, 183, 1) 0%, rgba(75, 108, 183, .972) 4%, rgba(75, 108, 183, .896) 8%, rgba(75, 108, 183, .784) 12%, rgba(75, 108, 183, .648) 16%, rgba(75, 108, 183, .5) 20%, rgba(75, 108, 183, .352) 24%, rgba(75, 108, 183, .216) 28%, rgba(75, 108, 183, .104) 32%, rgba(75, 108, 183, .028) 36%, rgba(75, 108, 183, 0) 40%),
+    radial-gradient(circle at top right, rgba(24, 40, 72, 1) 0%, rgba(24, 40, 72, .972) 4%, rgba(24, 40, 72, .896) 8%, rgba(24, 40, 72, .784) 12%, rgba(24, 40, 72, .648) 16%, rgba(24, 40, 72, .5) 20%, rgba(24, 40, 72, .352) 24%, rgba(24, 40, 72, .216) 28%, rgba(24, 40, 72, .104) 32%, rgba(24, 40, 72, .028) 36%, rgba(24, 40, 72, 0) 40%),
     linear-gradient(135deg, #0f172a, #1e293b);
   --glass-strong: rgba(60, 68, 90, .55);
 }
