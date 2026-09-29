@@ -3115,8 +3115,8 @@ a.comment-mark:hover { color: var(--text); }
 .drop-slot { position: fixed; z-index: 1; pointer-events: none; box-sizing: border-box; border: 2px dashed var(--active-border, currentColor); }
 /* A lifted row, or a group as one block (its rows plain inside it): see-through glass in the colour of the
    hold's shading, lightly frosted, with a fine light edge; in Chrome the colours under it split a little (hold.js .glass-lens). */
-:is(li[data-id].dragging:not(.group-drag), .drag-ghost.drag-stack) { background: color-mix(in srgb, var(--glass-strong) 70%, transparent) !important; -webkit-backdrop-filter: blur(3px) saturate(1.4); backdrop-filter: blur(3px) saturate(1.4); box-shadow: var(--shadow), inset 0 0 0 1px color-mix(in srgb, #fff 16%, transparent), inset 0 1px 0 color-mix(in srgb, #fff 24%, transparent) !important; }
-:root .drag-ghost.drag-stack.drag-stack { background: linear-gradient(color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent) 20%, transparent)), color-mix(in srgb, var(--glass-strong) 70%, transparent) !important; border-radius: 14px; overflow: hidden; } /* the held row's shading, so the whole group is one colour */
+:is(li[data-id].dragging:not(.group-drag), .drag-ghost.drag-stack) { background: color-mix(in srgb, var(--glass-strong) 50%, transparent) !important; -webkit-backdrop-filter: blur(3px) saturate(1.4); backdrop-filter: blur(3px) saturate(1.4); box-shadow: var(--shadow), inset 0 0 0 1px color-mix(in srgb, #fff 16%, transparent), inset 0 1px 0 color-mix(in srgb, #fff 24%, transparent) !important; }
+:root .drag-ghost.drag-stack.drag-stack { background: linear-gradient(color-mix(in srgb, var(--accent) 15%, transparent), color-mix(in srgb, var(--accent) 15%, transparent)), color-mix(in srgb, var(--glass-strong) 50%, transparent) !important; border-radius: 14px; overflow: hidden; } /* the held row's shading, so the whole group is one colour */
 :root .drag-ghost.drag-stack > li { background: none !important; border-color: transparent !important; box-shadow: none !important; }
 .glass-lens :is(li[data-id].dragging:not(.group-drag), .drag-ghost.drag-stack) { -webkit-backdrop-filter: url(#glass-lens) blur(2.5px) saturate(1.4); backdrop-filter: url(#glass-lens) blur(2.5px) saturate(1.4); }
 /* Dropping onto a task: room opens under it (and its sub-tasks) for the carried one (sortable.js). */
@@ -3753,14 +3753,14 @@ html[data-slide="back"]::view-transition-new(sift-page) { animation-name: sift-i
 .hold-pending { position: relative; isolation: isolate; } /* the shading goes under its text */
 .hold-ripple { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; pointer-events: none; z-index: -1; }
 .hold-ripple > span { position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 30%, transparent) 0%, color-mix(in srgb, var(--accent) 24%, transparent) 85%, color-mix(in srgb, var(--accent) 12%, transparent) 100%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 19%, transparent) 0%, color-mix(in srgb, var(--accent) 15%, transparent) 85%, color-mix(in srgb, var(--accent) 8%, transparent) 100%);
   animation: hold-ripple 300ms cubic-bezier(.45, 0, .55, 1) forwards; }
 .hold-ripple.done { transition: opacity .3s; opacity: 0; }
 @keyframes hold-ripple { from { transform: scale(.3); opacity: .9; } to { transform: scale(var(--reach, 22)); opacity: 1; } }
 /* Water rings from the press (hold.js): faint, soft rings in the shading's colour, blurring what they pass over. */
 .hold-waves { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; pointer-events: none; z-index: 2; }
 .hold-waves > span { position: absolute; border-radius: 50%; opacity: 0; transform: scale(.02); animation: hold-wave 1100ms cubic-bezier(.25, .45, .45, 1) both; filter: blur(9px);
-  background: radial-gradient(circle closest-side, transparent calc(100% - 26px), color-mix(in srgb, var(--accent) 22%, transparent) calc(100% - 12px), transparent 100%);
+  background: radial-gradient(circle closest-side, transparent calc(100% - 26px), color-mix(in srgb, var(--accent) 16%, transparent) calc(100% - 12px), transparent 100%);
   -webkit-mask-image: radial-gradient(circle closest-side, transparent calc(100% - 28px), #000 calc(100% - 14px), transparent 100%); mask-image: radial-gradient(circle closest-side, transparent calc(100% - 28px), #000 calc(100% - 14px), transparent 100%);
   -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
 @keyframes hold-wave { 0% { transform: scale(.02); opacity: 0; } 15% { opacity: .4; } 100% { transform: scale(1); opacity: 0; } }
