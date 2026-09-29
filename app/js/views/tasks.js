@@ -27,6 +27,7 @@ import { word } from '../words.js';
 import { commentsHtml, mountComments, closingComment } from '../comments.js';
 import { REPEAT_CHOICES, choiceOf, repeatLabel, firstDate } from '../repeat.js';
 import { keys } from '../keys.js';
+import { tickWave } from '../tickwave.js';
 import { treeHtml, groupOf, measureRows, slideRows } from '../rows.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -1067,31 +1068,31 @@ export default {
 
         // ---------- editing ----------
 
-    async function change(id, fields, label = 'Saved', opts, away = null) {
+    // (wave: a ticked task that stays in the list, e.g. a sub-task under its open task: drawn again once its wave has passed)
+    async function change(id, fields, label = 'Saved', opts, away = null, wave = null) {
       const before = data.tasks.find(t => t.id === id);
       const old = Object.fromEntries(Object.keys(fields).map(k => [k, before?.[k] ?? null]));
       await store.update('tasks', id, fields);
+      if (wave) { undoable(label, async () => { await store.update('tasks', id, old); await render(); }, opts); await wave; await render(); return; }
       if (away) tickAway(away); else await render();
       undoable(label, async () => { await store.update('tasks', id, old); await render(); }, opts);
     }
 
-    // A task ticked off a list doesn't vanish at once: it stays, crossed out,
-    // fading while its "Done" message shows, then the rows below slide up into
-    // its place. (Several ticked close together each finish their own fade.)
-    const FADE_MS = 6000; // as long as a message with Undo shows (toast.js)
+    // A task ticked off a list doesn't vanish at once: a wave runs along it (tickwave.js: its letters and
+    // pills bob, a line is drawn through it, a band of light passes), then it fades a little and folds
+    // away, the rows below sliding up into its place. Several ticked at once (Done on the selection bar,
+    // or a task with its sub-tasks) go one after another, 200ms apart. Unticking it meanwhile keeps it.
+    const FADE_MS = 1200;
     let fading = 0;
+    const waveOf = (row, n = 0) => tickWave(row, { title: row.querySelector(':scope > .task-title'), parts: row.querySelectorAll(':scope > .item-sub :is(.chip, .pill-act, .task-note)'), delay: 100 + n * 200 });
     async function tickAway(ids) {
       const rows = ids.map(x => el.querySelector(`.task-list > li[data-task="${x}"]`)).filter(Boolean);
       if (!rows.length) return render();
       fading++;
-      for (const r of rows) { r.classList.add('done', 'ticked-away'); r.style.setProperty('--fade', `${FADE_MS}ms`); const tick = r.querySelector(':scope > .tick'); if (tick) tick.checked = true; }
-      // On the task ticked: a note while it fades (untick it to keep it here). Several
-      // ticked at once: one note on each run of them next to each other.
-      const heads = rows.filter(r => !rows.includes(r.previousElementSibling));
-      heads.forEach((r, n) => r.insertAdjacentHTML('beforeend', `<span class="done-note"${n ? '' : ' aria-live="polite"'}><span class="done-glass" aria-hidden="true">⏳</span> Transferring to Done list</span>`));
-      void rows[0].offsetHeight; // start from full view, then fade
-      rows.forEach(r => r.classList.add('fading'));
-      await new Promise(done => setTimeout(done, FADE_MS));
+      for (const r of rows) { r.classList.add('ticked-away'); r.style.setProperty('--fade', `${FADE_MS}ms`); const tick = r.querySelector(':scope > .tick'); if (tick) tick.checked = true; }
+      await Promise.all(rows.map((r, n) => waveOf(r, n).done));
+      rows.forEach(r => r.classList.add('done', 'fading'));
+      await new Promise(done => setTimeout(done, FADE_MS + 200));
       if (rows.some(r => r.isConnected)) {
         for (const r of rows) { r.style.height = `${r.offsetHeight}px`; r.style.overflow = 'hidden'; }
         void rows[0].offsetHeight;
@@ -1154,7 +1155,8 @@ export default {
           }, { more: closingComment({ task_id: id }) });
           return;
         }
-        await change(id, doneFields(t.checked), t.checked ? `Done: ${task.title}` : 'Not done', t.checked ? { more: closingComment({ task_id: id }) } : undefined, t.checked && leavesList(task) ? withSubs([id]) : null);
+        const stays = t.checked && !leavesList(task) ? t.closest('li[data-task]') : null; // it stays, crossed out: the wave, then it's drawn again
+        await change(id, doneFields(t.checked), t.checked ? `Done: ${task.title}` : 'Not done', t.checked ? { more: closingComment({ task_id: id }) } : undefined, t.checked && leavesList(task) ? withSubs([id]) : null, stays && waveOf(stays).done);
       } else if (t.classList.contains('task-title')) {
         if (!t.value.trim()) {
           // The whole title removed: delete the task, or put the title back.
