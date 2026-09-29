@@ -471,12 +471,16 @@ button.danger { color: #ff8a80; }
 .find-section > h2 .group-more { margin-left: 8px; vertical-align: .2em; font-weight: 400; }
 .find-section > h2 .group-more:hover { border-color: var(--active-border); }
 .box-card.selected { box-shadow: 0 0 0 3px var(--accent); }
-/* Its ⠿, as on Batch Book's cards: on hover (always, faintly, on touch screens); a click selects it. */
-.box-card[data-id] { position: relative; }
-.box-card > .kit-grip { position: absolute; top: 6px; right: 6px; z-index: 1; width: 30px; height: 30px; padding: 0; border-radius: 10px; background: var(--glass-strong); opacity: 0; transition: opacity .12s; }
-.box-card:hover > .kit-grip, .box-card:focus-within > .kit-grip, .box-card.selected > .kit-grip { opacity: .9; }
-.box-card.selected > .kit-grip { color: var(--accent); }
-@media (pointer: coarse) { .box-card > .kit-grip { opacity: .5; } }
+/* A card's ⠿ (Find Things boxes, Contacts, Batch Book), all placed and shown the same way, as on Batch Book:
+   top left, over the card's corner; on desktop only on hover, on touch screens always. A click selects the card.
+   The card's first line moves right to make room for it. */
+:is(.box-card, .c-card, .bb-card-li)[data-id] { position: relative; }
+:is(.box-card, .c-card, .bb-card-li) > .kit-grip { position: absolute; top: 6px; left: 6px; z-index: 1; width: 30px; height: 30px; padding: 0; border-radius: 10px; background: var(--glass-strong); opacity: 0; transition: opacity .12s; }
+:is(.box-card, .c-card, .bb-card-li):is(:hover, :focus-within, .selected) > .kit-grip { opacity: .9; }
+:is(.box-card, .c-card, .bb-card-li).selected > .kit-grip { color: var(--accent); }
+@media (hover: none) { :is(.box-card, .c-card, .bb-card-li) > .kit-grip { opacity: .75 !important; } }
+.box-card > .kit-grip + * { padding-left: 32px; min-height: 26px; }
+.c-card > .kit-grip + .c-main .c-name { display: block; padding-left: 32px; min-height: 26px; }
 .tool-menu { position: relative; }
 .tool-menu summary { list-style: none; cursor: pointer; }
 .tool-menu summary::-webkit-details-marker { display: none; }
@@ -3000,9 +3004,7 @@ html:not(.show-hints) #main:not([data-area="settings"]) .hint { display: none; }
 .c-list { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; align-items: stretch; }
 .c-list > :is(.list-head, .empty) { grid-column: 1 / -1; }
 .c-card { flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 6px; padding: 12px 14px; }
-.c-card > .kit-grip { position: absolute; top: 8px; right: 8px; }
-.c-card { position: relative; }
-.c-card .c-main { flex: none; padding-right: 22px; }
+.c-card .c-main { flex: none; }
 .c-card .c-when { margin-left: 0; margin-top: auto; }
 .c-card { min-width: 0; }
 .c-card :is(.c-name, .c-about) { overflow-wrap: anywhere; }
@@ -3975,9 +3977,6 @@ body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none
 .bb-card-menu hr { border: 0; border-top: 1px solid var(--glass-border); margin: 4px 0; }
 .bb-shared-title { position: static; margin-top: 22px !important; }
 .bb-shared { margin: 10px 0 0; padding: 0; list-style: none; }
-.bb-card-li > .kit-grip { position: absolute; top: 6px; left: 6px; z-index: 1; width: 30px; height: 30px; border-radius: 10px; background: var(--glass-strong); opacity: 0; }
-.bb-card-li:hover > .kit-grip, .bb-card-li:focus-within > .kit-grip, .bb-card-li.selected > .kit-grip { opacity: .9; }
-@media (pointer: coarse) { .bb-card-li > .kit-grip { opacity: .75; } }
 .bb-card-li.selected { box-shadow: 0 0 0 3px var(--accent); }
 .bb-make-btn { white-space: nowrap; }
 .bb-listline { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 2px 0 8px; font-size: .92rem; }
