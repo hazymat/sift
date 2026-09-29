@@ -4222,8 +4222,7 @@ textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
 .tasks-head .task-mode button { flex: none; padding: 5px 12px; font-size: .88rem; line-height: 1.2; white-space: nowrap; }
 .tasks-head:has(.task-mode) .page-share { margin-left: auto; }
 @media (max-width: 480px) { .tasks-head:has(.task-mode) { flex-wrap: wrap; } .tasks-head #task-views { order: 1; flex-basis: 100%; } }
-/* A project's page: its top as an open list's (Lists), not sticky; milestone headings get a ⋯. */
-.list-top.project-top { position: static; }
+/* A project's page: its top as an open list's (Lists), staying in view as its tasks scroll; milestone headings get a ⋯. */
 .pill-menu.ms-menu button { font-family: inherit; letter-spacing: normal; padding: 4px 12px; font-size: .88rem; }
 .task-list .list-head .ms-name { all: unset; cursor: pointer; border-radius: 6px; }
 .task-list .list-head .ms-name:hover, .task-list .list-head .ms-name:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
@@ -4238,15 +4237,26 @@ textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
 /* Box page reads as a box: a lid in the box's colour with a stuck-on paper
    label, and the contents sunk into a darker inside with shadowed walls. */
 .box-page { padding: 0; overflow: clip; border-width: 2px; border-color: color-mix(in srgb, var(--tint) 45%, var(--glass-border)); }
-.box-lid { padding: 18px 22px 4px; background: color-mix(in srgb, var(--tint) 26%, transparent); }
-.box-lid .box-page-head { margin-bottom: 0; }
-.box-lid-more { padding: 12px 22px 16px; background: linear-gradient(to bottom, color-mix(in srgb, var(--tint) 26%, transparent), color-mix(in srgb, var(--tint) 14%, transparent)); border-bottom: 3px solid color-mix(in srgb, var(--tint) 40%, #000); box-shadow: 0 6px 14px -6px rgba(0, 0, 0, .55); position: relative; z-index: 1; }
-.box-lid-more .box-fields input { background: color-mix(in srgb, #000 18%, transparent); }
+.box-lid { display: flex; gap: 14px; align-items: flex-start; padding: 16px 22px 12px; background: linear-gradient(to bottom, color-mix(in srgb, var(--tint) 26%, transparent), color-mix(in srgb, var(--tint) 14%, transparent)); border-bottom: 3px solid color-mix(in srgb, var(--tint) 40%, #000); box-shadow: 0 6px 14px -6px rgba(0, 0, 0, .55); }
+.box-lid-text { flex: 1; min-width: 0; }
+.box-lid .box-page-head { margin-bottom: 8px; }
+.box-lid .box-fields { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+.box-lid .box-fields label { display: flex; align-items: center; gap: 8px; flex: 1 1 240px; min-width: 0; font-size: .8rem; white-space: nowrap; }
+.box-lid .box-fields label[hidden] { display: none; }
+.box-lid .box-fields input { flex: 1; min-width: 0; padding: 4px 8px; background: color-mix(in srgb, #000 18%, transparent); }
+.box-lid-pills { display: flex; gap: 6px; flex: none; }
+.box-lid-pills .pill-act { font-size: .78rem; padding: 2px 10px; }
+/* The box's photo: small, square, at the lid's left; more than one sit on top of each other, the first showing. */
+.box-photo .att-row { display: grid; margin: 0; padding: 0; }
+.box-photo .att { grid-area: 1 / 1; }
+.box-photo .att:not(:first-child) { visibility: hidden; }
+.box-photo .att-open { width: 84px; height: 84px; padding: 0; border-radius: 10px; overflow: hidden; }
+.box-photo .att-open img { width: 100%; height: 100%; object-fit: cover; display: block; }
 /* Scrolling down a long box, its top stays in view: back and search, then the lid with its label, each with a backing once stuck. */
 .box-top { position: sticky; top: calc(var(--safe-top) + 62px); z-index: 6; margin: 0 -10px; padding: 0 10px; border-radius: 0 0 16px 16px; transition: box-shadow .15s, background-color .15s; }
 .box-top.stuck { padding-top: 8px; background: var(--glass-strong); -webkit-backdrop-filter: blur(18px) saturate(1.3); backdrop-filter: blur(18px) saturate(1.3); box-shadow: 0 10px 18px -10px rgba(0, 0, 0, .55); }
 .box-lid { position: sticky; top: calc(var(--safe-top) + 62px + var(--box-top-h, 0px)); z-index: 4; }
-.box-lid.stuck { padding-bottom: 12px; background: linear-gradient(color-mix(in srgb, var(--tint) 26%, transparent), color-mix(in srgb, var(--tint) 26%, transparent)), var(--bg, #1b2231); border-bottom: 3px solid color-mix(in srgb, var(--tint) 40%, #000); box-shadow: 0 6px 14px -6px rgba(0, 0, 0, .55); }
+.box-lid.stuck { background: linear-gradient(color-mix(in srgb, var(--tint) 26%, transparent), color-mix(in srgb, var(--tint) 14%, transparent)), var(--bg, #1b2231); }
 @media (min-width: 768px) { .box-top { top: 62px; } .box-lid { top: calc(62px + var(--box-top-h, 0px)); } .box-top.stuck { padding-top: 14px; } }
 @media (max-width: 767px) { .box-top { top: 0; } .box-lid { top: var(--box-top-h, 0px); } .box-top.stuck { padding-top: calc(var(--safe-top) + 8px); } }
 .box-page .box-page-head input.box-code-input { font-family: "Arial Narrow", "Helvetica Neue", Arial, sans-serif; font-weight: 500; font-size: 1.45rem; max-width: 14ch; text-transform: uppercase; letter-spacing: .16em; padding: 6px 10px 6px 14px; border-radius: 2px; border: 0; color: #eceae4; background: linear-gradient(to bottom, #3a3a3a 0, #121212 18%, #0a0a0a 55%, #161616 100%); text-shadow: 0 1px 0 rgba(255, 255, 255, .35), 0 -1px 0 rgba(0, 0, 0, .9), 0 0 1px rgba(255, 255, 255, .5); box-shadow: 0 2px 3px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .18), inset 0 -1px 0 rgba(0, 0, 0, .8); transform: rotate(-1.2deg); }
@@ -4265,8 +4275,11 @@ textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
 .box-page > .sheet-actions { margin-bottom: 18px; }
 @media (max-width: 560px) {
   .box-page { padding: 0; }
-  .box-lid { padding: 14px 16px 2px; }
-  .box-lid-more { padding: 10px 16px 12px; }
+  .box-lid { gap: 10px; padding: 10px 12px 8px; }
+  .box-lid .box-page-head { gap: 6px; margin-bottom: 6px; }
+  .box-lid .box-fields label { flex-basis: 100%; }
+  .box-lid .box-fields input { padding: 3px 8px; font-size: .9rem; }
+  .box-photo .att-open { width: 60px; height: 60px; }
   .box-inside { margin: 10px 8px 0; padding: 4px 6px 10px; }
   .box-page > .hint, .box-page > .sheet-actions { margin-left: 14px; margin-right: 14px; }
 }

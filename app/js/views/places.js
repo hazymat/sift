@@ -214,6 +214,7 @@ export default {
       if (!found) return false;
       const { e, s, b } = found;
       const sections = tree.flatMap(ed => ed.sections.map(sec => ({ id: sec.id, label: `${ed.name} › ${sec.name}` })));
+      const photos = (atts.get(b.id) || []).filter(a => a.kind === 'image');
       page.innerHTML = `
         <div class="box-top">
         <div class="box-page-bar">
@@ -227,16 +228,18 @@ export default {
         </div>
         <article class="box-page" style="--tint: ${tintHex(b)}">
           <div class="box-lid">
+          ${photos.length ? `<div class="box-photo">${att.rowHtml(photos, { parent: b.id, addButton: false })}</div>` : ''}
+          <div class="box-lid-text">
           <header class="box-page-head">
             <button type="button" class="note-dot box-colour" data-act="box-colour" title="Box colour" aria-label="Box colour"><span class="swatch" style="--sw:${tintHex(b)}"></span></button>
             <input class="box-code-input" name="label_code" value="${esc(b.label_code)}" placeholder="Label" aria-label="Label (what is written on it, e.g. A1)" title="Label: what is written on it, e.g. A1" autocomplete="off">
             <input class="box-name-input" name="name" value="${esc(b.name)}" placeholder="Box name" aria-label="Name" autocomplete="off">
           </header>
-          </div>
-          <div class="box-lid-more">
           <div class="box-fields">
             <label>Where it lives<input name="location_note" value="${esc(b.location_note)}" placeholder="${esc(word('ph_box_where'))}" autocomplete="off"></label>
-            <label>Notes<input name="notes" value="${esc(b.notes)}" placeholder="${esc(word('ph_box_notes'))}" autocomplete="off"></label>
+            <label class="box-note-field"${b.notes ? '' : ' hidden'}>Notes<input name="notes" value="${esc(b.notes)}" placeholder="${esc(word('ph_box_notes'))}" autocomplete="off"></label>
+            <span class="box-lid-pills">${b.notes ? '' : '<button type="button" class="pill-act" data-act="add-note">+ Add note</button>'}<button type="button" class="pill-act" data-att-add title="Add a photo of the box (or drop one on the lid)">+ ${photos.length ? 'Photo' : 'Add photo'}</button></span>
+          </div>
           </div>
           </div>
           <div class="box-inside">
@@ -290,7 +293,7 @@ export default {
     // bar, and under it the lid with the label; each gets a backing once stuck (as an open list's top).
     const view = this;
     function stickTop() {
-      const top = page.querySelector('.box-top'), lid = page.querySelector('.box-lid'), more = page.querySelector('.box-lid-more');
+      const top = page.querySelector('.box-top'), lid = page.querySelector('.box-lid'), inside = page.querySelector('.box-inside');
       view.boxSize?.disconnect();
       view.boxSize = new ResizeObserver(() => page.style.setProperty('--box-top-h', `${top.offsetHeight}px`));
       view.boxSize.observe(top);
@@ -298,7 +301,7 @@ export default {
       view.onBoxScroll = () => {
         if (!page.contains(top) || !top.offsetParent) return;
         top.classList.toggle('stuck', scrollY > 0 && top.getBoundingClientRect().top <= parseFloat(getComputedStyle(top).top) + 1);
-        lid.classList.toggle('stuck', more.getBoundingClientRect().top < lid.getBoundingClientRect().bottom - 1);
+        lid.classList.toggle('stuck', inside.getBoundingClientRect().top < lid.getBoundingClientRect().bottom + 13);
       };
       addEventListener('scroll', view.onBoxScroll, { passive: true });
       view.onBoxScroll();
@@ -769,6 +772,11 @@ export default {
       const current = edition();
       if (name === 'back') {
         history.length > 1 ? history.back() : (location.hash = '#/find-things');
+      } else if (name === 'add-note') {
+        const field = page.querySelector('.box-note-field');
+        field.hidden = false;
+        target?.remove();
+        field.querySelector('input').focus();
       } else if (name === 'add-items') {
         await addItems();
       } else if (name === 'archive-box') {
@@ -931,8 +939,9 @@ export default {
       reload();
     };
     att.enableDrop(el, '.thing-panel[data-for]', node => ({ collection: 'items', id: node.dataset.for }), attDone);
+    att.enableDrop(page, '.box-lid', () => ({ collection: 'places', id: openId }), attDone); // the box's own photo
     el.addEventListener('click', ev => {
-      if (att.onClick(ev, b => { const id = b.closest('[data-for]')?.dataset.for; return id ? { collection: 'items', id } : null; }, attDone)) return;
+      if (att.onClick(ev, b => { if (b.closest('.box-lid')) return { collection: 'places', id: openId }; const id = b.closest('[data-for]')?.dataset.for; return id ? { collection: 'items', id } : null; }, attDone)) return;
       if (ev.target.closest('.quick-add')) return;
       const t = ev.target.closest('[data-act], [data-box], [data-edition]');
       if (!t || importSheet.contains(t)) return;
