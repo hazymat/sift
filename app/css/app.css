@@ -2608,6 +2608,9 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 .task-list > li[data-task] { background: transparent; border: 0; border-radius: 0; box-shadow: none; position: relative; }
 .task-list > li[data-task]::after { content: ''; position: absolute; left: 74px; right: 0; bottom: 0; height: 1px; background: var(--glass-border); pointer-events: none; }
 .task-list > li[data-task]:hover, .task-list > li[data-task]:focus-within { background-color: color-mix(in srgb, var(--text) var(--line-hover), transparent); border-color: transparent; }
+/* Editing a task's name lights its whole line once, as the new-task line does (not the line plus the name's box). */
+.task-list > li[data-task]:has(> .task-title:focus) { background-color: color-mix(in srgb, var(--text) var(--line-lit), transparent); }
+.task-list > li[data-task] > .task-title:focus { background: transparent; }
 .task-list > li.group-top, .task-list > li.group-kid, .task-list > li.group-kid.group-end { border-radius: 0; }
 .task-list { gap: 0; }
 .task-add-line, .task-add-line:focus-within { padding-left: 40px; gap: 8px; }
@@ -3534,6 +3537,7 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
   .task-list > li[data-task] { background: var(--glass-track); border: 1px solid var(--glass-border); border-radius: 14px; }
   .task-list > li[data-task]:hover, .task-list > li[data-task]:focus-within { background: var(--glass); border-color: var(--glass-border); }
   .task-list > li[data-task]::after { display: none; }
+  .task-list > li[data-task] > .task-title:focus { background: color-mix(in srgb, var(--text) var(--line-lit), transparent); }
   .task-list > li.group-top { border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom-color: transparent; }
   .task-list > li.group-kid { margin-top: calc(-1 * var(--row-gap, 6px)); border-radius: 0; border-top-color: transparent; }
   .task-list > li.group-kid:not(.group-end) { border-bottom-color: transparent; }
