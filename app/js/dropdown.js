@@ -192,10 +192,19 @@ export function installMenuFlip() {
     const menu = d.querySelector(':scope > .menu');
     if (!menu) return;
     menu.classList.remove('up');
+    menu.style.maxHeight = menu.style.overflowY = '';
     menu.classList.add('placed'); // shown only now it's placed (CSS), so it never flashes the wrong way first
     const r = menu.getBoundingClientRect();
+    const btn = d.getBoundingClientRect();
     const room = (visualViewport?.height ?? innerHeight) - 8;
-    const above = d.getBoundingClientRect().top - 8;
-    if (r.bottom > room && above > room - d.getBoundingClientRect().bottom) menu.classList.add('up');
+    // Never under the top bar, or a bar stuck at the top of the page (unless the menu is in it).
+    const bars = [...document.querySelectorAll('.appbar, .stuck')].filter(bar => !bar.contains(d));
+    const top = Math.max(8, ...bars.map(bar => bar.getBoundingClientRect().bottom + 8));
+    const below = room - btn.bottom - 8, above = btn.top - 8 - top;
+    const up = r.bottom > room && above > below;
+    if (up) menu.classList.add('up');
+    // Taller than the room it has: it scrolls instead of running off the screen or under the top bar.
+    const fits = up ? above : below;
+    if (r.height > fits) { menu.style.maxHeight = `${Math.max(120, fits)}px`; menu.style.overflowY = 'auto'; }
   }, true);
 }
