@@ -3914,8 +3914,9 @@ body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none
 .bb-paper[data-paper="glass"] { border: 1px solid var(--glass-border); -webkit-backdrop-filter: var(--blur-strong); backdrop-filter: var(--blur-strong); box-shadow: var(--glass-highlight), var(--shadow); }
 .bb-paper a:not(.bb-batch-row) { color: var(--bb-ink); text-decoration: underline; text-underline-offset: 2px; }
 .bb-paper :where(input:not([type="checkbox"], [type="radio"], [type="color"]), select, textarea) { background: transparent; border-color: transparent; padding: 4px 6px; color: var(--text); -webkit-backdrop-filter: none; backdrop-filter: none; }
-.bb-paper :where(input:not([type="checkbox"], [type="radio"]), select, textarea):hover { border-color: var(--glass-border); }
-.bb-paper :where(input, select, textarea):focus { border-color: var(--active-border); background: var(--glass-track); }
+/* Writing on the line: no box, just the line lit a little (as in the Day Planner). */
+.bb-paper :where(input:not([type="checkbox"], [type="radio"]), select, textarea):hover { background: color-mix(in srgb, var(--text) var(--line-hover), transparent); }
+.bb-paper :where(input, select, textarea):focus { border-color: transparent; outline: none; box-shadow: none; background: color-mix(in srgb, var(--text) var(--line-lit), transparent); }
 .bb-paper button { box-shadow: none; }
 .bb-paper input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--bb); }
 .bb-photos { margin: -4px 0 12px; }
