@@ -3749,9 +3749,9 @@ html[data-slide="back"]::view-transition-new(sift-page) { animation-name: sift-i
 .hold-ripple { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; pointer-events: none; z-index: -1; }
 .hold-ripple > span { position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%;
   background: radial-gradient(circle, color-mix(in srgb, var(--accent) 30%, transparent) 0%, color-mix(in srgb, var(--accent) 24%, transparent) 85%, color-mix(in srgb, var(--accent) 12%, transparent) 100%);
-  animation: hold-ripple 300ms cubic-bezier(.45, 0, .55, 1) forwards; }
+  animation: hold-ripple 300ms cubic-bezier(.3, 0, .4, 1) both; }
 .hold-ripple.done { transition: opacity .3s; opacity: 0; }
-@keyframes hold-ripple { from { transform: scale(.3); opacity: .9; } to { transform: scale(var(--reach, 22)); opacity: 1; } }
+@keyframes hold-ripple { from { transform: scale(.3); opacity: 0; } 30% { opacity: .8; } to { transform: scale(var(--reach, 22)); opacity: 1; } } /* fades in as it spreads */
 /* A sub-task dragged out of its family (listkit.js): it shows as a task of its
    own (whole rounded box), and the row above closes the family off. */
 .task-list > li.dragging.coming-out { border-radius: 14px !important; border-color: var(--active-border) !important; margin-top: 0 !important; } /* its own box, apart from the group */

@@ -70,7 +70,9 @@ export function holdToLift(root, { rowAt, shadeOf = row => row, skip = HOLD_SKIP
     const px = e.clientX - box.left, py = e.clientY - box.top;
     const reach = (Math.max(Math.hypot(px, py), Math.hypot(box.width - px, py), Math.hypot(px, box.height - py), Math.hypot(box.width - px, box.height - py)) / 8) * 1.05; // the circle starts 16px across
     const dot = ripple.firstChild;
-    Object.assign(dot.style, { left: `${px}px`, top: `${py}px`, animationDuration: `${ms}ms` });
+    // Nothing shows for a quick tap (into a field): it starts once the press is plainly a hold.
+    const wait = Math.min(150, ms / 2);
+    Object.assign(dot.style, { left: `${px}px`, top: `${py}px`, animationDuration: `${ms - wait}ms`, animationDelay: `${wait}ms` });
     dot.style.setProperty('--reach', reach);
     shade.classList.add('hold-pending');
     shade.append(ripple);

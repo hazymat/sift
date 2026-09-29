@@ -42,11 +42,17 @@ async function lastToRedo() {
   return null;
 }
 
+// A box with the cursor in it that nothing has been typed in since (e.g. the New task line, which
+// Tasks puts the cursor in): Ctrl+Z there has nothing of its own to undo, so it undoes the last thing done.
+const atFocus = new WeakMap(); // box → its text when the cursor went in
+addEventListener('focusin', ev => { if ('value' in ev.target) atFocus.set(ev.target, ev.target.value); }, true);
+const typedIn = el => typingIn(el) && !(el.matches('input, textarea') && atFocus.get(el) === el.value);
+
 export function installUndoKeys(refresh) {
   addEventListener('keydown', async ev => {
     const k = ev.key.toLowerCase();
     if (!(ev.ctrlKey || ev.metaKey) || ev.altKey || (k !== 'z' && k !== 'y') || ev.defaultPrevented) return;
-    if (typingIn(ev.target) || typingIn(document.activeElement) || document.querySelector('dialog[open]')) return;
+    if (typedIn(ev.target) || typedIn(document.activeElement) || document.querySelector('dialog[open]')) return;
     ev.preventDefault();
     const redo = k === 'y' || ev.shiftKey;
     const entry = await (redo ? lastToRedo() : lastToUndo());
