@@ -467,9 +467,6 @@ button.danger { color: #ff8a80; }
 .search-x[hidden] { display: none; }
 .find-areas { margin: 0 0 16px; }
 .find-areas[hidden] { display: none; }
-.find-section > h2 .group-more { flex: none; padding: 1px 10px; border-radius: 999px; border: 1px solid var(--glass-border); background: var(--glass); color: var(--text); font-size: .9rem; line-height: 1.2; letter-spacing: .1em; box-shadow: none; }
-.find-section > h2 .group-more { margin-left: 8px; vertical-align: .2em; font-weight: 400; }
-.find-section > h2 .group-more:hover { border-color: var(--active-border); }
 .box-card.selected { box-shadow: 0 0 0 3px var(--accent); }
 /* A card's ⠿ (Find Things boxes, Contacts, Batch Book), all placed and shown the same way, as on Batch Book:
    top left, over the card's corner; on desktop only on hover, on touch screens always. A click selects the card.
@@ -2349,6 +2346,15 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
 .types-list { list-style: none; margin: 10px 0; padding: 0; display: grid; gap: 6px; }
 .types-list li { display: flex; gap: 6px; align-items: center; }
 .types-list input { flex: 1; min-width: 0; box-sizing: border-box; font-size: 16px; color: var(--text); }
+/* Life areas / groups (Find Things): groups indented under their life area; dragging as in Tasks. */
+.types-list.nested li[data-depth="1"] { margin-left: 28px; }
+.types-list.nested li[data-depth="0"] input { font-weight: 600; }
+.types-list.nested li.selected { background: var(--glass); border-radius: 10px; }
+.types-list.nested li.nest-target { outline: 2px dashed var(--active-border, currentColor); outline-offset: 2px; border-radius: 10px; }
+.types-list.nested li.dragging.nest-preview { margin-left: 28px; }
+.types-list.nested li.dragging.coming-out { margin-left: 0; }
+.manager-hint { font-size: .85rem; margin: 4px 0 8px; }
+.words-sheet .select-bar { position: sticky; bottom: 8px; left: auto; transform: none; width: fit-content; margin: 8px auto 0; }
 .types-add { display: flex; gap: 6px; margin: 8px 0; }
 .types-add input { flex: 1; min-width: 0; box-sizing: border-box; font-size: 16px; color: var(--text); }
 
