@@ -899,3 +899,4 @@ NOTES['1.51.19'] = [B('Tasks and Lists: an item dragged and put back where it wa
 NOTES['1.51.20'] = [F('Picking an item up gives it a springy wobble: it swings past its tilt, back and again, settling at the tilt. Putting it down, it wobbles straight the same way.')]
 NOTES['1.51.21'] = [F('Carried items are less blue and more see-through; the press and hold shading and its rings match.')]
 NOTES['1.51.22'] = [F('Carried items look a little more like glass: more frosted, a brighter edge, and (in Chrome) a little more colour split, while staying light and see-through.')]
+NOTES['1.51.23'] = [B('Tasks and Lists: the dashed outline of where a carried item will land stays the item\'s own height once it moves (it had grown taller, over the rows around it, from the item\'s tilt).')]
