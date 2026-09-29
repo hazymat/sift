@@ -56,6 +56,7 @@ const SHELL = [
   'js/words.js',
   'js/search.js',
   'js/version.js',
+  'js/whatsnew.js',
   'js/refs.js',
   'js/drafts.js',
   'js/pillmenu.js',

@@ -26,7 +26,8 @@ export default {
     const { versionText } = await import('../version.js');
     el.innerHTML = `
       <section class="card" id="install-card">
-        <p class="muted app-version">Sift ${versionText()} <button type="button" class="link-btn" data-act="check-update">Check for updates</button> · <button type="button" class="link-btn" data-act="tour">Take the tour</button> · <button type="button" class="link-btn" data-act="tour-reset" title="Next time, the tour starts from the beginning">Reset the tour</button> · <a href="about.html" target="_blank" rel="noopener">About</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a></p>
+        <p class="muted app-version">Sift ${versionText()} <button type="button" class="link-btn" data-act="check-update">Check for updates</button> · <button type="button" class="link-btn" data-act="whats-new">What's new</button> · <button type="button" class="link-btn" data-act="tour">Take the tour</button> · <button type="button" class="link-btn" data-act="tour-reset" title="Next time, the tour starts from the beginning">Reset the tour</button> · <a href="about.html" target="_blank" rel="noopener">About</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a></p>
+        <label class="check-row"><input type="checkbox" id="show-update-info"> Show update info <span class="muted">(after an update, a list of what changed, each with Show me)</span></label>
         <p class="muted sync-top" id="sync-top" hidden></p>
         <h2>Home Screen and your data</h2>
         <div id="install-body"></div>
@@ -657,6 +658,14 @@ export default {
       b.disabled = false;
       b.textContent = 'Check for updates';
       toast(r === 'offline' ? "Can't reach the website to check" : `You have the latest version (${versionText()})`);
+    });
+
+    el.querySelector('[data-act="whats-new"]').addEventListener('click', async () => (await import('../whatsnew.js')).lastWhatsNew());
+    const updateInfo = el.querySelector('#show-update-info');
+    updateInfo.checked = (await store.getSettings()).show_update_info !== false;
+    updateInfo.addEventListener('change', async () => {
+      await store.updateSettings({ show_update_info: updateInfo.checked });
+      toast(updateInfo.checked ? "✓ What's new shows after each update" : "✓ What's new won't show after updates");
     });
 
     // Text size: kept on this device, applied before first paint (index.html).
