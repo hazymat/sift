@@ -8,8 +8,8 @@ import { cogHtml, layoutOn } from '../viewcog.js';
 import { shareHtml } from '../share.js';
 import { flash, SOFT, WASH } from '../flash.js';
 import * as store from '../store.js';
-import { shareSheet, sharedWithText, people as sharers, invitesHtml, theirsHtml } from '../sharing.js';
-import { loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES, HORIZONS, horizonOf, planDay, MAX_DEPTH, depthIn, levelsUnder } from '../tasks.js';
+import { shareSheet, sharedWithText, invitesHtml, theirsHtml } from '../sharing.js';
+import { sharedProjects, sharedValue, sharedFrom, moveIntoShared, loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES, HORIZONS, horizonOf, planDay, MAX_DEPTH, depthIn, levelsUnder } from '../tasks.js';
 import { ENERGY, isoDate, dateText, addDays, parseDate, addItem, durationChoices, durationLabel } from '../days.js';
 import { energyMenu, pillMenu } from '../pillmenu.js';
 import { tintHex, tintId, colourMenu } from '../colours.js';
@@ -112,18 +112,6 @@ export default {
       if (location.hash !== url) location.hash = url; else render();
     };
 
-    // Projects others share with you, from each person's space (store.js).
-    async function loadShared() {
-      const out = [];
-      for (const who of sharers(['project'])) {
-        const space = store.spaceOf(who.owner_id);
-        const ids = new Set(who.shares.map(sh => sh.info.id));
-        const projects = await space.list('projects', { filter: p => ids.has(p.id) && !p.archived_at });
-        const tasks = await space.list('tasks', { filter: t => ids.has(t.project_id) && !t.archived_at });
-        for (const p of projects) out.push({ p, tasks: tasks.filter(t => t.project_id === p.id), owner_id: who.owner_id, name: who.name, share: who.shares.find(sh => sh.info.id === p.id) });
-      }
-      return out;
-    }
     const theirs = () => state.owner && shared.find(x => x.owner_id === state.owner && x.p.id === state.project);
 
     // ---------- pieces ----------
@@ -243,7 +231,7 @@ export default {
           <div class="detail-grid">
             <label>Priority<select name="priority">${PRIORITIES.map(p => `<option value="${p.id}" ${Number(t.priority) === p.id ? 'selected' : ''}>${p.label}</option>`).join('')}</select></label>
             <label>Status<select name="status">${STATUSES.map(s => `<option value="${s.id}" ${t.status === s.id ? 'selected' : ''}>${s.label}</option>`).join('')}</select></label>
-            <label>Project<select name="project_id"><option value="">None</option>${data.projects.map(p => `<option value="${p.id}" ${t.project_id === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}${state.owner ? '' : '<option value="__new">+ New project…</option>'}</select></label>
+            <label>Project<select name="project_id"><option value="">None</option>${data.projects.map(p => `<option value="${p.id}" ${t.project_id === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}${state.owner || !shared.length ? '' : `<optgroup label="👥 Shared with me">${shared.filter(x => x.p.status !== 'done').map(x => `<option value="${sharedValue(x)}">${esc(x.p.name)} (${esc(x.name)})</option>`).join('')}</optgroup>`}${state.owner ? '' : '<option value="__new">+ New project…</option>'}</select></label>
             ${t.project_id ? `<label>Milestone<select name="milestone_id"><option value="">None</option>${ms.map(m => `<option value="${m.id}" ${t.milestone_id === m.id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}<option value="__new">+ New milestone…</option></select></label>` : ''}
             <label>People<select name="add_contact" data-filled="${(t.contact_ids || []).length ? 1 : ''}"><option value="">+ Add a contact…</option>${people.contacts.filter(c => !(t.contact_ids || []).includes(c.id)).map(c => `<option value="${c.id}">${esc(c.name || '(no name)')}</option>`).join('')}</select></label>
             <label>Case<select name="case_id"><option value="">None</option>${people.cases.map(k => `<option value="${k.id}" ${t.case_id === k.id ? 'selected' : ''}>${esc(k.title)}</option>`).join('')}</select></label>
@@ -614,7 +602,7 @@ export default {
     const render = this.render = this.refresh = async () => {
       // A project someone shares with you is read and changed in their space (as Lists does).
       store.useSpace(state.owner ? store.spaceOf(state.owner) : null);
-      shared = await loadShared();
+      shared = await sharedProjects();
       if (state.owner && !theirs()) { state.owner = null; store.useSpace(null); if (state.project) return go('projects', null); }
       data = await loadAll();
       people = await loadContacts();
@@ -1097,35 +1085,20 @@ export default {
     function projectPills(current) {
       const options = data.projects.filter(p => p.status !== 'done' && p.id !== state.project).map(p => ({ value: p.id, label: `<span class="swatch" style="--sw:${projectHex(p)}"></span> ${esc(p.name)}`, title: p.name, current: p.id === current }));
       // Projects others share with you: the tasks move into their project (and out of yours).
-      for (const x of shared) if (x.p.status !== 'done') options.push({ value: `from:${x.owner_id}:${x.p.id}`, label: `<span class="swatch" style="--sw:${projectHex(x.p)}"></span> ${esc(x.p.name)} <span class="muted">👥 ${esc(x.name)}</span>`, title: `${x.p.name} (${x.name}'s)` });
+      for (const x of shared) if (x.p.status !== 'done') options.push({ value: sharedValue(x), label: `<span class="swatch" style="--sw:${projectHex(x.p)}"></span> ${esc(x.p.name)} <span class="muted">👥 ${esc(x.name)}</span>`, title: `${x.p.name} (${x.name}'s)` });
       if (current || state.project) options.push({ value: '', label: 'No project' });
       options.push({ value: '__new', label: '+ New project' });
       return options;
     }
-    // Into a project someone shares with you: the tasks (sub-tasks too) are made in their space, with new ids,
-    // and taken out of yours; undo puts them back. Their photos and comments stay behind in yours.
     async function moveToTheirs(ids, x) {
       const all = withSubs(ids).map(id => data.tasks.find(t => t.id === id)).filter(Boolean);
-      const space = store.spaceOf(x.owner_id);
-      const newId = new Map(all.map(t => [t.id, store.uuidv7()]));
-      for (const t of all) {
-        const fields = {};
-        for (const [k, v] of Object.entries(t)) if (!k.startsWith('_') && k !== 'id' && k !== 'moved_away') fields[k] = v;
-        await space.create('tasks', Object.assign(fields, { id: newId.get(t.id), project_id: x.p.id, milestone_id: null, parent_task_id: newId.get(t.parent_task_id) || null }));
-      }
-      const stamp = new Date().toISOString();
-      await store.updateMany('tasks', all.map(t => [t.id, { deleted_at: stamp, moved_away: true }]));
+      const undo = await moveIntoShared(all, x);
       await render();
-      undoable(`Moved to ${x.p.name} (${x.name}'s): ${all.length} task${all.length === 1 ? '' : 's'}`, async () => {
-        await space.updateMany('tasks', all.map(t => [newId.get(t.id), { deleted_at: new Date().toISOString() }]));
-        await store.updateMany('tasks', all.map(t => [t.id, { deleted_at: null, moved_away: null }]));
-        await render();
-      });
+      undoable(`Moved to ${x.p.name} (${x.name}'s): ${all.length} task${all.length === 1 ? '' : 's'}`, async () => { await undo(); await render(); });
     }
     async function projectPicked(ids, v) {
       if (v.startsWith('from:')) {
-        const [, owner, pid] = v.split(':');
-        const x = shared.find(y => y.owner_id === owner && y.p.id === pid);
+        const x = sharedFrom(shared, v);
         if (!x) return false;
         await moveToTheirs(ids, x);
         return true;
@@ -1386,6 +1359,8 @@ export default {
         await change(id, { aim_at: d ? (tm ? `${d}T${tm}` : d) : null }, d ? `Target end date: ${shortDate(d)}` : 'Target end date cleared');
       } else if (t.name === 'add_contact') {
         if (t.value) await change(id, { contact_ids: [...(task.contact_ids || []), t.value] }, 'Added a person');
+      } else if (t.name === 'project_id' && t.value.startsWith('from:')) {
+        if (!(await projectPicked([id], t.value))) render();
       } else if (t.name === 'project_id' && t.value === '__new') {
         const p = await newProject();
         if (p) await change(id, { project_id: p.id, milestone_id: null }, `Moved to ${p.name}`); else render();
