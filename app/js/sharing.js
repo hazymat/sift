@@ -53,8 +53,36 @@ export function invitesHtml(kinds) {
   </div>`).join('');
 }
 
-// The note over someone else's things: whose they are, and the way back.
-export const theirsHtml = (text, back) => `<div class="theirs-note" role="status"><span>👥 ${esc(text)}</span><span class="spacer"></span>${back}</div>`;
+// The 👥 on something shared with you, in its title (as the sharer has 👥 Share): opens aboutShare.
+export const theirIconHtml = (sh, className = 'share-btn-people') => (sh ? `<button type="button" class="${className} theirs" data-share-about="${esc(sh.id)}" title="Shared with you by ${esc(personName(sh.owner_email))}">👥<span class="share-words"> ${esc(personName(sh.owner_email))}'s</span></button>` : '');
+
+// About something shared with you: who shared it and when, who else has it, and Leave.
+export function aboutShare(id) {
+  const sh = sync.sharesNow().find(x => x.id === id);
+  if (!sh) return;
+  const me = sh.members?.find(m => m.user_id === sync.myUserId());
+  const when = d => (d ? new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '');
+  const others = (sh.members || []).filter(m => m.user_id !== sync.myUserId() && m.user_id !== sh.owner_id && m.accepted);
+  const what = sh.info.kind === 'days' ? `their day plan (${scopeText(sh.info)})` : `${KIND_WORDS[sh.info.kind]}, ${scopeText(sh.info)}`;
+  const dlg = document.createElement('dialog');
+  dlg.className = 'sheet ask-sheet share-sheet';
+  dlg.innerHTML = `
+    <div class="sheet-handle"></div>
+    <form method="dialog">
+      <h2>👥 Shared with you</h2>
+      <p><b>${esc(personName(sh.owner_email))}</b> <span class="muted">${esc(sh.owner_email || '')}</span> shared ${esc(what)} with you${me?.added_at ? ` on ${esc(when(me.added_at))}` : ''}.</p>
+      <p class="muted">You can both see and change it.${others.length ? ` Also shared with ${esc(others.map(m => personName(m.email)).join(', '))}.` : ''}</p>
+      <div class="sheet-actions">
+        <button type="button" class="danger" data-share-leave="${esc(sh.id)}">Leave</button>
+        <span class="spacer"></span>
+        <button type="submit" class="primary">Done</button>
+      </div>
+    </form>`;
+  document.body.append(dlg);
+  dlg.addEventListener('click', ev => { if (ev.target === dlg) dlg.close(); });
+  dlg.addEventListener('close', () => dlg.remove());
+  dlg.showModal();
+}
 
 // Share something: who has it, add someone by their sign-in email, take
 // someone out, or stop sharing. `info` is { kind, id, name } or { kind: 'days', from, to }.
@@ -117,6 +145,8 @@ export function shareSheet(info, what) {
 let seen = null;
 export function installSharing() {
   document.addEventListener('click', async ev => {
+    const about = ev.target.closest('[data-share-about]');
+    if (about) { aboutShare(about.dataset.shareAbout); return; }
     const b = ev.target.closest('[data-share-accept], [data-share-decline], [data-share-leave]');
     if (!b) return;
     b.disabled = true;
@@ -127,6 +157,7 @@ export function installSharing() {
         const sh = sync.sharesNow().find(x => x.id === b.dataset.shareLeave);
         if (!await askYes(`Leave ${sh ? `${personName(sh.owner_email)}'s ${sh.info.kind === 'days' ? 'day plan' : sh.info.kind}` : 'this'}?`, { text: 'It goes from your devices. They can share it with you again.', ok: 'Leave', danger: true })) { b.disabled = false; return; }
         store.useSpace(null);
+        b.closest('dialog')?.close();
         await sync.leaveShare(b.dataset.shareLeave);
         toast('Left');
       }
