@@ -4156,3 +4156,9 @@ textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
 .list-entry-box:not(:focus-within) .list-hint { display: none; }
 .list-entry-box .list-hint { margin: 2px 0 6px 54px; font-size: .75rem; }
 .list-end { margin-top: 18px; }
+
+/* Tasks | Projects, as Batch Book's Recipes | Batches; on phones the list tabs go on the row under it. */
+.tasks-head .segmented.task-mode { flex: none; flex-wrap: nowrap; padding: 3px; gap: 3px; align-self: center; }
+.tasks-head .task-mode button { flex: none; padding: 5px 12px; font-size: .88rem; line-height: 1.2; white-space: nowrap; }
+.tasks-head:has(.task-mode) .page-share { margin-left: auto; }
+@media (max-width: 480px) { .tasks-head:has(.task-mode) { flex-wrap: wrap; } .tasks-head #task-views { order: 1; flex-basis: 100%; } }
