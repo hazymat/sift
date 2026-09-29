@@ -13,7 +13,7 @@ import {
 } from '../contacts.js';
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
-import { richText } from '../richtext.js';
+import { richText, previewLine, plainLines } from '../richtext.js';
 import { debounced } from '../autosave.js';
 import { mentionsOf } from '../refs.js';
 import { keepDraft, draftCleared } from '../drafts.js';
@@ -74,7 +74,7 @@ export default {
 
     const byId = id => data.contacts.find(c => c.id === id);
     // First real line of the notes, for cards (not the "Captured" heading).
-    const noteLine = c => (c.notes || '').split('\n').map(l => l.replace(/[*_~#]/g, '').trim()).find(l => l && !CAPTURED_HEADING.includes(l) && !(c.body || '').includes(l))?.slice(0, 90) || ''; // not the captured text again
+    const noteLine = c => (c.notes || '').split('\n').map(l => l.trim()).find(l => { const plain = plainLines(l)[0] || ''; return plain && !CAPTURED_HEADING.includes(plain) && !(c.body || '').includes(plain); }) || ''; // not the captured text again
     const catName = id => data.categories.find(k => k.id === id)?.name || '';
 
     // ---------- shared bits ----------
@@ -92,7 +92,7 @@ export default {
     // 07…"): the text is its name. "What was this?" only asks when there is no
     // text at all, just a number.
     const label = c => c.name?.trim() || (c.body || '').split('\n').map(l => l.trim()).find(Boolean) || '(no name)';
-    const needsLabel = c => c.status === 'transient' && !c.about && !/\p{L}/u.test(c.name || '');
+    const needsLabel = c => c.status === 'transient' && !c.about && !/\p{L}/u.test((c.details || []).reduce((text, detail) => text.split(detail.value).join(' '), c.name?.trim() || c.body || ''));
 
     function contactCard(c) {
       return `
@@ -102,7 +102,7 @@ export default {
             <span class="c-name">${esc(label(c))}</span>
             ${c.about ? `<span class="muted c-about">${esc(c.about)}</span>` : needsLabel(c) ? '<span class="what-was-this">What was this?</span>' : ''}
             ${c.category_ids?.length ? `<span class="muted c-about">${c.category_ids.map(catName).filter(Boolean).map(esc).join(' · ')}</span>` : ''}
-            ${noteLine(c) ? `<span class="muted c-about c-note">${esc(noteLine(c))}</span>` : ''}
+            ${noteLine(c) ? `<span class="muted c-about c-note">${previewLine(noteLine(c)).html}</span>` : ''}
           </a>
           <span class="c-details">${detailChips(c)}</span>
           <span class="muted c-when">${ago(lastActivity(c))}${c.research_status ? ` · ${RESEARCH.find(r => r.id === c.research_status)?.label}` : ''}</span>

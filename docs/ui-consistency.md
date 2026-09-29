@@ -2,7 +2,7 @@
 
 A map of how every area of Sift shows its controls, made to find where areas do the same job in different ways. New UI follows the **settled rules** below; where a row has no settled rule yet, copy the way most areas already do it and add the choice here.
 
-Audited at 1.54.09 (29 September 2026), updated for 1.55.15, from the code and by opening every area at phone and computer widths in Tight, Medium and Loose spacing, lined and box. The same audit is GitHub issue #284; keep the two in sync.
+Audited at 1.54.09 (29 September 2026), updated for 1.55.16, from the code and by opening every area at phone and computer widths in Tight, Medium and Loose spacing, lined and box. The same audit is GitHub issue #284; keep the two in sync.
 
 ## Settled rules (as decided)
 
@@ -92,6 +92,7 @@ Still open, numbered for reference. ★ marks the ones already raised. Fixed or 
 17. **Empty states**: "Nothing matches." / "Nothing here." / "Nothing found"; Tasks has none apart from Done.
 18. **Hard to reach**: History is only linked from Settings (not from any ⋯ as the code says); Tidied has no link from Settings.
 19. **Colours only sometimes show.** Projects, lists and recipes always show their colour. Brain Dump notes, contacts, Find Things' box cards and the things in a box only show theirs when 👁 Look is Multicolour (a box's own page always shows its lid colour). To decide: show them always, the project way, or leave them to Multicolour.
+20. **Contact cards look different from Brain Dump notes and Find Things' boxes.** To make consistent with one or both. Contact cards: plain glass, 260px wide columns, name in normal weight (Brain Dump titles and box names are bold), the grip top right, the when at the bottom (Brain Dump: in a head row at the top, with the type and ☆), no ⋯ or action row, ☆ only on the contact's page, detail chips in the card body. Brain Dump notes: narrower columns, a head row, an action row (→ Task, Plan it, Archive, ⋯). Boxes: a coloured lid band and a label strip, always in their colour; contact cards show theirs only with Multicolour.
 
 ## 5. Resolved
 
@@ -109,3 +110,4 @@ Still open, numbered for reference. ★ marks the ones already raised. Fixed or 
 - **Search boxes in Scans, Contracts and Batch Book** (part of point 8) use the shared search box style, with the ✕ to clear while there's text, like Brain Dump, Find Things, Contacts and Tidied (1.55.11).
 - **Day Planner ⋯ menu** (was point 12): a ⋯ at the top right, like the other areas, holds Reset this week to this page's paper, Reset all pages to today's paper and Clear this day…; the "Housekeeping:" line at the bottom of each day is gone (1.55.12).
 - **Selection bar keys** (part of point 14): A Archive, D Delete and Ctrl+Enter Done or Tick, with the key on the button, in every selection bar (Tasks, Day Planner, Lists, Brain Dump, Find Things, Contacts, Batch Book, Tidied). The Day Planner's bar gained Archive (1.55.13). Now a settled rule.
+- **Contact cards, short-term fix** (part of point 20): a long email or web address in a card's name wraps instead of running into the next card, the "From ..." line is a tappable link instead of raw link text, and "What was this?" only shows when there's nothing but a number (1.55.16).
