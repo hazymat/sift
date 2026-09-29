@@ -65,7 +65,18 @@ export function installHoldToOpen() {
     if (!title) return;
     ev.preventDefault();
     ev.stopPropagation();
+    const row = title.closest(ROW), key = row && (row.dataset.id || row.dataset.task || row.dataset.item), at = title.selectionStart;
     title.dispatchEvent(new Event('change', { bubbles: true })); // keep what was typed
-    openFor(title);
+    if (!openFor(title) || !key) return;
+    // The cursor stays in the name, however you got there, so Alt+Enter again closes the panel: the list
+    // may be drawn again as it opens, which took the cursor away (unless it went somewhere else meanwhile).
+    const back = () => {
+      const now = [...document.querySelectorAll(ROW)].find(r => (r.dataset.id || r.dataset.task || r.dataset.item) === key)?.querySelector(TITLE);
+      const lost = !document.activeElement || document.activeElement === document.body || !document.activeElement.isConnected;
+      if (!now || document.activeElement === now || !lost) return;
+      now.focus({ preventScroll: true });
+      if (at != null) now.setSelectionRange?.(at, at);
+    };
+    requestAnimationFrame(back); setTimeout(back, 150); setTimeout(back, 400);
   }, true);
 }

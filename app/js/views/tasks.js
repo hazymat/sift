@@ -68,6 +68,7 @@ export default {
     let people = { contacts: [], cases: [] };
     let atts = new Map(); // task id → its attachments
     let open = null; // task id with details open
+    let pills = null; // the editing pills under a task (editpills.js), made further down
     // Notes typed in the panel save shortly after typing stops, or at once
     // when the panel closes.
     let pendingNote = null;
@@ -418,6 +419,15 @@ export default {
       const id = t.classList?.contains('task-title') ? t.closest('li[data-task]')?.dataset.task : null;
       if (t.id !== 'task-new' && !id) return;
       ev.preventDefault(); ev.stopPropagation();
+      // What was typed in the name is saved first, quietly: leaving the name for the note would
+      // otherwise save it then, drawing the list again and losing the note just opened.
+      const task = id && data.tasks.find(x => x.id === id), name = t.value.trim();
+      if (task && name && name !== task.title) {
+        const old = task.title;
+        await store.update('tasks', id, { title: name });
+        task.title = name;
+        undoable('Saved', async () => { await store.update('tasks', id, { title: old }); await render(); });
+      }
       const more = id ? t.closest('li[data-task]').querySelector('.edit-pills > .pill-reveal') : t.parentElement.querySelector(':scope > .pill-reveal');
       if (more?.getClientRects().length) more.click();
       // The note: New task's own; a task's in its panel, its note shown under it, or "Add note" (drawn a moment after More).
@@ -638,17 +648,37 @@ export default {
         bare: true,
       });
       ed.focus();
+      // Its editing pills show under it, all of them (not behind More), as with Shift+Enter in its name.
+      revealed = task.id;
+      pills?.open(task.id);
       const leave = async () => {
         if (walkTo?.key === task.id && walkTo.part === 'note') walkTo = null; // left on purpose (Esc, Ctrl+Enter, click away): the redraw doesn't come back here
         await auto.flush(); render();
       };
+      // Pressing its own pills (More…, a date, the list…): the note is saved, but the row isn't drawn
+      // again under the press, which lost it (you had to press twice). It's drawn when the pills close.
+      let toPills = false;
+      li.addEventListener('pointerdown', ev => { toPills = !!ev.target.closest?.('.edit-pills'); }, true);
       host.addEventListener('focusout', ev => {
         if (host.contains(ev.relatedTarget)) return;
-        setTimeout(() => { if (host.isConnected && !host.contains(document.activeElement) && !document.querySelector('.ref-picker, dialog[open]')) leave(); }, 0);
+        setTimeout(() => {
+          if (!host.isConnected || host.contains(document.activeElement) || document.querySelector('.ref-picker, dialog[open]')) return;
+          if (toPills || li.querySelector('.edit-pills')?.contains(document.activeElement)) { toPills = false; auto.flush(); noteStale = true; return; }
+          leave();
+        }, 0);
       });
       host.addEventListener('keydown', ev => { if (ev.key === 'Escape' && !isFullNote(host) && !document.querySelector('.ref-picker')) { ev.preventDefault(); ev.stopPropagation(); document.activeElement?.blur(); } });
     }
     const isFullNote = h => h.classList.contains('is-full');
+    let noteStale = false; // a note saved while its pills were pressed: drawn when they close
+    // A task's note (its 📝, or the note under it) pressed while its name is being written in: the
+    // cursor stays in the name till the note opens, as with Shift+Enter, so nothing typed is lost.
+    let noteFromTitle = null;
+    body.addEventListener('pointerdown', ev => {
+      const title = ev.target.closest?.('.item-sub .task-note')?.closest('li[data-task]')?.querySelector(':scope > .task-title');
+      noteFromTitle = title && document.activeElement === title ? title : null;
+      if (noteFromTitle) ev.preventDefault();
+    }, true);
     // "Add note" under a task being edited: typing goes straight into the notes
     // editor, as for a task's note.
     body.addEventListener('focusin', ev => {
@@ -1227,6 +1257,10 @@ export default {
         await change(id, { energy: task.energy === b.dataset.energy ? null : b.dataset.energy }, 'Energy saved');
       } else if (act === 'close-details') {
         await closeDetails();
+      } else if (act === 'toggle-note' && noteFromTitle?.closest('li[data-task]')?.dataset.task === id) {
+        const title = noteFromTitle;
+        noteFromTitle = null;
+        title.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true, bubbles: true, cancelable: true })); // as Shift+Enter in the name
       } else if (act === 'toggle-note' && open !== id && task) {
         editNoteInPlace(task, b);
       } else if (act === 'details' || act === 'toggle-note') {
@@ -1316,11 +1350,11 @@ export default {
     // line the same (it has no panel: More shows its note and pills). revealed: the task shown,
     // until its pills are put away (leaving the task): back in, it's behind More again.
     let revealed = null;
-    this.pills = editPills(body, {
+    pills = this.pills = editPills(body, {
       title: '.task-title',
       row: 'li[data-task]',
       key: r => r.dataset.task,
-      closed: id => { if (revealed === id) revealed = null; },
+      closed: id => { if (revealed === id) revealed = null; if (noteStale) { noteStale = false; render(); } },
       done: true,
       html: id => {
         const t = data.tasks.find(x => x.id === id);
@@ -1328,7 +1362,9 @@ export default {
         const aim = t.aim_at ? t.aim_at.slice(0, 10) : '';
         // No note yet: an "Add note" line under the title, like adding a new task.
         // With More pressed, a note already there shows in full (Enter in the name goes into it).
-        const addNote = !(t.notes || '').trim() ? `<textarea class="entry-note add-note pill-note no-inline" data-pill="notes" rows="1" placeholder="Add note" aria-label="Note"></textarea>`
+        // (Its note being edited under the name already: neither.)
+        const inPlace = body.querySelector(`.task-list > li[data-task="${CSS.escape(id)}"] > .note-in-place`);
+        const addNote = inPlace ? '' : !(t.notes || '').trim() ? `<textarea class="entry-note add-note pill-note no-inline" data-pill="notes" rows="1" placeholder="Add note" aria-label="Note"></textarea>`
           : lay('pills-hide') ? `<div class="entry-note note-shown" data-act="note-shown" title="Edit the note (Enter)">${toHtml(t.notes)}</div>` : '';
         if (lay('pills-hide') && (revealed !== id || lay('more-panel'))) return `<button type="button" class="entry-chip pill-reveal" data-act="pills-reveal">More${keys('Shift+Enter')}</button>`;
         return addNote + energyPill(t.energy)
