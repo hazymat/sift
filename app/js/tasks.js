@@ -165,8 +165,7 @@ export const sharedValue = x => `from:${x.owner_id}:${x.p.id}`;
 export const sharedFrom = (shared, value) => { const [, owner, pid] = String(value).split(':'); return String(value).startsWith('from:') ? shared.find(x => x.owner_id === owner && x.p.id === pid) || null : null; };
 
 // Your tasks (give sub-tasks too) into a project someone shares with you: made in their space with new ids,
-// their comments with them; yours taken away (moved_away keeps them out of the Bin). Returns the undo.
-// Photos stay behind: files aren't shared between accounts yet.
+// their comments and files (photos…) with them; yours taken away (moved_away keeps them out of the Bin). Returns the undo.
 export async function moveIntoShared(tasks, x) {
   const space = store.spaceOf(x.owner_id);
   const newId = new Map(tasks.map(t => [t.id, store.uuidv7()]));
@@ -175,15 +174,28 @@ export async function moveIntoShared(tasks, x) {
   const copy = r => { const fields = {}; for (const [k, v] of Object.entries(r)) if (!k.startsWith('_') && k !== 'id' && k !== 'moved_away') fields[k] = v; return fields; };
   for (const t of tasks) await space.create('tasks', Object.assign(copy(t), { id: newId.get(t.id), project_id: x.p.id, milestone_id: null, parent_task_id: newId.get(t.parent_task_id) || null }));
   for (const k of comments) await space.create('comments', Object.assign(copy(k), { id: newComment.get(k.id), task_id: newId.get(k.task_id), sub_task_id: newId.get(k.sub_task_id) || null }));
+  // Files on the tasks and their comments: the file itself goes into their space too (fetched first if it's not on this device).
+  const files = await store.list('attachments', { filter: a => newId.has(a.parent_id) || newComment.has(a.parent_id) });
+  const newFile = new Map(files.map(a => [a.id, store.uuidv7()]));
+  for (const a of files) {
+    let blob = await store.local.getBlob(a.blob_id);
+    if (!blob) { try { blob = await (await import('./sync.js')).downloadFile(a, store.local); } catch { blob = null; } }
+    const id = newFile.get(a.id);
+    if (blob) await space.putBlob(id, blob);
+    await space.create('attachments', Object.assign(copy(a), { id, blob_id: id, parent_id: newId.get(a.parent_id) || newComment.get(a.parent_id) }));
+  }
   const stamp = new Date().toISOString();
   await store.updateMany('tasks', tasks.map(t => [t.id, { deleted_at: stamp, moved_away: true }]));
   if (comments.length) await store.updateMany('comments', comments.map(k => [k.id, { deleted_at: stamp, moved_away: true }]));
+  if (files.length) await store.updateMany('attachments', files.map(a => [a.id, { deleted_at: stamp, moved_away: true }]));
   return async () => {
     const now = new Date().toISOString();
     await space.updateMany('tasks', tasks.map(t => [newId.get(t.id), { deleted_at: now }]));
     if (comments.length) await space.updateMany('comments', comments.map(k => [newComment.get(k.id), { deleted_at: now }]));
     await store.updateMany('tasks', tasks.map(t => [t.id, { deleted_at: null, moved_away: null }]));
     if (comments.length) await store.updateMany('comments', comments.map(k => [k.id, { deleted_at: null, moved_away: null }]));
+    if (files.length) await space.updateMany('attachments', files.map(a => [newFile.get(a.id), { deleted_at: now }]));
+    if (files.length) await store.updateMany('attachments', files.map(a => [a.id, { deleted_at: null, moved_away: null }]));
   };
 }
 
