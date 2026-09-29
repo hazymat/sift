@@ -4293,3 +4293,7 @@ textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
   .box-inside { margin: 10px 8px 0; padding: 4px 6px 10px; }
   .box-page > .hint, .box-page > .sheet-actions { margin-left: 14px; margin-right: 14px; }
 }
+
+/* Phones with the keyboard up (installKeyboard in app.js): no bottom tabs, and stuck bars stay at the top of what's visible. */
+html.kb-open .tabbar { display: none; }
+html.kb-open :is(.sticky-top, .find-sticky, .dump-bar, .bb-sticky, .list-top, .box-top, .box-lid).stuck { transform: translateY(var(--vv-top, 0px)); }
