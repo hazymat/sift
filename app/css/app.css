@@ -483,16 +483,17 @@ button.danger { color: #ff8a80; }
 .search-x[hidden] { display: none; }
 .find-areas { margin: 0 0 16px; }
 .find-areas[hidden] { display: none; }
-/* A card's ⠿ (Find Things boxes, Contacts, Batch Book), all placed and shown the same way, as on Batch Book:
+/* A card's ⠿ (Find Things boxes, Lists, Contacts, Batch Book), all placed and shown the same way, as on Batch Book:
    top left, over the card's corner; on desktop only on hover, on touch screens always. A click selects the card.
    The card's first line moves right to make room for it. */
-:is(.box-card, .c-card, .bb-card-li)[data-id] { position: relative; }
-:is(.box-card, .c-card, .bb-card-li) > .kit-grip { position: absolute; top: 6px; left: 6px; z-index: 1; width: 30px; height: 30px; padding: 0; border-radius: 10px; background: var(--glass-strong); opacity: 0; transition: opacity .12s; }
-:is(.box-card, .c-card, .bb-card-li):is(:hover, :focus-within, .selected) > .kit-grip { opacity: .9; }
-:is(.box-card, .c-card, .bb-card-li).selected > .kit-grip { color: var(--accent); }
-@media (hover: none) { :is(.box-card, .c-card, .bb-card-li) > .kit-grip { opacity: .75 !important; } }
+:is(.box-card, .c-card, .bb-card-li, .list-card-li)[data-id] { position: relative; }
+:is(.box-card, .c-card, .bb-card-li, .list-card-li) > .kit-grip { position: absolute; top: 6px; left: 6px; z-index: 1; width: 30px; height: 30px; padding: 0; border-radius: 10px; background: var(--glass-strong); opacity: 0; transition: opacity .12s; }
+:is(.box-card, .c-card, .bb-card-li, .list-card-li):is(:hover, :focus-within, .selected) > .kit-grip { opacity: .9; }
+:is(.box-card, .c-card, .bb-card-li, .list-card-li).selected > .kit-grip { color: var(--accent); }
+@media (hover: none) { :is(.box-card, .c-card, .bb-card-li, .list-card-li) > .kit-grip { opacity: .75 !important; } }
 .box-card > .kit-grip + * { padding-left: 32px; min-height: 26px; }
 .c-card > .kit-grip + .c-main .c-name { display: block; padding-left: 32px; min-height: 26px; }
+.list-card-li > .kit-grip + .list-card .project-title { padding-left: 32px; min-height: 26px; }
 .tool-menu { position: relative; }
 .tool-menu summary { list-style: none; cursor: pointer; }
 .tool-menu summary::-webkit-details-marker { display: none; }
@@ -1306,11 +1307,11 @@ a.chip { color: var(--text); text-decoration: none; }
 li[data-id].selected { background: var(--active-bg) !important; box-shadow: inset 0 0 0 1px var(--active-border); }
 li[data-id].selected .drag-handle { opacity: 1; color: var(--accent); }
 /* A selected card (Brain Dump, Contacts, Find Things boxes, recipes): the same clear accent ring everywhere, as Batch Book. */
-:is(.thought, .c-card, .box-card, .bb-card-li)[data-id].selected { box-shadow: 0 0 0 3px var(--accent); }
+:is(.thought, .c-card, .box-card, .bb-card-li, .list-card-li)[data-id].selected { box-shadow: 0 0 0 3px var(--accent); }
 /* Phones: holding a card selects it, so no text selection or Copy / Look Up menu (text being edited still selects). */
 @media (hover: none) {
-  :is(.thought, .c-card, .box-card, .bb-card-li)[data-id] { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-  :is(.thought, .c-card, .box-card, .bb-card-li)[data-id] :is(input, textarea, [contenteditable="true"], .thought-edit) { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
+  :is(.thought, .c-card, .box-card, .bb-card-li, .list-card-li)[data-id] { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  :is(.thought, .c-card, .box-card, .bb-card-li, .list-card-li)[data-id] :is(input, textarea, [contenteditable="true"], .thought-edit) { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
 }
 li[data-id].group-drag { background: none !important; box-shadow: none; position: relative; }
 li[data-id].group-drag > :not(.drag-ghost) { visibility: hidden; }
@@ -1373,6 +1374,9 @@ li[data-id]:hover .kit-grip { opacity: .8; }
 .lists-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 6px; }
 .lists-head .tool-menu { margin-left: auto; }
 .list-card { text-decoration: none; color: var(--text); }
+.list-grid { margin: 0; padding: 0; list-style: none; }
+.list-card-li { display: flex; flex-direction: column; list-style: none; border-radius: 20px; }
+.list-card-li > .list-card { flex: 1; align-content: start; }
 .list-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 10px; }
 .list-actions a { color: var(--accent); }
 .list-bar { flex: 1 1 120px; max-width: 260px; }
@@ -3034,7 +3038,7 @@ html:not(.show-hints) #main:not([data-area="settings"]) .hint { display: none; }
 }
 #main[data-shade="colour"] .checklist[style*="--tint"] > li[data-id] { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--tint) 75%, transparent); background: color-mix(in srgb, var(--tint) 5%, transparent); }
 #main[data-shade="alt"] .checklist:not(.task-list) > li[data-id]:nth-child(even of li[data-id]),
-#main[data-shade="alt"] .list-card:nth-child(even of .list-card) { box-shadow: inset 0 0 0 999px color-mix(in srgb, var(--text) 5%, transparent); }
+#main[data-shade="alt"] .list-card-li:nth-child(even of .list-card-li) > .list-card { box-shadow: inset 0 0 0 999px color-mix(in srgb, var(--text) 5%, transparent); }
 .project-head .list-colour { display: inline-flex; opacity: 1; padding: 4px; }
 .project-head .list-colour .swatch { width: 18px; height: 18px; }
 
