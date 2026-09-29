@@ -27,7 +27,7 @@ import { browseTo } from '../browse.js';
 import * as att from '../attachments.js';
 import { pointTo, flash } from '../flash.js';
 import { word, dumpTypes } from '../words.js';
-import { shareSheet, sharedWithText, people, fromOthers, invitesHtml, theirsHtml } from '../sharing.js';
+import { shareSheet, sharedWithText, people, fromOthers, invitesHtml, theirIconHtml } from '../sharing.js';
 import { slide } from '../slide.js';
 import { keys } from '../keys.js';
 
@@ -213,8 +213,7 @@ export default {
       useOwnSpaceWhileWriting();
       el.classList.toggle('theirs', !!owner);
       const sharedIds = new Set(fromOthers(['note']).filter(sh => sh.owner_id === owner).map(sh => sh.info.id));
-      const who = owner && people(['note']).find(p => p.owner_id === owner)?.name;
-      $('#dump-shared').innerHTML = owner ? theirsHtml(`Notes ${who} shares with you. You can both change them.`, '<button type="button" data-filter="all">Back to mine</button>') : invitesHtml(['note']);
+      $('#dump-shared').innerHTML = owner ? '' : invitesHtml(['note']); // theirs: each note has its 👥 (who shared it, Leave)
       thoughts = (await (owner ? store.spaceOf(owner) : store.local).list('thoughts', { filter: t => !t.archived_at && (!owner || sharedIds.has(t.id)) })).sort(byOrder);
       atts = await att.byParent();
       paintCapture();
@@ -275,6 +274,7 @@ export default {
             <span class="muted" title="Edited ${esc(new Date(editedAt(t)).toLocaleString())} · made ${esc(new Date(t.created_at).toLocaleString())}">${ago(editedAt(t))}</span>
             ${conv ? `<a class="chip" href="${href}" data-focus="${t.converted_to.collection}:${t.converted_to.id}">→ ${conv[0]}</a>` : ''}
             ${att.countChip(atts.get(t.id))}
+            ${theirsOwner() ? theirIconHtml(fromOthers(['note']).find(sh => sh.info.id === t.id), 'chip share-chip') : ''}
             ${!theirsOwner() && sharedWithText({ kind: 'note', id: t.id }) ? `<button type="button" class="chip share-chip" data-act="share-people" title="Shared: see who has it">👥 ${esc(sharedWithText({ kind: 'note', id: t.id }))}</button>` : ''}
             <span class="spacer"></span>
             <button type="button" class="pin" data-act="pin" aria-pressed="${!!t.pinned}" title="Pin">${t.pinned ? '★' : '☆'}</button>

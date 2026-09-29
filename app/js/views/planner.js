@@ -32,7 +32,7 @@ import { word } from '../words.js';
 import { offerUrlAt } from '../weburl.js';
 import { tickWave } from '../tickwave.js';
 import { commentsHtml, mountComments, moveComments, closingComment } from '../comments.js';
-import { shareSheet, people, sharedWithText, invitesHtml, theirsHtml, scopeText } from '../sharing.js';
+import { shareSheet, people, sharedWithText, invitesHtml, theirIconHtml, scopeText } from '../sharing.js';
 import { sharesNow, inShare, myUserId, personName } from '../sync.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -919,8 +919,8 @@ export default {
       $('.planner').classList.toggle('not-shared', !!viewing && !covering);
       for (const part of el.querySelectorAll('.day-head, .down-day, .carry, .schedule-title, .paper, .day-bottom')) part.inert = !!viewing && !covering;
       if (viewing) {
-        $('.day-shared').innerHTML = theirsHtml(covering ? `You're looking at ${who.name}'s day. You can both change it.` : `You're looking at ${who.name}'s diary: they haven't shared this day.`,
-          `${covering ? `<button type="button" data-share-leave="${covering.id}" title="Stop seeing ${esc(scopeText(covering.info))}">Leave</button>` : ''}<button type="button" class="primary" data-day-view="">Back to my day</button>`);
+        // Their day: its 👥 (who shared it and when, Leave), as a shared list's title has; "Show my day" is above.
+        $('.day-shared').innerHTML = covering ? `<p class="day-shared-with">${theirIconHtml(covering)}</p>` : `<p class="muted day-shared-with">👥 ${esc(who.name)} hasn't shared this day.</p>`;
       } else {
         const mine = sharesNow().filter(sh => sh.mine && inShare(sh, 'days', { date }));
         const names = [...new Set(mine.flatMap(sh => sh.members.filter(m => m.user_id !== myUserId()).map(m => personName(m.email))))];

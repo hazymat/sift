@@ -20,7 +20,7 @@ import { dateText, isoDate, PAPERS } from '../days.js';
 import { cogHtml } from '../viewcog.js';
 import { rankOf, byRank, reorderWrites } from '../order.js';
 import { createListKit } from '../listkit.js';
-import { shareSheet, sharedWithText, people, fromOthers, invitesHtml, theirsHtml } from '../sharing.js';
+import { shareSheet, sharedWithText, people, fromOthers, invitesHtml, theirIconHtml } from '../sharing.js';
 import { TINTS } from '../colours.js';
 import { pillMenu } from '../pillmenu.js';
 import { sortable } from '../sortable.js';
@@ -66,7 +66,6 @@ export default {
     const colourOf = r => TINTS.find(c => c.id === r?.colour)?.hex || sectionFor(r).colour;
     // Someone else's recipe (shared with you) is read and changed in their space (store.js): its pages end /from/<their id>.
     const ownerPath = (owner = state.owner) => (owner ? `/from/${owner}` : '');
-    const theirName = () => shared.find(x => x.owner_id === state.owner)?.name || 'Someone';
     // Lists are always your own, even on someone else's batch.
     const inMine = async fn => { store.useSpace(null); try { return await fn(); } finally { store.useSpace(state.owner ? store.spaceOf(state.owner) : null); } };
     const batchListName = m => batchName(m, recipeOf(m.recipe_id)?.title); // the batch's own list is named after it
@@ -323,6 +322,13 @@ export default {
         `<button type="button" class="icon-btn bb-x" data-field-remove="${esc(k)}" aria-label="Remove ${esc(k)}">×</button>`)).join('');
     }
 
+    // 👥 on a shared recipe (and its batches): theirs opens who shared it and Leave; yours opens the Share sheet.
+    const shareMark = r => {
+      if (!r) return '';
+      if (state.owner) return theirIconHtml(fromOthers(['recipe']).find(sh => sh.owner_id === state.owner && sh.info.id === r.id));
+      const who = sharedWithText({ kind: 'recipe', id: r.id });
+      return who ? `<button type="button" class="share-btn-people" data-act="share-recipe" data-recipe="${r.id}" title="Shared with ${esc(who)}">👥<span class="share-words"> Shared with ${esc(who)}</span></button>` : '';
+    };
     const top = (act, label, extra = '') => `<div class="bb-top"><button type="button" class="back" data-act="${act}">‹ ${esc(label)}</button><span class="spacer"></span>${extra}${cogHtml('recipes', paperHtml())}</div>`;
 
     // ---------- a recipe ----------
@@ -332,8 +338,7 @@ export default {
       if (!r) return '<div class="empty"><h2>That recipe has gone.</h2></div>';
       const sec = sectionFor(r);
       const made = makesOf(r.id);
-      return `${top('home', 'Recipes', `<button type="button" class="primary bb-make-btn" data-act="make" title="Start a batch: its own copy of this recipe">🧪 Make this${state.times !== 1 ? ` ×${qtyText(state.times)}` : ''}</button>`)}
-        ${state.owner ? theirsHtml(`${theirName()}'s recipe, shared with you`, '<button type="button" data-act="home">Back to my recipes</button>') : ''}
+      return `${top('home', 'Recipes', `${shareMark(r)}<button type="button" class="primary bb-make-btn" data-act="make" title="Start a batch: its own copy of this recipe">🧪 Make this${state.times !== 1 ? ` ×${qtyText(state.times)}` : ''}</button>`)}
         <article class="bb-paper" data-paper="${paper()}" style="--bb:${colourOf(r)};${workMargin(r, state.times)}">
           ${photoStrip(r.id)}
           <header class="bb-title-row">
@@ -402,8 +407,7 @@ export default {
       const gravity = types.some(isGravity);
       const f = m.fields || {};
       const goal = k => `<label><span>${k}</span><input data-field-key="${k}" value="${esc(f[k] || '')}" aria-label="${k}" placeholder="…"></label>`;
-      return `${state.fromList ? top('home', 'Batches') : top('to-recipe', r?.title || 'Recipe')}
-        ${state.owner ? theirsHtml(`A batch of ${theirName()}'s recipe, shared with you`, '<button type="button" data-act="home">Back to my recipes</button>') : ''}
+      return `${state.fromList ? top('home', 'Batches', shareMark(r)) : top('to-recipe', r?.title || 'Recipe', shareMark(r))}
         <article class="bb-paper bb-make" data-paper="${paper()}" style="--bb:${colourOf(r)};${workMargin(m, 1)}">
           ${photoStrip(m.id)}
           <header class="bb-title-row">
@@ -866,6 +870,7 @@ export default {
       }
       const act = b.dataset.act;
       if (act === 'home') return go('#/recipes');
+      if (act === 'share-recipe') { const r = recipeOf(b.dataset.recipe); if (r) shareSheet({ kind: 'recipe', id: r.id, name: r.title }, `"${r.title || 'Untitled'}"`); return; }
       if (act === 'share-list') { const list = lists.find(l => l.id === makeOf(state.make)?.list_id); if (list) shareSheet({ kind: 'list', id: list.id, name: list.name || 'Untitled' }, `"${list.name || 'Untitled'}"`); return; }
       if (act === 'new') return newRecipe();
 
