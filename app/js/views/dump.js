@@ -15,7 +15,7 @@ import { toast, undoable } from '../toast.js';
 import { toHtml, richText, titleHtml, afterTitle, inlineAll } from '../richtext.js';
 import { debounced } from '../autosave.js';
 import { addTaskFirst } from '../tasks.js';
-import { askEmptied, askText } from '../ask.js';
+import { ask, askEmptied, askText } from '../ask.js';
 import { pickTask } from '../taskpicker.js';
 import { tintHex, tintId, colourMenu } from '../colours.js';
 import { rankOf, byRank, keyBetween, reorderWrites } from '../order.js';
@@ -284,15 +284,16 @@ export default {
             : thoughtBody(t)}
           ${atts.get(t.id)?.length ? att.rowHtml(atts.get(t.id), { addButton: false }) : ''}
           <div class="thought-actions">
-            <button type="button" data-act="to-task">→ Task</button>
-            <button type="button" data-act="plan">Plan it</button>
-            <button type="button" data-act="store">→ Find Things</button>
             <span class="spacer"></span>
             <span class="note-end">
             <button type="button" class="archive-pill" data-act="archive" title="Done with it: into the Archive (Undo)">Archive</button>
             <details class="tool-menu share-note note-more">
-              <summary role="button" aria-label="More: colour, attach, share, delete" title="Colour, attach, share, delete">⋯</summary>
+              <summary role="button" aria-label="More: make it a task, plan it, store it, colour, attach, share, delete" title="Task, Plan it, Find Things, colour, attach, share, delete">⋯</summary>
               <div class="menu">
+                ${theirsOwner() ? '' : `<button type="button" data-act="to-task">→ Task${keys('T')}</button>
+                <button type="button" data-act="plan">Plan it…${keys('P')}</button>
+                <button type="button" data-act="store">→ Find Things…</button>
+                <hr>`}
                 <button type="button" data-act="colour"><span class="swatch" style="--sw:${tintHex(t)}"></span> Colour…</button>
                 <button type="button" data-act="comment" title="Add this note to a task, as a dated comment">💬 Add as comment to task…</button>
                 <button type="button" data-act="append" title="Add this note to the end of a task's note">📝 Append to task note…</button>
@@ -380,6 +381,45 @@ export default {
       await render();
       undoable('Moved a note', async () => { await store.updateMany('thoughts', before); await render(); });
     }
+    // The selection bar's Move ▸ Plan it… / → Find Things…: each chosen note becomes a day item or a thing in a box.
+    async function convertMany(ids, make, label) {
+      const made = [];
+      for (const id of ids) {
+        const t = thoughts.find(x => x.id === id);
+        if (!t || t.converted_to) continue;
+        const target = await make(t);
+        made.push([t.id, target]);
+        await store.update('thoughts', t.id, { converted_to: target });
+      }
+      await render();
+      undoable(`${label} ${made.length} note${made.length === 1 ? '' : 's'}`, async () => {
+        for (const [tid, target] of made) { await store.remove(target.collection, target.id); await store.update('thoughts', tid, { converted_to: null }); }
+        await render();
+      });
+    }
+    async function planMany(ids) {
+      const r = await ask({ title: `Plan ${ids.length} note${ids.length === 1 ? '' : 's'}`, ok: 'Add to the day', fields: [{ name: 'date', label: 'Day', type: 'date', value: isoDate() }] });
+      if (!r) return;
+      const date = r.date || isoDate();
+      await convertMany(ids, async t => {
+        const [first, ...rest] = t.body.split('\n');
+        const parsed = parseTimed(first);
+        const item = await addItem(date, { title: parsed.title.slice(0, 200), notes: parsed.title.length > 200 ? t.body.trim() : rest.join('\n').trim(), time: parsed.time, end_time: parsed.end_time, source_thought_id: t.id });
+        return { collection: 'day_items', id: item.id, date };
+      }, `Planned for ${date === isoDate() ? 'today' : date}:`);
+    }
+    async function storeMany(ids) {
+      const options = [];
+      for (const e of await loadTree()) for (const sec of e.sections) for (const bx of sec.boxes) options.push([bx.id, `${bx.label_code ? `${bx.label_code} · ` : ''}${bx.name} (${e.name} › ${sec.name})`]);
+      if (!options.length) return toast('Add a box in Find Things first');
+      const r = await ask({ title: `Put ${ids.length} note${ids.length === 1 ? '' : 's'} in a box`, ok: 'Add to box', fields: [{ name: 'box', label: 'Box', type: 'select', value: options[0][0], options }] });
+      if (!r?.box) return;
+      let count = (await store.list('items', { filter: i => i.place_id === r.box })).length;
+      await convertMany(ids, async t => {
+        const item = await store.create('items', { name: t.body.split('\n')[0].trim().slice(0, 200), place_id: r.box, parent_item_id: null, notes: '', quantity: null, sort_order: count++, last_moved_at: null });
+        return { collection: 'items', id: item.id };
+      }, 'Put in a box:');
+    }
     const kit = this.kit = createListKit({
       reorder: true,
       grid: true,
@@ -388,7 +428,7 @@ export default {
       noun: 'thought',
       actions: [
         { id: 'colour', label: 'Colour…', run: ids => { colourMenu(document.querySelector('[data-kit-action="colour"]'), null, v => setColour(ids, v)); } },
-        { id: 'tasks', label: '→ Tasks', run: async ids => {
+        { id: 'tasks', label: '→ Tasks', group: 'Move', run: async ids => {
           const made = [];
           for (const id of ids) {
             const t = thoughts.find(x => x.id === id);
@@ -404,6 +444,8 @@ export default {
             await render();
           });
         } },
+        { id: 'plan', label: 'Plan it…', group: 'Move', run: ids => planMany(ids) },
+        { id: 'store', label: '→ Find Things…', group: 'Move', run: ids => storeMany(ids) },
         { id: 'pin', label: 'Pin', run: ids => batch(ids, { pinned: true }, 'Pinned') },
         { id: 'unpin', label: 'Unpin', run: ids => batch(ids, { pinned: false }, 'Unpinned') },
         { id: 'archive', label: 'Archive', key: 'A', run: ids => batch(ids, { archived_at: new Date().toISOString() }, 'Archived') },
@@ -609,7 +651,7 @@ export default {
           for (const e of await loadTree()) for (const s of e.sections) for (const bx of s.boxes) boxes.push({ id: bx.id, label: `${bx.label_code ? `${bx.label_code} · ` : ''}${bx.name} (${e.name} › ${s.name})` });
           if (!boxes.length) { toast('Add a box in Find Things first'); return; }
         }
-        openPop(b, t, act);
+        openPop(b.closest('.note-more')?.querySelector('summary') || b, t, act); // from its ⋯ menu: by the ⋯
       } else if (act === 'plan-go') {
         if (editing) await leaveNote();
         const p = li.querySelector('.thought-panel');
@@ -742,7 +784,7 @@ export default {
       if (!t) return;
       if (act === 'colour') return colourMenu(li.querySelector('.note-dot'), tintId(t), v => setColour([t.id], v), { keyboard: true });
       const nextId = [li.nextElementSibling, li.previousElementSibling].find(e => e?.matches('li[data-id]'))?.dataset.id;
-      li.querySelector(`[data-act="${act}"]`).click();
+      li.querySelector(`[data-act="${act}"]`)?.click();
       // Plan it: the pop-up takes the keys (Enter adds it to today, Tab to its fields, Esc closes).
       if (act === 'plan' && await until(() => pop)) { pop.tabIndex = -1; pop.focus(); }
       // Gone from the list: the outline moves on to the next note.

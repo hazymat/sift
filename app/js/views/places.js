@@ -112,6 +112,7 @@ export default {
     function card(box, { path, highlight } = {}) {
       const items = highlight ?? box.items;
       return `<div class="box-card${box.label_code ? '' : ' no-code'}" data-box="${box.id}" data-id="${box.id}" style="--tint: ${tintHex(box)}" role="button" tabindex="0" aria-label="${esc(box.label_code ? `${box.label_code} ${box.name}` : box.name)}">
+        <button type="button" class="kit-grip" data-act="pick-box" aria-label="Select" title="Select (or press and hold the box)">${icon('i-grip')}</button>
         ${path ? `<span class="box-path">${esc(path)}</span>` : ''}
         <span class="box-head">
           ${box.label_code ? `<span class="box-code">${esc(box.label_code)}</span>` : ''}
@@ -878,6 +879,7 @@ export default {
       if (ev.target.closest('.quick-add')) return;
       const t = ev.target.closest('[data-act], [data-box], [data-edition]');
       if (!t || importSheet.contains(t)) return;
+      if (t.dataset.act === 'pick-box') { gridKit.toggle(t.closest('[data-box]').dataset.box, ev.shiftKey); return; } // its ⠿: select (Shift: a run)
       if (t.dataset.edition) {
         editionId = t.dataset.edition; remember(EDITION_KEY, editionId);
         renderGrid();
