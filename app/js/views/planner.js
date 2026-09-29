@@ -136,8 +136,8 @@ export default {
       </footer>
       </div>
       <dialog class="sheet cal-sheet" id="cal" aria-label="Pick a date"></dialog>
-      <dialog class="sheet review-sheet" id="review" aria-label="Unfinished from earlier days"></dialog>
-      <dialog class="sheet review-sheet bring-sheet" id="bring" aria-label="Bring in from tasks"></dialog>`;
+      <dialog class="sheet review-sheet" id="review" aria-label="Unfinished from earlier days" tabindex="-1"></dialog>
+      <dialog class="sheet review-sheet bring-sheet" id="bring" aria-label="Bring in from tasks" tabindex="-1"></dialog>`;
 
     const $ = s => el.querySelector(s);
     const linesEl = $('#lines');
@@ -751,8 +751,11 @@ export default {
       tasks = (await loadTasks()).tasks;
       drawBring();
       const dlg = $('#bring');
-      if (!dlg.open) dlg.showModal();
+      if (!dlg.open) openSheet(dlg);
     }
+    // The sheet itself has the cursor as it opens, not its first button (the browser's pick),
+    // which would wear a focus ring as if chosen: the green strip, or a 🗑. Tab goes on from there.
+    const openSheet = dlg => { dlg.showModal(); dlg.focus({ preventScroll: true }); };
 
     // Each task on one clean line: its title, a few words about it (muted), and
     // Claim / ✓ Did it / Archive. What's in the day's plan already isn't offered
@@ -1792,7 +1795,7 @@ export default {
     async function openReview() {
       await drawReview();
       const dlg = $('#review');
-      if (!dlg.open) dlg.showModal();
+      if (!dlg.open) openSheet(dlg);
     }
 
     async function drawReview() {

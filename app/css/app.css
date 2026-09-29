@@ -1386,6 +1386,7 @@ li[data-id]:hover .kit-grip { opacity: .8; }
 .line.has-item.dropped .tick { opacity: .3; }
 .carry button { margin-left: 4px; }
 .review-sheet { max-width: 640px; }
+.review-sheet:focus { outline: none; } /* has the cursor as it opens (planner.js) */
 @media (min-width: 768px) { .review-sheet { margin: auto; border-radius: var(--radius-card); border-bottom: 1px solid var(--glass-border); } }
 /* Bring in from tasks and Unfinished from earlier days: each one in its own box, never wider than the sheet. */
 .review-list { list-style: none; margin: 0 0 8px; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
