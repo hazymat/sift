@@ -2,7 +2,7 @@
 
 A map of how every area of Sift shows its controls, made to find where areas do the same job in different ways. New UI follows the **settled rules** below; where a row has no settled rule yet, copy the way most areas already do it and add the choice here.
 
-Audited at 1.54.09 (29 September 2026), updated for 1.55.13, from the code and by opening every area at phone and computer widths in Tight, Medium and Loose spacing, lined and box. The same audit is GitHub issue #284; keep the two in sync.
+Audited at 1.54.09 (29 September 2026), updated for 1.55.15, from the code and by opening every area at phone and computer widths in Tight, Medium and Loose spacing, lined and box. The same audit is GitHub issue #284; keep the two in sync.
 
 ## Settled rules (as decided)
 
@@ -13,6 +13,7 @@ Audited at 1.54.09 (29 September 2026), updated for 1.55.13, from the code and b
 - **Scans' "Scan" button** has no "New" and no "+": intended (it takes a photo), noted only.
 - **Anything that puts something into a project** (Move, the 📁 Project pill, Brain Dump conversion, any picker) lists projects shared with you too, with 👥.
 - **Editing a row**: clicking anywhere outside it stops editing.
+- **Esc on an opened page** (a list, a project, a box, a contact or case, a scan, a contract, a recipe or batch): the first Esc leaves the field being typed in, keeping what's typed (an Add items box adds it, as Enter); the next Esc goes back. The back button shows Esc whenever nothing is being typed (hidden while a field has the cursor, and on touch screens) (1.55.15).
 - **Arrow keys on rows edited in place** (Tasks, Day Planner, an open list, a box's things): ↓ at the top level starts editing (the new line at the top, or the first row), then ↑ / ↓ move the editing from row to row, and Shift+↑ / ↓ select rows. No blue browsing box on these; it's only for cards and grids (Brain Dump, the Lists page, Find Things' boxes, Contacts, Scans, Contracts, Batch Book).
 - **Shift+Enter goes one step further**: from an item's name to quick edit (with its note), and from there, the name or the note, to the full panel. Lists go straight to the panel.
 - **Green means open or close**: a green pill opens something or closes it again (More, More (full), ✓ Close, a note's full-screen ⤢ and its Done). Buttons that open or close a thing aren't another colour. (The Day Planner's green "↓ Bring in from tasks" doesn't open or close anything, so it breaks this: to decide.) The colour is the shared rule in `app.css` (search `.close-top, .md-full`); add new open and close buttons to it. A green button that has a key shows it on the button (hidden on touch screens): a note's ⤢ shows Alt+Enter, and Esc once full screen; full screen's Done shows Esc (1.55.14).

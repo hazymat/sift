@@ -330,7 +330,7 @@ export default {
         html += `
           <div class="list-top project-top">
           <div class="project-head" style="--c:${projectHex(project)}">
-            <button type="button" class="back" data-act="all-projects">‹ Projects</button>
+            <button type="button" class="back" data-act="all-projects">‹ Projects${keys('Esc')}</button>
             <button type="button" class="note-dot list-colour" data-act="project-colour" title="Project colour" aria-label="Project colour"><span class="swatch" style="--sw:${projectHex(project)}"></span></button>
             <input class="project-name" value="${esc(project.name)}" aria-label="Project name" data-project="${project.id}">
             ${status !== 'active' ? `<span class="chip">${status === 'done' ? 'Finished' : 'Paused'}</span>` : ''}

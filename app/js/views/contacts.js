@@ -139,7 +139,7 @@ export default {
           .sort((a, b) => RESEARCH.findIndex(r => r.id === a.research_status) - RESEARCH.findIndex(r => r.id === b.research_status) || (a.name || '').localeCompare(b.name || ''));
         return `
           <div class="project-head">
-            <button type="button" class="back" data-act="dir-home">‹ Directory</button>
+            <button type="button" class="back" data-act="dir-home">‹ Directory${keys('Esc')}</button>
             <input class="project-name" value="${esc(cat.name)}" data-category="${cat.id}" aria-label="Category name">
             <span class="muted">${inCat.length} contact${inCat.length === 1 ? '' : 's'}</span>
           </div>
@@ -207,7 +207,7 @@ export default {
       ].filter(e => e.at).sort((a, b) => b.at.localeCompare(a.at));
       return `
         <div class="project-head">
-          <button type="button" class="back" data-act="back">‹ Back</button>
+          <button type="button" class="back" data-act="back">‹ Back${keys('Esc')}</button>
           <input class="project-name" name="name" value="${esc(c.name)}" placeholder="${esc(word('ph_contact_name'))}" data-edit="${c.id}" aria-label="Name">
           <button type="button" class="pin" data-act="pin-contact" aria-pressed="${!!c.pinned}" title="Pin">${c.pinned ? '★' : '☆'}</button>
         </div>
@@ -291,7 +291,7 @@ export default {
       ].sort((a, b) => b.at.localeCompare(a.at));
       return `
         <div class="project-head">
-          <button type="button" class="back" data-act="cases-home">‹ Cases</button>
+          <button type="button" class="back" data-act="cases-home">‹ Cases${keys('Esc')}</button>
           <input class="project-name" name="title" value="${esc(k.title)}" data-case="${k.id}" aria-label="Case title">
         </div>
         <div class="c-page" data-case-page="${k.id}">
@@ -338,6 +338,8 @@ export default {
       kit.attach(body.querySelector('.kit-list'));
       const research = body.querySelector('#research-new');
       if (research) listEntry(research, addCandidates, { draft: `contacts:research:${state.id}` });
+      // Esc leaves the box, keeping what's typed (as a draft); the next Esc leaves the case.
+      research?.addEventListener('keydown', ev => { if (ev.key === 'Escape' && !ev.isComposing) { ev.preventDefault(); research.blur(); } });
       const q = body.querySelector('#c-q');
       if (q) q.addEventListener('input', () => { clearTimeout(this.qt); this.qt = setTimeout(() => { state.q = q.value.trim(); render().then(() => { const n = body.querySelector('#c-q'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }); }, 200); });
       const notesBox = body.querySelector('#c-notes');
