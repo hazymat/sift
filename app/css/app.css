@@ -2592,6 +2592,7 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 /* The schedule the same, its ⠿ and tick box staying before the name on its line (the pills that go
    under a long name are moved along to start under it: planner.js clampTitles). */
 #lines .line.has-item > .content > textarea.item-title { flex: 1 1 auto; max-width: calc(100% - 49px); }
+:is(.pile-paper, #lines) .line.has-item > .content.pills-under > textarea.item-title { flex-basis: 100%; } /* planner.js clampTitles */
 #lines .line.has-item > .content > .more { margin-left: auto; }
 #lines .line.has-item > .content > textarea.item-title:not(:focus) { max-height: calc(2.6em + 5px); }
 #lines .line.has-item > .content > textarea.item-title.clamped:not(:focus) {
