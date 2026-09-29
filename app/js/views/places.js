@@ -53,6 +53,9 @@ export default {
 
     el.innerHTML = `
       <div id="find-grid">
+        <div class="find-sticky-mark" aria-hidden="true"></div>
+        <!-- The whole top (+ New, search, life areas) stays while the boxes scroll, as Batch Book's. -->
+        <div class="find-sticky">
         <div class="lists-head find-head">
           <button type="button" class="primary" data-act="add-box">+ New box</button>
           <button type="button" data-act="add-section">+ New ${GROUP.one}</button>
@@ -78,6 +81,7 @@ export default {
         <div class="dump-filter-row find-areas">
           <div class="dump-filter" id="editions" role="tablist" aria-label="Life areas"></div>
           <button type="button" class="filter-more area-more" data-act="edition-menu" title="Life areas and groups: add, rename, move or remove" aria-label="Manage life areas and groups">⋯</button>
+        </div>
         </div>
         <div id="find-body"></div>
       </div>
@@ -107,9 +111,19 @@ export default {
     // ---------- grid ----------
 
     const edition = () => tree.find(e => e.id === editionId) || tree[0];
+    const cube = icon('i-places');
+    // The cube and the first word stay together at a line's end.
+    const cubeWith = name => { const [first, rest] = String(name).split(/ (.*)/s); return `<span class="nowrap">${cube}${esc(first)}</span>${rest ? ' ' + esc(rest) : ''}`; };
+    // Stuck at the top, the top gets a glass background and a shadow (as Brain Dump's and Batch Book's).
+    const stickyTop = el.querySelector('.find-sticky');
+    this.topWatch = new IntersectionObserver(([e]) => stickyTop.classList.toggle('stuck', !e.isIntersecting && e.boundingClientRect.top < 200), { rootMargin: `-${parseFloat(getComputedStyle(stickyTop).top) || 0}px 0px 0px 0px` });
+    this.topWatch.observe(el.querySelector('.find-sticky-mark'));
+    // Spacing changes the boxes' size, so the "+ n more" counts are worked out again.
+    this.densityWatch = new MutationObserver(() => { if (!openId) requestAnimationFrame(() => fitPills()); });
+    this.densityWatch.observe(document.getElementById('main'), { attributes: true, attributeFilter: ['data-density'] });
 
-    // Items show as pills so short ones share a line; the pill area is
-    // clipped to a few lines and fitPills() fills in "+ n more".
+    // Items show as running text, each after a cube, so as many as possible fit; the text is
+    // clipped to a few lines (more with looser spacing) and fitPills() fills in "+ n more".
     function card(box, { path, highlight } = {}) {
       const items = highlight ?? box.items;
       return `<div class="box-card${box.label_code ? '' : ' no-code'}" data-box="${box.id}" data-id="${box.id}" style="--tint: ${tintHex(box)}" role="button" tabindex="0" aria-label="${esc(box.label_code ? `${box.label_code} ${box.name}` : box.name)}">
@@ -120,9 +134,9 @@ export default {
           <span class="box-name">${esc(box.name || 'Untitled box')}</span>
         </span>
         ${box.location_note ? `<span class="box-where">${esc(box.location_note)}</span>` : ''}
-        <span class="box-pills${highlight ? ' all' : ''}">${items.map(i => `<span class="item-pill${i.depth ? ' sub' : ''}">${esc(i.name)}</span>`).join('')}</span>
+        <span class="box-pills${highlight ? ' all' : ''}">${items.map(i => `<span class="box-item${i.depth ? ' sub' : ''}">${cubeWith(i.name)}</span>`).join(' ')}</span>
         <span class="muted box-more"></span>
-        <input class="quick-add" data-add="${box.id}" placeholder="+ item" aria-label="Add item to ${esc(box.label_code || box.name)}" enterkeyhint="done" autocomplete="off">
+        <input class="quick-add" data-add="${box.id}" placeholder="+ Add item" aria-label="Add item to ${esc(box.label_code || box.name)}" enterkeyhint="done" autocomplete="off">
       </div>`;
     }
 
@@ -182,9 +196,7 @@ export default {
       body.innerHTML = current.sections.map(s => `
         <section class="find-section">
           <h2>${esc(s.name)}${s.location_note ? ` <span class="box-where">${esc(s.location_note)}</span>` : ''}</h2>
-          <div class="box-grid">${s.boxes.map(b => card(b)).join('')}
-            <button type="button" class="box-card add-card" data-act="add-box" data-section="${s.id}">+ New box</button>
-          </div>
+          <div class="box-grid">${s.boxes.map(b => card(b)).join('')}</div>
         </section>`).join('') || '<div class="empty"><p class="muted">' + esc(word('ph_find_area_empty')) + '</p></div>';
       requestAnimationFrame(() => fitPills());
       gridKit.attach(body);
@@ -990,6 +1002,8 @@ export default {
     this.kit?.destroy();
     this.gridKit?.destroy();
     this.pills?.destroy();
+    this.topWatch?.disconnect();
+    this.densityWatch?.disconnect();
     removeEventListener('keydown', this.onKey);
     removeEventListener('resize', this.onResize);
     removeEventListener('scroll', this.onBoxScroll);
