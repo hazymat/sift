@@ -29,6 +29,8 @@
 // dashed outline (.drop-slot), so there's always one outline saying where it lands.
 import { holdToLift, HOLD_SKIP } from './hold.js';
 
+const TILT = '-.8deg';
+
 export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere = 0, keyboard = true, grid = false, onMove, onEnd, onTap, onPaint, onLift, onDrag, onOnto } = {}) {
   let onto = null; // the row the dragged one is over the middle of (onOnto)
   const setOnto = el => {
@@ -128,7 +130,7 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     if (slot) Object.assign(slot.style, { left: `${box.left}px`, top: `${box.top}px`, width: `${box.width}px`, height: `${box.height}px`, borderRadius: getComputedStyle(dragging).borderRadius });
     dragging.style.transform = grid
       ? `translate(${clientX - offsetX - box.left}px, ${clientY - offsetY - box.top}px)`
-      : `translate(var(--dx, 0px), ${clientY - offsetY - box.top}px) rotate(-.8deg)`; // a slight twist while carried, as in the Day Planner
+      : `translate(var(--dx, 0px), ${clientY - offsetY - box.top}px)`; // (and a slight twist while carried, as in the Day Planner: TILT)
   }
 
   function lift(item, x, y) {
@@ -138,6 +140,7 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     startX = lastX = x;
     startY = lastY = y;
     item.classList.add('dragging');
+    if (!grid) { item.style.rotate = TILT; item.animate([{ rotate: '0deg' }, { rotate: TILT }], { duration: 180, easing: 'ease-out' }); } // the twist comes in, not at once
     baseMargin = parseFloat(getComputedStyle(item).marginBottom) || 0;
     // The finger's events can stop reaching the list once it lifts (the view redraws the row, or
     // the phone doesn't hand the touch over): follow them on the whole page till let go.
@@ -242,15 +245,22 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     const item = dragging;
     slot?.remove();
     slot = null;
+    const from = getComputedStyle(item).transform, dx = lastX - startX;
     item.classList.remove('dragging');
     item.style.transform = '';
+    item.style.rotate = '';
     item.style.marginBottom = '';
     item.style.removeProperty('--dx');
     dragging = null;
     const target = onto;
     if (onto) setOnto(null);
-    if (item.isConnected) onEnd?.({ item, dx: lastX - startX, onto: target });
-    else document.body.classList.remove('is-dragging'); // the view drew the list again meanwhile: nothing to put down
+    const put = () => {
+      if (item.isConnected) onEnd?.({ item, dx, onto: target });
+      else document.body.classList.remove('is-dragging'); // the view drew the list again meanwhile: nothing to put down
+    };
+    // Into its gap: it settles there and untwists, then it's put down (onto a row, it goes under it at once).
+    if (!grid && !target && item.isConnected) item.animate([{ transform: from === 'none' ? 'none' : from, rotate: TILT }, { transform: 'none', rotate: '0deg' }], { duration: 160, easing: 'cubic-bezier(.2, .8, .2, 1)' }).finished.then(put, put);
+    else put();
   }
   list.addEventListener('pointerup', finish);
   list.addEventListener('pointercancel', finish);
