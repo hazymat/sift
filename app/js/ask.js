@@ -2,6 +2,7 @@
 // boxes: a sheet in the app's look (it closes like every sheet, js/sheets.js).
 //
 //   await ask({ title, text, fields: [{ name, label, type, value, placeholder }], ok, danger })
+//        (type 'select' takes options: [[value, label], …] instead of a placeholder)
 //        → { name: value, … } when OK is pressed (or Enter), null when closed
 //   await askText(title, { value, placeholder, label, ok, type, text }) → string | null
 //   await askYes(title, { text, ok, danger }) → true | false
@@ -17,7 +18,9 @@ export function ask({ title, text = '', fields = [], ok = 'OK', cancel = 'Cancel
       <form method="dialog">
         <h2>${esc(title)}</h2>
         ${text ? text.split('\n\n').map(p => `<p class="muted">${esc(p)}</p>`).join('') : ''}
-        ${fields.map(f => `<label class="ask-field">${f.label ? `<span>${esc(f.label)}</span>` : ''}<input name="${esc(f.name)}" type="${esc(f.type || 'text')}" value="${esc(f.value ?? '')}" placeholder="${esc(f.placeholder || '')}" autocomplete="${f.type === 'password' ? 'new-password' : 'off'}"${f.type === 'password' ? '' : ' autocapitalize="sentences"'}></label>`).join('')}
+        ${fields.map(f => `<label class="ask-field">${f.label ? `<span>${esc(f.label)}</span>` : ''}${f.type === 'select'
+          ? `<select name="${esc(f.name)}">${f.options.map(([value, label]) => `<option value="${esc(value)}"${value === f.value ? ' selected' : ''}>${esc(label)}</option>`).join('')}</select>`
+          : `<input name="${esc(f.name)}" type="${esc(f.type || 'text')}" value="${esc(f.value ?? '')}" placeholder="${esc(f.placeholder || '')}" autocomplete="${f.type === 'password' ? 'new-password' : 'off'}"${f.type === 'password' ? '' : ' autocapitalize="sentences"'}>`}</label>`).join('')}
         <div class="sheet-actions">
           <button type="button" data-ask="cancel">${esc(cancel)}</button>
           <span class="spacer"></span>
@@ -35,7 +38,7 @@ export function ask({ title, text = '', fields = [], ok = 'OK', cancel = 'Cancel
     dlg.querySelector('[data-ask="cancel"]').addEventListener('click', () => dlg.close());
     dlg.addEventListener('close', () => { dlg.remove(); resolve(answer); });
     dlg.showModal();
-    (dlg.querySelector('input') || dlg.querySelector('[type="submit"]')).focus();
+    (dlg.querySelector('input, select') || dlg.querySelector('[type="submit"]')).focus();
   });
 }
 
