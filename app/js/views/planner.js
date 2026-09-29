@@ -626,7 +626,7 @@ export default {
     nowMarker.textContent = '▶';
     // Wrapped text changes height when the handwriting font arrives or the
     // window changes width: fit again, then put the ▶ back in place.
-    const refit = () => { if (!linesEl.isConnected) return; autosizeAll(linesEl); fitSpanBlocks(); placeNowMarker(); };
+    const refit = () => { if (!linesEl.isConnected) return; autosizeAll(linesEl); fitSpanBlocks(); placeNowMarker(); clampTitles(); };
     document.fonts?.ready.then(refit);
     this.onRefit = () => { clearTimeout(this.refitTimer); this.refitTimer = setTimeout(refit, 150); };
     addEventListener('resize', this.onRefit, page);
@@ -705,6 +705,12 @@ export default {
       box.hidden = !over;
       box.textContent = over ? `That's ${durationLabel(minutes)} of plan for a ${durationLabel(length)} day. Something could move to another day.` : '';
     }
+    // Day tasks: a name longer than two lines shows two, fading at the end (app.css); these are the ones cut short.
+    function clampTitles() {
+      for (const t of el.querySelectorAll('.pile-paper .line.has-item textarea.item-title')) t.classList.toggle('clamped', t.scrollHeight > t.clientHeight + 2);
+    }
+    el.addEventListener('focusout', ev => { if (ev.target.matches?.('.pile-paper textarea.item-title')) requestAnimationFrame(clampTitles); }); // back to two lines
+
     function renderPile(gapAt = null) {
       const all = items.filter(i => !i.time);
       const todo = all.filter(i => !i.done_at && !lifted.has(i.id)).sort(pileOrder);
@@ -722,6 +728,7 @@ export default {
       count.hidden = !all.length;
       count.textContent = `${all.filter(i => i.done_at).length}/${all.length}`;
       autosizeAll($('.pile-paper'));
+      clampTitles();
       markAlt($('.pile-paper'));
       mountNoteEditors();
     }
