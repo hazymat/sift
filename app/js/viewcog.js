@@ -85,7 +85,6 @@ const LAYOUTS = {
   tasks: [
     { id: 'lined', label: 'Lined Paper' },
     { id: 'margin', label: 'Show margin', needs: 'lined' },
-    { id: 'empty-lines', label: 'Show additional lines when list is empty', def: true, needs: 'lined' },
     { id: 'new-focus', label: 'Start typing a new task on arriving', def: true },
     { id: 'add-top', label: 'New tasks appear at top', def: true },
     { id: 'added-flash', label: 'Highlight task when added', def: true },
