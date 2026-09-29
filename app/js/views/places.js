@@ -437,8 +437,8 @@ export default {
       onReorder: (rows, label, ul, moved) => persistOrder(rows, label, ul, moved),
       actions: [
         { id: 'colour', label: 'Colour…', run: ids => { colourMenu(document.querySelector('[data-kit-action="colour"]'), null, v => setColour('items', ids, v)); } },
-        { id: 'archive', label: 'Archive', run: ids => batch(ids, 'archived_at', 'Archived') },
-        { id: 'delete', label: 'Delete', danger: true, run: ids => batch(ids, 'deleted_at', 'Removed') },
+        { id: 'archive', label: 'Archive', key: 'A', run: ids => batch(ids, 'archived_at', 'Archived') },
+        { id: 'delete', label: 'Delete', key: 'D', danger: true, run: ids => batch(ids, 'deleted_at', 'Removed') },
       ],
     });
 

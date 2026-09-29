@@ -365,8 +365,8 @@ export default {
         { id: 'colour', label: 'Colour…', run: ids => { colourMenu(document.querySelector('[data-kit-action="colour"]'), null, v => batch(ids, { colour: v }, 'Colour of')); } },
         { id: 'store', label: 'Store', run: ids => batch(ids, { status: 'stored' }, 'Stored') },
         { id: 'pin', label: 'Pin', run: ids => batch(ids, { pinned: true }, 'Pinned') },
-        { id: 'archive', label: 'Archive', run: ids => batch(ids, { archived_at: new Date().toISOString() }, 'Archived') },
-        { id: 'delete', label: 'Delete', danger: true, run: ids => batch(ids, { deleted_at: new Date().toISOString() }, 'Deleted') },
+        { id: 'archive', label: 'Archive', key: 'A', run: ids => batch(ids, { archived_at: new Date().toISOString() }, 'Archived') },
+        { id: 'delete', label: 'Delete', key: 'D', danger: true, run: ids => batch(ids, { deleted_at: new Date().toISOString() }, 'Deleted') },
       ],
     });
     this.onKey = ev => {
