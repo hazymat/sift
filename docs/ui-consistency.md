@@ -79,7 +79,7 @@ Rows and cards inside an area. "Top right" means on the row's own first line, at
 | **Ctrl+Enter** | Tick | Tick | Nothing | Save / finish | Add items (box page) | n/a | n/a | n/a |
 | **Phone** | Swipe: ⋯ More, ✓ Done / Delete; hold drags | Swipe: ⋯ More, ✓ Done / Delete; tap arms, tap edits | Swipe: ⋯ More, **✓ Tick** / Delete | No swipe; hold selects | No swipe; ⋯ hidden (a box card: hold selects) | Hold selects | No swipe; hold selects | No swipe |
 | **Selection bar** | Indent, Outdent, ↑ ↓, Done Ctrl+Enter, Move ▸, Archive A, Delete D | Done Ctrl+Enter, To place, Let go, Tomorrow, Archive A, Delete D | Indent, Outdent, ↑ ↓, Tick Ctrl+Enter, Untick, Add to template, Archive A, Delete D | ↑ ↓, Colour…, Move ▸ (→ Tasks, Plan it…, → Find Things…), Pin, Unpin, Archive A, Delete D | Indent, Outdent, ↑ ↓, Move to box…, Colour…, Archive A, Delete D (the boxes themselves: Move to…, Colour…, Archive A, Delete D) | ↑ ↓, Move to ▸, Pin, Unpin, Archive A, Delete D | Colour…, Store, Pin, Archive A, Delete D (no Unpin) | None |
-| **Drag** | Hold anywhere | Hold anywhere | Hold anywhere | Hold ⠿ only | Hold grip | Hold ⠿ | None (grip shown but no drag) | None |
+| **Drag** | Hold anywhere | Hold anywhere | Hold anywhere | Hold ⠿ only | Hold anywhere (1.58.04) | Hold ⠿ | None (grip shown but no drag) | None |
 | **Sub-items** | 3 levels | None | 1 level | None | 1 level | n/a | n/a | n/a |
 
 ## 4. Main inconsistencies
