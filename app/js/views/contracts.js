@@ -63,7 +63,7 @@ export default {
       return `
         <div class="scans-head contracts-head">
           <button type="button" class="primary" data-act="new">+ New contract</button>
-          <input type="search" class="scan-search contract-search" placeholder="Search contracts…" value="${esc(state.q)}" aria-label="Search contracts">
+          <input type="search" class="search scan-search contract-search" placeholder="Search contracts…" value="${esc(state.q)}" aria-label="Search contracts">
           ${shareHtml()}
           ${cogHtml('contracts')}
           <details class="tool-menu page-more">

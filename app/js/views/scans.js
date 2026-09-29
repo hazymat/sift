@@ -64,7 +64,7 @@ export default {
       return `
         <div class="scans-head">
           <button type="button" class="primary scan-btn" data-act="scan">${icon('i-scans')}<span>Scan</span></button>
-          <input type="search" class="scan-search" placeholder="Search scans…" value="${esc(state.q)}" aria-label="Search scans">
+          <input type="search" class="search scan-search" placeholder="Search scans…" value="${esc(state.q)}" aria-label="Search scans">
           ${shareHtml()}
           ${cogHtml('scans')}
           <details class="tool-menu page-more">

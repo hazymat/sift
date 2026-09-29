@@ -3411,7 +3411,7 @@ dialog.att-view::backdrop { background: rgb(0 0 0 / .82); }
 .scans-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
 .scans-head .scan-btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 20px; font-size: 1rem; }
 .scans-head .scan-btn .icon { width: 20px; height: 20px; }
-.scans-head .scan-search { flex: 1 1 12em; min-width: 0; padding: 8px 12px; border-radius: var(--radius-pill); border: 1px solid var(--glass-border); background: var(--glass-track); color: var(--text); }
+.scans-head > .search-wrap { flex: 1 1 12em; }
 .scan-kinds { margin-bottom: 8px; flex-wrap: wrap; }
 .scan-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-top: 10px; }
 #main[data-density="tight"] .scan-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
@@ -3911,7 +3911,7 @@ body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none
    Lines and margin follow 👁 (main[data-layout-lined], [data-layout-margin]). */
 
 .bb-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
-.bb-head .bb-search { flex: 1 1 12em; min-width: 0; padding: 8px 12px; border-radius: var(--radius-pill); }
+.bb-head > .search-wrap { flex: 1 1 12em; }
 /* The top bar stays while the recipes scroll (as Brain Dump's does); stuck, it gets a glass background. */
 .bb-sticky { position: sticky; top: calc(var(--safe-top) + 62px); z-index: 5; margin: 0 -10px 10px; padding: 0 10px; border-radius: 0 0 16px 16px; transition: box-shadow .15s, background-color .15s; }
 .bb-sticky-mark { height: 1px; margin-bottom: -1px; }
