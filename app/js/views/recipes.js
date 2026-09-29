@@ -1256,7 +1256,7 @@ export default {
             { id: 'pin', label: 'Pin', run: ids => moveRecipes(ids, { pinned: true }, 'Pinned') },
             { id: 'unpin', label: 'Unpin', run: ids => moveRecipes(ids, { pinned: false }, 'Unpinned') },
             { id: 'archive', label: 'Archive', key: 'A', run: ids => moveRecipes(ids, { archived_at: now() }, 'Archived') },
-            { id: 'delete', label: 'Delete', danger: true, run: ids => moveRecipes(ids, { deleted_at: now() }, 'Deleted') },
+            { id: 'delete', label: 'Delete', key: 'D', danger: true, run: ids => moveRecipes(ids, { deleted_at: now() }, 'Deleted') },
           ]),
       });
       return kit;
@@ -1284,7 +1284,7 @@ export default {
     const batchKit = this.batchKit = createListKit({
       reorder: true, holdAnywhere: true, noun: 'batch', onReorder: batchOrder, // press and hold anywhere on a row drags it, as in Tasks
       actions: STATUSES.map(([v, l, e]) => ({ id: `status-${v}`, label: `${e} ${l}`, group: 'Status', run: ids => changeBatches(ids, { status: v }, `Marked ${l.toLowerCase()}`) }))
-        .concat([{ id: 'delete', label: 'Delete', danger: true, run: ids => changeBatches(ids, { deleted_at: now() }, `Deleted ${ids.length} batch${ids.length === 1 ? '' : 'es'}`) }]),
+        .concat([{ id: 'delete', label: 'Delete', key: 'D', danger: true, run: ids => changeBatches(ids, { deleted_at: now() }, `Deleted ${ids.length} batch${ids.length === 1 ? '' : 'es'}`) }]),
     });
 
     async function moveRecipes(ids, patch, label) {

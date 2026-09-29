@@ -456,8 +456,8 @@ export default {
     }
 
     const common = [
-      { id: 'archive', label: 'Archive', run: ids => batch(ids, { archived_at: new Date().toISOString() }, 'Archived') },
-      { id: 'delete', label: 'Delete', danger: true, run: ids => batch(ids, { deleted_at: new Date().toISOString() }, 'Removed') },
+      { id: 'archive', label: 'Archive', key: 'A', run: ids => batch(ids, { archived_at: new Date().toISOString() }, 'Archived') },
+      { id: 'delete', label: 'Delete', key: 'D', danger: true, run: ids => batch(ids, { deleted_at: new Date().toISOString() }, 'Removed') },
     ];
     // As in Tasks: press and hold anywhere on an item moves it; dropped onto another item it
     // becomes its sub-item; a sub-item dragged down off the end of its group comes out of it.
@@ -465,7 +465,7 @@ export default {
     const kitChecklist = this.kitChecklist = createListKit({
       ...dragRules,
       actions: [
-        { id: 'tick', label: 'Tick', run: ids => batch(ids, { checked_at: new Date().toISOString() }, 'Ticked', { subs: false }) },
+        { id: 'tick', label: 'Tick', key: 'Ctrl+Enter', run: ids => batch(ids, { checked_at: new Date().toISOString() }, 'Ticked', { subs: false }) },
         { id: 'untick', label: 'Untick', run: ids => batch(ids, { checked_at: null }, 'Unticked', { subs: false }) },
         { id: 'to-template', label: 'Add to template', run: addToTemplate },
         ...common,

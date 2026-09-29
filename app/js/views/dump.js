@@ -405,8 +405,8 @@ export default {
         } },
         { id: 'pin', label: 'Pin', run: ids => batch(ids, { pinned: true }, 'Pinned') },
         { id: 'unpin', label: 'Unpin', run: ids => batch(ids, { pinned: false }, 'Unpinned') },
-        { id: 'archive', label: 'Archive', run: ids => batch(ids, { archived_at: new Date().toISOString() }, 'Archived') },
-        { id: 'delete', label: 'Delete', danger: true, run: ids => batch(ids, { deleted_at: new Date().toISOString() }, 'Deleted') },
+        { id: 'archive', label: 'Archive', key: 'A', run: ids => batch(ids, { archived_at: new Date().toISOString() }, 'Archived') },
+        { id: 'delete', label: 'Delete', key: 'D', danger: true, run: ids => batch(ids, { deleted_at: new Date().toISOString() }, 'Deleted') },
       ],
     });
 
