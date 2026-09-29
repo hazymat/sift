@@ -124,7 +124,9 @@ async function showMe(entry, from) {
     if (!el) return toast("Couldn't find it here (there may be nothing to open yet)", { action: "‹ What's new", onAction: () => showWhatsNew(from) });
     el.click();
   }
-  const el = await drawn(entry.at);
+  let el = await drawn(entry.at);
+  await new Promise(done => setTimeout(done, 350));
+  if (el && !el.isConnected) el = await drawn(entry.at); // the page drew itself again (Contacts picks its tab)
   if (!el) return toast("Couldn't find it here (there may be nothing to show yet)", { action: "‹ What's new", onAction: () => showWhatsNew(from) });
   flash(el, { pulses: 3 });
   toast('Here it is', { action: "‹ What's new", onAction: () => showWhatsNew(from), ms: 9000 });
