@@ -210,7 +210,7 @@ export function createListKit({
     for (const r of group.slice(from, to)) {
       const copy = r.cloneNode(true);
       copy.removeAttribute('data-id'); copy.removeAttribute('id');
-      copy.classList.remove('dragging', 'selected', 'pills-open', 'nest-room', 'nest-target', 'nest-preview', 'coming-out', 'heal-end', 'holding', 'hold-pending');
+      copy.classList.remove('dragging', 'selected', 'pills-open', 'nest-target', 'nest-preview', 'coming-out', 'heal-end', 'holding', 'hold-pending');
       copy.style.transform = ''; copy.style.transition = '';
       for (const el of copy.querySelectorAll('[id]')) el.removeAttribute('id');
       for (const el of copy.querySelectorAll('.edit-pills, .task-details, .row-acts, .hold-ripple')) el.remove();

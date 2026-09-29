@@ -23,11 +23,10 @@
 //
 // With `onOnto(target | null)`, the middle of a row means "onto it" (e.g. make
 // it a sub-task) rather than before or after it: the list isn't reordered
-// there, onOnto says which row it's over, and onEnd gets it as `onto`. While
-// over it, the dragged row shows where it will land: just under that row and
-// its sub-rows, with room made there (.nest-room). The
-// gap it would drop into otherwise has the same dashed outline (.drop-slot),
-// so there's always one outline saying where it will land.
+// there, onOnto says which row it's over, and onEnd gets it as `onto`. The
+// dragged row keeps following the finger; the row it's over gets a dashed
+// outline (.nest-target), and the gap it would drop into otherwise has the same
+// dashed outline (.drop-slot), so there's always one outline saying where it lands.
 import { holdToLift, HOLD_SKIP } from './hold.js';
 
 export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere = 0, keyboard = true, grid = false, onMove, onEnd, onTap, onPaint, onLift, onDrag, onOnto } = {}) {
@@ -36,16 +35,8 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     if (el === onto) return;
     onto = el;
     onOnto?.(el);
-    if (slot) slot.hidden = !!el;
-    // Room just under the row's family, where the dragged one shows as its sub-item (follow).
-    for (const r of list.querySelectorAll(':scope > .nest-room')) r.classList.remove('nest-room');
-    const end = el && familyEnd(el);
-    if (end && visibleAfter(end) !== dragging) { end.style.setProperty('--room', `${dragging.getBoundingClientRect().height}px`); end.classList.add('nest-room'); }
+    if (slot) slot.hidden = !!el; // the row it's over has the dashed outline instead (.nest-target)
   };
-  const depth = el => Number(el.dataset.depth || 0);
-  const visibleAfter = el => { let n = el.nextElementSibling; while (n && n.hidden) n = n.nextElementSibling; return n; };
-  // A row and the rows nested under it: the last of them.
-  const familyEnd = row => { let end = row; for (let n = visibleAfter(row); n && n !== dragging && n.matches('li[data-id]') && depth(n) > depth(row); n = visibleAfter(n)) end = n; return end; };
   let slot = null; // the dashed outline of the gap it will drop into (with onOnto)
   let dragging = null;
   let pending = null; // pressed; waiting to see if it's a tap, swipe or hold
@@ -120,8 +111,6 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     const box = dragging.getBoundingClientRect();
     // Where it is in the list, before it's moved to follow the pointer; its corners as the row's are now (e.g. coming out of a group).
     if (slot) Object.assign(slot.style, { left: `${box.left}px`, top: `${box.top}px`, width: `${box.width}px`, height: `${box.height}px`, borderRadius: getComputedStyle(dragging).borderRadius });
-    // Over a row's middle: it shows where it will land, under that row's family, not under the finger.
-    if (onto && !grid) { dragging.style.transform = `translate(var(--dx, 0px), ${familyEnd(onto).getBoundingClientRect().bottom - box.top}px)`; return; }
     dragging.style.transform = grid
       ? `translate(${clientX - offsetX - box.left}px, ${clientY - offsetY - box.top}px)`
       : `translate(var(--dx, 0px), ${clientY - offsetY - box.top}px) rotate(-.8deg)`; // a slight twist while carried, as in the Day Planner

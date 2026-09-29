@@ -3117,8 +3117,6 @@ a.comment-mark:hover { color: var(--text); }
 /* A lifted row, alone or in a group: frosted glass over the page, the rows under it blurred. */
 :is(li[data-id].dragging:not(.group-drag), .drag-stack > li) { background: linear-gradient(var(--glass-strong), var(--glass-strong)), color-mix(in srgb, var(--bg) 88%, transparent) !important; -webkit-backdrop-filter: blur(14px) saturate(1.4); backdrop-filter: blur(14px) saturate(1.4); }
 /* Dropping onto a task: room opens under it (and its sub-tasks) for the carried one (sortable.js). */
-body.is-dragging .task-list > li[data-id] { transition: margin-bottom .15s; }
-.task-list > li.nest-room { margin-bottom: calc(var(--room, 40px) + 4px) !important; }
 .task-list > li.dragging.nest-preview { padding-left: calc(var(--nest-pad, 36px) + 28px); position: relative; }
 .task-list > li.dragging.nest-preview::before { content: "↳"; position: absolute; left: calc(var(--nest-pad, 36px) + 6px); top: .55em; width: auto; background: none; color: var(--muted); font-size: .9rem; line-height: 1; }
 /* A comment's ⋯ menu looks like the glass dropdown lists (.dd-menu): one
