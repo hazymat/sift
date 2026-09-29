@@ -429,7 +429,7 @@ export default {
         task.title = name;
         undoable('Saved', async () => { await store.update('tasks', id, { title: old }); await render(); });
       }
-      const more = id ? t.closest('li[data-task]').querySelector('.edit-pills > .pill-reveal') : t.parentElement.querySelector(':scope > .pill-reveal');
+      const more = id ? t.closest('li[data-task]').querySelector('.edit-pills > [data-act="pills-reveal"]') : t.parentElement.querySelector(':scope > .pill-reveal');
       if (more?.getClientRects().length) more.click();
       // The note: New task's own; a task's in its panel, its note shown under it, or "Add note" (drawn a moment after More).
       for (let tries = 0; tries < 20; tries++) {
@@ -679,6 +679,16 @@ export default {
       const title = ev.target.closest?.('.item-sub .task-note')?.closest('li[data-task]')?.querySelector(':scope > .task-title');
       noteFromTitle = title && document.activeElement === title ? title : null;
       if (noteFromTitle) ev.preventDefault();
+    }, true);
+    // A bare part of a task being edited, right of where its name starts (not a pill, button or its
+    // note): the cursor goes to the end of the name, to carry on writing it.
+    body.addEventListener('pointerdown', ev => {
+      const title = ev.target.closest?.('.task-list > li[data-task].pills-open')?.querySelector(':scope > .task-title');
+      if (!title || ev.button || ev.target === title || ev.clientX < title.getBoundingClientRect().left) return;
+      if (ev.target.closest('button, a, input, textarea, select, label, [role="button"], [contenteditable], .note-shown, .note-in-place, .task-details')) return;
+      ev.preventDefault();
+      const toEnd = () => { title.focus(); title.setSelectionRange(title.value.length, title.value.length); title.scrollLeft = title.scrollWidth; };
+      toEnd(); requestAnimationFrame(toEnd);
     }, true);
     // "Add note" under a task being edited: typing goes straight into the notes
     // editor, as for a task's note.
@@ -1234,7 +1244,7 @@ export default {
         const row = b.closest('li[data-task]');
         if (lay('more-panel')) { this.pills.close(); row?.querySelector(':scope > [data-act="details"]')?.click(); return; }
         revealed = b.closest('.edit-pills').dataset.key;
-        b.closest('.edit-pills').remove(); // drawn again with everything in it
+        this.pills.open(revealed); // drawn again with everything in it
         row?.querySelector(':scope > .task-title')?.focus();
         return;
       }
@@ -1346,9 +1356,9 @@ export default {
     // Tap a task's title to edit it: pills for energy, time, dates and list
     // open under it, plus More for the whole panel (js/editpills.js).
     const hours = durationChoices(480).map(m => [m, durationLabel(m)]);
-    // Hide pills behind More (👁 Layout): a task being edited shows only a More pill, at the right
-    // of its name (the row doesn't grow); More shows "Add note" and the pills (and More…, for the
-    // whole panel), or with "More goes straight to the full panel" opens the panel. The New task
+    // Hide pills behind More (👁 Layout): a task being edited shows only a More pill, at the far right
+    // of its name (the row doesn't grow; no ⋯ while editing); More shows "Add note" and the pills, and
+    // becomes More (full), for the whole panel; or with "More goes straight to the full panel" opens the panel. The New task
     // line the same (it has no panel: More shows its note and pills). revealed: the task shown,
     // until its pills are put away (leaving the task): back in, it's behind More again.
     let revealed = null;
@@ -1358,6 +1368,8 @@ export default {
       key: r => r.dataset.task,
       closed: id => { if (revealed === id) revealed = null; if (noteStale) { noteStale = false; render(); } },
       done: true,
+      top: id => !lay('pills-hide') ? '' : revealed === id && !lay('more-panel') ? '<button type="button" class="entry-chip pill-reveal" data-pill-more title="Open the task\'s full panel">More (full)</button>'
+        : `<button type="button" class="entry-chip pill-reveal" data-act="pills-reveal">More${keys('Shift+Enter')}</button>`,
       html: id => {
         const t = data.tasks.find(x => x.id === id);
         if (!t) return '';
@@ -1368,7 +1380,7 @@ export default {
         const inPlace = body.querySelector(`.task-list > li[data-task="${CSS.escape(id)}"] > .note-in-place`);
         const addNote = inPlace ? '' : !(t.notes || '').trim() ? `<textarea class="entry-note add-note pill-note no-inline" data-pill="notes" rows="1" placeholder="Add note" aria-label="Note"></textarea>`
           : lay('pills-hide') ? `<div class="entry-note note-shown" data-act="note-shown" title="Edit the note (Enter)">${toHtml(t.notes)}</div>` : '';
-        if (lay('pills-hide') && (revealed !== id || lay('more-panel'))) return `<button type="button" class="entry-chip pill-reveal" data-act="pills-reveal">More${keys('Shift+Enter')}</button>`;
+        if (lay('pills-hide') && (revealed !== id || lay('more-panel'))) return '';
         return addNote + energyPill(t.energy)
           + selectPill('estimate_min', 'Estimated time', '⏱', [['', 'Not estimated'], ...hours], t.estimate_min)
           + datePill('start_date', 'Plan for day', '📅', t.start_date, shortDate)
