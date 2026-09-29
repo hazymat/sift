@@ -970,4 +970,5 @@ NOTES['1.57.00'] = [
   F('Brain Dump: a note\'s → Task, Plan it and → Find Things are in its ⋯ menu instead of pills along the bottom, which keeps Archive and ⋯. With notes chosen (press and hold one), the bar\'s Move ▸ opens out to → Tasks, Plan it… and → Find Things… for all of them.'),
   F('Find Things: each box shows a ⠿ in its corner on hover (as Batch Book\'s cards do); clicking it chooses the box.'),
 ]
-NOTES['1.57.01'] = [B("Key hints on buttons (Alt Enter on a note's full-screen ⤢, Ctrl Enter on Save, Esc on ‹ Lists and the rest) sat a little low in their pill. They're centred now, everywhere.")]
+NOTES['1.57.01'] = [F('Find Things: the life areas are a filter bar of underlined tabs, like Brain Dump\'s and Tasks\', with the ⋯ at its end; ← / → switch between them.')]
+NOTES['1.57.02'] = [B("Key hints on buttons (Alt Enter on a note's full-screen ⤢, Ctrl Enter on Save, Esc on ‹ Lists and the rest) sat a little low in their pill. They're centred now, everywhere.")]

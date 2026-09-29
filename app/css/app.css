@@ -465,15 +465,11 @@ button.danger { color: #ff8a80; }
 .search-wrap > .search { flex: 1; width: 100%; min-width: 0; padding-right: 46px !important; }
 .search-x { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; padding: 0; border-radius: 50%; display: grid; place-items: center; font-size: .9rem; line-height: 1; background: var(--glass-track); border: 0; box-shadow: none; color: var(--muted); }
 .search-x[hidden] { display: none; }
-.find-tools { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
-/* Life areas: a switch like Tasks | Projects (the glass hugs the pills), scrolling sideways when long; ⋯ after it. */
-.find-tools .segmented { flex: 0 1 auto; min-width: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 3px; gap: 3px; }
-.find-tools .segmented button { flex: none; padding: 5px 12px; font-size: .88rem; line-height: 1.2; white-space: nowrap; }
-.find-tools .area-more, .find-section > h2 .group-more { flex: none; padding: 1px 10px; border-radius: 999px; border: 1px solid var(--glass-border); background: var(--glass); color: var(--text); font-size: .9rem; line-height: 1.2; letter-spacing: .1em; box-shadow: none; }
-.find-tools .area-more { padding: 5px 12px; }
-.find-tools .area-more[hidden] { display: none; }
+.find-areas { margin: 0 0 16px; }
+.find-areas[hidden] { display: none; }
+.find-section > h2 .group-more { flex: none; padding: 1px 10px; border-radius: 999px; border: 1px solid var(--glass-border); background: var(--glass); color: var(--text); font-size: .9rem; line-height: 1.2; letter-spacing: .1em; box-shadow: none; }
 .find-section > h2 .group-more { margin-left: 8px; vertical-align: .2em; font-weight: 400; }
-:is(.find-tools .area-more, .find-section > h2 .group-more):hover { border-color: var(--active-border); }
+.find-section > h2 .group-more:hover { border-color: var(--active-border); }
 .box-card.selected { box-shadow: 0 0 0 3px var(--accent); }
 /* Its ⠿, as on Batch Book's cards: on hover (always, faintly, on touch screens); a click selects it. */
 .box-card[data-id] { position: relative; }
