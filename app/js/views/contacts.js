@@ -362,6 +362,7 @@ export default {
     }
     const kit = this.kit = createListKit({
       reorder: false,
+      holdSelect: true, // press and hold a card selects it; then a tap adds or takes out
       noun: 'contact',
       actions: [
         { id: 'colour', label: 'Colour…', run: ids => { colourMenu(document.querySelector('[data-kit-action="colour"]'), null, v => batch(ids, { colour: v }, 'Colour of')); } },
