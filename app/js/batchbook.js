@@ -1,10 +1,10 @@
 // Batch Book: recipes and every batch made from them (views/recipes.js).
 //   recipes:        title, type (its section's name), tags[], description, ingredients[] ({ id, qty, unit, item, note }),
-//                   steps[] ({ id, text with {references} }), tasting (older notes, moved to the latest batch's tasting diary), fields ({ label: value }, e.g. Batch volume)
+//                   steps[] ({ id, text with {references} }), tasting (older notes, moved to the latest batch's tasting notes), fields ({ label: value }, e.g. Batch volume)
 //   recipe_makes:   recipe_id, name, batch_no (older batches' only name), date (YYYY-MM-DD), status (planned|going|done), description, state,
 //                   fields, back_sweetened, ingredients[] and steps[] (copied from the recipe, then its own to change),
-//                   stock ({ ingredient id: have|need }), stock_items ({ ingredient id: list item id }), list_id
-//   recipe_entries: make_id, kind (diary|tasting|reading), date, text; readings also: type (a book's reading kind, none = Gravity),
+//                   stock ({ ingredient id: have|need }), stock_items ({ ingredient id: list item id }), list_id, tasting (its tasting notes, markdown)
+//   recipe_entries: make_id, kind (diary|reading; tasting before 1.51: now the batch's tasting note), date, text; readings also: type (a book's reading kind, none = Gravity),
 //                   and for gravity label (OG|SG|FG) and gravity, for any other kind value (as typed, e.g. 21°C)
 // Photos are attachments: on a recipe or batch (its result photos, the first is its picture), on a step (by the
 // step's id) or on a diary entry. Sections are the user's own, kept in settings (batch_sections).

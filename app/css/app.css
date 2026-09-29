@@ -4001,7 +4001,14 @@ textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
 .bb-chart polyline { fill: none; stroke: var(--bb); stroke-width: 3; stroke-linejoin: round; }
 .bb-chart circle { fill: var(--paper-bg, #fff); stroke: var(--bb-ink); stroke-width: 2; }
 .bb-chart text { font-size: 13px; fill: var(--muted); text-anchor: middle; }
-.bb-tasting .rich-edit { min-height: 3em; }
+/* A batch's tasting notes: written like the Day Planner's notes, the toolbar only while writing, ruled with Lined paper (👁). */
+.bb-note.rich:not(:focus-within) > .md-bar { display: none; }
+.bb-note { --note-line: 2rem; margin: 4px 0; }
+.bb-note :is(.rich-edit, .rich-raw) { border-color: transparent !important; border-radius: 0; box-shadow: none; background-color: transparent; line-height: var(--note-line); padding: 0 10px calc(var(--note-line) * 1.5); min-height: calc(var(--note-line) * 4); font-family: var(--hand); font-size: 1.05rem; }
+#main[data-layout-lined] .bb-note :is(.rich-edit, .rich-raw) { border-top: 1px solid var(--rule) !important; background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--note-line) - 1px), var(--rule) calc(var(--note-line) - 1px), var(--rule) var(--note-line)); background-attachment: local; }
+.bb-note .rich-edit :is(ul, ol, p, div, h3, h4, li) { margin-top: 0; margin-bottom: 0; line-height: var(--note-line); }
+.bb-note .rich-edit:hover { background-color: color-mix(in srgb, var(--text) var(--line-hover), transparent); }
+.bb-note :is(.rich-edit, .rich-raw):focus { background-color: color-mix(in srgb, var(--text) var(--line-lit), transparent); }
 .bb-foot { margin-top: 14px; }
 @media (max-width: 600px) {
   .bb-paper { padding: 12px 10px; margin: 0 -6px; }
