@@ -1,28 +1,32 @@
 # UI consistency
 
-A map of how every area of Sift shows its controls, made to find where areas do the same job in different ways. New UI follows the **settled rules** below; where a row has no settled rule yet, copy the way most areas already do it and add the choice here.
+How every area of Sift shows its controls, to find where areas do the same job in different ways. All new UI follows the **standards** below. Where there's no standard yet, copy what most areas already do and add the choice here. The same text is GitHub issue #284; keep the two in sync.
 
-Audited at 1.54.09 (29 September 2026), updated for 1.56.00, from the code and by opening every area at phone and computer widths in Tight, Medium and Loose spacing, lined and box. The same audit is GitHub issue #284; keep the two in sync.
+Audited at 1.54.09 (29 September 2026), updated for 1.56.00.
 
-## Settled rules (as decided)
+## Standards to follow
 
-- **⋯ page menu** holds only rarely used things: Show Archive, Show Bin, import, export, example data. Primary actions never go in it.
-- **New things**: a "+ New [thing]" button at the top left of the page.
-- **Switching between parts of an area** (Tasks | Projects, Recipes | Batches): a switch always visible on the page, never in a menu.
-- **No search box** on Tasks, Projects, Lists or the Day Planner: intended. The search in the top bar covers them.
-- **Scans' "Scan" button** has no "New" and no "+": intended (it takes a photo), noted only.
-- **Anything that puts something into a project** (Move, the 📁 Project pill, Brain Dump conversion, any picker) lists projects shared with you too, with 👥.
-- **Editing a row**: clicking anywhere outside it stops editing.
-- **Esc on an opened page** (a list, a project, a box, a contact or case, a scan, a contract, a recipe or batch): the first Esc leaves the field being typed in, keeping what's typed (an Add items box adds it, as Enter); the next Esc goes back. The back button shows Esc whenever nothing is being typed (hidden while a field has the cursor, and on touch screens) (1.55.15).
-- **Arrow keys on rows edited in place** (Tasks, Day Planner, an open list, a box's things): ↓ at the top level starts editing (the new line at the top, or the first row), then ↑ / ↓ move the editing from row to row, and Shift+↑ / ↓ select rows. No blue browsing box on these; it's only for cards and grids (Brain Dump, the Lists page, Find Things' boxes, Contacts, Scans, Contracts, Batch Book).
-- **Shift+Enter goes one step further**: from an item's name to quick edit (with its note), and from there, the name or the note, to the full panel. Lists go straight to the panel.
-- **Green means open or close**: a green pill opens something or closes it again (More, More (full), ✓ Close, a note's full-screen ⤢ and its Done). Buttons that open or close a thing aren't another colour. (The Day Planner's green "↓ Bring in from tasks" doesn't open or close anything, so it breaks this: to decide.) The colour is the shared rule in `app.css` (search `.close-top, .md-full`); add new open and close buttons to it. A green button that has a key shows it on the button (hidden on touch screens): a note's ⤢ shows Alt+Enter, and Esc once full screen; full screen's Done shows Esc (1.55.14).
-- **Sideways rows** (filter bars, tabs, pill rows, anything that scrolls sideways): a mouse wheel over one scrolls it sideways; at its end the page scrolls as usual. Built once for the whole app (`installWheelRows` in `app.js`), so new rows get it for free.
-- **Selection bars** take the same keys everywhere, shown on their buttons: A Archive, D (or Delete) Delete, Ctrl+Enter Done or Tick. Built into `listkit.js` (an action's `key`); the Day Planner's own bar does the same (1.55.13).
-- **Cards with a photo** keep one shape whatever the photo: the photo is cropped to its frame (a square on recipe cards, 4:3 on scans) and never sets the card's height. Recipe cards are all the same height (1.55.17).
-- **Choosing several cards** (Find Things' boxes, Brain Dump notes, Batch Book recipes, Contacts): press and hold a card to select it (the hold's ripple shows straight away); while anything is selected, a tap on another card adds it or takes it out (Shift+tap: every card from the last one picked). While browsing cards with the arrow keys, Shift+arrows select from where it began. Esc or the bar's ✕ clears. Built into `listkit.js` (`holdSelect`), and Shift+arrows into `browse.js` (1.56.00).
-- **Headings and tabs that hold things** (Find Things' life areas and groups, a project's milestones) get a small ⋯ beside them for Rename, move and Delete, not the page's ⋯. Deleting one with things in it asks first and says what goes to the Bin with it (1.56.00).
-- **A thing's colour shows the same way everywhere it has one**: a list looks like a project, a 4px coloured edge along the top of its card, down the left of its open page's head, and its progress bar in its colour, whatever the Look. Built on `--c`, as projects already were (1.55.08).
+**Buttons and menus**
+- **+ New [thing]** is a pill at the top left of the page. Scans' "Scan" button is the one exception (it takes a photo).
+- **⋯ menus** hold only rarely used things (Show Archive, Show Bin, import, export, example data). Primary actions never go in one. ⋯ menus open below the top bar and sticky bars and scroll inside if long (1.55.03).
+- **Green means open or close** (More, More (full), ✓ Close, a note's ⤢ and its Done), and a green button with a key shows it (hidden on touch screens) (1.55.04, 1.55.14). Shared rule in `app.css` (search `.close-top, .md-full`).
+- **Switching between parts of an area** (Tasks | Projects, Recipes | Batches) is always visible on the page, never in a menu.
+
+**Keys**
+- **Shift+Enter** goes one step further: name, then quick edit with its note, then the full panel. Lists go straight to the panel (1.55.05).
+- **↑ / ↓** move editing between rows edited in place (Tasks, Day Planner, an open list, a box's things); **Shift+↑ / ↓** select. The blue browsing box is only for cards and grids (1.55.07).
+- **Selection bars**: A Archive, D (or Delete) Delete, Ctrl+Enter Done or Tick, each key shown on its button. Built into `listkit.js` (1.55.13).
+- **Esc on an opened page**: the first Esc leaves the field (keeping what's typed; an Add items box adds it), the next goes back. The back button shows Esc when nothing is being typed (1.55.15).
+
+**Rows, cards and pages**
+- **Choosing several cards** (Find Things' boxes, Brain Dump notes, Batch Book recipes, Contacts): press and hold a card to select; while any are selected, a tap adds or removes one (Shift+tap: a run). Shift+arrows select while browsing. Esc or the bar's ✕ clears. Built into `listkit.js` (`holdSelect`) and `browse.js` (1.56.00).
+- **Headings that hold things** (Find Things' life areas and groups, a project's milestones) get a small ⋯ beside them for Rename, move and Delete, not the page's ⋯. Deleting one with things in it asks first (1.56.00).
+- **Editing a row**: click anywhere on its line to start, anywhere outside to stop.
+- **Sideways rows** (filter bars, tabs, pill rows) scroll with the mouse wheel; at the end the page scrolls. Built once (`installWheelRows` in `app.js`) (1.55.02).
+- **Search boxes** share one style with a ✕ to clear (1.55.11). Tasks, Projects, Lists and the Day Planner have none on purpose: the top bar search covers them.
+- **Cards with a photo** keep one shape: the photo is cropped to its frame (square on recipe cards, 4:3 on scans) and never sets the card's height (1.55.17).
+- **A thing's colour** shows the project way wherever it has one: a 4px coloured edge on its card and page head, and its progress bar in its colour, whatever the Look. Built on `--c` (1.55.08).
+- **Putting something into a project** (Move, 📁 Project pill, Brain Dump conversion, any picker) lists projects shared with you too, with 👥.
 
 ## 1. Page level: areas that list things
 
@@ -74,45 +78,60 @@ Rows and cards inside an area. "Top right" means on the row's own first line, at
 
 ## 4. Main inconsistencies
 
-Still open, numbered for reference. ★ marks the ones already raised. Fixed or settled ones move to section 5.
+### Still open
 
-1. ★ **Card ⋯ menus come in different styles.** Recipe, contact, scan and contract cards open their own page, so they don't need More, but the ⋯ on their cards should be one style.
-2. **"More" is two different things.** Tasks, Day Planner, Lists, box items: a green "More" pill top right. Brain Dump notes and recipe cards: a plain ⋯ at the bottom right (Brain Dump notes having no More is intended). The Day Planner's "More (full)" has no ⇧Enter hint.
-3. **Ctrl+Enter** ticks in Tasks and the Day Planner but does nothing in Lists.
-4. ★ **Lined paper or box** is only offered in Tasks (and project pages) and Lists. Everywhere else is box only, apart from the Day Planner and Batch Book, which have their own Paper styles (Batch Book has both Paper and a Lined paper switch). "Lined Paper" is capitalised differently in Batch Book.
-5. ★ **New buttons differ in form and place.** "+ New list" is a pill top left, and it comes second after "+ New template", which is the highlighted one. Contacts has both a New button and a capture box. Wording mixes "New" and "Add" (+ Add a detail, + Detail).
-6. ★ **Filter bars come in two styles.** Underlined tabs: Brain Dump, Tasks, Batch Book. Pills in glass: Scans, Contracts, Tidied. "All" is first in Scans, last in Contracts.
-7. ★ **Switches between parts sit in different places.** Tasks \| Projects: small pills top left. Contacts: large pills right beside "+ New contact" (the only area where they touch the New button). Batch Book: on the right, next to 👁. Tidied: joined to the filter pills.
-8. ★ **Search boxes differ.** "(press /)" only in Find Things. Search sits in the header row (Scans, Contracts, Batch Book), on its own row (Find Things, Tidied), beside Share (Brain Dump) or further down the page (Contacts).
-9. ★ **Pinned** only in Brain Dump, Batch Book and Contacts, each shown differently (☆ top right of card, ☆ in the card's action row, ☆ only on the contact's page). Contacts has no Pinned filter and no Unpin in its selection bar.
-10. **Two different "Share" buttons with the same word.** The page Share pill copies text; "👥 Share" on a list or project shares with a person. Batch Book has no Share pill. An open list has 👥 but no copy Share; the Lists page has copy Share but no 👥. Recipes show 👥 only once already shared.
-11. **Opened pages are built differently.** The area header stays on project and contact pages but not on the others. Back reads "‹ Back", "‹ Projects", "‹ [group name]" and so on. 👁 and ⋯ come and go. "Archive project"/"Archive list"/"Archive box" vs plain "Archive". Batches can't be archived.
-12. **👁 contents vary with no pattern**: Look is missing from Scans, Contracts and Batch Book; Multicolour from Tasks and the Day Planner. Contracts has alternate-shading styling that can never be switched on.
-13. **Tick wording**: "✓ Tick / Untick" in Lists, "✓ Done / Not done" in Tasks and the Day Planner. "Done" is also the close button on some Day Planner sheets.
-14. **Selection bars**: drag handles are an icon in most areas and a text "⠿" in the Day Planner; Contacts shows a grip but can't be dragged.
-15. **Closing sheets and panels**: top right (Tasks, Day Planner, Lists, box items), "Done" at bottom right (sharing), "Cancel … Save" (Batch Book sheets), ✕ (photo viewer, custom theme), nothing (most sheets, by design).
-16. **Saved messages**: "✓ Saved" with no Undo in Settings, "Saved · Undo" elsewhere.
-17. **Empty states**: "Nothing matches." / "Nothing here." / "Nothing found"; Tasks has none apart from Done.
-18. **Hard to reach**: History is only linked from Settings (not from any ⋯ as the code says); Tidied has no link from Settings.
-19. **Colours only sometimes show.** Projects, lists and recipes always show their colour. Brain Dump notes, contacts, Find Things' box cards and the things in a box only show theirs when 👁 Look is Multicolour (a box's own page always shows its lid colour). To decide: show them always, the project way, or leave them to Multicolour.
-20. **Contact cards look different from Brain Dump notes and Find Things' boxes.** To make consistent with one or both. Contact cards: plain glass, 260px wide columns, name in normal weight (Brain Dump titles and box names are bold), the grip top right, the when at the bottom (Brain Dump: in a head row at the top, with the type and ☆), no ⋯ or action row, ☆ only on the contact's page, detail chips in the card body. Brain Dump notes: narrower columns, a head row, an action row (→ Task, Plan it, Archive, ⋯). Boxes: a coloured lid band and a label strip, always in their colour; contact cards show theirs only with Multicolour.
+★ marks the ones already raised.
 
-## 5. Resolved
+- ★ **Cards**
+  - The ⋯ on recipe, contact, scan and contract cards comes in different styles.
+  - Brain Dump notes and recipe cards use a plain ⋯ at the bottom right where rows use a green More (Brain Dump notes having no More is intended).
+  - Contact cards look unlike Brain Dump notes and Find Things' boxes: plain glass, wider columns, name not bold, the when at the bottom, no action row.
+- **Colour** on Brain Dump notes, contacts, Find Things' box cards and a box's things only shows with 👁 Look Multicolour. To decide: always, the project way, or leave to Multicolour.
+- ★ **Page headers**
+  - New buttons: Lists' "+ New list" comes second after the highlighted "+ New template"; Contacts has a New button and a capture box; wording mixes "New" and "Add" (+ Add a detail, + Detail).
+  - Switches between parts sit in different places: top left (Tasks), beside the New pill (Contacts), on the right by 👁 (Batch Book), joined to the filters (Tidied).
+  - Filter bars come in two styles: underlined tabs (Brain Dump, Tasks, Batch Book) and pills in glass (Scans, Contracts, Tidied). "All" is first in Scans, last in Contracts.
+  - Search sits in the header row, on its own row, beside Share or further down; only Find Things says "(press /)".
+- **Share**
+  - One word for two jobs: the Share pill copies text, "👥 Share" shares with a person.
+  - Batch Book has no Share pill; an open list has 👥 but no copy Share; recipes show 👥 only once shared.
+- **Opened pages**
+  - The area header stays on project and contact pages only; 👁 and ⋯ come and go.
+  - Back reads "‹ Back", "‹ Projects", "‹ [group name]" and so on.
+  - "Archive project/list/box" vs plain "Archive"; batches can't be archived.
+- **👁 View menu** contents vary: no Look in Scans, Contracts and Batch Book; no Multicolour in Tasks and the Day Planner; Contracts has shading that can't be switched on.
+- ★ **Lined paper or box** is only offered in Tasks and Lists; the Day Planner and Batch Book have their own Paper styles; "Lined Paper" is capitalised differently in Batch Book.
+- ★ **Pinned** exists only in Brain Dump, Batch Book and Contacts, shown three ways; Contacts has no Pinned filter and no Unpin.
+- **Keys and wording**
+  - Ctrl+Enter ticks in Tasks and the Day Planner but not on list items.
+  - The Day Planner's "More (full)" has no ⇧Enter hint.
+  - Tick words: "Tick / Untick" in Lists, "Done / Not done" in Tasks and the Day Planner, where "Done" also closes some sheets.
+  - Saved messages: "✓ Saved" with no Undo in Settings, "Saved · Undo" elsewhere.
+  - Empty states: "Nothing matches." / "Nothing here." / "Nothing found"; Tasks has none apart from Done.
+- **No selection bar** on Scans, Contracts or the Lists page's list cards.
+- **Drag handles**: an icon in most areas, a text "⠿" in the Day Planner; Contacts shows a grip but can't be dragged.
+- **Closing sheets and panels**: ✓ Close top right, "Done" bottom right, "Cancel … Save", ✕, or nothing.
+- **Hard to reach**: History is only linked from Settings; Tidied has no link from Settings.
+- To decide: the Day Planner's green "↓ Bring in from tasks" doesn't open or close anything, so it breaks the green rule.
 
-- **List items edit like tasks** (was point 1): click anywhere on the line to edit, More top right, ✓ Close top right. Fixed in 1.54.10 for Lists and Find Things. Lists' More goes straight to the panel, with no quick stage and no ✓ Done: intended. Since 1.55.01 the hover More on a list item opens the panel; clicking the line is for editing.
-- **Brain Dump notes** edit from their text only and have no More or Done: intended.
-- **Shift+Enter** (was point 3) goes one step further each press, from the note as well as the name, in Tasks and the Day Planner (1.55.05). Lists go straight to the panel: intended. Now a settled rule.
-- **Mouse wheel over sideways rows** scrolls them (1.55.02). Now a settled rule.
-- **Recipe card ⋯ menu** no longer runs up under the sticky books bar; ⋯ menus stay below the top bar and sticky bars (1.55.03).
-- **Full-screen ⤢ and its Done are green** like More (1.55.04). Now part of the "green means open or close" rule.
-- **Arrow keys in an open list and a box's things** work like Tasks: ↑ / ↓ move editing, Shift selects, no blue box (1.55.07). Now a settled rule.
-- **Full-screen ⤢ shows its key** (Alt+Enter, then Esc) on every note's toolbar, Brain Dump's new note included, and full screen's Done shows Esc (1.55.14).
-- **List colours** show the way project colours do, whatever the Look (1.55.08). Now a settled rule.
-- **Find Things' New buttons** (was point 6): "+ New box" (asks which group), "+ New group" and "+ New life area" are pills at the top left, like the other areas' New pills. Its ⋯ keeps only the rarely used things: Rename life area, Import, Export, Split quantities, Show Archive, Show Bin (1.55.09).
-- **Projects' New button** (part of point 5): "+ New project" is a pill at the top left of the Projects page, beside Tasks | Projects, instead of a dashed square at the end of the grid (1.55.10).
-- **Search boxes in Scans, Contracts and Batch Book** (part of point 8) use the shared search box style, with the ✕ to clear while there's text, like Brain Dump, Find Things, Contacts and Tidied (1.55.11).
-- **Day Planner ⋯ menu** (was point 12): a ⋯ at the top right, like the other areas, holds Reset this week to this page's paper, Reset all pages to today's paper and Clear this day…; the "Housekeeping:" line at the bottom of each day is gone (1.55.12).
-- **Find Things' life areas** (part of point 6): small pills in glass that hugs them, like Tasks | Projects, with a ⋯ after them to rename, move or delete the life area shown (it was only renamable, from the page's ⋯). Each group has a ⋯ by its name to rename it (and where it is), move it up or down, or delete it. Deleting either with boxes in it asks first; it goes to the Bin with everything in it and comes back together (1.56.00).
-- **Choosing several boxes** in Find Things: press and hold a box, or Shift+arrows while browsing; the selection bar has Move to…, Colour…, Archive A, Delete D. Hold to select now works the same on Brain Dump notes and Contacts as it did on Batch Book's recipes. Still without a selection bar: Scans, Contracts and the Lists page's list cards (1.56.00).
-- **Selection bar keys** (part of point 14): A Archive, D Delete and Ctrl+Enter Done or Tick, with the key on the button, in every selection bar (Tasks, Day Planner, Lists, Brain Dump, Find Things, Contacts, Batch Book, Tidied). The Day Planner's bar gained Archive (1.55.13). Now a settled rule.
-- **Contact cards, short-term fix** (part of point 20): a long email or web address in a card's name wraps instead of running into the next card, the "From ..." line is a tappable link instead of raw link text, and "What was this?" only shows when there's nothing but a number (1.55.16).
+### Addressed
+
+- List items and a box's things edit like tasks: click the line, More and ✓ Close top right (1.54.10, 1.55.01).
+- Mouse wheel scrolls sideways rows (1.55.02).
+- ⋯ menus stay below sticky bars (1.55.03).
+- Full-screen ⤢ and its Done are green (1.55.04) and show their keys (1.55.14).
+- Shift+Enter goes one step further, from the note too (1.55.05).
+- Tick-off fade restored (1.55.06).
+- Arrow keys in an open list and a box's things work like Tasks (1.55.07).
+- List colours show like project colours (1.55.08).
+- Find Things' New buttons are pills top left; its ⋯ keeps only rare things (1.55.09).
+- Projects' "+ New project" is a pill top left (1.55.10).
+- Scans, Contracts and Batch Book search boxes use the shared style with ✕ (1.55.11).
+- Day Planner has a ⋯ top right for reset and clear (1.55.12).
+- Selection bar keys A, D, Ctrl+Enter everywhere; the Day Planner's bar gained Archive (1.55.13).
+- Esc leaves the Add items box, then the page; back buttons show Esc (1.55.15).
+- Contact cards: long names wrap, "From ..." is a link (1.55.16).
+- Recipe cards all the same height, photos cropped square (1.55.17).
+- Find Things: life areas are small pills that hug like Tasks | Projects; life areas and groups get their own ⋯ (1.56.00).
+- Choosing several cards by press and hold works in Find Things, Brain Dump, Contacts and Batch Book (1.56.00).
+- Intended, not changing: Brain Dump notes edit from their text only, with no More or Done; list items go straight to the panel.
