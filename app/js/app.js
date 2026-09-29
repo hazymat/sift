@@ -262,6 +262,25 @@ function installKeyNav() {
 // on a button or a field) are kept for the app. That's checked before anything
 // else on the page sees the touch, so nothing can let one through. (Android's
 // own back gesture can't be stopped.) overscroll-behavior-x in app.css stops the same in Chrome.
+// A mouse wheel over a row that scrolls sideways (pills, filter bars, tabs) scrolls that row,
+// until it reaches its end; then the page scrolls as usual.
+function installWheelRows() {
+  addEventListener('wheel', ev => {
+    if (ev.ctrlKey || Math.abs(ev.deltaX) >= Math.abs(ev.deltaY)) return; // pinch-zoom, or already sideways (trackpad)
+    for (let row = ev.target instanceof Element ? ev.target : null; row && row !== document.body; row = row.parentElement) {
+      if (row.matches('textarea, input, select, [contenteditable="true"]')) return;
+      if (row.scrollWidth <= row.clientWidth + 1) continue;
+      if (!/auto|scroll/.test(getComputedStyle(row).overflowX) || row.scrollHeight > row.clientHeight + 1) continue; // not a sideways row
+      const step = ev.deltaY * (ev.deltaMode === 1 ? 16 : ev.deltaMode === 2 ? row.clientWidth : 1);
+      const room = step > 0 ? row.scrollWidth - row.clientWidth - row.scrollLeft : row.scrollLeft;
+      if (room < 1) return;
+      ev.preventDefault();
+      row.scrollLeft += step;
+      return;
+    }
+  }, { passive: false });
+}
+
 function installSwipe() {
   if (!matchMedia('(pointer: coarse)').matches) return;
   const EDGE = 20;
@@ -569,6 +588,7 @@ async function boot() {
   installShare(() => current);
   installKeyNav();
   installSwipe();
+  installWheelRows();
   // A dropdown menu opens inside the screen: flipped to the other side if
   // it would run off the left or right edge.
   document.addEventListener('toggle', ev => {
