@@ -3279,6 +3279,7 @@ dialog.att-view::backdrop { background: rgb(0 0 0 / .82); }
 /* Ticking off (tickwave.js): the name's copy while the wave passes (its letters bob, a line is drawn
    through it), and a band of soft blue light crossing the row. The tick box is never covered for pressing. */
 .tw-copy { position: absolute; z-index: 2; margin: 0; overflow: hidden; pointer-events: none; }
+.tw-copy > .tw-line { opacity: var(--tw-dim, 1); }
 .tw-word { position: relative; display: inline-block; white-space: pre; }
 .tw-ch { display: inline-block; white-space: pre; }
 .tw-strike { position: absolute; left: 0; right: 0; top: 55%; height: 1.5px; background: currentColor; opacity: .8; transform: scaleX(0); transform-origin: left; }
