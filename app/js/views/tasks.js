@@ -6,7 +6,7 @@
 import { keepDraft, draftCleared } from '../drafts.js';
 import { cogHtml, layoutOn } from '../viewcog.js';
 import { shareHtml } from '../share.js';
-import { flash, SOFT } from '../flash.js';
+import { flash, SOFT, WASH } from '../flash.js';
 import * as store from '../store.js';
 import { shareSheet, sharedWithText, people as sharers, invitesHtml, theirsHtml } from '../sharing.js';
 import { loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES, HORIZONS, horizonOf, planDay, MAX_DEPTH, depthIn, levelsUnder } from '../tasks.js';
@@ -374,7 +374,9 @@ export default {
           const roots = top.filter(t => (t.milestone_id || null) === g.id);
           const tasks = visible(roots.flatMap(t => [t, ...under(t.id)]));
           const pr = progress(scoped.filter(t => t.milestone_id === g.id));
-          const label = g.name ? `${g.done_at ? '✓ ' : ''}${esc(g.name)}${g.due_date ? ` <span class="muted">⚑ ${shortDate(g.due_date)}</span>` : ''}${g.id ? ` <span class="muted">${pr.done}/${pr.total}</span><button type="button" class="more ms-more" data-act="milestone-menu" data-ms="${g.id}" aria-label="Milestone: rename, aim date, done, move, delete">⋯</button>` : ''}` : '';
+          // A milestone's name opens its menu too (rename, date, done, move, delete), as its ⋯ does.
+          const text = `${g.done_at ? '✓ ' : ''}${esc(g.name)}${g.due_date ? ` <span class="muted">⚑ ${shortDate(g.due_date)}</span>` : ''}`;
+          const label = g.name ? (g.id ? `<button type="button" class="ms-name" data-act="milestone-menu" data-ms="${g.id}" title="Rename, aim date, done, move or delete">${text}</button> <span class="muted">${pr.done}/${pr.total}</span><button type="button" class="ms-more" data-act="milestone-menu" data-ms="${g.id}" aria-label="Milestone: rename, aim date, done, move, delete">⋯</button>` : text) : '';
           return (label ? head(label, ` data-milestone="${g.id || ''}"${g.done_at ? ' data-done' : ''}`) : '') + rowsOf(tasks);
         }).join(''));
       } else {
@@ -1624,6 +1626,18 @@ export default {
       if (ev.key === 'Escape' && open && !ev.defaultPrevented && !document.querySelector('.ref-picker, .pill-menu')) { ev.preventDefault(); closeDetails(); }
     };
     addEventListener('keydown', this.onKey);
+    // ← / → (and a side swipe, which app.js turns into them) on Projects: back a step, whichever way, as
+    // there's nothing further along. A project's page → Projects; Projects → Tasks. The pill landed on pulses.
+    addEventListener('keydown', ev => {
+      if ((ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') || ev.defaultPrevented || ev.ctrlKey || ev.altKey || ev.metaKey || ev.shiftKey) return;
+      if (state.view !== 'projects' && !state.project) return;
+      const f = document.activeElement?.closest?.('input:not([type="checkbox"]), textarea, select, [contenteditable="true"]');
+      if ((f && (f.isContentEditable ? f.textContent : f.value).trim()) || document.querySelector('dialog[open], details.tool-menu[open], .pill-menu, .edit-pills, .task-details, .select-bar:not([hidden])')) return;
+      ev.preventDefault();
+      const back = state.project ? 'projects' : 'tasks';
+      go(back === 'projects' ? 'projects' : lastTasksView, null);
+      flash(el.querySelector(`[data-mode="${back}"]`), Object.assign({}, WASH, { scroll: false })); // the Tasks | Projects pills stay put across views
+    }, { signal: gone.signal });
 
     // Opens on the Inbox if anything is waiting there, otherwise Now.
     const first = await loadAll();
