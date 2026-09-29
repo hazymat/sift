@@ -959,3 +959,8 @@ NOTES['1.55.14'] = [F("A note's green full-screen ⤢ button shows its key, Alt+
 NOTES['1.55.15'] = [F('Esc on an open list, project or box: the first Esc leaves the Add items box (adding what\'s typed), the next goes back. The back button shows Esc while nothing is being typed, on every opened page Esc goes back from.')]
 NOTES['1.55.16'] = [B('Contacts: a long email or web address in a card\'s name ran over into the next card, the "From ..." line showed its link as raw text instead of a tappable link, and "What was this?" showed on contacts that already had words with their number. A task\'s or Day Planner item\'s 📝 hover text showed links the same raw way.')]
 NOTES['1.55.17'] = [B("Batch Book: recipe cards were different heights, following their photo's shape. Every card is now the same height, with its photo cropped to a square. A tall photo on a Scans card no longer makes the card taller either.")]
+NOTES['1.56.00'] = [
+  F('Find Things: choose several boxes by pressing and holding one, then tapping more (Esc or the bar\'s ✕ stops), or with Shift+arrows while browsing boxes with the keyboard. The bar moves them to another group, colours, archives (A) or deletes (D) them.'),
+  F('Find Things: the life areas look like the other switches (Tasks | Projects), with a ⋯ after them to rename, move or delete the one shown. Each group has a ⋯ by its name to rename it, move it up or down, or delete it. Deleting one with boxes in it asks first, and it goes to the Bin with everything in it, to be put back together.'),
+  F('Press and hold to select now works on Brain Dump notes and Contacts too, as on Batch Book\'s recipes; Shift+arrows select while browsing their cards.'),
+]
