@@ -40,6 +40,10 @@ Any task can collect dated comments: "rang them, need their reference number", "
 
 Give a task a day and it's on that day's plan; change the day and it moves. Make a task recurring ("put the bins out, every Tuesday") and ticking it makes the next one, on the right day, with its checklist ready again. Missed ones never pile up.
 
+### A daily look through everything you've got on
+
+Planning a day starts with **Bring in from tasks**: your whole task list, with what's meant for today and ideas that suit your energy at the top. Claim what you'll do today, tick off what's already done, push the rest to Now, Next or Later, and archive what's no longer needed. A minute or two each morning, and nothing on your list is forgotten: it's a gentle way to keep in touch with everything you've got on, and to keep getting through it.
+
 ### Your calendar, on your day
 
 Turn on Google Calendar and what's on shows above your plan. Tap **+ Add to plan** and an event becomes part of your day, at its time, with its details as the note, to move like anything else. It only reads your calendar, only the days you look at (a week ahead, further when you ask), and keeps them on your device, so nothing is copied anywhere else.
