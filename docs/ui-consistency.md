@@ -2,7 +2,7 @@
 
 A map of how every area of Sift shows its controls, made to find where areas do the same job in different ways. New UI follows the **settled rules** below; where a row has no settled rule yet, copy the way most areas already do it and add the choice here.
 
-Audited at 1.54.09 (29 September 2026), from the code and by opening every area at phone and computer widths in Tight, Medium and Loose spacing, lined and box. The same audit is GitHub issue #284; keep the two in sync.
+Audited at 1.54.09 (29 September 2026), updated for 1.54.10, from the code and by opening every area at phone and computer widths in Tight, Medium and Loose spacing, lined and box. The same audit is GitHub issue #284; keep the two in sync.
 
 ## Settled rules (as decided)
 
@@ -49,11 +49,11 @@ Rows and cards inside an area. "Top right" means on the row's own first line, at
 | | Task (Tasks, project page) | Day Planner item | List item | Brain Dump note | Box item (Find Things) | Recipe card | Contact card | Scan / contract |
 |---|---|---|---|---|---|---|---|---|
 | **Resting** | ⠿ (hover), tick, title, chips, note | ⠿ (text glyph), tick, title, tags, note | ⠿, tick, text, ▾ n/m, note line | Head row (⠿, type, time, ☆), text, action row | Cube grip, name, ×qty, tags | Photo, title, tags, Make, ☆, ⋯ | Grip, name, about, chips | Card or table row |
-| **Computer hover** | Green **"More"** top right | Green **"More"** top right | Green **"⋯"** top right | Action row brightens; **⋯ bottom right** | **⋯** at row end | Card lifts; grip shows | Grip brightens | Background only |
-| **Start editing** | Click the title **or anywhere right of it** on the line | Click the text only | Click the text only (in Tight, clicking right of short text does nothing) | Click the body text only | Click the name | Open the page | Open the page | Open the page |
-| **While editing: More** | "More ⇧Enter" **top right**, then "More (full) ⇧Enter" in the same spot; "✓ Done Ctrl+Enter" beside it | "More (full)" top right (no key hint); pills show straight away; ✓ Done in pill row | **"More…" on its own line underneath**, all spacings; no Done | No More, no Done: click away or Esc | Quantity + More pills underneath | n/a | n/a | n/a |
-| **Full panel: Close** | **"✓ Close Esc" top right** | **"✓ Close Esc" top right** | **"✓ Close" bottom left** of the panel | No panel | **"✓ Close" bottom left** of the panel | n/a (page, ‹ back) | n/a (page) | n/a (page) |
-| **Panel footer** | + Sub-task · Archive · Delete | Unallocate time · Let go · → Tasks · Archive · Delete | ✓ Close · Archive · Delete (no + Sub-item) | n/a | ✓ Close · Colour · Archive · Delete | n/a | n/a | n/a |
+| **Computer hover** | Green **"More"** top right | Green **"More"** top right | Green **"More"** top right | Action row brightens; **⋯ bottom right** | Green **"More"** top right | Card lifts; grip shows | Grip brightens | Background only |
+| **Start editing** | Click anywhere on the line | Click anywhere on the line | Click anywhere on the line | Click the body text only | Click anywhere on the line | Open the page | Open the page | Open the page |
+| **While editing: More** | "More ⇧Enter" **top right**, then "More (full) ⇧Enter" in the same spot; "✓ Done Ctrl+Enter" beside it | "More (full)" top right (no key hint); pills show straight away; ✓ Done in pill row "More ⇧Enter" top right, goes straight to the panel (no quick stage); no Done | No More, no Done: click away or Esc | "More (full)" top right; Quantity pill underneath | n/a | n/a | n/a |
+| **Full panel: Close** | **"✓ Close Esc" top right** | **"✓ Close Esc" top right** | "✓ Close" top right | No panel | "✓ Close" top right | n/a (page, ‹ back) | n/a (page) | n/a (page) |
+| **Panel footer** | + Sub-task · Archive · Delete | Unallocate time · Let go · → Tasks · Archive · Delete | Archive · Delete (no + Sub-item) | n/a | Colour · Archive · Delete | n/a | n/a | n/a |
 | **Shift+Enter** | More, then full panel | Note, in place | Full panel's note | New line | n/a | n/a | n/a | n/a |
 | **Ctrl+Enter** | Tick | Tick | Nothing | Save / finish | Add items (box page) | n/a | n/a | n/a |
 | **Phone** | Swipe: ⋯ More, ✓ Done / Delete; hold drags | Swipe: ⋯ More, ✓ Done / Delete; tap arms, tap edits | Swipe: ⋯ More, **✓ Tick** / Delete | No swipe | No swipe; ⋯ hidden | Hold selects | No swipe | No swipe |
@@ -65,8 +65,8 @@ Rows and cards inside an area. "Top right" means on the row's own first line, at
 
 Numbered for reference. ★ marks the ones already raised.
 
-1. ★ **List items don't edit like tasks.** Clicking anywhere on a list row doesn't start editing (only the text does); while editing, "More…" sits underneath in every spacing instead of top right; the panel's Close is at the bottom left instead of top right. The same bottom-left Close is in Find Things box items. (Lists part being fixed separately.)
-2. **"More" is three different things.** Tasks and Day Planner: a green "More" pill top right. Lists: a green "⋯". Brain Dump, box items, recipe cards: a plain ⋯ at the bottom right or row end. The Day Planner's "More (full)" has no ⇧Enter hint.
+1. ★ **List items didn't edit like tasks** (click anywhere on the line, More top right, Close top right). Fixed in 1.54.10 for Lists and Find Things. Still different: Lists' More goes straight to the panel (no quick stage, no ✓ Done); Brain Dump notes still only edit from their text and have no More or Done.
+2. **"More" is two different things.** Tasks, Day Planner, Lists, box items: a green "More" pill top right. Brain Dump notes and recipe cards: a plain ⋯ at the bottom right. The Day Planner's "More (full)" has no ⇧Enter hint.
 3. **Shift+Enter** means More in Tasks, the note in place in the Day Planner, and the panel's note in Lists. Ctrl+Enter ticks in Tasks and the Day Planner but does nothing in Lists.
 4. ★ **Lined paper or box** is only offered in Tasks (and project pages) and Lists. Everywhere else is box only, apart from the Day Planner and Batch Book, which have their own Paper styles (Batch Book has both Paper and a Lined paper switch). "Lined Paper" is capitalised differently in Batch Book.
 5. ★ **New buttons differ in form and place.** "+ New project" is a dashed square at the end of the grid; "+ New list" is a pill top left, and it comes second after "+ New template", which is the highlighted one. Find Things has no New button at all ("+ Add box" tiles, the rest in ⋯). Contacts has both a New button and a capture box. Wording mixes "New" and "Add" (New life area, Add box, Add group, + Add a detail, + Detail).
