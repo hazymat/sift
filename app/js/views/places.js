@@ -296,7 +296,7 @@ export default {
       const top = page.querySelector('.box-top'), lid = page.querySelector('.box-lid'), inside = page.querySelector('.box-inside');
       view.boxSize?.disconnect();
       view.boxSize = new ResizeObserver(() => page.style.setProperty('--box-top-h', `${top.offsetHeight}px`));
-      view.boxSize.observe(top);
+      view.boxSize.observe(top, { box: 'border-box' }); // its padding grows once stuck, and the lid sits under all of it
       removeEventListener('scroll', view.onBoxScroll);
       view.onBoxScroll = () => {
         if (!page.contains(top) || !top.offsetParent) return;
