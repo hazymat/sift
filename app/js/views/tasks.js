@@ -10,7 +10,8 @@ import { flash, SOFT } from '../flash.js';
 import * as store from '../store.js';
 import { loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES, HORIZONS, horizonOf, planDay, MAX_DEPTH, depthIn, levelsUnder } from '../tasks.js';
 import { ENERGY, isoDate, dateText, addDays, parseDate, addItem, durationChoices, durationLabel } from '../days.js';
-import { energyMenu } from '../pillmenu.js';
+import { energyMenu, pillMenu } from '../pillmenu.js';
+import { tintHex, tintId, colourMenu } from '../colours.js';
 import { summarise } from '../summary.js';
 import { createListKit } from '../listkit.js';
 import { rowSwipe } from '../rowswipe.js';
@@ -22,7 +23,7 @@ import * as att from '../attachments.js';
 import { atEdge, caretTo } from '../walk.js';
 import { debounced } from '../autosave.js';
 import { editPills, selectPill, datePill, energyPill, fillDates, touch } from '../editpills.js';
-import { ask, askText, askEmptied } from '../ask.js';
+import { ask, askText, askYes, askEmptied } from '../ask.js';
 import { word } from '../words.js';
 import { commentsHtml, mountComments, closingComment } from '../comments.js';
 import { REPEAT_CHOICES, choiceOf, repeatLabel, firstDate } from '../repeat.js';
@@ -40,7 +41,9 @@ const lay = id => layoutOn('tasks', id);
 // Highlight item when added (👁 Layout): the new tasks pulse once, soft blue (flash.js), and
 // the list scrolls to them if they're out of view.
 const showAdded = (root, ids) => { if (lay('added-flash')) ids.forEach((id, n) => flash(root.querySelector(`.task-list > li[data-task="${id}"]`), Object.assign({ scroll: n ? false : 'nearest' }, SOFT))); };
-const COLOURS = ['#6fb0ff', '#7dd3a8', '#f5a66a', '#e58fd0', '#f0d264', '#a99cff', '#ff8a8a'];
+// A project's colour: one of the list colours (colours.js), or the hex older projects were given.
+const projectHex = p => (p?.colour?.startsWith('#') ? p.colour : tintHex(p));
+const isoOk = d => (/^\d{4}-\d{2}-\d{2}$/.test(d || '') ? d : null);
 
 function shortDate(iso) {
   if (!iso) return '';
@@ -123,7 +126,7 @@ export default {
     function chips(t) {
       const out = [];
       const p = projectOf(t);
-      if (p && !state.project) out.push(`<span class="chip" style="--c:${p.colour || COLOURS[0]}">${esc(p.name)}</span>`);
+      if (p && !state.project) out.push(`<span class="chip" style="--c:${projectHex(p)}">${esc(p.name)}</span>`);
       // Values only, in every spacing: the icons say what they are (hover for the words).
       if (t.start_date) out.push(`<span class="chip" title="Planned for ${shortDate(t.start_date)}">📅 ${shortDate(t.start_date)}</span>`);
       const aim = aimDate(t);
@@ -317,13 +320,22 @@ export default {
       let html = '';
       if (project) {
         const pr = progress(scoped);
+        const status = project.status || 'active';
+        // As an open list's top (Lists): back, colour, name and ⋯; then progress, aim date and + Milestone.
         html += `
-          <div class="project-head" style="--c:${project.colour || COLOURS[0]}">
+          <div class="list-top project-top">
+          <div class="project-head" style="--c:${projectHex(project)}">
             <button type="button" class="back" data-act="all-projects">‹ Projects</button>
+            <button type="button" class="note-dot list-colour" data-act="project-colour" title="Project colour" aria-label="Project colour"><span class="swatch" style="--sw:${projectHex(project)}"></span></button>
             <input class="project-name" value="${esc(project.name)}" aria-label="Project name" data-project="${project.id}">
-            <div class="bar"><span style="width:${pr.pct}%"></span></div>
+            ${status !== 'active' ? `<span class="chip">${status === 'done' ? 'Finished' : 'Paused'}</span>` : ''}
+          </div>
+          <div class="list-actions">
+            <div class="bar list-bar"><span style="width:${pr.pct}%"></span></div>
             <span class="muted">${pr.done} of ${pr.total} done</span>
+            <button type="button" data-act="project-aim" title="When you want it finished">⚑ ${project.due_date ? shortDate(project.due_date) : 'Aim date'}</button>
             <button type="button" data-act="new-milestone">+ Milestone</button>
+          </div>
           </div>`;
       }
       html += '<!--list-->';
@@ -344,8 +356,8 @@ export default {
           const roots = top.filter(t => (t.milestone_id || null) === g.id);
           const tasks = visible(roots.flatMap(t => [t, ...under(t.id)]));
           const pr = progress(scoped.filter(t => t.milestone_id === g.id));
-          const label = g.name ? `${esc(g.name)}${g.due_date ? ` <span class="muted">⚑ ${shortDate(g.due_date)}</span>` : ''}${g.id ? ` <span class="muted">${pr.done}/${pr.total}</span>` : ''}` : '';
-          return (label ? head(label, ` data-milestone="${g.id || ''}"`) : '') + rowsOf(tasks);
+          const label = g.name ? `${g.done_at ? '✓ ' : ''}${esc(g.name)}${g.due_date ? ` <span class="muted">⚑ ${shortDate(g.due_date)}</span>` : ''}${g.id ? ` <span class="muted">${pr.done}/${pr.total}</span><button type="button" class="more ms-more" data-act="milestone-menu" data-ms="${g.id}" aria-label="Milestone: rename, aim date, done, move, delete">⋯</button>` : ''}` : '';
+          return (label ? head(label, ` data-milestone="${g.id || ''}"${g.done_at ? ' data-done' : ''}`) : '') + rowsOf(tasks);
         }).join(''));
       } else {
         const tasks = visible(scoped);
@@ -356,6 +368,17 @@ export default {
       html = html.replace('<!--list-->', entry);
       const doneCount = scoped.filter(isDone).length;
       if (doneCount) html += `<p class="muted done-toggle"><button type="button" data-act="toggle-done">${state.showDone ? 'Hide' : 'Show'} ${doneCount} done</button></p>`;
+      // At the end, as an open list's Archive list / Delete list.
+      if (project) {
+        const status = project.status || 'active';
+        html += `<div class="detail-actions list-end">
+          <button type="button" data-act="project-status" data-status="${status === 'paused' ? 'active' : 'paused'}">${status === 'paused' ? 'Resume' : 'Pause'}</button>
+          <button type="button" data-act="project-status" data-status="${status === 'done' ? 'active' : 'done'}">${status === 'done' ? 'Reopen' : '✓ Mark finished'}</button>
+          <span class="spacer"></span>
+          <button type="button" data-act="project-retire" data-how="archive">Archive project</button>
+          <button type="button" class="danger" data-act="project-retire" data-how="delete">Delete project</button>
+        </div>`;
+      }
       return html;
     }
 
@@ -376,20 +399,23 @@ export default {
     }
 
     function viewProjects() {
-      const cards = data.projects.map(p => {
+      const card = p => {
         const tasks = data.tasks.filter(t => t.project_id === p.id);
         const pr = progress(tasks);
         const next = tasks.filter(t => !isDone(t) && !t.parent_task_id).slice(0, 3);
         return `
-          <button type="button" class="project-card" data-open-project="${p.id}" style="--c:${p.colour || COLOURS[0]}">
-            <span class="project-title">${esc(p.name)}</span>
+          <button type="button" class="project-card${p.status === 'paused' ? ' paused' : ''}" data-open-project="${p.id}" style="--c:${projectHex(p)}">
+            <span class="project-title">${esc(p.name)}${p.status === 'paused' ? ' <span class="chip">Paused</span>' : ''}</span>
             <span class="bar"><span style="width:${pr.pct}%"></span></span>
             <span class="muted">${pr.done} of ${pr.total} done${p.due_date ? ` · ⚑ ${shortDate(p.due_date)}` : ''}</span>
-            ${next.length ? `<span class="project-next">${next.map(t => `<span>${esc(t.title)}</span>`).join('')}</span>` : ''}
+            ${next.length && p.status !== 'done' ? `<span class="project-next">${next.map(t => `<span>${esc(t.title)}</span>`).join('')}</span>` : ''}
           </button>`;
-      }).join('');
-      return `<div class="project-grid">${cards}<button type="button" class="project-card add-card" data-act="new-project">+ New project</button></div>
-        <p class="muted hint">${esc(word('ph_tasks_projects'))}</p>`;
+      };
+      // Finished ones go under Finished, at the end.
+      const finished = data.projects.filter(p => p.status === 'done');
+      return `<div class="project-grid">${data.projects.filter(p => p.status !== 'done').map(card).join('')}<button type="button" class="project-card add-card" data-act="new-project">+ New project</button></div>
+        <p class="muted hint">${esc(word('ph_tasks_projects'))}</p>
+        ${finished.length ? `<h3 class="milestone">Finished</h3><div class="project-grid finished">${finished.map(card).join('')}</div>` : ''}`;
     }
 
     function viewDone() {
@@ -1126,9 +1152,94 @@ export default {
       const name = await askText('New project', { ok: 'Add' });
       if (!name?.trim()) return null;
       return store.create('projects', {
-        name: name.trim(), description: '', status: 'active', colour: COLOURS[data.projects.length % COLOURS.length],
+        name: name.trim(), description: '', status: 'active', colour: null,
         sort_order: data.projects.length, due_date: null,
       });
+    }
+
+    // The project page's colour dot and ⋯: colour, aim date, pause / finish, archive / delete.
+    async function projectAct(act, b) {
+      const p = data.projects.find(x => x.id === state.project);
+      if (!p) return;
+      if (act === 'project-colour') {
+        const old = p.colour ?? null;
+        colourMenu(b, tintId(p.colour?.startsWith('#') ? { id: p.id } : p), async v => {
+          await store.update('projects', p.id, { colour: v });
+          await render();
+          undoable('Project colour', async () => { await store.update('projects', p.id, { colour: old }); await render(); });
+        });
+      } else if (act === 'project-aim') {
+        const r = await ask({ title: `Aim date for ${p.name}`, text: 'When you want it finished. Leave it empty for none.', ok: 'Save', fields: [{ name: 'due', type: 'date', value: p.due_date || '' }] });
+        if (!r) return;
+        const old = p.due_date ?? null;
+        await store.update('projects', p.id, { due_date: isoOk(r.due) });
+        await render();
+        undoable('Aim date', async () => { await store.update('projects', p.id, { due_date: old }); await render(); });
+      } else if (act === 'project-status') {
+        const old = p.status || 'active';
+        const to = b.dataset.status;
+        await store.update('projects', p.id, { status: to });
+        if (to === 'done') go('projects', null); else await render();
+        undoable(to === 'done' ? `Finished ${p.name}` : to === 'paused' ? `Paused ${p.name}` : old === 'done' ? `Reopened ${p.name}` : `Resumed ${p.name}`, async () => { await store.update('projects', p.id, { status: old }); await render(); });
+      } else if (act === 'project-retire') {
+        // The project goes with its tasks and milestones (they come back with it from Archive or the Bin).
+        const del = b.dataset.how === 'delete';
+        const tasks = data.tasks.filter(t => t.project_id === p.id), ms = data.milestones.filter(m => m.project_id === p.id);
+        if (del && !await askYes(`Delete ${p.name}?`, { text: `It goes to the Bin${tasks.length ? ` with its ${tasks.length} task${tasks.length === 1 ? '' : 's'}` : ''}. Restore it from there if you change your mind.`, ok: 'Delete', danger: true })) return;
+        const field = del ? 'deleted_at' : 'archived_at', now = new Date().toISOString();
+        await store.update('projects', p.id, { [field]: now });
+        if (tasks.length) await store.updateMany('tasks', tasks.map(t => [t.id, { [field]: now }]));
+        if (ms.length) await store.updateMany('milestones', ms.map(m => [m.id, { [field]: now }]));
+        go('projects', null);
+        undoable(`${del ? 'Deleted' : 'Archived'} ${p.name}`, async () => {
+          await store.update('projects', p.id, { [field]: null });
+          if (tasks.length) await store.updateMany('tasks', tasks.map(t => [t.id, { [field]: null }]));
+          if (ms.length) await store.updateMany('milestones', ms.map(m => [m.id, { [field]: null }]));
+          go('list', p.id);
+        });
+      }
+    }
+
+    // A milestone heading's ⋯: rename, aim date, done, move up / down, delete.
+    function milestoneMenu(b) {
+      const m = data.milestones.find(x => x.id === b.dataset.ms);
+      if (!m) return;
+      const mine = data.milestones.filter(x => x.project_id === m.project_id);
+      const at = mine.indexOf(m);
+      const options = [{ value: 'edit', label: 'Rename', title: 'Rename, or change the aim date' }, { value: 'done', label: m.done_at ? 'Not done' : '✓ Done' }];
+      if (at > 0) options.push({ value: 'up', label: '↑', title: 'Move up' });
+      if (at < mine.length - 1) options.push({ value: 'down', label: '↓', title: 'Move down' });
+      options.push({ value: 'delete', label: 'Delete' });
+      pillMenu(b, options, async v => {
+        const before = { name: m.name, due_date: m.due_date ?? null, done_at: m.done_at ?? null, rank: m.rank ?? null };
+        const redo = async () => { await store.update('milestones', m.id, before); await render(); };
+        if (v === 'edit') {
+          const r = await ask({ title: 'Milestone', ok: 'Save', fields: [{ name: 'name', label: 'Name', value: m.name }, { name: 'due', label: 'Aim date (optional)', type: 'date', value: m.due_date || '' }] });
+          if (!r?.name?.trim()) return;
+          await store.update('milestones', m.id, { name: r.name.trim(), due_date: isoOk(r.due) });
+          await render();
+          undoable('Saved', redo);
+        } else if (v === 'done') {
+          await store.update('milestones', m.id, { done_at: m.done_at ? null : new Date().toISOString() });
+          await render();
+          undoable(m.done_at ? 'Not done' : `${m.name} done`, redo);
+        } else if (v === 'up' || v === 'down') {
+          const rank = v === 'up' ? keyBetween(at > 1 ? rankOf(mine[at - 2]) : null, rankOf(mine[at - 1])) : keyBetween(rankOf(mine[at + 1]), at + 2 < mine.length ? rankOf(mine[at + 2]) : null);
+          await store.update('milestones', m.id, { rank });
+          await render();
+        } else if (v === 'delete') {
+          // Its tasks stay in the project, under No milestone.
+          const tasks = data.tasks.filter(t => t.milestone_id === m.id);
+          await store.remove('milestones', m.id);
+          if (tasks.length) await store.updateMany('tasks', tasks.map(t => [t.id, { milestone_id: null }]));
+          await render();
+          undoable(`Deleted ${m.name}`, async () => {
+            await store.restore('milestones', m.id);
+            if (tasks.length) await store.updateMany('tasks', tasks.map(t => [t.id, { milestone_id: m.id }]));
+            await render();
+          });
+        }
+      }, { className: 'ms-menu' });
     }
 
     // A task's panel: date fields save when left (inline.js); a Clear in a
@@ -1310,12 +1421,16 @@ export default {
       } else if (act === 'new-project') {
         const p = await newProject();
         if (p) go('list', p.id);
+      } else if (act === 'project-colour' || act === 'project-aim' || act === 'project-status' || act === 'project-retire') {
+        await projectAct(act, b);
+      } else if (act === 'milestone-menu') {
+        milestoneMenu(b);
       } else if (act === 'new-milestone') {
         const r = await ask({ title: 'New milestone', ok: 'Add', fields: [{ name: 'name', label: 'Name', placeholder: word('ph_milestone') }, { name: 'due', label: 'Aim date (optional)', type: 'date' }] });
         const name = r?.name;
         if (!name?.trim()) return;
         const due = r.due || null;
-        await store.create('milestones', { project_id: state.project, name: name.trim(), due_date: /^\d{4}-\d{2}-\d{2}$/.test(due || '') ? due : null, done_at: null, sort_order: data.milestones.length });
+        await store.create('milestones', { project_id: state.project, name: name.trim(), due_date: isoOk(due), done_at: null, sort_order: data.milestones.length });
         render();
       } else if (act === 'add-sub' && task) {
         const sub = await addTask({ title: 'New sub-task', parent_task_id: task.id, project_id: task.project_id, milestone_id: task.milestone_id, rank: afterFamily(task) });
