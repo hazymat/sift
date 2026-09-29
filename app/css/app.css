@@ -553,6 +553,20 @@ button.danger { color: #ff8a80; }
 .box-card:focus-visible { outline: 2px solid var(--active-border); outline-offset: 2px; }
 .box-pills { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 3px; margin-top: 5px; max-height: calc(3 * 1.45rem); overflow: hidden; }
 .box-pills.all { max-height: none; }
+/* 👁 Spacing, as Brain Dump's notes: Tight packs in small boxes with small pills; Roomy makes big boxes showing many more of their things. */
+#main[data-density="tight"] .box-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+#main[data-density="tight"] .box-card { padding: 7px 8px 8px; border-radius: 14px; }
+#main[data-density="tight"] .box-code { font-size: 1.05rem; }
+#main[data-density="tight"] .box-name { font-size: .75rem; }
+#main[data-density="tight"] .box-pills { gap: 2px; margin-top: 3px; max-height: calc(7 * 1.1rem); }
+#main[data-density="tight"] .box-card .item-pill { padding: 0 5px; font-size: .62rem; line-height: 1rem; }
+#main[data-density="tight"] .box-card .quick-add { display: none; }
+#main[data-density="loose"] .box-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+#main[data-density="loose"] .box-card { padding: 14px 16px 16px; }
+#main[data-density="loose"] .box-code { font-size: 1.6rem; }
+#main[data-density="loose"] .box-name { font-size: 1rem; }
+#main[data-density="loose"] .box-pills { gap: 4px; max-height: calc(9 * 1.6rem); }
+#main[data-density="loose"] .box-card .item-pill { padding: 2px 9px; font-size: .8rem; line-height: 1.4rem; }
 .item-pill {
   max-width: 100%;
   padding: 1px 7px;

@@ -951,6 +951,9 @@ export default {
 
     this.onResize = () => { if (!openId) fitPills(); };
     addEventListener('resize', this.onResize);
+    // 👁 Spacing: smaller or bigger boxes, each showing as many of its things as fit.
+    this.onDensity = new MutationObserver(() => { if (!openId) fitPills(); });
+    this.onDensity.observe(document.getElementById('main'), { attributes: true, attributeFilter: ['data-density'] });
     this.openBox = openBox;
     tree = await loadTreeA();
     show();
@@ -967,6 +970,7 @@ export default {
     this.pills?.destroy();
     removeEventListener('keydown', this.onKey);
     removeEventListener('resize', this.onResize);
+    this.onDensity?.disconnect();
     removeEventListener('scroll', this.onBoxScroll);
     this.boxSize?.disconnect();
   },

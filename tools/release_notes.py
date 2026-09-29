@@ -979,3 +979,4 @@ NOTES['1.57.06'] = [F('Find Things: in an open box, Add items is now at the top 
 NOTES['1.57.07'] = [F('Find Things: an open box\'s Add items is a single line in line with the things in it, with a faint cube on its left, instead of a box.')]
 NOTES['1.57.08'] = [F('Find Things: the line at the top of an open box now just says Add (change it in Settings, Your words).')]
 NOTES['1.57.09'] = [F('Find Things: scrolling down a long box keeps its top in view: the back button, the search and the lid with its label stay at the top of the screen.')]
+NOTES['1.57.10'] = [F('Find Things: 👁 Spacing now changes the boxes. Tight packs in smaller boxes with small labels, so you see far more of each box\'s things at once; Roomy makes big boxes with bigger labels.')]
