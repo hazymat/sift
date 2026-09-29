@@ -2257,7 +2257,7 @@ body.pills-only :is(.task-list, .item-list, .checklist, .planner) .more:not([ari
    page (it can't be hidden), so the toolbar sits just above it (fullnote.js: --safari-bar). */
 .rich.is-full > .md-bar { margin-bottom: var(--safari-bar, 0px); }
 }
-.rich.is-full .md-full { background: var(--active-bg); border-color: var(--active-border); }
+.rich.is-full .md-full { border-color: color-mix(in srgb, var(--energy-ink, #4caf7a) 65%, transparent); background: color-mix(in srgb, var(--energy-ink, #4caf7a) 24%, transparent); }
 @media (min-width: 761px) { .rich.is-full { right: auto; width: min(900px, 100vw); left: max(0px, calc(50vw - 450px)); } }
 /* Nothing on the page behind it scrolls, and nothing on the way up can trap the fixed note. */
 html.note-full, html.note-full body { overflow: hidden; }
@@ -3592,8 +3592,8 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
   :is(.pile-paper, #lines) .line.has-item > .content:has(> .close-top, > .edit-pills.pill-top) > textarea.item-title { padding-right: 96px; }
 }
 @media (hover: none) { #main .line.has-item > .content:has(> .close-top, > .edit-pills.pill-top) > textarea.item-title { max-width: calc(100% - 104px); } } /* phones: beside the name */
-:is(.pill-reveal, .task-list > li[data-task] > .more, .line.has-item > .content > .more, .item-list > li[data-item] > .more, .close-top) { color: var(--text); border-color: color-mix(in srgb, var(--energy-ink, #4caf7a) 40%, transparent); background: color-mix(in srgb, var(--energy-ink, #4caf7a) 13%, transparent); }
-:is(.pill-reveal, .task-list > li[data-task] > .more, .line.has-item > .content > .more, .item-list > li[data-item] > .more, .close-top):is(:hover, :focus-visible) { border-color: color-mix(in srgb, var(--energy-ink, #4caf7a) 65%, transparent); background: color-mix(in srgb, var(--energy-ink, #4caf7a) 24%, transparent); outline: none; }
+:is(.pill-reveal, .task-list > li[data-task] > .more, .line.has-item > .content > .more, .item-list > li[data-item] > .more, .close-top, .md-full, .bare-full, .note-full-done) { color: var(--text); border-color: color-mix(in srgb, var(--energy-ink, #4caf7a) 40%, transparent); background: color-mix(in srgb, var(--energy-ink, #4caf7a) 13%, transparent); }
+:is(.pill-reveal, .task-list > li[data-task] > .more, .line.has-item > .content > .more, .item-list > li[data-item] > .more, .close-top, .md-full, .bare-full, .note-full-done):is(:hover, :focus-visible) { border-color: color-mix(in srgb, var(--energy-ink, #4caf7a) 65%, transparent); background: color-mix(in srgb, var(--energy-ink, #4caf7a) 24%, transparent); outline: none; }
 #main:not([data-density="tight"]) .task-list > li[data-task]:has(> .edit-pills > .pill-reveal) > .item-sub { order: 4; }
 .edit-pills:has(> .pill-reveal) > :not(.pill-reveal, .pill-done) { display: none; }
 #main[data-density="tight"] .task-list > li[data-task]:has(> .edit-pills > .pill-reveal):not(:has(> .note-in-place, > .edit-pills:not(.pill-top))) { flex-wrap: nowrap; }
