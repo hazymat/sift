@@ -948,3 +948,4 @@ NOTES['1.55.03'] = [B("Batch Book: a recipe card's ⋯ menu near the top or bott
 NOTES['1.55.04'] = [F("Green means open or close: a note's full-screen ⤢ button is green like More and ✓ Close, and so is Done in full screen.")]
 NOTES['1.55.05'] = [F("Tasks and the Day Planner: Shift+Enter while writing a task's note in quick edit (or in Add note) opens its full panel, as it does from the task's name, and what was typed in the note is kept.")]
 NOTES['1.55.06'] = [B("Tasks and Projects: a task ticked off got its wave and folded away, but its name didn't fade first (only its pills did).")]
+NOTES['1.55.07'] = [F("An open list and a box in Find Things take the arrow keys like Tasks: ↓ starts editing (the Add items line at the top of a list, a box's first thing), ↑ / ↓ move from item to item while editing, and Shift+↑ / ↓ select items. No blue browsing box there any more; it stays for pages of cards.")]

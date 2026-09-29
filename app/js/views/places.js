@@ -17,6 +17,7 @@ import { editPills, selectPill } from '../editpills.js';
 import { askText, askYes, askEmptied } from '../ask.js';
 import { word } from '../words.js';
 import { keys } from '../keys.js';
+import { atEdge, caretTo } from '../walk.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -675,6 +676,22 @@ export default {
         location.hash = `#/find-things/${box.id}`;
       }
     }
+
+    // ↑ / ↓ in a box's thing name: straight to the thing above / below (as Tasks and Lists);
+    // from the last one down into Add items, and from Add items' top line back up.
+    page.addEventListener('keydown', ev => {
+      if ((ev.key !== 'ArrowUp' && ev.key !== 'ArrowDown') || ev.defaultPrevented || ev.shiftKey || ev.ctrlKey || ev.altKey || ev.metaKey || ev.isComposing) return;
+      const t = ev.target;
+      if (!t.matches?.('#new-items, .item-list > li[data-item] > input[name="name"]')) return;
+      const up = ev.key === 'ArrowUp';
+      if (t.id === 'new-items' && !atEdge(t, up ? 'up' : 'down')) return;
+      const stops = [...page.querySelectorAll('.item-list > li[data-item] > input[name="name"]'), page.querySelector('#new-items')].filter(f => f?.getClientRects().length);
+      const to = stops[stops.indexOf(t) + (up ? -1 : 1)];
+      if (!to) return;
+      ev.preventDefault();
+      to.focus();
+      caretTo(to, up ? 'end' : 'start');
+    });
 
     // Inline add on a card: Enter adds the item and keeps the field ready.
     body.addEventListener('keydown', async ev => {

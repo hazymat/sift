@@ -2,8 +2,8 @@
 // edited: where ← / → change tabs and Ctrl+← / → change areas):
 //   ↑, Esc   do nothing here (Esc still steps back from a record's page,
 //            and clears a search left in the search box)
-//   ↓        Tasks / Day Planner: start editing the first entry (Tasks with
-//            its New task line at the top: that line) (↑ / ↓ then
+//   ↓        Tasks / Day Planner / an open list / a box: start editing the first
+//            entry (Tasks and Lists with their new line at the top: that line) (↑ / ↓ then
 //            walk the list, as while editing). Elsewhere: into the search box
 //            above the items, if there is one; ↓ again starts browsing.
 //            With nothing in the list yet, ↓ does what Enter does.
@@ -79,16 +79,21 @@ const AREAS = {
     down: () => focusEnd(all('#lines .line.has-item .item-title')[0] || all('#main .line.has-item .item-title')[0]) || focusEnd($('#dump')),
     enter: () => focusEnd($('#dump')),
   },
+  // An open list, like Tasks: ↓ starts editing (the new item line at the top), and ↑ / ↓ then
+  // walk the items as while editing (Shift+↑ / ↓ there selects). The lists page browses its cards.
   lists: {
-    items: '#main .project-grid .list-card, #main li[data-id]:has(> input[name="text"])',
+    items: '#main .project-grid .list-card',
+    down: () => focusEnd($('#list-new')) || false,
     enter: () => focusEnd($('#list-new')),
-    open: el => (el.matches('a') ? click(el) : focusEnd(el.querySelector('input[name="text"]'))),
+    open: el => click(el),
   },
+  // A box's page, the same: ↓ into its first thing's name (or Add items). The grid browses boxes.
   places: {
     search: '#find-q, #box-q',
-    items: '#main .box-card, #main li[data-item]:not(.thing-panel)',
+    items: '#main .box-card',
+    down: () => focusEnd(all('#main .item-list > li[data-item] > input[name="name"]')[0]) || focusEnd($('#new-items')) || false,
     enter: () => focusEnd($('#new-items')),
-    open: el => (el.matches('.box-card') ? click(el) : focusEnd(el.querySelector('input[name="name"]'))),
+    open: el => click(el),
   },
   contacts: {
     search: '#c-q',
@@ -231,9 +236,8 @@ export function installBrowse({ busy, area }) {
     }
     if ((ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') && bar(c).length) { take(ev); moveBar(c, ev.key === 'ArrowLeft' ? -1 : 1); return; }
     if (ev.key === 'ArrowDown') {
-      let done = false;
-      if (c.down) done = c.down();
-      else if (c.search && all(c.search)[0]) { all(c.search)[0].focus(); done = true; }
+      let done = !!c.down?.(); // (false when there's nothing of its kind on this page: then as elsewhere)
+      if (done) { /* taken */ } else if (c.search && all(c.search)[0]) { all(c.search)[0].focus(); done = true; }
       else if (list[0]) { go(list[0]); done = true; }
       else done = !!c.enter?.();
       if (done) take(ev);
