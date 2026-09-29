@@ -2694,12 +2694,7 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 .day-housekeeping { margin-top: 40px; padding: 12px 4px 0; border-top: 1px solid var(--rule, var(--glass-border)); font-size: .8rem; color: var(--muted); display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 6px; }
 /* After every row of the layout (a named area would put it in one column). */
 .planner.docked > .day-housekeeping { grid-area: auto; grid-column: 1 / -1; grid-row: 99; }
-.hk-title { font-weight: 600; }
-.hk-link { padding: 0; border: 0; background: none; box-shadow: none; font-size: inherit; color: var(--muted); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--muted) 50%, transparent); text-underline-offset: 3px; cursor: pointer; }
-.hk-link:hover { color: var(--text); }
-.hk-link.danger { color: color-mix(in srgb, #ff8a8a 80%, var(--muted)); }
-.hk-sep { opacity: .5; }
-.day-housekeeping .hint { flex-basis: 100%; margin: 6px 0 0; }
+.day-housekeeping .hint { flex-basis: 100%; margin: 0; }
 
 /* Tasks: the lists (Task Dump, Now, Next, Later, Done) as plain text tabs with
    an underline, like the Brain Dump filters, not pills like the main menu. */
@@ -3691,7 +3686,7 @@ kbd + kbd, .pill-reveal kbd + kbd, .pill-done kbd + kbd { margin-left: 3px; }
 .share-chip { cursor: pointer; }
 .day-people { display: contents; }
 .day-shared-with { margin: 0 0 8px; font-size: .85rem; }
-.planner.theirs .bring-link, .planner.theirs .day-housekeeping, .planner.theirs .carry { display: none; }
+.planner.theirs .bring-link, .planner.theirs .day-housekeeping, .planner.theirs .day-nav .page-more, .planner.theirs .carry { display: none; }
 .planner.not-shared :is(.day-head, .schedule-title, .paper, .day-bottom) { opacity: .35; }
 #main.theirs .dump-find .hint,
 #main.theirs .thought-actions > :is([data-act="to-task"], [data-act="plan"], [data-act="store"]),
@@ -3835,7 +3830,7 @@ html[data-slide="back"]::view-transition-new(sift-page) { animation-name: sift-i
 
 /* Day Planner: the day bar stays on one line (container: .day-nav), after its own button rules. */
 @container (max-width: 400px) { .day-nav .share-word { display: none; } .day-nav .share-menu summary { padding-inline: 12px; } } /* no room for the word: Share is its icon */
-@container (max-width: 340px) { .day-nav .day-step { padding-inline: 7px; } .day-nav .cal-icon { padding-inline: 6px; } .day-nav > button:not(.day-step, .cal-icon) { padding-inline: 6px; } .day-nav .share-menu summary { padding-inline: 8px; } .day-nav .view-menu { margin-left: 0; } } /* the smallest phones: tighter still */
+@container (max-width: 340px) { .day-nav .day-step { padding-inline: 7px; } .day-nav .cal-icon { padding-inline: 6px; } .day-nav > button:not(.day-step, .cal-icon) { padding-inline: 6px; } .day-nav .share-menu summary { padding-inline: 8px; } .day-nav .view-menu { margin-left: 0; } .day-nav .tool-menu > .icon-btn { width: 32px; } } /* the smallest phones: tighter still */
 @media (max-width: 400px) { .day-nav { gap: 3px; } } /* a container can't query itself */
 
 /* Tasks, compact spacing: beside a task's name only its note (📝; and a tour's ▶ pill), no other pills,
