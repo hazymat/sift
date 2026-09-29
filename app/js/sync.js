@@ -255,9 +255,21 @@ const IN_SCOPE = {
   note: (info, c, r) => c === 'thoughts' && r.id === info.id,
   recipe: (info, c, r) => (c === 'recipes' && r.id === info.id) || ((c === 'recipe_makes' || c === 'recipe_entries') && r.recipe_id === info.id),
   days: (info, c, r) => (c === 'days' || c === 'day_items') && !!r.date && (!info.from || r.date >= info.from) && (!info.to || r.date <= info.to),
-  project: (info, c, r) => (c === 'projects' && r.id === info.id) || ((c === 'milestones' || c === 'tasks') && r.project_id === info.id),
+  project: (info, c, r) => (c === 'projects' && r.id === info.id) || ((c === 'milestones' || c === 'tasks' || c === 'comments') && r.project_id === info.id),
 };
-const SHAREABLE = ['lists', 'list_items', 'thoughts', 'days', 'day_items', 'recipes', 'recipe_makes', 'recipe_entries', 'projects', 'milestones', 'tasks'];
+const SHAREABLE = ['lists', 'list_items', 'thoughts', 'days', 'day_items', 'recipes', 'recipe_makes', 'recipe_entries', 'projects', 'milestones', 'tasks', 'comments'];
+// A comment goes where its task goes: it carries task_id, so its task's project is looked up.
+async function scoped(space, c, r) {
+  if (c !== 'comments') return r;
+  const task = r.task_id && await space.get('tasks', r.task_id, { includeDeleted: true });
+  return Object.assign({}, r, { project_id: task?.project_id || null });
+}
+// The ids of a collection's records in a space that pass a test (on the record as scoped).
+async function idsWhere(space, c, test) {
+  const out = [];
+  for (const r of await space.list(c, { includeDeleted: true })) if (test(await scoped(space, c, r))) out.push(r.id);
+  return out;
+}
 export const inShare = (sh, c, r) => !!IN_SCOPE[sh.info?.kind]?.(sh.info, c, r);
 function routes(space, c, r) {
   return shares.filter(sh => sh.accepted && (space.isLocal ? sh.mine : !sh.mine && space === store.spaceOf(sh.owner_id)) && inShare(sh, c, r)).map(sh => sh.id);
@@ -268,6 +280,14 @@ function routes(space, c, r) {
 // again next round.
 async function push() {
   const spaces = [store.local, ...new Set(shares.filter(sh => sh.accepted && !sh.mine).map(sh => store.spaceOf(sh.owner_id)))];
+  // Once (1.54.08): comments on shared projects' tasks weren't shared before; they go up now.
+  if (!await store.metaGet('comments_shared')) {
+    for (const space of spaces) {
+      const ids = await idsWhere(space, 'comments', r => shares.some(sh => sh.accepted && sh.info?.kind === 'project' && inShare(sh, 'comments', r)));
+      if (ids.length) await space.queue('comments', ids, null);
+    }
+    await store.metaSet('comments_shared', true);
+  }
   for (let round = 0; round < 5; round++) {
     let conflicts = 0;
     for (const space of spaces) conflicts += await pushSpace(space);
@@ -284,7 +304,15 @@ async function pushSpace(space) {
     for (const e of entries.slice(i, i + 200)) {
       const rec = await space.get(e.collection, e.id, { includeDeleted: true });
       if (!rec) { await space.markPushed(e.collection, e.id, {}, e.queued_at); continue; }
-      const inShares = routes(space, e.collection, rec);
+      const inShares = routes(space, e.collection, await scoped(space, e.collection, rec));
+      // A task into or out of a share: its comments follow (queued, they go next round).
+      if (e.collection === 'tasks') {
+        const was = Object.keys(rec._share_seqs || {}).filter(id => rec._share_seqs[id]).sort().join();
+        if (was !== [...inShares].sort().join()) {
+          const ids = (await space.list('comments', { includeDeleted: true, filter: k => k.task_id === rec.id })).map(k => k.id);
+          if (ids.length) await space.queue('comments', ids, null);
+        }
+      }
       // Just taken out of a share (a task moved out of a shared project): that share has it once more,
       // so everyone sharing sees it go, and then no more (its seq there is set to 0 below).
       const left = e.places ? [] : Object.keys(rec._share_seqs || {}).filter(id => rec._share_seqs[id] && !inShares.includes(id) && shares.some(sh => sh.id === id && sh.accepted && (space.isLocal ? sh.mine : !sh.mine)));
@@ -394,7 +422,7 @@ async function forgetShare(gone, still) {
   if (!others.length) return store.dropSpace(gone.owner_id);
   const space = store.spaceOf(gone.owner_id);
   for (const c of SHAREABLE) {
-    const ids = (await space.list(c, { includeDeleted: true })).filter(r => inShare(gone, c, r) && !others.some(sh => inShare(sh, c, r))).map(r => r.id);
+    const ids = await idsWhere(space, c, r => inShare(gone, c, r) && !others.some(sh => inShare(sh, c, r)));
     await space.forget(c, ids);
   }
 }
@@ -419,7 +447,7 @@ export async function shareWith(info, email) {
     // What is already there goes up to the share.
     for (const c of SHAREABLE) {
       const probe = { info };
-      const ids = (await store.local.list(c, { includeDeleted: true })).filter(r => inShare(probe, c, r)).map(r => r.id);
+      const ids = await idsWhere(store.local, c, r => inShare(probe, c, r));
       if (ids.length) await store.local.queue(c, ids, [id]);
     }
   } else {
@@ -439,7 +467,7 @@ export async function leaveShare(id, userId = account.user_id) { await api('DELE
 export async function stopSharing(id) {
   const sh = shares.find(x => x.id === id);
   for (const c of SHAREABLE) {
-    const ids = (await store.local.list(c, { includeDeleted: true })).filter(r => sh && inShare(sh, c, r)).map(r => r.id);
+    const ids = await idsWhere(store.local, c, r => sh && inShare(sh, c, r));
     if (ids.length) await store.local.queue(c, ids, null);
   }
   await api('DELETE', `/api/shares/${id}`);
