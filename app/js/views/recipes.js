@@ -764,32 +764,6 @@ export default {
 
     // ---------- pressing things ----------
 
-    // Press and hold a recipe card: it's selected (as a tap on its ⠿ does) and the bar comes up; while
-    // anything is selected, a single press on another card adds it or takes it out. Esc clears (listkit).
-    let hold = null, held = false;
-    const cardAt = t => (t.closest?.('.bb-card-acts, .kit-grip') ? null : t.closest?.('.bb-cards > li[data-id]'));
-    el.addEventListener('pointerdown', ev => {
-      const li = cardAt(ev.target);
-      if (!li || ev.button > 0) return;
-      held = false;
-      const from = { x: ev.clientX, y: ev.clientY };
-      clearTimeout(hold?.timer);
-      hold = { li, from, timer: setTimeout(() => { held = true; kit.toggle(li.dataset.id); navigator.vibrate?.(15); }, 450) };
-    });
-    const letGo = () => { clearTimeout(hold?.timer); hold = null; };
-    el.addEventListener('pointermove', ev => { if (hold && Math.hypot(ev.clientX - hold.from.x, ev.clientY - hold.from.y) > 8) letGo(); });
-    el.addEventListener('pointerup', letGo);
-    el.addEventListener('pointercancel', letGo);
-    el.addEventListener('contextmenu', ev => { if (cardAt(ev.target)) ev.preventDefault(); });
-    el.addEventListener('click', ev => {
-      const li = cardAt(ev.target);
-      if (!li || !(held || kit?.size)) return;
-      ev.preventDefault();
-      ev.stopPropagation();
-      if (held) { held = false; return; } // the hold already chose it
-      kit.toggle(li.dataset.id, ev.shiftKey); // Shift: every card from the last one picked to this one
-    }, true);
-
     // Pressing an ingredient chip keeps the cursor in the step being written.
     el.addEventListener('mousedown', ev => { if (ev.target.closest('[data-ref]')) ev.preventDefault(); });
 
@@ -1251,7 +1225,7 @@ export default {
       kit?.destroy();
       kitBooks = names;
       kit = this.kit = createListKit({
-        reorder: true, grid: true, noun: 'recipe', onReorder: persistOrder,
+        reorder: true, grid: true, holdSelect: true, noun: 'recipe', onReorder: persistOrder, // press and hold a card selects it; then a tap adds or takes out
         actions: sections.map((x, n) => ({ id: `book${n}`, label: `${x.emoji} ${x.name || 'No book'}`, group: 'Move to', run: ids => moveRecipes(ids, { type: x.name }, `Moved to ${x.name || 'No book'}`) }))
           .concat([
             { id: 'pin', label: 'Pin', run: ids => moveRecipes(ids, { pinned: true }, 'Pinned') },
