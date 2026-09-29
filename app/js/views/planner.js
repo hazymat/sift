@@ -733,7 +733,7 @@ export default {
       box.textContent = over ? `That's ${durationLabel(minutes)} of plan for a ${durationLabel(length)} day. Something could move to another day.` : '';
     }
     // Day tasks and the schedule: a name longer than two lines shows two, fading at the end (app.css); these
-    // are the ones cut short. In the schedule, pills that go under a long name start under the name, not
+    // are the ones cut short. Pills that go under a long name go together and start under the name, not
     // under its ⠿ and tick box (which stay beside it, in the middle of it as before).
     function clampTitles() {
       for (const title of el.querySelectorAll('.line.has-item textarea.item-title')) {
@@ -741,12 +741,17 @@ export default {
         const lines = (title.scrollHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)) / parseFloat(style.lineHeight);
         title.classList.toggle('clamped', lines > 2.3); // more than two lines (not the padding under two)
       }
-      for (const content of linesEl.querySelectorAll('.line.has-item > .content')) {
+      for (const content of el.querySelectorAll(':is(#lines, #pile) .line.has-item > .content')) {
         const title = content.querySelector(':scope > .item-title');
         const pills = [...content.querySelectorAll(':scope > :is(.span-tag, .note-tag)')];
         if (!title || !pills.length) continue;
         pills.forEach(pill => { pill.style.marginLeft = ''; });
-        const under = pills.find(pill => pill.offsetTop >= title.offsetTop + title.offsetHeight - 4);
+        content.classList.remove('pills-under');
+        const shown = pills.filter(pill => pill.offsetParent);
+        const isUnder = pill => pill.offsetTop >= title.offsetTop + title.offsetHeight - 4;
+        // The pills go under together: never one left beside the name and the rest on a line of their own.
+        if (shown.some(isUnder) && !isUnder(shown[0])) content.classList.add('pills-under');
+        const under = shown.find(isUnder);
         if (under) under.style.marginLeft = `${title.offsetLeft - under.offsetLeft}px`;
       }
     }
