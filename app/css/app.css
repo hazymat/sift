@@ -3610,8 +3610,8 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
 .item-list > li[data-item]:is(.pills-open, :has(> .close-top)) > .more { display: none !important; }
 .item-list > li[data-item] > .edit-pills.pill-top { display: contents; }
 :is(.item-list > li[data-item] > .close-top, .item-list > li[data-item] > .edit-pills.pill-top > .pill-reveal) { flex: none; margin-left: auto; padding: 2px 10px; font-size: .78rem; }
-/* The Day Planner the same (planner.js): More on hover (it goes into the name, with the pills), More (full) while
-   editing, ✓ Close with the panel open; floating at the end of the first line where ⋯ was. */
+/* The Day Planner the same (planner.js), but with no pills under the name (as Lists): More on hover and while
+   editing, both opening the full panel, then ✓ Close; floating at the end of the first line where ⋯ was. */
 .line.has-item > .content > .more { opacity: 1; padding: 2px 10px; font-size: .78rem; }
 .line.has-item > .content > .edit-pills.pill-top { display: contents; }
 :is(.line.has-item > .content > .close-top, .line.has-item > .content > .edit-pills.pill-top > .pill-reveal) { flex: none; margin-left: auto; padding: 2px 10px; font-size: .78rem; }
@@ -3620,6 +3620,15 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
   :is(.pile-paper, #lines) .line.has-item > .content > .more { background: color-mix(in srgb, var(--energy-ink, #4caf7a) 13%, var(--menu-bg, var(--glass-strong))); }
   :is(.pile-paper, #lines) :is(.line.has-item > .content > .close-top, .line.has-item > .content > .edit-pills.pill-top > .pill-reveal) { position: absolute; right: 6px; top: 2px; margin: 0; z-index: 1; background: color-mix(in srgb, var(--energy-ink, #4caf7a) 13%, var(--menu-bg, var(--glass-strong))); }
   :is(.pile-paper, #lines) .line.has-item > .content:has(> .close-top, > .edit-pills.pill-top) > textarea.item-title { padding-right: 96px; }
+  :is(.pile-paper, #lines) .line.has-item > .content:has(> .edit-pills.pill-top > .pill-reveal kbd) > textarea.item-title { padding-right: 144px; }
+  /* Pills beside a short name keep clear of that spot, as a task's do (always, so nothing moves on hover). */
+  :is(.pile-paper, #lines) .line.has-item > .content { --more-room: 54px; }
+  :is(.pile-paper, #lines) .line.has-item > .content:has(> .edit-pills.pill-top) { --more-room: 96px; }
+  :is(.pile-paper, #lines) .line.has-item > .content:has(> .edit-pills.pill-top > .pill-reveal kbd) { --more-room: 148px; }
+  :is(.pile-paper, #lines) .line.has-item > .content:has(> .close-top) { --more-room: 116px; }
+  :is(.pile-paper, #lines) .line.has-item > .content > .span-tag:not(:has(~ .span-tag)) { margin-right: var(--more-room); }
+  #main[data-density="tight"] :is(.pile-paper, #lines) .line.has-item > .content:has(> .note-tag) > .span-tag { margin-right: 0; }
+  #main[data-density="tight"] :is(.pile-paper, #lines) .line.has-item > .content > .note-tag { margin-right: var(--more-room); }
 }
 @media (hover: none) { #main .line.has-item > .content:has(> .close-top, > .edit-pills.pill-top) > textarea.item-title { max-width: calc(100% - 104px); } } /* phones: beside the name */
 :is(.pill-reveal, .task-list > li[data-task] > .more, .line.has-item > .content > .more, .item-list > li[data-item] > .more, .close-top, .md-full, .bare-full, .note-full-done) { color: var(--text); border-color: color-mix(in srgb, var(--energy-ink, #4caf7a) 40%, transparent); background: color-mix(in srgb, var(--energy-ink, #4caf7a) 13%, transparent); }
