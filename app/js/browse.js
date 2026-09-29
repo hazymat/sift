@@ -95,7 +95,7 @@ const AREAS = {
     search: '#find-q, #box-q',
     bar: '#editions [data-edition]',
     items: '#main .box-card',
-    down: () => focusEnd(all('#main .item-list > li[data-item] > input[name="name"]')[0]) || focusEnd($('#new-items')) || false,
+    down: () => focusEnd($('#new-items')) || focusEnd(all('#main .item-list > li[data-item] > input[name="name"]')[0]) || false,
     enter: () => focusEnd($('#new-items')),
     open: el => click(el),
   },

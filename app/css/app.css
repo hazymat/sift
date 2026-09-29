@@ -3626,7 +3626,8 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
    earlier versions: New task a rounded box at the top with Add, and each task a
    shaded rounded card, its sub-tasks inside the same card. */
 .entry-add { display: none; }
-#main:is([data-area="tasks"], [data-area="lists"]):not([data-layout-lined]) {
+/* A box's page has no lined paper, so its Add items is always this rounded box (at the top, as an open list's). */
+#main:is([data-area="tasks"], [data-area="lists"]):not([data-layout-lined]), #box-page {
   .task-add-line, .task-add-line:focus-within { margin: 0 0 var(--row-gap, 6px); padding: 4px 4px 4px 14px; min-height: 44px; border: 1px solid var(--glass-border); border-radius: 14px; background: var(--glass-track); }
   .task-add-line:focus-within { border-color: var(--active-border); }
   .task-add-line::after { display: none; }
@@ -4233,7 +4234,8 @@ textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
 .box-page .box-page-head input.box-code-input:placeholder-shown { font-size: 1.05rem; min-width: 6.4em; }
 .box-inside { margin: 14px 14px 0; padding: 6px 12px 12px; border-radius: 18px; background: color-mix(in srgb, #000 22%, transparent); box-shadow: inset 0 10px 18px -8px rgba(0, 0, 0, .6), inset 0 0 0 1px color-mix(in srgb, var(--tint) 18%, transparent); }
 .box-inside > h3 { margin: 6px 4px 4px; }
-.box-inside .list-entry { background: color-mix(in srgb, var(--text) 5%, transparent); }
+.box-inside #box-entry { margin-top: 4px; }
+#box-entry .new-task-line { resize: none; }
 .box-page > .hint, .box-page > .sheet-actions { margin-left: 22px; margin-right: 22px; }
 .box-page > .sheet-actions { margin-bottom: 18px; }
 @media (max-width: 560px) {
