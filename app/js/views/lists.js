@@ -60,7 +60,7 @@ export default {
       const copies = from ? 0 : data.lists.filter(x => x.template_id === l.id).length;
       const who = from ? '' : sharedWithText({ kind: 'list', id: l.id });
       return `
-        <a class="project-card list-card" href="#/lists/${l.id}${from ? `/from/${from.owner_id}` : ''}" style="--tint: ${tintHex(l)}">
+        <a class="project-card list-card" href="#/lists/${l.id}${from ? `/from/${from.owner_id}` : ''}" style="--tint: ${tintHex(l)}; --c: ${tintHex(l)}">
           <span class="project-title">${esc(l.name || 'Untitled')}</span>
           ${from ? `<span class="muted">👥 from ${esc(from.name)}</span>` : who ? `<span class="muted">👥 shared with ${esc(who)}</span>` : ''}
           ${l.kind === 'template'
@@ -184,7 +184,7 @@ export default {
       return `
         <div class="list-top-mark" aria-hidden="true"></div>
         <div class="list-top">
-        <div class="project-head">
+        <div class="project-head" style="--c:${tintHex(l)}">
           <button type="button" class="back" data-act="home">‹ Lists</button>
           <button type="button" class="note-dot list-colour" data-act="list-colour" title="List colour" aria-label="List colour"><span class="swatch" style="--sw:${tintHex(l)}"></span></button>
           <input class="project-name" name="name" value="${esc(l.name)}" data-list-name="${l.id}" aria-label="List name" placeholder="${esc(word('ph_list_name'))}">
