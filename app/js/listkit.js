@@ -150,6 +150,10 @@ export function createListKit({
   }
 
   // Current order and (valid) depths, handed to the caller to persist.
+  // The rows' order and depths, to tell whether a drag moved anything.
+  let lifted = null;
+  const shape = () => rows().map(r => `${r.dataset.id}:${depthOf(r)}`).join();
+
   function commit(label, moved = []) {
     let prev = -1;
     const out = rows().map((r, i) => {
@@ -258,6 +262,7 @@ export function createListKit({
       },
       onLift: li => {
         paintBase = null;
+        lifted = shape();
         document.body.classList.add('is-dragging');
         carried = selected.has(li.dataset.id) && selected.size > 1
           ? rows().filter(r => selected.has(r.dataset.id)).flatMap(r => withChildren(r))
@@ -343,6 +348,9 @@ export function createListKit({
             last.after(...group);
           }
         }
+        const unmoved = lifted === shape();
+        lifted = null;
+        if (unmoved) return; // put back where it was: nothing moved, nothing to undo
         commit(by ? (by > 0 ? 'Indented' : 'Outdented') : 'Moved', group.map(r => r.dataset.id));
       },
     });
