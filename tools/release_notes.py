@@ -946,3 +946,4 @@ NOTES['1.55.01'] = [F("Lists: the green More that shows when you hover over an i
 NOTES['1.55.02'] = [F("With a mouse, the wheel over any row that scrolls sideways (filter bars, tabs, pill rows) scrolls that row. At its end the page scrolls as usual.")]
 NOTES['1.55.03'] = [B("Batch Book: a recipe card's ⋯ menu near the top or bottom of the screen ran up under the books bar and got mixed up with it. A ⋯ menu now always stays clear of the top bar and any bar stuck at the top, and scrolls if it's taller than the room it has.")]
 NOTES['1.55.04'] = [F("Green means open or close: a note's full-screen ⤢ button is green like More and ✓ Close, and so is Done in full screen.")]
+NOTES['1.55.05'] = [F("Tasks and the Day Planner: Shift+Enter while writing a task's note in quick edit (or in Add note) opens its full panel, as it does from the task's name, and what was typed in the note is kept.")]

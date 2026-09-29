@@ -454,6 +454,14 @@ export default {
     body.addEventListener('keydown', async ev => {
       if (ev.key !== 'Enter' || !ev.shiftKey || ev.ctrlKey || ev.metaKey || ev.altKey || ev.isComposing) return;
       const t = ev.target;
+      // In a task's note or "Add note" while its pills show (quick edit): on to the full panel, as More (full).
+      const noteOf = t.closest?.('li[data-task] > .note-in-place, li[data-task] .edit-pills .pill-note')?.closest('li[data-task]');
+      if (noteOf && !lay('more-panel')) {
+        ev.preventDefault(); ev.stopPropagation();
+        open = noteOf.dataset.task;
+        if (t.matches('.pill-note')) { pills.close(); await flushNote(); render(); } else t.blur(); // leaving the note saves it and draws the list, now with the panel
+        return;
+      }
       const id = t.classList?.contains('task-title') ? t.closest('li[data-task]')?.dataset.task : null;
       if (t.id !== 'task-new' && !id) return;
       ev.preventDefault(); ev.stopPropagation();

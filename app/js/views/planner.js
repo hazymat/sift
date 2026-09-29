@@ -171,6 +171,14 @@ export default {
         return;
       }
       const box = t.closest?.('[data-note-for]');
+      // Shift+Enter again, in the note under the item (or its Add note): on to the full panel, as More (full).
+      const shiftEnter = ev.key === 'Enter' && ev.shiftKey && !ev.ctrlKey && !ev.metaKey && !ev.altKey && !ev.isComposing;
+      if (shiftEnter && (box?.classList.contains('note-edit') || t.matches?.('.pill-note')) && !t.closest('.rich.is-full')) {
+        ev.preventDefault(); ev.stopPropagation();
+        editing = box?.dataset.noteFor || t.closest('[data-item]')?.dataset.item;
+        if (box) t.blur(); else { noteEditing = null; await refresh(); } // leaving the note saves it and draws the day, now with the panel
+        return;
+      }
       if (box) {
         if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); t.blur(); }
         // Esc saves and closes, the same as clicking away (it's been saving as
