@@ -1813,7 +1813,7 @@ export default {
           <h3 class="milestone">${esc(dayName(d))}</h3>
           <ul class="review-list">${list.map(i => `
             <li data-review-id="${i.id}">
-              <div class="bring-main"><span class="review-title hand">${esc(i.title)}</span>${i.time ? `<span class="review-about">${fmt(i.time)}</span>` : ''}</div>
+              <span class="review-title hand">${esc(i.title)}</span>
               <span class="review-actions">
                 <button type="button" class="primary" data-review="bring" title="Put it in this day's To place">→ Bring to ${dayCalled()}</button>
                 <button type="button" data-review="done" title="I did this already">✓ Did it</button>
