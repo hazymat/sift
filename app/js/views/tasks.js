@@ -81,21 +81,19 @@ export default {
     const flushNote = noteAuto.flush;
     const collapsed = new Set();
     let notesEditor = null;
+    let lastTasksView = 'now'; // where Tasks (of Tasks | Projects) goes back to
 
     el.innerHTML = `
       <div class="tasks-head">
+        <div class="segmented task-mode" role="group" aria-label="Show"><button type="button" data-mode="tasks">Tasks</button><button type="button" data-mode="projects">Projects</button></div>
         <div class="segmented" id="task-views" role="tablist" aria-label="Views">
-          ${VIEWS.map(v => `<button type="button" data-view="${v.id}">${v.label}</button>`).join('')}
+          ${VIEWS.map(v => `<button type="button" data-view="${v.id}">${v.label}</button>`).join('')}<button type="button" data-view="list">All</button>
         </div>
         ${shareHtml()}
           ${cogHtml('tasks')}
         <details class="tool-menu page-more">
           <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
           <div class="menu">
-            <button type="button" data-view="list">All tasks</button>
-            <button type="button" data-view="projects">Projects</button>
-            <hr>
-            <button type="button" data-act="new-project">New project</button>
             <button type="button" data-act="toggle-done">Show / hide done</button>
             <hr>
             <a href="#/bin/archive/tasks">Show Archive</a>
@@ -320,7 +318,7 @@ export default {
         const pr = progress(scoped);
         html += `
           <div class="project-head" style="--c:${project.colour || COLOURS[0]}">
-            <button type="button" class="back" data-act="all-tasks">‹ All tasks</button>
+            <button type="button" class="back" data-act="all-projects">‹ Projects</button>
             <input class="project-name" value="${esc(project.name)}" aria-label="Project name" data-project="${project.id}">
             <div class="bar"><span style="width:${pr.pct}%"></span></div>
             <span class="muted">${pr.done} of ${pr.total} done</span>
@@ -564,7 +562,12 @@ export default {
       people = await loadContacts();
       atts = await att.byParent();
       for (const b of el.querySelectorAll('[data-view]')) b.setAttribute('aria-pressed', b.dataset.view === state.view);
+      // Tasks | Projects: a project's own page counts as Projects; the list tabs are for Tasks only.
+      const inProjects = state.view === 'projects' || !!state.project;
+      if (!inProjects) lastTasksView = state.view;
+      for (const b of el.querySelectorAll('[data-mode]')) b.setAttribute('aria-pressed', b.dataset.mode === (inProjects ? 'projects' : 'tasks'));
       const tabs = el.querySelector('#task-views');
+      tabs.hidden = inProjects;
       // The fade at the right edge says there are more tabs that way; none once it's scrolled to the end.
       const fade = () => tabs.classList.toggle('overflows', tabs.scrollLeft + tabs.clientWidth < tabs.scrollWidth - 1);
       tabs.onscroll = fade;
@@ -1223,8 +1226,9 @@ export default {
       if (att.onClick(ev, attParent, attDone)) return;
       const shown = ev.target.closest('li[data-task] > .item-sub .chip');
       if (shown && !shown.matches('a, .kids')) { editInPlace(shown.closest('li[data-task]').dataset.task); return; }
-      const b = ev.target.closest('[data-act], [data-view], [data-energy], [data-horizon], [data-open-project]');
+      const b = ev.target.closest('[data-act], [data-view], [data-mode], [data-energy], [data-horizon], [data-open-project]');
       if (!b) return;
+      if (b.dataset.mode) { go(b.dataset.mode === 'projects' ? 'projects' : lastTasksView, null); return; }
       if (b.dataset.view) { b.closest('details')?.removeAttribute('open'); state.project = null; go(b.dataset.view, null); return; }
       if (b.dataset.act === 'focus-entry') { focusEntry(); return; }
       // More… on the New task line (as a task's own More… opens its panel): it's added, and its panel opens.
@@ -1289,8 +1293,8 @@ export default {
       } else if (act === 'toggle-done') {
         state.showDone = !state.showDone;
         render();
-      } else if (act === 'all-tasks') {
-        go('list', null);
+      } else if (act === 'all-projects') {
+        go('projects', null);
       } else if (act === 'new-project') {
         const p = await newProject();
         if (p) go('list', p.id);
