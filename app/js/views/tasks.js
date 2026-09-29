@@ -1620,6 +1620,9 @@ export default {
       if (ev.key === 'Escape' && open && !ev.defaultPrevented && !document.querySelector('.ref-picker, .pill-menu')) { ev.preventDefault(); closeDetails(); }
     };
     addEventListener('keydown', this.onKey);
+    // A project's top stays in view as its tasks scroll, with a glass backing once stuck (as an open list's).
+    this.onTopScroll = () => { const top = el.querySelector('.project-top'); if (top) top.classList.toggle('stuck', scrollY > 0 && top.getBoundingClientRect().top <= parseFloat(getComputedStyle(top).top) + 1); };
+    addEventListener('scroll', this.onTopScroll, { passive: true });
     // ← / → (and a side swipe, which app.js turns into them) on Projects: back a step, whichever way, as
     // there's nothing further along. A project's page → Projects; Projects → Tasks. The pill landed on pulses.
     addEventListener('keydown', ev => {
@@ -1655,6 +1658,7 @@ export default {
     this.kitFlat?.destroy();
     this.gone?.abort();
     removeEventListener('keydown', this.onKey);
+    removeEventListener('scroll', this.onTopScroll);
     this.pills?.destroy();
   },
 
