@@ -13,7 +13,7 @@ Audited at 1.54.09 (29 September 2026), updated for 1.56.00.
 - **Switching between parts of an area** (Tasks | Projects, Recipes | Batches) is always visible on the page, never in a menu.
 
 **Keys**
-- **Shift+Enter** goes one step further: name, then quick edit with its note, then the full panel. Lists and the Day Planner have no quick stage and go straight to the panel (1.55.05, 1.58.06).
+- **Shift+Enter** goes one step further: name, then quick edit with its note, then the full panel. Lists and the Day Planner's tasks (not its schedule) have no quick stage and go straight to the panel (1.55.05, 1.58.06, 1.58.09).
 - **↑ / ↓** move editing between rows edited in place (Tasks, Day Planner, an open list, a box's things); **Shift+↑ / ↓** select. The blue browsing box is only for cards and grids (1.55.07).
 - **Ticking off** (one tick, or Done / Tick on a selection bar) plays the same animation everywhere: `tickWave` then `fadeFold` in `tickwave.js` (tick springs with a ring, letters hop, light passes, line drawn, then fade and fold if the row is leaving). Tasks, Projects, Day Planner, Lists (1.56.02).
 - **Selection bars**: A Archive, D (or Delete) Delete, Ctrl+Enter Done or Tick, each key shown on its button. Built into `listkit.js` (1.55.13).
@@ -71,10 +71,10 @@ Rows and cards inside an area. "Top right" means on the row's own first line, at
 | **Resting** | ⠿ (hover), tick, title, chips, note | ⠿ (text glyph), tick, title, tags, note | ⠿, tick, text, ▾ n/m, note line | Head row (⠿, type, time, ☆), text, Archive and ⋯ (→ Task, Plan it, → Find Things are in the ⋯) | Cube grip, name, ×qty, tags | Photo, title, tags, Make, ☆, ⋯ | Grip, name, about, chips | Card or table row |
 | **Computer hover** | Green **"More"** top right | Green **"More"** top right | Green **"More"** top right | Action row brightens; **⋯ bottom right** | Green **"More"** top right | Card lifts; grip shows | Grip brightens | Background only |
 | **Start editing** | Click anywhere on the line | Click anywhere on the line | Click anywhere on the line | Click the body text only | Click anywhere on the line | Open the page | Open the page | Open the page |
-| **While editing: More** | "More ⇧Enter" **top right**, then "More (full) ⇧Enter" in the same spot; "✓ Done Ctrl+Enter" beside it | "More ⇧Enter" top right, goes straight to the panel (no quick stage, since 1.58.06); Ctrl+Enter ticks. The hover More opens the panel too | "More ⇧Enter" top right, goes straight to the panel (no quick stage, intended); no Done. The hover More opens the panel, it doesn't start editing | No More, no Done: click away or Esc | "More (full)" top right; Quantity pill underneath | n/a | n/a | n/a |
+| **While editing: More** | "More ⇧Enter" **top right**, then "More (full) ⇧Enter" in the same spot; "✓ Done Ctrl+Enter" beside it | Schedule, as Tasks: "More ⇧Enter" top right, then "More (full) ⇧Enter"; More shows the note to edit and the pills, its own time and note pills hide (1.58.09). Tasks section: "More ⇧Enter" goes straight to the panel (1.58.06). ✓ Done in the pill row | "More ⇧Enter" top right, goes straight to the panel (no quick stage, intended); no Done. The hover More opens the panel, it doesn't start editing | No More, no Done: click away or Esc | "More (full)" top right; Quantity pill underneath | n/a | n/a | n/a |
 | **Full panel: Close** | **"✓ Close Esc" top right** | **"✓ Close Esc" top right** | "✓ Close" top right | No panel | "✓ Close" top right | n/a (page, ‹ back) | n/a (page) | n/a (page) |
 | **Panel footer** | + Sub-task · Archive · Delete | Unallocate time · Let go · → Tasks · Archive · Delete | Archive · Delete (no + Sub-item) | n/a | Colour · Archive · Delete | n/a | n/a | n/a |
-| **Shift+Enter** | More (with the note), then full panel; from the note too | Full panel (since 1.58.06) | Full panel's note | New line | n/a | n/a | n/a | n/a |
+| **Shift+Enter** | More (with the note), then full panel; from the note too | Schedule: More (note and pills), then full panel. Tasks section: full panel | Full panel's note | New line | n/a | n/a | n/a | n/a |
 | **↑ / ↓ keys** | Move editing row to row; Shift selects | Same | Same (since 1.55.07) | Blue box browses cards | Same as Tasks (since 1.55.07) | Blue box browses cards | Blue box browses cards | Blue box browses cards |
 | **Ctrl+Enter** | Tick | Tick | Nothing | Save / finish | Add items (box page) | n/a | n/a | n/a |
 | **Phone** | Swipe: ⋯ More, ✓ Done / Delete; hold drags | Swipe: ⋯ More, ✓ Done / Delete; tap arms, tap edits | Swipe: ⋯ More, **✓ Tick** / Delete | No swipe; hold selects | No swipe; ⋯ hidden (a box card: hold selects) | Hold selects | No swipe; hold selects | No swipe |
@@ -126,7 +126,7 @@ Rows and cards inside an area. "Top right" means on the row's own first line, at
 - ⋯ menus stay below sticky bars (1.55.03).
 - Full-screen ⤢ and its Done are green (1.55.04) and show their keys (1.55.14).
 - Shift+Enter goes one step further, from the note too (1.55.05).
-- Day Planner tasks: no quick edit stage, More goes straight to the full panel (no start and end times in it) and no longer covers the time pill (1.58.06).
+- Day Planner tasks: no quick edit stage, More goes straight to the full panel (no start and end times in it) and no longer covers the time pill (1.58.06); schedule items edit as Tasks do, with the note shown to edit (1.58.09).
 - Tick-off fade restored (1.55.06).
 - Arrow keys in an open list and a box's things work like Tasks (1.55.07).
 - List colours show like project colours (1.55.08).
