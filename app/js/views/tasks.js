@@ -89,7 +89,8 @@ export default {
     let lastTasksView = 'now'; // where Tasks (of Tasks | Projects) goes back to
 
     el.innerHTML = `
-      <div class="tasks-head">
+      <div class="sticky-top-mark" aria-hidden="true"></div>
+      <div class="tasks-head sticky-top">
         <div class="segmented task-mode" role="group" aria-label="Show"><button type="button" data-mode="tasks">Tasks</button><button type="button" data-mode="projects">Projects</button></div>
         <button type="button" class="primary new-project-btn" data-act="new-project" hidden>+ New project</button>
         <div class="segmented" id="task-views" role="tablist" aria-label="Views">
@@ -108,6 +109,11 @@ export default {
       <div id="task-body"></div>`;
 
     const body = el.querySelector('#task-body');
+    // The top stays while the page scrolls; glass once it's stuck (as Find Things' and Batch Book's).
+    const stickyTop = el.querySelector('.sticky-top');
+    this.topWatch?.disconnect();
+    this.topWatch = new IntersectionObserver(([e]) => stickyTop.classList.toggle('stuck', !e.isIntersecting && e.boundingClientRect.top < 200), { rootMargin: `-${parseFloat(getComputedStyle(stickyTop).top) || 0}px 0px 0px 0px` });
+    this.topWatch.observe(el.querySelector('.sticky-top-mark'));
     const go = (view, project = state.project, owner = project && project === state.project ? state.owner : null) => {
       const url = `#/tasks/${view}${project ? `/${project}${owner ? `/from/${owner}` : ''}` : ''}`;
       if (location.hash !== url) location.hash = url; else render();
@@ -1657,6 +1663,7 @@ export default {
     this.kitPlain?.destroy();
     this.kitFlat?.destroy();
     this.gone?.abort();
+    this.topWatch?.disconnect();
     removeEventListener('keydown', this.onKey);
     removeEventListener('scroll', this.onTopScroll);
     this.pills?.destroy();
