@@ -173,6 +173,7 @@ export default {
           <input class="task-title" value="${esc(t.title)}" aria-label="Task" autocomplete="off">
           <button type="button" class="more entry-chip" data-act="quick-more" title="Edit the task, with its pills">More</button>
           <button type="button" class="details-btn" data-act="details" hidden aria-label="Details" aria-expanded="${open === t.id}"></button>
+          ${open === t.id ? `<button type="button" class="entry-chip close-top" data-act="close-details" title="Close the panel">✓ Close${keys('Esc')}</button>` : ''}
           ${subLine(t)}
         </li>
         ${open === t.id ? `<li class="task-details" data-for="${t.id}">${details(t)}</li>` : ''}`;
@@ -250,7 +251,6 @@ export default {
           </div>
         </details>
         <div class="detail-actions">
-          <button type="button" class="close-details" data-act="close-details" title="Close (or Esc)"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Close</button>
           ${depthIn(t, data.tasks) < MAX_DEPTH ? '<button type="button" data-act="add-sub">+ Sub-task</button>' : ''}
           <span class="spacer"></span>
           <button type="button" data-act="archive">Archive</button>
@@ -743,6 +743,7 @@ export default {
     body.addEventListener('pointerdown', ev => {
       const title = ev.target.closest?.('.task-list > li[data-task].pills-open')?.querySelector(':scope > .task-title');
       if (!title || ev.button || ev.target === title || ev.clientX < title.getBoundingClientRect().left) return;
+      if (!title.closest('li').contains(document.activeElement)) return; // already left (a phone's keyboard put away): a tap here is a tap off it
       if (ev.target.closest('button, a, input, textarea, select, label, [role="button"], [contenteditable], .note-shown, .note-in-place, .task-details')) return;
       ev.preventDefault();
       const toEnd = () => { title.focus(); title.setSelectionRange(title.value.length, title.value.length); title.scrollLeft = title.scrollWidth; };
