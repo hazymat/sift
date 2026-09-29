@@ -9,6 +9,7 @@ import { keyEls } from './keys.js';
 // runs once, then the toast goes. An Undo button also answers Ctrl+Z (⌘Z)
 // while it shows, until something is typed after it: then Ctrl+Z is the
 // field's own undo again (the last thing done is the one undone).
+// A small ring at its start runs down over the time it shows, as a countdown.
 
 let el = null;
 let timer = null;
@@ -35,7 +36,13 @@ export function toast(message, { action, onAction, more, ms = action ? 6000 : 16
     el.setAttribute('aria-live', 'polite');
     document.body.append(el);
   }
-  el.replaceChildren(Object.assign(document.createElement('span'), { textContent: message }));
+  const ring = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  ring.setAttribute('class', 'toast-timer');
+  ring.setAttribute('viewBox', '0 0 20 20');
+  ring.setAttribute('aria-hidden', 'true');
+  ring.style.setProperty('--ms', `${ms}ms`);
+  ring.innerHTML = '<circle class="toast-track" cx="10" cy="10" r="8"/><circle class="toast-left" cx="10" cy="10" r="8" pathLength="100"/>';
+  el.replaceChildren(ring, Object.assign(document.createElement('span'), { textContent: message }));
   undoNow = null;
   if (action) {
     const btn = Object.assign(document.createElement('button'), { type: 'button', textContent: action });
