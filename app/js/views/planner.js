@@ -30,7 +30,7 @@ import { byRank, rankOf, reorderWrites, lastKey } from '../order.js';
 import { askYes, askEmptied } from '../ask.js';
 import { word } from '../words.js';
 import { offerUrlAt } from '../weburl.js';
-import { tickWave } from '../tickwave.js';
+import { tickWave, fadeFold } from '../tickwave.js';
 import { commentsHtml, mountComments, moveComments, closingComment } from '../comments.js';
 import { shareSheet, people, sharedWithText, invitesHtml, theirIconHtml, scopeText } from '../sharing.js';
 import { sharesNow, inShare, myUserId, personName } from '../sync.js';
@@ -1193,21 +1193,14 @@ export default {
       await refresh();
       say();
     }
-    // Ticked off (tickwave.js): a wave runs along it. A day task then fades a little and folds away (it's
+    // Ticked off (tickwave.js): a wave runs along it. A day task then fades and folds away (fadeFold: it's
     // drawn again among the done ones below); a scheduled item stays in its time, drawn again crossed out.
     // Several ticked at once (Done on the selection bar) go one after another, 200ms apart.
     async function tickedOff(row, n = 0) {
       const content = row.querySelector(':scope > .content');
       await tickWave(row, { title: row.querySelector('.item-title'), parts: row.querySelectorAll('.content > :is(.span-tag, .note-tag), .content > .item-sub .pill-act'), lane: content || row, delay: 100 + n * 200 }).done;
       if (!row.closest('.pile-paper') || !row.isConnected) return;
-      row.style.transition = 'opacity 1.2s ease';
-      row.style.opacity = '.4';
-      await new Promise(done => setTimeout(done, 1400));
-      if (!row.isConnected) return;
-      Object.assign(row.style, { height: `${row.offsetHeight}px`, minHeight: '0', overflow: 'hidden' });
-      void row.offsetHeight;
-      Object.assign(row.style, { transition: 'height .28s ease, opacity .2s ease, border-width .28s ease', height: '0px', opacity: '0', borderBottomWidth: '0px' });
-      await new Promise(done => setTimeout(done, 300));
+      await fadeFold([row]);
     }
 
     // Inline input on an empty line: Enter adds an item at that time.
