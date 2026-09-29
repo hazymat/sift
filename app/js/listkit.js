@@ -33,8 +33,14 @@
 //     when(): false hides it (e.g. Now, while looking at Now)
 //   onNest(ids, targetId): rows dropped onto the middle of another row (e.g. to
 //     make them its sub-tasks); while dragging, the row shows indented with ↳
+//   holdSelect: press and hold a row (a card) selects it, with the hold's ripple (hold.js); while
+//     anything is selected, a tap on another row adds it or takes it out (Shift: the run from the last one)
+//   rowSel: which elements are the rows, inside the attached element (default its li[data-id] children;
+//     e.g. Find Things' box cards, spread over several groups). Each needs data-id.
+// Shift+← / → / ↑ / ↓ while browsing cards with the keyboard (browse.js) selects from where it began.
 
 import { sortable } from './sortable.js';
+import { holdToLift } from './hold.js';
 import { toast } from './toast.js';
 import { keys, CTRL_ENTER } from './keys.js';
 
@@ -44,7 +50,7 @@ export const typingIn = el => !!el?.closest?.('input:not([type="checkbox"]):not(
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 export function createListKit({
-  reorder = true, indent = false, maxDepth = 1, actions = [], onReorder, noun = 'item', grid = false, families = false, onNest = null, holdAnywhere = false, sideways = true,
+  reorder = true, indent = false, maxDepth = 1, actions = [], onReorder, noun = 'item', grid = false, families = false, onNest = null, holdAnywhere = false, sideways = true, holdSelect = false, rowSel = ':scope > li[data-id]',
 } = {}) {
   const selected = new Set();
   let anchor = null;
@@ -80,7 +86,7 @@ export function createListKit({
   const closeGroups = () => bar.querySelectorAll('[data-kit-group]').forEach(g => { g.setAttribute('aria-expanded', 'false'); g.textContent = `${g.dataset.kitGroup} ▸`; g.nextElementSibling.hidden = true; });
   document.body.append(bar);
 
-  const rows = () => (ul ? [...ul.querySelectorAll(':scope > li[data-id]')] : []);
+  const rows = () => (ul ? [...ul.querySelectorAll(rowSel)] : []);
   const depthOf = r => Number(r.dataset.depth || 0);
   const idsInOrder = () => rows().map(r => r.dataset.id).filter(id => selected.has(id));
 
@@ -368,6 +374,23 @@ export function createListKit({
     });
     ul.addEventListener('pointerup', () => { paintBase = null; });
 
+    // Press and hold a card: it's selected; then while choosing, a tap adds or takes out.
+    if (holdSelect) {
+      const skip = 'button, summary, details[open], select, label, input, textarea, [contenteditable="true"], .drag-handle, .kit-grip, .edit-pills, .row-acts';
+      const rowAt = t => rows().find(r => r.contains(t)) || null;
+      let justHeld = false; // the hold's own release isn't a tap
+      const hold = holdToLift(ul, { rowAt, skip, ms: 450, onLift: row => { hold.letGo(); justHeld = true; pick(row.dataset.id); leaveTyping(); paint(); } });
+      ul.addEventListener('pointerdown', () => { justHeld = false; }, true);
+      ul.addEventListener('click', ev => {
+        if (justHeld) { justHeld = false; return; }
+        const r = selected.size && !ev.target.closest(skip) ? rowAt(ev.target) : null;
+        if (!r) return;
+        ev.preventDefault(); ev.stopPropagation();
+        pick(r.dataset.id, ev.shiftKey); leaveTyping(); paint();
+      }, true);
+      ul.addEventListener('contextmenu', ev => { if (rowAt(ev.target) && !ev.target.closest(skip)) ev.preventDefault(); }); // a long press on a phone isn't the page's menu
+    }
+
     // Shift+↑ / ↓ in a row's text: stop editing it (leaving saves it), and select it and the next row that way.
     ul.addEventListener('keydown', ev => {
       if ((ev.key !== 'ArrowUp' && ev.key !== 'ArrowDown') || !ev.shiftKey || ev.ctrlKey || ev.altKey || ev.metaKey || ev.defaultPrevented) return;
@@ -444,6 +467,19 @@ export function createListKit({
     bar.querySelector(`[data-kit-action="${del.id}"]`)?.click();
   };
   document.addEventListener('keydown', onKey);
+  // Shift+arrows while browsing cards (browse.js): everything from where it began to the card it's on now.
+  const onBrowseSelect = ev => {
+    if (!ul?.isConnected) return;
+    const all = rows(), rowOf = e => all.find(r => r === e || r.contains(e) || e.contains(r));
+    const from = rowOf(ev.detail.from), to = rowOf(ev.detail.to);
+    if (!from || !to) return;
+    const [a, b] = [all.indexOf(from), all.indexOf(to)].sort((x, y) => x - y);
+    selected.clear();
+    all.slice(a, b + 1).forEach(r => selected.add(r.dataset.id));
+    anchor = from.dataset.id; cursor = to.dataset.id;
+    leaveTyping(); paint();
+  };
+  document.addEventListener('browse-select', onBrowseSelect);
 
   // ---------- the bar ----------
   bar.addEventListener('click', async ev => {
@@ -503,6 +539,7 @@ export function createListKit({
     destroy() {
       document.removeEventListener('keydown', onKey);
       document.removeEventListener('keydown', onBarKey, true);
+      document.removeEventListener('browse-select', onBrowseSelect);
       bar.remove();
       document.body.classList.remove('has-select-bar', 'is-dragging');
     },

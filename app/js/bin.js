@@ -3,7 +3,8 @@
 //   Bin:     records with deleted_at (soft deleted). Kept BIN_DAYS, then purged.
 //   Archive: records with archived_at (and not deleted). Hidden, still searchable.
 // A provider: { area, label, async entries(kind) → [{ collection, id, kind,
-//   title, subtitle, detail, at, children: [{ collection, id }], search }] }
+//   title, subtitle, detail, at, children: [{ collection, id }], search, revive? }] }
+//   revive: records taken out of the Bin with it (never purged with it), e.g. the deleted group a box was in.
 
 import * as store from './store.js';
 import { binProvider as findThings } from './places.js';
@@ -45,6 +46,7 @@ export async function restoreEntries(entries, kind) {
       return [id, { [field(kind)]: null, ...(e?.restoreExtra || {}) }];
     }));
   }
+  for (const r of entries.flatMap(e => e.revive || [])) await store.updateMany(r.collection, [[r.id, { deleted_at: null }]]);
 }
 
 // Put them back (used to undo a restore).

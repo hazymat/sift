@@ -383,6 +383,7 @@ export default {
     const kit = this.kit = createListKit({
       reorder: true,
       grid: true,
+      holdSelect: true, // press and hold a note selects it; then a tap adds or takes out
       onReorder: persistOrder,
       noun: 'thought',
       actions: [

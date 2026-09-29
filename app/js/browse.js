@@ -19,7 +19,10 @@
 //            screen (in a note being written, Alt+Enter does that too;
 //            richtext.js). At the top level: a new one, full screen.
 //   Esc      stop browsing. After editing an item, Esc leaves the editing and
-//            the same item is highlighted again; Esc once more stops.
+//            the same item is highlighted again; Esc once more stops. With
+//            items selected, Esc also clears the selection (the view's own Esc).
+//   Shift+← / → / ↑ / ↓  select: every item from where it began to the one
+//            moved to (the area's selection bar, listkit.js: 'browse-select')
 // A click anywhere, or changing page, stops browsing too.
 // Areas with a filter bar (Brain Dump's All / Thought / Idea…) have it as a
 // layer between the search box and the items: ↓ from the search box (or ← / →
@@ -113,6 +116,7 @@ export const browseTo = el => { if (el) goTo?.(el); };
 let inBar = false; // browsing the filter bar, not the items
 let barPick = null; // the filter just switched to (the page marks it a moment later)
 let key = null;
+let selFrom = null; // the item Shift+arrows began selecting from
 const keyOf = el => el.dataset.id || el.dataset.box || el.getAttribute('href') || '';
 
 // The item above / below: one overlapping the same place across if there is
@@ -156,7 +160,7 @@ export function installBrowse({ busy, area }) {
     el.scrollIntoView({ block: 'nearest' });
   };
   goTo = go;
-  const stop = () => { on = false; inBar = false; key = null; barPick = null; paint(); };
+  const stop = () => { on = false; inBar = false; key = null; barPick = null; selFrom = null; paint(); };
   const goBar = () => { on = true; inBar = true; paint(); pressed(cfg())?.scrollIntoView({ block: 'nearest', inline: 'nearest' }); };
   const flash = el => {
     if (!el) return;
@@ -175,6 +179,31 @@ export function installBrowse({ busy, area }) {
   };
   const take = ev => { ev.preventDefault(); ev.stopPropagation(); };
 
+  // The item one step that way: ← / → in order, ↑ / ↓ the one above or below.
+  const step = (list, cur, k) => (k === 'ArrowLeft' || k === 'ArrowRight' ? list[list.indexOf(cur) + (k === 'ArrowLeft' ? -1 : 1)] : nearest(list, cur, k === 'ArrowDown' ? 1 : -1));
+  const select = (from, to) => document.dispatchEvent(new CustomEvent('browse-select', { detail: { from, to } }));
+  addEventListener('keydown', ev => {
+    if (!ev.shiftKey || ev.altKey || ev.ctrlKey || ev.metaKey || ev.isComposing || !ev.key.startsWith('Arrow') || busy()) return;
+    const t = ev.target;
+    if (t !== document.body && t !== document.documentElement && t.closest?.('a, button, summary, [role="button"], [tabindex], input, textarea, select')) return;
+    const c = cfg(), list = items(c);
+    if (!list.length || inBar) return;
+    take(ev);
+    let cur = on ? current(c) : null;
+    if (!cur) { // not browsing yet: from the first item chosen, or the first item
+      cur = list.find(e => e.matches('.selected') || e.closest('.selected') || e.querySelector(':scope > .selected')) || list[0];
+      go(cur); selFrom = keyOf(cur);
+      if (!cur.matches('.selected') && !cur.closest('.selected')) select(cur, cur);
+      return;
+    }
+    const from = list.find(e => keyOf(e) === selFrom) || cur;
+    selFrom = keyOf(from);
+    const to = step(list, cur, ev.key);
+    if (!to) return;
+    go(to); selFrom = keyOf(from);
+    select(from, to);
+  }, true);
+
   addEventListener('keydown', ev => {
     const deeper = ev.altKey && ev.key === 'Enter';
     if ((ev.altKey && !deeper) || ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.isComposing) return;
@@ -182,7 +211,7 @@ export function installBrowse({ busy, area }) {
     const t = ev.target;
     if (ev.key === 'Escape' && !deeper && t !== document.body && t.matches?.('a, button, summary, [tabindex]:not([contenteditable]), input[type="checkbox"], input[type="radio"]')
       && !t.closest('dialog, .pill-menu, .dd-menu, .ref-picker, .thought-pop, details[open], .item-details, .task-details, .thing-panel, .list-panel')) {
-      take(ev);
+      if (!document.querySelector('.select-bar:not([hidden])')) take(ev); // with a selection, the view's Esc clears it too
       t.blur();
       later();
       return;
@@ -202,7 +231,7 @@ export function installBrowse({ busy, area }) {
     if (busy()) return;
     const list = items(c);
     if (on) {
-      if (ev.key === 'Escape') { take(ev); stop(); return; }
+      if (ev.key === 'Escape') { const chosen = document.querySelector('.select-bar:not([hidden])'); stop(); if (!chosen) take(ev); return; } // with a selection, the view's Esc clears it too
       if (inBar) {
         take(ev);
         if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') moveBar(c, ev.key === 'ArrowLeft' ? -1 : 1);
@@ -213,13 +242,14 @@ export function installBrowse({ busy, area }) {
       const cur = current(c);
       if (ev.key === 'Enter') { if (cur) { take(ev); Promise.resolve(c.open?.(cur)).then(() => { if (deeper) setTimeout(fullNow, 50); }); } return; }
       take(ev);
+      selFrom = null;
       if (!cur) { if (list[0]) go(list[0]); return; }
       if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') {
-        const to = list[list.indexOf(cur) + (ev.key === 'ArrowLeft' ? -1 : 1)];
+        const to = step(list, cur, ev.key);
         if (to) go(to);
         return;
       }
-      const to = nearest(list, cur, ev.key === 'ArrowDown' ? 1 : -1);
+      const to = step(list, cur, ev.key);
       if (to) go(to);
       else if (ev.key === 'ArrowUp' && bar(c).length) goBar();
       else if (ev.key === 'ArrowUp' && c.search) { const s = all(c.search)[0]; if (s) { stop(); s.focus(); } }
