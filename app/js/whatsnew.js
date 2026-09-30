@@ -24,6 +24,7 @@ import { keys } from './keys.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.32': [{ text: "Tasks tour: the Done step's yellow outline fits snugly round the Done tab, and the tab row scrolls it into view if it's off to the side. The last step (Projects) sits at the bottom of the screen so the page stays visible, and every tour's buttons are proper buttons: Back and End tour early side by side, with Save for later and Skip on their own row.", go: '#/settings', at: '#main [data-act="tour"]', more: 'Settings, Take the tour, then Get your life in order: the last two steps.' }],
   '1.60.31': [{ text: "Tasks tour, Sort a couple and Tidy up: the tour card sits low, just above the Selections bar, so the list shows above it. Once you choose a task the Selections bar is outlined in yellow and labelled, the card says the bar scrolls sideways, and it shows one thing to do at a time.", go: '#/settings', at: '#main [data-act="tour"]', more: 'Settings, Take the tour, then Get your life in order: steps 4 and 5.' }],
   '1.60.30': [{ text: "Selection bars: pressing Move ▸ (Tasks, Brain Dump) now puts Move and the choices it opens (Now, Next, Later...) together in one shaded pill, so it's clear where they came from; on a phone the bar slides along to show them all.", more: 'Batch Book\'s Move to ▸ and Status ▸ open the same way.' }],
   '1.60.29': [{ text: "Tasks tour: the step on a task's green More says it only appears once you tap (or point at) a task. The repeating tasks step has gone; the Tips step explains repeating tasks instead, with Put the bins out as the example.", go: '#/settings', at: '#main [data-act="tour"]', more: 'Settings, Take the tour, then Get your life in order.' }],
@@ -77,6 +78,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.32': '2026-09-30T22:18:00Z',
   '1.60.31': '2026-09-30T22:16:54Z',
   '1.60.30': '2026-09-30T22:15:12Z',
   '1.60.29': '2026-09-30T22:12:22Z',

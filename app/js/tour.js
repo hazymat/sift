@@ -132,9 +132,9 @@ const tasksSteps = () => [
       <li>Give tasks a <b>Duration</b> and you'll see how much work you really have, and how long each thing will take. Later you'll see the ${w('area_planner')} use it to fit them into your day.</li></ul>` },
   { id: 'dots', hash: '#/tasks/now', at: '#main .page-more > summary, #main .page-more', title: 'The Triple Dot menu', done: { check: shows('#main .page-more[open]') }, doneText: '✓ Show Archive and Show Bin are in here.',
     body: `<p>The <b>⋯</b> Triple Dot menu is where you'll find tasks you've archived, or even deleted (they wait in the Bin for 30 days).</p>${try_(`${tap()} <b>⋯</b> at the top right.`)}` },
-  { id: 'done', hash: '#/tasks/now', at: '#task-views [data-view="done"], #task-views', title: 'Done: your last month', done: { hash: '#/tasks/done' },
+  { id: 'done', hash: '#/tasks/now', at: '#task-views [data-view="done"], #task-views', ringPad: 1, title: 'Done: your last month', done: { hash: '#/tasks/done' },
     body: `<p>Ticked-off tasks stay in <b>Done</b> for 30 days, then tidy themselves away into the Archive, so Done never becomes a long list. (Settings → Tasks changes how long.)</p>${try_(`${tap()} <b>Done</b>.`)}` },
-  { id: 'projects', hash: '#/tasks/now', at: '.task-mode [data-mode="projects"], .task-mode', title: 'Projects', offer: 'projects',
+  { id: 'projects', hash: '#/tasks/now', at: '.task-mode [data-mode="projects"], .task-mode', title: 'Projects', offer: 'projects', cardBottom: true,
     body: `<p><b>Projects</b> are for bigger things: milestones and deadlines, and sharing with the people working on it with you.</p><p>Save the Projects tour for later, or skip it for now.</p>` },
   { id: 'keysoffer', only: 'keys', title: 'Keyboard lover?', offer: 'keys',
     body: `<p>Sift is easy to drive from the keyboard: moving between areas, pages and tasks without touching the mouse.</p><p>Save the keyboard tour for later, or skip it.</p>` },
@@ -333,7 +333,7 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
   const shown = el => (el?.isConnected && el.getClientRects().length ? el.getBoundingClientRect() : null);
   // Where the top of the selection bar is, or will be once something is chosen (listkit.js; app.css .select-bar).
   const barLine = () => shown(find('.select-bar'))?.top ?? (innerWidth >= 768 ? innerHeight - 24 : bottomEdge - 14) - 44;
-  const fit = (el, r) => Object.assign(el.style, { left: `${r.left - 6}px`, top: `${r.top - 6}px`, width: `${r.width + 12}px`, height: `${r.height + 12}px` });
+  const fit = (el, r, pad = 6) => Object.assign(el.style, { left: `${r.left - pad}px`, top: `${r.top - pad}px`, width: `${r.width + pad * 2}px`, height: `${r.height + pad * 2}px` });
 
   // The ring follows what it points at (pages scroll, panels open, a page drawn
   // again finds it afresh); with nothing to point at the whole page dims.
@@ -350,7 +350,7 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
     if (step?.also && !extra?.isConnected) extra = find(step.also);
     const r = shown(target), x = shown(extra);
     ring.classList.toggle('whole', !r);
-    fit(ring, r || { left: 6, top: 6, width: innerWidth - 12, height: innerHeight - 12 });
+    fit(ring, r || { left: 6, top: 6, width: innerWidth - 12, height: innerHeight - 12 }, r ? step?.ringPad ?? 6 : 6); // ringPad: hugs a small tab, clear of its neighbours
     also.hidden = !x;
     if (x) fit(also, x);
     // The selection bar, once in use on a step that has it used: outlined, with its name and an arrow above it.
@@ -366,6 +366,7 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
     let top, left = r ? Math.min(Math.max(12, r.left), innerWidth - cw - 12) : (innerWidth - cw) / 2;
     const beside = r && Math.min(Math.max(12, r.top), innerHeight - ch - 12);
     if (step?.cardLow) { top = barLine() - ch - 44; left = KEYS ? innerWidth - cw - 12 : (innerWidth - cw) / 2; }
+    else if (step?.cardBottom) top = innerHeight - ch - 12; // at the bottom (over a phone's bottom bar if need be), the page above left in view
     else if (!r) top = (innerHeight - ch) / 2;
     else if (r.bottom + gap + ch < innerHeight - 8) top = r.bottom + gap;
     else if (r.top - gap - ch > 8) top = r.top - gap - ch;
@@ -406,10 +407,9 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
     inField = false;
     card.innerHTML = `<div class="tour-head" title="Drag to move"><span class="tour-grip" aria-hidden="true"></span><span class="tour-count">${n + 1} of ${all.length}</span><span class="tour-demo" title="Example things fill Sift during the tour; they're cleared away when it ends">🧪 Example data</span><button type="button" class="tour-x" data-tour="later" aria-label="End the tour early" title="End the tour early: it waits on your task list">✕</button></div>
       <h3>${step.title}</h3><div class="tour-body">${demoNote}${step.body}${already ? '<p class="tour-already">✓ You&#39;ve already got these switched on.</p>' : ''}</div>
-      <div class="tour-foot">${n ? `<button type="button" data-tour="back">Back${k('B')}</button>` : ''}
-        <button type="button" data-tour="later" class="tour-later">End tour early</button><span class="spacer"></span>
-        ${step.offer ? `<button type="button" class="primary" data-tour="save">📌 Save for later</button><button type="button" data-tour="next">${last ? 'Skip and finish' : 'Skip'}${k('N')}</button>`
-          : doneStep ? `<button type="button" data-tour="next">Skip${k('N')}</button>` : `<button type="button" class="primary" data-tour="next">${last ? 'Finish' : 'Next'}${k('N')}</button>`}</div>`;
+      <div class="tour-foot">${step.offer ? `<div class="tour-choice"><button type="button" class="primary" data-tour="save">📌 Save for later</button><button type="button" data-tour="next">${last ? 'Skip and finish' : 'Skip'}${k('N')}</button></div>` : ''}
+        ${n ? `<button type="button" data-tour="back">Back${k('B')}</button>` : ''}<button type="button" data-tour="later" class="tour-later">End tour early</button>
+        ${step.offer ? '' : doneStep ? `<button type="button" data-tour="next">Skip${k('N')}</button>` : `<button type="button" class="primary" data-tour="next">${last ? 'Finish' : 'Next'}${k('N')}</button>`}</div>`;
     // What it points at may take a moment to be drawn (the page changing, a toolbar showing once the note is in use).
     for (let tries = 0; tries < 40 && current(n); tries++) {
       // (Not on a phone: the cursor in a note opens it full screen, with the keyboard. That's left to a tap.)
@@ -430,6 +430,9 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
       const clear = r.top >= topEdge && r.bottom <= bottomEdge;
       const cardFits = bottomEdge - r.bottom > room || r.top - topEdge > room;
       if (!clear || !cardFits) target.scrollIntoView({ block: r.height + room < bottomEdge - topEdge ? 'start' : 'nearest', behavior: 'smooth' });
+      // In a row that scrolls sideways (the Tasks tabs on a phone): scrolled so it's all showing.
+      const row = target.parentElement;
+      if (row && row.scrollWidth > row.clientWidth) { const rr = row.getBoundingClientRect(); if (r.left < rr.left || r.right > rr.right - 24) row.scrollBy({ left: r.left < rr.left ? r.left - rr.left - 12 : r.right - rr.right + 36, behavior: 'smooth' }); }
     }
     if (!inField) card.querySelector('[data-tour="next"]').focus({ preventScroll: true }); // (never taking the cursor from the step's own field)
     if (!doneStep) return;
