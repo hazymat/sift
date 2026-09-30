@@ -30,7 +30,7 @@ export default {
         <p class="welcome-lead">What would you like to see? Each tour takes a couple of minutes, and you try things as you go.</p>
       </header>
       <div class="tour-picks">
-        ${big('tasks', '#5b9dff', '✅', 'Get your life in order', `${esc(word('area_tasks'))} and projects`, `${esc(word('list_now'))}, ${esc(word('list_next'))} and ${esc(word('list_later'))} instead of deadlines that nag, with tasks matched to the energy you've got today.`)}
+        ${big('tasks', '#5b9dff', '✅', 'Get your life in order', `${esc(word('area_tasks'))} and projects`, `Get everything out of your head and into ${esc(word('list_inbox'))}, then sort it when you're ready. Tasks matched to the energy you've got today.`)}
         ${big('notes', '#f0b43c', '✍️', 'Write it all down', 'For people who write, jot and take notes', `Why it beats Apple Notes and Notepad: nothing is ever lost, undo goes back to yesterday, and any line becomes a task or a contact.`)}
         ${big('planner', '#e7839f', '📓', 'Plan your day on paper', 'For lovers of a real notebook or planner', `Your task list and your day's journal on the same page: the bridge between a to-do app and a paper planner.`)}
         <div class="tour-pick tour-pick-more" style="--c: #9b86f0">
