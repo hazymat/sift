@@ -94,6 +94,12 @@ const green = label => `<span class="tour-green">${label}</span>`;
 const shows = sel => () => () => !!document.querySelector(sel);
 const openedThenClosed = sel => () => { let seen = false; return () => { const open = !!document.querySelector(sel); if (open) seen = true; return seen && !open; }; };
 const changes = get => () => { const was = get(); return () => get() !== was; };
+// A menu the user opens themselves (never opened for them): the step points at its button, then at the
+// menu once it's open (follow: found afresh as it opens and closes), the button outlined too, and the
+// card kept off the open menu (clear); opened again if the page is drawn again under it (menu).
+const menuAt = (menu, inside) => ({ at: `${menu}[open] ${inside}, ${menu} > summary`, also: `${menu}[open] > summary`, clear: `${menu}[open] > .menu`, follow: true, menu });
+const closeMenu = menu => () => document.querySelector(`${menu}[open]`)?.removeAttribute('open');
+const openView = where => `${Tap()} the <b>View</b> button at the top${where ? ` (${where})` : ''}.`;
 
 const tasksSteps = () => [
   { id: 'add', hash: '#/tasks/inbox', at: '#task-entry, #task-body', also: nav('tasks'), focus: '#task-new', title: 'Add a task', done: { made: ['tasks'] },
@@ -115,14 +121,14 @@ const tasksSteps = () => [
         : `${w('list_now')}, ${w('list_next')} and ${w('list_later')} slide out beside it. The bar scrolls sideways: drag it left or right to see them all, then tap <b>${word('list_now')}</b>.`)}` },
   { id: 'tidy', hash: '#/tasks/inbox', at: '#main .task-list, #task-body', title: 'Tidy up your practice tasks', done: { check: tidied }, cardLow: true, liftBar: true, doneText: "✓ Gone. That's the Task Dump: in fast, out when it's dealt with.",
     body: `<p>The tasks you just typed were practice: clear them away so your list starts clean. (Something real? Add it again after the tour.)</p>${try_(`tick them off, or choose them with <b>⠿</b>, then ${KEYS ? "press <b>Delete</b> at the end of the <b>Selections bar</b> at the bottom (scroll the bar sideways with your mouse wheel if you can't see it)" : '<b>drag the Selections bar</b> at the bottom <b>to the left</b> and tap <b>Delete</b> at its end'}.`)}` },
-  { id: 'spacing', hash: '#/tasks/now', at: '#main .view-menu .density-opts, #main .view-menu .menu', also: '#main .task-list', open: '#main .view-menu', title: 'View settings: spacing', doneText: '✓ Medium shows dates, energy, repeats and durations under each task.',
+  Object.assign(menuAt('#main .view-menu', '.density-opts'), { id: 'spacing', hash: '#/tasks/now', title: 'View settings: spacing', doneText: '✓ Medium shows dates, energy, repeats and durations under each task.',
     // Done once Medium is picked after being on something else (so a device already on Medium tries Tight first).
     done: { check: () => { let away = false; return () => { const d = densityOf('tasks'); if (d !== 'medium') away = true; return away && d === 'medium'; }; } },
     body: densityOf('tasks') === 'medium'
-      ? `<p>Here's ${w('list_now')}, and its <b>👁</b> View settings (every page has them). You're on <b>Medium</b> spacing: dates, energy and durations under each task. <b>Tight</b> gives you a clean, short list instead.</p>${tries('Under <b>Spacing</b>, pick <b>Tight</b> (the first one) to see the difference.', 'Then pick <b>Medium</b> (the middle one) again.')}`
-      : `<p>Here's ${w('list_now')}, and its <b>👁</b> View settings (every page has them). We started you on <b>Tight</b> spacing: a nice clean list. When you want more to go on, dial it up.</p>${try_('under <b>Spacing</b>, pick the middle one, <b>Medium</b>.')}` },
-  { id: 'view', hash: '#/tasks/now', at: '#main .view-menu .menu, #main .view-menu', also: '#main .view-menu > summary', open: '#main .view-menu', title: 'View settings: lined paper', done: { layout: ['tasks', 'margin'] },
-    body: `<p>The same menu also puts your tasks on paper.</p>${try_('tick <b>Lined Paper</b>, then <b>Show margin</b>, to see your tasks on paper.')}` },
+      ? `<p>How much each task in your list shows is up to you: the <b>View</b> menu has three spacings. You're on <b>Medium</b>: dates, energy and durations under each task. <b>Tight</b> gives you a clean, short list instead.</p>${tries(openView('the eye'), 'Under <b>Spacing</b>, pick <b>Tight</b> (the first one) to see the difference.', 'Then pick <b>Medium</b> (the middle one) again.')}`
+      : `<p>How much each task in your list shows is up to you: the <b>View</b> menu has three spacings. We started you on <b>Tight</b>: a nice clean list. When you want more to go on, dial it up.</p>${tries(openView('the eye'), 'Under <b>Spacing</b>, pick the middle one, <b>Medium</b>.')}` }),
+  Object.assign(menuAt('#main .view-menu', '.menu'), { id: 'view', hash: '#/tasks/now', leave: closeMenu('#main .view-menu'), title: 'View settings: lined paper', done: { layout: ['tasks', 'margin'] },
+    body: `<p>The same <b>View</b> menu also puts your tasks on paper.</p>${tries(`If it's closed, ${openView().replace(/^./, c => c.toLowerCase())}`, 'Tick <b>Lined Paper</b>, then <b>Show margin</b>, to see your tasks on paper.')}` }),
   { id: 'more', hash: '#/tasks/now', at: '#main .task-list, #task-body', leave: closeEditing, title: 'Everything about a task', done: { check: shows('#main .task-list > li.pills-open, #main .task-list > li.task-details') }, doneText: "✓ That's everything about a task, in one place.",
     body: `<p>A green ${green('More')} button opens a task's note, dates, energy and how long it'll take. It only appears once you ${KEYS ? 'point at' : 'tap'} a task.</p>${try_(KEYS ? `hover your mouse over a task, and its green ${green('More')} appears on the right. Click it.` : `tap a task, and its green ${green('More')} appears on the right. Tap it.`)}` },
   { id: 'select', hash: '#/tasks/now', at: '#main .task-list, #task-body', title: 'Move and nest', done: { nested: true }, doneText: '✓ Nested. Drag it back out whenever you like.',
@@ -130,8 +136,8 @@ const tasksSteps = () => [
   { id: 'tips', title: 'Tips', body: `<ul><li>There's plenty more when you need it: start and end dates, sub-tasks, checklists and repeating tasks.</li>
       <li>A repeating task comes back by itself: make <b>Put the bins out</b> repeat every week, tick it off, and next week's is already waiting.</li>
       <li>Give tasks a <b>Duration</b> and you'll see how much work you really have, and how long each thing will take. Later you'll see the ${w('area_planner')} use it to fit them into your day.</li></ul>` },
-  { id: 'dots', hash: '#/tasks/now', at: '#main .page-more > summary, #main .page-more', title: 'The Triple Dot menu', done: { check: shows('#main .page-more[open]') }, doneText: '✓ Show Archive and Show Bin are in here.',
-    body: `<p>The <b>⋯</b> Triple Dot menu is where you'll find tasks you've archived, or even deleted (they wait in the Bin for 30 days).</p>${try_(`${tap()} <b>⋯</b> at the top right.`)}` },
+  Object.assign(menuAt('#main .page-more', '.menu'), { id: 'dots', hash: '#/tasks/now', leave: closeMenu('#main .page-more'), title: 'The Triple Dot menu', done: { check: shows('#main .page-more[open]') }, doneText: '✓ Show Archive and Show Bin are in here.',
+    body: `<p>The <b>⋯</b> Triple Dot menu is where you'll find tasks you've archived, or even deleted (they wait in the Bin for 30 days).</p>${try_(`${tap()} <b>⋯</b> at the top right.`)}` }),
   { id: 'done', hash: '#/tasks/now', at: '#task-views [data-view="done"], #task-views', ringPad: 1, title: 'Done: your last month', done: { hash: '#/tasks/done' },
     body: `<p>Ticked-off tasks stay in <b>Done</b> for 30 days, then tidy themselves away into the Archive, so Done never becomes a long list. (Settings → Tasks changes how long.)</p>${try_(`${tap()} <b>Done</b>.`)}` },
   { id: 'projects', hash: '#/tasks/now', at: '.task-mode [data-mode="projects"], .task-mode', title: 'Projects', offer: 'projects', cardBottom: true,
@@ -174,7 +180,7 @@ const notesSteps = () => [
   { id: 'safe', hash: '#/dump', at: '.dump-capture', title: 'Never lost', body: `<p>Everything is kept as you type it, even a note you hadn't saved when the battery died.</p>` },
   { id: 'undo', hash: '#/dump', at: '#dump-body', only: 'keys', title: 'Undo that remembers yesterday', body: `<p>${key(CTRL, 'Z')} in a note goes back past what you just typed: yesterday's version, last week's, even ones from your other devices.</p>` },
   { id: 'undo', hash: '#/dump', at: '#dump-body', only: 'touch', title: 'Undo that remembers yesterday', body: `<p><b>Aa</b>, then <b>🕘</b>, lists a note's earlier versions: yesterday's, last week's, from any of your devices.</p>` },
-  { id: 'look', hash: '#/dump', at: '#main .view-menu .menu, #main .view-menu', open: '#main .view-menu', title: '👁 Look and spacing', done: { check: shows('#main[data-shade="colour"]') }, doneText: '✓ Each note in its own colour.', body: `<p>Plain notes or colourful ones, packed tight or roomy. Nothing here can break anything.</p>${try_('pick <b>Multicolour</b>.')}` },
+  Object.assign(menuAt('#main .view-menu', '.menu'), { id: 'look', hash: '#/dump', leave: closeMenu('#main .view-menu'), title: '👁 Look and spacing', done: { check: shows('#main[data-shade="colour"]') }, doneText: '✓ Each note in its own colour.', body: `<p>Plain notes or colourful ones, packed tight or roomy. Nothing here can break anything.</p>${tries(openView('the eye'), 'Pick <b>Multicolour</b>.')}` }),
   { id: 'rich', hash: '#/dump', at: '#dump-body', title: 'Notes that do things', body: `<p>Type a phone number and it becomes a contact. Paste a screenshot or a PDF and it's attached. Format with the toolbar${KEYS ? `, ${key(CTRL, 'B')}` : ''} or Markdown.</p>` },
   searchStep(),
   { id: 'why', title: 'Why not Apple Notes or Notepad?', body: `<ul><li>Nothing is ever lost, and undo goes back days.</li><li>A line becomes a task or a contact, and stays linked.</li><li>The same notes on every device, readable by nobody else.</li></ul>` },
@@ -189,8 +195,8 @@ const plannerSteps = () => [
     body: `<p>Your task list, anything unfinished from earlier days, and your Google Calendar, all in one place instead of cluttering the page.</p>${try_(`${tap()} <b>↓ Bring items in</b>, have a look, then <b>Done</b>.`)}` },
   { id: 'ahead', hash: '#/planner', at: '.planner [data-act="next"], .planner .day-nav', title: 'Plan ahead', done: { check: changes(() => location.hash) }, doneText: '✓ Any day, any week. (Three days on, there\'s a dentist and a pizza night.)',
     body: `<p><b>›</b> goes forward a day, <b>‹</b> back, <b>📅</b> jumps to any date.</p>${try_(`${tap()} <b>›</b>.`)}` },
-  { id: 'pview', hash: `#/planner/${isoDate()}`, at: '.planner .view-menu .menu, .planner .view-menu', open: '.planner .view-menu', title: '👁 Your kind of paper', done: { check: changes(() => document.querySelector('.planner')?.dataset.paper) }, doneText: '✓ Every day can have its own paper.',
-    body: `<p>Notebook, Dot journal, Glass; quarter, half or whole hours; the plan first or your tasks first.</p>${try_('pick a different <b>Paper</b>.')}` },
+  Object.assign(menuAt('.planner .view-menu', '.menu'), { id: 'pview', hash: `#/planner/${isoDate()}`, leave: closeMenu('.planner .view-menu'), title: '👁 Your kind of paper', done: { check: changes(() => document.querySelector('.planner')?.dataset.paper) }, doneText: '✓ Every day can have its own paper.',
+    body: `<p>Notebook, Dot journal, Glass; quarter, half or whole hours; the plan first or your tasks first.</p>${tries(openView('the eye'), 'Pick a different <b>Paper</b>.')}` }),
   { id: 'focus', hash: `#/planner/${isoDate()}`, at: '.planner .focus-row', focus: '#focus', title: 'Plan around how you feel', done: { updated: ['days'] }, doneText: "✓ Today's focus, right at the top.",
     body: `<p><b>Day focus</b>: the one thing that matters today. <b>Energy</b>: how you feel, so it suggests tasks that fit.</p>${try_(`type your focus for today, then ${KEYS ? key('Enter') : 'Done'}.`)}` },
   { id: 'daynotes', hash: `#/planner/${isoDate()}`, at: '.planner .day-notes', title: 'A diary without trying', body: `<p>Who rang, what happened, what to remember. Written as you go, the day's notes become a journal.</p>` },
@@ -346,9 +352,14 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
       const f = document.querySelector(step.focus), a = document.activeElement;
       if (f && a !== f && (!a || a === document.body)) f.focus({ preventScroll: true });
     }
-    if (step?.at && !target?.isConnected) target = find(step.at);
-    if (step?.also && !extra?.isConnected) extra = find(step.also);
-    const r = shown(target), x = shown(extra);
+    if (step?.menu) {
+      const m = document.querySelector(step.menu);
+      if (m && m !== menuSeen.el && menuSeen.open && !m.open) m.open = true;
+      menuSeen = { el: m, open: !!m?.open };
+    }
+    if (step?.at && (step.follow || !target?.isConnected)) target = find(step.at);
+    if (step?.also && (step.follow || !extra?.isConnected)) extra = find(step.also);
+    const r = shown(target), x = shown(extra), c = step?.clear && shown(find(step.clear));
     ring.classList.toggle('whole', !r);
     fit(ring, r || { left: 6, top: 6, width: innerWidth - 12, height: innerHeight - 12 }, r ? step?.ringPad ?? 6 : 6); // ringPad: hugs a small tab, clear of its neighbours
     also.hidden = !x;
@@ -360,28 +371,35 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
     if (step?.stage) { const now = step.stage(); for (const line of card.querySelectorAll('[data-stage]')) line.hidden = Number(line.dataset.stage) !== now; }
     if (sel) Object.assign(label.style, { left: `${Math.round(Math.max(8, sel.left + 10))}px`, top: `${Math.round(sel.top - label.offsetHeight - 8)}px` });
     if (moved) return; // put somewhere by hand: left there
-    // The card: under what it points at, or over it, or beside it; when none of
-    // those fits, in the bottom corner, away from the top of it (where its heading usually is).
+    // The card: under what it points at, or over it, or beside it (clear of an open menu around it when there's
+    // room, otherwise just of what it points at); when none of those fits, in the bottom corner, away from the
+    // top of it (where its heading usually is).
     const ch = card.offsetHeight, cw = card.offsetWidth, gap = 14;
     let top, left = r ? Math.min(Math.max(12, r.left), innerWidth - cw - 12) : (innerWidth - cw) / 2;
-    const beside = r && Math.min(Math.max(12, r.top), innerHeight - ch - 12);
+    const around = box => {
+      const beside = Math.min(Math.max(12, box.top), innerHeight - ch - 12);
+      if (box.bottom + gap + ch < innerHeight - 8) return [box.bottom + gap, left];
+      if (box.top - gap - ch > 8) return [box.top - gap - ch, left];
+      if (box.left - gap - cw > 8) return [beside, box.left - gap - cw];
+      if (box.right + gap + cw < innerWidth - 8) return [beside, box.right + gap];
+      return null;
+    };
+    const menuBox = r && c && { left: Math.min(r.left, c.left), top: Math.min(r.top, c.top), right: Math.max(r.right, c.right), bottom: Math.max(r.bottom, c.bottom) };
     if (step?.cardLow) { top = barLine() - ch - 44; left = KEYS ? innerWidth - cw - 12 : (innerWidth - cw) / 2; }
     else if (step?.cardBottom) top = innerHeight - ch - 12; // at the bottom (over a phone's bottom bar if need be), the page above left in view
     else if (!r) top = (innerHeight - ch) / 2;
-    else if (r.bottom + gap + ch < innerHeight - 8) top = r.bottom + gap;
-    else if (r.top - gap - ch > 8) top = r.top - gap - ch;
-    else if (r.left - gap - cw > 8) { top = beside; left = r.left - gap - cw; }
-    else if (r.right + gap + cw < innerWidth - 8) { top = beside; left = r.right + gap; }
-    else { top = innerHeight - ch - 12; left = innerWidth - cw - 12; }
+    else [top, left] = (menuBox && around(menuBox)) || around(r) || [innerHeight - ch - 12, innerWidth - cw - 12];
     card.style.top = `${Math.round(Math.max(12, top))}px`;
     card.style.left = `${Math.round(Math.max(12, left))}px`;
   };
 
+  let menuSeen = {}; // the step's menu as last seen, and whether it was open
   let undoEnter = null; // what the step's enter() set up, undone when it's left
   let moved = false; // the card dragged by hand this step
   let inField = false; // the step's field has the cursor
   const shut = () => {
     step?.leave?.();
+    menuSeen = {};
     if (opened) { opened.open = false; opened = null; }
     undoEnter?.(); undoEnter = null;
     if (step?.mark) for (const el of document.querySelectorAll(`.${step.mark.cls}, .tour-pill`)) el.classList.remove(step.mark.cls, 'tour-pill');

@@ -24,6 +24,7 @@ import { keys } from './keys.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.33': [{ text: "Tours: the View steps (Tasks, Brain Dump, Day Planner) no longer open the View menu for you: the card points at the View button (the eye) and you tap it yourself, and the Tasks spacing step now explains the three spacings. The card keeps clear of an open View or ⋯ menu instead of covering it.", go: '#/settings', at: '#main [data-act="tour"]', more: 'Settings, Take the tour, then Get your life in order: the View settings and Triple Dot menu steps.' }],
   '1.60.32': [{ text: "Tasks tour: the Done step's yellow outline fits snugly round the Done tab, and the tab row scrolls it into view if it's off to the side. The last step (Projects) sits at the bottom of the screen so the page stays visible, and every tour's buttons are proper buttons: Back and End tour early side by side, with Save for later and Skip on their own row.", go: '#/settings', at: '#main [data-act="tour"]', more: 'Settings, Take the tour, then Get your life in order: the last two steps.' }],
   '1.60.31': [{ text: "Tasks tour, Sort a couple and Tidy up: the tour card sits low, just above the Selections bar, so the list shows above it. Once you choose a task the Selections bar is outlined in yellow and labelled, the card says the bar scrolls sideways, and it shows one thing to do at a time.", go: '#/settings', at: '#main [data-act="tour"]', more: 'Settings, Take the tour, then Get your life in order: steps 4 and 5.' }],
   '1.60.30': [{ text: "Selection bars: pressing Move ▸ (Tasks, Brain Dump) now puts Move and the choices it opens (Now, Next, Later...) together in one shaded pill, so it's clear where they came from; on a phone the bar slides along to show them all.", more: 'Batch Book\'s Move to ▸ and Status ▸ open the same way.' }],
@@ -78,6 +79,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.33': '2026-09-30T22:23:23Z',
   '1.60.32': '2026-09-30T22:18:00Z',
   '1.60.31': '2026-09-30T22:16:54Z',
   '1.60.30': '2026-09-30T22:15:12Z',
