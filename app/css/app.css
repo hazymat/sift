@@ -2336,6 +2336,9 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
 .whatsnew-more, .whatsnew-v { display: block; font-size: .85rem; margin-top: 3px; }
 .whatsnew-v { font-size: .75rem; }
 .whatsnew-list .pill-act { flex: none; }
+.whatsnew-nav { display: flex; align-items: center; gap: 10px; margin: 10px 0 4px; }
+.whatsnew-when { flex: 1; text-align: center; font-size: .9rem; }
+.whatsnew-nav .pill-act[disabled] { opacity: .35; cursor: default; }
 #install-card > .check-row { margin: 2px 0 12px; } /* Show update info, under the version line */
 .ask-field { display: grid; gap: 4px; margin: 10px 0 0; font-size: .85rem; color: var(--muted); }
 .ask-field input, .ask-field select { width: 100%; box-sizing: border-box; font-size: 16px; color: var(--text); }
