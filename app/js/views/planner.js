@@ -126,7 +126,7 @@ export default {
           <h2>${esc(word('day_tasks'))} <span class="task-count" hidden></span><button type="button" class="bring-link" data-act="bring-in" title="Claim tasks from the Tasks page for this day"><span class="bring-arrow" aria-hidden="true">↓</span> Bring in from tasks</button></h2>
           <div class="pile-paper">
             <ul id="pile" class="pile-list"></ul>
-            <div class="line pile-new"><span class="margin"></span><span class="content"><input id="dump" class="new-task hand no-inline" placeholder="New task" autocomplete="off" enterkeyhint="done" aria-label="New task"><textarea id="dump-note" class="add-note no-inline" rows="1" placeholder="Add note" aria-label="Note"></textarea><div class="new-pills"></div></span></div>
+            <div class="line pile-new"><span class="margin"></span><span class="content"><input id="dump" class="new-task hand no-inline" placeholder="New task" autocomplete="off" enterkeyhint="done" aria-label="New task"><button type="button" class="entry-chip pill-reveal new-line-more" hidden title="Add it and open its full panel">More${keys('Shift+Enter')}</button><textarea id="dump-note" class="add-note no-inline" rows="1" placeholder="Add note" aria-label="Note"></textarea><div class="new-pills"></div></span></div>
             <ul id="pile-done" class="pile-list pile-done"></ul>
             <div id="pile-blank" aria-hidden="true"></div>
           </div>
@@ -1233,25 +1233,33 @@ export default {
       if (line.querySelector('input')) return;
       const time = line.dataset.time === 'evening' ? fromMin(toMin(settings.day_end) + slotMin()) : line.dataset.time;
       // The title, and an "Add note" line under it for anything more.
-      content.innerHTML = '<input class="item-title hand new-line" autocomplete="off"><textarea class="add-note no-inline" rows="1" placeholder="Add note" aria-label="Note"></textarea>';
+      // Once something is typed, More at the right of the line, as in Tasks: it adds the item and shows its note and pills.
+      content.innerHTML = `<input class="item-title hand new-line" autocomplete="off"><button type="button" class="entry-chip pill-reveal new-line-more" hidden title="Add it, with its note and pills">More${keys('Shift+Enter')}</button><textarea class="add-note no-inline" rows="1" placeholder="Add note" aria-label="Note"></textarea>`;
       const input = content.querySelector('input');
       const note = content.querySelector('.add-note');
+      const more = content.querySelector('.new-line-more');
       input.focus();
       let finished = false;
-      const finish = async save => {
+      const finish = async (save, open = false) => {
         if (finished) return; // Enter then leaving would otherwise save twice
         finished = true;
         const text = input.value.trim();
         const notes = note.value.trim();
         input.remove();
         note.remove();
+        more.remove();
         if (save && text) {
           const parsed = parseTimed(text);
-          await create({ title: parsed.title, time: parsed.time || time, end_time: parsed.end_time, notes });
+          const made = await create({ title: parsed.title, time: parsed.time || time, end_time: parsed.end_time, notes });
+          if (open) reveal(made.id);
         }
       };
-      // Esc keeps what's typed, the same as Enter (an empty line just goes).
+      input.addEventListener('input', () => { more.hidden = !input.value.trim(); });
+      more.addEventListener('pointerdown', ev => ev.preventDefault()); // the cursor stays in the line
+      more.addEventListener('click', ev => { ev.stopPropagation(); finish(true, true); });
+      // Esc keeps what's typed, the same as Enter (an empty line just goes). Shift+Enter: as More.
       input.addEventListener('keydown', ev => {
+        if (ev.key === 'Enter' && ev.shiftKey && input.value.trim()) { ev.preventDefault(); ev.stopPropagation(); finish(true, true); return; }
         if (ev.key === 'Enter' || ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); finish(true); }
       });
       note.addEventListener('keydown', ev => {
@@ -1437,8 +1445,7 @@ export default {
     let draft = { energy: null, estimate_min: null };
     function paintNewPills() {
       $('.new-pills').innerHTML = energyPill(draft.energy)
-        + selectPill('estimate_min', 'Estimated time', '⏱', [['', 'Not estimated'], ...durationChoices(settings.duration_max_min).map(m => [m, durationLabel(m)])], draft.estimate_min)
-        + '<button type="button" class="entry-chip pill-more" data-pill-more>More…</button>';
+        + selectPill('estimate_min', 'Estimated time', '⏱', [['', 'Not estimated'], ...durationChoices(settings.duration_max_min).map(m => [m, durationLabel(m)])], draft.estimate_min);
     }
     const newIdle = () => !$('#dump').value.trim() && !$('#dump-note').value.trim() && !draft.energy && !draft.estimate_min;
     function resetNew() {
@@ -1456,7 +1463,7 @@ export default {
       if ($('#dump').value.trim()) addNew({ leave: true });
       else if (newIdle()) { resetNew(); closeNew(); }
     }
-    pileNew.addEventListener('focusin', () => { if (!pileNew.classList.contains('open')) { paintNewPills(); pileNew.classList.add('open'); } });
+    pileNew.addEventListener('focusin', () => { newMore.hidden = !$('#dump').value.trim(); if (!pileNew.classList.contains('open')) { paintNewPills(); pileNew.classList.add('open'); } });
     // Leaving by keyboard (Tab / Shift+Tab) closes it too, if nothing's typed or set.
     // Left with a task typed (click elsewhere, or Tab away): it's added, as Enter would.
     pileNew.addEventListener('focusout', ev => {
@@ -1476,11 +1483,12 @@ export default {
       if (d) { try { d.showPicker(); } catch { /* the tap opens it */ } return; }
       const en = ev.target.closest('[data-pill-act="energy"]');
       if (en) { energyMenu(en, draft.energy, v => { draft.energy = v; paintNewPills(); $('#dump').focus(); }); return; }
-      if (ev.target.closest('[data-pill-more]')) {
-        if ($('#dump').value.trim()) addNew({ open: true });
-        else { toast('Type the task first'); $('#dump').focus(); }
-      }
     });
+    // More at the right of the line once something is typed, as in Tasks: adds it and opens its full panel.
+    const newMore = pileNew.querySelector('.new-line-more');
+    $('#dump').addEventListener('input', () => { newMore.hidden = !$('#dump').value.trim(); });
+    newMore.addEventListener('pointerdown', ev => ev.preventDefault());
+    newMore.addEventListener('click', () => { newMore.hidden = true; addNew({ open: true }); });
     $('.new-pills').addEventListener('change', ev => {
       ev.stopPropagation();
       const f = ev.target.closest('[data-pill]');
@@ -1515,7 +1523,8 @@ export default {
       }
       if (ev.key !== 'Enter' || ev.isComposing) return;
       ev.preventDefault();
-      addNew();
+      newMore.hidden = true;
+      addNew(ev.shiftKey ? { open: true } : {});
     });
 
     // ---------- select, pick up and move; resize from the bottom handle ----------
