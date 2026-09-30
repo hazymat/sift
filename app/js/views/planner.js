@@ -766,8 +766,9 @@ export default {
     // Tasks for this day: planned (start date), aim today, ongoing multi-day,
     // and energy-matched suggestions to adopt.
     let tasks = [];
+    let projects = [];
     async function renderTasks() {
-      tasks = (await loadTasks()).tasks;
+      ({ tasks, projects } = await loadTasks());
       if ($('#bring').open) drawBring();
     }
 
@@ -775,7 +776,7 @@ export default {
     // One sheet for everything waiting to come into the day, so the page stays
     // clean: tasks from the Tasks page, what's unfinished from earlier days, and
     // what's on Google Calendar (connected from here too). Each can be put in
-    // the day, finished with, or set aside for this day only ("Not today": the
+    // the day, finished with, or kept out of this day only ("Not today": the
     // day's bring_skip). The count on ↓ Bring items in is what's waiting from
     // earlier days and the calendar, never the tasks (there are always some).
     let bringTab = 'tasks';
@@ -783,6 +784,7 @@ export default {
     let alreadyOpen = false;
     const skipped = () => new Set(day.bring_skip || []);
     const notToday = () => (date === isoDate() ? 'Not today' : 'Not this day');
+    const notForDay = () => (date === isoDate() ? 'not for today' : 'not for this day');
 
     async function waiting() {
       const skip = skipped();
@@ -810,7 +812,7 @@ export default {
 
     // Opens on the first part with something waiting (earlier days, then the calendar), else From Tasks.
     async function openBring() {
-      tasks = (await loadTasks()).tasks;
+      ({ tasks, projects } = await loadTasks());
       const w = await waiting();
       bringTab = w.earlierWaiting.length ? 'earlier' : w.calWaiting.length ? 'calendar' : 'tasks';
       showSkipped = false;
@@ -845,15 +847,16 @@ export default {
       dlg.scrollTop = scroll;
     }
 
-    // What's been set aside for this day, at the end of each part: a line saying how many, which shows them with ↺ Put back.
+    // What's been marked Not today, at the end of each part: a line saying how many, which shows them with ↺ Put back.
     const skippedHtml = list => (!list.length ? '' : showSkipped
-      ? `<h3 class="milestone">Set aside for ${dayCalled()}</h3><ul class="review-list bring-list bring-skipped">${list.map(x => `<li data-skip-id="${esc(x.id)}"><div class="bring-main"><span class="review-title hand">${esc(x.title)}</span></div><span class="review-actions"><button type="button" data-bring-act="unskip">↺ Put back</button></span></li>`).join('')}</ul>`
-      : `<p class="bring-skipped-note"><button type="button" class="gcal-link" data-bring-act="show-skipped">${list.length} set aside for ${dayCalled()}</button></p>`);
+      ? `<h3 class="milestone">${date === isoDate() ? 'Not for today' : 'Not for this day'}</h3><ul class="review-list bring-list bring-skipped">${list.map(x => `<li data-skip-id="${esc(x.id)}"><div class="bring-main"><span class="review-title hand">${esc(x.title)}</span></div><span class="review-actions"><button type="button" data-bring-act="unskip">↺ Put back</button></span></li>`).join('')}</ul>`
+      : `<p class="bring-skipped-note"><button type="button" class="gcal-link" data-bring-act="show-skipped">${list.length} ${notForDay()}</button></p>`);
     const skipBtn = () => `<button type="button" data-bring-act="skip" title="Out of the way for ${esc(dayCalled())} only; nothing else changes">${esc(notToday())}</button>`;
 
     // From Tasks: at the top, what's planned or aimed for this day and ideas for
-    // today's energy; then Now, Next and Later. Each can be claimed into the day,
-    // ticked off, archived or set aside. What's in the day's plan already is
+    // today's energy; then Now, Next and Later, then each project going on (a
+    // task in a project lives in the project, as on the Tasks page, never on a
+    // list). Each can be claimed into the day, ticked off, archived or kept out of this day. What's in the day's plan already is
     // counted in a tinted strip at the top (open it to see which).
     function tasksHtml(skip) {
       const open = tasks.filter(t => !t.done_at && !t.archived_at && t.status !== 'done');
@@ -864,12 +867,14 @@ export default {
       const top = Array.from(new Set(planned.concat(aimed, ongoing)));
       const ideas = suggestions(offer, day.energy).filter(t => !top.includes(t));
       const seen = new Set(top.concat(ideas));
-      const by = horizon => offer.filter(t => horizonOf(t) === horizon && !seen.has(t) && !t.parent_task_id);
+      const projectOf = t => projects.find(p => p.id === t.project_id);
+      const by = horizon => offer.filter(t => horizonOf(t) === horizon && !projectOf(t) && !seen.has(t) && !t.parent_task_id);
+      const inProject = p => offer.filter(t => t.project_id === p.id && !seen.has(t) && !t.parent_task_id);
       const energy = ENERGY.find(e => e.id === day.energy);
       const card = (t, note = '') => {
         const bolts = ENERGY.find(x => x.id === t.energy)?.bolts;
         const aim = aimDate(t);
-        const about = [note, bolts, aim ? `⚑ ${shortDay(aim)}` : '', t.start_date && t.start_date !== date ? `📅 ${shortDay(t.start_date)}` : ''].filter(Boolean);
+        const about = [note, bolts, aim ? `⚑ ${shortDay(aim)}` : '', t.start_date && t.start_date !== date ? `📅 ${shortDay(t.start_date)}` : '', projectOf(t) && !inSection ? `📁 ${projectOf(t).name}` : ''].filter(Boolean);
         return `<li data-bring="${t.id}">
           <div class="bring-main"><span class="review-title hand">${esc(t.title)}</span>${about.length ? `<span class="review-about">${esc(about.join(' · '))}</span>` : ''}</div>
           <span class="review-actions">
@@ -880,7 +885,9 @@ export default {
           </span>
         </li>`;
       };
+      let inSection = false; // listing a project's own section: its name is the heading, not on each task
       const section = (title, list, note) => (list.length ? `<h3 class="milestone">${title}</h3><ul class="review-list bring-list">${list.map(t => card(t, typeof note === 'function' ? note(t) : note)).join('')}</ul>` : '');
+      const projectSections = () => { inSection = true; const html = projects.filter(p => (p.status || 'active') === 'active').map(p => section(`📁 ${esc(p.name)}`, inProject(p))).join(''); inSection = false; return html; };
       const aimNote = t => (t.start_date === date ? '' : aimDate(t) === date ? `aim is ${dayCalled()}` : 'ongoing');
       const alreadyWords = date === isoDate() ? "already in today's plan" : `already planned for ${dayCalled()}`;
       return `
@@ -892,6 +899,7 @@ export default {
         ${section('Now', by('now'))}
         ${section('Next', by('next'))}
         ${section('Later', by('later'))}
+        ${projectSections()}
         ${open.length ? '' : '<p class="muted">' + esc(word('ph_day_bring_empty')) + '</p>'}
         ${skippedHtml(open.filter(t => skip.has(t.id) && !onDay.has(t.id)))}`;
     }
@@ -904,7 +912,7 @@ export default {
     };
 
     // Earlier days: what's unfinished from the last week, day by day. Each can
-    // come to this day, be ticked off, let go (to the Archive), deleted or set aside.
+    // come to this day, be ticked off, let go (to the Archive), deleted or kept out of this day.
     function earlierHtml(w, skip) {
       if (date < isoDate()) return '<p class="muted">Unfinished items come forward to today and the days ahead.</p>';
       const left = w.earlierWaiting;
@@ -995,7 +1003,7 @@ export default {
       const row = b.closest('li');
       if (row) { row.classList.add('leaving'); await new Promise(r => setTimeout(r, 180)); }
     };
-    // Set aside for this day, or put back; undoable.
+    // Not today (for this day only), or put back; undoable.
     async function setSkip(ids, on) {
       const forDate = date;
       const before = day.bring_skip || [];
@@ -1005,7 +1013,7 @@ export default {
       await drawBring();
       renderBringLink();
       if (on) {
-        undoable(ids.length === 1 ? `Set aside for ${dayCalled()}` : `${ids.length} set aside for ${dayCalled()}`, async () => {
+        undoable(ids.length === 1 ? `${notToday()}: it's out of the way` : `${ids.length} ${notForDay()}`, async () => {
           const d = await saveDay(forDate, { bring_skip: before });
           if (forDate === date) { day = d; if ($('#bring').open) drawBring(); renderBringLink(); }
         });
