@@ -224,11 +224,12 @@ export default {
       const box = el.isConnected ? energyBox() : null;
       if (box?.classList.contains('editing') && !box.contains(ev.target)) closeEnergy();
     }, pageCapture);
-    el.addEventListener('keydown', ev => {
-      if (ev.key !== 'Escape' || !editing || ev.defaultPrevented) return;
+    // Esc closes an open panel, wherever the focus is (after More (full) it's on the page, not in the panel).
+    document.addEventListener('keydown', ev => {
+      if (ev.key !== 'Escape' || !editing || ev.defaultPrevented || !el.isConnected || document.querySelector('dialog[open], .pill-menu')) return;
       ev.preventDefault();
       closeDetails();
-    });
+    }, page);
 
     // An item's notes save as you type (mountNoteEditors' autosave) and again
     // on leaving the box (Esc included), which just catches anything typed
