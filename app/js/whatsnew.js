@@ -24,6 +24,7 @@ import { keys } from './keys.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.13': [{ text: 'Settings, Sync: signing in lets your browser offer to save your email and password (and fill them in next time), and Enter in the password box signs in.' }],
   '1.60.12': [{ text: 'Settings: the erase button names the web address it erases ("Erase everything stored at hazymat.github.io/sift") and says plainly that Sift at any other address, browser or device keeps its data.', go: '#/settings', at: '#main [data-erase="all"]' }],
   '1.60.11': [{ text: 'Day Planner: Achievements no longer ends with a full stop ("Five and counting").' }],
   '1.60.10': [{ text: "Updates download less: the big app icons aren't fetched again with every update." }],

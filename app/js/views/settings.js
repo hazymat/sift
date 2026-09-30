@@ -257,13 +257,13 @@ export default {
             </div>
             <ul class="sync-devices" hidden></ul>
             <div class="sync-pw" hidden>
-              <form class="settings-grid sync-form">
+              <form class="settings-grid sync-form" id="sync-pw-form">
                 <input type="text" name="username" autocomplete="username" value="${esc(acct?.email || '')}" hidden>
                 <label>Current password<input name="oldpw" type="password" autocomplete="current-password" class="no-inline"></label>
                 <label>New password<input name="newpw" type="password" autocomplete="new-password" class="no-inline"></label>
               </form>
               <div class="backup-row">
-                <button type="button" class="primary" data-sync="pw">Change password</button>
+                <button type="submit" form="sync-pw-form" class="primary" data-sync="pw">Change password</button>
                 <span class="muted" id="sync-msg"></span>
               </div>
               <p class="muted hint">${esc(word('ph_sync_pw'))}</p>
@@ -280,15 +280,15 @@ export default {
         box.innerHTML = `
           <p class="sync-out-reason" hidden></p>
           <p class="muted">${esc(word('ph_sync_intro'))}</p>
-          <form class="settings-grid sync-form">
+          <form class="settings-grid sync-form" id="sync-in-form">
             <label class="wide">Server<input name="server" value="${esc(typed.server_url || '')}" placeholder="https://your-server" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" class="no-inline"></label>
             <label>Email<input name="email" type="email" value="${esc(typed.sync_email || '')}" autocomplete="username" class="no-inline"></label>
             <label>Password<input name="password" type="password" autocomplete="current-password" class="no-inline"></label>
           </form>
           <p class="sync-reach" hidden><span class="sync-reach-text"></span><button type="button" class="link-btn sync-recheck">Check again</button></p>
           <div class="backup-row">
-            <button type="button" class="primary" data-sync="in">Sign in</button>
-            <button type="button" data-sync="create" hidden>Create account</button>
+            <button type="submit" form="sync-in-form" class="primary" data-sync="in">Sign in</button>
+            <button type="submit" form="sync-in-form" data-sync="create" hidden>Create account</button>
             <button type="button" data-sync="forgot">Forgot password?</button>
             <span class="muted" id="sync-msg"></span>
           </div>
@@ -316,12 +316,12 @@ export default {
           </details>
           <div class="sync-recover" hidden>
             <p class="muted">${esc(word('ph_sync_recover'))}</p>
-            <form class="settings-grid sync-form">
+            <form class="settings-grid sync-form" id="sync-recover-form">
               <input type="text" name="username" autocomplete="username" value="${esc(typed.sync_email || '')}" hidden>
               <label class="wide">Recovery code<input name="code" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" class="no-inline"></label>
               <label>New password<input name="newpw" type="password" autocomplete="new-password" class="no-inline"></label>
             </form>
-            <div class="backup-row"><button type="button" class="primary" data-sync="recover">Set new password</button></div>
+            <div class="backup-row"><button type="submit" form="sync-recover-form" class="primary" data-sync="recover">Set new password</button></div>
           </div>`;
         const reason = box.querySelector('.sync-out-reason');
         if (st.error) { reason.textContent = st.error; reason.hidden = false; }
@@ -403,6 +403,12 @@ export default {
       // While Settings is open, a quick check of the connection every 10 s (each shows as a pulse).
       this.linkTick = setInterval(() => { if (!el.isConnected) return clearInterval(this.linkTick); if (sync.signedIn()) sync.checkLink(); }, 10000);
       if (sync.signedIn()) sync.checkLink();
+      // Offer to save the email and password in the browser (Chrome and Edge ask straight away;
+      // Safari and Firefox go by the form being submitted and then going away).
+      const keepLogin = (id, password) => {
+        if (!window.PasswordCredential || !id || !password) return;
+        navigator.credentials?.store(new PasswordCredential({ id, password, name: id })).catch(() => {});
+      };
       box.addEventListener('click', async ev => {
         const b = ev.target.closest('[data-sync]');
         if (!b) return;
@@ -431,6 +437,7 @@ export default {
             b.disabled = true;
             msg('Changing…');
             await sync.changePassword(oldpw, newpw);
+            keepLogin(val('username'), newpw);
             toast('Password changed');
             return draw();
           }
@@ -444,6 +451,7 @@ export default {
             b.disabled = true;
             msg('Setting your new password…');
             await sync.recover(server, email, val('code'), newpw);
+            keepLogin(email, newpw);
             await sync.start();
             toast('New password set');
             return draw();
@@ -455,6 +463,7 @@ export default {
             b.disabled = true;
             msg('Creating your account and keys…');
             const code = await sync.register(server, email, password);
+            keepLogin(email, password);
             box.innerHTML = `
               <p><b>Account created.</b> This is your <b>recovery code</b>. If you ever forget your password, it is the only way to get your data back. Nobody (not even the server) can reset it for you.</p>
               <pre class="recovery-code">${code}</pre>
@@ -471,6 +480,7 @@ export default {
           b.disabled = true;
           msg('Signing in…');
           await sync.signIn(server, email, password);
+          keepLogin(email, password);
           await sync.start();
           draw();
         } catch (e) {
