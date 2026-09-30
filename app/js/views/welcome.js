@@ -12,7 +12,7 @@ export default {
   async mount(el) {
     const seen = await toursSeen();
     const where = {};
-    for (const id of ['tasks', 'notes', 'planner', 'recipes', 'lists', 'places', 'filing', 'yours']) where[id] = await progress(id);
+    for (const id of ['tasks', 'notes', 'planner', 'recipes', 'lists', 'places', 'filing', 'yours', 'projects', 'keys']) where[id] = await progress(id);
     // What a card says under its words: carrying on, seen, or how long it is.
     const state = id => (where[id] ? `▶ Carry on: step ${where[id].n + 1} of ${where[id].total}` : seen[id] ? '✓ Seen' : `${tourLength(id)} quick steps`);
     const big = (id, colour, emoji, title, who, why) => `
@@ -42,6 +42,8 @@ export default {
             ${small('recipes', '🍲', 'Your Recipe Archive')}
             ${small('lists', '🛒', word('area_lists'))}
             ${small('places', '📦', word('area_places'))}
+            ${small('projects', '📁', 'Projects')}
+            ${small('keys', '⌨️', 'Keyboard')}
             ${small('yours', '🎨', 'Make it yours')}
           </div>
         </div>

@@ -85,9 +85,7 @@ const LAYOUTS = {
   tasks: [
     { id: 'lined', label: 'Lined Paper' },
     { id: 'margin', label: 'Show margin', needs: 'lined' },
-    { id: 'new-focus', label: 'Start typing a new task on arriving', def: true },
     { id: 'add-top', label: 'New tasks appear at top', def: true },
-    { id: 'added-flash', label: 'Highlight task when added', def: true },
     { id: 'pills-hide', label: 'Hide pills behind More (editing / new)', def: true },
     { id: 'more-panel', label: 'More goes straight to the full panel', needs: 'pills-hide' },
   ],
@@ -127,8 +125,11 @@ export function layoutHtml(area, heading = true) {
 }
 
 const key = area => `sift-density:${area}`;
+// Tasks starts Tight (a clean list; 👁 Spacing shows more of each); everything else Medium.
+const DENSITY_DEFAULT = { tasks: 'tight' };
 export function densityOf(area) {
-  try { return localStorage.getItem(key(area)) || 'medium'; } catch { return 'medium'; }
+  const def = DENSITY_DEFAULT[area] || 'medium';
+  try { return localStorage.getItem(key(area)) || def; } catch { return def; }
 }
 
 export function spacingHtml(area) {

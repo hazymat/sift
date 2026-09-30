@@ -12,25 +12,33 @@ import { setDemoTypes } from './words.js';
 const make = (collection, fields) => store.createDemo(collection, fields);
 const now = () => new Date().toISOString();
 
+// Photos come after the rest (the tour starts straight away); a set cleared meanwhile stops them.
+let generation = 0;
+let photoJobs = [];
+const attachLater = (collection, id, names) => { if (names?.length) photoJobs.push(() => attach(collection, id, names)); };
+
 // Photos from demo/, attached to a record as its own would be (their ids marked first: the file is saved before its record).
 async function attach(collection, id, names = []) {
+  const g = generation;
   const files = [], ids = [];
   for (const name of names) {
     try {
       const res = await fetch(`demo/${name}`);
       if (!res.ok) continue;
       files.push(new File([await res.blob()], name, { type: 'image/jpeg' }));
-      const fileId = store.uuidv7();
-      store.markDemo(fileId);
-      ids.push(fileId);
+      ids.push(store.uuidv7());
     } catch { /* offline: it comes without the photo */ }
   }
-  if (files.length) await (await import('./attachments.js')).addFiles({ collection, id }, files, ids);
+  if (!files.length || g !== generation) return; // the tour ended while they were fetched
+  for (const fileId of ids) store.markDemo(fileId);
+  await (await import('./attachments.js')).addFiles({ collection, id }, files, ids);
 }
 
 // Clears any examples left from before, then makes a fresh set.
 export async function seedDemo() {
   await clearDemo();
+  const mine = generation;
+  photoJobs = [];
   let d;
   try { d = await (await fetch('demo/demo.json')).json(); } catch { return; } // offline and never fetched: the tour runs on what's there
   const today = isoDate();
@@ -45,7 +53,7 @@ export async function seedDemo() {
     rank = keyBetween(null, rank);
     const t = await make('thoughts', { title: n.body.split('\n')[0].slice(0, 80), body: n.body, kind: n.type || 'thought', pinned: !!n.pinned, converted_to: null, rank });
     if (n.key) notes[n.key] = t;
-    await attach('thoughts', t.id, n.photos);
+    attachLater('thoughts', t.id, n.photos);
   }
 
   // ---------- projects and tasks ----------
@@ -61,7 +69,7 @@ export async function seedDemo() {
     const made = await make('tasks', {
       title: t.title, notes: t.notes || '', project_id: projects[t.project]?.id || null, milestone_id: milestones[t.milestone]?.id || null, parent_task_id: tasks[t.parent]?.id || null,
       status: t.done ? 'done' : 'todo', priority: 3, energy: t.energy || null, start_date: t.plan == null ? null : day(t.plan), aim_at: t.aim == null ? null : noon(t.aim), done_at: t.done ? now() : null,
-      calendar_event_id: null, calendar_sync: 'none', recurrence_rule: null, horizon: t.list || 'inbox', estimate_min: t.minutes || null,
+      calendar_event_id: null, calendar_sync: 'none', recurrence_rule: null, repeat: t.repeat || null, horizon: t.list || 'inbox', estimate_min: t.minutes || null,
       source_thought_id: notes[t.from_note]?.id || null, source_scan_id: null, source_contract_id: null, contact_ids: [], case_id: null, sort_order: order++,
     });
     if (t.key) tasks[t.key] = made;
@@ -74,7 +82,7 @@ export async function seedDemo() {
       date: day(it.day), title: it.title, notes: it.notes || '', time: it.time || null, end_time: it.until || null, energy: it.energy || null, estimate_min: null, estimate_unsure: false,
       done_at: it.done ? now() : null, dropped_at: null, sort_order: place++, task_id: null, case_id: null, contact_ids: [], source_thought_id: null, carried_from: null,
     });
-    await attach('day_items', made.id, it.photos);
+    attachLater('day_items', made.id, it.photos);
   }
 
   // ---------- Lists ----------
@@ -95,7 +103,7 @@ export async function seedDemo() {
       const made = await make('places', { kind: 'box', name: box.name, label_code: '', parent_place_id: group.id, location_note: box.where || '', notes: '', sort_order: b++ });
       let i = 0;
       for (const [name, qty] of box.things) await make('items', { name, quantity: qty ?? null, place_id: made.id, parent_item_id: null, notes: '', sort_order: i++, last_moved_at: null });
-      await attach('places', made.id, box.photos);
+      attachLater('places', made.id, box.photos);
     }
   }
 
@@ -121,7 +129,7 @@ export async function seedDemo() {
   for (const s of d.scans || []) {
     const task = tasks[s.task];
     const scan = await make('scans', { title: s.title, kind: s.kind || 'receipt', expiry_date: null, letter_date: null, summary: s.summary || '', note: '', linked: task ? { collection: 'tasks', id: task.id, title: task.title } : null });
-    await attach('scans', scan.id, [s.photo]);
+    attachLater('scans', scan.id, [s.photo]);
   }
 
   // ---------- Recipe Archive (a recipe's book shows by itself; none is added to settings) ----------
@@ -130,13 +138,22 @@ export async function seedDemo() {
     for (const r of d.recipes) {
       for (const recipe of parseRecipes(r.text)) {
         const made = await make('recipes', Object.assign(recipe, { colour: null }));
-        await attach('recipes', made.id, r.photo ? [r.photo] : []);
+        attachLater('recipes', made.id, r.photo ? [r.photo] : []);
       }
     }
   }
+
+  // The photos, in the background: the page is drawn again once they're in.
+  const jobs = photoJobs;
+  (async () => {
+    for (const job of jobs) { if (generation !== mine) return; await job(); }
+    if (generation === mine && jobs.length) dispatchEvent(new Event('sift:refresh'));
+  })();
 }
 
 export async function clearDemo() {
+  generation++;
+  photoJobs = [];
   await setDemoTypes([]);
   return store.clearDemo();
 }

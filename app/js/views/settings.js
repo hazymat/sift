@@ -60,6 +60,14 @@ export default {
         <ul class="pin-list" id="nav-order"></ul>
       </section>
 
+      <section class="card" id="tasks-settings">
+        <h2>Tasks</h2>
+        <div class="settings-grid">
+          <label>Ticked-off tasks go to the Archive after<select name="done_archive_days">${[[7, '1 week'], [14, '2 weeks'], [30, '30 days'], [60, '60 days'], [90, '90 days'], [0, 'Never']].map(([n, l]) => `<option value="${n}">${l}</option>`).join('')}</select></label>
+        </div>
+        <p class="muted">So ${esc(word('area_tasks'))} → Done only shows what you've done lately. Everything archived is still in the Archive, and search finds it.</p>
+      </section>
+
       <section class="card" id="planner-settings">
         <h2>Day Planner</h2>
         <div class="settings-grid">
@@ -561,6 +569,17 @@ export default {
       ns.addEventListener('change', async ev => {
         const t = ev.target;
         await store.updateSettings({ [t.name]: t.type === 'checkbox' ? t.checked : t.name === 'note_history_days' ? Number(t.value) : t.value });
+        toast('✓ Saved');
+      });
+    }
+
+    // Tasks settings
+    {
+      const ts = el.querySelector('#tasks-settings');
+      ts.querySelector('[name="done_archive_days"]').value = String((await store.getSettings()).done_archive_days ?? 30);
+      ts.addEventListener('change', async ev => {
+        await store.updateSettings({ done_archive_days: Number(ev.target.value) });
+        await store.updateDeviceSettings({ done_archived_on: null }); // tidied again next time Tasks opens
         toast('✓ Saved');
       });
     }

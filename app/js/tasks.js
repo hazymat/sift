@@ -75,6 +75,24 @@ export async function addTask(fields) {
   });
 }
 
+// Ticked-off tasks go to the Archive once they've been done for a while (settings
+// done_archive_days, 30 to start with; 0: never), so Done only shows the recent
+// ones. Not a project's tasks (they count towards its progress, and go with the
+// project), nor a sub-task whose task is still open. At most once a day on a device.
+export async function archiveOldDone() {
+  const today = new Date().toISOString().slice(0, 10);
+  if ((await store.getDeviceSettings()).done_archived_on === today) return 0;
+  await store.updateDeviceSettings({ done_archived_on: today });
+  const days = (await store.getSettings()).done_archive_days ?? 30;
+  if (!days) return 0;
+  const before = new Date(Date.now() - days * 86400000).toISOString();
+  const tasks = await store.list('tasks', { filter: t => !t.archived_at });
+  const byId = new Map(tasks.map(t => [t.id, t]));
+  const old = tasks.filter(t => t.done_at && t.done_at < before && !t.project_id && !(t.parent_task_id && byId.get(t.parent_task_id) && !byId.get(t.parent_task_id).done_at));
+  if (old.length) await store.updateMany('tasks', old.map(t => [t.id, { archived_at: new Date().toISOString() }]));
+  return old.length;
+}
+
 // A new task at the top of the list (where you'll see it), e.g. one made from a
 // Brain Dump note.
 export async function addTaskFirst(fields) {
