@@ -3854,6 +3854,9 @@ button.tour-pick:hover, button.tour-pick:focus-visible { transform: translateY(-
 .tour-body .tour-list { list-style: none; margin: 4px 0 6px; padding: 0; display: grid; gap: 4px; }
 .tour-body .tour-list li { padding: 5px 10px; border-radius: 10px; background: rgba(255, 255, 255, .05); }
 .tour-try::before { content: '➜'; margin-right: 7px; color: #4caf7a; font-weight: 800; } /* every Try it: a green arrow to what to do */
+.tour-body .tour-try + .tour-try { margin-top: -4px; }
+.tour-handle { display: inline-grid; place-items: center; min-width: 1.5em; padding: 0 3px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, .35); color: #fff; font-weight: 700; line-height: 1.35; }
+.tour-already { color: #7fd6a0; font-weight: 600; }
 .tour-demo { margin: 0 auto 0 10px; padding: 1px 8px; border-radius: 999px; font-size: .72rem; white-space: nowrap; background: color-mix(in srgb, var(--energy-ink, #4caf7a) 16%, transparent); color: var(--text); }
 .tour-demo-note { margin: 0 0 8px; padding: 6px 10px; border-radius: 10px; font-size: .88rem; background: color-mix(in srgb, var(--energy-ink, #4caf7a) 12%, transparent); }
 .pick-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }

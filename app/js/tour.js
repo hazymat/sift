@@ -38,6 +38,9 @@ const w = k => `<b>${word(k)}</b>`;
 const tap = () => (KEYS ? 'click' : 'tap');
 const nav = area => `#topnav-links a[href="#/${area}"], #tabbar a[href="#/${area}"]`;
 const try_ = text => `<p class="tour-try">Try it: ${text}</p>`;
+// Several things to do in turn: one yellow line (and green arrow) each.
+const tries = (...lines) => lines.map(l => `<p class="tour-try">${l}</p>`).join('');
+const handle = '<span class="tour-handle" aria-label="grab handle">⠿</span>';
 
 const searchStep = () => ({ id: 'search', at: KEYS ? '.top-search, #more-tab' : '#more-tab, .top-search', title: 'Find anything', body: `<p>${KEYS ? `${key(CTRL, 'K')} or ${key('/')}` : 'The box at the top of <b>More</b>'} searches every note, task, contact, list and box, archived ones too.</p>` });
 
@@ -66,9 +69,17 @@ const tidied = () => { let ok = false; return () => {
     .then(rs => { ok = rs.length > 0 && rs.every(r => !r || r.done_at || r.deleted_at || r.archived_at); });
   return ok;
 }; };
+// A task just made, scrolled to and flashed (the next of a repeating task moves down the list, being dated later).
+async function showTask(id) {
+  for (let tries = 0; tries < 50; tries++) {
+    const row = document.querySelector(`#main .task-list > li[data-task="${id}"]`);
+    if (row) { row.scrollIntoView({ block: 'center', behavior: 'smooth' }); flash(row, { pulses: 3 }); return; }
+    await new Promise(ok => setTimeout(ok, 100));
+  }
+}
 const Tap = () => (KEYS ? 'Click' : 'Tap');
 // Where a task's ⠿ is: on a computer it only shows when the task is pointed at.
-const grab = () => (KEYS ? 'point at a task and its <b>⠿</b> appears on the left' : 'each task has a <b>⠿</b> on its left');
+const grab = () => (KEYS ? 'hover your mouse over a task and its <b>⠿</b> appears on the left' : 'each task has a <b>⠿</b> on its left');
 const green = label => `<span class="tour-green">${label}</span>`;
 
 // Tasks: capture first, sort later (the Getting Things Done way), then what a task can do.
@@ -89,17 +100,24 @@ const tasksSteps = () => [
       <p><b>2. Now and again, sort the pile,</b> one task at a time:</p>
       <ul class="tour-list"><li>⚡ <b>Two minutes or less?</b> Do it there and then.</li><li>🗑️ <b>Doesn't matter?</b> Bin it.</li><li>📥 <b>Otherwise</b> move it to ${w('list_now')}, ${w('list_next')} or ${w('list_later')}, by how soon it matters.</li></ul>` },
   { id: 'process', hash: '#/tasks/inbox', at: '#main .task-list, #task-body', title: 'Sort a couple', done: { moved: 2 }, cardTop: true, liftBar: true, doneText: '✓ Two sorted. A little and often keeps the pile small.',
-    body: `<p>Let's clear two from the pile. To choose a task, ${grab()}: ${tap()} it.</p>${try_(`choose two tasks, then <b>Move ▸</b> in the bar at the bottom, and pick <b>${word('list_now')}</b>.`)}` },
+    body: `<p>Let's clear two from the pile.</p>${tries(
+      KEYS ? `Hover your mouse over the left side of a task, then click its grab handle ${handle}.` : `Tap the grab handle ${handle} on the left of a task.`,
+      'Do it again on another task, to choose two.',
+      `Look at the bar at the bottom: ${tap()} <b>Move ▸</b>, then <b>${word('list_now')}</b>.`)}` },
   { id: 'tidy', hash: '#/tasks/inbox', at: '#main .task-list, #task-body', title: 'Tidy up your practice tasks', done: { check: tidied }, cardTop: true, liftBar: true, doneText: "✓ Gone. That's the Task Dump: in fast, out when it's dealt with.",
     body: `<p>The tasks you just typed were practice, so clear them away and your list starts clean. (If one was something real, just add it again after the tour.)</p>${try_('tick them off, or choose them with <b>⠿</b> and press <b>Delete</b> in the bar at the bottom.')}` },
-  { id: 'spacing', hash: '#/tasks/now', at: '#main .view-menu .density-opts, #main .view-menu .menu', also: '#main .task-list', open: '#main .view-menu', title: 'Dial it up a notch', done: { density: ['tasks', 'medium'] }, doneText: '✓ Now you can see dates, energy, repeats and durations under each task.',
-    body: `<p>Here's ${w('list_now')}. We started you on <b>Tight</b> spacing: a nice clean list. When you want more to go on, dial it up.</p>${try_('under <b>Spacing</b>, pick the middle one, <b>Medium</b>.')}` },
+  { id: 'spacing', hash: '#/tasks/now', at: '#main .view-menu .density-opts, #main .view-menu .menu', also: '#main .task-list', open: '#main .view-menu', title: 'Dial it up a notch', doneText: '✓ Medium shows dates, energy, repeats and durations under each task.',
+    // Done once Medium is picked after being on something else (so a device already on Medium tries Tight first).
+    done: { check: () => { let away = false; return () => { const d = densityOf('tasks'); if (d !== 'medium') away = true; return away && d === 'medium'; }; } },
+    body: densityOf('tasks') === 'medium'
+      ? `<p>Here's ${w('list_now')}, on <b>Medium</b> spacing: dates, energy and durations under each task. <b>Tight</b> gives you a clean, short list instead.</p>${tries('Under <b>Spacing</b>, pick <b>Tight</b> (the first one) to see the difference.', 'Then pick <b>Medium</b> (the middle one) again.')}`
+      : `<p>Here's ${w('list_now')}. We started you on <b>Tight</b> spacing: a nice clean list. When you want more to go on, dial it up.</p>${try_('under <b>Spacing</b>, pick the middle one, <b>Medium</b>.')}` },
   { id: 'more', hash: '#/tasks/now', at: '#main .task-list, #task-body', leave: closeEditing, title: 'Everything about a task', done: { check: shows('#main .task-list > li.pills-open, #main .task-list > li.task-details') }, doneText: "✓ That's everything about a task, in one place.",
-    body: `<p>A green ${green('More')} button opens a task's note, dates, energy and how long it'll take.</p>${try_(KEYS ? `point at a task, then click its green ${green('More')} on the right.` : `tap a task, then its green ${green('More')} on the right.`)}` },
-  { id: 'repeat', hash: '#/tasks/now', at: '.tour-pill, .tour-this, #main .task-list', also: '.tour-this', mark: markRepeat, title: 'Repeating tasks', done: { made: ['tasks'] }, doneText: "✓ Next week's is already there, on the right day.",
-    body: `<p><b>Put the bins out</b> repeats <b>every week</b>.</p>${try_('tick it off, and watch next week\'s appear.')}` },
-  { id: 'select', hash: '#/tasks/now', at: '#main .task-list, #task-body', title: 'Move, nest and choose', done: { nested: true }, doneText: '✓ Nested. Drag it back out whenever you like.',
-    body: `<p>${grab().replace(/^./, c => c.toUpperCase())}. Hold it and drag to move the task up or down; drop it onto another task to make it a sub-task. ${Tap()} it on a few to choose them all at once.</p>${try_('drag one task onto another.')}` },
+    body: `<p>A green ${green('More')} button opens a task's note, dates, energy and how long it'll take.</p>${try_(KEYS ? `hover your mouse over a task, then click its green ${green('More')} on the right.` : `tap a task, then its green ${green('More')} on the right.`)}` },
+  { id: 'repeat', hash: '#/tasks/now', at: '.tour-pill, .tour-this, #main .task-list', also: '.tour-this', mark: markRepeat, title: 'Repeating tasks', done: { made: ['tasks'] }, doneText: "✓ There it is (flashing): next week's, already waiting.", doneWait: 4000, onDone: showTask,
+    body: `<p><b>Put the bins out</b> repeats <b>every week</b>. Tick it off and next week's is made straight away, dated next week.</p>${try_("tick it off, then look for next week's.")}` },
+  { id: 'select', hash: '#/tasks/now', at: '#main .task-list, #task-body', title: 'Move and nest', done: { nested: true }, doneText: '✓ Nested. Drag it back out whenever you like.',
+    body: `<p>The same grab handle ${handle} moves tasks: hold it and drag a task up or down, or drop it onto another task to make it a sub-task.</p>${try_('drag one task onto another.')}` },
   { id: 'tips', title: 'Tips', body: `<ul><li>There's plenty more when you need it: start and end dates, repeats, sub-tasks and checklists.</li>
       <li>Give tasks a <b>Duration</b> and you'll see how much work you really have, and how long each thing will take. Later you'll see the ${w('area_planner')} use it to fit them into your day.</li></ul>` },
   { id: 'view', hash: '#/tasks/now', at: '#main .view-menu .menu, #main .view-menu', also: '#main .view-menu > summary', open: '#main .view-menu', title: 'View settings', done: { layout: ['tasks', 'margin'] },
@@ -130,7 +148,7 @@ const keysSteps = () => [
       <tr><td>${key(CTRL, 'Enter')}</td><td>save and finish</td></tr>
       <tr><td>${key('Alt', 'Enter')}</td><td>a note full screen</td></tr>
       <tr><td>${key(CTRL, 'K')} ${key('/')}</td><td>search everything</td></tr>
-    </table><p>Point at a button to see its key.</p>` },
+    </table><p>Hover your mouse over a button to see its key.</p>` },
   { id: 'areas', hash: '#/dump', title: 'Between areas', done: { hash: '#/tasks' }, body: `${try_(`press ${key(CTRL, '→')} to go to ${w('area_tasks')}.`)}` },
   searchStep(),
 ];
@@ -359,13 +377,16 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
     target = extra = null;
     if (step.enter) { for (let tries = 0; tries < 40 && current(n) && !(undoEnter = step.enter()); tries++) await new Promise(ok => setTimeout(ok, 75)); } // (once the page is drawn)
     const k = letter => (KEYS ? ` <kbd>${letter}</kbd>` : '');
+    // Already done before arriving (e.g. coming Back to it): nothing to wait for; it says so, with a plain Next.
+    const already = step.done?.layout && layoutOn(...step.done.layout);
+    const doneStep = step.done && !already;
     const demoNote = n === 0 ? '<p class="tour-demo-note">🧪 We\'ve filled Sift with example things so there\'s something to see. They\'re all cleared away when the tour ends; anything you make yourself stays.</p>' : '';
     card.innerHTML = `<div class="tour-head"><span class="tour-count">${n + 1} of ${all.length}</span><span class="tour-demo" title="Example things fill Sift during the tour; they're cleared away when it ends">🧪 Example data</span><button type="button" class="tour-x" data-tour="later" aria-label="End the tour early" title="End the tour early: it waits on your task list">✕</button></div>
-      <h3>${step.title}</h3><div class="tour-body">${demoNote}${step.body}</div>
+      <h3>${step.title}</h3><div class="tour-body">${demoNote}${step.body}${already ? '<p class="tour-already">✓ You&#39;ve already got these switched on.</p>' : ''}</div>
       <div class="tour-foot">${n ? `<button type="button" data-tour="back">Back${k('B')}</button>` : ''}
         <button type="button" data-tour="later" class="tour-later">End tour early</button><span class="spacer"></span>
         ${step.offer ? `<button type="button" class="primary" data-tour="save">📌 Save for later</button><button type="button" data-tour="next">${last ? 'Skip and finish' : 'Skip'}${k('N')}</button>`
-          : step.done ? `<button type="button" data-tour="next">Skip${k('N')}</button>` : `<button type="button" class="primary" data-tour="next">${last ? 'Finish' : 'Next'}${k('N')}</button>`}</div>`;
+          : doneStep ? `<button type="button" data-tour="next">Skip${k('N')}</button>` : `<button type="button" class="primary" data-tour="next">${last ? 'Finish' : 'Next'}${k('N')}</button>`}</div>`;
     // What it points at may take a moment to be drawn (the page changing, a toolbar showing once the note is in use).
     for (let tries = 0; tries < 40 && current(n); tries++) {
       // (Not on a phone: the cursor in a note opens it full screen, with the keyboard. That's left to a tap.)
@@ -384,21 +405,22 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
       if (!clear || !cardFits) target.scrollIntoView({ block: r.height + room < bottomEdge - topEdge ? 'start' : 'nearest', behavior: 'smooth' });
     }
     if (!step.focus || !KEYS) card.querySelector('[data-tour="next"]').focus({ preventScroll: true });
-    if (!step.done) return;
-    const stop = await waitFor(step.done, () => { if (current(n)) tried(n); });
+    if (!doneStep) return;
+    const stop = await waitFor(step.done, id => { if (current(n)) tried(n, id); });
     if (current(n)) stopWaiting = stop; else stop(); // moved on while it was being set up
   }
   // Tried it: a tick, then on to the next step. (On a phone, saving a note puts
   // the cursor back in an empty New note, full screen: that's closed, so the tour shows again.)
-  function tried(n) {
+  function tried(n, id) {
     stopWaiting();
+    if (id) all[n].onDone?.(id);
     card.querySelector('.tour-foot').innerHTML = `<span class="tour-nice">${all[n].doneText || '✓ That\'s it'}</span>`;
     setTimeout(() => {
       if (!current(n)) return;
       const full = document.querySelector('.rich.is-full .rich-edit');
       if (full && !full.textContent.trim()) closeFull();
       show(n + 1);
-    }, all[n].doneText ? 2200 : 1100);
+    }, all[n].doneWait || (all[n].doneText ? 2200 : 1100));
   }
   const act = what => {
     if (what === 'back' && t.n > 0) show(t.n - 1);
@@ -496,7 +518,6 @@ async function waitFor(done, then) {
   if (done.layout) {
     const [area, id] = done.layout;
     const check = () => { if (layoutOn(area, id)) then(); };
-    if (layoutOn(area, id)) soon();
     document.addEventListener('sift-layout', check);
     return () => document.removeEventListener('sift-layout', check);
   }
@@ -511,7 +532,7 @@ async function waitFor(done, then) {
   if (done.made) {
     const had = new Set();
     for (const c of done.made) for (const r of await store.list(c)) had.add(r.id);
-    return store.subscribe(change => { if (done.made.includes(change?.collection) && !change.deleted && !had.has(change.id)) then(); });
+    return store.subscribe(change => { if (done.made.includes(change?.collection) && !change.deleted && !had.has(change.id)) then(change.id); });
   }
   const check = () => { if (location.hash.startsWith(done.hash)) then(); };
   addEventListener('hashchange', check);
