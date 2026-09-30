@@ -21,6 +21,10 @@ function formatBytes(n) {
   return `${n.toFixed(i ? 1 : 0)} ${units[i]}`;
 }
 
+// The web address this copy of Sift runs at, e.g. "hazymat.github.io/sift" or
+// "localhost:5173": a browser keeps each address's data apart.
+const webAddress = () => `${location.host}${location.pathname.replace(/\/(index\.html)?$/, '')}`;
+
 export default {
   async mount(el, { store, app }) {
     const { versionText } = await import('../version.js');
@@ -157,9 +161,9 @@ export default {
           <button type="button" data-erase="history">Clear the undo history</button>
         </div>
         <div class="backup-row">
-          <button type="button" class="danger" data-erase="all">Erase all data on this device…</button>
+          <button type="button" class="danger" data-erase="all">Erase everything stored at ${esc(webAddress())}…</button>
         </div>
-        <p class="muted hint">${esc(word('ph_set_erase'))}</p>
+        <p class="muted hint">${esc(word('ph_set_erase'))} Only ${esc(webAddress())} in this browser: Sift at any other web address, in another browser or on another device keeps its data.</p>
       </section>
     `;
 
@@ -523,7 +527,8 @@ export default {
         await store.clearHistory();
         toast('Undo history cleared');
       } else if (kind === 'all') {
-        const typed = await askText('⚠️ Erase all data on this device', { text: 'This deletes every task, plan, note, contact, box, list and setting stored here. It cannot be undone.\n\nIf you use Sync: this only clears THIS device and signs it out of Sync. Your server and other devices keep their copies (sign in again to get it all back), but anything not yet synced is lost.\n\nBack up first if you might want it.', label: 'Type DELETE (in capitals) to erase everything', ok: 'Erase everything' });
+        const here = webAddress();
+        const typed = await askText(`⚠️ Erase everything stored at ${here}`, { text: `This deletes every task, plan, note, contact, box, list and setting that this browser keeps for ${here}. It cannot be undone.\n\nNothing else is touched. Each web address keeps its own separate copy of Sift's data: Sift at any other address (the live app, or a test copy), in another browser or on another device keeps its data.\n\nIf this copy uses Sync, it's also signed out of Sync. The server and your other devices keep their copies (sign in again here to get it all back), but anything here not yet synced is lost.\n\nBack up first if you might want it.`, label: `Type DELETE (in capitals) to erase ${here}`, ok: `Erase ${here}` });
         if (typed === null) return;
         if (typed.trim() !== 'DELETE') return toast('Not erased: you have to type DELETE exactly');
         await store.eraseAll();
