@@ -72,10 +72,10 @@ const changes = get => () => { const was = get(); return () => get() !== was; };
 
 const tasksSteps = () => [
   { id: 'add', hash: '#/tasks/inbox', at: '#task-entry, #task-body', also: nav('tasks'), focus: '#task-new', title: 'Add a task', done: { made: ['tasks'] },
-    body: `<p class="tour-try">Try typing a task here, then ${KEYS ? `press ${key('Enter')}` : 'tap Add'}.</p>` },
+    body: `<p class="tour-try">Try typing something you need to do, like <b>Buy milk</b>, then ${KEYS ? `press ${key('Enter')}` : 'tap Add'}.</p>` },
   { id: 'tabs', hash: '#/tasks/inbox', at: '#task-entry, #task-body', also: '#task-views [data-view="inbox"]', focus: '#task-new', title: `You just used the ${word('list_inbox')}`, done: { made: ['tasks'] }, doneText: "✓ That's the idea: no buttons, just type.",
     body: `<p>The <b>${word('list_inbox')}</b> is for whatever pops into your head. It's built to have you typing within seconds of opening Sift: type, ${KEYS ? key('Enter') : 'Add'}, type the next one. Nothing to decide; just get your thoughts down.</p>
-      ${try_('add another one, straight away.')}` },
+      ${try_('add another one, straight away, like <b>Call Mum</b>.')}` },
   { id: 'capture', hash: '#/tasks/inbox', at: '#main .task-list, #task-body', title: 'Empty your head first, sort it later',
     body: `<blockquote class="tour-quote"><span class="tour-quote-icon" aria-hidden="true">📘</span><span><span class="tour-quote-text">"Your mind is for having ideas, not holding them."</span><span class="tour-quote-who">David Allen, <i>Getting Things Done</i></span></span></blockquote>
       <p>So get everything down here as it comes. Then, now and again, go through the pile one at a time: do it there and then if it takes two minutes, bin it if it doesn't matter, or move it to ${w('list_now')}, ${w('list_next')} or ${w('list_later')}, which group tasks by how soon they matter.</p>` },
@@ -294,6 +294,12 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
   const place = () => {
     raf = requestAnimationFrame(place);
     if (step?.mark && !document.querySelector(`.${step.mark.cls}`) && step.mark.apply()) target = null; // drawn again: marked again, pointed at again
+    // A step's field keeps the cursor when the page is drawn again under it (the examples' photos arriving
+    // redraw it); only when the cursor has gone nowhere, never taken from somewhere it was put.
+    if (step?.focus && KEYS) {
+      const f = document.querySelector(step.focus), a = document.activeElement;
+      if (f && a !== f && (!a || a === document.body)) f.focus({ preventScroll: true });
+    }
     if (step?.at && !target?.isConnected) target = find(step.at);
     if (step?.also && !extra?.isConnected) extra = find(step.also);
     const r = shown(target), x = shown(extra);
