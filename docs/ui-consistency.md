@@ -22,7 +22,7 @@ Every version that changes something on screen adds a What's new entry with a Sh
 - **Key labels on buttons** use `keys()` from `keys.js` (one box per key). A button showing a key centres its text, icon and keys as boxes (one rule in `app.css`), so they sit in the middle on every platform, Windows included (1.60.02).
 - **Esc closes a full panel** (✓ Close Esc) wherever the focus is, unless a sheet or pill menu is open on top (Day Planner 1.60.04).
 - **Alt+Enter opens a note full screen** wherever its ⤢ shows Alt Enter, whatever has the focus (a task's name, a button, nothing); the hint shows only where the key does that. A row's name with no panel open: Alt+Enter opens the panel, and no note shows the hint. One rule for every area (`altTarget` in `richtext.js`, 1.60.08).
-- **Selection bars**: A Archive, D (or Delete) Delete, Ctrl+Enter Done or Tick, each key shown on its button. Built into `listkit.js` (1.55.13).
+- **Selection bars**: A Archive, D (or Delete) Delete, Ctrl+Enter Done or Tick, each key shown on its button. Built into `listkit.js` (1.55.13). A button that opens more (Move ▸, Move to ▸, Status ▸) shares one shaded pill with what it opens while open, and on a narrow bar the bar slides along to show them (1.60.30).
 - **Things floating at the bottom** stack, never overlap: the selection bar lowest, then the "new version" banner, then toasts (Undo, Moved, Saved). One set of CSS variables (`--sel-lift`, `--upd-lift` in `app.css`) does it for every area (1.58.12).
 - **Esc on an opened page**: the first Esc leaves the field (keeping what's typed; an Add items box adds it), the next goes back. The back button shows Esc when nothing is being typed (1.55.15).
 
