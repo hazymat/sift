@@ -94,8 +94,8 @@ const SHELL = [
   'js/tour.js',
   'icons/app-icon-32.png',
   'icons/app-icon-180.png',
-  'icons/app-icon-192.png',
-  'icons/app-icon-512.png',
+  // Not the 192 and 512 icons: only used when adding Sift to a home screen, and
+  // fetched then (they're the biggest files, and every update fetches this list again).
 ];
 
 self.addEventListener('install', event => {
