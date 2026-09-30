@@ -847,11 +847,13 @@ export default {
       dlg.scrollTop = scroll;
     }
 
-    // What's been marked Not today, at the end of each part: a line saying how many, which shows them with ↺ Put back.
-    const skippedHtml = list => (!list.length ? '' : showSkipped
-      ? `<h3 class="milestone">${date === isoDate() ? 'Not for today' : 'Not for this day'}</h3><ul class="review-list bring-list bring-skipped">${list.map(x => `<li data-skip-id="${esc(x.id)}"><div class="bring-main"><span class="review-title hand">${esc(x.title)}</span></div><span class="review-actions"><button type="button" data-bring-act="unskip">↺ Put back</button></span></li>`).join('')}</ul>`
+    // What's been marked Not today, at the top of each part (in view as soon as one
+    // goes, however long the list): a line saying how many, which shows them as rows
+    // like any other, with the same buttons (row(x, true): no Not today).
+    const skippedHtml = (list, row) => (!list.length ? '' : showSkipped
+      ? `<h3 class="milestone bring-skipped-head">${date === isoDate() ? 'Not for today' : 'Not for this day'} <button type="button" class="gcal-link" data-bring-act="hide-skipped">Hide</button></h3><ul class="review-list bring-list bring-skipped">${list.map(x => row(x, true)).join('')}</ul>`
       : `<p class="bring-skipped-note"><button type="button" class="gcal-link" data-bring-act="show-skipped">${list.length} ${notForDay()}</button></p>`);
-    const skipBtn = () => `<button type="button" data-bring-act="skip" title="Out of the way for ${esc(dayCalled())} only; nothing else changes">${esc(notToday())}</button>`;
+    const skipBtn = aside => (aside ? '' : `<button type="button" data-bring-act="skip" title="Out of the way for ${esc(dayCalled())} only; nothing else changes">${esc(notToday())}</button>`);
 
     // From Tasks: at the top, what's planned or aimed for this day and ideas for
     // today's energy; then Now, Next and Later, then each project going on (a
@@ -871,7 +873,7 @@ export default {
       const by = horizon => offer.filter(t => horizonOf(t) === horizon && !projectOf(t) && !seen.has(t) && !t.parent_task_id);
       const inProject = p => offer.filter(t => t.project_id === p.id && !seen.has(t) && !t.parent_task_id);
       const energy = ENERGY.find(e => e.id === day.energy);
-      const card = (t, note = '') => {
+      const card = (t, note = '', aside = false) => {
         const bolts = ENERGY.find(x => x.id === t.energy)?.bolts;
         const aim = aimDate(t);
         const about = [note, bolts, aim ? `⚑ ${shortDay(aim)}` : '', t.start_date && t.start_date !== date ? `📅 ${shortDay(t.start_date)}` : '', projectOf(t) && !inSection ? `📁 ${projectOf(t).name}` : ''].filter(Boolean);
@@ -881,7 +883,7 @@ export default {
             <button type="button" class="primary" data-bring-act="claim">Claim for ${dayCalled()}</button>
             <button type="button" data-bring-act="done" title="I did this already">✓ Did it</button>
             <button type="button" data-bring-act="archive" title="Not needed any more: to the Archive">Archive</button>
-            ${skipBtn()}
+            ${skipBtn(aside)}
           </span>
         </li>`;
       };
@@ -893,6 +895,7 @@ export default {
       return `
         <p class="muted hint">Claim what you'll do ${date === isoDate() ? 'today' : `on ${dayCalled()}`}. Tick off anything done already, or archive what's no longer needed.</p>
         ${already.length ? `<details class="bring-already"${alreadyOpen ? ' open' : ''}><summary>📅 ${already.length} ${alreadyWords}</summary><ul>${already.map(t => `<li class="hand">${esc(t.title)}</li>`).join('')}</ul></details>` : ''}
+        ${skippedHtml(open.filter(t => skip.has(t.id) && !onDay.has(t.id)), (t, aside) => card(t, '', aside))}
         ${section(`For ${dayCalled()}`, top, aimNote)}
         ${energy ? section(`Ideas for ${energy.bolts} energy`, ideas) : ''}
         ${section(esc(word('list_inbox')), by('inbox'))}
@@ -900,8 +903,7 @@ export default {
         ${section('Next', by('next'))}
         ${section('Later', by('later'))}
         ${projectSections()}
-        ${open.length ? '' : '<p class="muted">' + esc(word('ph_day_bring_empty')) + '</p>'}
-        ${skippedHtml(open.filter(t => skip.has(t.id) && !onDay.has(t.id)))}`;
+        ${open.length ? '' : '<p class="muted">' + esc(word('ph_day_bring_empty')) + '</p>'}`;
     }
 
     const WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -918,20 +920,24 @@ export default {
       const left = w.earlierWaiting;
       const byDay = new Map();
       for (const i of left) { if (!byDay.has(i.date)) byDay.set(i.date, []); byDay.get(i.date).push(i); }
-      return `
-        ${left.length ? `<p class="muted hint">${esc(word('ph_day_review'))}</p>` : '<p class="muted">Nothing left unfinished from the last week.</p>'}
-        ${[...byDay].map(([d, list]) => `
-          <h3 class="milestone">${esc(dayName(d))}</h3>
-          <ul class="review-list">${list.map(i => `
+      // Not for today, listed together, say which day each was from.
+      const row = (i, aside = false) => `
             <li data-review-id="${i.id}">
               <div class="review-head"><span class="review-title hand">${esc(i.title)}</span><button type="button" data-review="delete" class="review-delete" title="Get rid of it completely (to the Bin)" aria-label="Delete">🗑</button></div>
+              ${aside ? `<span class="review-about">${esc(dayName(i.date))}</span>` : ''}
               <span class="review-actions">
                 <button type="button" class="primary" data-review="bring" title="Put it in this day's tasks">→ Bring to ${dayCalled()}</button>
                 <button type="button" data-review="done" title="I did this already">✓ Did it</button>
                 <button type="button" data-review="letgo" title="Didn't do it and it doesn't need doing any more. It goes to the Archive">Let it go</button>
-                ${skipBtn()}
+                ${skipBtn(aside)}
               </span>
-            </li>`).join('')}
+            </li>`;
+      return `
+        ${left.length ? `<p class="muted hint">${esc(word('ph_day_review'))}</p>` : '<p class="muted">Nothing left unfinished from the last week.</p>'}
+        ${skippedHtml(w.earlier.filter(i => skip.has(i.id)), row)}
+        ${[...byDay].map(([d, list]) => `
+          <h3 class="milestone">${esc(dayName(d))}</h3>
+          <ul class="review-list">${list.map(i => row(i)).join('')}
           </ul>`).join('')}
         ${left.length > 1 ? `<h3 class="milestone">All ${left.length} at once</h3>
         <ul class="review-list review-every"><li>
@@ -941,8 +947,7 @@ export default {
             <button type="button" data-review-all="letgo">Let them all go</button>
             <button type="button" data-bring-act="skip-all">${esc(notToday())}</button>
           </span>
-        </li></ul>` : ''}
-        ${skippedHtml(w.earlier.filter(i => skip.has(i.id)))}`;
+        </li></ul>` : ''}`;
     }
 
     // Google Calendar: this day's events from the calendars chosen. A timed one
@@ -959,7 +964,7 @@ export default {
       const sameDay = at => at && new Date(at).toDateString() === parseDate(date).toDateString();
       const events = [...(got?.events || [])].sort((a, b) => (b.allDay - a.allDay) || String(a.start).localeCompare(String(b.start)));
       const shown = events.filter(e => !skip.has(e.id));
-      const row = e => {
+      const row = (e, aside = false) => {
         const timed = !e.allDay && sameDay(e.start);
         const about = [e.location, multi ? e.calName : ''].filter(Boolean);
         return `<li data-event="${esc(e.id)}" class="bring-event${multi && e.calColour ? ' has-cal' : ''}"${multi && e.calColour ? ` style="--cal: ${esc(e.calColour)}"` : ''}>
@@ -967,16 +972,16 @@ export default {
           <span class="review-actions">${w.inPlan.has(e.id) ? '<span class="muted bring-in-plan">✓ In your plan</span>' : `
             ${timed ? '<button type="button" class="primary" data-gcal="sched" title="Onto the schedule at its time">Onto the schedule</button>' : ''}
             <button type="button"${timed ? '' : ' class="primary"'} data-gcal="task" title="Into this day's tasks, without a time">Into the day's tasks</button>
-            ${skipBtn()}`}
+            ${skipBtn(aside)}`}
           </span>
         </li>`;
       };
       const status = gcalBusy ? 'Refreshing…' : gcalProblem ? esc(gcalProblem) : got ? `Updated ${agoText(got.at)}` : '';
       const list = !got ? `<p class="muted gcal-empty">Calendar not loaded for this day. <button type="button" class="gcal-btn" data-gcal="load">Load</button></p>`
         : !events.length ? '<p class="muted gcal-empty">Nothing on.</p>'
-        : shown.length ? `<ul class="review-list bring-list">${shown.map(row).join('')}</ul>` : '';
-      return `${list}
-        ${skippedHtml(events.filter(e => skip.has(e.id)))}
+        : shown.length ? `<ul class="review-list bring-list">${shown.map(e => row(e)).join('')}</ul>` : '';
+      return `${skippedHtml(events.filter(e => skip.has(e.id) && !w.inPlan.has(e.id)), row)}
+        ${list}
         <div class="bring-cal-foot"><span class="muted gcal-status" aria-live="polite">${status}</span>
           <button type="button" class="gcal-link" data-gcal="refresh" title="Fetch again: this week and any days loaded ahead">↻ Refresh</button>
           <button type="button" class="gcal-link" data-gcal="cals" aria-expanded="${calsOpen}">Calendars (${gcalChosen.length})</button>
@@ -1033,8 +1038,7 @@ export default {
       if (!b) return;
       const act = b.dataset.bringAct;
       if (act === 'close') { dlg.close(); return; }
-      if (act === 'show-skipped') { showSkipped = true; drawBring(); return; }
-      if (act === 'unskip') return setSkip([b.closest('[data-skip-id]').dataset.skipId], false);
+      if (act === 'show-skipped' || act === 'hide-skipped') { showSkipped = act === 'show-skipped'; drawBring(); return; }
       if (act === 'skip-all') return setSkip((await unfinishedBefore(date)).map(i => i.id), true);
       const id = b.closest('[data-bring], [data-review-id], [data-event]');
       const key = id?.dataset.bring || id?.dataset.reviewId || id?.dataset.event;
@@ -1077,8 +1081,8 @@ export default {
     const reviewLabel = { done: 'Marked done', letgo: 'Let go (in the Archive)', bring: 'Brought here', delete: 'Deleted' };
     async function reviewAct(b) {
       const skip = skipped();
-      const left = (await unfinishedBefore(date)).filter(i => !skip.has(i.id));
-      const targets = b.dataset.reviewAll ? left : left.filter(i => i.id === b.closest('[data-review-id]').dataset.reviewId);
+      const all = await unfinishedBefore(date);
+      const targets = b.dataset.reviewAll ? all.filter(i => !skip.has(i.id)) : all.filter(i => i.id === b.closest('[data-review-id]').dataset.reviewId);
       const kind = b.dataset.review || b.dataset.reviewAll;
       const before = targets.map(i => [i.id, { date: i.date, time: i.time ?? null, end_time: i.end_time ?? null, carried_from: i.carried_from ?? null, done_at: i.done_at ?? null, dropped_at: i.dropped_at ?? null, archived_at: i.archived_at ?? null, deleted_at: null }]);
       if (!b.dataset.reviewAll) await leave(b);

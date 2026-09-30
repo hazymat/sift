@@ -4362,8 +4362,9 @@ html.kb-open :is(.sticky-top, .find-sticky, .dump-bar, .bb-sticky, .list-top, .b
 .bring-event .gcal-when { display: inline-block; min-width: 6.5em; font-size: .9rem; color: var(--muted); font-family: var(--font); font-variant-numeric: tabular-nums; }
 .bring-event .gcal-title { color: var(--text); }
 .bring-in-plan { font-size: .82rem; }
-.bring-skipped-note { margin: 4px 0 8px; }
-.bring-skipped li { opacity: .75; }
+.bring-skipped-note { margin: 0 0 8px; }
+.bring-skipped-head .gcal-link { margin-left: 8px; font-family: var(--font); font-weight: 400; }
+.bring-skipped { margin-bottom: 14px; }
 .bring-cal-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 12px 0 4px; padding-top: 8px; border-top: 1px solid var(--glass-border); }
 .bring-cal-foot .gcal-status { flex: 1 1 auto; }
 .bring-cals { margin: 6px 0 8px; padding: 8px 12px; border-radius: 12px; background: var(--glass-track); border: 1px solid var(--glass-border); display: grid; gap: 4px; }
