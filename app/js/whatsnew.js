@@ -24,7 +24,7 @@ import { keys } from './keys.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
-  '1.60.12': [{ text: 'Settings: the erase button names the web address it erases ("Erase everything stored at hazymat.github.io/sift") and says plainly that Sift at any other address, browser or device keeps its data.' }],
+  '1.60.12': [{ text: 'Settings: the erase button names the web address it erases ("Erase everything stored at hazymat.github.io/sift") and says plainly that Sift at any other address, browser or device keeps its data.', go: '#/settings', at: '#main [data-erase="all"]' }],
   '1.60.11': [{ text: 'Day Planner: Achievements no longer ends with a full stop ("Five and counting").' }],
   '1.60.10': [{ text: "Updates download less: the big app icons aren't fetched again with every update." }],
   '1.60.09': [{ text: "Day Planner, Bring items in: ticking calendars on and off keeps the events showing (faded) while they're fetched again, so nothing jumps about." }],
