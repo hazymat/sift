@@ -1452,7 +1452,7 @@ export default {
         return;
       }
       if ((act === 'horizon-pill' || act === 'energy-pill') && id) return editInPlace(id);
-      if (act === 'tour') { const tours = await import('../tour.js'); return tours.startTour({ which: tours.tourOf(task) }); }
+      if (act === 'tour') { const tours = await import('../tour.js'); const which = tours.tourOf(task); if (which === 'new') { location.hash = '#/welcome'; return; } return tours.startTour({ which }); }
       if (b.dataset.energy && id) {
         await change(id, { energy: task.energy === b.dataset.energy ? null : b.dataset.energy }, 'Energy saved');
       } else if (act === 'close-details') {

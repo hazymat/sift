@@ -30,7 +30,7 @@ export default {
     const { versionText } = await import('../version.js');
     el.innerHTML = `
       <section class="card" id="install-card">
-        <p class="muted app-version">Sift ${versionText()} <button type="button" class="link-btn" data-act="check-update">Check for updates</button> · <button type="button" class="link-btn" data-act="whats-new">What's new</button> · <button type="button" class="link-btn" data-act="tour">Take the tour</button> · <button type="button" class="link-btn" data-act="tour-reset" title="Next time, the tour starts from the beginning">Reset the tour</button> · <a href="about.html" target="_blank" rel="noopener">About</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a></p>
+        <p class="muted app-version">Sift ${versionText()} <button type="button" class="link-btn" data-act="check-update">Check for updates</button> · <button type="button" class="link-btn" data-act="whats-new">What's new</button> · <button type="button" class="link-btn" data-act="tour">Take the tour</button> · <button type="button" class="link-btn" data-act="tour-reset" title="Next time, every tour starts from the beginning">Reset the tours</button> · <a href="about.html" target="_blank" rel="noopener">About</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a></p>
         <label class="check-row"><input type="checkbox" id="show-update-info"> Show update info <span class="muted">(after an update, a list of what changed, each with Show me)</span></label>
         <p class="muted sync-top" id="sync-top" hidden></p>
         <h2>Home Screen and your data</h2>
@@ -663,7 +663,7 @@ export default {
     el.querySelector('[data-act="batch-examples"]').addEventListener('click', async ev => { ev.target.disabled = true; await (await import('../examples.js')).addExamples(); ev.target.disabled = false; toast('Added the example recipes to Batch Book'); });
     // The sign-in and password boxes are forms (so a browser's password manager fills those, not the search box); they're never sent.
     el.addEventListener('submit', ev => ev.preventDefault());
-    el.querySelector('[data-act="tour-reset"]').addEventListener('click', async () => { await (await import('../tour.js')).resetTour(); toast('The tour will start from the beginning'); });
+    el.querySelector('[data-act="tour-reset"]').addEventListener('click', async () => { await (await import('../tour.js')).resetTours(); toast('The tours will start from the beginning'); });
     el.querySelector('[data-act="check-update"]').addEventListener('click', async ev => {
       const b = ev.currentTarget;
       b.disabled = true;

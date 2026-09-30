@@ -1,12 +1,12 @@
-// The tour: a walk round Sift that has you try things for real. Each step
+// The tours: short walks round Sift that have you try things for real. Each step
 // dims the page around one thing (or shows a card in the middle), says what
 // it's for and, where it can, asks you to try it: the step moves on by itself
 // once you have. Keyboard steps show on laptops, tap steps on phones.
 // Where it got to is kept on this device, so it carries on from there; ending
 // it early leaves the "Take the tour" task (with its ▶ pill) to come back to.
-// Started from the welcome page (views/welcome.js) or the task's pill.
-// There can be several tours (TOURS below): each has its own steps, its own
-// place kept, and its own task.
+// The welcome page (views/welcome.js) is the choice of tours: tasks, notes, the
+// Day Planner, and short ones for the rest. Each tour (TOURS below) has its own
+// steps, its own place kept, and its own task; finishing one goes back to the choice.
 import * as store from './store.js';
 import { addTaskFirst, doneFields } from './tasks.js';
 import { word } from './words.js';
@@ -20,8 +20,6 @@ const CTRL = MAC ? '⌘' : 'Ctrl';
 // Keys drawn one box each: key('Ctrl', '→') is [Ctrl] + [→]. Arrows are drawn larger.
 const key = (...keys) => keys.map(k => `<kbd${/^[←→↑↓]$/.test(k) ? ' class="tour-arrow"' : ''}>${k}</kbd>`).join('<span class="tour-plus">+</span>');
 
-// While the tour shows Google Calendar: a made-up day of it (unless this device
-// shows the real one), put back as it was when the step is left. The buttons do nothing.
 // A step: { id (where the tour carries on from), hash (go there first), at (what
 // to point at: the first selector in the list with something showing; none: a
 // card in the middle), also (a second thing to outline, e.g. its place in the
@@ -29,118 +27,99 @@ const key = (...keys) => keys.map(k => `<kbd${/^[←→↑↓]$/.test(k) ? ' cla
 // ('keys' or 'touch'), enter (set something up while the step shows; returns
 // what undoes it), focus (put the cursor there), done (how trying it is
 // noticed: { made: [collections] } something new saved, or { hash } arriving there) }.
-// Built when the tour starts, so areas are called what the user calls them.
-function newUserSteps() {
-  const w = k => `<b>${word(k)}</b>`;
-  const tap = KEYS ? 'click' : 'tap';
-  const nav = area => `#topnav-links a[href="#/${area}"], #tabbar a[href="#/${area}"]`;
-  return [
-    { id: 'welcome', title: 'Welcome to Sift', body: `<p>There's a <b>lot</b> in Sift, and this tour shows most of it. It's fine to ignore plenty of it for now and come back to it when you need it.</p>
-      <p>Honestly, the best part is just the notes. Sift keeps every change to a note as you type it, so a note is never lost, and any earlier version can come back, whichever device you wrote it on. And a note can turn into something you do. We hope you'll agree it's better than any notes app you've used before, even your phone's own. Seriously!</p>
-      <p>Okay, I lied. The ${w('area_tasks')} app and the ${w('area_planner')} are the best part of this. They're better than other tasks apps you've seen, or your money back. What's that you say? The app is free? Okay: I'll buy you an ice cream 🍦 if you find a better tasks app! Anyway, I'll show you the features now.</p>` },
+// Built when a tour starts, so areas are called what the user calls them. Each
+// step says one or two short things; nobody should have to sit through a lecture.
+const w = k => `<b>${word(k)}</b>`;
+const tap = () => (KEYS ? 'click' : 'tap');
+const nav = area => `#topnav-links a[href="#/${area}"], #tabbar a[href="#/${area}"]`;
+const try_ = text => `<p class="tour-try">Try it: ${text}</p>`;
 
-    // ---------- Brain Dump ----------
-    { id: 'dump', hash: '#/dump', at: '.dump-capture', focus: '#dump-body .rich-edit', title: `${word('area_dump')}: empty your head`, done: { made: ['thoughts'] },
-      body: `<p>Anything goes here: a worry, an idea, a phone number, "ring the dentist". No title, no folder, nothing to decide first.</p>
-        <p class="tour-try">Try it: ${KEYS ? `write something, then press ${key(CTRL, 'Enter')} or Save` : 'tap the box and write something, then Done, then Save'}.</p>` },
-    { id: 'becomes', hash: '#/dump', at: '#thoughts > li.thought', title: 'Your note, ready for action', done: { made: ['tasks', 'day_items'] },
-      body: `<p>Your note is stored. Its action buttons turn it into a <b>task</b>, or put it on the <b>${word('area_planner')}</b>, which you'll soon see is a really powerful feature.</p>
-        <p>The note isn't moved or thrown away: it stays here, linked to what it became.</p>
-        <p class="tour-try">Try it: ${tap} <b>→ Task</b>.</p>` },
-    { id: 'rich', hash: '#/dump', at: '#dump-body', focus: '#dump-body .rich-edit', title: 'Notes that do things', body: `<p>Notes everywhere in the app can be formatted: with Markdown, with the toolbar, or with keyboard shortcuts${KEYS ? ` (${key(CTRL, 'B')} for bold)` : ''}. Or keep them as plain text, if you prefer.</p>
-        <p>Type a phone number or an email address and it's picked out as a real contact, with a record of every call. Paste a screenshot or a PDF and it's attached to the note.</p>` },
-    { id: 'undo', hash: '#/dump', at: '#dump-body', only: 'keys', title: 'Undo that remembers yesterday', body: `<p><b>This is honestly one of the great features, which I think you'll be impressed with.</b></p>
-        <p>${key(CTRL, 'Z')} in a note steps back through what you just typed, then keeps going: yesterday's version, last week's, even changes made on your other devices. ${key(CTRL, 'Y')} goes forward again.</p>
-        <p>Anything else you do shows a message at the bottom with <b>Undo</b>, and ${key(CTRL, 'Z')} does the same while it shows.</p>` },
-    { id: 'undo', hash: '#/dump', at: '#dump-body', only: 'touch', title: 'Undo that remembers yesterday', body: `<p><b>This is honestly one of the great features, which I think you'll be impressed with.</b></p>
-        <p>Every note keeps its earlier versions: yesterday's, last week's, even changes made on your other devices. <b>Aa</b> in a note's toolbar, then 🕘, lists them to go back to.</p>
-        <p>Anything else you do shows a message at the bottom with <b>Undo</b>.</p>` },
+const searchStep = () => ({ id: 'search', at: KEYS ? '.top-search, #more-tab' : '#more-tab, .top-search', title: 'Find anything', body: `<p>${KEYS ? `${key(CTRL, 'K')} or ${key('/')}` : 'The box at the top of <b>More</b>'} searches every note, task, contact, list and box, archived ones too.</p>` });
 
-    { id: 'safe', hash: '#/dump', at: '.dump-capture', title: 'Never lose a note', body: `<p><i>Sift'll be there for you, when the rain starts to pour</i>… or when your battery dies before you've saved your note.</p>
-        <p>Everything you type is kept as you type it. If your browser closes for an update halfway through a sentence, it's all still there when you come back, even a note you hadn't saved yet.</p>` },
-    { id: 'tasks', hash: '#/tasks/now', at: '#task-entry, #task-body', also: nav('tasks'), focus: '#task-new', title: `${word('area_tasks')}: ${word('list_now')}, ${word('list_next')}, ${word('list_later')}`, done: { made: ['tasks'] },
-      body: `<p>Three lists instead of deadlines: what you're doing now, what's next, and one day. ${w('list_inbox')} holds anything not sorted yet, like a task made from a note.</p>
-        <p class="tour-try">Try it: type a task and ${KEYS ? `press ${key('Enter')}` : 'tap Add'}.</p>
-        ${KEYS ? `<p>${key('Shift', 'Enter')} opens <b>More</b> (energy, a day, how long it takes) and goes on into the task's note.</p>` : ''}` },
-    { id: 'task', hash: '#/tasks/now', at: '.task-list > li[data-task]', title: 'Everything about a task', body: `<p>${KEYS ? 'Point at a task and look for <b>⋯</b> on the right' : 'Tap <b>⋯</b> on the right of a task'}: it opens the task, with its note, the energy it needs, how long it takes and which day to do it.</p>
-        <p><b>Repeats</b>: "put the bins out, every Tuesday". Ticking it makes the next one, on the right day, with its checklist ready again. Missed ones never pile up.</p>
-        <p><b>Comments</b> keep a record of what actually happened: "rang them, need their reference number", "done, cost £40".</p>` },
-    { id: 'select', hash: '#/tasks/now', at: '.task-list, #task-body', title: 'Moving and choosing several', body: `<p><b>⠿</b> on the left of each task is its grab bar.</p>
-        <ul><li><b>To reorder</b>: hold ⠿ for a second, then move it. Move it sideways to make it a sub-task.</li>
-        <li><b>To choose tasks</b>: ${tap} ⠿, or drag down over several ⠿.${KEYS ? ` ${key('Shift')} chooses everything in between, ${key(CTRL)} adds one more.` : ''}</li></ul>
-        <p>While anything is chosen, the <b>actions bar</b> appears at the bottom: it does one thing to all of them at once, such as Done, ${word('list_now')}, ${word('list_next')}, ${word('list_later')}, Archive or Delete.${KEYS ? ` ${key('Esc')} lets them go.` : ''} Lists, notes and Find Things work the same way.</p>` },
-    { id: 'subtasks', hash: '#/tasks/now', at: '.task-list, #task-body', title: 'Sub-tasks and projects? We\'ve got you covered', body: `<ul><li>Drag a task onto another task and it becomes its sub-task.</li>
-        <li>Or, if you prefer, start a new task with ${key('-')} and a space and it becomes a sub-task of the one above. Do it again for a sub-sub-task, if you're feeling wild!${KEYS ? ` (${key('Tab')} and ${key('Shift', 'Tab')} do the same.)` : ''}</li>
-        <li><b>Projects</b>: press <b>Projects</b> at the top, then <b>+ New project</b>. It shows each one with how far along it is. Give a task its project under <b>More</b> in the task's ⋯.</li></ul>` },
-    { id: 'energy', hash: '#/tasks/now', at: '.task-list > li[data-task], #task-body', title: 'Energy: doing what you can manage', body: `<p>Tasks can say how much energy they need: <b>⚡</b> low (desk work, small tasks, admin), <b>⚡⚡</b> medium (meetings, some project work), <b>⚡⚡⚡</b> high (physically active work, starting new things).</p>
-        <p>Tell the ${w('area_planner')} how you feel today and it suggests tasks that fit, so a flat day gets gentle things and a good day gets the big ones. What each level means is yours to change in Settings → Your words.</p>` },
+// Tasks and projects.
+const tasksSteps = () => [
+  { id: 'tasks', hash: '#/tasks/now', at: '#task-entry, #task-body', also: nav('tasks'), focus: '#task-new', title: `${word('list_now')}, ${word('list_next')}, ${word('list_later')}`, done: { made: ['tasks'] },
+    body: `<p>Three lists instead of deadlines that nag: now, next, and one day. ${w('list_inbox')} holds anything not sorted yet.</p>
+      ${try_(`type a task and ${KEYS ? `press ${key('Enter')}` : 'tap Add'}.`)}` },
+  { id: 'task', hash: '#/tasks/now', at: '.task-list > li[data-task]', title: 'Everything about a task', body: `<p><b>More</b> on a task opens its note, energy, time and day. <b>Repeats</b> never pile up: tick one and the next appears on its day.</p>` },
+  { id: 'select', hash: '#/tasks/now', at: '.task-list, #task-body', title: 'Move and choose', body: `<p>Hold <b>⠿</b> to move a task; move it sideways to make it a sub-task. ${tap().replace(/^./, c => c.toUpperCase())} ⠿ to choose several, then act on them all from the bar at the bottom.</p>` },
+  { id: 'projects', hash: '#/tasks/now', at: '.task-list, #task-body', title: 'Projects', body: `<p><b>Projects</b> at the top: each shows how far along it is, with its own tasks and milestones. Share one with the people working on it.</p>` },
+  { id: 'energy', hash: '#/tasks/now', at: '.task-list > li[data-task], #task-body', title: 'Matched to your energy', body: `<p><b>⚡</b> low, <b>⚡⚡</b> medium, <b>⚡⚡⚡</b> high. Tell the ${w('area_planner')} how you feel today and it suggests tasks that fit: gentle ones on a flat day, the big ones on a good day.</p>` },
+];
 
-    // ---------- getting around ----------
-    { id: 'keys', only: 'keys', title: 'Your hands can stay on the keyboard', done: { hash: '#/planner' }, body: `<table class="tour-keys">
-        <tr><td>${key(CTRL, '←')}<br><span class="tour-or">or</span> ${key(CTRL, '→')}</td><td>the area before or after this one</td></tr>
-        <tr><td>${key('←')} <span class="tour-or">or</span> ${key('→')}</td><td>the page's tabs (${word('list_now')}, ${word('list_next')}…), or the ${word('area_planner')}'s days</td></tr>
-        <tr><td>${key('↓')} then ${key('Enter')}</td><td>go down the page, and open what you're on</td></tr>
-        <tr><td>${key('Esc')}</td><td>step back out, keeping what you wrote</td></tr>
-        <tr><td>${key(CTRL, 'Enter')}</td><td>save and finish</td></tr>
-        <tr><td>${key('Alt', 'Enter')}</td><td>a note full screen</td></tr>
-        <tr><td>${key(CTRL, 'K')} <span class="tour-or">or</span> ${key('/')}</td><td>search everything</td></tr>
-      </table>
-      <p>Point at a button to see its key, if it has one.</p>
-      <p class="tour-try">Try it: press ${key(CTRL, '→')} to go to the ${word('area_planner')}. (If nothing happens, ${key('Esc')} first closes what's open.)</p>` },
-    { id: 'keys', only: 'touch', at: '#tabbar, #topnav-links', also: nav('planner'), title: 'Getting around', done: { hash: '#/planner' }, body: `<p>The areas are along here; <b>More</b> has the rest, and a search box that finds anything you've written.</p>
-        <p class="tour-try">Try it: tap ${w('area_planner')}.</p>` },
+// Brain Dump: for people who write, jot and take notes.
+const notesSteps = () => [
+  { id: 'dump', hash: '#/dump', at: '.dump-capture', focus: '#dump-body .rich-edit', title: 'Empty your head', done: { made: ['thoughts'] },
+    body: `<p>A worry, an idea, a phone number. No title, no folder, nothing to decide first.</p>
+      ${try_(KEYS ? `write something, then ${key(CTRL, 'Enter')} or Save.` : 'write something, then Done, then Save.')}` },
+  { id: 'becomes', hash: '#/dump', at: '#thoughts > li.thought', title: 'From note to action', done: { made: ['tasks', 'day_items'] },
+    body: `<p>A note's <b>⋯</b> turns it into a task, or puts it on your day. The note stays here, linked to what it became.</p>
+      ${try_(`${tap()} <b>⋯</b>, then <b>→ Task</b>.`)}` },
+  { id: 'safe', hash: '#/dump', at: '.dump-capture', title: 'Never lost', body: `<p>Everything is kept as you type it, even a note you hadn't saved when the battery died.</p>` },
+  { id: 'undo', hash: '#/dump', at: '#dump-body', only: 'keys', title: 'Undo that remembers yesterday', body: `<p>${key(CTRL, 'Z')} in a note goes back past what you just typed: yesterday's version, last week's, even ones from your other devices.</p>` },
+  { id: 'undo', hash: '#/dump', at: '#dump-body', only: 'touch', title: 'Undo that remembers yesterday', body: `<p><b>Aa</b>, then <b>🕘</b>, lists a note's earlier versions: yesterday's, last week's, from any of your devices.</p>` },
+  { id: 'rich', hash: '#/dump', at: '#dump-body', title: 'Notes that do things', body: `<p>Type a phone number and it becomes a contact. Paste a screenshot or a PDF and it's attached. Format with the toolbar${KEYS ? `, ${key(CTRL, 'B')}` : ''} or Markdown.</p>` },
+  searchStep(),
+  { id: 'why', title: 'Why not Apple Notes or Notepad?', body: `<ul><li>Nothing is ever lost, and undo goes back days.</li><li>A line becomes a task or a contact, and stays linked.</li><li>The same notes on every device, readable by nobody else.</li></ul>` },
+];
 
-    // ---------- Day Planner ----------
-    { id: 'paper', hash: '#/planner', at: '.planner .paper', also: nav('planner'), title: 'Your day on paper', body: `<p>Write on a time to plan it. Anything unfinished is offered again the next day, or you can let it go.</p>
-        <p>Give a task a day in ${w('area_tasks')} and it's here on that day by itself; change the day and it moves.</p>` },
-    { id: 'drag', hash: '#/planner', at: '.planner .pile', title: 'From tasks to a time', body: `<p>The day's tasks wait here. Drag a task's <b>⠿</b> onto a time in the plan to give it that time, then drag the bottom of it down to say how long it takes.</p>${KEYS ? '' : `
-        <p>On a phone, tap an item once to get it ready: then drag it by any part of it to another time, or drag the bar at its bottom down to make it longer. Tap it again to change its words.</p>`}
-        <p><b>↓ Bring items in</b> brings in what's planned for today, ideas that suit today's energy, anything unfinished from earlier days and what's on your Google Calendar.</p>` },
-    { id: 'twoways', hash: '#/planner', at: '.planner .pile', also: nav('tasks'), title: "Today's own task list", body: `<p>These are this day's tasks. Use them however suits you:</p>
-      <ul><li><b>From your main list.</b> Your big "life" list lives in ${w('area_tasks')}, a separate area (${KEYS ? 'in the bar at the top' : 'in the bar at the bottom'}). <b>↓ Bring items in</b> brings today's share of it here.</li>
-      <li><b>Or just for today.</b> Add small things straight here, without cluttering your main list.</li></ul>
-      <p>Mix both. Either way they stay on this day, as a simple to-do or in a time slot. Change your mind whenever: <b>→ Tasks</b> in a task's details moves it onto your main list in one ${tap}.</p>
-      <p>You could even skip ${w('area_tasks')} altogether and work from here alone.</p>` },
-    { id: 'focus', hash: '#/planner', at: '.planner .focus-row', title: 'Plan around how you feel', body: `<p><b>Day focus</b>: the one thing that matters today. <b>Energy</b>: how you feel, so the planner can suggest tasks that fit.</p>
-        <p>Days you'd rather rest (Settings → ${word('area_planner')}) get a gentle reminder to do less.</p>` },
-    { id: 'gcal', hash: '#/planner', at: '.planner .bring-link', title: 'Everything waiting, in one place', body: `<p><b>↓ Bring items in</b> gathers what could come into your day: tasks from your list, anything unfinished from earlier days, and what's on your Google Calendar. A small number on it says how much is waiting.</p>
-        <p>Put each one on the schedule or in the day's tasks, tick it off, let it go, or set it aside for today. Connect Google Calendar there too, and choose which of your calendars show. It only reads them, and keeps what it reads on this device.</p>` },
-    { id: 'daynotes', hash: '#/planner', at: '.planner .day-notes', title: "The day's notes", body: `<p>Notes for this day only: what happened, who rang, what to remember tomorrow. Written as you go, they become a diary without you ever sitting down to keep one.</p>
-        <p>They're like any note: search finds them, and 📝 links them to a task, a contact or anything else.</p>` },
-    { id: 'view', hash: '#/planner', at: '.planner .view-menu .menu, .planner .view-menu', open: '.planner .view-menu', title: '👁 Lay the page out your way', body: `<p>👁 is full of ways to lay this page out. Have a play: nothing here can break anything.</p>
-        <ul><li>the <b>paper</b>: Glass, Notebook, Dot journal, Techie or Minimal;</li><li><b>timeslots</b> of a quarter, half or whole hour;</li><li>the plan first, or tasks and notes first;</li><li>which parts show, alternate shading, and spacing;</li><li><b>nudges</b>: ▶ at the current time, an evening section, a word when the plan is longer than the day.</li></ul>
-        <p>Every page has its own 👁.</p>` },
-    { id: 'share', hash: '#/planner', at: '.planner .share-menu', title: 'Share your day', body: `<p>The easiest way: <b>Share → Copy to clipboard</b> puts the whole day in one message, ready to paste into WhatsApp for whoever's doing the school run.</p>
-        <p>The more complete way: share <i>your day, your week, your month, or even your year</i> with family or colleagues who use Sift. It literally lets you see their ${word('area_planner')}, and change it too: <b>Show</b> <i>their name</i><b>'s day</b> switches to theirs, and <b>Show my day</b> switches back. Easier than getting a sofa up the stairs: no shouting "Pivot!" needed.</p>` },
-    { id: 'lists', hash: '#/lists', at: '.lists-head', title: `${word('area_lists')}, shared with the people who need them`, body: `<p>Shopping, packing, the kids' swimming bag. Make a <b>template</b> once and start a fresh list from it every time.</p>
-        <p><b>👥 Share</b> a list and everyone ticks off the same one: two of you in the supermarket, and the milk is only bought once. (Joey doesn't share food, but anyone can share a shopping list.) Notes in ${w('area_dump')} share the same way, so a family plan or a meeting's notes live in one place instead of a chat.</p>` },
-    { id: 'recipes', hash: '#/recipes', at: '.bb-sections-bar, .bb-head, #main', title: `${word('area_recipes')}: recipes, and every time you make them`, body: `<p>Recipes sit in <b>books</b> you name yourself (⋯ at the end of the bar adds and changes them), one tab each; ☆ pins a recipe to the top of its book and under <b>★ Pinned</b> (${KEYS ? `${key('←')} ${key('→')} or ` : 'swipe or '}press to switch). Hold a card's ⠿ to drag it around, or onto another book's heading to move it there.</p>
-        <p>Write steps straight onto the lines; <b>{salt}</b> in a step shows the salt with its amount, and it follows when you scale the recipe. <b>🧪 Make this</b> starts a batch: its own copy to change, with <b>✓ In stock</b> or <b>🛒 Add to list</b> next to each ingredient. <b>👁</b> picks the paper, Glass included.</p>` },
-    { id: 'places', hash: '#/find-things', at: '#find-grid .find-bar, #main', title: word('area_places'), body: `<p>Where things are kept: the loft, box 4, the drawer in the hall. Photos of what's inside, and search inside every box: "where did we put the passports?" Already have a spreadsheet of your boxes? Import it.</p>` },
-    { id: 'contacts', hash: '#/contacts', at: '.c-capture, #c-tabs, #main', title: `${word('area_contacts')}: kept, or just for now`, body: `<p>Two kinds of contact:</p>
-        <ul><li><b>Transient</b>: a number you need for a few days, the parking line, the man about the van. Paste it here with a few words, "window cleaner 07700 900123", and it's in <b>Recent</b>. It's never deleted, it just sinks as it gets older; one with no name asks "What was this?".</li>
-        <li><b>Stored</b>: the people worth keeping, in your <b>Directory</b>, under categories you make up (Plumber, Carers, Mum's care…).</li></ul>
-        <p>A phone number typed in any note becomes a transient contact by itself. ${KEYS ? 'On a phone, tapping' : 'Tapping'} a contact's number rings it, and the call goes in the contact's record.</p>` },
-    { id: 'cases', hash: '#/contacts', at: '#c-tabs, #main', title: 'Cases', body: `<p>A <b>case</b> keeps a whole saga in one timeline: a complaint, an insurance claim, a repair. Every call, letter and task about it, in order, so you can say exactly what happened and when.</p>` },
-    { id: 'search', at: KEYS ? '.top-search, #more-tab' : '#more-tab, .top-search', title: 'Search everything', body: `<p>${KEYS ? `${key(CTRL, 'K')} or ${key('/')}, or 🔍 at the top` : 'The box at the top of <b>More</b>'}: one search over every note, task, comment, contact, list and box. Archived things are found too.</p>` },
-    { id: 'tidied', hash: '#/bin', at: '#bin-tabs, #main', title: 'Nothing is lost by tidying up', body: `<p><b>Archive</b> anything you've finished with: it's out of the way here, in ${w('area_bin')}, and still found by search. Deleted things wait here for 30 days.</p>
-        <p><b>History</b> (in ⋯ on any page) lists every change, and any of them can be undone, in any order.</p>` },
+// The Day Planner: for lovers of a real notebook or planner.
+const plannerSteps = () => [
+  { id: 'paper', hash: '#/planner', at: '.planner .paper', also: nav('planner'), title: 'Your day on paper', body: `<p>Write on a time to plan it. Pick your paper in <b>👁</b>: Notebook, Dot journal, Glass…</p>` },
+  { id: 'drag', hash: '#/planner', at: '.planner .pile', title: 'Tasks to times', body: `<p>The day's tasks wait here. Drag one onto a time, then drag its bottom edge to say how long.</p>${KEYS ? '' : '<p>On a phone: tap once to pick it up, then drag.</p>'}` },
+  { id: 'bring', hash: '#/planner', at: '.planner .bring-link', title: 'Bring items in', body: `<p>Your task list, anything unfinished from earlier days, and your Google Calendar, all in one calm place instead of cluttering the page.</p>` },
+  { id: 'focus', hash: '#/planner', at: '.planner .focus-row', title: 'Plan around how you feel', body: `<p><b>Day focus</b>: the one thing that matters. <b>Energy</b>: how you feel, so it suggests tasks that fit.</p>` },
+  { id: 'daynotes', hash: '#/planner', at: '.planner .day-notes', title: 'A diary without trying', body: `<p>Who rang, what happened, what to remember. Written as you go, the day's notes become a journal.</p>` },
+  { id: 'share', hash: '#/planner', at: '.planner .share-menu', title: 'Share your day', body: `<p>Copy it into WhatsApp for the school run, or share your day, week or whole diary with someone who uses Sift.</p>` },
+];
 
-    // ---------- making it yours ----------
-    { id: 'themes', hash: '#/settings', at: '#theme, #appearance-card', title: 'Themes', body: `<p>A theme changes the whole app: <b>Glass</b>, <b>Glass – Fancy</b> (with handwriting), <b>Dark</b>, <b>Light</b>, or <b>Auto</b> (light by day, Glass at night, following your device).</p>
-        <p>Or <b>Custom</b>: every section shown as a sample page; press anything on it to change its colour, its font, or how see-through it is.</p>` },
-    { id: 'yours', hash: '#/settings', at: '#words-card, #appearance-card', title: 'Make it yours', body: `<p><b>Your words</b> renames anything: call ${w('area_dump')} "Inbox", or ${w('area_tasks')} "Jobs", and say what each energy level means to you.</p>
-        <p><b>Sync</b> keeps your phone and laptop in step. Everything is encrypted on your device first, so only your devices can read it. It works offline, on Windows, Mac, iPhone and Android alike.</p>` },
-    { id: 'end', title: 'Why not just use Apple Notes?', body: `<p>Notes apps are good at keeping notes. Sift is for what happens after you've written one:</p>
-        <ul><li>a line becomes a task or a contact, and stays in the note, linked;</li><li>undo goes back past yesterday, across your devices;</li><li>your day on paper, planned around your energy;</li><li>tasks that repeat, carry over and keep a record of what happened;</li><li>lists and days shared with the people in them;</li><li>on every device you own, and nobody else can read your data.</li></ul>
-        <p>That's the tour. Now empty your head.</p>` },
-  ];
-}
-// Each tour: the name of its task, and its steps. More go here (an advanced tour, say).
+// The mini-tours.
+const recipesSteps = () => [
+  { id: 'recipes', hash: '#/recipes', at: '.bb-sections-bar, .bb-head, #main', also: nav('recipes'), title: `${word('area_recipes')}: recipes, and every time you make them`, body: `<p>Recipes in books you name. <b>{salt}</b> in a step shows its amount, and scales with the recipe. <b>🧪 Make this</b> starts a batch, with <b>🛒 Add to list</b> for anything you're out of.</p>` },
+];
+const listsSteps = () => [
+  { id: 'lists', hash: '#/lists', at: '.lists-head, #main', also: nav('lists'), title: `${word('area_lists')}, shared`, body: `<p>Shopping, packing, the swimming bag. Make a <b>template</b> once and start a fresh list from it each time. <b>👥 Share</b> it, and the milk only gets bought once.</p>` },
+];
+const placesSteps = () => [
+  { id: 'places', hash: '#/find-things', at: '#find-grid .find-bar, #main', also: nav('find-things'), title: `${word('area_places')}: for a leaky memory`, body: `<p>Where things are kept: the loft, box 4, the drawer in the hall. Photos of what's inside, and search in every box: where did we put the passports?</p>` },
+];
+const filingSteps = () => [
+  { id: 'scans', hash: '#/scans', at: '.scans .scans-head, #main', title: 'Your digital filing cabinet', body: `<p>${w('area_scans')}: photograph a letter, a receipt or an ID card, and find it again in seconds. Expiry dates show when they're coming up.</p>` },
+  { id: 'contracts', hash: '#/contracts', at: '.contracts-head, #main', title: word('area_contracts'), body: `<p>Phone, insurance, energy: renewal dates, costs and notice periods, so nothing rolls over by surprise.</p>` },
+  { id: 'contacts', hash: '#/contacts', at: '.c-capture, #c-tabs, #main', title: word('area_contacts'), body: `<p>Keep the people worth keeping. A number you only need for a week goes in <b>Recent</b> and quietly sinks away.</p>` },
+  { id: 'cases', hash: '#/contacts', at: '#c-tabs, #main', title: 'Cases', body: `<p>A complaint, a claim, a repair: every call, letter and task about it in one timeline.</p>` },
+  searchStep(),
+  { id: 'tidied', hash: '#/bin', at: '#bin-tabs, #main', title: 'Nothing lost by tidying', body: `<p><b>Archive</b> what you're done with: it's out of the way in ${w('area_bin')}, and search still finds it.</p>` },
+];
+const yoursSteps = () => [
+  { id: 'themes', hash: '#/settings', at: '#theme, #appearance-card', title: 'Themes', body: `<p>Glass, Dark, Light, or with handwriting. Or <b>Custom</b>: press anything on the sample page to change its colour or font.</p>` },
+  { id: 'words', hash: '#/settings', at: '#words-card, #appearance-card', title: 'Your words', body: `<p>Rename anything: call ${w('area_dump')} "Inbox", or ${w('area_tasks')} "Jobs".</p>` },
+  { id: 'sync', hash: '#/settings', at: '#sync-card, #main', title: 'On all your devices', body: `<p><b>Sync</b> keeps your phone and laptop in step. Everything is encrypted first, so only your devices can read it.</p>` },
+  { id: 'keys', only: 'keys', title: 'Hands on the keyboard', body: `<table class="tour-keys">
+      <tr><td>${key(CTRL, '←')} ${key(CTRL, '→')}</td><td>the area before or after</td></tr>
+      <tr><td>${key('←')} ${key('→')}</td><td>the page's tabs, or the ${word('area_planner')}'s days</td></tr>
+      <tr><td>${key('Esc')}</td><td>step back out, keeping what you wrote</td></tr>
+      <tr><td>${key(CTRL, 'K')}</td><td>search everything</td></tr>
+    </table><p>Point at a button to see its key.</p>` },
+];
+
+// Each tour: the name of its task (when it's left for later), and its steps.
+// 'new' is the choice of tours itself (the welcome page): its task opens that.
 const TOURS = {
-  new: { title: 'Take the tour of Sift', steps: newUserSteps },
+  new: { title: 'Take the tour of Sift', steps: () => [] },
+  tasks: { title: 'Tour: tasks and projects', steps: tasksSteps },
+  notes: { title: 'Tour: writing things down', steps: notesSteps },
+  planner: { title: 'Tour: the Day Planner', steps: plannerSteps },
+  recipes: { title: 'Tour: recipes', steps: recipesSteps },
+  lists: { title: 'Tour: lists', steps: listsSteps },
+  places: { title: 'Tour: finding things', steps: placesSteps },
+  filing: { title: 'Tour: your digital filing cabinet', steps: filingSteps },
+  yours: { title: 'Tour: making Sift yours', steps: yoursSteps },
 };
-const forThisDevice = which => TOURS[which].steps().filter(s => !s.only || (s.only === 'keys') === KEYS);
+const forThisDevice = which => (TOURS[which]?.steps() || []).filter(s => !s.only || (s.only === 'keys') === KEYS);
+export const tourLength = which => forThisDevice(which).length;
+// Tours finished on this device (the choice shows them with a ✓).
+export const toursSeen = async () => (await store.getDeviceSettings()).tours_seen || {};
 // Which tour a task starts (tasks made before there were several say true: the new user tour).
 export const tourOf = task => (task?.tour === true ? 'new' : task?.tour) || null;
 
@@ -168,14 +147,17 @@ export async function progress(which = 'new') {
   return n > 0 ? { n, total: all.length } : null;
 }
 export const resetTour = (which = 'new') => keepPlace(which, null);
+// Every tour from the beginning again, none marked as seen.
+export const resetTours = () => store.updateDeviceSettings({ tour_at: {}, tours_seen: {} });
 
 // The "Take the tour" task (made if there isn't one, put back on the list if it
 // was ticked or moved), shown on Tasks → Now with its outline pulsing so it can be found.
 export async function showTourTask(which = 'new') {
   let task = (await store.list('tasks')).find(t => tourOf(t) === which);
-  if (!task) task = await addTaskFirst({ title: TOURS[which].title, notes: '▶ Start the tour whenever you like; it carries on where you left it.', horizon: 'now', tour: which });
+  if (!task) task = await addTaskFirst({ title: TOURS[which].title, notes: which === 'new' ? '▶ Pick a tour whenever you like.' : '▶ Start the tour whenever you like; it carries on where you left it.', horizon: 'now', tour: which });
   else if (task.done_at || task.horizon !== 'now' || task.archived_at) await store.update('tasks', task.id, Object.assign(doneFields(false), { horizon: 'now', archived_at: null }));
-  location.hash = '#/tasks/now';
+  if (location.hash === '#/tasks/now') dispatchEvent(new Event('sift:refresh')); // already there (ended during the Tasks tour): drawn again with it
+  else location.hash = '#/tasks/now';
   for (let tries = 0; tries < 40; tries++) {
     const el = document.querySelector(`#main li[data-task="${task.id}"]`);
     if (el) { flash(el); break; }
@@ -319,15 +301,17 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
     root.scrollPaddingTop = root.scrollPaddingBottom = '';
     if (tour === t) tour = null;
   };
-  // Finished: back to the start, next time from the beginning, and the "Take the tour" task ticked off.
+  // Finished: next time from the beginning, marked as seen, back to the choice of
+  // tours, and its task (and "Take the tour of Sift") ticked off.
   async function finish() {
     t.end();
     await resetTour(which);
-    location.hash = '#/dump';
-    const open = (await store.list('tasks')).filter(task => tourOf(task) === which && !task.done_at);
-    if (!open.length) return;
+    await store.updateDeviceSettings({ tours_seen: Object.assign({}, await toursSeen(), { [which]: true }) });
+    location.hash = '#/welcome';
+    const open = (await store.list('tasks')).filter(task => (tourOf(task) === which || tourOf(task) === 'new') && !task.done_at);
+    if (!open.length) return toast('✓ Tour finished. Pick another, or just start using Sift');
     for (const task of open) await store.update('tasks', task.id, doneFields(true));
-    undoable(`Ticked off: ${TOURS[which].title}`, async () => { for (const task of open) await store.update('tasks', task.id, doneFields(false)); });
+    undoable(`Ticked off: ${open.map(task => task.title).join(', ')}`, async () => { for (const task of open) await store.update('tasks', task.id, doneFields(false)); });
   }
   raf = requestAnimationFrame(place);
   show(Math.max(0, saved));
