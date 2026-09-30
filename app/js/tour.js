@@ -22,23 +22,6 @@ const key = (...keys) => keys.map(k => `<kbd${/^[←→↑↓]$/.test(k) ? ' cla
 
 // While the tour shows Google Calendar: a made-up day of it (unless this device
 // shows the real one), put back as it was when the step is left. The buttons do nothing.
-function sampleCalendar() {
-  const box = document.querySelector('.planner .gcal');
-  if (!box) return null;
-  if (!box.hidden && !box.querySelector('[data-gcal="connect"]')) return () => {}; // the real one's showing
-  const was = { hidden: box.hidden, html: box.innerHTML };
-  const add = '<button type="button" class="gcal-add" tabindex="-1">+ Add to plan</button>';
-  box.hidden = false;
-  box.classList.add('gcal-sample');
-  box.innerHTML = `<div class="gcal-head"><h3>Google Calendar</h3><span class="muted gcal-status">Updated just now (an example)</span><button type="button" class="gcal-btn" tabindex="-1">↻ Refresh</button></div>
-    <ul class="gcal-list">
-      <li class="gcal-event all-day"><span class="gcal-when">All day</span> <span class="gcal-title">School inset day</span>${add}</li>
-      <li class="gcal-event"><span class="gcal-when">9.00–9.30</span> <span class="gcal-title">Dentist</span> <span class="muted gcal-where">· High Street</span>${add}</li>
-      <li class="gcal-event"><span class="gcal-when">14.00–15.00</span> <span class="gcal-title">Team call</span><span class="muted gcal-added">✓ In your plan</span></li>
-    </ul>`;
-  return () => { box.classList.remove('gcal-sample'); box.hidden = was.hidden; box.innerHTML = was.html; };
-}
-
 // A step: { id (where the tour carries on from), hash (go there first), at (what
 // to point at: the first selector in the list with something showing; none: a
 // card in the middle), also (a second thing to outline, e.g. its place in the
@@ -112,16 +95,16 @@ function newUserSteps() {
         <p>Give a task a day in ${w('area_tasks')} and it's here on that day by itself; change the day and it moves.</p>` },
     { id: 'drag', hash: '#/planner', at: '.planner .pile', title: 'From tasks to a time', body: `<p>The day's tasks wait here. Drag a task's <b>⠿</b> onto a time in the plan to give it that time, then drag the bottom of it down to say how long it takes.</p>${KEYS ? '' : `
         <p>On a phone, tap an item once to get it ready: then drag it by any part of it to another time, or drag the bar at its bottom down to make it longer. Tap it again to change its words.</p>`}
-        <p><b>↓ Bring in from tasks</b> brings in what's planned for today, and ideas that suit today's energy.</p>` },
+        <p><b>↓ Bring items in</b> brings in what's planned for today, ideas that suit today's energy, anything unfinished from earlier days and what's on your Google Calendar.</p>` },
     { id: 'twoways', hash: '#/planner', at: '.planner .pile', also: nav('tasks'), title: "Today's own task list", body: `<p>These are this day's tasks. Use them however suits you:</p>
-      <ul><li><b>From your main list.</b> Your big "life" list lives in ${w('area_tasks')}, a separate area (${KEYS ? 'in the bar at the top' : 'in the bar at the bottom'}). <b>↓ Bring in from tasks</b> brings today's share of it here.</li>
+      <ul><li><b>From your main list.</b> Your big "life" list lives in ${w('area_tasks')}, a separate area (${KEYS ? 'in the bar at the top' : 'in the bar at the bottom'}). <b>↓ Bring items in</b> brings today's share of it here.</li>
       <li><b>Or just for today.</b> Add small things straight here, without cluttering your main list.</li></ul>
       <p>Mix both. Either way they stay on this day, as a simple to-do or in a time slot. Change your mind whenever: <b>→ Tasks</b> in a task's details moves it onto your main list in one ${tap}.</p>
       <p>You could even skip ${w('area_tasks')} altogether and work from here alone.</p>` },
     { id: 'focus', hash: '#/planner', at: '.planner .focus-row', title: 'Plan around how you feel', body: `<p><b>Day focus</b>: the one thing that matters today. <b>Energy</b>: how you feel, so the planner can suggest tasks that fit.</p>
         <p>Days you'd rather rest (Settings → ${word('area_planner')}) get a gentle reminder to do less.</p>` },
-    { id: 'gcal', hash: '#/planner', at: '.planner .gcal', also: '.planner .view-menu > summary', enter: sampleCalendar, title: 'Your Google Calendar, on your day', body: `<p>See what's on in your Google Calendar above your plan. Here are some examples. <b>+ Add to plan</b> puts an event in your plan at its time, with its details as the note, to move like anything else.</p>
-        <p>It only reads your calendar, a week at a time (further ahead when you ask), and keeps it on this device. Turn it on or off in <b>👁 → Show Google Calendar</b>.</p>` },
+    { id: 'gcal', hash: '#/planner', at: '.planner .bring-link', title: 'Everything waiting, in one place', body: `<p><b>↓ Bring items in</b> gathers what could come into your day: tasks from your list, anything unfinished from earlier days, and what's on your Google Calendar. A small number on it says how much is waiting.</p>
+        <p>Put each one on the schedule or in the day's tasks, tick it off, let it go, or set it aside for today. Connect Google Calendar there too, and choose which of your calendars show. It only reads them, and keeps what it reads on this device.</p>` },
     { id: 'daynotes', hash: '#/planner', at: '.planner .day-notes', title: "The day's notes", body: `<p>Notes for this day only: what happened, who rang, what to remember tomorrow. Written as you go, they become a diary without you ever sitting down to keep one.</p>
         <p>They're like any note: search finds them, and 📝 links them to a task, a contact or anything else.</p>` },
     { id: 'view', hash: '#/planner', at: '.planner .view-menu .menu, .planner .view-menu', open: '.planner .view-menu', title: '👁 Lay the page out your way', body: `<p>👁 is full of ways to lay this page out. Have a play: nothing here can break anything.</p>
