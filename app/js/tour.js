@@ -4,6 +4,8 @@
 // once you have. Keyboard steps show on laptops, tap steps on phones.
 // Where it got to is kept on this device, so it carries on from there; ending
 // it early leaves the "Take the tour" task (with its ▶ pill) to come back to.
+// While a tour runs, Sift is filled with example things (demo.js), cleared away
+// when it ends however it ends; the card says so.
 // The welcome page (views/welcome.js) is the choice of tours: tasks, notes, the
 // Day Planner, and short ones for the rest. Each tour (TOURS below) has its own
 // steps, its own place kept, and its own task; finishing one goes back to the choice.
@@ -13,6 +15,8 @@ import { word } from './words.js';
 import { toast, undoable } from './toast.js';
 import { closeFull } from './fullnote.js';
 import { flash } from './flash.js';
+import { seedDemo, clearDemo } from './demo.js';
+import { isoDate, addDays } from './days.js';
 
 const KEYS = matchMedia('(hover: hover) and (pointer: fine)').matches; // a mouse, so almost always a keyboard too
 const MAC = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
@@ -44,6 +48,8 @@ const tasksSteps = () => [
   { id: 'task', hash: '#/tasks/now', at: '.task-list > li[data-task]', title: 'Everything about a task', body: `<p><b>More</b> on a task opens its note, energy, time and day. <b>Repeats</b> never pile up: tick one and the next appears on its day.</p>` },
   { id: 'select', hash: '#/tasks/now', at: '.task-list, #task-body', title: 'Move and choose', body: `<p>Hold <b>⠿</b> to move a task; move it sideways to make it a sub-task. ${tap().replace(/^./, c => c.toUpperCase())} ⠿ to choose several, then act on them all from the bar at the bottom.</p>` },
   { id: 'projects', hash: '#/tasks/now', at: '.task-list, #task-body', title: 'Projects', body: `<p><b>Projects</b> at the top: each shows how far along it is, with its own tasks and milestones. Share one with the people working on it.</p>` },
+  { id: 'view', hash: '#/tasks/now', at: '#main .view-menu .menu, #main .view-menu', open: '#main .view-menu', title: '👁 Lay it out your way', body: `<p><b>👁</b> on every page: lined paper, a margin, shading, spacing, and which parts show. Try a few; nothing here can break anything.</p>` },
+  { id: 'more', hash: '#/tasks/now', at: '#main .page-more .menu, #main .page-more', open: '#main .page-more', title: '⋯ for the rarely needed', body: `<p><b>⋯</b> keeps the odd jobs out of the way: Show Archive, Show Bin, and on some pages import and export.</p>` },
   { id: 'energy', hash: '#/tasks/now', at: '.task-list > li[data-task], #task-body', title: 'Matched to your energy', body: `<p><b>⚡</b> low, <b>⚡⚡</b> medium, <b>⚡⚡⚡</b> high. Tell the ${w('area_planner')} how you feel today and it suggests tasks that fit: gentle ones on a flat day, the big ones on a good day.</p>` },
 ];
 
@@ -58,6 +64,7 @@ const notesSteps = () => [
   { id: 'safe', hash: '#/dump', at: '.dump-capture', title: 'Never lost', body: `<p>Everything is kept as you type it, even a note you hadn't saved when the battery died.</p>` },
   { id: 'undo', hash: '#/dump', at: '#dump-body', only: 'keys', title: 'Undo that remembers yesterday', body: `<p>${key(CTRL, 'Z')} in a note goes back past what you just typed: yesterday's version, last week's, even ones from your other devices.</p>` },
   { id: 'undo', hash: '#/dump', at: '#dump-body', only: 'touch', title: 'Undo that remembers yesterday', body: `<p><b>Aa</b>, then <b>🕘</b>, lists a note's earlier versions: yesterday's, last week's, from any of your devices.</p>` },
+  { id: 'look', hash: '#/dump', at: '#main .view-menu .menu, #main .view-menu', open: '#main .view-menu', title: '👁 Look and spacing', body: `<p>Plain notes or <b>Multicolour</b> ones, packed tight or roomy. Try one: nothing here can break anything.</p>` },
   { id: 'rich', hash: '#/dump', at: '#dump-body', title: 'Notes that do things', body: `<p>Type a phone number and it becomes a contact. Paste a screenshot or a PDF and it's attached. Format with the toolbar${KEYS ? `, ${key(CTRL, 'B')}` : ''} or Markdown.</p>` },
   searchStep(),
   { id: 'why', title: 'Why not Apple Notes or Notepad?', body: `<ul><li>Nothing is ever lost, and undo goes back days.</li><li>A line becomes a task or a contact, and stays linked.</li><li>The same notes on every device, readable by nobody else.</li></ul>` },
@@ -68,6 +75,8 @@ const plannerSteps = () => [
   { id: 'paper', hash: '#/planner', at: '.planner .paper', also: nav('planner'), title: 'Your day on paper', body: `<p>Write on a time to plan it. Pick your paper in <b>👁</b>: Notebook, Dot journal, Glass…</p>` },
   { id: 'drag', hash: '#/planner', at: '.planner .pile', title: 'Tasks to times', body: `<p>The day's tasks wait here. Drag one onto a time, then drag its bottom edge to say how long.</p>${KEYS ? '' : '<p>On a phone: tap once to pick it up, then drag.</p>'}` },
   { id: 'bring', hash: '#/planner', at: '.planner .bring-link', title: 'Bring items in', body: `<p>Your task list, anything unfinished from earlier days, and your Google Calendar, all in one calm place instead of cluttering the page.</p>` },
+  { id: 'ahead', hash: `#/planner/${addDays(isoDate(), 3)}`, at: '.planner .paper', title: 'Plan ahead', body: `<p>Any day, any week: <b>›</b> goes forward, <b>📅</b> jumps to a date. Here's three days from now, dentist and all.</p>` },
+  { id: 'pview', hash: '#/planner', at: '.planner .view-menu .menu, .planner .view-menu', open: '.planner .view-menu', title: '👁 Your kind of paper', body: `<p>Notebook, Dot journal, Glass; quarter, half or whole hours; the plan first or your tasks first. Have a play.</p>` },
   { id: 'focus', hash: '#/planner', at: '.planner .focus-row', title: 'Plan around how you feel', body: `<p><b>Day focus</b>: the one thing that matters. <b>Energy</b>: how you feel, so it suggests tasks that fit.</p>` },
   { id: 'daynotes', hash: '#/planner', at: '.planner .day-notes', title: 'A diary without trying', body: `<p>Who rang, what happened, what to remember. Written as you go, the day's notes become a journal.</p>` },
   { id: 'share', hash: '#/planner', at: '.planner .share-menu', title: 'Share your day', body: `<p>Copy it into WhatsApp for the school run, or share your day, week or whole diary with someone who uses Sift.</p>` },
@@ -169,7 +178,9 @@ export async function showTourTask(which = 'new') {
 let tour = null; // the tour running: { n, end }
 
 export async function startTour({ which = 'new', fromStart = false } = {}) {
-  tour?.end();
+  await tour?.end();
+  await seedDemo();
+  dispatchEvent(new Event('sift:refresh'));
   const all = forThisDevice(which);
   const kept = fromStart ? null : await placeKept(which);
   const saved = all.findIndex(s => s.id === kept);
@@ -232,8 +243,9 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
     target = extra = null;
     if (step.enter) { for (let tries = 0; tries < 40 && current(n) && !(undoEnter = step.enter()); tries++) await new Promise(ok => setTimeout(ok, 75)); } // (once the page is drawn)
     const k = letter => (KEYS ? ` <kbd>${letter}</kbd>` : '');
-    card.innerHTML = `<div class="tour-head"><span class="tour-count">${n + 1} of ${all.length}</span><button type="button" class="tour-x" data-tour="later" aria-label="End the tour early" title="End the tour early: it waits on your task list">✕</button></div>
-      <h3>${step.title}</h3><div class="tour-body">${step.body}</div>
+    const demoNote = n === 0 ? '<p class="tour-demo-note">🧪 We\'ve filled Sift with example things so there\'s something to see. They\'re all cleared away when the tour ends; anything you make yourself stays.</p>' : '';
+    card.innerHTML = `<div class="tour-head"><span class="tour-count">${n + 1} of ${all.length}</span><span class="tour-demo" title="Example things fill Sift during the tour; they're cleared away when it ends">🧪 Example data</span><button type="button" class="tour-x" data-tour="later" aria-label="End the tour early" title="End the tour early: it waits on your task list">✕</button></div>
+      <h3>${step.title}</h3><div class="tour-body">${demoNote}${step.body}</div>
       <div class="tour-foot">${n ? `<button type="button" data-tour="back">Back${k('B')}</button>` : ''}
         <button type="button" data-tour="later" class="tour-later">End tour early</button><span class="spacer"></span>
         ${step.done ? `<button type="button" data-tour="next">Skip${k('N')}</button>` : `<button type="button" class="primary" data-tour="next">${last ? 'Finish' : 'Next'}${k('N')}</button>`}</div>`;
@@ -274,7 +286,7 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
   const act = what => {
     if (what === 'back' && t.n > 0) show(t.n - 1);
     else if (what === 'next') t.n === all.length - 1 ? finish() : show(t.n + 1);
-    else if (what === 'later') { t.end(); showTourTask(which); }
+    else if (what === 'later') t.end().then(() => showTourTask(which));
   };
   card.addEventListener('click', e => act(e.target.closest('[data-tour]')?.dataset.tour));
   // N for Next and B for Back (not while typing); Esc on the card ends the tour early.
@@ -289,7 +301,7 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
   };
   addEventListener('keydown', onKey, true);
 
-  t.end = () => {
+  t.end = async () => {
     stopWaiting();
     shut();
     cancelAnimationFrame(raf);
@@ -300,11 +312,12 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
     document.documentElement.classList.remove('touring');
     root.scrollPaddingTop = root.scrollPaddingBottom = '';
     if (tour === t) tour = null;
+    if (await clearDemo()) dispatchEvent(new Event('sift:refresh')); // the examples go, the page drawn without them
   };
   // Finished: next time from the beginning, marked as seen, back to the choice of
   // tours, and its task (and "Take the tour of Sift") ticked off.
   async function finish() {
-    t.end();
+    await t.end();
     await resetTour(which);
     await store.updateDeviceSettings({ tours_seen: Object.assign({}, await toursSeen(), { [which]: true }) });
     location.hash = '#/welcome';
