@@ -9,7 +9,7 @@ import { shareHtml } from '../share.js';
 import { flash, SOFT, WASH } from '../flash.js';
 import * as store from '../store.js';
 import { shareSheet, sharedWithText, invitesHtml, theirIconHtml } from '../sharing.js';
-import { sharedProjects, sharedValue, sharedFrom, moveIntoShared, loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES, HORIZONS, horizonOf, planDay, MAX_DEPTH, depthIn, levelsUnder } from '../tasks.js';
+import { sharedProjects, sharedValue, sharedFrom, moveIntoShared, loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES, HORIZONS, horizonOf, planDay, MAX_DEPTH, depthIn, levelsUnder, archiveOldDone } from '../tasks.js';
 import { ENERGY, isoDate, dateText, addDays, parseDate, addItem, durationChoices, durationLabel } from '../days.js';
 import { energyMenu, pillMenu } from '../pillmenu.js';
 import { tintHex, tintId, colourMenu } from '../colours.js';
@@ -41,7 +41,7 @@ const EMPTY = { get inbox() { return `${word('list_inbox')} is empty.`; }, now: 
 const lay = id => layoutOn('tasks', id);
 // Highlight item when added (👁 Layout): the new tasks pulse once, soft blue (flash.js), and
 // the list scrolls to them if they're out of view.
-const showAdded = (root, ids) => { if (lay('added-flash')) ids.forEach((id, n) => flash(root.querySelector(`.task-list > li[data-task="${id}"]`), Object.assign({ scroll: n ? false : 'nearest' }, SOFT))); };
+const showAdded = (root, ids) => { ids.forEach((id, n) => flash(root.querySelector(`.task-list > li[data-task="${id}"]`), Object.assign({ scroll: n ? false : 'nearest' }, SOFT))); };
 // A project's colour: one of the list colours (colours.js), or the hex older projects were given.
 const projectHex = p => (p?.colour?.startsWith('#') ? p.colour : tintHex(p));
 const isoOk = d => (/^\d{4}-\d{2}-\d{2}$/.test(d || '') ? d : null);
@@ -58,6 +58,7 @@ function shortDate(iso) {
 
 export default {
   async mount(el) {
+    archiveOldDone(); // (once a day: ticked-off tasks older than Settings says go to the Archive)
     // Page-wide listeners are tied to this signal and removed in unmount().
     this.gone?.abort();
     const gone = this.gone = new AbortController();
@@ -1452,7 +1453,7 @@ export default {
         return;
       }
       if ((act === 'horizon-pill' || act === 'energy-pill') && id) return editInPlace(id);
-      if (act === 'tour') { const tours = await import('../tour.js'); return tours.startTour({ which: tours.tourOf(task) }); }
+      if (act === 'tour') { const tours = await import('../tour.js'); const which = tours.tourOf(task); if (which === 'new') { location.hash = '#/welcome'; return; } return tours.startTour({ which }); }
       if (b.dataset.energy && id) {
         await change(id, { energy: task.energy === b.dataset.energy ? null : b.dataset.energy }, 'Energy saved');
       } else if (act === 'close-details') {
@@ -1545,8 +1546,8 @@ export default {
     });
 
     this.closeDetails = () => { open = null; };
-    // Arriving on Tasks (nav, Ctrl+← / →): with the 👁 Layout switch on, the cursor goes in New task.
-    this.arrived = () => { if (lay('new-focus') && !touch) focusEntry(); }; // phones: the keyboard only for a tap in the line
+    // Arriving on Tasks (nav, Ctrl+← / →): the cursor goes in New task.
+    this.arrived = () => { if (!touch) focusEntry(); }; // phones: the keyboard only for a tap in the line
 
     // Tap a task's title to edit it: pills for energy, time, dates and list
     // open under it, plus More for the whole panel (js/editpills.js).

@@ -35,6 +35,18 @@ const channel = 'BroadcastChannel' in self ? new BroadcastChannel('sift-store') 
 
 // ---------- ids and clocks ----------
 
+// Example records (below, createDemo): their ids, and what makes a new record one of them.
+const demoIds = new Set();
+let demoLoaded = false;
+const DEMO_REFS = ['repeat_of', 'task_id', 'list_id', 'place_id', 'parent_place_id', 'project_id', 'parent_task_id', 'parent_item_id', 'parent_id', 'case_id', 'recipe_id', 'milestone_id'];
+function isDemoWrite(id, existing, changes) {
+  if (demoIds.has(id)) return true;
+  if (existing || !demoIds.size || !DEMO_REFS.some(k => changes[k] && demoIds.has(changes[k]))) return false;
+  demoIds.add(id);
+  keepDemoIds();
+  return true;
+}
+
 export function uuidv7() {
   const bytes = crypto.getRandomValues(new Uint8Array(16));
   let ms = Date.now();
@@ -376,15 +388,16 @@ function makeSpace(name) {
         throw new Error(`${collection}/${id} not found`);
       }
       const record = stamp(existing, existing ? withDoneLog(collection, existing, changes) : { ...changes, id });
+      const demo = isLocal && isDemoWrite(id, existing, changes);
       if (record) {
         record.id = id;
         tx.objectStore(collection).put(record);
-        tx.objectStore('outbox').put({ id, collection, queued_at: Date.now() });
+        if (!demo) tx.objectStore('outbox').put({ id, collection, queued_at: Date.now() });
         tx.objectStore('sync_meta').put(lastClock, 'clock');
       }
       await done(tx);
       if (record) {
-        if (isLocal) noteChange(collection, existing, record);
+        if (isLocal && !demo) noteChange(collection, existing, record);
         emit({ collection, id, deleted: !!record.deleted_at, space: name });
       }
       return record || existing;
@@ -432,13 +445,13 @@ function makeSpace(name) {
       const record = existing && stamp(existing, withDoneLog(collection, existing, fields));
       if (!record) continue;
       records.put(record);
-      tx.objectStore('outbox').put({ id, collection, queued_at: Date.now() });
+      if (!(isLocal && demoIds.has(id))) tx.objectStore('outbox').put({ id, collection, queued_at: Date.now() });
       changed.push(record);
       befores.push(existing);
     }
     if (changed.length) tx.objectStore('sync_meta').put(lastClock, 'clock');
     await done(tx);
-    if (isLocal) changed.forEach((r, i) => noteChange(collection, befores[i], r));
+    if (isLocal) changed.forEach((r, i) => { if (!demoIds.has(r.id)) noteChange(collection, befores[i], r); });
     for (const r of changed) emit({ collection, id: r.id, deleted: !!r.deleted_at, space: name });
     return changed;
   }
@@ -555,7 +568,7 @@ function makeSpace(name) {
   // Files made here that haven't gone to the server yet.
   async function blobsToUpload() {
     await open();
-    return (await promisify(db.transaction('blobs').objectStore('blobs').getAll())).filter(r => !r.uploaded_at);
+    return (await promisify(db.transaction('blobs').objectStore('blobs').getAll())).filter(r => !r.uploaded_at && !(isLocal && demoIds.has(r.blob_id)));
   }
 
   async function markBlobUploaded(blobId) {
@@ -597,6 +610,7 @@ function makeSpace(name) {
       const tx = db.transaction([c, 'outbox'], 'readwrite');
       const records = await promisify(tx.objectStore(c).getAll());
       for (const record of records) {
+        if (isLocal && demoIds.has(record.id)) continue;
         if (record._server_seq || record._share_seqs) { record._server_seq = 0; delete record._share_seqs; tx.objectStore(c).put(record); }
         tx.objectStore('outbox').put({ id: record.id, collection: c, queued_at: Date.now() }); n++;
       }
@@ -614,6 +628,7 @@ function makeSpace(name) {
     const tx = db.transaction('outbox', 'readwrite');
     const outbox = tx.objectStore('outbox');
     for (const id of ids) {
+      if (isLocal && demoIds.has(id)) continue;
       const entry = await promisify(outbox.get(id));
       if (entry && !entry.places) continue;
       outbox.put(places ? { id, collection, queued_at: Date.now(), places: [...new Set([...(entry?.places || []), ...places])] } : { id, collection, queued_at: Date.now() });
@@ -703,6 +718,53 @@ function makeSpace(name) {
 }
 
 export const local = makeSpace(LOCAL_DB);
+
+// ---------- example records (the tours; tour.js, demo.js) ----------
+// While a tour runs, Sift is filled with example records so there's something
+// to see. They stay on this device: never synced, never in History. Anything
+// made inside one (a thing in an example box, a task in the example project) is
+// one too. Their ids are kept in device settings, so ones left behind (the app
+// closed mid-tour) are cleared the next time it opens.
+export async function createDemo(collection, fields) {
+  const id = uuidv7();
+  demoIds.add(id);
+  keepDemoIds();
+  return local.create(collection, { ...fields, id });
+}
+export const hasDemo = () => demoIds.size > 0;
+export const isDemo = id => demoIds.has(id);
+// An id about to be used for an example record (a photo's file is saved before its record).
+export function markDemo(id) { demoIds.add(id); keepDemoIds(); }
+// Every example record gone from this device, as if never made (with any outbox and History entries).
+export async function clearDemo() {
+  if (!demoLoaded) await loadDemoIds();
+  if (!demoIds.size) return 0;
+  const ids = new Set(demoIds);
+  const db = await local.open();
+  const tx = db.transaction([...COLLECTIONS, 'outbox', 'history', 'blobs'], 'readwrite');
+  for (const c of COLLECTIONS) for (const id of ids) tx.objectStore(c).delete(id);
+  for (const id of ids) { tx.objectStore('outbox').delete(id); tx.objectStore('blobs').delete(id); } // a photo's file has its record's id
+  tx.objectStore('history').openCursor().onsuccess = e => {
+    const cur = e.target.result;
+    if (!cur) return;
+    if ((cur.value.changes || []).some(ch => ids.has(ch.id))) cur.delete();
+    cur.continue();
+  };
+  await done(tx);
+  demoIds.clear();
+  await updateDeviceSettings({ demo_ids: [] });
+  for (const c of COLLECTIONS) emit({ collection: c, id: null, remote: true, space: local.name });
+  return ids.size;
+}
+async function loadDemoIds() {
+  demoLoaded = true;
+  for (const id of (await getDeviceSettings()).demo_ids || []) demoIds.add(id);
+}
+let keepSoon = 0;
+function keepDemoIds() {
+  clearTimeout(keepSoon);
+  keepSoon = setTimeout(() => updateDeviceSettings({ demo_ids: [...demoIds] }), 200);
+}
 let current = local;
 export const space = () => current;
 export function useSpace(which) { current = which || local; }

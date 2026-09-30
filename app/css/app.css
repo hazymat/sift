@@ -3826,7 +3826,46 @@ dialog.custom-theme::backdrop { background: rgba(0, 0, 0, .35); }
 @media (max-width: 640px) { .ct-row { grid-template-columns: 1fr 32px; } .ct-row > :nth-child(2) { grid-column: 1 / -1; grid-row: 2; } .ct-head h2 { font-size: 1rem; } }
 
 /* Welcome (the first time Sift is opened): one panel in the middle of an empty page. */
-.welcome { min-height: 62vh; display: grid; place-items: center; }
+.welcome { min-height: 62vh; display: grid; place-items: center; align-content: center; gap: 18px; padding: 8px 0 24px; }
+/* The choice of tours (views/welcome.js): four big cards, each with its own colour. */
+.welcome-top { text-align: center; max-width: 620px; }
+.welcome-top h2 { font-size: clamp(2rem, 6vw, 2.8rem); margin: 0 0 8px; letter-spacing: -.01em; }
+.welcome-top .welcome-lead { margin: 0; }
+.tour-picks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; width: 100%; max-width: 880px; }
+@media (max-width: 640px) { .tour-picks { grid-template-columns: minmax(0, 1fr); gap: 10px; } }
+.tour-pick { position: relative; display: grid; align-content: start; gap: 6px; padding: 18px 18px 16px; text-align: left; font: inherit; color: var(--text); border-radius: 22px; border: 1px solid var(--glass-border); border-top: 5px solid var(--c); box-shadow: var(--glass-highlight, none); cursor: pointer; transition: transform .15s ease, border-color .15s ease, background .15s ease;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--c) 16%, transparent), transparent 55%), var(--glass); }
+button.tour-pick:hover, button.tour-pick:focus-visible { transform: translateY(-3px); border-color: color-mix(in srgb, var(--c) 55%, var(--glass-border)); outline: none; }
+.tour-pick-more { cursor: default; }
+.pick-emoji { font-size: 2.2rem; line-height: 1; margin-bottom: 2px; }
+.pick-title { font-size: 1.25rem; font-weight: 700; line-height: 1.2; }
+.pick-who { font-size: .88rem; font-weight: 600; color: color-mix(in srgb, var(--c) 60%, var(--text)); }
+.pick-why { font-size: .9rem; line-height: 1.4; color: var(--muted); }
+.pick-state { justify-self: start; margin-top: 4px; padding: 2px 10px; border-radius: 999px; font-size: .78rem; background: color-mix(in srgb, var(--c) 18%, transparent); }
+.pick-state.seen { background: none; padding-left: 0; color: var(--muted); }
+/* The tour showing a task's More without hovering, and a green button drawn in its words. */
+.task-list > li.tour-more > .more { visibility: visible !important; }
+.tour-green { display: inline-block; padding: 0 9px; border-radius: 999px; font-size: .85em; line-height: 1.6; color: var(--text); border: 1px solid color-mix(in srgb, var(--energy-ink, #4caf7a) 40%, transparent); background: color-mix(in srgb, var(--energy-ink, #4caf7a) 13%, transparent); }
+/* A quote in a tour step: a callout that stands out from the rest. */
+.tour-quote { display: flex; gap: 12px; align-items: flex-start; margin: 2px 0 10px; padding: 10px 14px; border-radius: 12px; border-left: 4px solid #5b9dff; background: color-mix(in srgb, #5b9dff 14%, transparent); }
+.tour-quote-icon { font-size: 1.8rem; line-height: 1; flex: none; }
+.tour-quote-text { display: block; font-size: 1.08rem; font-style: italic; font-weight: 600; line-height: 1.35; }
+.tour-quote-who { display: block; margin-top: 4px; font-size: .82rem; color: var(--muted); }
+.tour-body .tour-list { list-style: none; margin: 4px 0 6px; padding: 0; display: grid; gap: 4px; }
+.tour-body .tour-list li { padding: 5px 10px; border-radius: 10px; background: rgba(255, 255, 255, .05); }
+.tour-try::before { content: '➜'; margin-right: 7px; color: #4caf7a; font-weight: 800; } /* every Try it: a green arrow to what to do */
+.tour-body .tour-try + .tour-try { margin-top: -4px; }
+.tour-handle { display: inline-grid; place-items: center; min-width: 1.5em; padding: 0 3px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, .35); color: #fff; font-weight: 700; line-height: 1.35; }
+.tour-already { color: #7fd6a0; font-weight: 600; }
+.tour-demo { margin: 0 auto 0 10px; padding: 1px 8px; border-radius: 999px; font-size: .72rem; white-space: nowrap; background: color-mix(in srgb, var(--energy-ink, #4caf7a) 16%, transparent); color: var(--text); }
+.tour-demo-note { margin: 0 0 8px; padding: 6px 10px; border-radius: 10px; font-size: .88rem; background: color-mix(in srgb, var(--energy-ink, #4caf7a) 12%, transparent); }
+.pick-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.pick-chip { padding: 8px 14px; border-radius: 999px; font-size: .92rem; border-color: color-mix(in srgb, var(--c) 35%, var(--glass-border)); }
+.pick-chip:hover, .pick-chip:focus-visible { border-color: color-mix(in srgb, var(--c) 65%, var(--glass-border)); background: color-mix(in srgb, var(--c) 16%, transparent); outline: none; }
+.pick-chip.seen { opacity: .8; }
+.pick-tick { color: var(--energy-ink, #4caf7a); font-weight: 700; }
+.welcome-after { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.welcome-after button { padding: 9px 16px; }
 .welcome-card { max-width: 560px; margin: 0; text-align: center; padding: 32px 28px; }
 .welcome-card h2 { font-size: clamp(2.2rem, 7vw, 3rem); margin: 0 0 12px; letter-spacing: -.01em; }
 .welcome-lead { font-size: 1.1rem; line-height: 1.55; margin: 0 0 24px; }
@@ -3839,6 +3878,7 @@ dialog.custom-theme::backdrop { background: rgba(0, 0, 0, .35); }
 .tour-ring { position: fixed; z-index: 1200; pointer-events: none; border-radius: 14px; outline: 2px solid #ffb020; outline-offset: 0; box-shadow: 0 0 0 200vmax rgba(4, 8, 20, .58); }
 .tour-ring.whole { outline: none; border-radius: 0; box-shadow: none; background: rgba(4, 8, 20, .58); }
 .touring .toast { z-index: 1250; } /* over the dimming, under the card */
+.tour-lift-bar .select-bar { z-index: 1250; } /* a tour step that has the selection bar used: above the dimming, below the card */
 .tour-card { position: fixed; z-index: 1300; width: min(420px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto; padding: 12px 18px 14px; border-radius: 16px; background: #182032; color: #e8edf5; border: 1px solid rgba(255, 255, 255, .2); box-shadow: 0 16px 50px rgba(0, 0, 0, .6); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: .92rem; line-height: 1.5; }
 .tour-card h3 { margin: 2px 0 8px; font-size: 1.1rem; color: #fff; }
 .tour-card p { margin: 0 0 8px; }

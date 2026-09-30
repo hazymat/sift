@@ -672,6 +672,7 @@ async function boot() {
 
   // Ctrl+Z / Ctrl+Y outside anything being typed: undo / redo the last thing done (undo.js).
   import('./undo.js').then(m => m.installUndoKeys(refreshPage));
+  await store.clearDemo(); // example things left from a tour cut short (the app closed mid-tour; demo.js)
   if (await firstVisit()) location.replace('#/welcome');
   await route();
   renderSyncStatus();

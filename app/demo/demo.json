@@ -1,0 +1,101 @@
+{
+  "about": "The example things a tour fills Sift with (js/demo.js). Days are counted from today (0 today, 3 in three days); photos are files in this folder. Only fetched when a tour starts.",
+
+  "categories": [
+    { "id": "demo-menus", "label": "Menus" },
+    { "id": "demo-home", "label": "Home projects" },
+    { "id": "demo-out", "label": "Days out" }
+  ],
+
+  "notes": [
+    { "key": "wifi", "body": "wifi for guests: KettleBiscuit42 (also on back of router)", "pinned": true },
+    { "body": "ring dentist re Thurs", "type": "task" },
+    { "body": "Lake District w/e in May?? ask S", "type": "demo-out" },
+    { "body": "Dave, Pro Gas Solutions 07700 900123 – did the boiler last winter, v good" },
+    { "body": "oat milk, bin bags, BD card for Mum", "type": "shopping" },
+    { "body": "solar call – Gary @ LDN Solar\n- 4kW, 10 panels, SE roof fine\n- ~£7.5k fitted, battery +£3–4k\n- scaffold incl.\n- export rate?? Octopus best apparently\n- survey Tues 2nd? check\n- ask re pigeon mesh!!\n- payback 8–9 yrs \"he reckons\"", "type": "demo-home", "photos": ["roof.jpg"] },
+    { "body": "3D print bits for the workbench\n- cable clips for router table\n- dust port adaptor 58 → 100mm\n- shelf pin jig 5mm\n- fence knob w/ M8 insert\n- PETG not PLA (heat)", "type": "demo-home", "photos": ["3d-printing.jpg"] },
+    { "body": "galleries when Lucy's over\n- Tate Modern, free, turbine hall\n- National Gallery then lunch Covent Gdn\n- Dulwich Picture Gallery (Sun?)\n- Whitechapel\n- what's on at the Barbican?\n- book Sky Garden", "type": "demo-out" },
+    { "key": "chinese", "body": "try the new Chinese on King St?? B19 dry fried chicken looks 🔥", "type": "demo-menus", "photos": ["menu-chinese.jpg"] },
+    { "body": "Hot Grubz – jerk van by the canal. curry goat £10, coco bread + pattie £5", "type": "demo-menus", "photos": ["menu-jerk.jpg"] },
+    { "body": "L'Autre – Polish vodka list 😅 Krupnik (spiced honey) next time", "type": "demo-menus", "photos": ["menu-vodka.jpg"] },
+    { "body": "The Victoria – cider menu. Slack Ma Girdle 5.8% 👀", "type": "demo-menus", "photos": ["menu-cider.jpg"] },
+    { "body": "arcane – small plates, mixed plate £20 was plenty for 2", "type": "demo-menus", "photos": ["menu-small-plates.jpg"] }
+  ],
+
+  "projects": [
+    { "key": "kitchen", "name": "Kitchen renovation", "description": "New worktops and a lick of paint before the summer.",
+      "milestones": [{ "key": "worktops", "name": "Worktops ordered", "due": 21 }] }
+  ],
+
+  "tasks": [
+    { "title": "Fix the wobbly shelf", "list": "inbox" },
+    { "title": "Ring the bank about the new card", "list": "inbox" },
+    { "title": "Cancel the gym trial", "list": "inbox" },
+    { "title": "Find a dog sitter for August", "list": "inbox" },
+    { "title": "Sort out old photos", "list": "inbox" },
+    { "title": "Look into solar panels", "list": "inbox" },
+    { "title": "Put the bins out", "list": "now", "energy": "low", "minutes": 5, "plan": 0, "repeat": { "every": "week", "n": 1 } },
+    { "title": "Book the MOT", "list": "now", "energy": "low", "minutes": 10, "plan": 0 },
+    { "title": "Renew the car insurance", "list": "now", "energy": "low", "minutes": 30, "aim": 3, "notes": "Compare at least two quotes first." },
+    { "title": "Pay the window cleaner", "list": "now", "energy": "low", "minutes": 5 },
+    { "title": "Sort the loft", "list": "next", "energy": "high", "minutes": 120 },
+    { "title": "Clear the garage for the bikes", "list": "next", "energy": "high", "minutes": 90 },
+    { "title": "Try the new Chinese on King St", "list": "next", "energy": "low", "from_note": "chinese" },
+    { "title": "Learn to make sourdough", "list": "later", "energy": "medium", "minutes": 60 },
+    { "key": "quotes", "title": "Get three quotes for the worktops", "list": "now", "energy": "medium", "minutes": 45, "project": "kitchen", "milestone": "worktops" },
+    { "title": "Measure the worktops", "list": "now", "energy": "low", "minutes": 15, "project": "kitchen", "milestone": "worktops", "parent": "quotes" },
+    { "title": "Choose paint colours", "list": "now", "energy": "low", "project": "kitchen", "done": true },
+    { "title": "Book a decorator", "list": "next", "energy": "medium", "project": "kitchen" }
+  ],
+
+  "planner": [
+    { "day": 0, "time": "09:00", "until": "09:30", "title": "Team call" },
+    { "day": 0, "time": "11:00", "until": "12:00", "title": "Brunch with Priya", "notes": "The Red Lion" },
+    { "day": 0, "time": "15:00", "until": "17:00", "title": "Help Jamie move the Ikea wardrobe", "energy": "high" },
+    { "day": 0, "title": "Post the parcel" },
+    { "day": 0, "title": "Water the tomatoes", "done": true },
+    { "day": 3, "time": "10:00", "until": "10:45", "title": "Dentist", "notes": "Bring the new-patient form" },
+    { "day": 3, "time": "19:00", "until": "22:00", "title": "Pizza night 🍕", "notes": "Dough in the morning! Recipe's in the Recipe Archive" },
+    { "day": 3, "title": "BD card for Mum" }
+  ],
+
+  "lists": [
+    { "name": "Weekly shop", "items": [["Oat milk", true], ["Bread"], ["Apples"], ["Bin bags", true], ["Coffee"], ["BD card"], ["00 flour"], ["Mozzarella"], ["Salami"]] },
+    { "name": "Swimming bag", "template": true, "items": [["Towel"], ["Goggles"], ["£1 for the locker"], ["Shampoo"], ["A snack for after"]] }
+  ],
+
+  "places": {
+    "area": "Home",
+    "group": "Loft and hall",
+    "boxes": [
+      { "name": "Christmas", "where": "Loft, left of the hatch", "things": [["Fairy lights", 3], ["Baubles"], ["Tree stand"], ["Wrapping paper"]] },
+      { "name": "Hall drawer", "where": "Hall, under the mirror", "things": [["Passports", 4], ["Spare house keys"], ["AA batteries", 8], ["Torch"]] }
+    ]
+  },
+
+  "contacts": [
+    { "name": "Dave (Pro Gas Solutions)", "about": "Did the boiler last winter. Reliable, fair prices." },
+    { "name": "Window cleaner", "about": "Comes every four weeks, cash or bank transfer." }
+  ],
+
+  "cases": [
+    { "title": "Washing machine repair claim", "summary": "Broke two weeks after the warranty ran out. They said they would call back." }
+  ],
+
+  "contracts": [
+    { "name": "Home insurance", "provider": "Example Insurance", "started": -325, "renews": 40, "auto_renew": true, "notice_days": 14, "cost": 24.5 },
+    { "name": "Mobile phone", "provider": "Example Mobile", "started": -215, "renews": 150, "notice_days": 30, "cost": 12 }
+  ],
+
+  "scans": [
+    { "title": "Printing – kitchen plans", "kind": "receipt", "summary": "Efficient Stationers, £42", "photo": "receipt-printing.jpg", "task": "quotes" },
+    { "title": "Lunch – claim back", "kind": "receipt", "summary": "Pret, £20.09. Put it in expenses", "photo": "receipt-lunch.jpg" },
+    { "title": "Car wash", "kind": "receipt", "summary": "£10.50, cash", "photo": "receipt-car-wash.jpg" }
+  ],
+
+  "recipes": [
+    { "photo": "pizza.jpg", "text": "# Pizza night dough\nBook: Pizza\nTags: pizza, weekend\n\nMakes four bases. Start in the morning for an evening pizza night; the longer the rise, the better.\n\n## Ingredients\n- 500 g 00 flour\n- 325 ml warm water\n- 7 g dried yeast\n- 10 g salt\n- 1 tbsp olive oil\n- 200 g passata\n- 2 balls mozzarella\n- 100 g salami\n\n## Method\n1. Stir the {dried yeast} into the {warm water} and leave for 5 mins.\n2. Mix the {00 flour} and {salt}, add the water and {olive oil}, and knead for 10 mins until smooth.\n3. Cover and leave to rise for at least 6 hours.\n4. Split into four, stretch each one thin, and top with {passata}, torn {mozzarella} and {salami}.\n5. As hot an oven as it goes, 7–8 mins." },
+    { "photo": "eggs.jpg", "text": "# Poached eggs on a mushroom muffin\nBook: Breakfasts\nTags: breakfast, quick\n\nA weekend breakfast that looks posher than it is.\n\n## Ingredients\n- 2 eggs\n- 1 portobello mushroom\n- 1 English muffin\n- 8 cherry tomatoes (on the vine)\n- 1 red onion\n- dill, to finish\n\n## Method\n1. Roast the {portobello mushroom}, {cherry tomatoes} and sliced {red onion} for 15 mins.\n2. Toast the {English muffin} and put the mushroom on top.\n3. Poach the {eggs} for 3 mins and sit them on the mushroom.\n4. Black pepper and a little {dill}." }
+  ]
+}

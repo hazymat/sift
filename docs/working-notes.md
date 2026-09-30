@@ -4,7 +4,7 @@ How work on Sift is done: where things are, the rules, and where it has got to. 
 
 ## Where it has got to
 
-- **Live:** 1.60.04 (GitHub Pages, https://hazymat.github.io/sift/). Every version has a GitHub Release with its notes.
+- **Live:** 1.60.27 (GitHub Pages, https://hazymat.github.io/sift/). Every version has a GitHub Release with its notes.
 - **The queue:** GitHub Issues. Two pinned overview issues hold the checklists, in order:
   - **Roadmap** (#20): Next, Started, To decide, Not built yet, Housekeeping.
   - **Known bugs** (#21).
@@ -76,7 +76,8 @@ After an update, Sift shows a What's new sheet (Settings, Show update info; on u
 - `app/js/batchbook.js`: Batch Book data (recipes, batches, entries), books (the user's own, stored as a recipe's `type` and in settings `batch_sections`), steps, units, reading ingredient lines, {references} in a step, ABV, reading recipes imported as text (`parseRecipes`, format in its comment; the Import recipes sheet is in `views/recipes.js`); the pages, dragging cards (listkit, `rank`), each batch ingredient's In stock / Add to list (`stock`, `stock_items`, `list_id`), each card's Make and More menu (a recipe's own `colour` overrides its book's; sharing kind `recipe` in sync.js IN_SCOPE covers its batches and entries by `recipe_id`) and the books sheet are in `views/recipes.js`. Recipe and batch pages use the Day Planner's papers (`.bb-paper[data-paper]` shares the paper tokens in `app.css`).
 - `app/js/views/*.js`: one module per area. `smoke.js`: the page check (dev only, not cached).
 - `app/js/whatsnew.js`: What's new after an update (`WHATS_NEW`, the sheet, Show me, Save to Brain Dump); `markUpdating()` runs in `applyUpdate()` in `app.js`, `afterUpdate()` on the next start.
-- `app/js/views/welcome.js`: the first time Sift is opened on a device with nothing in it (`firstVisit()` in `app.js`): tour now, later (a task with `tour: true`, whose pill starts it), or not at all. `app/js/tour.js`: the tours (`TOURS`: each has its steps, its place kept on the device in `tour_at`, and its task, `tour: <id>`) and how they point at things; a step can wait for something to be tried (`done`).
+- `app/js/demo.js`: the example things a tour fills Sift with, from `app/demo/demo.json` and its photos (fetched only when a tour starts, not part of the app's own files). They're made with `store.createDemo` and cleared with `store.clearDemo`: kept on the device only (never in the outbox or History, their files never uploaded), and anything made inside one is one too. Its categories are shown but never saved (`setDemoTypes` in `words.js`).
+- `app/js/views/welcome.js`: the choice of tours (#/welcome), shown the first time Sift is opened on a device with nothing in it (`firstVisit()` in `app.js`), from Settings (Take the tour) and from the "Take the tour of Sift" task (`tour: 'new'`). Three big tours for the three ways Sift gets used (Tasks and projects, writing things down, the Day Planner) and short ones for the rest. `app/js/tour.js`: the tours (`TOURS`: each has its steps, its place kept on the device in `tour_at`, and its task, `tour: <id>`; finished ones in `tours_seen`) and how they point at things; a step can wait for something to be tried (`done`). Each step says one or two short things.
 - `server/`: the sync server (Node 24, `node:sqlite`), end-to-end encrypted. `node test.js` after any change.
 - `tools/`: `devserver.py`, `make_icons.py` (every icon size from `tools/icon-source.png`), `release.py` and `release_notes.py`, `onenote_to_csv.py`, `make_sift_test.py` (see Sift test below).
 

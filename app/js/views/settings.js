@@ -30,7 +30,7 @@ export default {
     const { versionText } = await import('../version.js');
     el.innerHTML = `
       <section class="card" id="install-card">
-        <p class="muted app-version">Sift ${versionText()} <button type="button" class="link-btn" data-act="check-update">Check for updates</button> · <button type="button" class="link-btn" data-act="whats-new">What's new</button> · <button type="button" class="link-btn" data-act="tour">Take the tour</button> · <button type="button" class="link-btn" data-act="tour-reset" title="Next time, the tour starts from the beginning">Reset the tour</button> · <a href="about.html" target="_blank" rel="noopener">About</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a></p>
+        <p class="muted app-version">Sift ${versionText()} <button type="button" class="link-btn" data-act="check-update">Check for updates</button> · <button type="button" class="link-btn" data-act="whats-new">What's new</button> · <button type="button" class="link-btn" data-act="tour">Take the tour</button> · <button type="button" class="link-btn" data-act="tour-reset" title="Next time, every tour starts from the beginning">Reset the tours</button> · <a href="about.html" target="_blank" rel="noopener">About</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a></p>
         <label class="check-row"><input type="checkbox" id="show-update-info"> Show update info <span class="muted">(after an update, a list of what changed, each with Show me)</span></label>
         <p class="muted sync-top" id="sync-top" hidden></p>
         <h2>Home Screen and your data</h2>
@@ -58,6 +58,14 @@ export default {
         <h2>Navigation</h2>
         <p class="muted">Drag to reorder. The top ${app.MAX_PINNED} go in the bottom bar on your phone; the rest live under More.</p>
         <ul class="pin-list" id="nav-order"></ul>
+      </section>
+
+      <section class="card" id="tasks-settings">
+        <h2>Tasks</h2>
+        <div class="settings-grid">
+          <label>Ticked-off tasks go to the Archive after<select name="done_archive_days">${[[7, '1 week'], [14, '2 weeks'], [30, '30 days'], [60, '60 days'], [90, '90 days'], [0, 'Never']].map(([n, l]) => `<option value="${n}">${l}</option>`).join('')}</select></label>
+        </div>
+        <p class="muted">So ${esc(word('area_tasks'))} → Done only shows what you've done lately. Everything archived is still in the Archive, and search finds it.</p>
       </section>
 
       <section class="card" id="planner-settings">
@@ -257,13 +265,13 @@ export default {
             </div>
             <ul class="sync-devices" hidden></ul>
             <div class="sync-pw" hidden>
-              <form class="settings-grid sync-form">
+              <form class="settings-grid sync-form" id="sync-pw-form">
                 <input type="text" name="username" autocomplete="username" value="${esc(acct?.email || '')}" hidden>
                 <label>Current password<input name="oldpw" type="password" autocomplete="current-password" class="no-inline"></label>
                 <label>New password<input name="newpw" type="password" autocomplete="new-password" class="no-inline"></label>
               </form>
               <div class="backup-row">
-                <button type="button" class="primary" data-sync="pw">Change password</button>
+                <button type="submit" form="sync-pw-form" class="primary" data-sync="pw">Change password</button>
                 <span class="muted" id="sync-msg"></span>
               </div>
               <p class="muted hint">${esc(word('ph_sync_pw'))}</p>
@@ -280,15 +288,15 @@ export default {
         box.innerHTML = `
           <p class="sync-out-reason" hidden></p>
           <p class="muted">${esc(word('ph_sync_intro'))}</p>
-          <form class="settings-grid sync-form">
+          <form class="settings-grid sync-form" id="sync-in-form">
             <label class="wide">Server<input name="server" value="${esc(typed.server_url || '')}" placeholder="https://your-server" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" class="no-inline"></label>
             <label>Email<input name="email" type="email" value="${esc(typed.sync_email || '')}" autocomplete="username" class="no-inline"></label>
             <label>Password<input name="password" type="password" autocomplete="current-password" class="no-inline"></label>
           </form>
           <p class="sync-reach" hidden><span class="sync-reach-text"></span><button type="button" class="link-btn sync-recheck">Check again</button></p>
           <div class="backup-row">
-            <button type="button" class="primary" data-sync="in">Sign in</button>
-            <button type="button" data-sync="create" hidden>Create account</button>
+            <button type="submit" form="sync-in-form" class="primary" data-sync="in">Sign in</button>
+            <button type="submit" form="sync-in-form" data-sync="create" hidden>Create account</button>
             <button type="button" data-sync="forgot">Forgot password?</button>
             <span class="muted" id="sync-msg"></span>
           </div>
@@ -316,12 +324,12 @@ export default {
           </details>
           <div class="sync-recover" hidden>
             <p class="muted">${esc(word('ph_sync_recover'))}</p>
-            <form class="settings-grid sync-form">
+            <form class="settings-grid sync-form" id="sync-recover-form">
               <input type="text" name="username" autocomplete="username" value="${esc(typed.sync_email || '')}" hidden>
               <label class="wide">Recovery code<input name="code" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" class="no-inline"></label>
               <label>New password<input name="newpw" type="password" autocomplete="new-password" class="no-inline"></label>
             </form>
-            <div class="backup-row"><button type="button" class="primary" data-sync="recover">Set new password</button></div>
+            <div class="backup-row"><button type="submit" form="sync-recover-form" class="primary" data-sync="recover">Set new password</button></div>
           </div>`;
         const reason = box.querySelector('.sync-out-reason');
         if (st.error) { reason.textContent = st.error; reason.hidden = false; }
@@ -403,6 +411,12 @@ export default {
       // While Settings is open, a quick check of the connection every 10 s (each shows as a pulse).
       this.linkTick = setInterval(() => { if (!el.isConnected) return clearInterval(this.linkTick); if (sync.signedIn()) sync.checkLink(); }, 10000);
       if (sync.signedIn()) sync.checkLink();
+      // Offer to save the email and password in the browser (Chrome and Edge ask straight away;
+      // Safari and Firefox go by the form being submitted and then going away).
+      const keepLogin = (id, password) => {
+        if (!window.PasswordCredential || !id || !password) return;
+        navigator.credentials?.store(new PasswordCredential({ id, password, name: id })).catch(() => {});
+      };
       box.addEventListener('click', async ev => {
         const b = ev.target.closest('[data-sync]');
         if (!b) return;
@@ -431,6 +445,7 @@ export default {
             b.disabled = true;
             msg('Changing…');
             await sync.changePassword(oldpw, newpw);
+            keepLogin(val('username'), newpw);
             toast('Password changed');
             return draw();
           }
@@ -444,6 +459,7 @@ export default {
             b.disabled = true;
             msg('Setting your new password…');
             await sync.recover(server, email, val('code'), newpw);
+            keepLogin(email, newpw);
             await sync.start();
             toast('New password set');
             return draw();
@@ -455,6 +471,7 @@ export default {
             b.disabled = true;
             msg('Creating your account and keys…');
             const code = await sync.register(server, email, password);
+            keepLogin(email, password);
             box.innerHTML = `
               <p><b>Account created.</b> This is your <b>recovery code</b>. If you ever forget your password, it is the only way to get your data back. Nobody (not even the server) can reset it for you.</p>
               <pre class="recovery-code">${code}</pre>
@@ -471,6 +488,7 @@ export default {
           b.disabled = true;
           msg('Signing in…');
           await sync.signIn(server, email, password);
+          keepLogin(email, password);
           await sync.start();
           draw();
         } catch (e) {
@@ -551,6 +569,17 @@ export default {
       ns.addEventListener('change', async ev => {
         const t = ev.target;
         await store.updateSettings({ [t.name]: t.type === 'checkbox' ? t.checked : t.name === 'note_history_days' ? Number(t.value) : t.value });
+        toast('✓ Saved');
+      });
+    }
+
+    // Tasks settings
+    {
+      const ts = el.querySelector('#tasks-settings');
+      ts.querySelector('[name="done_archive_days"]').value = String((await store.getSettings()).done_archive_days ?? 30);
+      ts.addEventListener('change', async ev => {
+        await store.updateSettings({ done_archive_days: Number(ev.target.value) });
+        await store.updateDeviceSettings({ done_archived_on: null }); // tidied again next time Tasks opens
         toast('✓ Saved');
       });
     }
@@ -653,7 +682,7 @@ export default {
     el.querySelector('[data-act="batch-examples"]').addEventListener('click', async ev => { ev.target.disabled = true; await (await import('../examples.js')).addExamples(); ev.target.disabled = false; toast('Added the example recipes to Batch Book'); });
     // The sign-in and password boxes are forms (so a browser's password manager fills those, not the search box); they're never sent.
     el.addEventListener('submit', ev => ev.preventDefault());
-    el.querySelector('[data-act="tour-reset"]').addEventListener('click', async () => { await (await import('../tour.js')).resetTour(); toast('The tour will start from the beginning'); });
+    el.querySelector('[data-act="tour-reset"]').addEventListener('click', async () => { await (await import('../tour.js')).resetTours(); toast('The tours will start from the beginning'); });
     el.querySelector('[data-act="check-update"]').addEventListener('click', async ev => {
       const b = ev.currentTarget;
       b.disabled = true;
