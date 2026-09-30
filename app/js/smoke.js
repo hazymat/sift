@@ -6,8 +6,11 @@
 //
 //   (await import('/js/smoke.js')).run()        → { pages, errors, problems, skipped }
 //
-// It only looks and opens things; it never saves, ticks or deletes. The view
-// options it tries are put back as they were.
+// It only looks and opens things; it never ticks or deletes anything of yours.
+// The view options it tries are put back as they were. With no scans or
+// contracts yet, it makes a test one of each ("zz page check") to open their
+// own pages, then removes them without a trace (record, outbox, history); only
+// while not signed in to sync, so they can never leave this device.
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -24,6 +27,8 @@ export async function run({ wait = 600 } = {}) {
   addEventListener('unhandledrejection', onRejection);
 
   const { AREAS } = await import('./app.js');
+  const { signedIn } = await import('./sync.js');
+  const made = []; // [collection, id] of test records, removed at the end
   const pages = [];
   const visit = async hash => {
     where = hash;
@@ -81,15 +86,45 @@ export async function run({ wait = 600 } = {}) {
         for (const [key, value] of names) { await click(main.querySelector(`[data-${key}="${value}"]`), `filter ${value}`); look(`${hash} filter ${value}`); }
         if (was) await click(main.querySelector(`[data-${was.dataset.kind ? 'kind' : 'view'}="${was.dataset.kind || was.dataset.view}"]`), 'restore filter');
         // The first scan's or contract's own page, then back to the list.
-        const own = main.querySelector('a.scan-card[data-id], .contracts tr[data-id]');
+        const ownSel = 'a.scan-card[data-id], .contracts tr[data-id]';
+        let own = main.querySelector(ownSel);
+        if (!own && !signedIn()) {
+          where = `${hash} → make a test one`;
+          const scans = !!main.querySelector('.scans');
+          const rec = scans
+            ? await (await import('./scans.js')).newScan([], { title: 'zz page check' })
+            : await (await import('./contracts.js')).newContract({ name: 'zz page check', provider: 'zz' });
+          if (rec) made.push([scans ? 'scans' : 'contracts', rec.id]);
+          dispatchEvent(new Event('sift:refresh'));
+          await sleep(wait);
+          own = document.querySelector(`#main :is(${ownSel})`);
+        }
         if (own) { await click(own, 'open first'); await sleep(wait); look(`${location.hash} (own page)`); history.back(); await sleep(wait); }
-        else skipped.push(`${hash}: none yet, so no own page opened`);
+        else skipped.push(`${hash}: none yet, and signed in to sync, so no test one made`);
       }
     }
   } finally {
+    if (made.length) await removeTestRecords(made);
     removeEventListener('error', onError);
     removeEventListener('unhandledrejection', onRejection);
     console.error = consoleError;
   }
   return { pages: pages.length, errors, problems, skipped };
+}
+
+// Test records gone as if never made: straight from the database, with their outbox and history entries.
+async function removeTestRecords(made) {
+  const ids = new Set(made.map(([, id]) => id));
+  const db = await new Promise((ok, fail) => { const r = indexedDB.open('sift_local'); r.onsuccess = () => ok(r.result); r.onerror = () => fail(r.error); });
+  const tx = db.transaction([...new Set(made.map(([c]) => c)), 'outbox', 'history'], 'readwrite');
+  for (const [collection, id] of made) { tx.objectStore(collection).delete(id); tx.objectStore('outbox').delete(id); }
+  tx.objectStore('history').openCursor().onsuccess = e => {
+    const c = e.target.result;
+    if (!c) return;
+    if ((c.value.changes || []).some(ch => ids.has(ch.id))) c.delete();
+    c.continue();
+  };
+  await new Promise((ok, fail) => { tx.oncomplete = ok; tx.onerror = () => fail(tx.error); });
+  db.close();
+  dispatchEvent(new Event('sift:refresh'));
 }
