@@ -3872,6 +3872,7 @@ button.tour-pick:hover, button.tour-pick:focus-visible { transform: translateY(-
 .tour-ring { position: fixed; z-index: 1200; pointer-events: none; border-radius: 14px; outline: 2px solid #ffb020; outline-offset: 0; box-shadow: 0 0 0 200vmax rgba(4, 8, 20, .58); }
 .tour-ring.whole { outline: none; border-radius: 0; box-shadow: none; background: rgba(4, 8, 20, .58); }
 .touring .toast { z-index: 1250; } /* over the dimming, under the card */
+.tour-lift-bar .select-bar { z-index: 1250; } /* a tour step that has the selection bar used: above the dimming, below the card */
 .tour-card { position: fixed; z-index: 1300; width: min(420px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto; padding: 12px 18px 14px; border-radius: 16px; background: #182032; color: #e8edf5; border: 1px solid rgba(255, 255, 255, .2); box-shadow: 0 16px 50px rgba(0, 0, 0, .6); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: .92rem; line-height: 1.5; }
 .tour-card h3 { margin: 2px 0 8px; font-size: 1.1rem; color: #fff; }
 .tour-card p { margin: 0 0 8px; }

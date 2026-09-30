@@ -38,7 +38,7 @@ const channel = 'BroadcastChannel' in self ? new BroadcastChannel('sift-store') 
 // Example records (below, createDemo): their ids, and what makes a new record one of them.
 const demoIds = new Set();
 let demoLoaded = false;
-const DEMO_REFS = ['task_id', 'list_id', 'place_id', 'parent_place_id', 'project_id', 'parent_task_id', 'parent_item_id', 'parent_id', 'case_id', 'recipe_id', 'milestone_id'];
+const DEMO_REFS = ['repeat_of', 'task_id', 'list_id', 'place_id', 'parent_place_id', 'project_id', 'parent_task_id', 'parent_item_id', 'parent_id', 'case_id', 'recipe_id', 'milestone_id'];
 function isDemoWrite(id, existing, changes) {
   if (demoIds.has(id)) return true;
   if (existing || !demoIds.size || !DEMO_REFS.some(k => changes[k] && demoIds.has(changes[k]))) return false;
