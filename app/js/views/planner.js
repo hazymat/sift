@@ -980,14 +980,15 @@ export default {
       const list = !got ? `<p class="muted gcal-empty">Calendar not loaded for this day. <button type="button" class="gcal-btn" data-gcal="load">Load</button></p>`
         : !events.length ? '<p class="muted gcal-empty">Nothing on.</p>'
         : shown.length ? `<ul class="review-list bring-list">${shown.map(e => row(e)).join('')}</ul>` : '';
-      return `${skippedHtml(events.filter(e => skip.has(e.id) && !w.inPlan.has(e.id)), row)}
-        ${list}
-        <div class="bring-cal-foot"><span class="muted gcal-status" aria-live="polite">${status}</span>
+      // Refresh, Calendars and Disconnect first, then what's on.
+      return `<div class="bring-cal-bar"><span class="muted gcal-status" aria-live="polite">${status}</span>
           <button type="button" class="gcal-link" data-gcal="refresh" title="Fetch again: this week and any days loaded ahead">↻ Refresh</button>
           <button type="button" class="gcal-link" data-gcal="cals" aria-expanded="${calsOpen}">Calendars (${gcalChosen.length})</button>
           <button type="button" class="gcal-link" data-gcal="disconnect"><svg class="icon" aria-hidden="true"><use href="#i-unlink"/></svg> Disconnect</button>
         </div>
-        ${calsOpen ? calsHtml() : ''}`;
+        ${calsOpen ? calsHtml() : ''}
+        ${skippedHtml(events.filter(e => skip.has(e.id) && !w.inPlan.has(e.id)), row)}
+        ${list}`;
     }
     function calsHtml() {
       if (!gcalCals || gcalCalsProblem) {
