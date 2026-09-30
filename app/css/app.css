@@ -681,11 +681,13 @@ body.is-dragging .select-bar { opacity: 0; pointer-events: none; }
 .select-bar button[hidden] { display: none; }
 .select-bar button { display: inline-flex; align-items: center; }
 /* A group (Move ▸) opens sideways to show its buttons (listkit.js). */
-.select-bar .kit-group { display: inline-flex; align-items: center; gap: 4px; }
+.select-bar .kit-group { display: inline-flex; align-items: center; gap: 4px; border: 1px solid transparent; border-radius: 999px; transition: background-color .2s, border-color .2s; }
+/* Open, the group's button and its buttons share one shaded pill, so it's clear they came out of it. */
+.select-bar .kit-group:has(> [aria-expanded="true"]) { background: var(--active-bg); border-color: var(--active-border); padding: 2px; margin: -3px 0; }
 .select-bar .kit-group-items { display: inline-flex; gap: 4px; overflow: hidden; }
 .select-bar .kit-group-items[hidden] { display: none; }
 .select-bar .kit-group-items:not([hidden]) { animation: kit-open .2s cubic-bezier(.2, .8, .2, 1); }
-.select-bar [data-kit-group][aria-expanded="true"] { background: var(--active-bg); border-color: var(--active-border); }
+.select-bar [data-kit-group][aria-expanded="true"] { background: none; border-color: transparent; font-weight: 600; }
 @keyframes kit-open { from { clip-path: inset(0 100% 0 0); opacity: .4; } to { clip-path: inset(0); opacity: 1; } }
 /* Things floating above the bottom stack up: selection bar, then the update banner, then toasts. */
 body { --sel-lift: 0px; --upd-lift: 0px; }

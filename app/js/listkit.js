@@ -491,7 +491,12 @@ export function createListKit({
     if (b.dataset.kitGroup) {
       const open = b.getAttribute('aria-expanded') !== 'true';
       closeGroups();
-      if (open) { b.setAttribute('aria-expanded', 'true'); b.textContent = `${b.dataset.kitGroup} ◂`; b.nextElementSibling.hidden = false; }
+      if (open) {
+        b.setAttribute('aria-expanded', 'true'); b.textContent = `${b.dataset.kitGroup} ◂`; b.nextElementSibling.hidden = false;
+        // A narrow bar (phones): slide it along so the whole opened group shows.
+        const group_box = b.parentElement, overflow_px = group_box.offsetLeft + group_box.offsetWidth + 8 - bar.clientWidth - bar.scrollLeft;
+        if (overflow_px > 0) bar.scrollBy({ left: overflow_px, behavior: 'smooth' });
+      }
       return;
     }
     const k = b.dataset.kit;
