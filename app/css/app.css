@@ -3907,7 +3907,6 @@ button.tour-pick:hover, button.tour-pick:focus-visible { transform: translateY(-
 .tour-keys td { padding: 3px 8px 3px 0; vertical-align: top; }
 .tour-keys td:first-child { white-space: nowrap; }
 .tour-foot { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
-.tour-foot .spacer { flex: 1; }
 .tour-nice { margin-left: auto; color: #8fdcaa; font-weight: 600; }
 .tour-ring.tour-also { box-shadow: none; outline: 2px dashed #ffb020; border-radius: 12px; } /* where the page is in the navigation */
 .tour-card kbd { display: inline-block; min-width: 1.6em; text-align: center; padding: 1px 6px; border-radius: 6px; font-size: .8em; background: rgba(255, 255, 255, .08); box-shadow: 0 1px 0 rgba(255, 255, 255, .25); }
@@ -3917,7 +3916,12 @@ button.tour-pick:hover, button.tour-pick:focus-visible { transform: translateY(-
 .tour-keys td:first-child { line-height: 2; }
 .tour-foot { flex-wrap: wrap; }
 .tour-foot button kbd { margin-left: 6px; }
-.tour-later { background: transparent; box-shadow: none; border-color: transparent; color: #9aa6ba; padding-inline: 6px; }
+/* The tour's buttons: one row (Back, End tour early, Next), each a proper button sharing the width; a step
+   offering a tour for later puts its choice (Save for later, Skip) on a row of its own above. */
+.tour-foot button { white-space: nowrap; }
+.tour-foot > [data-tour="next"] { margin-left: auto; }
+.tour-choice { display: flex; flex-wrap: wrap; gap: 8px; flex: 1 1 100%; }
+.tour-choice > button { flex: 1 1 auto; justify-content: center; } /* side by side, or one above the other on a narrow phone */
 .welcome-was { margin: -2px 0 4px; font-size: .85rem; }
 .tour-pill { font-weight: 600; color: var(--accent); border-color: var(--active-border); background: var(--active-bg); }
 .note-full .tour-ring, .note-full .tour-card { display: none; } /* writing in a full-screen note: the tour waits */
