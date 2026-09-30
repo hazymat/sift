@@ -44,7 +44,7 @@ const numberWord = count => count < 20 ? NUMBERS[count] : count < 100 ? TENS[Mat
 function achieveText(done, total) {
   const words = numberWord(done).replace(/^./, first => first.toUpperCase());
   const all = done >= total;
-  if (done <= 5) return all ? 'Everything has been achieved so far.' : `${words} and counting.`;
+  if (done <= 5) return all ? 'Everything has been achieved so far' : `${words} and counting`;
   if (done <= 10) return all ? `${words} tasks, every one of them done. Storming it!` : `${words} tasks and storming it!`;
   return all ? `${words} done, every single one. What a day!` : `${words} done; that's a strong day!`;
 }
