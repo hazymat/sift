@@ -85,7 +85,9 @@ const tasksSteps = () => [
       ${try_('add another one, straight away, like <b>Call Mum</b>.')}` },
   { id: 'capture', hash: '#/tasks/inbox', at: '#main .task-list, #task-body', title: 'Empty your head first, sort it later',
     body: `<blockquote class="tour-quote"><span class="tour-quote-icon" aria-hidden="true">📘</span><span><span class="tour-quote-text">"Your mind is for having ideas, not holding them."</span><span class="tour-quote-who">David Allen, <i>Getting Things Done</i></span></span></blockquote>
-      <p>So get everything down here as it comes. Then, now and again, go through the pile one at a time: do it there and then if it takes two minutes, bin it if it doesn't matter, or move it to ${w('list_now')}, ${w('list_next')} or ${w('list_later')}, which group tasks by how soon they matter.</p>` },
+      <p><b>1. Get it all down.</b> Everything goes in here as it comes, without deciding anything.</p>
+      <p><b>2. Now and again, sort the pile,</b> one task at a time:</p>
+      <ul class="tour-list"><li>⚡ <b>Two minutes or less?</b> Do it there and then.</li><li>🗑️ <b>Doesn't matter?</b> Bin it.</li><li>📥 <b>Otherwise</b> move it to ${w('list_now')}, ${w('list_next')} or ${w('list_later')}, by how soon it matters.</li></ul>` },
   { id: 'process', hash: '#/tasks/inbox', at: '#main .task-list, #task-body', title: 'Sort a couple', done: { moved: 2 }, cardTop: true, liftBar: true, doneText: '✓ Two sorted. A little and often keeps the pile small.',
     body: `<p>Let's clear two from the pile. To choose a task, ${grab()}: ${tap()} it.</p>${try_(`choose two tasks, then <b>Move ▸</b> in the bar at the bottom, and pick <b>${word('list_now')}</b>.`)}` },
   { id: 'tidy', hash: '#/tasks/inbox', at: '#main .task-list, #task-body', title: 'Tidy up your practice tasks', done: { check: tidied }, cardTop: true, liftBar: true, doneText: "✓ Gone. That's the Task Dump: in fast, out when it's dealt with.",
