@@ -536,10 +536,13 @@ export default {
       mountComments(el, refresh);
     }
 
+    // Time and Until only on the schedule: a day task gets its time by being dragged onto it.
     function details(i) {
       return `
         <div class="item-details" data-for="${i.id}">
           <div class="panel-sec detail-sec wide"><span class="panel-h">Details</span><div class="detail-grid">
+          ${i.time ? `<label>Time<input type="time" name="time" value="${i.time}"></label>
+          <label>Until<input type="time" name="end_time" value="${i.end_time || ''}"></label>` : ''}
           <label>Estimated time<select name="estimate_min">
             <option value="" ${!i.estimate_min && !i.estimate_unsure ? 'selected' : ''}>Not estimated</option>
             <option value="unsure" ${i.estimate_unsure && !i.estimate_min ? 'selected' : ''}>Not sure yet</option>
@@ -1408,7 +1411,7 @@ export default {
           v === 'unsure' ? 'Estimate: not sure yet' : v ? `Estimate: ${durationLabel(Number(v))}` : 'Estimate cleared');
       } else if (t.name && id) {
         const value = t.name === 'estimate_min' ? (t.value ? Number(t.value) : null) : (t.value || null);
-        if (t.name === 'date' && !value) return;
+        if ((t.name === 'date' || t.name === 'time') && !value) return; // (Unallocate time takes it off the schedule)
         await change(id, { [t.name]: value }, t.name === 'date' ? `Moved to ${value}` : 'Saved');
         if (t.name === 'date') editing = null;
       } else if (t.id === 'paper-style') {
