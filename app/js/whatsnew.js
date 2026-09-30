@@ -19,6 +19,7 @@ import { keys } from './keys.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.00': [{ text: "Day Planner: ↓ Bring items in gathers what's waiting for the day in one sheet: your tasks, anything unfinished from earlier days and Google Calendar (now from several calendars). The boxes above the schedule are gone; Not today sets anything aside.", go: '#/planner', at: '#main .bring-link', more: "A calendar event goes onto the schedule at its time or into the day's tasks. Connect Google Calendar and choose its calendars in the sheet's Google Calendar tab." }],
   '1.60.04': [{ text: "Day Planner: Esc closes a task's full panel, however it was opened." }],
   '1.60.03': [{ text: 'Day Planner: a task on the schedule has Time and Until in its full panel (More, then More (full)), to set an exact start and end.', go: '#/planner', at: '#main #lines' }],
   '1.60.02': [{ text: "Windows: the key labels on buttons (Alt Enter on a note's ⤢, Ctrl Enter on Save, Esc on ‹ Back and ✓ Close, the selection bar's keys) sit in the middle of the button instead of low.", go: '#/dump', at: '#main button[data-act="save"]', more: "The same fix covers every button that shows its key." }],

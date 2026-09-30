@@ -116,14 +116,11 @@ export default {
         <div class="achieve" hidden><span class="hand-label">Achievements</span><span class="achieve-text"></span></div>
         </div>
       </header>
-      <div class="down-day down-note" hidden></div>
-      <div class="carry" hidden></div>
-      <section class="gcal" hidden aria-label="Google Calendar"></section>
       <h2 class="schedule-title section-title">${esc(word('day_schedule'))}</h2>
       <section class="paper" aria-label="Plan"><div id="lines"></div></section>
       <div class="day-bottom">
         <section class="pile">
-          <h2>${esc(word('day_tasks'))} <span class="task-count" hidden></span><button type="button" class="bring-link" data-act="bring-in" title="Claim tasks from the Tasks page for this day"><span class="bring-arrow" aria-hidden="true">↓</span> Bring in from tasks</button></h2>
+          <h2>${esc(word('day_tasks'))} <span class="task-count" hidden></span><button type="button" class="bring-link" data-act="bring-in" title="Bring in tasks, unfinished items and your calendar"><span class="bring-arrow" aria-hidden="true">↓</span> Bring items in<span class="bring-count" hidden></span></button></h2>
           <div class="pile-paper">
             <ul id="pile" class="pile-list"></ul>
             <div class="line pile-new"><span class="margin"></span><span class="content"><input id="dump" class="new-task hand no-inline" placeholder="New task" autocomplete="off" enterkeyhint="done" aria-label="New task"><button type="button" class="entry-chip pill-reveal new-line-more" hidden title="Add it and open its full panel">More${keys('Shift+Enter')}</button><textarea id="dump-note" class="add-note no-inline" rows="1" placeholder="Add note" aria-label="Note"></textarea><div class="new-pills"></div></span></div>
@@ -142,8 +139,7 @@ export default {
       </footer>
       </div>
       <dialog class="sheet cal-sheet" id="cal" aria-label="Pick a date"></dialog>
-      <dialog class="sheet review-sheet" id="review" aria-label="Unfinished from earlier days" tabindex="-1"></dialog>
-      <dialog class="sheet review-sheet bring-sheet" id="bring" aria-label="Bring in from tasks" tabindex="-1"></dialog>`;
+      <dialog class="sheet review-sheet bring-sheet" id="bring" aria-label="Bring items in" tabindex="-1"></dialog>`;
 
     const $ = s => el.querySelector(s);
     const linesEl = $('#lines');
@@ -298,21 +294,7 @@ export default {
       const w = planner.offsetWidth;
       if (w > 1000) planner.classList.add('docked');
       else if (w < 960) planner.classList.remove('docked');
-      gcalPlace();
     };
-    // Google Calendar beside the date (very wide screens, app.css) only while every
-    // line in it fits on one line there; otherwise it takes its own row.
-    const wideScreen = matchMedia('(min-width: 1400px)');
-    function gcalPlace() {
-      const box = $('.gcal');
-      planner.classList.remove('gcal-beside');
-      if (!box || box.hidden || !planner.classList.contains('docked') || planner.classList.contains('tasks-first') || !wideScreen.matches) return;
-      planner.classList.add('gcal-beside');
-      const oneRow = el => { const parts = [...el.children].filter(c => c.getClientRects().length); return parts.every(c => Math.abs(c.getBoundingClientRect().top - parts[0].getBoundingClientRect().top) < 16); };
-      const head = box.querySelector('.gcal-head');
-      const headFits = !head || oneRow(head);
-      if (!headFits || ![...box.querySelectorAll('.gcal-event')].every(oneRow)) planner.classList.remove('gcal-beside');
-    }
     dock(); // now as well, so a wide screen doesn't open narrow and then jump
     this.dockWatch?.disconnect();
     this.dockWatch = new ResizeObserver(nextFrame(dock));
@@ -409,7 +391,7 @@ export default {
     });
     $('.view-menu').addEventListener('keydown', ev => { if (ev.key === 'Enter' && ev.target.dataset.nudgeText) ev.target.blur(); });
     // A 👁 Layout switch changed (here or on another device): Achievements follows it.
-    document.addEventListener('sift-layout', ev => { if (ev.detail?.area === 'planner') { didThings(); renderCarry(); renderGcal(); } }, page);
+    document.addEventListener('sift-layout', ev => { if (ev.detail?.area === 'planner') didThings(); }, page);
     $('.view-menu').addEventListener('click', async ev => {
       const b = ev.target.closest('[data-view-paper], [data-view-slot], [data-view-layout]');
       if (!b) return;
@@ -436,12 +418,9 @@ export default {
       $('.weekday').textContent = WEEKDAYS[d.getDay()];
       $('.date').textContent = d.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
       const diff = Math.round((d - parseDate(isoDate())) / 86400000);
-      $('.day-rel').textContent = diff === 0 ? 'Today' : diff === 1 ? 'Tomorrow' : diff === -1 ? 'Yesterday'
-        : diff > 0 ? `In ${diff} days` : `${-diff} days ago`;
       const down = settings.hint_down_day && settings.down_days.includes(d.getDay());
-      $('.down-note').hidden = !down;
-      $('.down-note').textContent = down
-        ? `${WEEKDAYS[d.getDay()]} is a down day. Pick one or two things; rest counts as part of the plan.` : '';
+      $('.day-rel').textContent = (diff === 0 ? 'Today' : diff === 1 ? 'Tomorrow' : diff === -1 ? 'Yesterday'
+        : diff > 0 ? `In ${diff} days` : `${-diff} days ago`) + (down ? ' · a down day' : '');
       $('#focus').value = day.focus || '';
       for (const b of el.querySelectorAll('[data-energy]')) b.setAttribute('aria-pressed', b.dataset.energy === day.energy);
       const lvl = ENERGY.find(e => e.id === day.energy);
@@ -784,47 +763,103 @@ export default {
       mountNoteEditors();
     }
 
-    async function renderCarry() {
-      const carry = await unfinishedBefore(date);
-      const box = $('.carry');
-      box.hidden = !layoutOn('planner', 'carry') || !carry.length || date < isoDate(); // 👁 Layout, off to start with
-      if (!box.hidden) {
-        box.innerHTML = `<span>${carry.length} unfinished from earlier days</span>
-          <button type="button" data-act="review">Go through them</button>`;
-      }
-    }
-
     // Tasks for this day: planned (start date), aim today, ongoing multi-day,
     // and energy-matched suggestions to adopt.
     let tasks = [];
-    // "Bring in from tasks": a list of tasks to go through for this day.
-    // At the top, what's planned or aimed for this day and ideas for today's
-    // energy; then Now, Next and Later. Each can be claimed into the day,
-    // moved to Next or Later, or archived.
     async function renderTasks() {
       tasks = (await loadTasks()).tasks;
       if ($('#bring').open) drawBring();
     }
 
+    // ---------- Bring items in ----------
+    // One sheet for everything waiting to come into the day, so the page stays
+    // clean: tasks from the Tasks page, what's unfinished from earlier days, and
+    // what's on Google Calendar (connected from here too). Each can be put in
+    // the day, finished with, or set aside for this day only ("Not today": the
+    // day's bring_skip). The count on ↓ Bring items in is what's waiting from
+    // earlier days and the calendar, never the tasks (there are always some).
+    let bringTab = 'tasks';
+    let showSkipped = false;
+    let alreadyOpen = false;
+    const skipped = () => new Set(day.bring_skip || []);
+    const notToday = () => (date === isoDate() ? 'Not today' : 'Not this day');
+
+    async function waiting() {
+      const skip = skipped();
+      const earlier = date < isoDate() ? [] : await unfinishedBefore(date);
+      const got = gcal.connected() ? await gcal.dayEvents(date) : null;
+      const inPlan = new Set((await itemsFor(date)).map(i => i.gcal_id).filter(Boolean)); // (fresh: an item deleted or undone shows straight away)
+      return {
+        earlier, got, inPlan,
+        earlierWaiting: earlier.filter(i => !skip.has(i.id)),
+        calWaiting: (got?.events || []).filter(e => !inPlan.has(e.id) && !skip.has(e.id)),
+      };
+    }
+
+    async function renderBringLink() {
+      const shownDate = date;
+      const w = await waiting();
+      if (shownDate !== date) return;
+      const n = w.earlierWaiting.length + w.calWaiting.length;
+      const badge = $('.bring-count');
+      badge.hidden = !n;
+      badge.textContent = n || '';
+      const parts = [w.earlierWaiting.length && `${w.earlierWaiting.length} unfinished from earlier days`, w.calWaiting.length && `${w.calWaiting.length} from your calendar`].filter(Boolean);
+      $('.bring-link').title = parts.length ? `Waiting: ${parts.join(', ')}` : 'Bring in tasks, unfinished items and your calendar';
+    }
+
+    // Opens on the first part with something waiting (earlier days, then the calendar), else From Tasks.
     async function openBring() {
       tasks = (await loadTasks()).tasks;
-      drawBring();
+      const w = await waiting();
+      bringTab = w.earlierWaiting.length ? 'earlier' : w.calWaiting.length ? 'calendar' : 'tasks';
+      showSkipped = false;
+      calsOpen = false;
+      await drawBring();
       const dlg = $('#bring');
       if (!dlg.open) openSheet(dlg);
+      gcalAuto();
     }
     // The sheet itself has the cursor as it opens, not its first button (the browser's pick),
     // which would wear a focus ring as if chosen: the green strip, or a 🗑. Tab goes on from there.
     const openSheet = dlg => { dlg.showModal(); dlg.focus({ preventScroll: true }); };
 
-    // Each task on one clean line: its title, a few words about it (muted), and
-    // Claim / ✓ Did it / Archive. What's in the day's plan already isn't offered
-    // again: it's counted in a tinted strip at the top (open it to see which).
-    let alreadyOpen = false;
-    function drawBring() {
+    let drawing = 0;
+    async function drawBring() {
+      const n = ++drawing;
+      const w = await waiting();
+      if (n !== drawing) return;
+      const skip = skipped();
+      const dlg = $('#bring');
+      const scroll = dlg.scrollTop;
+      const down = settings.hint_down_day && settings.down_days.includes(parseDate(date).getDay());
+      const tab = (id, label, count) => `<button type="button" data-bring-tab="${id}" role="tab" aria-selected="${bringTab === id}" aria-pressed="${bringTab === id}">${label}${count ? ` <span class="bring-n">${count}</span>` : ''}</button>`;
+      const body = bringTab === 'earlier' ? earlierHtml(w, skip) : bringTab === 'calendar' ? calendarHtml(w, skip) : tasksHtml(skip);
+      dlg.innerHTML = `
+        <div class="sheet-handle"></div>
+        <h2>Bring items in</h2>
+        ${down ? `<p class="bring-down">${WEEKDAYS[parseDate(date).getDay()]} is a down day. Pick one or two things; rest counts as part of the plan.</p>` : ''}
+        <div class="dump-filter-row bring-tabs"><div class="dump-filter" role="tablist" aria-label="Bring in from">${tab('tasks', 'From Tasks')}${tab('earlier', 'Earlier days', w.earlierWaiting.length)}${tab('calendar', 'Google Calendar', w.calWaiting.length)}</div></div>
+        <div class="bring-body">${body}</div>
+        <div class="review-all"><button type="button" data-bring-act="close" class="primary">Done</button></div>`;
+      dlg.scrollTop = scroll;
+    }
+
+    // What's been set aside for this day, at the end of each part: a line saying how many, which shows them with ↺ Put back.
+    const skippedHtml = list => (!list.length ? '' : showSkipped
+      ? `<h3 class="milestone">Set aside for ${dayCalled()}</h3><ul class="review-list bring-list bring-skipped">${list.map(x => `<li data-skip-id="${esc(x.id)}"><div class="bring-main"><span class="review-title hand">${esc(x.title)}</span></div><span class="review-actions"><button type="button" data-bring-act="unskip">↺ Put back</button></span></li>`).join('')}</ul>`
+      : `<p class="bring-skipped-note"><button type="button" class="gcal-link" data-bring-act="show-skipped">${list.length} set aside for ${dayCalled()}</button></p>`);
+    const skipBtn = () => `<button type="button" data-bring-act="skip" title="Out of the way for ${esc(dayCalled())} only; nothing else changes">${esc(notToday())}</button>`;
+
+    // From Tasks: at the top, what's planned or aimed for this day and ideas for
+    // today's energy; then Now, Next and Later. Each can be claimed into the day,
+    // ticked off, archived or set aside. What's in the day's plan already is
+    // counted in a tinted strip at the top (open it to see which).
+    function tasksHtml(skip) {
       const open = tasks.filter(t => !t.done_at && !t.archived_at && t.status !== 'done');
       const onDay = new Set(items.map(i => i.task_id).filter(Boolean));
       const already = open.filter(t => onDay.has(t.id));
-      const offer = open.filter(t => !onDay.has(t.id));
+      const offer = open.filter(t => !onDay.has(t.id) && !skip.has(t.id));
       const { planned, aimed, ongoing } = forDay(offer, date);
       const top = Array.from(new Set(planned.concat(aimed, ongoing)));
       const ideas = suggestions(offer, day.energy).filter(t => !top.includes(t));
@@ -841,15 +876,14 @@ export default {
             <button type="button" class="primary" data-bring-act="claim">Claim for ${dayCalled()}</button>
             <button type="button" data-bring-act="done" title="I did this already">✓ Did it</button>
             <button type="button" data-bring-act="archive" title="Not needed any more: to the Archive">Archive</button>
+            ${skipBtn()}
           </span>
         </li>`;
       };
       const section = (title, list, note) => (list.length ? `<h3 class="milestone">${title}</h3><ul class="review-list bring-list">${list.map(t => card(t, typeof note === 'function' ? note(t) : note)).join('')}</ul>` : '');
       const aimNote = t => (t.start_date === date ? '' : aimDate(t) === date ? `aim is ${dayCalled()}` : 'ongoing');
       const alreadyWords = date === isoDate() ? "already in today's plan" : `already planned for ${dayCalled()}`;
-      $('#bring').innerHTML = `
-        <div class="sheet-handle"></div>
-        <h2>Bring in from tasks</h2>
+      return `
         <p class="muted hint">Claim what you'll do ${date === isoDate() ? 'today' : `on ${dayCalled()}`}. Tick off anything done already, or archive what's no longer needed.</p>
         ${already.length ? `<details class="bring-already"${alreadyOpen ? ' open' : ''}><summary>📅 ${already.length} ${alreadyWords}</summary><ul>${already.map(t => `<li class="hand">${esc(t.title)}</li>`).join('')}</ul></details>` : ''}
         ${section(`For ${dayCalled()}`, top, aimNote)}
@@ -859,23 +893,151 @@ export default {
         ${section('Next', by('next'))}
         ${section('Later', by('later'))}
         ${open.length ? '' : '<p class="muted">' + esc(word('ph_day_bring_empty')) + '</p>'}
-        ${open.length && !offer.length ? `<p class="muted">Everything open is ${alreadyWords}.</p>` : ''}
-        <div class="review-all"><button type="button" data-bring-act="close" class="primary">Done</button></div>`;
+        ${skippedHtml(open.filter(t => skip.has(t.id) && !onDay.has(t.id)))}`;
     }
-    $('#bring').addEventListener('toggle', ev => { if (ev.target.matches?.('.bring-already')) alreadyOpen = ev.target.open; }, true);
 
-    // Claiming makes a plan item linked to the task (with its note and
-    // people) and marks the task as planned for this day.
+    const WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayName = d => {
+      const diff = Math.round((parseDate(d) - parseDate(date)) / 86400000);
+      const nice = `${WEEK[parseDate(d).getDay()]} ${parseDate(d).getDate()} ${dateText(parseDate(d), { month: 'short' })}`;
+      return diff === -1 ? `Yesterday · ${nice}` : `${nice} · ${-diff} days ago`;
+    };
+
+    // Earlier days: what's unfinished from the last week, day by day. Each can
+    // come to this day, be ticked off, let go (to the Archive), deleted or set aside.
+    function earlierHtml(w, skip) {
+      if (date < isoDate()) return '<p class="muted">Unfinished items come forward to today and the days ahead.</p>';
+      const left = w.earlierWaiting;
+      const byDay = new Map();
+      for (const i of left) { if (!byDay.has(i.date)) byDay.set(i.date, []); byDay.get(i.date).push(i); }
+      return `
+        ${left.length ? `<p class="muted hint">${esc(word('ph_day_review'))}</p>` : '<p class="muted">Nothing left unfinished from the last week.</p>'}
+        ${[...byDay].map(([d, list]) => `
+          <h3 class="milestone">${esc(dayName(d))}</h3>
+          <ul class="review-list">${list.map(i => `
+            <li data-review-id="${i.id}">
+              <div class="review-head"><span class="review-title hand">${esc(i.title)}</span><button type="button" data-review="delete" class="review-delete" title="Get rid of it completely (to the Bin)" aria-label="Delete">🗑</button></div>
+              <span class="review-actions">
+                <button type="button" class="primary" data-review="bring" title="Put it in this day's tasks">→ Bring to ${dayCalled()}</button>
+                <button type="button" data-review="done" title="I did this already">✓ Did it</button>
+                <button type="button" data-review="letgo" title="Didn't do it and it doesn't need doing any more. It goes to the Archive">Let it go</button>
+                ${skipBtn()}
+              </span>
+            </li>`).join('')}
+          </ul>`).join('')}
+        ${left.length > 1 ? `<h3 class="milestone">All ${left.length} at once</h3>
+        <ul class="review-list review-every"><li>
+          <div class="review-head"><span class="review-title">Everything above</span><button type="button" data-review-all="delete" class="review-delete" title="Get rid of them all (to the Bin)" aria-label="Delete them all">🗑</button></div>
+          <span class="review-actions">
+            <button type="button" class="primary" data-review-all="bring">→ Bring all to ${dayCalled()}</button>
+            <button type="button" data-review-all="letgo">Let them all go</button>
+            <button type="button" data-bring-act="skip-all">${esc(notToday())}</button>
+          </span>
+        </li></ul>` : ''}
+        ${skippedHtml(w.earlier.filter(i => skip.has(i.id)))}`;
+    }
+
+    // Google Calendar: this day's events from the calendars chosen. A timed one
+    // goes onto the schedule at its time, or into the day's tasks; an all-day
+    // one into the day's tasks. Connecting, Refresh and which calendars are here too.
+    function calendarHtml(w, skip) {
+      if (!gcal.connected()) {
+        return `<p class="muted hint">See what's on in your Google Calendar each day, and bring what you need into the plan. Sift only reads your calendar, and keeps what it reads on this device.</p>
+          <p class="bring-connect"><button type="button" class="primary" data-gcal="connect">Connect Google Calendar</button>${gcalProblem ? ` <span class="muted">${esc(gcalProblem)}</span>` : ''}</p>`;
+      }
+      const got = w.got;
+      const multi = gcalChosen.length > 1;
+      const when = e => (e.allDay ? 'All day' : `${e.start.slice(0, 10) === date ? hm(e.start) : '…'}–${new Date(e.end).toDateString() === parseDate(date).toDateString() ? hm(e.end) : '…'}`);
+      const sameDay = at => at && new Date(at).toDateString() === parseDate(date).toDateString();
+      const events = [...(got?.events || [])].sort((a, b) => (b.allDay - a.allDay) || String(a.start).localeCompare(String(b.start)));
+      const shown = events.filter(e => !skip.has(e.id));
+      const row = e => {
+        const timed = !e.allDay && sameDay(e.start);
+        const about = [e.location, multi ? e.calName : ''].filter(Boolean);
+        return `<li data-event="${esc(e.id)}" class="bring-event${multi && e.calColour ? ' has-cal' : ''}"${multi && e.calColour ? ` style="--cal: ${esc(e.calColour)}"` : ''}>
+          <div class="bring-main"><span class="review-title"><span class="gcal-when">${when(e)}</span> <a class="gcal-title" href="${esc(e.link)}" target="_blank" rel="noopener">${esc(e.title)}</a></span>${about.length ? `<span class="review-about">${esc(about.join(' · '))}</span>` : ''}</div>
+          <span class="review-actions">${w.inPlan.has(e.id) ? '<span class="muted bring-in-plan">✓ In your plan</span>' : `
+            ${timed ? '<button type="button" class="primary" data-gcal="sched" title="Onto the schedule at its time">Onto the schedule</button>' : ''}
+            <button type="button"${timed ? '' : ' class="primary"'} data-gcal="task" title="Into this day's tasks, without a time">Into the day's tasks</button>
+            ${skipBtn()}`}
+          </span>
+        </li>`;
+      };
+      const status = gcalBusy ? 'Refreshing…' : gcalProblem ? esc(gcalProblem) : got ? `Updated ${agoText(got.at)}` : '';
+      const list = !got ? `<p class="muted gcal-empty">Calendar not loaded for this day. <button type="button" class="gcal-btn" data-gcal="load">Load</button></p>`
+        : !events.length ? '<p class="muted gcal-empty">Nothing on.</p>'
+        : shown.length ? `<ul class="review-list bring-list">${shown.map(row).join('')}</ul>` : '';
+      return `${list}
+        ${skippedHtml(events.filter(e => skip.has(e.id)))}
+        <div class="bring-cal-foot"><span class="muted gcal-status" aria-live="polite">${status}</span>
+          <button type="button" class="gcal-link" data-gcal="refresh" title="Fetch again: this week and any days loaded ahead">↻ Refresh</button>
+          <button type="button" class="gcal-link" data-gcal="cals" aria-expanded="${calsOpen}">Calendars (${gcalChosen.length})</button>
+          <button type="button" class="gcal-link" data-gcal="disconnect"><svg class="icon" aria-hidden="true"><use href="#i-unlink"/></svg> Disconnect</button>
+        </div>
+        ${calsOpen ? calsHtml() : ''}`;
+    }
+    function calsHtml() {
+      if (!gcalCals || gcalCalsProblem) {
+        const say = gcalCalsBusy ? 'Fetching your calendars…'
+          : gcalCalsProblem ? `${esc(gcalCalsProblem)} <button type="button" class="gcal-btn" data-gcal="cals-allow" data-again="1">Allow</button>`
+          : '<button type="button" class="gcal-btn" data-gcal="cals-allow">List my calendars</button>';
+        return `<div class="bring-cals"><p class="muted">${say}</p></div>`;
+      }
+      return `<div class="bring-cals"><p class="muted hint">Which calendars show here (on this device):</p>
+        ${gcalCals.map(c => `<label><input type="checkbox" data-cal-id="${esc(c.id)}"${gcalChosen.includes(c.id) ? ' checked' : ''}><span class="bring-cal-dot" style="--cal: ${esc(c.colour || 'var(--muted)')}"></span>${esc(c.name)}${c.primary ? ' <span class="muted">(main)</span>' : ''}</label>`).join('')}</div>`;
+    }
+
+    $('#bring').addEventListener('toggle', ev => { if (ev.target.matches?.('.bring-already')) alreadyOpen = ev.target.open; }, true);
+    // Closed by Done, dragging the handle, a tap outside or Esc (js/sheets.js): redraw the day.
+    $('#bring').addEventListener('close', () => render());
+
+    const leave = async b => {
+      const row = b.closest('li');
+      if (row) { row.classList.add('leaving'); await new Promise(r => setTimeout(r, 180)); }
+    };
+    // Set aside for this day, or put back; undoable.
+    async function setSkip(ids, on) {
+      const forDate = date;
+      const before = day.bring_skip || [];
+      const now = new Set(before);
+      for (const id of ids) (on ? now.add(id) : now.delete(id));
+      day = await saveDay(forDate, { bring_skip: [...now] });
+      await drawBring();
+      renderBringLink();
+      if (on) {
+        undoable(ids.length === 1 ? `Set aside for ${dayCalled()}` : `${ids.length} set aside for ${dayCalled()}`, async () => {
+          const d = await saveDay(forDate, { bring_skip: before });
+          if (forDate === date) { day = d; if ($('#bring').open) drawBring(); renderBringLink(); }
+        });
+      }
+    }
+
     $('#bring').addEventListener('click', async ev => {
+      const dlg = $('#bring');
+      if (ev.target === dlg) { dlg.close(); return; }
+      const t = ev.target.closest('[data-bring-tab]');
+      if (t) { bringTab = t.dataset.bringTab; showSkipped = false; drawBring(); if (bringTab === 'calendar') gcalAuto(); return; }
+      const g = ev.target.closest('[data-gcal]');
+      if (g) return gcalAct(g);
+      const r = ev.target.closest('[data-review], [data-review-all]');
+      if (r) return reviewAct(r);
       const b = ev.target.closest('[data-bring-act]');
       if (!b) return;
       const act = b.dataset.bringAct;
-      if (act === 'close') { $('#bring').close(); return; }
-      const id = b.closest('[data-bring]')?.dataset.bring;
-      const task = tasks.find(t => t.id === id);
+      if (act === 'close') { dlg.close(); return; }
+      if (act === 'show-skipped') { showSkipped = true; drawBring(); return; }
+      if (act === 'unskip') return setSkip([b.closest('[data-skip-id]').dataset.skipId], false);
+      if (act === 'skip-all') return setSkip((await unfinishedBefore(date)).map(i => i.id), true);
+      const id = b.closest('[data-bring], [data-review-id], [data-event]');
+      const key = id?.dataset.bring || id?.dataset.reviewId || id?.dataset.event;
+      if (act === 'skip' && key) { await leave(b); return setSkip([key], true); }
+      // From Tasks. Claiming makes a plan item linked to the task (with its note
+      // and people) and marks the task as planned for this day.
+      const task = tasks.find(x => x.id === key);
       if (!task) return;
       const before = { horizon: task.horizon ?? null, start_date: task.start_date ?? null, archived_at: task.archived_at ?? null, done_at: task.done_at ?? null, status: task.status ?? 'todo' };
       let undoPlan = null;
+      await leave(b);
       if (act === 'claim') {
         // Onto this day, off any other (a task is on one day only).
         undoPlan = await planDay(task, date);
@@ -895,6 +1057,33 @@ export default {
         await renderTasks();
       }, act === 'done' ? { more: closingComment({ task_id: task.id }) } : undefined);
     });
+
+    // Earlier days: one item, or all of them at once.
+    const reviewFields = (kind, i) => {
+      const now = new Date().toISOString();
+      return kind === 'done' ? { done_at: now }
+        : kind === 'letgo' ? { dropped_at: now, archived_at: now }
+        : kind === 'delete' ? { deleted_at: now }
+        : { date, time: null, end_time: null, carried_from: i.date };
+    };
+    const reviewLabel = { done: 'Marked done', letgo: 'Let go (in the Archive)', bring: 'Brought here', delete: 'Deleted' };
+    async function reviewAct(b) {
+      const skip = skipped();
+      const left = (await unfinishedBefore(date)).filter(i => !skip.has(i.id));
+      const targets = b.dataset.reviewAll ? left : left.filter(i => i.id === b.closest('[data-review-id]').dataset.reviewId);
+      const kind = b.dataset.review || b.dataset.reviewAll;
+      const before = targets.map(i => [i.id, { date: i.date, time: i.time ?? null, end_time: i.end_time ?? null, carried_from: i.carried_from ?? null, done_at: i.done_at ?? null, dropped_at: i.dropped_at ?? null, archived_at: i.archived_at ?? null, deleted_at: null }]);
+      if (!b.dataset.reviewAll) await leave(b);
+      await store.updateMany('day_items', targets.map(i => [i.id, reviewFields(kind, i)]));
+      await refresh();
+      await drawBring();
+      renderBringLink();
+      undoable(`${reviewLabel[kind]}: ${targets.length === 1 ? targets[0].title : `${targets.length} items`}`, async () => {
+        await store.updateMany('day_items', before);
+        await render();
+        if ($('#bring').open) drawBring();
+      });
+    }
 
     async function deleteItem(id) {
       const gone = items.find(i => i.id === id);
@@ -949,7 +1138,7 @@ export default {
       const covering = who?.shares.find(sh => inShare(sh, 'days', { date }));
       $('.planner').classList.toggle('theirs', !!viewing);
       $('.planner').classList.toggle('not-shared', !!viewing && !covering);
-      for (const part of el.querySelectorAll('.day-head, .down-day, .carry, .schedule-title, .paper, .day-bottom')) part.inert = !!viewing && !covering;
+      for (const part of el.querySelectorAll('.day-head, .down-day, .schedule-title, .paper, .day-bottom')) part.inert = !!viewing && !covering;
       if (viewing) {
         // Their day: its 👥 (who shared it and when, Leave), as a shared list's title has; "Show my day" is above.
         $('.day-shared').innerHTML = covering ? `<p class="day-shared-with">${theirIconHtml(covering)}</p>` : `<p class="muted day-shared-with">👥 ${esc(who.name)} hasn't shared this day.</p>`;
@@ -983,96 +1172,109 @@ export default {
       header();
       renderLines();
       renderPile();
-      renderCarry();
-      renderGcal();
+      renderBringLink();
+      gcalAuto();
       renderTasks();
       didThings();
     }
 
-    // ---------- Google Calendar (👁 Show Google Calendar; gcal.js) ----------
-    // What's on in your Google Calendar that day, above the schedule. Today and
-    // the next 7 days load by themselves (while Google's permission lasts);
-    // other days say they're not loaded, with Load; Refresh fetches again.
+    // ---------- Google Calendar (in Bring items in; gcal.js) ----------
+    // Today and the next 7 days load by themselves (while Google's permission
+    // lasts); other days say they're not loaded, with Load; Refresh fetches again.
     let gcalBusy = false;
-    // An item from the calendar added, deleted or undone, any way at all: the box follows straight away.
-    let gcalSoon = 0;
-    const stopWatching = store.subscribe(ch => { if (ch?.collection === 'day_items' && layoutOn('planner', 'gcal')) { clearTimeout(gcalSoon); gcalSoon = setTimeout(renderGcal, 120); } });
-    gone.signal.addEventListener('abort', stopWatching);
     let gcalProblem = '';
+    let gcalChosen = ['primary'];
+    let gcalCals = null; // the list of your calendars, as last fetched
+    let gcalCalsProblem = '';
+    let gcalCalsBusy = false;
+    let calsOpen = false;
+    gcal.chosen().then(c => { gcalChosen = c; });
+    gcal.knownCalendars().then(c => { gcalCals = c; });
+    // Anything added, deleted or undone, any way at all (and the day's set-aside list): the count and the sheet follow.
+    let gcalSoon = 0;
+    const stopWatching = store.subscribe(ch => {
+      if (ch?.collection !== 'day_items' && ch?.collection !== 'days') return;
+      clearTimeout(gcalSoon);
+      gcalSoon = setTimeout(() => { renderBringLink(); if ($('#bring').open && !$('#bring').querySelector('.leaving')) drawBring(); }, 120);
+    });
+    gone.signal.addEventListener('abort', stopWatching);
     const hm = when => { const d = new Date(when); return fmt(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`); };
     const agoText = at => { const m = Math.round((Date.now() - at) / 60000); return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : new Date(at).toDateString() === new Date().toDateString() ? `at ${hm(at)}` : `on ${new Date(at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`; };
-    async function renderGcal() {
-      const box = $('.gcal');
-      if (!box) return;
-      box.hidden = !layoutOn('planner', 'gcal');
-      if (box.hidden) return gcalPlace();
-      const shownDate = date;
-      const got = await gcal.dayEvents(date);
-      const inPlan = new Set((await itemsFor(date)).map(i => i.gcal_id).filter(Boolean)); // (fresh: an item deleted or undone shows straight away)
-      if (shownDate !== date) return;
+    const gcalRedraw = () => { renderBringLink(); if ($('#bring').open) drawBring(); };
+    // Loads by itself: a day in the next week not fetched in the last half hour, while no popup is needed.
+    async function gcalAuto() {
       const t = gcal.today();
-      const nearby = date >= t && date <= addDays(t, gcal.AHEAD);
-      // Loads by itself: a day in the next week not fetched in the last half hour, while no popup is needed.
-      if (gcal.connected() && gcal.ready() && nearby && !gcalBusy && !gcalProblem && (!got || Date.now() - got.at > 30 * 60000)) { gcalRefresh(); return; }
-      const btn = (act, label, title = '') => `<button type="button" class="gcal-btn" data-gcal="${act}"${title ? ` title="${esc(title)}"` : ''}>${label}</button>`;
-      const status = !gcal.connected() ? 'Not connected'
-        : gcalBusy ? 'Refreshing…'
-        : gcalProblem ? esc(gcalProblem)
-        : got ? `Updated ${agoText(got.at)}${gcal.ready() ? '' : ' · tap ↻ to refresh'}` : '';
-      const actions = !gcal.connected() ? btn('connect', 'Connect Google Calendar')
-        : `<button type="button" class="gcal-link" data-gcal="refresh" title="Fetch again: this week and any days loaded ahead">↻ Refresh</button><button type="button" class="gcal-link" data-gcal="disconnect"><svg class="icon" aria-hidden="true"><use href="#i-unlink"/></svg> Disconnect</button>`;
-      const when = e => (e.allDay ? 'All day' : `${e.start.slice(0, 10) === date ? hm(e.start) : '…'}–${new Date(e.end).toDateString() === parseDate(date).toDateString() ? hm(e.end) : '…'}`);
-      const list = !gcal.connected() ? '<p class="muted gcal-empty">See what\'s on in your Google Calendar each day, here above your plan.</p>'
-        : got ? (got.events.length
-          ? `<ul class="gcal-list">${[...got.events].sort((a, b) => (b.allDay - a.allDay) || String(a.start).localeCompare(String(b.start))).map(e => `<li class="gcal-event${e.allDay ? ' all-day' : ''}"><span class="gcal-when">${when(e)}</span> <a class="gcal-title" href="${esc(e.link)}" target="_blank" rel="noopener">${esc(e.title)}</a>${e.location ? ` <span class="muted gcal-where">· ${esc(e.location)}</span>` : ''}${inPlan.has(e.id)
-            ? '<span class="muted gcal-added">✓ In your plan</span>'
-            : `<button type="button" class="gcal-add" data-gcal="add" data-event="${esc(e.id)}" title="${e.allDay ? "Add it to this day's tasks" : 'Add it to the plan at its time'}">+ Add to plan</button>`}</li>`).join('')}</ul>`
-          : '<p class="muted gcal-empty">Nothing on.</p>')
-        : `<p class="muted gcal-empty">Calendar not loaded for this day. ${btn('load', 'Load')}</p>`;
-      box.innerHTML = `<div class="gcal-head"><h3>Google Calendar</h3><span class="muted gcal-status" aria-live="polite">${status}</span>${actions}</div>${list}`;
-      gcalPlace();
+      if (!gcal.connected() || !gcal.ready() || gcalBusy || gcalProblem || date < t || date > addDays(t, gcal.AHEAD)) return;
+      const got = await gcal.dayEvents(date);
+      if (!got || Date.now() - got.at > 30 * 60000) gcalRefresh();
     }
-    // An event into the plan: an item like any other (with a tick), at its time (all-day: in the
-    // day's tasks), its description as the note; it can be moved like any other.
-    async function gcalAdd(id) {
+    // An event into the day: an item like any other (with a tick), at its time
+    // (onto the schedule) or without one (the day's tasks), its description as the note.
+    async function gcalAdd(id, schedule) {
       const e = (await gcal.dayEvents(date))?.events.find(x => x.id === id);
       if (!e) return;
       const hhmm = when => { const d = new Date(when); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
       const sameDay = when => when && new Date(when).toDateString() === parseDate(date).toDateString();
-      const timed = !e.allDay && sameDay(e.start);
+      const timed = schedule && !e.allDay && sameDay(e.start);
       const notes = [e.note, e.location ? `📍 ${e.location}` : ''].filter(Boolean).join('\n\n');
       const made = await addItem(date, { title: e.title, notes, gcal_id: e.id, ...(timed ? { time: hhmm(e.start), end_time: sameDay(e.end) ? hhmm(e.end) : null } : { rank: lastKey(items.filter(i => !i.time)) }) });
-      await render();
-      undoable(`Added "${e.title}" to the plan`, async () => { await store.remove('day_items', made.id); await render(); });
+      await refresh();
+      await drawBring();
+      renderBringLink();
+      undoable(timed ? `"${e.title}" is on the schedule` : `"${e.title}" is in the day's tasks`, async () => { await store.remove('day_items', made.id); await render(); if ($('#bring').open) drawBring(); });
     }
     async function gcalDo(job) {
       gcalBusy = true;
       gcalProblem = '';
-      renderGcal();
+      gcalRedraw();
       try {
         if (!gcal.ready()) await gcal.connect(); // a popup: this runs from a tap
         await job();
       } catch (err) {
-        gcalProblem = err.auth ? 'Tap ↻ to connect again' : err.message || "Couldn't fetch the calendar";
+        gcalProblem = err.auth ? 'Tap ↻ Refresh to connect again' : err.message || "Couldn't fetch the calendar";
       } finally {
         gcalBusy = false;
-        renderGcal();
+        gcalRedraw();
       }
     }
     // Refresh: this week, the days loaded ahead of it, and the day shown. Without a live
     // permission and no tap, it just says so (a popup needs a tap).
     function gcalRefresh(fromTap = false) {
-      if (!gcal.ready() && !fromTap) return renderGcal();
+      if (!gcal.ready() && !fromTap) return gcalRedraw();
       return gcalDo(async () => { const days = await gcal.refreshDays(date); await gcal.load(days[0], days.at(-1), days); });
     }
-    $('.gcal').addEventListener('click', async ev => {
-      const b = ev.target.closest('[data-gcal]');
-      if (!b) return;
+    // The list of your calendars: fetched each time Calendars is opened (to catch new ones).
+    async function gcalFetchCals(again = false) {
+      gcalCalsProblem = '';
+      gcalCalsBusy = true;
+      gcalRedraw();
+      try {
+        if (again || !gcal.ready()) await gcal.connect(again);
+        gcalCals = await gcal.calendars();
+      } catch (err) {
+        gcalCalsProblem = err.scope ? 'Sift needs to see the names of your calendars to list them.' : err.auth ? 'Connect again to list your calendars.' : err.message || "Couldn't fetch your calendars";
+      }
+      gcalCalsBusy = false;
+      gcalRedraw();
+    }
+    async function gcalAct(b) {
       const act = b.dataset.gcal;
       if (act === 'connect' || act === 'refresh') return gcalRefresh(true);
       if (act === 'load') return gcalDo(() => gcal.load(date, date));
-      if (act === 'add') return gcalAdd(b.dataset.event);
-      if (act === 'disconnect') { await gcal.disconnect(); gcalProblem = ''; toast('Google Calendar disconnected on this device'); renderGcal(); }
+      if (act === 'sched' || act === 'task') { await leave(b); return gcalAdd(b.closest('[data-event]').dataset.event, act === 'sched'); }
+      if (act === 'cals') { calsOpen = !calsOpen; drawBring(); if (calsOpen && gcal.ready()) gcalFetchCals(); return; }
+      if (act === 'cals-allow') return gcalFetchCals(!!b.dataset.again);
+      if (act === 'disconnect') { await gcal.disconnect(); gcalProblem = ''; gcalCals = null; calsOpen = false; toast('Google Calendar disconnected on this device'); gcalRedraw(); }
+    }
+    // Ticking a calendar on or off: the days fetched are forgotten and fetched again from all those chosen.
+    $('#bring').addEventListener('change', async ev => {
+      const box = ev.target.closest('[data-cal-id]');
+      if (!box) return;
+      const ids = [...$('#bring').querySelectorAll('[data-cal-id]:checked')].map(x => x.dataset.calId);
+      if (!ids.length) { box.checked = true; toast('Keep at least one calendar'); return; }
+      gcalChosen = ids;
+      await gcal.choose(ids);
+      gcalRefresh(true);
     });
 
     async function refresh() {
@@ -1360,9 +1562,7 @@ export default {
         const now = new Date().toISOString();
         await change(id, act === 'let-go' ? { dropped_at: now, archived_at: now } : { dropped_at: null, archived_at: null },
           act === 'let-go' ? `Let go: ${it.title} (it's in the Archive)` : `Taken back: ${it.title}`);
-        renderCarry();
-      } else if (act === 'review') {
-        openReview();
+        renderBringLink();
       }
     });
 
@@ -1896,89 +2096,6 @@ export default {
       if (ev.type === 'pointercancel' || !r.changes?.size) return renderLines();
       await moveMany(r.changes, `Until ${fmt(r.end)}${r.pushedCount ? `, pushed ${r.pushedCount} on` : ''}`);
     }
-
-    // ---------- going through unfinished items one by one ----------
-
-    const WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const dayName = d => {
-      const diff = Math.round((parseDate(d) - parseDate(date)) / 86400000);
-      const nice = `${WEEK[parseDate(d).getDay()]} ${parseDate(d).getDate()} ${dateText(parseDate(d), { month: 'short' })}`;
-      return diff === -1 ? `Yesterday · ${nice}` : `${nice} · ${-diff} days ago`;
-    };
-
-    async function openReview() {
-      await drawReview();
-      const dlg = $('#review');
-      if (!dlg.open) openSheet(dlg);
-    }
-
-    async function drawReview() {
-      const left = await unfinishedBefore(date);
-      const dlg = $('#review');
-      if (!left.length) {
-        if (dlg.open) dlg.close();
-        await render();
-        return;
-      }
-      const byDay = new Map();
-      for (const i of left) { if (!byDay.has(i.date)) byDay.set(i.date, []); byDay.get(i.date).push(i); }
-      dlg.innerHTML = `
-        <div class="sheet-handle"></div>
-        <h2>Unfinished from earlier days</h2>
-        <p class="muted hint">${esc(word('ph_day_review'))}</p>
-        ${[...byDay].map(([d, list]) => `
-          <h3 class="milestone">${esc(dayName(d))}</h3>
-          <ul class="review-list">${list.map(i => `
-            <li data-review-id="${i.id}">
-              <div class="review-head"><span class="review-title hand">${esc(i.title)}</span><button type="button" data-review="delete" class="review-delete" title="Get rid of it completely (to the Bin)" aria-label="Delete">🗑</button></div>
-              <span class="review-actions">
-                <button type="button" class="primary" data-review="bring" title="Put it in this day's To place">→ Bring to ${dayCalled()}</button>
-                <button type="button" data-review="done" title="I did this already">✓ Did it</button>
-                <button type="button" data-review="letgo" title="Didn't do it and it doesn't need doing any more. It goes to the Archive">Let it go</button>
-              </span>
-            </li>`).join('')}
-          </ul>`).join('')}
-        ${left.length > 1 ? `<h3 class="milestone">All ${left.length} at once</h3>
-        <ul class="review-list review-every"><li>
-          <div class="review-head"><span class="review-title">Everything above</span><button type="button" data-review-all="delete" class="review-delete" title="Get rid of them all (to the Bin)" aria-label="Delete them all">🗑</button></div>
-          <span class="review-actions">
-            <button type="button" class="primary" data-review-all="bring">→ Bring all to ${dayCalled()}</button>
-            <button type="button" data-review-all="letgo">Let them all go</button>
-          </span>
-        </li></ul>` : ''}
-        <div class="review-all"><button type="button" data-review-close class="primary">Done</button></div>`;
-    }
-
-    const reviewFields = (kind, i) => {
-      const now = new Date().toISOString();
-      return kind === 'done' ? { done_at: now }
-        : kind === 'letgo' ? { dropped_at: now, archived_at: now }
-        : kind === 'delete' ? { deleted_at: now }
-        : { date, time: null, end_time: null, carried_from: i.date };
-    };
-    const reviewLabel = { done: 'Marked done', letgo: 'Let go (in the Archive)', bring: 'Brought here', delete: 'Deleted' };
-
-    // Closed by dragging the handle, the ✕ or a tap outside (js/sheets.js): redraw the day.
-    $('#review').addEventListener('close', () => render());
-    $('#review').addEventListener('click', async ev => {
-      const dlg = $('#review');
-      if (ev.target === dlg || ev.target.closest('[data-review-close]')) { dlg.close(); return; }
-      const b = ev.target.closest('[data-review], [data-review-all]');
-      if (!b) return;
-      const left = await unfinishedBefore(date);
-      const targets = b.dataset.reviewAll ? left : left.filter(i => i.id === b.closest('[data-review-id]').dataset.reviewId);
-      const kind = b.dataset.review || b.dataset.reviewAll;
-      const before = targets.map(i => [i.id, { date: i.date, time: i.time ?? null, end_time: i.end_time ?? null, carried_from: i.carried_from ?? null, done_at: i.done_at ?? null, dropped_at: i.dropped_at ?? null, archived_at: i.archived_at ?? null, deleted_at: null }]);
-      const row = !b.dataset.reviewAll && b.closest('li');
-      if (row) { row.classList.add('leaving'); await new Promise(r => setTimeout(r, 180)); }
-      await store.updateMany('day_items', targets.map(i => [i.id, reviewFields(kind, i)]));
-      await drawReview();
-      undoable(`${reviewLabel[kind]}: ${targets.length === 1 ? targets[0].title : `${targets.length} items`}`, async () => {
-        await store.updateMany('day_items', before);
-        await render();
-        if (dlg.open) drawReview();
-      });
-    });
 
     // ---------- calendar popup ----------
 

@@ -102,11 +102,9 @@ const LAYOUTS = {
   ],
   planner: [
     { id: 'day-rel', label: 'Show "Today" or "In 5 days" under the date', def: true },
-    { id: 'carry', label: 'Show unfinished items from earlier days' },
     { id: 'achievements', label: 'Show achievement count when tasks completed' },
     { id: 'focus', label: 'Show day focus', def: true },
     { id: 'energy', label: 'Show energy', def: true },
-    { id: 'gcal', label: 'Show Google Calendar' },
   ],
 };
 const layoutKey = (area, id) => `sift-layout:${area}:${id}`;
