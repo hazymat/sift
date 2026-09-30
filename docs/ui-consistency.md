@@ -2,7 +2,7 @@
 
 How every area of Sift shows its controls, to find where areas do the same job in different ways. All new UI follows the **standards** below. Where there's no standard yet, copy what most areas already do and add the choice here. The same text is GitHub issue #284; keep the two in sync.
 
-Audited at 1.54.09 (29 September 2026), updated for 1.56.00.
+Audited at 1.54.09 (29 September 2026), updated for 1.60.04.
 
 ## Standards to follow
 
@@ -20,12 +20,14 @@ Every version that changes something on screen adds a What's new entry with a Sh
 - **↑ / ↓** move editing between rows edited in place (Tasks, Day Planner, an open list, a box's things); **Shift+↑ / ↓** select. The blue browsing box is only for cards and grids (1.55.07).
 - **Ticking off** (one tick, or Done / Tick on a selection bar) plays the same animation everywhere: `tickWave` then `fadeFold` in `tickwave.js` (tick springs with a ring, letters hop, light passes, line drawn, then fade and fold if the row is leaving). Tasks, Projects, Day Planner, Lists (1.56.02).
 - **Key labels on buttons** use `keys()` from `keys.js` (one box per key). A button showing a key centres its text, icon and keys as boxes (one rule in `app.css`), so they sit in the middle on every platform, Windows included (1.60.02).
+- **Esc closes a full panel** (✓ Close Esc) however it was opened: More (full), Shift+Enter, the hover More or a swipe (Day Planner 1.60.04).
 - **Selection bars**: A Archive, D (or Delete) Delete, Ctrl+Enter Done or Tick, each key shown on its button. Built into `listkit.js` (1.55.13).
 - **Things floating at the bottom** stack, never overlap: the selection bar lowest, then the "new version" banner, then toasts (Undo, Moved, Saved). One set of CSS variables (`--sel-lift`, `--upd-lift` in `app.css`) does it for every area (1.58.12).
 - **Esc on an opened page**: the first Esc leaves the field (keeping what's typed; an Add items box adds it), the next goes back. The back button shows Esc when nothing is being typed (1.55.15).
 
 **Rows, cards and pages**
-- **Choosing several cards**: things shown as cards or boxes (Find Things' boxes, Brain Dump notes, Batch Book recipes, Contacts, the Lists page's lists and templates (1.60.00)) can be chosen by pressing and holding one, which brings up the selection bar, as in Batch Book; while any are chosen, a tap adds or removes one (Shift+tap: a run). Shift+arrows select while browsing. Esc or the bar's ✕ clears. Each card has a ⠿ in its top left corner, as on Batch Book's cards, with the card's first line moved right to make room; it shows on hover on a computer and all the time on touch screens; clicking it chooses the card (Brain Dump notes have theirs at the start of the head row, which is the same spot). One CSS rule places and shows it for every card grid (1.57.04). Built into `listkit.js` (`holdSelect`) and `browse.js` (1.56.00, 1.57.00).
+- **Choosing several cards**: things shown as cards or boxes (Find Things' boxes, Brain Dump notes, Batch Book recipes, Contacts, the Lists page's lists and templates (1.60.00)) can be chosen by pressing and holding one, which brings up the selection bar, as in Batch Book; while any are chosen, a tap adds or removes one (Shift+tap: a run). Shift+arrows select while browsing. Esc or the bar's ✕ clears. Holding never starts text selection, and a chosen card shows the same accent ring everywhere (1.58.14). Built into `listkit.js` (`holdSelect`) and `browse.js` (1.56.00, 1.57.00).
+- **A card's ⠿**: top left corner, as on Batch Book's recipe cards, with the card's first line moved right to make room. On a computer it shows on hover; on touch screens it is always there. Clicking it chooses the card. One shared CSS rule places and shows it on every card grid (search `.box-card, .c-card, .bb-card-li, .list-card-li` in `app.css`). Brain Dump notes have theirs at the start of the head row, the same spot (1.57.04).
 - **Opening a card** zooms: the card grows into the opened page, and going back shrinks the page into its card (`zoom.js`: Find Things' boxes, the Lists page's lists, templates and shared lists, 1.60.00).
 - **Managing categories, areas and groups** (Brain Dump's types, Find Things' life areas and groups) always uses the one manager sheet (`openManager` in `typesheet.js`): a pull-up list to add, rename, drag to reorder and remove, opened by the ⋯ at the end of the filter bar. No small pop-up menus for this. Removing one with things in it asks first and says what goes to the Bin with it (1.56.00, 1.57.03). Two levels (Find Things: life areas with their groups) are one sheet with the inner level indented, a short hint at the top, and the Tasks way of moving rows: hold and drag, drop onto a row, Tab / Shift+Tab, ⠿ to choose several (1.58.00).
 - **Swiping sideways on an opened thing** (a project, list, box, contact, case, recipe, batch, scan or contract) goes back, either way, as its ‹ button does: a box goes back to the boxes, a project to Projects and then Tasks. Built once in `app.js` (`installSwipe`, any visible `#main button.back`); Tasks does it for projects through ← / → (1.57.05).
@@ -62,6 +64,10 @@ What each area shows before anything is opened. "Share (copy)" is the Share pill
 | | Project | List | Box (Find Things) | Contact | Scan | Contract | Recipe | Batch |
 |---|---|---|---|---|---|---|---|---|
 | **Back** | "‹ Projects" pill inside the head box | "‹ Lists" pill inside the head box | "‹ [group name]" in its own bar | "‹ Back" | "‹ Scans" | "‹ Contracts" | "‹ Recipes" | "‹ [recipe]" or "‹ Batches" |
+| **Swipe back (phone)** | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| **Top stays in view** | Yes (head and progress, 1.58.02) | Yes (head and ticks bar) | Yes (back and search, then the whole lid, 1.58.02) | No | No | No | No | No |
+| **Add box** | New task line at the top | Add items at the top | Add line at the top of the contents, in line with the things, faint cube on its left | n/a | n/a | n/a | Add lines at the end of each part (the paper) | n/a |
+| **Opens with a zoom** | No | Yes (1.60.00) | Yes | No | No | No | No | No |
 | **Area header still shown** | Yes (Tasks \| Projects, Share, 👁, ⋯) | No | No | Yes (New, tabs, Share, 👁, ⋯) | No | No | No | No |
 | **👥 Share with a person** | Button in head, always | Button in head, always ("👥 Share") | None | None | None | None | Only once already shared (else card ⋯) | Only once shared |
 | **👁 / ⋯ on the page** | Both (area's) | 👁 only | Neither | Both (area's) | Neither | Neither | 👁 only | 👁 only |
@@ -74,10 +80,10 @@ Rows and cards inside an area. "Top right" means on the row's own first line, at
 
 | | Task (Tasks, project page) | Day Planner item | List item | Brain Dump note | Box item (Find Things) | Recipe card | Contact card | Scan / contract |
 |---|---|---|---|---|---|---|---|---|
-| **Resting** | ⠿ (hover), tick, title, chips, note | ⠿ (text glyph), tick, title, tags, note | ⠿, tick, text, ▾ n/m, note line | Head row (⠿, type, time, ☆), text, Archive and ⋯ (→ Task, Plan it, → Find Things are in the ⋯) | Cube grip, name, ×qty, tags | Photo, title, tags, Make, ☆, ⋯ | Grip, name, about, chips | Card or table row |
-| **Computer hover** | Green **"More"** top right | Green **"More"** top right | Green **"More"** top right | Action row brightens; **⋯ bottom right** | Green **"More"** top right | Card lifts; grip shows | Grip brightens | Background only |
+| **Resting** | ⠿ (hover), tick, title, chips, note | ⠿ (text glyph), tick, title, tags, note | ⠿, tick, text, ▾ n/m, note line | Head row (⠿, type, time, ☆), text, Archive and ⋯ (→ Task, Plan it, → Find Things are in the ⋯) | Cube grip, name, ×qty, tags | ⠿ top left, photo, title, tags, Make, ☆, ⋯ | ⠿ top left, name, about, chips | Card or table row |
+| **Computer hover** | Green **"More"** top right | Green **"More"** top right | Green **"More"** top right | Action row brightens; **⋯ bottom right** | Green **"More"** top right | Card lifts; ⠿ shows | ⠿ shows | Background only |
 | **Start editing** | Click anywhere on the line | Click anywhere on the line | Click anywhere on the line | Click the body text only | Click anywhere on the line | Open the page | Open the page | Open the page |
-| **While editing: More** | "More ⇧Enter" **top right**, then "More (full) ⇧Enter" in the same spot; "✓ Done Ctrl+Enter" beside it | Schedule, as Tasks: "More ⇧Enter" top right, then "More (full) ⇧Enter"; More shows the note to edit and the pills, its own time and note pills hide (1.58.09). Tasks section: "More ⇧Enter" goes straight to the panel (1.58.06). ✓ Done in the pill row | "More ⇧Enter" top right, goes straight to the panel (no quick stage, intended); no Done. The hover More opens the panel, it doesn't start editing | No More, no Done: click away or Esc | "More (full)" top right; Quantity pill underneath | n/a | n/a | n/a |
+| **While editing: More** | "More ⇧Enter" **top right**, then "More (full) ⇧Enter" in the same spot; "✓ Done Ctrl+Enter" beside it | Schedule, as Tasks: "More ⇧Enter" top right, then "More (full) ⇧Enter"; More shows the note to edit and the pills, its own time and note pills hide (1.58.09). Tasks section: "More ⇧Enter" goes straight to the panel (1.58.06). More also shows while typing a new line (1.60.01). ✓ Done in the pill row | "More ⇧Enter" top right, goes straight to the panel (no quick stage, intended); no Done. The hover More opens the panel, it doesn't start editing | No More, no Done: click away or Esc | "More (full)" top right; Quantity pill underneath | n/a | n/a | n/a |
 | **Full panel: Close** | **"✓ Close Esc" top right** | **"✓ Close Esc" top right** | "✓ Close" top right | No panel | "✓ Close" top right | n/a (page, ‹ back) | n/a (page) | n/a (page) |
 | **Panel footer** | + Sub-task · Archive · Delete | Unallocate time · Let go · → Tasks · Archive · Delete | Archive · Delete (no + Sub-item) | n/a | Colour · Archive · Delete | n/a | n/a | n/a |
 | **Shift+Enter** | More (with the note), then full panel; from the note too | Schedule: More (note and pills), then full panel. Tasks section: full panel | Full panel's note | New line | n/a | n/a | n/a | n/a |
@@ -85,7 +91,7 @@ Rows and cards inside an area. "Top right" means on the row's own first line, at
 | **Ctrl+Enter** | Tick | Tick | Nothing | Save / finish | Add items (box page) | n/a | n/a | n/a |
 | **Phone** | Swipe: ⋯ More, ✓ Done / Delete; hold drags | Swipe: ⋯ More, ✓ Done / Delete; tap arms, tap edits | Swipe: ⋯ More, **✓ Tick** / Delete | No swipe; hold selects | No swipe; ⋯ hidden (a box card: hold selects) | Hold selects | No swipe; hold selects | No swipe |
 | **Selection bar** | Indent, Outdent, ↑ ↓, Done Ctrl+Enter, Move ▸, Archive A, Delete D | Done Ctrl+Enter, To place, Let go, Tomorrow, Archive A, Delete D | Indent, Outdent, ↑ ↓, Tick Ctrl+Enter, Untick, Add to template, Archive A, Delete D | ↑ ↓, Colour…, Move ▸ (→ Tasks, Plan it…, → Find Things…), Pin, Unpin, Archive A, Delete D | Indent, Outdent, ↑ ↓, Move to box…, Colour…, Archive A, Delete D (the boxes themselves: Move to…, Colour…, Archive A, Delete D) | ↑ ↓, Move to ▸, Pin, Unpin, Archive A, Delete D | Colour…, Store, Pin, Archive A, Delete D (no Unpin) | None |
-| **Drag** | Hold anywhere | Hold anywhere | Hold anywhere | Hold ⠿ only | Hold anywhere (1.58.04) | Hold ⠿ | None (grip shown but no drag) | None |
+| **Drag** | Hold anywhere | Hold anywhere | Hold anywhere | Hold ⠿ only | Hold anywhere (1.58.04) | Hold ⠿ | None (⠿ shown but no drag) | None |
 | **Sub-items** | 3 levels | None | 1 level | None | 1 level | n/a | n/a | n/a |
 
 ## 4. Main inconsistencies
@@ -105,7 +111,6 @@ Rows and cards inside an area. "Top right" means on the row's own first line, at
   - "All" is first in Scans' filter bar, last in Contracts'.
   - Search sits in the header row, on its own row, beside Share or further down; only Find Things says "(press /)".
   - The Projects page still splits into parts with plain-text headings ("Shared with me", "Finished") under its projects: to make underlined tabs like Lists'.
-  - On phones Find Things' three + New pills push Share, 👁 and ⋯ onto a second line.
 - **Share**
   - One word for two jobs: the Share pill copies text, "👥 Share" shares with a person.
   - Batch Book has no Share pill; an open list has 👥 but no copy Share; recipes show 👥 only once shared.
@@ -121,10 +126,11 @@ Rows and cards inside an area. "Top right" means on the row's own first line, at
   - Tick words: "Tick / Untick" in Lists, "Done / Not done" in Tasks and the Day Planner, where "Done" also closes some sheets.
   - Saved messages: "✓ Saved" with no Undo in Settings, "Saved · Undo" elsewhere.
   - Empty states: "Nothing matches." / "Nothing here." / "Nothing found"; Tasks has none apart from Done.
-- **No selection bar** on Scans or Contracts.
+- **No selection bar** on Scans or Contracts (so no press and hold to choose there either).
 - **Opening a card with a zoom** (the card grows into its page and shrinks back) is only on Find Things' boxes and the Lists page's cards: Batch Book recipes, Projects and Contacts open without it.
 - **Dragging cards to reorder** works on Batch Book recipes and the Lists page's cards, not on Find Things' boxes.
-- **Drag handles**: an icon in most areas, a text "⠿" in the Day Planner; Contacts shows a grip but can't be dragged.
+- **Manager sheets**: Batch Book's "Edit books" sheet is its own (books also carry details and kinds of reading), and a project's milestones still use a small pop-up menu, not the one manager sheet.
+- **Drag handles**: an icon in most areas, a text "⠿" in the Day Planner; Contacts shows a ⠿ but can't be dragged.
 - **Closing sheets and panels**: ✓ Close top right, "Done" bottom right, "Cancel … Save", ✕, or nothing.
 - **Hard to reach**: History is only linked from Settings; Tidied has no link from Settings.
 - To decide: the Day Planner's green "↓ Bring in from tasks" doesn't open or close anything, so it breaks the green rule.
@@ -151,7 +157,18 @@ Rows and cards inside an area. "Top right" means on the row's own first line, at
 - Recipe cards all the same height, photos cropped square (1.55.17).
 - Find Things: life areas and groups get their own ⋯ (1.56.00); the life areas are a filter bar of underlined tabs like Brain Dump's and Tasks' (1.57.01).
 - Find Things' life areas and groups are managed in the same sheet as Brain Dump's types (1.57.03), now one Life areas / groups sheet with groups indented and no ⋯ beside group names (1.58.00).
-- Choosing several cards by press and hold works in Find Things, Brain Dump, Contacts and Batch Book (1.56.00); every card shows its ⠿ on hover, Find Things' boxes included (1.57.00); the ⠿ is top left on every card grid, always shown on touch screens (1.57.04).; a selected card shows the same accent ring everywhere, and holding a card on a phone never starts text selection (1.58.14).
+- Choosing several cards by press and hold works in Find Things, Brain Dump, Contacts and Batch Book (1.56.00); every card shows its ⠿ on hover, Find Things' boxes included (1.57.00); the ⠿ is top left on every card grid, always shown on touch screens (1.57.04); a selected card shows the same accent ring everywhere, and holding a card on a phone never starts text selection (1.58.14).
+- Swiping sideways on a phone goes back from every opened thing, not just projects (1.57.05).
+- An open box's Add items moved from under the contents to the top, as Tasks and Lists (1.57.06), as one line in line with the things with a faint cube, just "Add" (1.57.07, 1.57.08).
+- A long box keeps its back and search bar and its whole lid in view as it scrolls, as an open list does (1.57.09, 1.58.07); a project's head and progress now stay in view too (1.58.02).
+- Find Things' box cards list their contents as running text after small cubes, 👁 Spacing sizes the boxes, the dashed + New box tiles are gone (1.58.01).
+- The whole top of the page stays in view while scrolling on Find Things (1.58.01), Tasks, Projects and Contacts (1.58.03).
+- A box's things can be moved to another box from the selection bar (1.56.01), and are held and moved as tasks are (1.58.04).
+- The update banner and toasts stack above the selection bar instead of under it (1.58.12).
+- Day Planner: a task's pills go under a long name together, no lone 📝 on its own line (1.58.15).
+- What's new after an update lists each version's changes with Show me (1.59.00); every version adds a line.
+- Key labels sit in the middle of every button that shows a key, Windows included (1.60.02).
+- Day Planner: Esc closes a task's full panel however it was opened (1.60.04).
 - Brain Dump notes: → Task, Plan it and → Find Things moved from the card into its ⋯, and into the selection bar's Move ▸ (1.57.00).
 - Filter bars are all underlined tabs: Contacts' Recent | Directory | Cases, Scans' kinds, Contracts' views and Tidied's areas moved from pills to the shared bar (1.58.10).
 - Lists page: Lists | Templates (| Shared with me) are underlined tabs in a sticky top instead of plain-text headings, with one + New pill for the tab shown; on phones, Lists', Scans' and Contracts' Share, 👁 and ⋯ stay on the first line (Scans' and Contracts' search goes under them) (1.59.01).
