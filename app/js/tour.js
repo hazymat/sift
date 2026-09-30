@@ -55,12 +55,12 @@ const green = label => `<span class="tour-green">${label}</span>`;
 // Tasks: capture first, sort later (the Getting Things Done way), then what a task can do.
 const tasksSteps = () => [
   { id: 'add', hash: '#/tasks/inbox', at: '#task-entry, #task-body', also: nav('tasks'), focus: '#task-new', title: 'Add a task', done: { made: ['tasks'] },
-    body: `<p>Anything you need to do. Don't worry where it goes yet.</p>${try_(`type it and ${KEYS ? `press ${key('Enter')}` : 'tap Add'}.`)}` },
-  { id: 'tabs', hash: '#/tasks/inbox', at: '#task-views', title: `${word('list_inbox')}, ${word('list_now')}, ${word('list_next')}, ${word('list_later')}`,
-    body: `<p><b>${word('list_inbox')}</b> is where tasks land when you can't be bothered to sort them yet: yours is there now.</p>
-      <p><b>${word('list_now')}</b>, <b>${word('list_next')}</b> and <b>${word('list_later')}</b> group them by how soon they matter.</p>` },
+    body: `<p class="tour-try">Try typing a task here, then ${KEYS ? `press ${key('Enter')}` : 'tap Add'}.</p>` },
+  { id: 'tabs', hash: '#/tasks/inbox', at: '#main .task-list, #task-body', also: '#task-views [data-view="inbox"]', title: `You just used the ${word('list_inbox')}`,
+    body: `<p>The <b>${word('list_inbox')}</b> is for whatever pops into your head. It's built to have you typing within seconds of opening Sift: type a task, ${KEYS ? `press ${key('Enter')}` : 'tap Add'}, type the next one. No buttons to find, nothing to decide; just get your thoughts down.</p>
+      <p><b>${word('list_now')}</b>, <b>${word('list_next')}</b> and <b>${word('list_later')}</b>, along the top, are for later, when you sort them by how soon they matter.</p>` },
   { id: 'capture', hash: '#/tasks/inbox', at: '#main .task-list, #task-body', title: 'Empty your head first, sort it later',
-    body: `<p>"Your mind is for having ideas, not holding them," says David Allen, who wrote <i>Getting Things Done</i>.</p>
+    body: `<blockquote class="tour-quote"><span class="tour-quote-icon" aria-hidden="true">📘</span><span><span class="tour-quote-text">"Your mind is for having ideas, not holding them."</span><span class="tour-quote-who">David Allen, <i>Getting Things Done</i></span></span></blockquote>
       <p>So get everything down here as it comes, without deciding anything. Then, now and again, go through the pile one at a time: do it there and then if it takes two minutes, bin it if it doesn't matter, or move it to ${w('list_now')}, ${w('list_next')} or ${w('list_later')}.</p>` },
   { id: 'process', hash: '#/tasks/inbox', at: '#main .task-list, #task-body', title: 'Sort one', done: { moved: true }, doneText: '✓ One sorted. A little and often keeps the pile small.',
     body: `<p>Let's clear one from the pile.</p>${try_(`${tap()} <b>⠿</b> next to a task to choose it, then <b>Move ▸</b> in the bar at the bottom, and pick <b>${word('list_now')}</b>.`)}` },

@@ -3846,6 +3846,11 @@ button.tour-pick:hover, button.tour-pick:focus-visible { transform: translateY(-
 /* The tour showing a task's More without hovering, and a green button drawn in its words. */
 .task-list > li.tour-more > .more { visibility: visible !important; }
 .tour-green { display: inline-block; padding: 0 9px; border-radius: 999px; font-size: .85em; line-height: 1.6; color: var(--text); border: 1px solid color-mix(in srgb, var(--energy-ink, #4caf7a) 40%, transparent); background: color-mix(in srgb, var(--energy-ink, #4caf7a) 13%, transparent); }
+/* A quote in a tour step: a callout that stands out from the rest. */
+.tour-quote { display: flex; gap: 12px; align-items: flex-start; margin: 2px 0 10px; padding: 10px 14px; border-radius: 12px; border-left: 4px solid #5b9dff; background: color-mix(in srgb, #5b9dff 14%, transparent); }
+.tour-quote-icon { font-size: 1.8rem; line-height: 1; flex: none; }
+.tour-quote-text { display: block; font-size: 1.08rem; font-style: italic; font-weight: 600; line-height: 1.35; }
+.tour-quote-who { display: block; margin-top: 4px; font-size: .82rem; color: var(--muted); }
 .tour-demo { margin: 0 auto 0 10px; padding: 1px 8px; border-radius: 999px; font-size: .72rem; white-space: nowrap; background: color-mix(in srgb, var(--energy-ink, #4caf7a) 16%, transparent); color: var(--text); }
 .tour-demo-note { margin: 0 0 8px; padding: 6px 10px; border-radius: 10px; font-size: .88rem; background: color-mix(in srgb, var(--energy-ink, #4caf7a) 12%, transparent); }
 .pick-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
