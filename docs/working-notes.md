@@ -4,7 +4,7 @@ How work on Sift is done: where things are, the rules, and where it has got to. 
 
 ## Where it has got to
 
-- **Live:** 1.60.27 (GitHub Pages, https://hazymat.github.io/sift/). Every version has a GitHub Release with its notes.
+- **Live:** 1.60.28 (GitHub Pages, https://hazymat.github.io/sift/). Every version has a GitHub Release with its notes.
 - **The queue:** GitHub Issues. Two pinned overview issues hold the checklists, in order:
   - **Roadmap** (#20): Next, Started, To decide, Not built yet, Housekeeping.
   - **Known bugs** (#21).
