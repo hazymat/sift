@@ -24,6 +24,7 @@ import { keys } from './keys.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.28': [{ text: "Tours: drag a tour card by its top row to move it out of the way. On a phone, the Tasks tour opens the keyboard for you and says which key to tap. A tour you save for later says where it went (your Next list) and that you can move it." }],
   '1.60.17': [
     { text: "Tasks: ticked-off tasks move to the Archive by themselves after 30 days, so Done only shows the last month. Change how long in Settings → Tasks.", go: '#/settings', at: '#main #tasks-settings' },
     { text: "Tasks: a new task always gets highlighted, and on a computer the cursor is always in New task when you arrive, so those two 👁 switches have gone. Tasks starts on Tight spacing; 👁 → Spacing shows more." },
@@ -73,6 +74,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.28': '2026-09-30T21:20:55Z',
   '1.60.17': '2026-09-30T21:03:13Z',
   '1.60.14': '2026-09-30T21:03:13Z',
   '1.60.13': '2026-09-30T21:03:13Z',

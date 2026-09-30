@@ -147,7 +147,10 @@ export async function seedDemo() {
   const jobs = photoJobs;
   (async () => {
     for (const job of jobs) { if (generation !== mine) return; await job(); }
-    if (generation === mine && jobs.length) dispatchEvent(new Event('sift:refresh'));
+    // Drawn again to show them, unless something's being typed (a redraw would take the cursor, and on a
+    // phone the keyboard with it): then they show with the next redraw.
+    const typing = document.activeElement?.matches?.('input, textarea, [contenteditable="true"]');
+    if (generation === mine && jobs.length && !typing) dispatchEvent(new Event('sift:refresh'));
   })();
 }
 
