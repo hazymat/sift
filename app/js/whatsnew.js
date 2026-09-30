@@ -24,6 +24,7 @@ import { keys } from './keys.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.29': [{ text: "Tasks tour: the step on a task's green More says it only appears once you tap (or point at) a task. The repeating tasks step has gone; the Tips step explains repeating tasks instead, with Put the bins out as the example.", go: '#/settings', at: '#main [data-act="tour"]', more: 'Settings, Take the tour, then Get your life in order.' }],
   '1.60.28': [{ text: "Tours: drag a tour card by its top row to move it out of the way. On a phone, the Tasks tour opens the keyboard for you and says which key to tap. A tour you save for later says where it went (your Next list) and that you can move it." }],
   '1.60.17': [
     { text: "Tasks: ticked-off tasks move to the Archive by themselves after 30 days, so Done only shows the last month. Change how long in Settings → Tasks.", go: '#/settings', at: '#main #tasks-settings' },

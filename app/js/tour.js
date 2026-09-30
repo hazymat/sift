@@ -71,14 +71,6 @@ const markTask = (match, cls) => ({ cls, apply: () => {
   li?.classList.add(cls);
   return !!li;
 } });
-// The bins task and its "Every week" pill (ringed; the row outlined too).
-const markRepeat = { cls: 'tour-this', apply: () => {
-  const li = [...document.querySelectorAll('#main .task-list > li[data-task]')].find(l => /bins/i.test(l.querySelector('.task-title')?.value || ''));
-  if (!li) return false;
-  li.classList.add('tour-this');
-  [...li.querySelectorAll('.chip, .pill, button, span')].find(c => /^\s*\S*\s*every/i.test(c.textContent) && c.children.length < 3)?.classList.add('tour-pill');
-  return true;
-} };
 // Leaving a step that had a task opened: closed again, as Esc would.
 const closeEditing = () => { const el = document.querySelector('#main .task-list > li.pills-open, #main .task-list > li.task-details'); if (!el) return; (document.activeElement || document.body).dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); document.activeElement?.blur?.(); };
 // Tasks typed by hand while a tour runs (startTour watches), for the step that has them tidied away.
@@ -88,14 +80,6 @@ const tidied = () => { let ok = false; return () => {
     .then(rs => { ok = rs.length > 0 && rs.every(r => !r || r.done_at || r.deleted_at || r.archived_at); });
   return ok;
 }; };
-// A task just made, scrolled to and flashed (the next of a repeating task moves down the list, being dated later).
-async function showTask(id) {
-  for (let tries = 0; tries < 50; tries++) {
-    const row = document.querySelector(`#main .task-list > li[data-task="${id}"]`);
-    if (row) { row.scrollIntoView({ block: 'center', behavior: 'smooth' }); flash(row, { pulses: 3 }); return; }
-    await new Promise(ok => setTimeout(ok, 100));
-  }
-}
 const Tap = () => (KEYS ? 'Click' : 'Tap');
 // Where a task's ⠿ is: on a computer it only shows when the task is pointed at.
 const grab = () => (KEYS ? 'hover your mouse over a task and its <b>⠿</b> appears on the left' : 'each task has a <b>⠿</b> on its left');
@@ -134,12 +118,11 @@ const tasksSteps = () => [
   { id: 'view', hash: '#/tasks/now', at: '#main .view-menu .menu, #main .view-menu', also: '#main .view-menu > summary', open: '#main .view-menu', title: 'View settings: lined paper', done: { layout: ['tasks', 'margin'] },
     body: `<p>The same menu also puts your tasks on paper.</p>${try_('tick <b>Lined Paper</b>, then <b>Show margin</b>, to see your tasks on paper.')}` },
   { id: 'more', hash: '#/tasks/now', at: '#main .task-list, #task-body', leave: closeEditing, title: 'Everything about a task', done: { check: shows('#main .task-list > li.pills-open, #main .task-list > li.task-details') }, doneText: "✓ That's everything about a task, in one place.",
-    body: `<p>A green ${green('More')} button opens a task's note, dates, energy and how long it'll take.</p>${try_(KEYS ? `hover your mouse over a task, then click its green ${green('More')} on the right.` : `tap a task, then its green ${green('More')} on the right.`)}` },
-  { id: 'repeat', hash: '#/tasks/now', at: '.tour-pill, .tour-this, #main .task-list', also: '.tour-this', mark: markRepeat, title: 'Repeating tasks', done: { made: ['tasks'] }, doneText: "✓ There it is (flashing): next week's, already waiting.", doneWait: 4000, onDone: showTask,
-    body: `<p><b>Put the bins out</b> repeats <b>every week</b>. Tick it off and next week's is made straight away, dated next week.</p>${try_("tick it off, then look for next week's.")}` },
+    body: `<p>A green ${green('More')} button opens a task's note, dates, energy and how long it'll take. It only appears once you ${KEYS ? 'point at' : 'tap'} a task.</p>${try_(KEYS ? `hover your mouse over a task, and its green ${green('More')} appears on the right. Click it.` : `tap a task, and its green ${green('More')} appears on the right. Tap it.`)}` },
   { id: 'select', hash: '#/tasks/now', at: '#main .task-list, #task-body', title: 'Move and nest', done: { nested: true }, doneText: '✓ Nested. Drag it back out whenever you like.',
     body: `<p>The same grab handle ${handle} moves tasks: hold it and drag a task up or down, or drop it onto another task to make it a sub-task.</p>${try_('drag one task onto another.')}` },
-  { id: 'tips', title: 'Tips', body: `<ul><li>There's plenty more when you need it: start and end dates, repeats, sub-tasks and checklists.</li>
+  { id: 'tips', title: 'Tips', body: `<ul><li>There's plenty more when you need it: start and end dates, sub-tasks, checklists and repeating tasks.</li>
+      <li>A repeating task comes back by itself: make <b>Put the bins out</b> repeat every week, tick it off, and next week's is already waiting.</li>
       <li>Give tasks a <b>Duration</b> and you'll see how much work you really have, and how long each thing will take. Later you'll see the ${w('area_planner')} use it to fit them into your day.</li></ul>` },
   { id: 'dots', hash: '#/tasks/now', at: '#main .page-more > summary, #main .page-more', title: 'The Triple Dot menu', done: { check: shows('#main .page-more[open]') }, doneText: '✓ Show Archive and Show Bin are in here.',
     body: `<p>The <b>⋯</b> Triple Dot menu is where you'll find tasks you've archived, or even deleted (they wait in the Bin for 30 days).</p>${try_(`${tap()} <b>⋯</b> at the top right.`)}` },
