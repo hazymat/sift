@@ -19,6 +19,7 @@ import { keys } from './keys.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.01': [{ text: 'Day Planner: typing a new task on the schedule shows More at the right straight away, as in Tasks; it adds the task and shows its note and pills. More now sits in the middle of the line.', go: '#/planner', at: '#main #lines', more: 'The New task line under Tasks shows More too, which adds it and opens its full panel.' }],
   '1.60.00': [{ text: 'Lists: press and hold a list or template card to choose it (then tap more), hold its ⠿ to drag it into place, and opening a list zooms out of its card as Find Things\' boxes do.', go: '#/lists', at: '#main .list-grid', more: 'The Templates tab works the same; shared lists zoom open too.' }],
   '1.59.03': [{ text: "New app icon: a hand sifting golden sand under a rainbow. On an iPhone, remove Sift from the Home Screen and add it again to see it (sync first: removing it clears that copy).", go: '#/settings', at: '#main a[href="about.html"]', more: 'The browser tab and the About and Privacy pages show it too.' }],
   '1.59.02': [{ text: "iPhone, Find Things: Share, 👁 and ⋯ stay on the first line with + New box; the other + New buttons slide sideways.", go: '#/find-things', at: '#main .find-new' }],
