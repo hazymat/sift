@@ -730,6 +730,9 @@ body.has-select-bar main { padding-bottom: calc(var(--tabbar-h) + var(--safe-bot
 @media (min-width: 768px) { .toast { bottom: calc(28px + var(--sel-lift) + var(--upd-lift)); } }
 kbd { font: inherit; font-size: .72em; line-height: 1.2; vertical-align: middle; padding: 1px 5px; margin-left: 4px; border-radius: 6px; border: 1px solid var(--glass-border); opacity: .7; }
 @media (hover: none) { kbd { display: none; } }
+/* Any button showing a key: its text, icon and keys are centred as boxes, not on the text baseline, which sat them low on Windows (Segoe UI and symbol fallback fonts). Zero specificity so each button's own display rules still win. */
+:where(button:has(> kbd, > span > kbd)) { display: inline-flex; align-items: center; justify-content: center; }
+:where(button > span:has(> kbd)) { display: inline-flex; align-items: center; }
 /* A back button's Esc shows only while nothing is being typed: the first Esc leaves the field. */
 #main:has(:is(input:not([type="checkbox"], [type="radio"]), textarea, [contenteditable="true"]):focus) .back kbd { display: none; }
 .item-list li:hover, .item-list li:focus-within { background: var(--glass-track); }
