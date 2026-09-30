@@ -4,7 +4,7 @@ How work on Sift is done: where things are, the rules, and where it has got to. 
 
 ## Where it has got to
 
-- **Live:** 1.22.07 (GitHub Pages, https://hazymat.github.io/sift/). Every version has a GitHub Release with its notes.
+- **Live:** 1.60.04 (GitHub Pages, https://hazymat.github.io/sift/). Every version has a GitHub Release with its notes.
 - **The queue:** GitHub Issues. Two pinned overview issues hold the checklists, in order:
   - **Roadmap** (#20): Next, Started, To decide, Not built yet, Housekeeping.
   - **Known bugs** (#21).
@@ -19,7 +19,7 @@ How work on Sift is done: where things are, the rules, and where it has got to. 
 
 1. Work on a branch, never straight on `main`.
 2. Before opening a pull request, for every change:
-   - bump the version in `app/js/version.js` (fixes and small changes: the last number; a new feature: the middle number, last back to `00`);
+   - bump the version in `app/js/version.js`: the last number for almost everything, new features included (1.60.04 → 1.60.05); the middle number only for something very major (last back to `00`); the first number only for a massive change to the app. A fix to a change not yet published bumps the version again and amends that change's What's new line and release note rather than adding new ones (a version with no What's new entry is skipped). Dropping a change before it's published: take out its code, What's new entry and release note, and bump again;
    - any new JS file goes into `SHELL` in `app/sw.js`;
    - syntax check each changed JS file: copy it to a `.mjs` file somewhere temporary and run `node --check` on that;
    - add the release note to `tools/release_notes.py`;
