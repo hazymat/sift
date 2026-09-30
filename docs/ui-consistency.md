@@ -136,7 +136,7 @@ Rows and cards inside an area. "Top right" means on the row's own first line, at
 - ⋯ menus stay below sticky bars (1.55.03).
 - Full-screen ⤢ and its Done are green (1.55.04) and show their keys (1.55.14).
 - Shift+Enter goes one step further, from the note too (1.55.05).
-- Day Planner tasks: no quick edit stage, More goes straight to the full panel (no start and end times in it) and no longer covers the time pill (1.58.06); schedule items edit as Tasks do, with the note shown to edit (1.58.09).
+- Day Planner tasks: no quick edit stage, More goes straight to the full panel (no start and end times in it) and no longer covers the time pill (1.58.06; a scheduled task's panel has Time and Until again, 1.60.03); schedule items edit as Tasks do, with the note shown to edit (1.58.09).
 - Day Planner new lines (schedule and New task) show More while typing, as Tasks' New task does; More sits in the middle of the line inside its edge (1.60.01).
 - Tick-off fade restored (1.55.06).
 - Arrow keys in an open list and a box's things work like Tasks (1.55.07).
