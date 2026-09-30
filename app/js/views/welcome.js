@@ -39,7 +39,7 @@ export default {
           <span class="pick-who">Quick tours, a minute each</span>
           <div class="pick-chips">
             ${small('filing', '🗄️', 'Your digital filing cabinet')}
-            ${small('recipes', '🍲', word('area_recipes'))}
+            ${small('recipes', '🍲', 'Your Recipe Archive')}
             ${small('lists', '🛒', word('area_lists'))}
             ${small('places', '📦', word('area_places'))}
             ${small('yours', '🎨', 'Make it yours')}

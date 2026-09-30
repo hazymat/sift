@@ -1,117 +1,142 @@
-// Example records for the tours (tour.js): a lived-in Sift to look round, made
+// Example things for the tours (tour.js): a lived-in Sift to look round, made
 // when a tour starts and cleared away when it ends (store.js createDemo /
 // clearDemo: this device only, never synced, never in History). Anything made
-// by hand during the tour stays. Dates are around today, so the Day Planner
-// has something on today and in three days' time.
+// by hand during the tour stays. What's made is demo/demo.json, with its
+// photos in demo/: only fetched when a tour starts, never with an update.
+// Its categories are shown but never saved (words.js setDemoTypes).
 import * as store from './store.js';
 import { isoDate, addDays } from './days.js';
 import { keyBetween } from './order.js';
-import { dumpTypes } from './words.js';
+import { setDemoTypes } from './words.js';
 
 const make = (collection, fields) => store.createDemo(collection, fields);
+const now = () => new Date().toISOString();
+
+// Photos from demo/, attached to a record as its own would be (their ids marked first: the file is saved before its record).
+async function attach(collection, id, names = []) {
+  const files = [], ids = [];
+  for (const name of names) {
+    try {
+      const res = await fetch(`demo/${name}`);
+      if (!res.ok) continue;
+      files.push(new File([await res.blob()], name, { type: 'image/jpeg' }));
+      const fileId = store.uuidv7();
+      store.markDemo(fileId);
+      ids.push(fileId);
+    } catch { /* offline: it comes without the photo */ }
+  }
+  if (files.length) await (await import('./attachments.js')).addFiles({ collection, id }, files, ids);
+}
 
 // Clears any examples left from before, then makes a fresh set.
 export async function seedDemo() {
-  await store.clearDemo();
+  await clearDemo();
+  let d;
+  try { d = await (await fetch('demo/demo.json')).json(); } catch { return; } // offline and never fetched: the tour runs on what's there
   const today = isoDate();
-  const inDays = n => addDays(today, n);
-  const at = n => `${inDays(n)}T12:00:00.000Z`;
+  const day = n => addDays(today, n || 0);
+  const noon = n => `${day(n)}T12:00:00.000Z`;
+  await setDemoTypes(d.categories || []);
 
-  // ---------- Brain Dump ----------
-  const kind = dumpTypes()[0]?.id || 'thought';
-  let rank = null;
-  const firstRank = (await store.list('thoughts')).map(t => t.rank).filter(Boolean).sort()[0] || null;
-  for (const body of [
-    'Wi-fi password for guests is on the back of the router',
-    'Ring the dentist about moving Thursday',
-    'Idea: a weekend in the Lake District in May? Ask Sam about dates',
-    'Plumber Dave 07700 900123, fixed the boiler last winter',
-    'Shopping: oat milk, bin bags, a birthday card for Mum',
-  ]) {
-    rank = keyBetween(null, rank || firstRank);
-    await make('thoughts', { title: body.split('\n')[0].slice(0, 80), body, kind, pinned: body.startsWith('Wi-fi'), converted_to: null, rank });
+  // ---------- Brain Dump (the first in the file on top) ----------
+  const notes = {};
+  let rank = (await store.list('thoughts')).map(t => t.rank).filter(Boolean).sort()[0] || null;
+  for (const n of [...d.notes].reverse()) {
+    rank = keyBetween(null, rank);
+    const t = await make('thoughts', { title: n.body.split('\n')[0].slice(0, 80), body: n.body, kind: n.type || 'thought', pinned: !!n.pinned, converted_to: null, rank });
+    if (n.key) notes[n.key] = t;
+    await attach('thoughts', t.id, n.photos);
   }
 
-  // ---------- Tasks and a project ----------
-  let order = (await store.list('tasks')).length;
-  const task = fields => make('tasks', {
-    title: '', notes: '', project_id: null, milestone_id: null, parent_task_id: null,
-    status: 'todo', priority: 3, energy: null, start_date: null, aim_at: null, done_at: null,
-    calendar_event_id: null, calendar_sync: 'none', recurrence_rule: null, horizon: 'inbox', estimate_min: null,
-    source_thought_id: null, source_scan_id: null, source_contract_id: null, contact_ids: [], case_id: null, sort_order: order++,
-    ...fields,
-  });
-  await task({ title: 'Renew the car insurance', horizon: 'now', energy: 'low', aim_at: at(3), notes: 'Compare at least two quotes first.' });
-  await task({ title: 'Book the MOT', horizon: 'now', energy: 'low', start_date: today });
-  await task({ title: 'Pay the window cleaner', horizon: 'now', energy: 'low', estimate_min: 5 });
-  await task({ title: 'Sort out the loft', horizon: 'next', energy: 'high', estimate_min: 120 });
-  await task({ title: 'Clear the garage for the bikes', horizon: 'next', energy: 'high' });
-  await task({ title: 'Learn to make sourdough', horizon: 'later', energy: 'medium' });
-  await task({ title: 'Look into solar panels', horizon: 'inbox' });
-  const project = await make('projects', { name: 'Kitchen makeover', description: 'New worktops and a lick of paint before the summer.', status: 'active', colour: null, sort_order: (await store.list('projects')).length, due_date: null });
-  const milestone = await make('milestones', { project_id: project.id, name: 'Worktops ordered', due_date: inDays(21), done_at: null, sort_order: 0 });
-  const quotes = await task({ title: 'Get three quotes for the worktops', horizon: 'now', energy: 'medium', project_id: project.id, milestone_id: milestone.id });
-  await task({ title: 'Measure the worktops', horizon: 'now', energy: 'low', project_id: project.id, parent_task_id: quotes.id, milestone_id: milestone.id });
-  await task({ title: 'Choose paint colours', horizon: 'now', energy: 'low', project_id: project.id, done_at: new Date().toISOString(), status: 'done' });
-  await task({ title: 'Book a decorator', horizon: 'next', energy: 'medium', project_id: project.id });
+  // ---------- projects and tasks ----------
+  const projects = {}, milestones = {}, tasks = {};
+  let order = (await store.list('projects')).length;
+  for (const p of d.projects || []) {
+    projects[p.key] = await make('projects', { name: p.name, description: p.description || '', status: 'active', colour: null, sort_order: order++, due_date: null });
+    let m = 0;
+    for (const ms of p.milestones || []) milestones[ms.key] = await make('milestones', { project_id: projects[p.key].id, name: ms.name, due_date: ms.due == null ? null : day(ms.due), done_at: null, sort_order: m++ });
+  }
+  order = (await store.list('tasks')).length;
+  for (const t of d.tasks || []) {
+    const made = await make('tasks', {
+      title: t.title, notes: t.notes || '', project_id: projects[t.project]?.id || null, milestone_id: milestones[t.milestone]?.id || null, parent_task_id: tasks[t.parent]?.id || null,
+      status: t.done ? 'done' : 'todo', priority: 3, energy: t.energy || null, start_date: t.plan == null ? null : day(t.plan), aim_at: t.aim == null ? null : noon(t.aim), done_at: t.done ? now() : null,
+      calendar_event_id: null, calendar_sync: 'none', recurrence_rule: null, horizon: t.list || 'inbox', estimate_min: t.minutes || null,
+      source_thought_id: notes[t.from_note]?.id || null, source_scan_id: null, source_contract_id: null, contact_ids: [], case_id: null, sort_order: order++,
+    });
+    if (t.key) tasks[t.key] = made;
+  }
 
-  // ---------- Day Planner: today and in three days ----------
-  const item = (date, fields) => make('day_items', {
-    date, title: '', notes: '', time: null, end_time: null, energy: null, estimate_min: null, estimate_unsure: false, done_at: null, dropped_at: null,
-    sort_order: 0, task_id: null, case_id: null, contact_ids: [], source_thought_id: null, carried_from: null, ...fields,
-  });
-  await item(today, { title: 'Team call', time: '09:00', end_time: '09:30' });
-  await item(today, { title: 'Lunch with Priya', time: '12:30', end_time: '13:30', notes: 'The new café on the high street' });
-  await item(today, { title: 'Pick the kids up from football', time: '17:30', end_time: '18:00' });
-  await item(today, { title: 'Post the parcel', sort_order: 1 });
-  await item(today, { title: 'Water the tomatoes', sort_order: 2, done_at: new Date().toISOString() });
-  await item(inDays(3), { title: 'Dentist', time: '10:00', end_time: '10:45', notes: 'Bring the new-patient form' });
-  await item(inDays(3), { title: 'Buy a birthday card for Mum', sort_order: 1 });
-  await item(inDays(3), { title: 'Gym', time: '18:00', end_time: '19:00', energy: 'high' });
+  // ---------- Day Planner ----------
+  let place = 0;
+  for (const it of d.planner || []) {
+    const made = await make('day_items', {
+      date: day(it.day), title: it.title, notes: it.notes || '', time: it.time || null, end_time: it.until || null, energy: it.energy || null, estimate_min: null, estimate_unsure: false,
+      done_at: it.done ? now() : null, dropped_at: null, sort_order: place++, task_id: null, case_id: null, contact_ids: [], source_thought_id: null, carried_from: null,
+    });
+    await attach('day_items', made.id, it.photos);
+  }
 
   // ---------- Lists ----------
-  const list = await make('lists', { name: 'Weekly shop', kind: 'list', template_id: null, notes: '', sort_order: Date.now(), used_at: null });
-  let n = 0;
-  for (const [text, got] of [['Oat milk', true], ['Bread', false], ['Apples', false], ['Bin bags', true], ['Coffee', false], ['Birthday card', false]]) {
-    await make('list_items', { list_id: list.id, text, notes: '', parent_id: null, sort_order: n++, checked_at: got ? new Date().toISOString() : null });
-  }
-  const bag = await make('lists', { name: 'Swimming bag', kind: 'template', template_id: null, notes: '', sort_order: Date.now() + 1, used_at: null });
-  n = 0;
-  for (const text of ['Towel', 'Goggles', '£1 for the locker', 'Shampoo', 'A snack for after']) {
-    await make('list_items', { list_id: bag.id, text, notes: '', parent_id: null, sort_order: n++, checked_at: null });
+  let when = Date.now();
+  for (const l of d.lists || []) {
+    const list = await make('lists', { name: l.name, kind: l.template ? 'template' : 'list', template_id: null, notes: '', sort_order: when++, used_at: null });
+    let n = 0;
+    for (const [text, got] of l.items) await make('list_items', { list_id: list.id, text, notes: '', parent_id: null, sort_order: n++, checked_at: got ? now() : null });
   }
 
-  // ---------- Find Things: in the first life area there is (or a new one) ----------
-  const places = await store.list('places');
-  const area = places.find(p => p.kind === 'edition') || await make('places', { kind: 'edition', name: 'Home', parent_place_id: null, notes: '', sort_order: 0 });
-  const group = await make('places', { kind: 'section', name: 'Loft and hall', parent_place_id: area.id, location_note: '', notes: '', sort_order: places.filter(p => p.parent_place_id === area.id).length });
-  const box = async (name, where, things) => {
-    const b = await make('places', { kind: 'box', name, label_code: '', parent_place_id: group.id, location_note: where, notes: '', sort_order: 0 });
-    let i = 0;
-    for (const [thing, qty] of things) await make('items', { name: thing, quantity: qty, place_id: b.id, parent_item_id: null, notes: '', sort_order: i++, last_moved_at: null });
-  };
-  await box('Christmas', 'Loft, left of the hatch', [['Fairy lights', 3], ['Baubles', null], ['Tree stand', null], ['Wrapping paper', null]]);
-  await box('Hall drawer', 'Hall, under the mirror', [['Passports', 4], ['Spare house keys', null], ['AA batteries', 8], ['Torch', null]]);
+  // ---------- Find Things: in the first life area there is, or a new one ----------
+  if (d.places) {
+    const all = await store.list('places');
+    const area = all.find(p => p.kind === 'edition') || await make('places', { kind: 'edition', name: d.places.area || 'Home', parent_place_id: null, notes: '', sort_order: 0 });
+    const group = await make('places', { kind: 'section', name: d.places.group, parent_place_id: area.id, location_note: '', notes: '', sort_order: all.filter(p => p.parent_place_id === area.id).length });
+    let b = 0;
+    for (const box of d.places.boxes || []) {
+      const made = await make('places', { kind: 'box', name: box.name, label_code: '', parent_place_id: group.id, location_note: box.where || '', notes: '', sort_order: b++ });
+      let i = 0;
+      for (const [name, qty] of box.things) await make('items', { name, quantity: qty ?? null, place_id: made.id, parent_item_id: null, notes: '', sort_order: i++, last_moved_at: null });
+      await attach('places', made.id, box.photos);
+    }
+  }
 
-  // ---------- Contacts and a case ----------
-  const contact = fields => make('contacts', {
-    name: '', kind: 'person', status: 'transient', category_ids: [], about: '', details: [], body: '', notes: '',
-    research_status: null, rating: null, would_use_again: null, area_covered: '',
-    captured_at: new Date().toISOString(), source_thought_id: null, looked_up_at: [], last_contacted_at: null, pinned: false, ...fields,
-  });
-  await contact({ name: 'Dave (plumber)', about: 'Fixed the boiler last winter. Reliable, fair prices.' });
-  await contact({ name: 'Window cleaner', about: 'Comes every four weeks, cash or bank transfer.' });
-  await make('cases', { title: 'Washing machine repair claim', status: 'open', summary: 'Broke two weeks after the warranty ran out. They said they would call back.', references: [], contact_ids: [], project_id: null, opened_at: new Date().toISOString(), closed_at: null });
+  // ---------- Contacts, cases, contracts ----------
+  for (const c of d.contacts || []) {
+    await make('contacts', {
+      name: c.name, kind: 'person', status: 'transient', category_ids: [], about: c.about || '', details: [], body: '', notes: '',
+      research_status: null, rating: null, would_use_again: null, area_covered: '',
+      captured_at: now(), source_thought_id: null, looked_up_at: [], last_contacted_at: null, pinned: false,
+    });
+  }
+  for (const k of d.cases || []) await make('cases', { title: k.title, status: 'open', summary: k.summary || '', references: [], contact_ids: [], project_id: null, opened_at: now(), closed_at: null });
+  for (const c of d.contracts || []) {
+    await make('contracts', {
+      name: c.name, category: c.category || 'other', provider: c.provider || '', provider_phone: '', provider_url: '', reference: '', covers: '',
+      start_date: c.started == null ? null : day(c.started), end_date: null, renewal_date: c.renews == null ? null : day(c.renews), auto_renew: !!c.auto_renew, notice_days: c.notice_days ?? null,
+      cost: c.cost ?? null, cost_frequency: c.frequency || 'monthly', payment_method_note: '', status: 'current',
+      previous_contract_id: null, contact_id: null, custom_fields: [], notes: '',
+    });
+  }
 
-  // ---------- Contracts ----------
-  const contract = fields => make('contracts', {
-    name: '', category: 'other', provider: '', provider_phone: '', provider_url: '', reference: '', covers: '',
-    start_date: null, end_date: null, renewal_date: null, auto_renew: false, notice_days: null,
-    cost: null, cost_frequency: 'monthly', payment_method_note: '', status: 'current',
-    previous_contract_id: null, contact_id: null, custom_fields: [], notes: '', ...fields,
-  });
-  await contract({ name: 'Home insurance', provider: 'Example Insurance', start_date: inDays(-325), renewal_date: inDays(40), auto_renew: true, notice_days: 14, cost: 24.5 });
-  await contract({ name: 'Mobile phone', provider: 'Example Mobile', start_date: inDays(-215), renewal_date: inDays(150), notice_days: 30, cost: 12 });
+  // ---------- Scans (photographed receipts) ----------
+  for (const s of d.scans || []) {
+    const task = tasks[s.task];
+    const scan = await make('scans', { title: s.title, kind: s.kind || 'receipt', expiry_date: null, letter_date: null, summary: s.summary || '', note: '', linked: task ? { collection: 'tasks', id: task.id, title: task.title } : null });
+    await attach('scans', scan.id, [s.photo]);
+  }
+
+  // ---------- Recipe Archive (a recipe's book shows by itself; none is added to settings) ----------
+  if (d.recipes?.length) {
+    const { parseRecipes } = await import('./batchbook.js');
+    for (const r of d.recipes) {
+      for (const recipe of parseRecipes(r.text)) {
+        const made = await make('recipes', Object.assign(recipe, { colour: null }));
+        await attach('recipes', made.id, r.photo ? [r.photo] : []);
+      }
+    }
+  }
 }
 
-export const clearDemo = () => store.clearDemo();
+export async function clearDemo() {
+  await setDemoTypes([]);
+  return store.clearDemo();
+}

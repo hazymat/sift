@@ -61,6 +61,9 @@ const notesSteps = () => [
   { id: 'becomes', hash: '#/dump', at: '#thoughts > li.thought', title: 'From note to action', done: { made: ['tasks', 'day_items'] },
     body: `<p>A note's <b>⋯</b> turns it into a task, or puts it on your day. The note stays here, linked to what it became.</p>
       ${try_(`${tap()} <b>⋯</b>, then <b>→ Task</b>.`)}` },
+  { id: 'kinds', hash: '#/dump', at: '#dump-filter, .dump-filter-row', title: 'Your own categories', body: `<p>Notes can be filed as <b>Idea</b>, <b>Shopping</b> or categories of your own: here, <b>Menus</b>, <b>Home projects</b> and <b>Days out</b>. ${tap().replace(/^./, c => c.toUpperCase())} one to see just those.</p>
+      <p><b>⋯</b> at the end of the row adds your own, renames them or puts them in order.</p>` },
+  { id: 'kindsheet', hash: '#/dump', at: '.filter-more', title: 'Make your own', body: `<p>${tap().replace(/^./, c => c.toUpperCase())} <b>⋯</b> here to add a category: Recipes to try, Work, Gift ideas, whatever suits you.</p>` },
   { id: 'safe', hash: '#/dump', at: '.dump-capture', title: 'Never lost', body: `<p>Everything is kept as you type it, even a note you hadn't saved when the battery died.</p>` },
   { id: 'undo', hash: '#/dump', at: '#dump-body', only: 'keys', title: 'Undo that remembers yesterday', body: `<p>${key(CTRL, 'Z')} in a note goes back past what you just typed: yesterday's version, last week's, even ones from your other devices.</p>` },
   { id: 'undo', hash: '#/dump', at: '#dump-body', only: 'touch', title: 'Undo that remembers yesterday', body: `<p><b>Aa</b>, then <b>🕘</b>, lists a note's earlier versions: yesterday's, last week's, from any of your devices.</p>` },
@@ -84,7 +87,7 @@ const plannerSteps = () => [
 
 // The mini-tours.
 const recipesSteps = () => [
-  { id: 'recipes', hash: '#/recipes', at: '.bb-sections-bar, .bb-head, #main', also: nav('recipes'), title: `${word('area_recipes')}: recipes, and every time you make them`, body: `<p>Recipes in books you name. <b>{salt}</b> in a step shows its amount, and scales with the recipe. <b>🧪 Make this</b> starts a batch, with <b>🛒 Add to list</b> for anything you're out of.</p>` },
+  { id: 'recipes', hash: '#/recipes', at: '.bb-sections-bar, .bb-head, #main', also: nav('recipes'), title: 'Your Recipe Archive', body: `<p>Your recipes, with photos, in books you name (here, <b>Pizza</b> and <b>Breakfasts</b>). <b>{salt}</b> in a step shows its amount, and scales with the recipe. <b>🧪 Make this</b> starts a batch, with <b>🛒 Add to list</b> for anything you're out of.</p>` },
 ];
 const listsSteps = () => [
   { id: 'lists', hash: '#/lists', at: '.lists-head, #main', also: nav('lists'), title: `${word('area_lists')}, shared`, body: `<p>Shopping, packing, the swimming bag. Make a <b>template</b> once and start a fresh list from it each time. <b>👥 Share</b> it, and the milk only gets bought once.</p>` },
@@ -119,7 +122,7 @@ const TOURS = {
   tasks: { title: 'Tour: tasks and projects', steps: tasksSteps },
   notes: { title: 'Tour: writing things down', steps: notesSteps },
   planner: { title: 'Tour: the Day Planner', steps: plannerSteps },
-  recipes: { title: 'Tour: recipes', steps: recipesSteps },
+  recipes: { title: 'Tour: your recipe archive', steps: recipesSteps },
   lists: { title: 'Tour: lists', steps: listsSteps },
   places: { title: 'Tour: finding things', steps: placesSteps },
   filing: { title: 'Tour: your digital filing cabinet', steps: filingSteps },

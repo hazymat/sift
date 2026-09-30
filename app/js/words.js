@@ -120,6 +120,9 @@ export const DEFAULT_TYPES = [
 const defaults = Object.fromEntries(WORDS.map(w => [w.key, w.default]));
 let custom = {};
 let types = DEFAULT_TYPES;
+// The tours' example categories (demo.js): shown while a tour runs, never saved.
+let demoTypes = [];
+export function setDemoTypes(list) { demoTypes = list; return applyWords(); }
 
 export const word = key => custom[key] || defaults[key] || key;
 export const isCustom = key => !!custom[key];
@@ -133,6 +136,7 @@ export async function applyWords() {
     if (v && v !== w.default) custom[w.key] = v;
   }
   types = Array.isArray(s.dump_types) && s.dump_types.length ? s.dump_types.filter(t => t?.id && t.label) : DEFAULT_TYPES;
+  types = types.filter(t => !demoTypes.some(d => d.id === t.id)).concat(demoTypes);
   return { custom, types };
 }
 
@@ -144,6 +148,7 @@ export async function setWord(key, text) {
 }
 
 export async function setDumpTypes(list) {
+  list = list.filter(t => !demoTypes.some(d => d.id === t.id)); // the tour's examples are never kept
   const same = JSON.stringify(list) === JSON.stringify(DEFAULT_TYPES);
   await store.updateSettings({ dump_types: same ? null : list });
   await applyWords();

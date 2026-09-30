@@ -568,7 +568,7 @@ function makeSpace(name) {
   // Files made here that haven't gone to the server yet.
   async function blobsToUpload() {
     await open();
-    return (await promisify(db.transaction('blobs').objectStore('blobs').getAll())).filter(r => !r.uploaded_at);
+    return (await promisify(db.transaction('blobs').objectStore('blobs').getAll())).filter(r => !r.uploaded_at && !(isLocal && demoIds.has(r.blob_id)));
   }
 
   async function markBlobUploaded(blobId) {
@@ -732,15 +732,17 @@ export async function createDemo(collection, fields) {
   return local.create(collection, { ...fields, id });
 }
 export const hasDemo = () => demoIds.size > 0;
+// An id about to be used for an example record (a photo's file is saved before its record).
+export function markDemo(id) { demoIds.add(id); keepDemoIds(); }
 // Every example record gone from this device, as if never made (with any outbox and History entries).
 export async function clearDemo() {
   if (!demoLoaded) await loadDemoIds();
   if (!demoIds.size) return 0;
   const ids = new Set(demoIds);
   const db = await local.open();
-  const tx = db.transaction([...COLLECTIONS, 'outbox', 'history'], 'readwrite');
+  const tx = db.transaction([...COLLECTIONS, 'outbox', 'history', 'blobs'], 'readwrite');
   for (const c of COLLECTIONS) for (const id of ids) tx.objectStore(c).delete(id);
-  for (const id of ids) tx.objectStore('outbox').delete(id);
+  for (const id of ids) { tx.objectStore('outbox').delete(id); tx.objectStore('blobs').delete(id); } // a photo's file has its record's id
   tx.objectStore('history').openCursor().onsuccess = e => {
     const cur = e.target.result;
     if (!cur) return;

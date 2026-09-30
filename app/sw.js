@@ -92,7 +92,7 @@ const SHELL = [
   'js/views/bin.js',
   'js/views/welcome.js',
   'js/tour.js',
-  'js/demo.js',
+  'js/demo.js', // (its content, demo/, is fetched only when a tour starts)
   'icons/app-icon-32.png',
   'icons/app-icon-180.png',
   // Not the 192 and 512 icons: only used when adding Sift to a home screen, and
