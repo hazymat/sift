@@ -133,7 +133,7 @@ Rows and cards inside an area. "Top right" means on the row's own first line, at
 - **Drag handles**: an icon in most areas, a text "⠿" in the Day Planner; Contacts shows a ⠿ but can't be dragged.
 - **Closing sheets and panels**: ✓ Close top right, "Done" bottom right, "Cancel … Save", ✕, or nothing.
 - **Hard to reach**: History is only linked from Settings; Tidied has no link from Settings.
-- To decide: the Day Planner's green "↓ Bring in from tasks" doesn't open or close anything, so it breaks the green rule.
+- The Day Planner's green "↓ Bring items in" opens a sheet (1.60.05), so it keeps to the green rule.
 
 ### Addressed
 

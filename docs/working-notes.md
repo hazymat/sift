@@ -27,11 +27,12 @@ How work on Sift is done: where things are, the rules, and where it has got to. 
    - write **How to test** steps in the pull request (see below).
 3. One pull request per change or small batch, with the issue numbers it closes (`Closes #n`).
 4. **Publishing is merging the pull request.** Nothing is merged until it has been asked for.
-5. After merging: check the deploy (`gh run watch`, then `curl -s "https://hazymat.github.io/sift/js/version.js?x=$RANDOM" | grep VERSION`), create the Releases (`python tools/release.py <version> <full commit hash> ...`), and close the issues it fixed with a comment naming the version. The overview issues tick themselves.
+5. Just before merging: `python tools/published_times.py --now` (stamps the versions going live with the time), committed to the branch.
+6. After merging: check the deploy (`gh run watch`, then `curl -s "https://hazymat.github.io/sift/js/version.js?x=$RANDOM" | grep VERSION`), create the Releases (`python tools/release.py <version> <full commit hash> ...`), and close the issues it fixed with a comment naming the version. The overview issues tick themselves.
 
 ## What's new (every version)
 
-After an update, Sift shows a What's new sheet listing every version since the one the device had (Settings, Show update info; on unless turned off; Settings, What's new shows it again). Its entries are `WHATS_NEW` in `app/js/whatsnew.js`, one per version bump, added with the release note:
+After an update, Sift shows a What's new sheet (Settings, Show update info; on unless turned off; Settings, What's new shows it again). It shows one update at a time (everything published together), headed with the date and time it went live, and ‹ Older and Newer › step through every update there has been. Its entries are `WHATS_NEW` in `app/js/whatsnew.js`, one per version bump, added with the release note; when each version went live is `PUBLISHED` in the same file, filled in by `python tools/published_times.py --now` just before publishing (`--backfill` works past ones out from the Pages deploys):
 
 - `text`: one plain line per change, in the UI's words, saying where it is ("Find Things: ...").
 - `go`, `open`, `at`: the Show me target. `go` is the address (`#/find-things`), `open` the selectors clicked in turn to get there (e.g. the first box), `at` the element that changed, which is scrolled to and pulses. Check each target with a Show me before merging.
@@ -67,7 +68,7 @@ After an update, Sift shows a What's new sheet listing every version since the o
 - `app/js/browse.js`: keyboard browsing; one table of per-area settings (search box, filter bar, items, what Enter / Down do). The highlight is `.kb-cur` (same look everywhere).
 - `app/js/inline.js`: one-line fields: Enter or leaving saves ("Saved · Undo"); Esc saves and leaves.
 - `app/js/listkit.js`: shared list behaviour (select by the grab handle, drag, selection bar, Delete key); `holdSelect` for card grids (press and hold selects, then a tap adds), `rowSel` when the rows aren't one list's `li`s (Find Things' boxes across groups). Shift+arrows while browsing cards reach it from `browse.js` (`browse-select`).
-- `app/js/gcal.js`: Google Calendar, read only, for the Day Planner (sign-in, day-by-day fetch, device-only cache); the box and **+ Add to plan** are in `views/planner.js` (`renderGcal`).
+- `app/js/gcal.js`: Google Calendar, read only, for the Day Planner (sign-in, the calendars chosen, day-by-day fetch, device-only cache). It shows in the Day Planner's **↓ Bring items in** sheet (`views/planner.js`: `drawBring`, with From Tasks and Earlier days; what's marked Not today is the day's `bring_skip`).
 - `app/js/rows.js`: rows drawn the Tasks way (Tasks, and an open list's items): the lines joining sub-rows, the card classes, measuring where ticks and text sit, rows sliding open and closed.
 - `app/js/zoom.js`: a card zooming into its page and back (Find Things' boxes, the Lists page's cards).
 - `app/js/hold.js`: press and hold to pick a row up (Tasks via `sortable.js`, the Day Planner). `app/js/undo.js`: Ctrl+Z / Ctrl+Y outside text, from History. `app/js/keys.js`: shortcut key boxes.
