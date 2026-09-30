@@ -59,6 +59,10 @@ export function primeKeyboard() {
 const primed = () => primer && document.activeElement === primer;
 // Several things to do in turn: one yellow line (and green arrow) each.
 const tries = (...lines) => lines.map(l => `<p class="tour-try">${l}</p>`).join('');
+// Things to do in turn, shown one at a time as each is done (the step's stage() says which), so the card stays small.
+const staged = (...lines) => lines.map((l, i) => `<p class="tour-try" data-stage="${i}">${l}</p>`).join('');
+// Choosing tasks and moving them: how far along (tasks chosen, then Move ▸ opened).
+const sortStage = () => (document.querySelector('.select-bar [data-kit-group][aria-expanded="true"]')?.getClientRects().length ? 3 : Math.min(2, document.querySelectorAll('#main .task-list > li.selected').length));
 const handle = '<span class="tour-handle" aria-label="grab handle">⠿</span>';
 
 const searchStep = () => ({ id: 'search', at: KEYS ? '.top-search, #more-tab' : '#more-tab, .top-search', title: 'Find anything', body: `<p>${KEYS ? `${key(CTRL, 'K')} or ${key('/')}` : 'The box at the top of <b>More</b>'} searches every note, task, contact, list and box, archived ones too.</p>` });
@@ -102,13 +106,15 @@ const tasksSteps = () => [
       <p><b>1. Get it all down.</b> Everything goes in here as it comes, without deciding anything.</p>
       <p><b>2. Now and again, sort the pile,</b> one task at a time:</p>
       <ul class="tour-list"><li>⚡ <b>Two minutes or less?</b> Do it there and then.</li><li>🗑️ <b>Doesn't matter?</b> Bin it.</li><li>📥 <b>Otherwise</b> move it to ${w('list_now')}, ${w('list_next')} or ${w('list_later')}, by how soon it matters.</li></ul>` },
-  { id: 'process', hash: '#/tasks/inbox', at: '#main .task-list, #task-body', title: 'Sort a couple', done: { moved: 2 }, cardTop: true, liftBar: true, doneText: '✓ Two sorted. A little and often keeps the pile small.',
-    body: `<p>Let's clear two from the pile.</p>${tries(
+  { id: 'process', hash: '#/tasks/inbox', at: '#main .task-list, #task-body', title: 'Sort a couple', done: { moved: 2 }, cardLow: true, liftBar: true, stage: sortStage, doneText: '✓ Two sorted. A little and often keeps the pile small.',
+    body: `<p>Choose two, press <b>Move ▸</b>, then say where they go.</p>${staged(
       KEYS ? `Hover your mouse over the left side of a task, then click its grab handle ${handle}.` : `Tap the grab handle ${handle} on the left of a task.`,
       'Do it again on another task, to choose two.',
-      `Look at the bar at the bottom: ${tap()} <b>Move ▸</b>, then <b>${word('list_now')}</b>.`)}` },
-  { id: 'tidy', hash: '#/tasks/inbox', at: '#main .task-list, #task-body', title: 'Tidy up your practice tasks', done: { check: tidied }, cardTop: true, liftBar: true, doneText: "✓ Gone. That's the Task Dump: in fast, out when it's dealt with.",
-    body: `<p>The tasks you just typed were practice, so clear them away and your list starts clean. (If one was something real, just add it again after the tour.)</p>${try_('tick them off, or choose them with <b>⠿</b> and press <b>Delete</b> in the bar at the bottom.')}` },
+      `${tap().replace(/^./, c => c.toUpperCase())} <b>Move ▸</b> in the <b>Selections bar</b> at the bottom.${KEYS ? '' : ' (It scrolls sideways: drag it to the left if Move is out of sight.)'}`,
+      KEYS ? `${w('list_now')}, ${w('list_next')} and ${w('list_later')} appear beside it (if they don't all fit, scroll the bar sideways with your mouse wheel): click <b>${word('list_now')}</b>.`
+        : `${w('list_now')}, ${w('list_next')} and ${w('list_later')} slide out beside it. The bar scrolls sideways: drag it left or right to see them all, then tap <b>${word('list_now')}</b>.`)}` },
+  { id: 'tidy', hash: '#/tasks/inbox', at: '#main .task-list, #task-body', title: 'Tidy up your practice tasks', done: { check: tidied }, cardLow: true, liftBar: true, doneText: "✓ Gone. That's the Task Dump: in fast, out when it's dealt with.",
+    body: `<p>The tasks you just typed were practice: clear them away so your list starts clean. (Something real? Add it again after the tour.)</p>${try_(`tick them off, or choose them with <b>⠿</b>, then ${KEYS ? "press <b>Delete</b> at the end of the <b>Selections bar</b> at the bottom (scroll the bar sideways with your mouse wheel if you can't see it)" : '<b>drag the Selections bar</b> at the bottom <b>to the left</b> and tap <b>Delete</b> at its end'}.`)}` },
   { id: 'spacing', hash: '#/tasks/now', at: '#main .view-menu .density-opts, #main .view-menu .menu', also: '#main .task-list', open: '#main .view-menu', title: 'View settings: spacing', doneText: '✓ Medium shows dates, energy, repeats and durations under each task.',
     // Done once Medium is picked after being on something else (so a device already on Medium tries Tight first).
     done: { check: () => { let away = false; return () => { const d = densityOf('tasks'); if (d !== 'medium') away = true; return away && d === 'medium'; }; } },
@@ -309,9 +315,10 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
   const ring = Object.assign(document.createElement('div'), { className: 'tour-ring' });
   const also = Object.assign(document.createElement('div'), { className: 'tour-ring tour-also' });
   const card = Object.assign(document.createElement('div'), { className: 'tour-card' });
+  const label = Object.assign(document.createElement('div'), { className: 'tour-bar-label', hidden: true, innerHTML: 'Selections bar <span class="tour-bar-arrow" aria-hidden="true">↓</span>' });
   card.setAttribute('role', 'dialog');
   card.setAttribute('aria-label', 'Tour of Sift');
-  document.body.append(ring, also, card);
+  document.body.append(ring, also, label, card);
   document.documentElement.classList.add('touring');
   let target = null, extra = null, step = null, opened = null, raf = 0, stopWaiting = () => {};
   const t = tour = { n: 0 };
@@ -324,6 +331,8 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
   root.scrollPaddingTop = `${topEdge + 12}px`;
   root.scrollPaddingBottom = `${innerHeight - bottomEdge + 12}px`;
   const shown = el => (el?.isConnected && el.getClientRects().length ? el.getBoundingClientRect() : null);
+  // Where the top of the selection bar is, or will be once something is chosen (listkit.js; app.css .select-bar).
+  const barLine = () => shown(find('.select-bar'))?.top ?? (innerWidth >= 768 ? innerHeight - 24 : bottomEdge - 14) - 44;
   const fit = (el, r) => Object.assign(el.style, { left: `${r.left - 6}px`, top: `${r.top - 6}px`, width: `${r.width + 12}px`, height: `${r.height + 12}px` });
 
   // The ring follows what it points at (pages scroll, panels open, a page drawn
@@ -344,13 +353,19 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
     fit(ring, r || { left: 6, top: 6, width: innerWidth - 12, height: innerHeight - 12 });
     also.hidden = !x;
     if (x) fit(also, x);
+    // The selection bar, once in use on a step that has it used: outlined, with its name and an arrow above it.
+    const sel = step?.liftBar ? shown(find('.select-bar')) : null;
+    document.documentElement.classList.toggle('tour-bar-lit', !!sel);
+    label.hidden = !sel;
+    if (step?.stage) { const now = step.stage(); for (const line of card.querySelectorAll('[data-stage]')) line.hidden = Number(line.dataset.stage) !== now; }
+    if (sel) Object.assign(label.style, { left: `${Math.round(Math.max(8, sel.left + 10))}px`, top: `${Math.round(sel.top - label.offsetHeight - 8)}px` });
     if (moved) return; // put somewhere by hand: left there
     // The card: under what it points at, or over it, or beside it; when none of
     // those fits, in the bottom corner, away from the top of it (where its heading usually is).
     const ch = card.offsetHeight, cw = card.offsetWidth, gap = 14;
     let top, left = r ? Math.min(Math.max(12, r.left), innerWidth - cw - 12) : (innerWidth - cw) / 2;
     const beside = r && Math.min(Math.max(12, r.top), innerHeight - ch - 12);
-    if (step?.cardTop) { top = topEdge + 12; left = innerWidth - cw - 12; }
+    if (step?.cardLow) { top = barLine() - ch - 44; left = KEYS ? innerWidth - cw - 12 : (innerWidth - cw) / 2; }
     else if (!r) top = (innerHeight - ch) / 2;
     else if (r.bottom + gap + ch < innerHeight - 8) top = r.bottom + gap;
     else if (r.top - gap - ch > 8) top = r.top - gap - ch;
@@ -376,6 +391,7 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
     t.n = n;
     step = all[n];
     document.documentElement.classList.toggle('tour-lift-bar', !!step.liftBar);
+    card.classList.toggle('low', !!step.cardLow);
     keepPlace(which, step.id); // carried on from here next time
     const last = n === all.length - 1;
     if (step.hash && !location.hash.startsWith(step.hash)) location.hash = step.hash;
@@ -483,8 +499,9 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
     removeEventListener('keydown', onKey, true);
     ring.remove();
     also.remove();
+    label.remove();
     card.remove();
-    document.documentElement.classList.remove('touring', 'tour-lift-bar');
+    document.documentElement.classList.remove('touring', 'tour-lift-bar', 'tour-bar-lit');
     root.scrollPaddingTop = root.scrollPaddingBottom = '';
     if (tour === t) tour = null;
     if (await clearDemo()) dispatchEvent(new Event('sift:refresh')); // the examples go, the page drawn without them
