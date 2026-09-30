@@ -79,12 +79,15 @@ export async function addFiles(parent, files, ids = []) {
 
 export async function byParent() {
   const map = new Map();
-  for (const a of (await store.list('attachments')).sort((x, y) => x.created_at.localeCompare(y.created_at))) {
+  const all = (await store.list('attachments')).sort((x, y) => x.created_at.localeCompare(y.created_at));
+  // Is the file itself on this device yet? (Its details arrive first; the
+  // file follows through sync, and shows "still arriving" until then.) Asked
+  // all at once; store.js remembers the ones already found.
+  const here = await Promise.all(all.map(a => store.hasBlob(a.blob_id)));
+  all.forEach((a, n) => {
     if (!map.has(a.parent_id)) map.set(a.parent_id, []);
-    // Is the file itself on this device yet? (Its details arrive first; the
-    // file follows through sync, and shows "still arriving" until then.)
-    map.get(a.parent_id).push({ ...a, here: await store.hasBlob(a.blob_id) });
-  }
+    map.get(a.parent_id).push({ ...a, here: here[n] });
+  });
   return map;
 }
 

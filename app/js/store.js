@@ -354,6 +354,7 @@ function makeSpace(name) {
 
   // Delete this space's database (other open tabs close theirs: versionchange).
   async function erase() {
+    blobHere.clear();
     if (db) { db.close(); db = null; }
     await new Promise((resolve, reject) => {
       const r = indexedDB.deleteDatabase(name);
@@ -526,11 +527,16 @@ function makeSpace(name) {
 
   // ---------- attachment files (this device; the record is what syncs) ----------
 
+  // Files known to be here: nothing removes a file but erasing everything, so
+  // once found it needn't be looked up again (pages ask on every redraw).
+  const blobHere = new Set();
+
   async function putBlob(blobId, data, { uploaded = false } = {}) {
     await open();
     const tx = db.transaction('blobs', 'readwrite');
     tx.objectStore('blobs').put({ blob_id: blobId, data, saved_at: new Date().toISOString(), uploaded_at: uploaded ? new Date().toISOString() : null });
     await done(tx);
+    blobHere.add(blobId);
   }
 
   async function getBlob(blobId) {
@@ -539,8 +545,11 @@ function makeSpace(name) {
   }
 
   async function hasBlob(blobId) {
+    if (blobHere.has(blobId)) return true;
     await open();
-    return !!(await promisify(db.transaction('blobs').objectStore('blobs').getKey(blobId)));
+    const here = !!(await promisify(db.transaction('blobs').objectStore('blobs').getKey(blobId)));
+    if (here) blobHere.add(blobId);
+    return here;
   }
 
   // Files made here that haven't gone to the server yet.

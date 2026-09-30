@@ -44,7 +44,7 @@ const numberWord = count => count < 20 ? NUMBERS[count] : count < 100 ? TENS[Mat
 function achieveText(done, total) {
   const words = numberWord(done).replace(/^./, first => first.toUpperCase());
   const all = done >= total;
-  if (done <= 5) return all ? 'Everything has been achieved so far.' : `${words} and counting.`;
+  if (done <= 5) return all ? 'Everything has been achieved so far' : `${words} and counting`;
   if (done <= 10) return all ? `${words} tasks, every one of them done. Storming it!` : `${words} tasks and storming it!`;
   return all ? `${words} done, every single one. What a day!` : `${words} done; that's a strong day!`;
 }
@@ -958,7 +958,10 @@ export default {
         return `<p class="muted hint">See what's on in your Google Calendar each day, and bring what you need into the plan. Sift only reads your calendar, and keeps what it reads on this device.</p>
           <p class="bring-connect"><button type="button" class="primary" data-gcal="connect">Connect Google Calendar</button>${gcalProblem ? ` <span class="muted">${esc(gcalProblem)}</span>` : ''}</p>`;
       }
-      const got = w.got;
+      // While the calendars chosen are fetched again, what was showing stays (faded), so nothing jumps about.
+      const waiting = !w.got && gcalBusy && gcalLast?.date === date;
+      const got = waiting ? gcalLast.got : w.got;
+      if (w.got) gcalLast = { date, got: w.got };
       const multi = gcalChosen.length > 1;
       const when = e => (e.allDay ? 'All day' : `${e.start.slice(0, 10) === date ? hm(e.start) : '…'}–${new Date(e.end).toDateString() === parseDate(date).toDateString() ? hm(e.end) : '…'}`);
       const sameDay = at => at && new Date(at).toDateString() === parseDate(date).toDateString();
@@ -979,7 +982,7 @@ export default {
       const status = gcalBusy ? 'Refreshing…' : gcalProblem ? esc(gcalProblem) : got ? `Updated ${agoText(got.at)}` : '';
       const list = !got ? `<p class="muted gcal-empty">Calendar not loaded for this day. <button type="button" class="gcal-btn" data-gcal="load">Load</button></p>`
         : !events.length ? '<p class="muted gcal-empty">Nothing on.</p>'
-        : shown.length ? `<ul class="review-list bring-list">${shown.map(e => row(e)).join('')}</ul>` : '';
+        : shown.length ? `<ul class="review-list bring-list${waiting ? ' bring-waiting' : ''}">${shown.map(e => row(e)).join('')}</ul>` : '';
       // Refresh, Calendars and Disconnect first, then what's on.
       return `<div class="bring-cal-bar"><span class="muted gcal-status" aria-live="polite">${status}</span>
           <button type="button" class="gcal-link" data-gcal="refresh" title="Fetch again: this week and any days loaded ahead">↻ Refresh</button>
@@ -991,14 +994,12 @@ export default {
         ${list}`;
     }
     function calsHtml() {
-      if (!gcalCals || gcalCalsProblem) {
-        const say = gcalCalsBusy ? 'Fetching your calendars…'
-          : gcalCalsProblem ? `${esc(gcalCalsProblem)} <button type="button" class="gcal-btn" data-gcal="cals-allow" data-again="1">Allow</button>`
-          : '<button type="button" class="gcal-btn" data-gcal="cals-allow">List my calendars</button>';
-        return `<div class="bring-cals"><p class="muted">${say}</p></div>`;
-      }
-      return `<div class="bring-cals"><p class="muted hint">Which calendars show here (on this device):</p>
-        ${gcalCals.map(c => `<label><input type="checkbox" data-cal-id="${esc(c.id)}"${gcalChosen.includes(c.id) ? ' checked' : ''}><span class="bring-cal-dot" style="--cal: ${esc(c.colour || 'var(--muted)')}"></span>${esc(c.name)}${c.primary ? ' <span class="muted">(main)</span>' : ''}</label>`).join('')}</div>`;
+      const say = gcalCalsBusy ? 'Fetching your calendars…'
+        : gcalCalsProblem ? `${esc(gcalCalsProblem)} <button type="button" class="gcal-btn" data-gcal="cals-allow" data-again="1">Allow</button>`
+        : !gcalCals ? '<button type="button" class="gcal-btn" data-gcal="cals-allow">List my calendars</button>' : '';
+      // The list kept on this device shows while it's fetched again (or couldn't be).
+      return `<div class="bring-cals">${say ? `<p class="muted">${say}</p>` : ''}${gcalCals ? `<p class="muted hint">Which calendars show here (on this device):</p>
+        ${gcalCals.map(c => `<label><input type="checkbox" data-cal-id="${esc(c.id)}"${gcalChosen.includes(c.id) ? ' checked' : ''}><span class="bring-cal-dot" style="--cal: ${esc(c.colour || 'var(--muted)')}"></span>${esc(c.name)}${c.primary ? ' <span class="muted">(main)</span>' : ''}</label>`).join('')}` : ''}</div>`;
     }
 
     $('#bring').addEventListener('toggle', ev => { if (ev.target.matches?.('.bring-already')) alreadyOpen = ev.target.open; }, true);
@@ -1200,6 +1201,7 @@ export default {
     let gcalCals = null; // the list of your calendars, as last fetched
     let gcalCalsProblem = '';
     let gcalCalsBusy = false;
+    let gcalLast = null; // { date, got }: the events last shown, kept on screen while fetching again
     let calsOpen = false;
     gcal.chosen().then(c => { gcalChosen = c; });
     gcal.knownCalendars().then(c => { gcalCals = c; });
@@ -1287,8 +1289,13 @@ export default {
       if (!ids.length) { box.checked = true; toast('Keep at least one calendar'); return; }
       gcalChosen = ids;
       await gcal.choose(ids);
-      gcalRefresh(true);
+      if (!gcal.ready()) return gcalRefresh(true); // Google's popup has to open from the tap itself
+      gcalBusy = true; // shows Refreshing… straight away; the fetch waits until the ticking stops
+      gcalRedraw();
+      clearTimeout(chooseSoon);
+      chooseSoon = setTimeout(() => { gcalBusy = false; gcalRefresh(true); }, 500);
     });
+    let chooseSoon = 0;
 
     async function refresh() {
       paintSharing();
