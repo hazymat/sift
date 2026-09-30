@@ -4377,3 +4377,4 @@ html.kb-open :is(.sticky-top, .find-sticky, .dump-bar, .bb-sticky, .list-top, .b
 .bring-cals label { display: flex; align-items: center; gap: 8px; font-size: .9rem; cursor: pointer; }
 .bring-cal-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--cal); }
 .bring-connect { margin: 8px 0; }
+.bring-waiting { opacity: .5; pointer-events: none; transition: opacity .2s; }
