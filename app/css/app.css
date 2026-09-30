@@ -3881,6 +3881,16 @@ button.tour-pick:hover, button.tour-pick:focus-visible { transform: translateY(-
 .tour-ring.whole { outline: none; border-radius: 0; box-shadow: none; background: rgba(4, 8, 20, .58); }
 .touring .toast { z-index: 1250; } /* over the dimming, under the card */
 .tour-lift-bar .select-bar { z-index: 1250; } /* a tour step that has the selection bar used: above the dimming, below the card */
+.tour-bar-lit.tour-lift-bar .select-bar { outline: 3px solid #ffb020; outline-offset: 3px; box-shadow: 0 0 0 7px rgba(255, 176, 32, .25), var(--shadow); } /* once in use: outlined in the tour's yellow */
+.tour-bar-label { position: fixed; z-index: 1260; pointer-events: none; display: flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; background: #182032; color: #ffd479; font: 700 .85rem/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; border: 1px solid #ffb020; }
+.tour-bar-label[hidden] { display: none; }
+/* A card kept low, under the list it's about: smaller, so the list shows above it. */
+.tour-card.low { font-size: .86rem; line-height: 1.4; padding: 10px 14px 10px; }
+.tour-card.low .tour-head { margin: -10px -14px 2px; padding: 12px 14px 2px; }
+.tour-card.low h3 { margin: 0 0 4px; font-size: 1rem; }
+.tour-card.low p { margin: 0 0 6px; }
+.tour-card.low .tour-foot { margin-top: 6px; }
+.tour-bar-arrow { font-size: 1.2rem; line-height: 1; color: #ffb020; }
 .tour-card { position: fixed; z-index: 1300; width: min(420px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto; padding: 12px 18px 14px; border-radius: 16px; background: #182032; color: #e8edf5; border: 1px solid rgba(255, 255, 255, .2); box-shadow: 0 16px 50px rgba(0, 0, 0, .6); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: .92rem; line-height: 1.5; }
 .tour-card h3 { margin: 2px 0 8px; font-size: 1.1rem; color: #fff; }
 .tour-card p { margin: 0 0 8px; }
