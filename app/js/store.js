@@ -732,6 +732,7 @@ export async function createDemo(collection, fields) {
   return local.create(collection, { ...fields, id });
 }
 export const hasDemo = () => demoIds.size > 0;
+export const isDemo = id => demoIds.has(id);
 // An id about to be used for an example record (a photo's file is saved before its record).
 export function markDemo(id) { demoIds.add(id); keepDemoIds(); }
 // Every example record gone from this device, as if never made (with any outbox and History entries).

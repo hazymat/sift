@@ -59,6 +59,13 @@ const markRepeat = { cls: 'tour-this', apply: () => {
 } };
 // Leaving a step that had a task opened: closed again, as Esc would.
 const closeEditing = () => { const el = document.querySelector('#main .task-list > li.pills-open, #main .task-list > li.task-details'); if (!el) return; (document.activeElement || document.body).dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); document.activeElement?.blur?.(); };
+// Tasks typed by hand while a tour runs (startTour watches), for the step that has them tidied away.
+const madeInTour = new Set();
+const tidied = () => { let ok = false; return () => {
+  Promise.all([...madeInTour].map(id => store.get('tasks', id, { includeDeleted: true })))
+    .then(rs => { ok = rs.length > 0 && rs.every(r => !r || r.done_at || r.deleted_at || r.archived_at); });
+  return ok;
+}; };
 const Tap = () => (KEYS ? 'Click' : 'Tap');
 // Where a task's ⠿ is: on a computer it only shows when the task is pointed at.
 const grab = () => (KEYS ? 'point at a task and its <b>⠿</b> appears on the left' : 'each task has a <b>⠿</b> on its left');
@@ -81,6 +88,8 @@ const tasksSteps = () => [
       <p>So get everything down here as it comes. Then, now and again, go through the pile one at a time: do it there and then if it takes two minutes, bin it if it doesn't matter, or move it to ${w('list_now')}, ${w('list_next')} or ${w('list_later')}, which group tasks by how soon they matter.</p>` },
   { id: 'process', hash: '#/tasks/inbox', at: '#main .task-list, #task-body', title: 'Sort a couple', done: { moved: 2 }, cardTop: true, liftBar: true, doneText: '✓ Two sorted. A little and often keeps the pile small.',
     body: `<p>Let's clear two from the pile. To choose a task, ${grab()}: ${tap()} it.</p>${try_(`choose two tasks, then <b>Move ▸</b> in the bar at the bottom, and pick <b>${word('list_now')}</b>.`)}` },
+  { id: 'tidy', hash: '#/tasks/inbox', at: '#main .task-list, #task-body', title: 'Tidy up your practice tasks', done: { check: tidied }, cardTop: true, liftBar: true, doneText: "✓ Gone. That's the Task Dump: in fast, out when it's dealt with.",
+    body: `<p>The tasks you just typed were practice, so clear them away and your list starts clean. (If one was something real, just add it again after the tour.)</p>${try_('tick them off, or choose them with <b>⠿</b> and press <b>Delete</b> in the bar at the bottom.')}` },
   { id: 'spacing', hash: '#/tasks/now', at: '#main .view-menu .density-opts, #main .view-menu .menu', also: '#main .task-list', open: '#main .view-menu', title: 'Dial it up a notch', done: { density: ['tasks', 'medium'] }, doneText: '✓ Now you can see dates, energy, repeats and durations under each task.',
     body: `<p>Here's ${w('list_now')}. We started you on <b>Tight</b> spacing: a nice clean list. When you want more to go on, dial it up.</p>${try_('under <b>Spacing</b>, pick the middle one, <b>Medium</b>.')}` },
   { id: 'more', hash: '#/tasks/now', at: '#main .task-list, #task-body', leave: closeEditing, title: 'Everything about a task', done: { check: shows('#main .task-list > li.pills-open, #main .task-list > li.task-details') }, doneText: "✓ That's everything about a task, in one place.",
@@ -265,6 +274,12 @@ let tour = null; // the tour running: { n, end }
 export async function startTour({ which = 'new', fromStart = false } = {}) {
   await tour?.end();
   await seedDemo();
+  madeInTour.clear();
+  const stopNoting = store.subscribe(async change => {
+    if (change?.collection !== 'tasks' || !change.id || change.remote || store.isDemo(change.id) || madeInTour.has(change.id)) return;
+    const t = await store.get('tasks', change.id);
+    if (t && !t.tour && t.created_at === t.updated_at) madeInTour.add(t.id); // just made (not an old one changed)
+  });
   dispatchEvent(new Event('sift:refresh'));
   const all = forThisDevice(which);
   const kept = fromStart ? null : await placeKept(which);
@@ -408,6 +423,7 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
   addEventListener('keydown', onKey, true);
 
   t.end = async () => {
+    stopNoting();
     stopWaiting();
     shut();
     cancelAnimationFrame(raf);
