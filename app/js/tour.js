@@ -38,6 +38,25 @@ const w = k => `<b>${word(k)}</b>`;
 const tap = () => (KEYS ? 'click' : 'tap');
 const nav = area => `#topnav-links a[href="#/${area}"], #tabbar a[href="#/${area}"]`;
 const try_ = text => `<p class="tour-try">Try it: ${text}</p>`;
+// What finishes a line on a phone keyboard: New task asks for a "done" key, which iOS draws as ✓ or "done"
+// (by version) and Android as ✓; a page can't tell which, so both are named.
+const enterKey = () => (KEYS ? `press ${key('Enter')}` : 'tap <b>✓</b> (or <b>Done</b>) on your keyboard');
+
+// Phones: the keyboard only opens for a tap, and a tour gets going a moment after it. So the tap puts the
+// cursor in a hidden box straight away (the keyboard opens), and the step's own field takes it over once
+// it's there (the keyboard stays). startTour's caller calls this in the tap itself.
+let primer = null;
+export function primeKeyboard() {
+  if (KEYS) return;
+  primer?.remove();
+  primer = Object.assign(document.createElement('input'), { type: 'text', autocomplete: 'off' });
+  primer.setAttribute('aria-hidden', 'true');
+  primer.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;font-size:16px;border:0;padding:0';
+  document.body.append(primer);
+  primer.focus();
+  setTimeout(() => { primer?.remove(); primer = null; }, 8000); // (never taken over: gone again)
+}
+const primed = () => primer && document.activeElement === primer;
 // Several things to do in turn: one yellow line (and green arrow) each.
 const tries = (...lines) => lines.map(l => `<p class="tour-try">${l}</p>`).join('');
 const handle = '<span class="tour-handle" aria-label="grab handle">⠿</span>';
@@ -90,9 +109,9 @@ const changes = get => () => { const was = get(); return () => get() !== was; };
 
 const tasksSteps = () => [
   { id: 'add', hash: '#/tasks/inbox', at: '#task-entry, #task-body', also: nav('tasks'), focus: '#task-new', title: 'Add a task', done: { made: ['tasks'] },
-    body: `<p class="tour-try">Try typing something you need to do, like <b>Buy milk</b>, then ${KEYS ? `press ${key('Enter')}` : 'tap Add'}.</p>` },
+    body: `<p class="tour-try">Try typing something you need to do, like <b>Buy milk</b>, then ${enterKey()}.</p>` },
   { id: 'tabs', hash: '#/tasks/inbox', at: '#task-entry, #task-body', also: '#task-views [data-view="inbox"]', focus: '#task-new', title: `You just used the ${word('list_inbox')}`, done: { made: ['tasks'] }, doneText: "✓ That's the idea: no buttons, just type.",
-    body: `<p>The <b>${word('list_inbox')}</b> is for whatever pops into your head. It's built to have you typing within seconds of opening Sift: type, ${KEYS ? key('Enter') : 'Add'}, type the next one. Nothing to decide; just get your thoughts down.</p>
+    body: `<p>The <b>${word('list_inbox')}</b> is for whatever pops into your head. It's built to have you typing within seconds of opening Sift: type, ${KEYS ? key('Enter') : '✓'}, type the next one. Nothing to decide; just get your thoughts down.</p>
       ${try_('add another one, straight away, like <b>Call Mum</b>.')}` },
   { id: 'capture', hash: '#/tasks/inbox', at: '#main .task-list, #task-body', title: 'Empty your head first, sort it later',
     body: `<blockquote class="tour-quote"><span class="tour-quote-icon" aria-hidden="true">📘</span><span><span class="tour-quote-text">"Your mind is for having ideas, not holding them."</span><span class="tour-quote-who">David Allen, <i>Getting Things Done</i></span></span></blockquote>
@@ -274,7 +293,7 @@ export async function saveTourForLater(which) {
   await tourTask(which);
   const tab = document.querySelector('#task-views [data-view="next"]');
   if (tab) flash(tab, { pulses: 3 });
-  toast(`📌 Saved to your ${word('list_next')} list: ▶ start it from there whenever you like`, { ms: 6000 });
+  toast(`📌 Saved to your ${word('list_next')} list (its tab is flashing). Feel free to move it to ${word('list_now')} or ${word('list_later')} if you prefer :)`, { ms: 8000 });
 }
 // The tour's task, shown on Tasks → Next with its outline pulsing so it can be found.
 export async function showTourTask(which = 'new') {
@@ -286,7 +305,7 @@ export async function showTourTask(which = 'new') {
     if (el) { flash(el); break; }
     await new Promise(ok => setTimeout(ok, 100));
   }
-  toast(`The tour waits on your ${word('list_next')} list: ▶ Start the tour carries on where you left it`, { ms: 6000 });
+  toast(`📌 The tour's on your ${word('list_next')} list (flashing): ▶ Start the tour carries on where you left it. Feel free to move it to ${word('list_now')} or ${word('list_later')} if you prefer :)`, { ms: 9000 });
 }
 
 let tour = null; // the tour running: { n, end }
@@ -342,6 +361,7 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
     fit(ring, r || { left: 6, top: 6, width: innerWidth - 12, height: innerHeight - 12 });
     also.hidden = !x;
     if (x) fit(also, x);
+    if (moved) return; // put somewhere by hand: left there
     // The card: under what it points at, or over it, or beside it; when none of
     // those fits, in the bottom corner, away from the top of it (where its heading usually is).
     const ch = card.offsetHeight, cw = card.offsetWidth, gap = 14;
@@ -359,6 +379,8 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
   };
 
   let undoEnter = null; // what the step's enter() set up, undone when it's left
+  let moved = false; // the card dragged by hand this step
+  let inField = false; // the step's field has the cursor
   const shut = () => {
     step?.leave?.();
     if (opened) { opened.open = false; opened = null; }
@@ -381,7 +403,9 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
     const already = step.done?.layout && layoutOn(...step.done.layout);
     const doneStep = step.done && !already;
     const demoNote = n === 0 ? '<p class="tour-demo-note">🧪 We\'ve filled Sift with example things so there\'s something to see. They\'re all cleared away when the tour ends; anything you make yourself stays.</p>' : '';
-    card.innerHTML = `<div class="tour-head"><span class="tour-count">${n + 1} of ${all.length}</span><span class="tour-demo" title="Example things fill Sift during the tour; they're cleared away when it ends">🧪 Example data</span><button type="button" class="tour-x" data-tour="later" aria-label="End the tour early" title="End the tour early: it waits on your task list">✕</button></div>
+    moved = false;
+    inField = false;
+    card.innerHTML = `<div class="tour-head" title="Drag to move"><span class="tour-grip" aria-hidden="true"></span><span class="tour-count">${n + 1} of ${all.length}</span><span class="tour-demo" title="Example things fill Sift during the tour; they're cleared away when it ends">🧪 Example data</span><button type="button" class="tour-x" data-tour="later" aria-label="End the tour early" title="End the tour early: it waits on your task list">✕</button></div>
       <h3>${step.title}</h3><div class="tour-body">${demoNote}${step.body}${already ? '<p class="tour-already">✓ You&#39;ve already got these switched on.</p>' : ''}</div>
       <div class="tour-foot">${n ? `<button type="button" data-tour="back">Back${k('B')}</button>` : ''}
         <button type="button" data-tour="later" class="tour-later">End tour early</button><span class="spacer"></span>
@@ -390,7 +414,11 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
     // What it points at may take a moment to be drawn (the page changing, a toolbar showing once the note is in use).
     for (let tries = 0; tries < 40 && current(n); tries++) {
       // (Not on a phone: the cursor in a note opens it full screen, with the keyboard. That's left to a tap.)
-      if (step.focus && KEYS) { const f = document.querySelector(step.focus); if (f && document.activeElement !== f) f.focus(); }
+      if (step.focus && (KEYS || primed())) {
+        const f = document.querySelector(step.focus);
+        if (f && document.activeElement !== f) { f.focus(); if (primer && document.activeElement === f) { primer.remove(); primer = null; } }
+        if (f && document.activeElement === f) inField = true;
+      }
       if (step.open && !opened) { opened = find(step.open); if (opened) opened.open = true; }
       target = step.at ? find(step.at) : null;
       if (!step.at || target) break;
@@ -404,7 +432,7 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
       const cardFits = bottomEdge - r.bottom > room || r.top - topEdge > room;
       if (!clear || !cardFits) target.scrollIntoView({ block: r.height + room < bottomEdge - topEdge ? 'start' : 'nearest', behavior: 'smooth' });
     }
-    if (!step.focus || !KEYS) card.querySelector('[data-tour="next"]').focus({ preventScroll: true });
+    if (!inField) card.querySelector('[data-tour="next"]').focus({ preventScroll: true }); // (never taking the cursor from the step's own field)
     if (!doneStep) return;
     const stop = await waitFor(step.done, id => { if (current(n)) tried(n, id); });
     if (current(n)) stopWaiting = stop; else stop(); // moved on while it was being set up
@@ -428,12 +456,30 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
     else if (what === 'later') t.end().then(() => showTourTask(which));
     else if (what === 'save') {
       saveTourForLater(step.offer);
-      card.querySelector('.tour-foot').innerHTML = `<span class="tour-nice">📌 Saved to your ${word('list_next')} list</span>`;
+      card.querySelector('.tour-foot').innerHTML = `<span class="tour-nice">📌 Saved to your ${word('list_next')} list (flashing up there). Move it to ${word('list_now')} or ${word('list_later')} any time.</span>`;
       const at = t.n;
-      setTimeout(() => { if (current(at)) (at === all.length - 1 ? finish() : show(at + 1)); }, 1800);
+      setTimeout(() => { if (current(at)) (at === all.length - 1 ? finish() : show(at + 1)); }, 3200);
     }
   };
   card.addEventListener('click', e => act(e.target.closest('[data-tour]')?.dataset.tour));
+  // Dragging the card by its top row (not its ✕): it stays where it's put until the next step.
+  card.addEventListener('pointerdown', e => {
+    const head = e.target.closest('.tour-head');
+    if (!head || e.target.closest('button') || e.button > 0) return;
+    e.preventDefault();
+    const r = card.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top;
+    try { head.setPointerCapture(e.pointerId); } catch { /* (a pointer that can't be captured: moves are still followed) */ }
+    card.classList.add('dragging');
+    const move = ev => {
+      moved = true;
+      card.style.left = `${Math.round(Math.min(Math.max(4, ev.clientX - dx), innerWidth - card.offsetWidth - 4))}px`;
+      card.style.top = `${Math.round(Math.min(Math.max(4, ev.clientY - dy), innerHeight - 40))}px`;
+    };
+    const up = () => { head.removeEventListener('pointermove', move); head.removeEventListener('pointerup', up); head.removeEventListener('pointercancel', up); card.classList.remove('dragging'); };
+    head.addEventListener('pointermove', move);
+    head.addEventListener('pointerup', up);
+    head.addEventListener('pointercancel', up);
+  });
   // N for Next and B for Back (not while typing); Esc on the card ends the tour early.
   const onKey = e => {
     if (e.key === 'Escape' && card.contains(e.target)) { e.preventDefault(); e.stopImmediatePropagation(); act('later'); return; }

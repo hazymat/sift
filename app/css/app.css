@@ -3885,7 +3885,9 @@ button.tour-pick:hover, button.tour-pick:focus-visible { transform: translateY(-
 .tour-card ul { margin: 0 0 8px; padding-left: 1.2em; }
 .tour-card b { color: #fff; }
 .tour-card kbd { border-color: rgba(255, 255, 255, .35); opacity: 1; margin-left: 0; }
-.tour-head { display: flex; align-items: center; justify-content: space-between; }
+.tour-head { position: relative; display: flex; align-items: center; justify-content: space-between; margin: -12px -18px 4px; padding: 12px 18px 4px; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.tour-card.dragging .tour-head { cursor: grabbing; }
+.tour-grip { position: absolute; top: 5px; left: 50%; width: 38px; height: 4px; margin-left: -19px; border-radius: 4px; background: rgba(255, 255, 255, .28); } /* the card is dragged by its top row */
 .tour-count { font-size: .75rem; color: #9aa6ba; letter-spacing: .04em; }
 .tour-x { padding: 2px 8px; background: transparent; box-shadow: none; border-color: transparent; color: #e8edf5; }
 .tour-try { color: #ffd479; font-weight: 600; }
