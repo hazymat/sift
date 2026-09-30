@@ -24,6 +24,7 @@ import { keys } from './keys.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.08': [{ text: "Alt+Enter opens a note full screen wherever its ⤢ shows Alt Enter, even when the cursor isn't in the note (a task's name, a button, nowhere); the hint only shows when the key will do that." }],
   '1.60.07': [{ text: 'Pages with attached photos and files redraw a little faster.' }],
   '1.60.06': [{ text: "What's new: each update shows the date and time it went live, and ‹ Older and Newer › (or ← / →) step back and forward through every update there has been.", go: '#/settings', at: '#main [data-act="whats-new"]', more: 'Settings, What\'s new opens on the newest update.' }],
   '1.60.05': [{ text: "Day Planner: ↓ Bring items in gathers what's waiting for the day in one sheet: your tasks, anything unfinished from earlier days and Google Calendar (now from several calendars). The boxes above the schedule are gone; Not today sets anything aside.", go: '#/planner', at: '#main .bring-link', more: "A calendar event goes onto the schedule at its time or into the day's tasks. Connect Google Calendar and choose its calendars in the sheet's Google Calendar tab." }],

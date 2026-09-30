@@ -581,6 +581,7 @@ export function richText(container, { value = '', onChange, placeholder = '', or
   // Alt+Enter goes in one level: writing in a note → the note full screen
   // (Esc comes back out). Already full screen: nothing more to go into.
   function goFull() {
+    if (isFull(container)) return;
     unspotlight(container);
     openFull(container, { label: fullLabel() });
     if (!container.contains(document.activeElement)) placeCaretAtEnd();
@@ -597,6 +598,7 @@ export function richText(container, { value = '', onChange, placeholder = '', or
   const bareFull = container.querySelector(':scope > .bare-full');
   bareFull?.addEventListener('pointerdown', ev => ev.preventDefault());
   bareFull?.addEventListener('click', () => { if (!isFull(container)) goFull(); });
+  container._goFull = goFull; // Alt+Enter from outside the note (altTarget, below)
   raw.addEventListener('keydown', altEnter);
   // Esc steps out one level at a time: a menu of the note's own first, then
   // the note itself (leaving it saves it, as clicking away does). Whatever
@@ -952,3 +954,59 @@ export function richText(container, { value = '', onChange, placeholder = '', or
     get value() { return md; },
   };
 }
+
+// ---------- Alt+Enter from outside a note ----------
+// A note whose ⤢ Alt Enter is on show opens full screen with Alt+Enter wherever
+// the cursor is (the task's name, a button, nowhere), not only from inside it,
+// and the Alt Enter hint only shows when that is what the key will do (the
+// note gets .alt-target; app.css hides the hint on the others). Which note:
+// the cursor's own; else the one nearest the cursor (the panel it's in), or
+// the only one on the page (or in the sheet on top). None when a row's name
+// has its own Alt+Enter (opening its panel, holdopen.js) and no note is open
+// with it, or when two notes are equally near.
+const ROW_TITLE = '.item-title, .task-title, .item-list input[name="name"]';
+const ROW = 'li[data-id], li[data-task], .line.has-item[data-item]';
+const shown = rich => !rich.classList.contains('bare') && rich._goFull && rich.querySelector(':scope > .md-bar > .md-full')?.getClientRects().length;
+export function altTarget(at = document.activeElement) {
+  if (document.querySelector('.rich.is-full')) return null;
+  const own = at?.closest?.('.rich');
+  if (own) return own._goFull ? own : null;
+  const top = [...document.querySelectorAll('dialog[open]')].at(-1) || document.getElementById('main') || document.body;
+  const all = [...top.querySelectorAll('.rich')].filter(shown);
+  if (!all.length) return null;
+  const title = at?.closest?.(ROW_TITLE);
+  if (title) {
+    const row = title.closest(ROW);
+    const next = row?.nextElementSibling;
+    const panel = next && !next.querySelector(ROW_TITLE) ? next : null; // Tasks: the panel follows its row
+    const mine = row ? all.filter(r => row.contains(r) || panel?.contains(r)) : [];
+    return mine.length === 1 ? mine[0] : null; // a row with no note open: Alt+Enter opens its panel
+  }
+  for (let el = at && top.contains(at) ? at : null; el && el !== top; el = el.parentElement) {
+    const near = all.filter(r => el.contains(r));
+    if (near.length === 1) return near[0];
+    if (near.length > 1) return null;
+  }
+  return all.length === 1 ? all[0] : null;
+}
+let marked = null;
+function markTarget() {
+  const t = altTarget();
+  if (t === marked && t?.classList.contains('alt-target')) return; // (full screen and back resets a note's classes)
+  if (marked !== t) marked?.classList.remove('alt-target');
+  t?.classList.add('alt-target');
+  marked = t;
+}
+let markSoon = 0;
+const remark = () => { clearTimeout(markSoon); markSoon = setTimeout(markTarget, 60); };
+for (const type of ['focusin', 'focusout', 'pointerup', 'keyup', 'hashchange']) document.addEventListener(type, remark, true);
+new MutationObserver(remark).observe(document.documentElement, { childList: true, subtree: true });
+document.addEventListener('keydown', ev => {
+  if (ev.key !== 'Enter' || !ev.altKey || ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.defaultPrevented) return;
+  if (document.activeElement?.closest?.('.rich')) return; // the note's own Alt+Enter
+  const t = altTarget();
+  if (!t) return;
+  ev.preventDefault();
+  ev.stopImmediatePropagation();
+  t._goFull(); // (a name being typed in saves as the cursor leaves it for the note)
+}, true);

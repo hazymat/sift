@@ -2289,6 +2289,8 @@ body.pills-only :is(.task-list, .item-list, .checklist, .planner) .more:not([ari
 /* Its key: Alt+Enter goes full screen, Esc comes back (kbd hides on touch screens). */
 .md-full kbd { font-size: .62rem; }
 .rich.is-full .md-full-in, .rich:not(.is-full) .md-full-out { display: none; }
+/* Alt Enter shows only where the key opens this note (richtext.js altTarget). */
+.rich:not(.alt-target):not(:focus-within):not(.is-full) .md-full-in { display: none; }
 .note-full-head { display: none; }
 .rich.is-full {
   position: fixed; left: 0; right: 0; top: 0; height: 100dvh; z-index: 1000;

@@ -5,6 +5,8 @@
 // whose rows carry a details button (Day Planner, Find Things, Lists), but not
 // where a hold drags the row instead ([data-hold-drag]: Tasks; listkit.js).
 
+import { altTarget } from './richtext.js';
+
 const TITLE = '.item-title, .task-title, .item-list input[name="name"]';
 const ROW = 'li[data-id], li[data-task], .line.has-item[data-item]';
 const DETAILS = '[data-act="details"], [data-act="item-details"]';
@@ -62,7 +64,7 @@ export function installHoldToOpen() {
   document.addEventListener('keydown', ev => {
     if (ev.key !== 'Enter' || !ev.altKey) return;
     const title = ev.target.closest?.(TITLE);
-    if (!title) return;
+    if (!title || altTarget(title)) return; // its note's ⤢ Alt Enter is on show: the note opens full screen (richtext.js)
     ev.preventDefault();
     ev.stopPropagation();
     const row = title.closest(ROW), key = row && (row.dataset.id || row.dataset.task || row.dataset.item), at = title.selectionStart;
