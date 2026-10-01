@@ -5,7 +5,8 @@
 import * as store from './store.js';
 import { byRank, firstKey } from './order.js';
 import { word } from './words.js';
-import { people as sharers } from './sharing.js';
+import { people as sharers, fromOthers, myShare, personName } from './sharing.js';
+import { myUserId } from './sync.js';
 
 export const STATUSES = [
   { id: 'todo', label: 'To do' },
@@ -164,6 +165,17 @@ export function suggestions(tasks, energy, limit = 5) {
 }
 
 // ---------- projects shared with you ----------
+
+// Everyone sharing a project (its owner and whoever accepted), for giving a task to: [{ user_id, name }], you as "Me".
+// ownerId: whose project it is when it's shared with you (null: your own). Empty when it isn't shared.
+export function projectMembers(projectId, ownerId = null) {
+  const sh = ownerId ? fromOthers(['project']).find(x => x.owner_id === ownerId && x.info.id === projectId) : myShare({ kind: 'project', id: projectId });
+  if (!sh) return [];
+  const out = new Map([[sh.owner_id, sh.owner_email]]);
+  for (const m of sh.members) if (m.accepted && !out.has(m.user_id)) out.set(m.user_id, m.email);
+  if (out.size < 2) return [];
+  return [...out].map(([user_id, email]) => ({ user_id, name: user_id === myUserId() ? 'Me' : personName(email) }));
+}
 
 // Projects others share with you, from each person's space (store.js): [{ p, tasks, owner_id, name, share }].
 // Every place that puts something into a project lists these too, after your own (docs/working-notes.md).

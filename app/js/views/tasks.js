@@ -9,7 +9,7 @@ import { shareHtml } from '../share.js';
 import { flash, SOFT, WASH } from '../flash.js';
 import * as store from '../store.js';
 import { shareSheet, sharedWithText, invitesHtml, theirIconHtml } from '../sharing.js';
-import { sharedProjects, sharedValue, sharedFrom, moveIntoShared, loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES, HORIZONS, horizonOf, planDay, MAX_DEPTH, depthIn, levelsUnder, archiveOldDone } from '../tasks.js';
+import { sharedProjects, projectMembers, sharedValue, sharedFrom, moveIntoShared, loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES, HORIZONS, horizonOf, planDay, MAX_DEPTH, depthIn, levelsUnder, archiveOldDone } from '../tasks.js';
 import { ENERGY, isoDate, dateText, addDays, parseDate, addItem, durationChoices, durationLabel } from '../days.js';
 import { energyMenu, pillMenu } from '../pillmenu.js';
 import { tintHex, tintId, colourMenu } from '../colours.js';
@@ -125,6 +125,9 @@ export default {
     // ---------- pieces ----------
 
     const projectOf = t => data.projects.find(p => p.id === t.project_id);
+    // The people sharing a task's project (projectMembers), and those of them the task is given to (member_ids).
+    const membersOf = t => (projectOf(t) ? projectMembers(t.project_id, state.owner) : []);
+    const membersOn = t => membersOf(t).filter(m => (t.member_ids || []).includes(m.user_id));
     const kidsOf = t => data.tasks.filter(k => k.parent_task_id === t.id);
     // A place just after a task and its sub-tasks (for a new sub-task at the end).
     const afterFamily = t => {
@@ -152,6 +155,7 @@ export default {
       }
       const files = atts.get(t.id)?.length;
       if (files) out.push(`<button type="button" class="chip" data-att-view="${t.id}" title="Attached files: press to look">📎 ${files}</button>`);
+      for (const m of membersOn(t)) out.push(`<span class="chip" title="Given to ${esc(m.name)}, who shares this project">👥 ${esc(m.name)}</span>`);
       for (const cid of t.contact_ids || []) {
         const c = people.contacts.find(x => x.id === cid);
         if (c) out.push(`<a class="chip" href="#/contacts/c/${c.id}" title="Contact">👤 ${esc(c.name || '?')}</a>`);
@@ -215,7 +219,8 @@ export default {
       const aim = aimDate(t) || '';
       const aimTime = t.aim_at && t.aim_at.length > 10 ? t.aim_at.slice(11, 16) : '';
       const showTime = !!aimTime || aimTimeFor === t.id;
-      const moreSet = t.project_id || (t.contact_ids || []).length || t.case_id || (t.priority && Number(t.priority) !== 3) || (t.status && t.status !== 'todo');
+      const members = membersOf(t), given = membersOn(t);
+      const moreSet = t.project_id || (t.contact_ids || []).length || given.length || t.case_id || (t.priority && Number(t.priority) !== 3) || (t.status && t.status !== 'todo');
       return `
         <div class="task-notes"></div>
         ${att.rowHtml(atts.get(t.id), { parent: t.id })}
@@ -241,9 +246,13 @@ export default {
             <label>Status<select name="status">${STATUSES.map(s => `<option value="${s.id}" ${t.status === s.id ? 'selected' : ''}>${s.label}</option>`).join('')}</select></label>
             <label>Project<select name="project_id"><option value="">None</option>${data.projects.map(p => `<option value="${p.id}" ${t.project_id === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}${state.owner || !shared.length ? '' : `<optgroup label="👥 Shared with me">${shared.filter(x => x.p.status !== 'done').map(x => `<option value="${sharedValue(x)}">${esc(x.p.name)} (${esc(x.name)})</option>`).join('')}</optgroup>`}${state.owner ? '' : '<option value="__new">+ New project…</option>'}</select></label>
             ${t.project_id ? `<label>Milestone<select name="milestone_id"><option value="">None</option>${ms.map(m => `<option value="${m.id}" ${t.milestone_id === m.id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}<option value="__new">+ New milestone…</option></select></label>` : ''}
-            <label>People<select name="add_contact" data-filled="${(t.contact_ids || []).length ? 1 : ''}"><option value="">+ Add a contact…</option>${people.contacts.filter(c => !(t.contact_ids || []).includes(c.id)).map(c => `<option value="${c.id}">${esc(c.name || '(no name)')}</option>`).join('')}</select></label>
+            <label>People<select name="add_contact" data-filled="${(t.contact_ids || []).length || given.length ? 1 : ''}"><option value="">${members.length ? '+ Add a person…' : '+ Add a contact…'}</option>${(() => {
+              const free = members.filter(m => !given.includes(m)).map(m => `<option value="member:${m.user_id}">${esc(m.name)}</option>`).join('');
+              const contacts = people.contacts.filter(c => !(t.contact_ids || []).includes(c.id)).map(c => `<option value="${c.id}">${esc(c.name || '(no name)')}</option>`).join('');
+              return members.length ? `${free ? `<optgroup label="👥 Sharing this project">${free}</optgroup>` : ''}${contacts ? `<optgroup label="Contacts">${contacts}</optgroup>` : ''}` : contacts;
+            })()}</select></label>
             <label>Case<select name="case_id"><option value="">None</option>${people.cases.map(k => `<option value="${k.id}" ${t.case_id === k.id ? 'selected' : ''}>${esc(k.title)}</option>`).join('')}</select></label>
-            ${(t.contact_ids || []).length ? `<div class="energy-pick"><span>With</span>${t.contact_ids.map(cid => people.contacts.find(c => c.id === cid)).filter(Boolean).map(c => `<span class="chip">${esc(c.name)} <button type="button" class="chip-x" data-act="remove-contact" data-id="${c.id}" aria-label="Remove">×</button></span>`).join('')}</div>` : ''}
+            ${(t.contact_ids || []).length || given.length ? `<div class="energy-pick"><span>With</span>${given.map(m => `<span class="chip">👥 ${esc(m.name)} <button type="button" class="chip-x" data-act="remove-member" data-id="${m.user_id}" aria-label="Remove">×</button></span>`).join('')}${(t.contact_ids || []).map(cid => people.contacts.find(c => c.id === cid)).filter(Boolean).map(c => `<span class="chip">${esc(c.name)} <button type="button" class="chip-x" data-act="remove-contact" data-id="${c.id}" aria-label="Remove">×</button></span>`).join('')}</div>` : ''}
           </div>
         </details>
         <div class="detail-actions">
@@ -1355,7 +1364,8 @@ export default {
         const tm = body.querySelector(`[data-for="${id}"] [name="aim_time"]`)?.value || '';
         await change(id, { aim_at: d ? (tm ? `${d}T${tm}` : d) : null }, d ? `Target end date: ${shortDate(d)}` : 'Target end date cleared');
       } else if (t.name === 'add_contact') {
-        if (t.value) await change(id, { contact_ids: [...(task.contact_ids || []), t.value] }, 'Added a person');
+        if (t.value.startsWith('member:')) await change(id, { member_ids: [...(task.member_ids || []), t.value.slice(7)] }, 'Added a person');
+        else if (t.value) await change(id, { contact_ids: [...(task.contact_ids || []), t.value] }, 'Added a person');
       } else if (t.name === 'project_id' && t.value.startsWith('from:')) {
         if (!(await projectPicked([id], t.value))) render();
       } else if (t.name === 'project_id' && t.value === '__new') {
@@ -1444,6 +1454,10 @@ export default {
       const task = data.tasks.find(x => x.id === id);
       const act = b.dataset.act;
       b.closest('details')?.removeAttribute('open');
+      if (act === 'remove-member' && id) {
+        await change(id, { member_ids: (task.member_ids || []).filter(x => x !== b.dataset.id) }, 'Removed a person');
+        return;
+      }
       if (act === 'remove-contact' && id) {
         await change(id, { contact_ids: (task.contact_ids || []).filter(x => x !== b.dataset.id) }, 'Removed a person');
         return;
