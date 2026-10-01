@@ -8,7 +8,7 @@
 import * as sync from './sync.js';
 import * as store from './store.js';
 import { toast } from './toast.js';
-import { askYes } from './ask.js';
+import { ask, askYes } from './ask.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 export const personName = sync.personName;
@@ -22,6 +22,28 @@ export function scopeText(info) {
   if (!info.from && !info.to) return 'all days';
   return info.from === info.to ? fmtDate(info.from) : `${fmtDate(info.from)} to ${fmtDate(info.to)}`;
 }
+
+// Your name as people you share with see it: from Settings → Sync, and asked
+// before you share or accept while none is set. → true to go ahead (saved, or
+// skipped: they see the start of your email), false when closed.
+export async function askName({ before = false } = {}) {
+  let names = await sync.myProfile();
+  let error = '';
+  const fallback = sync.emailName(sync.signedIn()?.email);
+  for (;;) {
+    const answer = await ask({
+      title: before ? 'First, your name' : 'Your name',
+      text: `This is how people you share with see you, on shared things and invitations, so they know it's you. All optional: without a name they see "${fallback}", from your email.`,
+      fields: [{ name: 'first_name', label: 'First name', value: names.first_name }, { name: 'last_name', label: 'Last name', value: names.last_name }, { name: 'user_name', label: 'Username (no one else on your server can have it)', value: names.username }],
+      ok: before ? 'Save and carry on' : 'Save', skip: before ? `Carry on as ${fallback}` : '', error,
+    });
+    if (answer === null) return false;
+    if (answer === 'skip') return true;
+    const picked = { first_name: answer.first_name, last_name: answer.last_name, username: answer.user_name }; // not "username": password managers fill that in
+    try { await sync.saveProfile(picked); toast(`People you share with see you as ${personName(sync.signedIn()?.email)}`); return true; } catch (e) { error = e.message; names = picked; }
+  }
+}
+const nameFirst = async () => { await sync.myProfile(); return sync.hasName() || !sync.namesWork() || askName({ before: true }); };
 
 // Your own share of this thing (null if it isn't shared).
 export const myShare = info => sync.sharesNow().find(sh => sh.mine && sameScope(sh.info, info)) || null;
@@ -124,7 +146,7 @@ export function shareSheet(info, what) {
     ev.preventDefault();
     const email = dlg.querySelector('input[name="email"]').value.trim();
     if (!email) return;
-    busy(async () => toast(`Invitation sent to ${await sync.shareWith(info, email)}`));
+    busy(async () => { if (await nameFirst()) toast(`Invitation sent to ${await sync.shareWith(info, email)}`); });
   });
   dlg.addEventListener('click', async ev => {
     if (ev.target === dlg) return dlg.close();
@@ -151,6 +173,7 @@ export function installSharing() {
     if (!b) return;
     b.disabled = true;
     try {
+      if (b.dataset.shareAccept && !await nameFirst()) { b.disabled = false; return; }
       if (b.dataset.shareAccept) { await sync.acceptShare(b.dataset.shareAccept); toast('Accepted: it will appear under Shared with me'); }
       if (b.dataset.shareDecline) { await sync.leaveShare(b.dataset.shareDecline); toast('Declined'); }
       if (b.dataset.shareLeave) {

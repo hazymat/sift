@@ -4,12 +4,13 @@
 //   await ask({ title, text, fields: [{ name, label, type, value, placeholder }], ok, danger })
 //        (type 'select' takes options: [[value, label], …] instead of a placeholder)
 //        → { name: value, … } when OK is pressed (or Enter), null when closed
+//        (skip: 'Label' adds a third button, which answers 'skip'; error: a line in red)
 //   await askText(title, { value, placeholder, label, ok, type, text }) → string | null
 //   await askYes(title, { text, ok, danger }) → true | false
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-export function ask({ title, text = '', fields = [], ok = 'OK', cancel = 'Cancel', danger = false }) {
+export function ask({ title, text = '', fields = [], ok = 'OK', cancel = 'Cancel', danger = false, skip = '', error = '' }) {
   return new Promise(resolve => {
     const dlg = document.createElement('dialog');
     dlg.className = 'sheet ask-sheet';
@@ -21,9 +22,11 @@ export function ask({ title, text = '', fields = [], ok = 'OK', cancel = 'Cancel
         ${fields.map(f => `<label class="ask-field">${f.label ? `<span>${esc(f.label)}</span>` : ''}${f.type === 'select'
           ? `<select name="${esc(f.name)}">${f.options.map(([value, label]) => `<option value="${esc(value)}"${value === f.value ? ' selected' : ''}>${esc(label)}</option>`).join('')}</select>`
           : `<input name="${esc(f.name)}" type="${esc(f.type || 'text')}" value="${esc(f.value ?? '')}" placeholder="${esc(f.placeholder || '')}" autocomplete="${f.type === 'password' ? 'new-password' : 'off'}"${f.type === 'password' ? '' : ' autocapitalize="sentences"'}>`}</label>`).join('')}
+        ${error ? `<p class="share-error">${esc(error)}</p>` : ''}
         <div class="sheet-actions">
           <button type="button" data-ask="cancel">${esc(cancel)}</button>
           <span class="spacer"></span>
+          ${skip ? `<button type="button" data-ask="skip">${esc(skip)}</button>` : ''}
           <button type="submit" class="${danger ? 'danger' : 'primary'}" value="ok">${esc(ok)}</button>
         </div>
       </form>`;
@@ -36,6 +39,7 @@ export function ask({ title, text = '', fields = [], ok = 'OK', cancel = 'Cancel
       dlg.close();
     });
     dlg.querySelector('[data-ask="cancel"]').addEventListener('click', () => dlg.close());
+    dlg.querySelector('[data-ask="skip"]')?.addEventListener('click', () => { answer = 'skip'; dlg.close(); });
     dlg.addEventListener('close', () => { dlg.remove(); resolve(answer); });
     dlg.showModal();
     (dlg.querySelector('input, select') || dlg.querySelector('[type="submit"]')).focus();

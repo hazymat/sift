@@ -153,7 +153,7 @@ try {
   r = await call('GET', '/api/me', null, fam);
   assert.equal(r.json.wrapped_private_key, 'priv2');
   r = await call('POST', '/api/people/find', { email: 'Fam@Example.com' }, recovered);
-  assert.deepEqual(r.json, { user_id: 'u2', email: 'fam@example.com', public_key: 'pub2' });
+  assert.deepEqual(r.json, { user_id: 'u2', email: 'fam@example.com', public_key: 'pub2', username: null, first_name: null, last_name: null });
   r = await call('POST', '/api/people/find', { email: 'nobody@example.com' }, recovered);
   assert.equal(r.status, 404);
 
@@ -173,6 +173,24 @@ try {
   assert.equal(r.json.shares[0].info, 'sealed');
   assert.equal(r.json.shares[0].accepted_at, null, 'only invited so far');
   assert.deepEqual(r.json.shares[0].members.map(m => m.email), ['user@example.com', 'fam@example.com']);
+  assert.equal(r.json.shares[0].members[0].first_name, null, 'no name set yet');
+  // names: optional, shown to people sharing with you; usernames unique on the server
+  r = await call('POST', '/api/profile', { username: 'mat', first_name: '  Mat ', last_name: 'S<b>' }, recovered);
+  assert.deepEqual(r.json, { username: 'mat', first_name: 'Mat', last_name: 'Sb' });
+  r = await call('POST', '/api/profile', { username: 'MAT', first_name: 'Anna' }, fam);
+  assert.equal(r.status, 409, 'username taken, whatever the case');
+  r = await call('POST', '/api/profile', { username: 'a b' }, fam);
+  assert.equal(r.status, 400, 'no spaces in a username');
+  r = await call('POST', '/api/profile', { first_name: 'Anna' }, fam);
+  assert.deepEqual(r.json, { username: null, first_name: 'Anna', last_name: null });
+  r = await call('POST', '/api/profile', { username: 'Mat', first_name: 'Mat', last_name: '' }, recovered);
+  assert.equal(r.json.username, 'Mat', 'keeping your own username in another case is fine');
+  r = await call('GET', '/api/me', null, recovered);
+  assert.equal(r.json.first_name, 'Mat');
+  r = await call('GET', '/api/shares', null, fam);
+  assert.deepEqual(r.json.shares[0].members.map(m => m.first_name), ['Mat', 'Anna']);
+  r = await call('POST', '/api/people/find', { email: 'fam@example.com' }, recovered);
+  assert.equal(r.json.first_name, 'Anna');
   r = await call('GET', `/api/shares/${sid}/pull?since=0`, null, fam);
   assert.equal(r.status, 404, 'not usable until accepted');
   r = await call('POST', `/api/shares/${sid}/members`, { user_id: 'u2', wrapped_key: 'k-fam' }, recovered);

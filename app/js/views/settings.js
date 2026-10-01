@@ -249,6 +249,7 @@ export default {
       };
       // Draws can overlap (status changes while one is waiting): only the latest one writes.
       let drawing = 0;
+      let namesAsked = false;
       const draw = async () => {
         const mine = ++drawing;
         await sync.ready;
@@ -256,8 +257,14 @@ export default {
         const acct = sync.signedIn();
         const st = sync.status;
         if (acct) {
+          // Your names come from the server once (not waited for: a draw must not wait on the network).
+          if (!sync.namesWork() && !namesAsked) { namesAsked = true; sync.myProfile().then(() => sync.namesWork() && draw(), () => {}); }
+          const nm = sync.myNamesNow();
+          const nameMore = () => { const full = [nm.first_name, nm.last_name].filter(Boolean).join(' '); return `<span class="muted">${full && full !== sync.personName(acct.email) ? ` (${esc(full)})` : ''}${nm.username ? ` · username ${esc(nm.username)}` : ''}</span>`; };
           box.innerHTML = `
             <p><b>Signed in</b> as ${acct.email} on <code>${acct.server.replace(/^https?:\/\//, '')}</code></p>
+            ${sync.namesWork() ? `<p class="sync-name"><b>Your name:</b> ${sync.hasName() ? `${esc(sync.personName(acct.email))}${nameMore()}` : '<span class="muted">not set</span>'}<button type="button" class="link-btn" data-sync="name">${sync.hasName() ? 'Change' : 'Set your name'}</button></p>
+            <p class="muted hint">How people you share with see you, on shared things and invitations, so they know it's you.${sync.hasName() ? '' : ` Without a name they see "${esc(sync.emailName(acct.email))}", from your email.`}</p>` : ''}
             <dl class="sync-facts" id="sync-line">${factsHtml(st)}</dl>
             <p class="muted hint sync-code-hint">Two devices showing the same three words hold the same data. Different words: one of them is still catching up (or can't reach the server).</p>
             <div class="backup-row">
@@ -439,6 +446,7 @@ export default {
             if (!ul.hidden) ul.innerHTML = (await sync.devices()).map(d => `<li>${d.name}${d.this ? ' <span class="muted">(this one)</span>' : ''} <span class="muted">· last seen ${ago(d.last_seen)}</span></li>`).join('');
             return;
           }
+          if (what === 'name') { if (await (await import('../sharing.js')).askName()) draw(); return; }
           if (what === 'pwform') { const f = box.querySelector('.sync-pw'); f.hidden = !f.hidden; return; }
           if (what === 'pw') {
             const oldpw = box.querySelector('[name="oldpw"]').value;

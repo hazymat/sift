@@ -195,7 +195,8 @@ export async function signOut() {
   privateKey = null;
   for (const owner of new Set(shares.filter(sh => !sh.mine).map(sh => sh.owner_id))) await store.dropSpace(owner);
   await setShares([]);
-  for (const k of ['share_private', 'share_public', 'share_keys', 'share_seqs']) await store.metaSet(k, undefined);
+  myNames = null;
+  for (const k of ['share_private', 'share_public', 'share_keys', 'share_seqs', 'my_names']) await store.metaSet(k, undefined);
   await store.metaSet('sync_keys', undefined);
   await store.metaSet('sync_account', undefined);
   await store.metaSet('sync_last_seq', undefined);
@@ -399,8 +400,43 @@ const shareListeners = new Set();
 export const sharesNow = () => shares;
 export const onShares = fn => { shareListeners.add(fn); fn(shares); return () => shareListeners.delete(fn); };
 export const myUserId = () => account?.user_id;
-// "anna.smith@example.com" → "Anna": what the app calls someone.
-export const personName = email => { const first = String(email || '').split('@')[0].split(/[._+-]/)[0]; return first ? first[0].toUpperCase() + first.slice(1) : 'Someone'; };
+// What the app calls someone: the name they set (first name, with the last name
+// when two people sharing with you have the same first name; else their username),
+// or from their email, "anna.smith@example.com" → "Anna".
+let myNames = null; // { username, first_name, last_name } as the server has them
+const NAME_KEYS = ['username', 'first_name', 'last_name'];
+const namesOf = row => Object.fromEntries(NAME_KEYS.map(k => [k, row?.[k] || '']));
+export function personName(email) {
+  const key = String(email || '').trim().toLowerCase();
+  const known = shares.flatMap(sh => sh.members || []);
+  const named = key && key === account?.email?.toLowerCase() ? myNames : known.find(m => m.email === key);
+  if (named?.first_name) {
+    const twin = known.some(m => m.email !== key && m.first_name?.toLowerCase() === named.first_name.toLowerCase());
+    return twin && named.last_name ? `${named.first_name} ${named.last_name}` : named.first_name;
+  }
+  return named?.username || emailName(key);
+}
+export const emailName = email => { const first = String(email || '').split('@')[0].split(/[._+-]/)[0]; return first ? first[0].toUpperCase() + first.slice(1) : 'Someone'; };
+// Your own names (asked of the server the first time they're needed).
+export async function myProfile() {
+  if (!myNames && account) {
+    const me = await api('GET', '/api/me');
+    if (!('first_name' in me)) return namesOf(null); // a server from before names
+    myNames = namesOf(me);
+    await store.metaSet('my_names', myNames);
+  }
+  return myNames || namesOf(null);
+}
+export const namesWork = () => !!myNames;
+export const myNamesNow = () => myNames || namesOf(null);
+export const hasName = () => !!(myNames?.first_name || myNames?.username);
+export async function saveProfile(names) {
+  try { myNames = namesOf(await api('POST', '/api/profile', names)); } catch (e) { throw e.status === 404 ? new Error('Your sync server needs updating before names can be set') : e; }
+  await store.metaSet('my_names', myNames);
+  await refreshShares().catch(() => {});
+  for (const fn of shareListeners) fn(shares);
+  return myNames;
+}
 
 // The account's key pair: made once by whichever device gets there first.
 async function ensureKeyPair() {
@@ -423,9 +459,12 @@ async function refreshShares() {
     try {
       const shareKeys = known[s.id] || (known[s.id] = await cx.workingKeys(await cx.openShareKey(privateKey, s.wrapped_key)));
       next.push({ id: s.id, wrapped_key: s.wrapped_key, mine: s.mine, owner_id: s.owner_id, owner_email: s.owner_email, accepted: !!s.accepted_at, created_at: s.created_at, keys: shareKeys, info: await cx.openJson(shareKeys, s.info),
-        members: s.members.map(m => ({ user_id: m.user_id, email: m.email, accepted: !!m.accepted_at, added_at: m.added_at || null })) });
+        members: s.members.map(m => ({ user_id: m.user_id, email: m.email, ...namesOf(m), accepted: !!m.accepted_at, added_at: m.added_at || null })) });
     } catch (e) { console.warn('A share could not be opened:', e.message); }
   }
+  // Your names, if changed on another device.
+  const meRow = res.shares.flatMap(s => s.members).find(m => m.user_id === res.user_id);
+  if (meRow && 'first_name' in meRow && JSON.stringify(namesOf(meRow)) !== JSON.stringify(myNames)) { myNames = namesOf(meRow); await store.metaSet('my_names', myNames); }
   // Gone (stopped, or you were taken out or left): what came from it goes from this device.
   for (const gone of shares.filter(old => !old.mine && old.accepted && !next.some(sh => sh.id === old.id && sh.accepted))) await forgetShare(gone, next);
   for (const id of Object.keys(known)) if (!next.some(sh => sh.id === id)) delete known[id];
@@ -662,6 +701,7 @@ export async function init() {
 async function load() {
   account = await store.metaGet('sync_account');
   keys = await store.metaGet('sync_keys');
+  myNames = (await store.metaGet('my_names')) || null;
   const keyring = (await store.metaGet('share_keys')) || {};
   shares = ((await store.metaGet('shares')) || []).filter(sh => keyring[sh.id]).map(sh => ({ ...sh, keys: keyring[sh.id] }));
   if (shares.length) for (const fn of shareListeners) fn(shares); // pages drawn before this show them now
