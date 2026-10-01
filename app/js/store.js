@@ -6,6 +6,7 @@
 //   _server_seq   number         0 until the server has it
 //   deleted_at                   soft delete; tombstones are kept
 // Every write also queues the record id in `outbox`.
+import * as stats from './stats.js';
 
 export const COLLECTIONS = [
   'projects', 'milestones', 'tasks',
@@ -789,8 +790,17 @@ export async function eraseAll() {
   if (indexedDB.databases) for (const d of await indexedDB.databases()) if (d.name?.startsWith(`${LOCAL_DB}_from_`)) await makeSpace(d.name).erase();
   await local.erase();
 }
-export function create(collection, fields) { return current.create(collection, fields); }
-export function update(collection, id, changes) { return current.update(collection, id, changes); }
+// Usage stats (stats.js): things made and ticked off on this device, not the tour's examples.
+const COUNTED = c => c !== 'settings' && c !== 'note_versions';
+export function create(collection, fields) {
+  const made = current.create(collection, fields);
+  if (COUNTED(collection)) made.then(rec => { if (!demoIds.has(rec?.id ?? fields?.id)) stats.made(collection); }, () => {});
+  return made;
+}
+export function update(collection, id, changes) {
+  if (changes?.done_at && !demoIds.has(id)) stats.ticked(collection);
+  return current.update(collection, id, changes);
+}
 export function remove(collection, id) { return current.remove(collection, id); }
 export function restore(collection, id) { return current.restore(collection, id); }
 export function updateMany(collection, changes) { return current.updateMany(collection, changes); }

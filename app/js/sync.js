@@ -9,6 +9,7 @@
 
 import * as store from './store.js';
 import * as cx from './crypto.js';
+import { track, STATS_SERVER } from './stats.js';
 
 let keys = null;       // { records, ids } CryptoKeys
 let account = null;    // { server, email, user_id, token, device_id }
@@ -116,8 +117,16 @@ async function keep(server, email, login, dataKeyRaw) {
   await store.updateDeviceSettings({ server_url: server });
 }
 
+// Usage stats: someone trying sync, on this server or one of their own, and whether it worked.
+async function joining(how, server, work) {
+  const where = String(server).replace(/\/+$/, '') === STATS_SERVER ? 'this server' : 'another server';
+  track('sync', { step: 'try', how, server: where });
+  try { const out = await work(); track('sync', { step: 'joined', how, server: where }); return out; } catch (e) { track('sync', { step: 'failed', how, server: where, why: String(e.message).slice(0, 120) }); throw e; }
+}
+
 // New account: returns the recovery code to show once.
-export async function register(server, email, password) {
+export const register = (server, email, password) => joining('register', server, () => registerOn(server, email, password));
+async function registerOn(server, email, password) {
   server = server.replace(/\/+$/, '');
   const kdf = cx.newKdf();
   const master = await cx.deriveMaster(password, kdf);
@@ -143,7 +152,8 @@ async function newPassword(password, dataKeyRaw) {
 
 // Forgot the password: the recovery code opens the data; every other device is
 // signed out and this one signs in with the new password.
-export async function recover(server, email, code, password) {
+export const recover = (server, email, code, password) => joining('recover', server, () => recoverOn(server, email, code, password));
+async function recoverOn(server, email, code, password) {
   server = server.replace(/\/+$/, '');
   const dataKeyRaw = cx.fromRecoveryCode(code);
   const login = await api('POST', '/api/recover', {
@@ -161,7 +171,8 @@ export async function changePassword(oldPassword, password) {
   await api('POST', '/api/password', { old_auth_hash: await cx.loginHash(oldMaster, oldPassword), ...await newPassword(password, dataKeyRaw) });
 }
 
-export async function signIn(server, email, password) {
+export const signIn = (server, email, password) => joining('signIn', server, () => signInOn(server, email, password));
+async function signInOn(server, email, password) {
   server = server.replace(/\/+$/, '');
   const { kdf } = await api('POST', '/api/prelogin', { email }, server);
   const master = await cx.deriveMaster(password, kdf);
@@ -474,10 +485,11 @@ export async function shareWith(info, email) {
   await api('POST', `/api/shares/${id}/members`, { user_id: person.user_id, wrapped_key: await cx.sealShareKey(person.public_key, raw) });
   await refreshShares();
   syncNow();
+  track('share', { step: 'sent', kind: info.kind });
   return personName(person.email);
 }
 
-export async function acceptShare(id) { await api('POST', `/api/shares/${id}/accept`); await refreshShares(); return syncNow(); }
+export async function acceptShare(id) { await api('POST', `/api/shares/${id}/accept`); track('share', { step: 'accepted' }); await refreshShares(); return syncNow(); }
 // Decline an invitation, leave a share, or (the owner) take someone out.
 export async function leaveShare(id, userId = account.user_id) { await api('DELETE', `/api/shares/${id}/members/${userId}`); await refreshShares(); }
 // Stop sharing: it stays yours (back into your own records); everyone else loses it.

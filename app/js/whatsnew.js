@@ -21,6 +21,7 @@ import { VERSION } from './version.js';
 import { flash } from './flash.js';
 import { toast } from './toast.js';
 import { keys } from './keys.js';
+import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
@@ -163,6 +164,7 @@ export async function afterUpdate() {
   const from = device.whatsnew_from;
   if (!from) return;
   await store.updateDeviceSettings({ whatsnew_from: null, whatsnew_last: from });
+  track('updated', { from, to: VERSION });
   if ((await store.getSettings()).show_update_info === false) return;
   if (since(from).length) showWhatsNew(from);
 }
@@ -175,6 +177,7 @@ export async function lastWhatsNew() {
 
 // `from`: the version this device had (how many updates it missed); `page`: which update, 0 the newest.
 export function showWhatsNew(from, page = 0) {
+  feature('whats_new');
   const all = updates();
   if (!all.length) return;
   const missed = all.filter(u => u.versions.some(v => num(v) > num(from))).length;
@@ -210,7 +213,7 @@ export function showWhatsNew(from, page = 0) {
     if (!btn) return;
     if (btn.dataset.act === 'close') return dlg.close();
     if (btn.dataset.step) return step(Number(btn.dataset.step));
-    if (btn.dataset.show) { dlg.close(); return showMe(rows[btn.dataset.show].entry, from, page); }
+    if (btn.dataset.show) { feature('show_me'); dlg.close(); return showMe(rows[btn.dataset.show].entry, from, page); }
     if (btn.dataset.act === 'dump') {
       dlg.close();
       const u = all[page];

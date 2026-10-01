@@ -18,6 +18,7 @@
 import * as store from './store.js';
 import { byRank } from './order.js';
 import { KINDS } from './refs.js';
+import { feature } from './stats.js';
 
 const byPlace = byRank(); // order.js
 
@@ -27,6 +28,7 @@ const showTime = t => { const [h, m] = t.split(':'); return `${Number(h)}.${m}`;
 const longDate = d => new Date(`${d}T12:00`).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
 export async function daysAsText(from, to, { links = true } = {}) {
+  feature('export_days');
   if (to < from) [from, to] = [to, from];
   const items = await store.list('day_items', { filter: i => i.date >= from && i.date <= to && !i.archived_at });
   const days = await store.list('days', { filter: d => d.date >= from && d.date <= to });

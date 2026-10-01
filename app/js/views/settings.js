@@ -2,6 +2,7 @@ import { sortable } from '../sortable.js';
 import { toast } from '../toast.js';
 import { ask, askText, askYes } from '../ask.js';
 import { word } from '../words.js';
+import { STATS_SERVER } from '../stats.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
@@ -159,6 +160,8 @@ export default {
           <dt>Device id</dt><dd><code>${store.getDeviceId()}</code></dd>
           <dt>Installed</dt><dd>${matchMedia('(display-mode: standalone)').matches || navigator.standalone ? 'Yes' : 'No, running in the browser'}</dd>
         </dl>
+        <label class="check-row"><input type="checkbox" id="usage-stats"> Send anonymous usage data <span class="muted">(never anything you put into Sift; see <a href="privacy.html" target="_blank" rel="noopener">Privacy</a>)</span></label>
+        <a class="seg-link" href="#/stats" id="stats-link" hidden>Usage stats</a>
       </section>
 
       <section class="card danger-zone" id="erase-card">
@@ -695,6 +698,18 @@ export default {
     });
 
     el.querySelector('[data-act="whats-new"]').addEventListener('click', async () => (await import('../whatsnew.js')).lastWhatsNew());
+    const usageStats = el.querySelector('#usage-stats');
+    usageStats.checked = (await store.getDeviceSettings()).usage_stats !== false;
+    usageStats.addEventListener('change', async () => {
+      await store.updateDeviceSettings({ usage_stats: usageStats.checked });
+      toast(usageStats.checked ? '✓ Anonymous usage data is sent' : '✓ No usage data is sent from this device');
+    });
+    // The server's owner: a way to their usage stats.
+    store.metaGet('sync_account').then(async account => {
+      if (account?.server !== STATS_SERVER) return;
+      const res = await fetch(`${STATS_SERVER}/api/stats/admin`, { headers: { Authorization: `Bearer ${account.token}` } });
+      if ((await res.json()).admin) el.querySelector('#stats-link').hidden = false;
+    }).catch(() => {});
     const updateInfo = el.querySelector('#show-update-info');
     updateInfo.checked = (await store.getSettings()).show_update_info !== false;
     updateInfo.addEventListener('change', async () => {

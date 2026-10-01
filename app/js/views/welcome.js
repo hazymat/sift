@@ -5,6 +5,7 @@
 import * as store from '../store.js';
 import { startTour, showTourTask, progress, tourLength, toursSeen } from '../tour.js';
 import { word } from '../words.js';
+import { track } from '../stats.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
@@ -58,6 +59,7 @@ export default {
       const b = ev.target.closest('button[data-pick], button[data-act]');
       if (!b) return;
       await store.updateDeviceSettings({ welcomed: true });
+      track('welcome', { picked: b.dataset.pick || b.dataset.act });
       if (b.dataset.pick) return startTour({ which: b.dataset.pick }); // carries on where it was left, if it was
       // Later: a task like any other, whose pill brings back this page (views/tasks.js), shown so it can be found.
       if (b.dataset.act === 'later') return showTourTask();

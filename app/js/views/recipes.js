@@ -28,6 +28,7 @@ import { sortable } from '../sortable.js';
 import { signedIn, status as syncStatus } from '../sync.js';
 import { linkUrls } from '../weburl.js';
 import { addExamples, addNewPhotos, isBrandNew, needsWipe, photosBehind, setUpBooks, wipeBook } from '../examples.js';
+import { feature } from '../stats.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -970,6 +971,7 @@ export default {
       let got = [];
       const read = () => {
         got = parseRecipes(box.value);
+        feature('import_recipes');
         const books = Array.from(new Set(got.map(r => r.type || 'No book')));
         found.textContent = got.length ? `${got.length} recipe${got.length === 1 ? '' : 's'} found, in ${books.join(', ')}` : box.value.trim() ? 'No recipes found: each needs a line starting with # and its name.' : '';
         go.disabled = !got.length;

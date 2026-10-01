@@ -9,6 +9,7 @@ import * as store from './store.js';
 import { undoEntries } from './history.js';
 import { toast } from './toast.js';
 import { typingIn } from './listkit.js';
+import { feature } from './stats.js';
 
 // Newest first. An entry is undone while an undo of it stands (an undo that isn't itself undone).
 function standing(entries) {
@@ -55,6 +56,7 @@ export function installUndoKeys(refresh) {
     if (typedIn(ev.target) || typedIn(document.activeElement) || document.querySelector('dialog[open]')) return;
     ev.preventDefault();
     const redo = k === 'y' || ev.shiftKey;
+    feature(redo ? 'redo' : 'undo');
     const entry = await (redo ? lastToRedo() : lastToUndo());
     if (!entry) { toast(redo ? 'Nothing to redo' : 'Nothing to undo'); return; }
     const { label, changedSince } = await undoEntries([entry]);

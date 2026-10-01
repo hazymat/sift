@@ -36,6 +36,8 @@ export const AREAS = [
   { id: 'history', label: 'History', icon: 'i-history', view: './views/history.js', pinnable: false, hidden: true },
   // Not in the nav either: the first time Sift is opened (firstVisit below).
   { id: 'welcome', label: 'Welcome', icon: 'i-dump', view: './views/welcome.js', pinnable: false, hidden: true },
+  // Not in the nav: the server owner's usage stats, from Settings, This device.
+  { id: 'stats', label: 'Usage stats', icon: 'i-history', view: './views/stats.js', pinnable: false, hidden: true },
 ];
 
 export const MAX_PINNED = 4;
@@ -673,7 +675,9 @@ async function boot() {
   // Ctrl+Z / Ctrl+Y outside anything being typed: undo / redo the last thing done (undo.js).
   import('./undo.js').then(m => m.installUndoKeys(refreshPage));
   await store.clearDemo(); // example things left from a tour cut short (the app closed mid-tour; demo.js)
-  if (await firstVisit()) location.replace('#/welcome');
+  const fresh = await firstVisit();
+  if (fresh) location.replace('#/welcome');
+  import('./stats.js').then(m => m.start(fresh));
   await route();
   renderSyncStatus();
   import('./install.js').then(m => m.showBanner());
