@@ -140,7 +140,7 @@ const tasksSteps = () => [
     body: `<p>The <b>⋯</b> Triple Dot menu is where you'll find tasks you've archived, or even deleted (they wait in the Bin for 30 days).</p>${try_(`${tap()} <b>⋯</b> at the top right.`)}` }),
   { id: 'done', hash: '#/tasks/now', at: '#task-views [data-view="done"], #task-views', ringPad: 1, title: 'Done: your last month', done: { hash: '#/tasks/done' },
     body: `<p>Ticked-off tasks stay in <b>Done</b> for 30 days, then tidy themselves away into the Archive, so Done never becomes a long list. (Settings → Tasks changes how long.)</p>${try_(`${tap()} <b>Done</b>.`)}` },
-  { id: 'projects', hash: '#/tasks/now', at: '.task-mode [data-mode="projects"], .task-mode', title: 'Projects', offer: 'projects', cardBottom: true,
+  { id: 'projects', hash: '#/tasks/now', at: '.task-mode [data-mode="projects"], .task-mode', title: 'Projects', offer: 'projects',
     body: `<p><b>Projects</b> are for bigger things: milestones and deadlines, and sharing with the people working on it with you.</p><p>Save the Projects tour for later, or skip it for now.</p>` },
   { id: 'keysoffer', only: 'keys', title: 'Keyboard lover?', offer: 'keys',
     body: `<p>Sift is easy to drive from the keyboard: moving between areas, pages and tasks without touching the mouse.</p><p>Save the keyboard tour for later, or skip it.</p>` },
@@ -371,24 +371,22 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
     if (step?.stage) { const now = step.stage(); for (const line of card.querySelectorAll('[data-stage]')) line.hidden = Number(line.dataset.stage) !== now; }
     if (sel) Object.assign(label.style, { left: `${Math.round(Math.max(8, sel.left + 10))}px`, top: `${Math.round(sel.top - label.offsetHeight - 8)}px` });
     if (moved) return; // put somewhere by hand: left there
-    // The card: under what it points at, or over it, or beside it (clear of an open menu around it when there's
-    // room, otherwise just of what it points at); when none of those fits, in the bottom corner, away from the
-    // top of it (where its heading usually is).
+    // The card: as low as it can go, just above where the selections bar is (or will be once something is
+    // chosen; 44 leaves room for the bar's label and arrow), so the page above stays in view. Centred on a
+    // phone, to the right with a keyboard. Only when that would cover an open menu does it go under, over or
+    // beside what it points at instead.
     const ch = card.offsetHeight, cw = card.offsetWidth, gap = 14;
-    let top, left = r ? Math.min(Math.max(12, r.left), innerWidth - cw - 12) : (innerWidth - cw) / 2;
-    const around = box => {
-      const beside = Math.min(Math.max(12, box.top), innerHeight - ch - 12);
-      if (box.bottom + gap + ch < innerHeight - 8) return [box.bottom + gap, left];
-      if (box.top - gap - ch > 8) return [box.top - gap - ch, left];
-      if (box.left - gap - cw > 8) return [beside, box.left - gap - cw];
-      if (box.right + gap + cw < innerWidth - 8) return [beside, box.right + gap];
-      return null;
-    };
-    const menuBox = r && c && { left: Math.min(r.left, c.left), top: Math.min(r.top, c.top), right: Math.max(r.right, c.right), bottom: Math.max(r.bottom, c.bottom) };
-    if (step?.cardLow) { top = barLine() - ch - 44; left = KEYS ? innerWidth - cw - 12 : (innerWidth - cw) / 2; }
-    else if (step?.cardBottom) top = innerHeight - ch - 12; // at the bottom (over a phone's bottom bar if need be), the page above left in view
-    else if (!r) top = (innerHeight - ch) / 2;
-    else [top, left] = (menuBox && around(menuBox)) || around(r) || [innerHeight - ch - 12, innerWidth - cw - 12];
+    let top = barLine() - ch - (step?.liftBar ? 44 : 12), left = KEYS ? innerWidth - cw - 12 : (innerWidth - cw) / 2;
+    const overlaps = box => box && left < box.right && left + cw > box.left && top < box.bottom && top + ch > box.top;
+    if (overlaps(c)) {
+      const menu_box = r ? { left: Math.min(r.left, c.left), top: Math.min(r.top, c.top), right: Math.max(r.right, c.right), bottom: Math.max(r.bottom, c.bottom) } : c;
+      const beside_top = Math.min(Math.max(12, menu_box.top), innerHeight - ch - 12);
+      const near_left = Math.min(Math.max(12, menu_box.left), innerWidth - cw - 12);
+      if (menu_box.bottom + gap + ch < innerHeight - 8) [top, left] = [menu_box.bottom + gap, near_left];
+      else if (menu_box.top - gap - ch > 8) [top, left] = [menu_box.top - gap - ch, near_left];
+      else if (menu_box.left - gap - cw > 8) [top, left] = [beside_top, menu_box.left - gap - cw];
+      else if (menu_box.right + gap + cw < innerWidth - 8) [top, left] = [beside_top, menu_box.right + gap];
+    }
     card.style.top = `${Math.round(Math.max(12, top))}px`;
     card.style.left = `${Math.round(Math.max(12, left))}px`;
   };
@@ -443,11 +441,9 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
     }
     if (!current(n)) return;
     if (target) {
-      // In view, with room for the card beside it: to the top when both fit on the screen, otherwise just into view.
-      const r = target.getBoundingClientRect(), room = card.offsetHeight + 40;
-      const clear = r.top >= topEdge && r.bottom <= bottomEdge;
-      const cardFits = bottomEdge - r.bottom > room || r.top - topEdge > room;
-      if (!clear || !cardFits) target.scrollIntoView({ block: r.height + room < bottomEdge - topEdge ? 'start' : 'nearest', behavior: 'smooth' });
+      // In view above the card (which sits low): to the top when it fits above the card, otherwise just into view.
+      const r = target.getBoundingClientRect(), card_top = barLine() - card.offsetHeight - (step.liftBar ? 44 : 12) - 8;
+      if (r.top < topEdge || r.bottom > card_top) target.scrollIntoView({ block: r.height < card_top - topEdge ? 'start' : 'nearest', behavior: 'smooth' });
       // In a row that scrolls sideways (the Tasks tabs on a phone): scrolled so it's all showing.
       const row = target.parentElement;
       if (row && row.scrollWidth > row.clientWidth) { const rr = row.getBoundingClientRect(); if (r.left < rr.left || r.right > rr.right - 24) row.scrollBy({ left: r.left < rr.left ? r.left - rr.left - 12 : r.right - rr.right + 36, behavior: 'smooth' }); }
