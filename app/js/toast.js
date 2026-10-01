@@ -17,7 +17,7 @@ let undoNow = null; // the showing toast's Undo, for Ctrl+Z
 const MAC = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 
 addEventListener('keydown', ev => {
-  if (!undoNow || ev.key.toLowerCase() !== 'z' || !(ev.ctrlKey || ev.metaKey) || ev.shiftKey || ev.altKey) return;
+  if (!undoNow || (ev.key || '').toLowerCase() !== 'z' || !(ev.ctrlKey || ev.metaKey) || ev.shiftKey || ev.altKey) return;
   ev.preventDefault();
   ev.stopImmediatePropagation(); // not also the note's own undo
   undoNow();

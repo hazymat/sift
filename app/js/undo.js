@@ -51,7 +51,7 @@ const typedIn = el => typingIn(el) && !(el.matches('input, textarea') && atFocus
 
 export function installUndoKeys(refresh) {
   addEventListener('keydown', async ev => {
-    const k = ev.key.toLowerCase();
+    const k = (ev.key || '').toLowerCase();
     if (!(ev.ctrlKey || ev.metaKey) || ev.altKey || (k !== 'z' && k !== 'y') || ev.defaultPrevented) return;
     if (typedIn(ev.target) || typedIn(document.activeElement) || document.querySelector('dialog[open]')) return;
     ev.preventDefault();

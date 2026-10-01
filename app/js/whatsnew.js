@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.41': [{ text: "Settings: a hidden error when the browser filled in a saved password or address (seen in Chrome on Windows) no longer happens. Nothing else changes." }],
   '1.60.40': [{ text: "Projects: in a shared project, a task's People choice (More in its panel) lists everyone sharing the project first, so you can give a task to them (or to yourself, as Me), then your contacts. Whoever it's given to shows as 👥 and their name under the task, for everyone sharing it.", go: '#/tasks', open: ['#main [data-mode="projects"]'], at: '#main .project-grid .project-card' }],
   '1.60.35': [{ text: "Tours on a phone: steps where you type (Add a task, Empty your head, Day focus) no longer open the keyboard for you, so it doesn't cover the tour card. Read the card, then tap the box to type; once you're done the keyboard goes and the card is there again.", go: '#/settings', at: '#main [data-act="tour"]', more: 'Settings, Take the tour: the typing steps in each tour.' }],
   '1.60.34': [{ text: "Tours: the tour card sits as low as it can on every step, just above where the Selections bar goes, so the page shows above it. Only when it would cover an open View or ⋯ menu does it move up beside what it points at.", go: '#/settings', at: '#main [data-act="tour"]', more: 'Settings, Take the tour: every tour.' }],
@@ -83,6 +84,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.41': '2026-10-01T19:56:34Z',
   '1.60.40': '2026-10-01T17:27:56Z',
   '1.60.35': '2026-10-01T10:03:58Z',
   '1.60.34': '2026-10-01T09:31:24Z',

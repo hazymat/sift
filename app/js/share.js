@@ -72,7 +72,7 @@ export function installShare(getArea) {
   const MENUS = { v: 'details.view-menu', s: 'details.share-menu', '.': 'details.page-more' };
   addEventListener('keydown', ev => {
     if (ev.altKey || ev.metaKey || ev.ctrlKey || ev.isComposing || ev.defaultPrevented) return;
-    const sel = MENUS[ev.key.toLowerCase()];
+    const sel = MENUS[(ev.key || '').toLowerCase()];
     if (!sel) return;
     const focused = document.activeElement;
     if (focused && focused !== document.body && focused !== document.documentElement) return;
