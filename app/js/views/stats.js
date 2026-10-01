@@ -45,13 +45,15 @@ function draw(data, period) {
   const out = [];
 
   // 1-3: new installs, where from, active people
-  const fresh = installs.filter(i => Date.parse(i.first_seen) >= from);
+  // Devices that already had Sift when counting began aren't new installs.
+  const before = new Set(data.events.filter(e => e.kind === 'install' && e.data.fresh === false).map(e => e.install));
+  const fresh = installs.filter(i => Date.parse(i.first_seen) >= from && !before.has(i.id));
   const activeIn = n => new Set(data.days.filter(d => d.active_s > 0 && d.date >= isoDay(now - n * DAY_MS)).map(d => d.install)).size;
   const perDay = tally(days, d => d.date);
   const dauAvg = Object.keys(perDay).length ? sum(Object.values(perDay)) / Object.keys(perDay).length : 0;
   out.push(card('At a glance', `<dl class="facts">
     <dt>Installs seen</dt><dd>${installs.length} (${installs.filter(i => i.account).length} signed in to your server)</dd>
-    <dt>New in this period</dt><dd>${fresh.length}</dd>
+    <dt>New in this period</dt><dd>${fresh.length} <span class="muted">(not counting devices that had Sift before stats began)</span></dd>
     <dt>Active today</dt><dd>${activeIn(1)}</dd>
     <dt>Active last 7 days</dt><dd>${activeIn(7)}</dd>
     <dt>Active last 30 days</dt><dd>${activeIn(30)}</dd>
@@ -69,7 +71,7 @@ function draw(data, period) {
 
   // 4: do they come back
   const weeks = {};
-  for (const i of installs) {
+  for (const i of installs.filter(i => !before.has(i.id))) {
     const start = Date.parse(i.first_seen);
     const week = isoDay(start - ((new Date(start).getDay() + 6) % 7) * DAY_MS);
     const mine = data.days.filter(d => d.install === i.id && d.active_s > 0).map(d => Date.parse(d.date));
@@ -119,7 +121,7 @@ function draw(data, period) {
   }
   out.push(card('Tours', table(['Tour', 'Started', 'Finished', 'Ended early at'], Object.entries(tours).map(([name, t]) => [esc(name), t.start.size, `${t.finished.size} (${pct(t.finished.size, t.start.size)})`, esc(Object.entries(t.early).map(([at, n]) => `${at} ×${n}`).join(', ') || '-')]))
     + Object.entries(tours).map(([name, t]) => `<h3>${esc(name)}: furthest step reached</h3>${bars(tally(Object.values(t.furthest), n => n), { ordered: true, label: n => `Step ${n}` })}`).join('')));
-  const first = evs('first_made');
+  const first = evs('first_made').filter(e => !before.has(e.install));
   out.push(card('First real use', bars(tally(first, e => e.data.collection)) + `<p class="muted">Typical time from opening Sift to making something: ${first.length ? mins(first.map(e => e.data.after_s).sort((a, b) => a - b)[Math.floor(first.length / 2)]) : '-'}</p>`));
 
   // 12, 13: making and ticking off
