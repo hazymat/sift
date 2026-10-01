@@ -103,9 +103,13 @@ db.exec(`
   );
 `);
 // Sharing: each account's public key, and its private key encrypted by the app.
-for (const col of ['recovery_hash', 'recovery_salt', 'public_key', 'wrapped_private_key']) {
+// Names: how others see you on shared things (all optional; username unique on this server).
+for (const col of ['recovery_hash', 'recovery_salt', 'public_key', 'wrapped_private_key', 'username', 'first_name', 'last_name']) {
   if (!db.prepare('PRAGMA table_info(users)').all().some(c => c.name === col)) db.exec(`ALTER TABLE users ADD COLUMN ${col} TEXT`);
 }
+
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS users_username ON users (username COLLATE NOCASE) WHERE username IS NOT NULL');
+const NAMES = 'username, first_name, last_name';
 
 // A per-install secret so unknown emails get stable made-up KDF salts
 // (the answer doesn't reveal whether an account exists).
@@ -339,8 +343,19 @@ const routes = {
   // What a signed-in device needs to change the password.
   'GET /api/me': ({ req }) => {
     const dev = authed(req);
-    const u = db.prepare('SELECT email, kdf, wrapped_data_key, public_key, wrapped_private_key FROM users WHERE id = ?').get(dev.user_id);
-    return { email: u.email, kdf: JSON.parse(u.kdf), wrapped_data_key: u.wrapped_data_key, public_key: u.public_key, wrapped_private_key: u.wrapped_private_key };
+    const u = db.prepare(`SELECT email, kdf, wrapped_data_key, public_key, wrapped_private_key, ${NAMES} FROM users WHERE id = ?`).get(dev.user_id);
+    return { email: u.email, kdf: JSON.parse(u.kdf), wrapped_data_key: u.wrapped_data_key, public_key: u.public_key, wrapped_private_key: u.wrapped_private_key, username: u.username, first_name: u.first_name, last_name: u.last_name };
+  },
+
+  // Your name as others see it. Blank clears; a username someone else has is refused.
+  'POST /api/profile': ({ req, body }) => {
+    const dev = authed(req);
+    const clean = (value, max) => String(value ?? '').replace(/[\u0000-\u001f\u007f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, max) || null;
+    const username = clean(body.username, 30);
+    if (username && !/^[A-Za-z0-9][A-Za-z0-9._-]{2,29}$/.test(username)) throw new HttpError(400, 'A username is 3 to 30 letters, numbers, dots, dashes or underscores');
+    if (username && db.prepare('SELECT 1 FROM users WHERE username = ? COLLATE NOCASE AND id != ?').get(username, dev.user_id)) throw new HttpError(409, 'Someone on this server already has that username');
+    db.prepare('UPDATE users SET username = ?, first_name = ?, last_name = ? WHERE id = ?').run(username, clean(body.first_name, 40), clean(body.last_name, 40), dev.user_id);
+    return db.prepare(`SELECT ${NAMES} FROM users WHERE id = ?`).get(dev.user_id);
   },
 
   // ---------- sharing ----------
@@ -361,10 +376,10 @@ const routes = {
   'POST /api/people/find': ({ req, body }) => {
     authed(req);
     const email = String(body.email || '').trim().toLowerCase();
-    const u = db.prepare('SELECT id, email, public_key FROM users WHERE email = ?').get(email);
+    const u = db.prepare(`SELECT id, email, public_key, ${NAMES} FROM users WHERE email = ?`).get(email);
     if (!u) throw new HttpError(404, 'Nobody on this server signs in with that email');
     if (!u.public_key) throw new HttpError(409, 'They need to open Sift and sync once before things can be shared with them');
-    return { user_id: u.id, email: u.email, public_key: u.public_key };
+    return { user_id: u.id, email: u.email, public_key: u.public_key, username: u.username, first_name: u.first_name, last_name: u.last_name };
   },
 
   // Every share this account is in, with its key (encrypted for this account) and who else is in it.
@@ -372,7 +387,7 @@ const routes = {
     const dev = authed(req);
     const shares = db.prepare(`SELECT s.id, s.owner_id, s.last_seq, s.info, s.created_at, m.wrapped_key, m.accepted_at, o.email AS owner_email
       FROM shares s JOIN share_members m ON m.share_id = s.id AND m.user_id = ? JOIN users o ON o.id = s.owner_id ORDER BY s.created_at`).all(dev.user_id);
-    const members = db.prepare('SELECT u.id AS user_id, u.email, m.added_at, m.accepted_at FROM share_members m JOIN users u ON u.id = m.user_id WHERE m.share_id = ? ORDER BY m.added_at');
+    const members = db.prepare('SELECT u.id AS user_id, u.email, u.username, u.first_name, u.last_name, m.added_at, m.accepted_at FROM share_members m JOIN users u ON u.id = m.user_id WHERE m.share_id = ? ORDER BY m.added_at');
     return { user_id: dev.user_id, shares: shares.map(s => ({ ...s, mine: s.owner_id === dev.user_id, members: members.all(s.id) })) };
   },
 

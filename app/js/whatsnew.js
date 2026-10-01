@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.44': [{ text: "Sharing: you can set your name (first name, last name and a username no one else on your server has, all optional) so people you share with see it instead of the start of your email. Sift asks for it the first time you share something or accept an invitation; skip it and they see your email's first part as before.", go: '#/settings', at: '#main .sync-name', more: "Settings, Sync: Your name, to set or change it any time. The name shows everywhere people show on shared things: the Shared with pill and sheet, invitations, the Owner choice and owner pills on shared project tasks, and the Day Planner's sharing note. If two people sharing with you have the same first name, their last names show too." }],
   '1.60.43': [{ text: "Projects: a task in a shared project has an Owner (anyone sharing it, or nobody, meaning anyone can do it) and a Waiting on (Other: any name you type, like HMRC or the plumber). Both show as pills on the task's line, in compact spacing too. When someone else gives you a task, a notice in that project says so until you dismiss it.", go: '#/tasks', open: ['#main [data-mode="projects"]'], at: '#main .project-grid .project-card', more: "Owner and Waiting on are under More in a task's panel. Waiting on works for every task, not just shared ones. This replaces the People choice's 'Sharing this project' list from 1.60.40." }],
   '1.60.42': [{ text: "Projects: the 👁 view menu at the top of an open project no longer slips behind the project's name bar (and its Shared with pill). It now always sits on top.", go: '#/tasks', open: ['#main [data-mode="projects"]', '#main .project-grid .project-card', '#main details.view-menu > summary'], at: '#main details.view-menu > .menu', more: 'The same fix covers every menu opened from a page\'s top bar while another bar sits below it, in every area.' }],
   '1.60.41': [{ text: "Settings: a hidden error when the browser filled in a saved password or address (seen in Chrome on Windows) no longer happens. Nothing else changes." }],
@@ -86,6 +87,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.44': '2026-10-01T20:24:30Z',
   '1.60.43': '2026-10-01T20:12:35Z',
   '1.60.42': '2026-10-01T20:07:56Z',
   '1.60.41': '2026-10-01T19:56:34Z',
