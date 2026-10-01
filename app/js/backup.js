@@ -8,6 +8,7 @@
 // an empty device and a safe merge on one that already has data.
 
 import * as store from './store.js';
+import { feature } from './stats.js';
 
 const ITERATIONS = 600000;
 const REMIND_DAYS = 14;
@@ -45,6 +46,7 @@ function devicePrefs() {
 }
 
 export async function makeBackup({ passphrase } = {}) {
+  feature('backup');
   const data = await store.exportAll();
   const device = { local: devicePrefs(), server_url: (await store.getDeviceSettings()).server_url || null };
   const files = {};
@@ -109,6 +111,7 @@ export async function readBackup(file, passphrase) {
 }
 
 export async function restoreBackup(backup) {
+  feature('restore_backup');
   let added = 0;
   let updated = 0;
   for (const [collection, records] of Object.entries(backup.data || {})) {

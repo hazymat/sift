@@ -18,6 +18,7 @@ import { flash } from './flash.js';
 import { seedDemo, clearDemo } from './demo.js';
 import { isoDate, addDays } from './days.js';
 import { layoutOn, densityOf } from './viewcog.js';
+import { track } from './stats.js';
 
 const KEYS = matchMedia('(hover: hover) and (pointer: fine)').matches; // a mouse, so almost always a keyboard too
 const MAC = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
@@ -293,6 +294,7 @@ export async function showTourTask(which = 'new') {
 let tour = null; // the tour running: { n, end }
 
 export async function startTour({ which = 'new', fromStart = false } = {}) {
+  track('tour', { tour: which, step: 'start' });
   await tour?.end();
   await seedDemo();
   madeInTour.clear();
@@ -397,6 +399,7 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
     document.documentElement.classList.toggle('tour-lift-bar', !!step.liftBar);
     card.classList.toggle('low', !!step.cardLow);
     keepPlace(which, step.id); // carried on from here next time
+    track('tour', { tour: which, step: step.id, n: n + 1, of: all.length });
     const last = n === all.length - 1;
     if (step.hash && !location.hash.startsWith(step.hash)) location.hash = step.hash;
     target = extra = null;
@@ -455,7 +458,7 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
   const act = what => {
     if (what === 'back' && t.n > 0) show(t.n - 1);
     else if (what === 'next') t.n === all.length - 1 ? finish() : show(t.n + 1);
-    else if (what === 'later') t.end().then(() => showTourTask(which));
+    else if (what === 'later') { track('tour', { tour: which, step: 'ended early', at: step?.id }); t.end().then(() => showTourTask(which)); }
     else if (what === 'save') {
       saveTourForLater(step.offer);
       card.querySelector('.tour-foot').innerHTML = `<span class="tour-nice">📌 Saved to your ${word('list_next')} list (flashing up there). Move it to ${word('list_now')} or ${word('list_later')} any time.</span>`;
@@ -512,6 +515,7 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
   // Finished: next time from the beginning, marked as seen, back to the choice of
   // tours, and its task (and "Take the tour of Sift") ticked off.
   async function finish() {
+    track('tour', { tour: which, step: 'finished' });
     await t.end();
     await resetTour(which);
     await store.updateDeviceSettings({ tours_seen: Object.assign({}, await toursSeen(), { [which]: true }) });

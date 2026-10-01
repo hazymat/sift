@@ -13,6 +13,7 @@
 // redraw it away); on Done the page gets its usual "left the note" and saves.
 // Following the visible part of the screen (visualViewport) also stops iPhone
 // drawing the note out of line when the keyboard scrolls the page.
+import { feature } from './stats.js';
 
 export const PHONE = matchMedia('(pointer: coarse) and (max-width: 760px)');
 
@@ -66,6 +67,7 @@ export function setFullLabel(box, label) {
 }
 
 export function openFull(box, { label = 'Note' } = {}) {
+  feature('full_screen_note');
   if (current?.box === box) return;
   if (current) closeFull({ animate: false });
   let head = box.querySelector(':scope > .note-full-head');

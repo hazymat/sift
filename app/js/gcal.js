@@ -24,6 +24,7 @@
 //   AHEAD                   days after today that load by themselves (7)
 
 import * as store from './store.js';
+import { track } from './stats.js';
 
 const CLIENT_ID = '608204699309-s1aumq1dur7r79pu1al0t8gmggheeml5.apps.googleusercontent.com';
 // The narrowest scopes that read event details, and the names of your calendars (Google reviews them).
@@ -55,6 +56,7 @@ function loadGis() {
 
 // again: ask for permission afresh (Google's full consent screen), e.g. when the list of calendars was refused.
 export async function connect(again = false) {
+  track('gcal', { step: 'try' });
   await loadGis();
   await new Promise((ok, fail) => {
     const client = window.google.accounts.oauth2.initTokenClient({
@@ -70,10 +72,12 @@ export async function connect(again = false) {
       error_callback: e => fail(new Error(e?.type === 'popup_closed' ? 'Closed before connecting' : e?.message || 'Not connected')),
     });
     client.requestAccessToken({ prompt: connected() && !again ? '' : 'consent' });
-  });
+  }).catch(e => { track('gcal', { step: 'failed', why: e.message }); throw e; });
+  track('gcal', { step: 'connected' });
 }
 
 export async function disconnect() {
+  track('gcal', { step: 'disconnected' });
   const t = token;
   token = null;
   expires = 0;
