@@ -171,9 +171,11 @@ export function start(fresh) {
   addEventListener('input', ev => { if (ev.target.matches?.('input[type="search"]') && Date.now() - searched > 60000) { searched = Date.now(); feature('search'); } }, true);
   new MutationObserver(() => { if (document.body.classList.contains('is-dragging')) feature('drag'); }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
   // Something in Sift broke: the message and where, never what was on screen.
+  // Anything quoted in a message (it can be text from the page) is left out, and long numbers too.
+  const plain = message => String(message || '').replace(/(["'`‘“]).*?(["'`’”])/g, '$1…$2').replace(/\d{5,}/g, '…').slice(0, 200);
   const broke = (message, where) => {
     const d = day();
-    if (d.errors++ < 20) track('error', { message: String(message || '').slice(0, 200), where: String(where || '').replace(location.origin, '').slice(0, 200), area: area() });
+    if (d.errors++ < 20) track('error', { message: plain(message), where: String(where || '').replace(location.origin, '').slice(0, 200), area: area() });
   };
   addEventListener('error', ev => broke(ev.message, ev.filename && `${ev.filename}:${ev.lineno}:${ev.colno}`));
   addEventListener('unhandledrejection', ev => broke(ev.reason?.message || ev.reason, ev.reason?.stack?.split('\n')[1]?.trim()));
