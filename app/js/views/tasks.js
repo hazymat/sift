@@ -136,7 +136,7 @@ export default {
     // Owner and Waiting on pills, on the task's own line in every spacing (none when nobody).
     function whoHtml(t) {
       const owner = ownerName(t);
-      const out = (owner ? `<span class="chip who-pill" title="Owner: ${esc(owner)}">👤 ${esc(owner)}</span>` : '')
+      const out = (owner ? `<span class="chip who-pill owner" title="Owner: ${esc(owner)}">👤 ${esc(owner)}</span>` : '')
         + (t.waiting_on && !isDone(t) ? `<span class="chip who-pill waiting" title="Waiting on ${esc(t.waiting_on)}">⏳ ${esc(t.waiting_on)}</span>` : '');
       return out ? `<span class="who-pills">${out}</span>` : '';
     }

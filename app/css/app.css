@@ -2012,8 +2012,11 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 #main[data-density="tight"] .task-list > li[data-task] > .chips { order: 2; flex-wrap: nowrap; overflow: hidden; }
 #main[data-density="tight"] .task-list > li[data-task] > .more { order: 3; }
 /* Owner and Waiting on pills: on the task's own line in every spacing, never squeezed out (tight included). */
-.task-list > li[data-task] > .who-pills { flex: none; display: inline-flex; gap: 4px; max-width: 45%; overflow: hidden; }
-.who-pills .chip { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 12em; }
+.task-list > li[data-task] > .who-pills { flex: 0 1 auto; display: inline-flex; gap: 4px; min-width: min-content; }
+.who-pills .chip { white-space: nowrap; }
+/* The owner's name always shows in full; Waiting on gives way first (to a few letters). */
+.who-pills .who-pill.owner { flex: none; max-width: 10em; overflow: hidden; text-overflow: ellipsis; }
+.who-pills .who-pill.waiting { flex: 0 1 auto; min-width: 4.5em; max-width: 12em; overflow: hidden; text-overflow: ellipsis; }
 #main[data-density="tight"] .task-list > li[data-task] > .who-pills { order: 2; }
 #main[data-density="tight"] .task-note .note-loose { display: none; }
 /* Tight: the start of the note on the task's own line (no icon). */
