@@ -75,6 +75,7 @@ export default {
     let shared = []; // projects others share with you: [{ p, tasks, owner_id, name, share }]
     let people = { contacts: [], cases: [] };
     let assignSeen = {}; // project id → when you last dismissed its "gave you" notice (settings assign_seen, synced)
+    let projectViews = {}; // project id → how you view it: { who, first, group } (settings project_views, synced; each person's own)
     let atts = new Map(); // task id → its attachments
     let open = null; // task id with details open
     let pills = null; // the editing pills under a task (editpills.js), made further down
@@ -100,7 +101,7 @@ export default {
           ${VIEWS.map(v => `<button type="button" data-view="${v.id}">${v.label}</button>`).join('')}<button type="button" data-view="list">All</button>
         </div>
         ${shareHtml()}
-          ${cogHtml('tasks')}
+          ${cogHtml('tasks', '<div class="project-view"></div>')}
         <details class="tool-menu page-more">
           <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
           <div class="menu">
@@ -342,6 +343,29 @@ export default {
 
     // ---------- views ----------
 
+    // A shared project's view, each person's own: whose tasks (who: all, a user id, none = nobody's),
+    // whose first (first: a user id or ''), and grouping (group: milestones or people).
+    function pvOf(project, members) {
+      const pv = Object.assign({ who: 'all', first: '', group: 'milestones' }, projectViews[project.id]);
+      const known = id => members.some(m => m.user_id === id);
+      if (pv.who !== 'all' && pv.who !== 'none' && !known(pv.who)) pv.who = 'all';
+      if (pv.first && !known(pv.first)) pv.first = '';
+      return pv;
+    }
+    // Members with you first ("Me"), for the filter bar, the 👁 choices and the people groups.
+    const meFirst = members => members.filter(m => m.user_id === myUserId()).concat(members.filter(m => m.user_id !== myUserId()));
+    const whose = m => (m.user_id === myUserId() ? 'Mine' : `${m.name}'s`);
+    // The 👁 menu's This project section (only in a shared project).
+    function drawProjectView(project, members) {
+      const box = el.querySelector('.view-settings .project-view');
+      if (!box) return;
+      if (!project || !members.length) { box.innerHTML = ''; return; }
+      const pv = pvOf(project, members);
+      const opt = (k, v, label) => `<button type="button" data-pview="${k}" data-value="${esc(v)}" aria-pressed="${pv[k] === v}">${esc(label)}</button>`;
+      box.innerHTML = `<h4>This project: order</h4><div class="view-opts" role="group" aria-label="Order">${opt('first', '', 'As placed')}${meFirst(members).map(m => opt('first', m.user_id, `${whose(m)} first`)).join('')}</div>
+        <h4>This project: group by</h4><div class="view-opts" role="group" aria-label="Group by">${opt('group', 'milestones', 'Milestones')}${opt('group', 'people', 'People')}</div>`;
+    }
+
     function viewList() {
       const project = data.projects.find(p => p.id === state.project);
       const scoped = data.tasks.filter(t => !project || t.project_id === project.id);
@@ -369,6 +393,14 @@ export default {
           </div>
           </div>`;
       }
+      const members = project ? projectMembers(project.id, state.owner) : [];
+      const pv = project && members.length ? pvOf(project, members) : null;
+      drawProjectView(project, members);
+      if (pv) {
+        // Whose tasks: the same underlined filter bar as Tasks and Brain Dump.
+        const tabs = [['all', 'Everyone']].concat(meFirst(members).map(m => [m.user_id, whose(m)]), [['none', "Nobody's"]]);
+        html += `<div class="dump-filter-row project-who"><div class="dump-filter" role="group" aria-label="Whose tasks">${tabs.map(([v, label]) => `<button type="button" data-pview="who" data-value="${esc(v)}" aria-pressed="${pv.who === v}">${esc(label)}</button>`).join('')}</div></div>`;
+      }
       if (project) html += assignNotice(project, scoped);
       html += '<!--list-->';
       const ph = project ? `New task in ${project.name}` : 'New task';
@@ -377,14 +409,26 @@ export default {
         const ms = data.milestones.filter(m => m.project_id === project.id);
         const groups = [{ id: null, name: ms.length ? 'No milestone' : '' }, ...ms];
         // Top-level tasks group by milestone; sub-tasks follow their parent.
-        const top = scoped.filter(t => !t.parent_task_id || !scoped.some(p => p.id === t.parent_task_id));
         const under = id => {
           const out = [];
           const walk = pid => scoped.filter(k => k.parent_task_id === pid).forEach(k => { out.push(k); walk(k.id); });
           walk(id);
           return out;
         };
-        html += listOf(groups.map(g => {
+        // A shared project's view: a task shows when it or one of its sub-tasks is whose it's filtered to; whose first goes first.
+        const ownerKey = t => ownerOf(t) || '';
+        const keep = t => !pv || pv.who === 'all' || [t].concat(under(t.id)).some(k => ownerKey(k) === (pv.who === 'none' ? '' : pv.who));
+        const firstUp = list => (pv?.first ? list.filter(t => ownerKey(t) === pv.first).concat(list.filter(t => ownerKey(t) !== pv.first)) : list);
+        const top = firstUp(scoped.filter(t => (!t.parent_task_id || !scoped.some(p => p.id === t.parent_task_id)) && keep(t)));
+        if (pv?.group === 'people') {
+          // Grouped by owner (you first, then the others, then nobody's); dropping a task under a name gives it to them.
+          const people = meFirst(members).concat([{ user_id: '', name: 'Nobody (anyone)' }]).filter(m => pv.who === 'all' || m.user_id === (pv.who === 'none' ? '' : pv.who));
+          html += listOf(people.map(m => {
+            const roots = top.filter(t => ownerKey(t) === m.user_id);
+            const pr = progress(scoped.filter(t => ownerKey(t) === m.user_id));
+            return head(`👤 ${esc(m.user_id === myUserId() ? 'Me' : m.name)} <span class="muted">${pr.done}/${pr.total}</span>`, ` data-owner-group="${esc(m.user_id)}"`) + rowsOf(visible(roots.flatMap(t => [t, ...under(t.id)])));
+          }).join(''));
+        } else html += listOf(groups.map(g => {
           const roots = top.filter(t => (t.milestone_id || null) === g.id);
           const tasks = visible(roots.flatMap(t => [t, ...under(t.id)]));
           const pr = progress(scoped.filter(t => t.milestone_id === g.id));
@@ -654,7 +698,9 @@ export default {
       if (state.owner) store.useSpace(null);
       people = await loadContacts();
       if (state.owner) store.useSpace(store.spaceOf(state.owner));
-      assignSeen = (await store.getSettings()).assign_seen || {};
+      const mine = await store.getSettings();
+      assignSeen = mine.assign_seen || {};
+      projectViews = mine.project_views || {};
       atts = await att.byParent();
       for (const b of el.querySelectorAll('[data-view]')) b.setAttribute('aria-pressed', b.dataset.view === state.view);
       // Tasks | Projects: a project's own page counts as Projects; the list tabs are for Tasks only.
@@ -1062,11 +1108,12 @@ export default {
     async function persistOrder(rows, label, ul, moved) {
       const task = id => data.tasks.find(x => x.id === id);
       const places = new Map(reorderWrites(rows, r => rankOf(task(r.id)), moved).map(([r, k]) => [r.id, k]));
-      const milestoneOf = new Map();
-      let current = null;
+      const milestoneOf = new Map(), ownerGroupOf = new Map();
+      let current = null, currentOwner = null;
       for (const li of ul.children) {
         if (li.matches('.list-head[data-milestone]')) current = li.dataset.milestone || null;
-        else if (li.dataset.id) milestoneOf.set(li.dataset.id, current);
+        else if (li.matches('.list-head[data-owner-group]')) currentOwner = li.dataset.ownerGroup || null;
+        else if (li.dataset.id) { milestoneOf.set(li.dataset.id, current); ownerGroupOf.set(li.dataset.id, currentOwner); }
       }
       const stack = [];
       const changes = [];
@@ -1087,6 +1134,11 @@ export default {
         if (state.project && !parent && ul.querySelector('.list-head[data-milestone]')) {
           const m = milestoneOf.get(r.id) ?? null;
           if (m !== (t.milestone_id || null)) fields.milestone_id = m;
+        }
+        // Grouped by people: a task dropped under someone's name is given to them.
+        if (state.project && !parent && ul.querySelector('.list-head[data-owner-group]')) {
+          const o = ownerGroupOf.get(r.id) ?? null;
+          if (o !== (ownerOf(t) || null)) Object.assign(fields, { owner_id: o, owner_by: myUserId() || null, owner_at: new Date().toISOString() });
         }
         if (!Object.keys(fields).length) continue;
         changes.push([r.id, fields]);
@@ -1443,6 +1495,14 @@ export default {
       input.setSelectionRange(input.value.length, input.value.length);
     }
     el.addEventListener('click', async ev => {
+      const pvb = ev.target.closest('[data-pview]');
+      if (pvb && state.project) {
+        // A shared project's view choice (filter bar or 👁): kept for you, per project.
+        projectViews = Object.assign({}, projectViews, { [state.project]: Object.assign({}, projectViews[state.project], { [pvb.dataset.pview]: pvb.dataset.value }) });
+        await store.updateSettings({ project_views: projectViews });
+        render();
+        return;
+      }
       if (att.onClick(ev, attParent, attDone)) return;
       const shown = ev.target.closest('li[data-task] > .item-sub .chip');
       if (shown && !shown.matches('a, .kids')) { editInPlace(shown.closest('li[data-task]').dataset.task); return; }
@@ -1627,7 +1687,9 @@ export default {
         const addNote = inPlace ? '' : !(t.notes || '').trim() ? `<textarea class="entry-note add-note pill-note no-inline" data-pill="notes" rows="1" placeholder="Add note" aria-label="Note"></textarea>`
           : lay('pills-hide') ? `<div class="entry-note note-shown" data-act="note-shown" title="Edit the note (Enter)">${toHtml(t.notes)}</div>` : '';
         if (lay('pills-hide') && (revealed !== id || lay('more-panel'))) return '';
-        return addNote + energyPill(t.energy)
+        // In a shared project the Who pill (its owner) takes Energy's place; Energy stays in the panel.
+        const members = membersOf(t);
+        return addNote + (members.length ? selectPill('owner_id', 'Who', '👤', [['', 'Nobody (anyone)']].concat(meFirst(members).map(m => [m.user_id, m.name])), ownerOf(t) || '') : energyPill(t.energy))
           + selectPill('estimate_min', 'Estimated time', '⏱', [['', 'Not estimated'], ...hours], t.estimate_min)
           + datePill('start_date', 'Plan for day', '📅', t.start_date, shortDate)
           + datePill('aim_date', 'Target end date', '⚑', aim, shortDate)
@@ -1651,6 +1713,7 @@ export default {
           return;
         }
         if (name === 'start_date') return setPlanDay(t, value || null);
+        if (name === 'owner_id') return change(id, { owner_id: value || null, owner_by: myUserId() || null, owner_at: new Date().toISOString() }, ownerName(t, value) ? `Owner: ${ownerName(t, value)}` : 'No owner: anyone can do it');
         if (name === 'horizon') return value ? listOne(t, value) : undefined;
         const v = name === 'estimate_min' ? (value ? Number(value) : null) : value || null;
         await change(id, { [name]: v }, name === 'start_date' && v ? `Planned for ${shortDate(v)}` : name === 'horizon' ? `Transferred to ${HORIZONS.find(x => x.id === v)?.label || v}` : 'Saved');
