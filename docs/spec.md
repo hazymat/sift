@@ -341,6 +341,17 @@ Where it applies (2026-09-25): Brain Dump notes, Find Things boxes and things, L
 | `GET /api/sync/pull?since=` | records changed since seq |
 | `HEAD/GET/PUT/DELETE /api/blobs/:blob_id` | blob store |
 | `GET /api/usage` | bytes used / quota |
+| `GET /api/push`, `POST /api/push/settings` | notifications: VAPID key, settings, subscribed phones (§8.8) |
+| `POST /api/push/subscribe`, `/unsubscribe`, `/queue`, `/test` | a phone's subscription; its sealed digests; a test |
+
+### 8.8 Notifications (built, 1.60.36)
+
+Settings → Notifications, per device: **Turn on for this device** (Web Push; on an iPhone only from the Home Screen app). For the account: **each morning, what's on today's Day Planner** (time of day, default 9.30) and **a gentle reminder if Sift hasn't been opened for a week**.
+
+- **The server can't read them.** A device that syncs writes the digests for the next 7 days and seals each one for each phone's own push keys (RFC 8291, aes128gcm), then replaces that phone's queue on the server (`push_queue`: sealed bytes and a time). The server sends each at its time (VAPID, keys made once per install) and drops one it is more than 6 hours late for. Any device rewrites every phone's queue, so a change on the laptop reaches the phone's digest.
+- **A digest:** "Today: n things", the day's focus, timed items in order, the pile, then the day's tasks (not linked copies already on the plan); 6 lines and "and n more". A day with nothing on it sends nothing. Tapping it opens that day.
+- **Left alone:** the queue runs dry after 7 days. Then, after a week with no signed-in request from any device and no digests left, the server sends a nudge at the digest's time of day (in the account's time zone): no content, the words come from the phone (`sw.js`). Once a week, 3 at most, then nothing until Sift is opened again, which starts the count again.
+- Settings (`users.push_settings`: digest, time, tz, nudge) and when the last nudge went are plain on the server: they say nothing about what's in Sift. Only real push services (Apple, Google, Mozilla, Microsoft) are accepted as endpoints. A phone the push service says is gone (404, 410), or a signed-out device, is forgotten.
 
 ### 8.6 Local-only → signed-in (adding auth after phase 1)
 

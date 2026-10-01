@@ -244,6 +244,30 @@ try {
   for (let n = 0; n < 10; n++) await guess(n);
   assert.equal((await guess(99)).status, 429, 'limited by the address the proxy added');
 
+  // notifications: settings, subscriptions only to real push services, queues of sealed digests
+  r = await call('GET', '/api/push', null, recovered);
+  assert.equal(Buffer.from(r.json.public_key, 'base64url').length, 65, 'a VAPID public key');
+  assert.deepEqual(r.json.settings, { digest: false, time: '09:30', tz: 'Europe/London', nudge: true });
+  r = await call('POST', '/api/push/settings', { digest: true, time: '07:15', tz: 'Asia/Tokyo' }, recovered);
+  assert.equal(r.json.settings.time, '07:15');
+  assert.equal((await call('POST', '/api/push/settings', { tz: 'Nowhere/Land' }, recovered)).status, 400);
+  const push_keys = { p256dh: 'B'.repeat(87), auth: 'A'.repeat(22) };
+  r = await call('POST', '/api/push/subscribe', Object.assign({ endpoint: 'https://example.com/push' }, push_keys), recovered);
+  assert.equal(r.status, 400, 'only real push services');
+  r = await call('POST', '/api/push/subscribe', Object.assign({ endpoint: 'https://web.push.apple.com/abc' }, push_keys), recovered);
+  const push_sub = r.json.id;
+  assert.ok(push_sub);
+  r = await call('POST', '/api/push/queue', { queues: [{ sub_id: push_sub, items: [{ send_at: '2030-01-01T07:15:00Z', body: 'c2VhbGVk' }, { send_at: '2030-01-02T07:15:00Z', body: 'c2VhbGVk' }] }] }, recovered);
+  assert.equal(r.status, 200);
+  r = await call('POST', '/api/push/queue', { queues: [{ sub_id: push_sub, items: [{ send_at: '2030-01-01T07:15:00Z', body: Buffer.alloc(5000).toString('base64url') }] }] }, recovered);
+  assert.equal(r.status, 400, 'a digest is at most 4 KB');
+  r = await call('POST', '/api/push/test', { sub_id: push_sub, body: 'c2VhbGVk' }, fam);
+  assert.equal(r.status, 404, 'not your phone');
+  r = await call('GET', '/api/push', null, fam);
+  assert.equal(r.json.subs.length, 0, 'another account sees none of them');
+  r = await call('POST', '/api/push/unsubscribe', { endpoint: 'https://web.push.apple.com/abc' }, recovered);
+  assert.equal((await call('GET', '/api/push', null, recovered)).json.subs.length, 0);
+
   console.log('all server checks passed');
 } finally {
   child.kill();

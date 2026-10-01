@@ -714,6 +714,7 @@ async function boot() {
     let sharesSeen = false;
     sync.onShares(() => { if (sharesSeen) update(); sharesSeen = true; });
     import('./sharing.js').then(m => m.installSharing());
+    import('./push.js').then(push => push.init()).catch(error => console.warn('Notifications not started:', error));
     sync.init();
   });
   import('./bin.js').then(bin => bin.autoEmpty()).catch(err => console.warn('Bin clean-up failed:', err));

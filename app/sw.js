@@ -79,6 +79,7 @@ const SHELL = [
   'js/linkpicker.js',
   'js/csv.js',
   'js/places.js',
+  'js/push.js',
   'js/views/placeholder.js',
   'js/views/tasks.js',
   'js/views/planner.js',
@@ -117,6 +118,27 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('message', event => {
   if (event.data === 'skip-waiting') self.skipWaiting();
+});
+
+// Notifications (js/push.js): a digest arrives sealed for this device and the
+// browser opens it; a nudge arrives empty and gets these words.
+self.addEventListener('push', event => {
+  let message = null;
+  try { message = event.data ? event.data.json() : null; } catch { message = null; }
+  const notification_options = { body: message?.body || 'Sift is here whenever you want to plan a day. Nothing needs doing.', tag: message?.tag || 'sift-nudge', icon: 'icons/app-icon-192.png', data: { url: message?.url || '#/planner' } };
+  event.waitUntil(self.registration.showNotification(message?.title || 'Sift', notification_options));
+});
+
+// Tapping one opens Sift at the day (or brings an open Sift there).
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const target_url = new URL(event.notification.data?.url || '', self.registration.scope).href;
+  event.waitUntil((async () => {
+    const open_windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    if (!open_windows.length) return self.clients.openWindow(target_url);
+    await open_windows[0].focus();
+    return open_windows[0].navigate(target_url).catch(() => {});
+  })());
 });
 
 // Cache first for our own files; anything missing from the shell list is

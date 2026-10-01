@@ -11,6 +11,7 @@
 //   ALLOWED_ORIGINS   comma list, e.g. https://hazymat.github.io,http://localhost:5173
 //   REGISTRATION      first (default: only while there are no users) | open | closed
 //   QUOTA_MB          default 1024 per user (records and files together)
+//   PUSH_CONTACT      who push services can contact about this server (mailto: or https: address)
 
 import http from 'node:http';
 import crypto from 'node:crypto';
@@ -105,6 +106,28 @@ db.exec(`
 // Sharing: each account's public key, and its private key encrypted by the app.
 for (const col of ['recovery_hash', 'recovery_salt', 'public_key', 'wrapped_private_key']) {
   if (!db.prepare('PRAGMA table_info(users)').all().some(c => c.name === col)) db.exec(`ALTER TABLE users ADD COLUMN ${col} TEXT`);
+}
+// Notifications: each phone's Web Push subscription, and the digests the app
+// sealed for it (the server can't read them), each with its time to send.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS push_subs (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    device_id TEXT REFERENCES devices(id) ON DELETE CASCADE,
+    endpoint TEXT UNIQUE NOT NULL,
+    p256dh TEXT NOT NULL,
+    auth TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS push_queue (
+    sub_id TEXT NOT NULL REFERENCES push_subs(id) ON DELETE CASCADE,
+    send_at TEXT NOT NULL,
+    body BLOB NOT NULL,
+    PRIMARY KEY (sub_id, send_at)
+  );
+`);
+for (const [column_name, column_type] of [['push_settings', 'TEXT'], ['nudges_sent', 'INTEGER NOT NULL DEFAULT 0'], ['last_nudge_at', 'TEXT']]) {
+  if (!db.prepare('PRAGMA table_info(users)').all().some(existing_column => existing_column.name === column_name)) db.exec(`ALTER TABLE users ADD COLUMN ${column_name} ${column_type}`);
 }
 
 // A per-install secret so unknown emails get stable made-up KDF salts
@@ -276,6 +299,101 @@ const ownShare = (userId, shareId) => {
   if (share.owner_id !== userId) throw new HttpError(403, 'Only the person who shared it can do that');
   return share;
 };
+
+// ---------- notifications (Web Push) ----------
+// Digests are written and sealed for each phone by the app (RFC 8291), so the
+// server only holds bytes and a time. Nudges after a week away carry nothing:
+// the phone shows its own wording. VAPID keys are made once per install.
+const PUSH_CONTACT = process.env.PUSH_CONTACT || 'https://github.com/hazymat/sift';
+const PUSH_HOSTS = /(^|\.)(push\.apple\.com|fcm\.googleapis\.com|push\.services\.mozilla\.com|notify\.windows\.com)$/; // only real push services, so the server can't be pointed elsewhere
+const WEEK_MS = 7 * 24 * 3600 * 1000;
+const STALE_MS = 6 * 3600 * 1000; // a digest the server was too late for (down, asleep) is dropped, not sent late
+const MAX_NUDGES = 3; // then nothing until Sift is opened again
+const MAX_DIGESTS = 14;
+const PUSH_DEFAULTS = { digest: false, time: '09:30', tz: 'Europe/London', nudge: true };
+
+let vapid_private_pem = db.prepare('SELECT value FROM meta WHERE key = ?').get('vapid_private')?.value;
+if (!vapid_private_pem) {
+  vapid_private_pem = crypto.generateKeyPairSync('ec', { namedCurve: 'prime256v1' }).privateKey.export({ type: 'pkcs8', format: 'pem' });
+  db.prepare('INSERT INTO meta (key, value) VALUES (?, ?)').run('vapid_private', vapid_private_pem);
+}
+const vapid_private_key = crypto.createPrivateKey(vapid_private_pem);
+const vapid_public_jwk = crypto.createPublicKey(vapid_private_key).export({ format: 'jwk' });
+const vapid_public = b64url(Buffer.concat([Buffer.from([4]), Buffer.from(vapid_public_jwk.x, 'base64url'), Buffer.from(vapid_public_jwk.y, 'base64url')]));
+
+function vapidAuthorization(endpoint) {
+  const encode_part = value => b64url(Buffer.from(JSON.stringify(value)));
+  const unsigned_token = `${encode_part({ typ: 'JWT', alg: 'ES256' })}.${encode_part({ aud: new URL(endpoint).origin, exp: Math.floor(Date.now() / 1000) + 12 * 3600, sub: PUSH_CONTACT })}`;
+  const token_signature = crypto.sign('sha256', Buffer.from(unsigned_token), { key: vapid_private_key, dsaEncoding: 'ieee-p1363' });
+  return `vapid t=${unsigned_token}.${b64url(token_signature)}, k=${vapid_public}`;
+}
+
+const pushEndpointOk = endpoint => { try { const endpoint_url = new URL(endpoint); return endpoint_url.protocol === 'https:' && PUSH_HOSTS.test(endpoint_url.hostname); } catch { return false; } };
+
+function pushSettings(userId) {
+  const stored_settings = db.prepare('SELECT push_settings FROM users WHERE id = ?').get(userId)?.push_settings;
+  return Object.assign({}, PUSH_DEFAULTS, stored_settings ? JSON.parse(stored_settings) : {});
+}
+
+// Minutes past midnight now in a time zone (an unknown zone counts as UTC).
+function localMinutes(time_zone) {
+  let clock_parts;
+  try { clock_parts = new Intl.DateTimeFormat('en-GB', { timeZone: time_zone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date()); } catch { clock_parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date()); }
+  const part_value = type => Number(clock_parts.find(part => part.type === type).value);
+  return part_value('hour') * 60 + part_value('minute');
+}
+const clockMinutes = time_text => { const [hours, minutes] = time_text.split(':').map(Number); return hours * 60 + minutes; };
+
+// One push to one phone: sealed bytes, or nothing (a nudge). A phone that has
+// gone (unsubscribed, app removed) is forgotten.
+async function deliverPush(subscription, sealed_body) {
+  const push_headers = { Authorization: vapidAuthorization(subscription.endpoint), TTL: '43200', Urgency: 'normal' };
+  if (sealed_body?.length) Object.assign(push_headers, { 'Content-Encoding': 'aes128gcm', 'Content-Type': 'application/octet-stream' });
+  const push_response = await fetch(subscription.endpoint, { method: 'POST', headers: push_headers, body: sealed_body?.length ? sealed_body : '', signal: AbortSignal.timeout(15000) });
+  if (push_response.status === 404 || push_response.status === 410) db.prepare('DELETE FROM push_subs WHERE id = ?').run(subscription.id);
+  else if (!push_response.ok) console.warn(`Push refused (${push_response.status}) by ${new URL(subscription.endpoint).hostname}: ${(await push_response.text()).slice(0, 200)}`);
+  return push_response.ok;
+}
+
+// Every 30 s: send what's due; then the nudges.
+let push_tick_running = false;
+async function pushTick() {
+  if (push_tick_running) return;
+  push_tick_running = true;
+  try {
+    const due_rows = db.prepare('SELECT q.send_at, q.body, s.id, s.endpoint FROM push_queue q JOIN push_subs s ON s.id = q.sub_id WHERE q.send_at <= ?').all(now());
+    for (const due_row of due_rows) {
+      db.prepare('DELETE FROM push_queue WHERE sub_id = ? AND send_at = ?').run(due_row.id, due_row.send_at);
+      if (Date.now() - Date.parse(due_row.send_at) > STALE_MS) continue;
+      try { await deliverPush(due_row, Buffer.from(due_row.body)); } catch (error) { console.warn('Push not sent:', error.message); }
+    }
+    await nudgeTick();
+  } finally {
+    push_tick_running = false;
+  }
+}
+
+// A week without Sift being opened and no digests left: one content-free nudge
+// at the digest's time of day, then one a week, MAX_NUDGES at most. Opening
+// Sift (any signed-in request) starts the count again.
+async function nudgeTick() {
+  const nudge_candidates = db.prepare(`SELECT u.id, u.push_settings, u.nudges_sent, u.last_nudge_at, (SELECT MAX(d.last_seen) FROM devices d WHERE d.user_id = u.id) AS last_seen
+    FROM users u WHERE EXISTS (SELECT 1 FROM push_subs s WHERE s.user_id = u.id)`).all();
+  for (const candidate of nudge_candidates) {
+    const settings = Object.assign({}, PUSH_DEFAULTS, candidate.push_settings ? JSON.parse(candidate.push_settings) : {});
+    if (!settings.nudge || !candidate.last_seen || Date.now() - Date.parse(candidate.last_seen) < WEEK_MS) continue;
+    const nudges_so_far = candidate.last_nudge_at && candidate.last_seen > candidate.last_nudge_at ? 0 : candidate.nudges_sent || 0;
+    if (nudges_so_far >= MAX_NUDGES) continue;
+    if (candidate.last_nudge_at && Date.now() - Date.parse(candidate.last_nudge_at) < WEEK_MS) continue;
+    if (db.prepare('SELECT 1 FROM push_queue q JOIN push_subs s ON s.id = q.sub_id WHERE s.user_id = ? LIMIT 1').get(candidate.id)) continue; // digests still to come
+    const minutes_after_digest_time = localMinutes(settings.tz) - clockMinutes(settings.time);
+    if (minutes_after_digest_time < 0 || minutes_after_digest_time > 180) continue; // not in the night if the server was down at that time
+    db.prepare('UPDATE users SET nudges_sent = ?, last_nudge_at = ? WHERE id = ?').run(nudges_so_far + 1, now(), candidate.id);
+    for (const subscription of db.prepare('SELECT id, endpoint FROM push_subs WHERE user_id = ?').all(candidate.id)) {
+      try { await deliverPush(subscription, null); } catch (error) { console.warn('Nudge not sent:', error.message); }
+    }
+  }
+}
 
 // ---------- endpoints ----------
 
@@ -487,6 +605,85 @@ const routes = {
     const dev = authed(req);
     return { bytes: usage(dev.user_id), quota: QUOTA };
   },
+
+  // ---------- notifications ----------
+  // The app's view: this server's VAPID key, the account's settings, and every
+  // phone subscribed (any device rewrites all their digest queues).
+  'GET /api/push': ({ req }) => {
+    const dev = authed(req);
+    const subscriptions = db.prepare('SELECT id, endpoint, p256dh, auth, device_id FROM push_subs WHERE user_id = ? ORDER BY created_at').all(dev.user_id);
+    return { public_key: vapid_public, settings: pushSettings(dev.user_id), subs: subscriptions.map(subscription => ({ id: subscription.id, endpoint: subscription.endpoint, p256dh: subscription.p256dh, auth: subscription.auth, mine: subscription.device_id === dev.id })) };
+  },
+
+  'POST /api/push/settings': ({ req, body }) => {
+    const dev = authed(req);
+    const settings = pushSettings(dev.user_id);
+    if (typeof body.digest === 'boolean') settings.digest = body.digest;
+    if (typeof body.nudge === 'boolean') settings.nudge = body.nudge;
+    if (typeof body.time === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(body.time)) settings.time = body.time;
+    if (typeof body.tz === 'string' && body.tz.length <= 64) { try { new Intl.DateTimeFormat('en-GB', { timeZone: body.tz }); settings.tz = body.tz; } catch { throw new HttpError(400, 'Unknown time zone'); } }
+    db.prepare('UPDATE users SET push_settings = ? WHERE id = ?').run(JSON.stringify(settings), dev.user_id);
+    return { settings };
+  },
+
+  // This device's subscription (a phone that re-subscribes keeps its id).
+  'POST /api/push/subscribe': ({ req, body }) => {
+    const dev = authed(req);
+    if (typeof body.endpoint !== 'string' || body.endpoint.length > 1000 || !pushEndpointOk(body.endpoint)) throw new HttpError(400, 'Not a push service this server sends to');
+    if (typeof body.p256dh !== 'string' || !/^[\w-]{80,100}$/.test(body.p256dh) || typeof body.auth !== 'string' || !/^[\w-]{16,32}$/.test(body.auth)) throw new HttpError(400, 'Missing push keys');
+    const existing_subscription = db.prepare('SELECT id FROM push_subs WHERE endpoint = ?').get(body.endpoint);
+    if (existing_subscription) {
+      db.prepare('UPDATE push_subs SET user_id = ?, device_id = ?, p256dh = ?, auth = ? WHERE id = ?').run(dev.user_id, dev.id, body.p256dh, body.auth, existing_subscription.id);
+      return { id: existing_subscription.id };
+    }
+    const subscription_id = id();
+    db.prepare('INSERT INTO push_subs (id, user_id, device_id, endpoint, p256dh, auth, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)').run(subscription_id, dev.user_id, dev.id, body.endpoint, body.p256dh, body.auth, now());
+    return { id: subscription_id };
+  },
+
+  'POST /api/push/unsubscribe': ({ req, body }) => {
+    const dev = authed(req);
+    db.prepare('DELETE FROM push_subs WHERE endpoint = ? AND user_id = ?').run(String(body.endpoint || ''), dev.user_id);
+    return { ok: true };
+  },
+
+  // Replaces each listed phone's whole queue with the digests sealed for it.
+  'POST /api/push/queue': ({ req, body }) => {
+    const dev = authed(req);
+    const queues = Array.isArray(body.queues) ? body.queues : [];
+    const own_subscription = db.prepare('SELECT 1 FROM push_subs WHERE id = ? AND user_id = ?');
+    const clear_queue = db.prepare('DELETE FROM push_queue WHERE sub_id = ?');
+    const add_digest = db.prepare('INSERT OR REPLACE INTO push_queue (sub_id, send_at, body) VALUES (?, ?, ?)');
+    db.exec('BEGIN IMMEDIATE');
+    try {
+      for (const queue of queues) {
+        if (typeof queue.sub_id !== 'string' || !own_subscription.get(queue.sub_id, dev.user_id)) continue;
+        clear_queue.run(queue.sub_id);
+        for (const digest of (Array.isArray(queue.items) ? queue.items : []).slice(0, MAX_DIGESTS)) {
+          const send_time = Date.parse(digest.send_at);
+          const sealed_body = typeof digest.body === 'string' ? Buffer.from(digest.body, 'base64url') : null;
+          if (!send_time || !sealed_body?.length || sealed_body.length > 4096) throw new HttpError(400, 'Each digest needs a time and at most 4 KB');
+          add_digest.run(queue.sub_id, new Date(send_time).toISOString(), sealed_body);
+        }
+      }
+      db.exec('COMMIT');
+    } catch (error) {
+      db.exec('ROLLBACK');
+      throw error;
+    }
+    return { ok: true };
+  },
+
+  // Settings, Send a test: one sealed message to one of this account's phones, now.
+  'POST /api/push/test': async ({ req, body }) => {
+    const dev = authed(req);
+    const subscription = db.prepare('SELECT id, endpoint FROM push_subs WHERE id = ? AND user_id = ?').get(String(body.sub_id || ''), dev.user_id);
+    if (!subscription) throw new HttpError(404, 'That device has no notifications turned on');
+    const sealed_body = typeof body.body === 'string' ? Buffer.from(body.body, 'base64url') : null;
+    if (!sealed_body?.length || sealed_body.length > 4096) throw new HttpError(400, 'Missing message');
+    if (!(await deliverPush(subscription, sealed_body))) throw new HttpError(502, 'The push service refused it');
+    return { ok: true };
+  },
 };
 
 function match(method, pathname) {
@@ -582,3 +779,4 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => console.log(`sift-server listening on ${HOST}:${PORT} (registration: ${REGISTRATION}, origins: ${ORIGINS.join(' ')})`));
+setInterval(() => pushTick().catch(error => console.error('Push tick failed:', error)), 30000).unref();

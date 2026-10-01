@@ -195,6 +195,7 @@ export async function signOut() {
 export const signedIn = () => (account ? { ...account, token: undefined } : null);
 
 export async function devices() { return (await api('GET', '/api/devices')).devices; }
+export const call = (method, path, body) => api(method, path, body); // notifications (push.js)
 
 // ---------- the sync itself ----------
 

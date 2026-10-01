@@ -149,6 +149,8 @@ sqlite3 /var/lib/sift/sift.db ".backup /root/sift-backup.db"
 
 The copy is still encrypted; it's useless without your password. Your devices also hold complete copies, and Sift's own backup file (Settings → Backup) is independent of the server.
 
+**Notifications** (Sift, Settings, Notifications) are sent from the server through Apple's, Google's or Mozilla's push service, so the server needs to reach the internet over HTTPS (a home server behind a VPN is fine). It can't read them: each one is sealed on your devices. Set `PUSH_CONTACT` in the settings file to an address push services can contact about the server.
+
 **Test**: `node test.js` starts a throwaway server and runs a register / sign in / push / conflict / pull check.
 
 ## Hardening

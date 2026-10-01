@@ -138,6 +138,11 @@ export default {
         <div id="sync-body"></div>
       </section>
 
+      <section class="card" id="notify-card">
+        <h2>Notifications</h2>
+        <div id="notify-body"></div>
+      </section>
+
       <section class="card" id="exchange-card">
         <h2>Data exchange</h2>
         <p class="muted">${esc(word('ph_set_exchange'))}</p>
@@ -406,6 +411,7 @@ export default {
         check();
       };
       sync.onStatus(st => { if (el.isConnected) { paintFacts(st); paintTop(st); } });
+      import('../push.js').then(push => push.mountCard(el.querySelector('#notify-body'))).catch(error => console.warn('Notifications card:', error));
       // Keep "… seconds ago" current while Settings is open.
       this.syncTick = setInterval(() => { if (!el.isConnected) return clearInterval(this.syncTick); if (sync.signedIn()) { paintFacts(sync.status); paintTop(sync.status); } }, 5000);
       // While Settings is open, a quick check of the connection every 10 s (each shows as a pulse).
