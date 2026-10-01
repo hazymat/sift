@@ -1784,7 +1784,7 @@ export default {
     document.addEventListener('keydown', ev => {
       if (ev.defaultPrevented || ev.altKey || !selected.size || !el.isConnected || typingIn(ev.target) || document.querySelector('dialog[open]')) return;
       const mod = ev.ctrlKey || ev.metaKey;
-      const sel = ev.key === 'Enter' && mod && !ev.shiftKey ? 'done' : mod || ev.shiftKey ? null : ev.key === 'Delete' || ev.key === 'Backspace' || ev.key.toUpperCase() === 'D' ? 'delete' : ev.key.toUpperCase() === 'A' ? 'archive' : null;
+      const sel = ev.key === 'Enter' && mod && !ev.shiftKey ? 'done' : mod || ev.shiftKey ? null : ev.key === 'Delete' || ev.key === 'Backspace' || ev.key?.toUpperCase() === 'D' ? 'delete' : ev.key?.toUpperCase() === 'A' ? 'archive' : null;
       if (!sel) return;
       ev.preventDefault(); ev.stopImmediatePropagation();
       bar.querySelector(`[data-sel="${sel}"]`).click();

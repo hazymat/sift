@@ -489,7 +489,7 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
   const onKey = e => {
     if (e.key === 'Escape' && card.contains(e.target)) { e.preventDefault(); e.stopImmediatePropagation(); act('later'); return; }
     if (e.ctrlKey || e.metaKey || e.altKey || e.target.closest?.('input, textarea, select, [contenteditable="true"]')) return;
-    const what = { n: 'next', b: 'back' }[e.key.toLowerCase()];
+    const what = { n: 'next', b: 'back' }[(e.key || '').toLowerCase()];
     if (!what || card.querySelector('.tour-nice')) return;
     e.preventDefault();
     e.stopImmediatePropagation();

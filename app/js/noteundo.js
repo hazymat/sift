@@ -111,7 +111,7 @@ export function noteUndo(edit, { get, set, ref }) {
   });
   edit.addEventListener('keydown', ev => {
     if (!(ev.ctrlKey || ev.metaKey) || ev.altKey) return;
-    const k = ev.key.toLowerCase();
+    const k = (ev.key || '').toLowerCase();
     if (k === 'z' && !ev.shiftKey) { ev.preventDefault(); stepBack(); }
     else if (k === 'y' || (k === 'z' && ev.shiftKey)) { ev.preventDefault(); stepForward(); }
   });

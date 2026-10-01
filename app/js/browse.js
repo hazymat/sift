@@ -184,7 +184,7 @@ export function installBrowse({ busy, area }) {
   const step = (list, cur, k) => (k === 'ArrowLeft' || k === 'ArrowRight' ? list[list.indexOf(cur) + (k === 'ArrowLeft' ? -1 : 1)] : nearest(list, cur, k === 'ArrowDown' ? 1 : -1));
   const select = (from, to) => document.dispatchEvent(new CustomEvent('browse-select', { detail: { from, to } }));
   addEventListener('keydown', ev => {
-    if (!ev.shiftKey || ev.altKey || ev.ctrlKey || ev.metaKey || ev.isComposing || !ev.key.startsWith('Arrow') || busy()) return;
+    if (!ev.shiftKey || ev.altKey || ev.ctrlKey || ev.metaKey || ev.isComposing || !ev.key?.startsWith('Arrow') || busy()) return;
     const t = ev.target;
     if (t !== document.body && t !== document.documentElement && t.closest?.('a, button, summary, [role="button"], [tabindex], input, textarea, select')) return;
     const c = cfg(), list = items(c);

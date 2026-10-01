@@ -455,7 +455,7 @@ export function createListKit({
     if ((ev.key === 'ArrowUp' || ev.key === 'ArrowDown') && ev.shiftKey && !mod) { if (!anchor) anchor = idsInOrder()[ev.key === 'ArrowUp' ? 0 : selected.size - 1]; extend(ev.key === 'ArrowUp' ? -1 : 1); done = true; }
     else if (ev.key === 'Tab' && !mod && indent) done = press(bar.querySelector(`[data-kit="${ev.shiftKey ? 'outdent' : 'indent'}"]`)) || true;
     else {
-      const a = actions.find(x => x.key && (x.key === 'Ctrl+Enter' ? ev.key === 'Enter' && mod && !ev.shiftKey : !mod && !ev.shiftKey && ev.key.toUpperCase() === x.key));
+      const a = actions.find(x => x.key && (x.key === 'Ctrl+Enter' ? ev.key === 'Enter' && mod && !ev.shiftKey : !mod && !ev.shiftKey && ev.key?.toUpperCase() === x.key));
       if (a && !(a.when && a.when() === false)) done = press(bar.querySelector(`[data-kit-action="${a.id}"]`));
     }
     if (done) { ev.preventDefault(); ev.stopImmediatePropagation(); }
