@@ -42,21 +42,8 @@ const try_ = text => `<p class="tour-try">Try it: ${text}</p>`;
 // (by version) and Android as ✓; a page can't tell which, so both are named.
 const enterKey = () => (KEYS ? `press ${key('Enter')}` : 'tap <b>✓</b> (or <b>Done</b>) on your keyboard');
 
-// Phones: the keyboard only opens for a tap, and a tour gets going a moment after it. So the tap puts the
-// cursor in a hidden box straight away (the keyboard opens), and the step's own field takes it over once
-// it's there (the keyboard stays). startTour's caller calls this in the tap itself.
-let primer = null;
-export function primeKeyboard() {
-  if (KEYS) return;
-  primer?.remove();
-  primer = Object.assign(document.createElement('input'), { type: 'text', autocomplete: 'off' });
-  primer.setAttribute('aria-hidden', 'true');
-  primer.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;font-size:16px;border:0;padding:0';
-  document.body.append(primer);
-  primer.focus();
-  setTimeout(() => { primer?.remove(); primer = null; }, 8000); // (never taken over: gone again)
-}
-const primed = () => primer && document.activeElement === primer;
+// Phones: a step never puts the cursor in its field, so no keyboard covers the card (which sits low); the
+// field is tapped once the card has been read. With a keyboard (KEYS) the cursor goes straight there.
 // Several things to do in turn: one yellow line (and green arrow) each.
 const tries = (...lines) => lines.map(l => `<p class="tour-try">${l}</p>`).join('');
 // Things to do in turn, shown one at a time as each is done (the step's stage() says which), so the card stays small.
@@ -103,7 +90,7 @@ const openView = where => `${Tap()} the <b>View</b> button at the top${where ? `
 
 const tasksSteps = () => [
   { id: 'add', hash: '#/tasks/inbox', at: '#task-entry, #task-body', also: nav('tasks'), focus: '#task-new', title: 'Add a task', done: { made: ['tasks'] },
-    body: `<p class="tour-try">Try typing something you need to do, like <b>Buy milk</b>, then ${enterKey()}.</p>` },
+    body: `<p class="tour-try">${KEYS ? 'Try typing' : 'Tap the <b>New task</b> box and type'} something you need to do, like <b>Buy milk</b>, then ${enterKey()}.</p>` },
   { id: 'tabs', hash: '#/tasks/inbox', at: '#task-entry, #task-body', also: '#task-views [data-view="inbox"]', focus: '#task-new', title: `You just used the ${word('list_inbox')}`, done: { made: ['tasks'] }, doneText: "✓ That's the idea: no buttons, just type.",
     body: `<p>The <b>${word('list_inbox')}</b> is for whatever pops into your head. It's built to have you typing within seconds of opening Sift: type, ${KEYS ? key('Enter') : '✓'}, type the next one. Nothing to decide; just get your thoughts down.</p>
       ${try_('add another one, straight away, like <b>Call Mum</b>.')}` },
@@ -171,7 +158,7 @@ const keysSteps = () => [
 const notesSteps = () => [
   { id: 'dump', hash: '#/dump', at: '.dump-capture', focus: '#dump-body .rich-edit', title: 'Empty your head', done: { made: ['thoughts'] },
     body: `<p>A worry, an idea, a phone number. No title, no folder, nothing to decide first.</p>
-      ${try_(KEYS ? `write something, then ${key(CTRL, 'Enter')} or Save.` : 'write something, then Done, then Save.')}` },
+      ${try_(KEYS ? `write something, then ${key(CTRL, 'Enter')} or Save.` : 'tap the box, write something, then Done, then Save.')}` },
   { id: 'becomes', hash: '#/dump', at: '#thoughts > li.thought', title: 'From note to action', done: { made: ['tasks', 'day_items'] },
     body: `<p>A note's <b>⋯</b> turns it into a task, or puts it on your day. The note stays here, linked to what it became.</p>
       ${try_(`${tap()} <b>⋯</b>, then <b>→ Task</b>.`)}` },
@@ -198,7 +185,7 @@ const plannerSteps = () => [
   Object.assign(menuAt('.planner .view-menu', '.menu'), { id: 'pview', hash: `#/planner/${isoDate()}`, leave: closeMenu('.planner .view-menu'), title: '👁 Your kind of paper', done: { check: changes(() => document.querySelector('.planner')?.dataset.paper) }, doneText: '✓ Every day can have its own paper.',
     body: `<p>Notebook, Dot journal, Glass; quarter, half or whole hours; the plan first or your tasks first.</p>${tries(openView('the eye'), 'Pick a different <b>Paper</b>.')}` }),
   { id: 'focus', hash: `#/planner/${isoDate()}`, at: '.planner .focus-row', focus: '#focus', title: 'Plan around how you feel', done: { updated: ['days'] }, doneText: "✓ Today's focus, right at the top.",
-    body: `<p><b>Day focus</b>: the one thing that matters today. <b>Energy</b>: how you feel, so it suggests tasks that fit.</p>${try_(`type your focus for today, then ${KEYS ? key('Enter') : 'Done'}.`)}` },
+    body: `<p><b>Day focus</b>: the one thing that matters today. <b>Energy</b>: how you feel, so it suggests tasks that fit.</p>${try_(KEYS ? `type your focus for today, then ${key('Enter')}.` : 'tap <b>Day focus</b>, type your focus for today, then Done.')}` },
   { id: 'daynotes', hash: `#/planner/${isoDate()}`, at: '.planner .day-notes', title: 'A diary without trying', body: `<p>Who rang, what happened, what to remember. Written as you go, the day's notes become a journal.</p>` },
   { id: 'share', hash: `#/planner/${isoDate()}`, at: '.planner .share-menu', title: 'Share your day', body: `<p>Copy it into WhatsApp for the school run, or share your day, week or whole diary with someone who uses Sift.</p>` },
 ];
@@ -428,10 +415,9 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
         ${step.offer ? '' : doneStep ? `<button type="button" data-tour="next">Skip${k('N')}</button>` : `<button type="button" class="primary" data-tour="next">${last ? 'Finish' : 'Next'}${k('N')}</button>`}</div>`;
     // What it points at may take a moment to be drawn (the page changing, a toolbar showing once the note is in use).
     for (let tries = 0; tries < 40 && current(n); tries++) {
-      // (Not on a phone: the cursor in a note opens it full screen, with the keyboard. That's left to a tap.)
-      if (step.focus && (KEYS || primed())) {
+      if (step.focus && KEYS) {
         const f = document.querySelector(step.focus);
-        if (f && document.activeElement !== f) { f.focus(); if (primer && document.activeElement === f) { primer.remove(); primer = null; } }
+        if (f && document.activeElement !== f) f.focus();
         if (f && document.activeElement === f) inField = true;
       }
       if (step.open && !opened) { opened = find(step.open); if (opened) opened.open = true; }

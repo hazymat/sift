@@ -3,7 +3,7 @@
 // "Take the tour of Sift" task. Three big tours for the three ways people use
 // Sift, and short ones for the rest. #/welcome; not in the navigation.
 import * as store from '../store.js';
-import { startTour, showTourTask, progress, tourLength, toursSeen, primeKeyboard } from '../tour.js';
+import { startTour, showTourTask, progress, tourLength, toursSeen } from '../tour.js';
 import { word } from '../words.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -57,7 +57,6 @@ export default {
     el.addEventListener('click', async ev => {
       const b = ev.target.closest('button[data-pick], button[data-act]');
       if (!b) return;
-      if (b.dataset.pick) primeKeyboard(); // (in the tap itself: see tour.js)
       await store.updateDeviceSettings({ welcomed: true });
       if (b.dataset.pick) return startTour({ which: b.dataset.pick }); // carries on where it was left, if it was
       // Later: a task like any other, whose pill brings back this page (views/tasks.js), shown so it can be found.
