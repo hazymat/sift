@@ -231,7 +231,6 @@ export default {
       const aimTime = t.aim_at && t.aim_at.length > 10 ? t.aim_at.slice(11, 16) : '';
       const showTime = !!aimTime || aimTimeFor === t.id;
       const members = membersOf(t), owner = ownerOf(t);
-      const named = people.contacts.filter(c => c.name);
       const moreSet = t.project_id || (t.contact_ids || []).length || owner || t.waiting_on || t.case_id || (t.priority && Number(t.priority) !== 3) || (t.status && t.status !== 'todo');
       return `
         <div class="task-notes"></div>
@@ -259,7 +258,7 @@ export default {
             <label>Project<select name="project_id"><option value="">None</option>${data.projects.map(p => `<option value="${p.id}" ${t.project_id === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}${state.owner || !shared.length ? '' : `<optgroup label="👥 Shared with me">${shared.filter(x => x.p.status !== 'done').map(x => `<option value="${sharedValue(x)}">${esc(x.p.name)} (${esc(x.name)})</option>`).join('')}</optgroup>`}${state.owner ? '' : '<option value="__new">+ New project…</option>'}</select></label>
             ${t.project_id ? `<label>Milestone<select name="milestone_id"><option value="">None</option>${ms.map(m => `<option value="${m.id}" ${t.milestone_id === m.id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}<option value="__new">+ New milestone…</option></select></label>` : ''}
             ${members.length ? `<label>Owner<select name="owner_id"><option value="">Nobody (anyone)</option>${members.map(m => `<option value="${m.user_id}" ${owner === m.user_id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label>` : ''}
-            <label>Waiting on<select name="waiting_on"><option value="">Nobody</option>${t.waiting_on ? `<option value="=" selected>${esc(t.waiting_on)}</option>` : ''}<option value="__type">Type a name…</option>${named.length ? `<optgroup label="Contacts">${named.map(c => `<option value="c:${c.id}">${esc(c.name)}</option>`).join('')}</optgroup>` : ''}</select></label>
+            <label>Waiting on<select name="waiting_on"><option value="">Nobody</option>${t.waiting_on ? `<option value="=" selected>${esc(t.waiting_on)}</option>` : ''}<option value="__type">Other: type a name…</option></select></label>
             <label>People<select name="add_contact" data-filled="${(t.contact_ids || []).length ? 1 : ''}"><option value="">+ Add a contact…</option>${people.contacts.filter(c => !(t.contact_ids || []).includes(c.id)).map(c => `<option value="${c.id}">${esc(c.name || '(no name)')}</option>`).join('')}</select></label>
             <label>Case<select name="case_id"><option value="">None</option>${people.cases.map(k => `<option value="${k.id}" ${t.case_id === k.id ? 'selected' : ''}>${esc(k.title)}</option>`).join('')}</select></label>
             ${(t.contact_ids || []).length ? `<div class="energy-pick"><span>With</span>${t.contact_ids.map(cid => people.contacts.find(c => c.id === cid)).filter(Boolean).map(c => `<span class="chip">${esc(c.name)} <button type="button" class="chip-x" data-act="remove-contact" data-id="${c.id}" aria-label="Remove">×</button></span>`).join('')}</div>` : ''}
@@ -1397,11 +1396,10 @@ export default {
         await change(id, { owner_id: t.value || null, owner_by: myUserId() || null, owner_at: new Date().toISOString() }, name ? `Owner: ${name}` : 'No owner: anyone can do it');
       } else if (t.name === 'waiting_on') {
         if (t.value === '=') return;
-        const contact = t.value.startsWith('c:') && people.contacts.find(c => c.id === t.value.slice(2));
-        // The name is kept on the task, so everyone sharing it sees it (contacts are each person's own).
-        const name = t.value === '__type' ? (await askText('Waiting on', { placeholder: 'A name, e.g. HMRC or the plumber', ok: 'Set' }))?.trim() : contact?.name;
+        // Any name, typed: kept on the task as text, so everyone sharing it sees it.
+        const name = t.value === '__type' ? (await askText('Waiting on', { value: task.waiting_on || '', placeholder: 'A name, e.g. HMRC or the plumber', ok: 'Set' }))?.trim() : '';
         if (t.value && !name) { render(); return; }
-        await change(id, name ? { waiting_on: name, waiting_contact_id: contact?.id || null, status: 'waiting' } : { waiting_on: null, waiting_contact_id: null, status: task.status === 'waiting' ? 'todo' : task.status }, name ? `Waiting on ${name}` : 'Not waiting');
+        await change(id, name ? { waiting_on: name, status: 'waiting' } : { waiting_on: null, status: task.status === 'waiting' ? 'todo' : task.status }, name ? `Waiting on ${name}` : 'Not waiting');
       } else if (t.name === 'project_id' && t.value.startsWith('from:')) {
         if (!(await projectPicked([id], t.value))) render();
       } else if (t.name === 'project_id' && t.value === '__new') {
@@ -1423,7 +1421,7 @@ export default {
         if (t.name === 'priority') value = Number(t.value);
         if (t.name === 'estimate_min') value = t.value ? Number(t.value) : null;
         const fields = { [t.name]: value };
-        if (t.name === 'status') Object.assign(fields, value === 'done' ? doneFields(true) : { done_at: null }, value !== 'waiting' && value !== 'done' && task.waiting_on ? { waiting_on: null, waiting_contact_id: null } : {});
+        if (t.name === 'status') Object.assign(fields, value === 'done' ? doneFields(true) : { done_at: null }, value !== 'waiting' && value !== 'done' && task.waiting_on ? { waiting_on: null } : {});
         if (t.name === 'project_id') fields.milestone_id = null;
         await change(id, fields, t.name === 'start_date' && value ? `Planned for ${shortDate(value)}` : t.name === 'horizon' ? `Transferred to ${HORIZONS.find(x => x.id === value)?.label || value}` : 'Saved');
       }
