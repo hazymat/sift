@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.45': [{ text: "Projects: a shared project has views of its own. Under its name, Everyone, Mine, each person's, and Nobody's show just those tasks. The 👁 menu adds This project: order (Mine first, or someone else's first) and group by (Milestones, or People: drop a task under a name to give it to them). Each person's choices are their own.", go: '#/tasks', open: ['#main [data-mode="projects"]'], at: '#main .project-grid .project-card', more: "Clicking into a task in a shared project, then More, now shows a 👤 Who pill to set its owner where Energy was; Energy is still in the task's full panel and in Tasks." }],
   '1.60.44': [{ text: "Sharing: you can set your name (first name, last name and a username no one else on your server has, all optional) so people you share with see it instead of the start of your email. Sift asks for it the first time you share something or accept an invitation; skip it and they see your email's first part as before.", go: '#/settings', at: '#main .sync-name', more: "Settings, Sync: Your name, to set or change it any time. The name shows everywhere people show on shared things: the Shared with pill and sheet, invitations, the Owner choice and owner pills on shared project tasks, and the Day Planner's sharing note. If two people sharing with you have the same first name, their last names show too." }],
   '1.60.43': [{ text: "Projects: a task in a shared project has an Owner (anyone sharing it, or nobody, meaning anyone can do it) and a Waiting on (Other: any name you type, like HMRC or the plumber). Both show as pills on the task's line, in compact spacing too. When someone else gives you a task, a notice in that project says so until you dismiss it.", go: '#/tasks', open: ['#main [data-mode="projects"]'], at: '#main .project-grid .project-card', more: "Owner and Waiting on are under More in a task's panel. Waiting on works for every task, not just shared ones. This replaces the People choice's 'Sharing this project' list from 1.60.40." }],
   '1.60.42': [{ text: "Projects: the 👁 view menu at the top of an open project no longer slips behind the project's name bar (and its Shared with pill). It now always sits on top.", go: '#/tasks', open: ['#main [data-mode="projects"]', '#main .project-grid .project-card', '#main details.view-menu > summary'], at: '#main details.view-menu > .menu', more: 'The same fix covers every menu opened from a page\'s top bar while another bar sits below it, in every area.' }],
@@ -87,6 +88,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.45': '2026-10-01T20:29:19Z',
   '1.60.44': '2026-10-01T20:24:30Z',
   '1.60.43': '2026-10-01T20:12:35Z',
   '1.60.42': '2026-10-01T20:07:56Z',
