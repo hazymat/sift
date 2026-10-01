@@ -42,6 +42,7 @@ Every version that changes something on screen adds a What's new entry with a Sh
 - **Cards with a photo** keep one shape: the photo is cropped to its frame (square on recipe cards, 4:3 on scans) and never sets the card's height (1.55.17).
 - **A thing's colour** shows the project way wherever it has one: a 4px coloured edge on its card and page head, and its progress bar in its colour, whatever the Look. Built on `--c` (1.55.08).
 - **Putting something into a project** (Move, 📁 Project pill, Brain Dump conversion, any picker) lists projects shared with you too, with 👥.
+- **Who does a task**: a task's owner (👤 name, shared projects only) and Waiting on (⏳ name) are pills on the task's own line, in every spacing including tight, never squeezed out; nothing shows when nobody is set. Built once in `row()` in `views/tasks.js`, so every list of tasks (Now, Next, Later, All, Done, a project's page) has them (1.60.43).
 
 ## 1. Page level: areas that list things
 

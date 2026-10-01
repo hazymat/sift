@@ -20,6 +20,7 @@ import { rankOf, reorderWrites, keyBetween } from '../order.js';
 import { toast, undoable } from '../toast.js';
 import { richText, toHtml, previewLine, inlineAll, plainLines } from '../richtext.js';
 import { loadContacts } from '../contacts.js';
+import { myUserId } from '../sync.js';
 import * as att from '../attachments.js';
 import { atEdge, caretTo } from '../walk.js';
 import { debounced } from '../autosave.js';
@@ -73,6 +74,7 @@ export default {
     let data = { tasks: [], projects: [], milestones: [] };
     let shared = []; // projects others share with you: [{ p, tasks, owner_id, name, share }]
     let people = { contacts: [], cases: [] };
+    let assignSeen = {}; // project id → when you last dismissed its "gave you" notice (settings assign_seen, synced)
     let atts = new Map(); // task id → its attachments
     let open = null; // task id with details open
     let pills = null; // the editing pills under a task (editpills.js), made further down
@@ -125,9 +127,18 @@ export default {
     // ---------- pieces ----------
 
     const projectOf = t => data.projects.find(p => p.id === t.project_id);
-    // The people sharing a task's project (projectMembers), and those of them the task is given to (member_ids).
+    // The people sharing a task's project (projectMembers), and its owner among them (owner_id; null: anyone can do it).
+    // (member_ids: how 1.60.40 kept it.)
     const membersOf = t => (projectOf(t) ? projectMembers(t.project_id, state.owner) : []);
-    const membersOn = t => membersOf(t).filter(m => (t.member_ids || []).includes(m.user_id));
+    const ownerOf = t => (t.owner_id !== undefined ? t.owner_id : (t.member_ids || [])[0] || null);
+    const ownerName = (t, id = ownerOf(t)) => (id && membersOf(t).find(m => m.user_id === id)?.name) || '';
+    // Owner and Waiting on pills, on the task's own line in every spacing (none when nobody).
+    function whoHtml(t) {
+      const owner = ownerName(t);
+      const out = (owner ? `<span class="chip who-pill" title="Owner: ${esc(owner)}">👤 ${esc(owner)}</span>` : '')
+        + (t.waiting_on && !isDone(t) ? `<span class="chip who-pill waiting" title="Waiting on ${esc(t.waiting_on)}">⏳ ${esc(t.waiting_on)}</span>` : '');
+      return out ? `<span class="who-pills">${out}</span>` : '';
+    }
     const kidsOf = t => data.tasks.filter(k => k.parent_task_id === t.id);
     // A place just after a task and its sub-tasks (for a new sub-task at the end).
     const afterFamily = t => {
@@ -147,7 +158,7 @@ export default {
       if (t.repeat) out.push(`<span class="chip" title="Repeats">🔁 ${repeatLabel(t.repeat)}</span>`);
       if (t.estimate_min) out.push(`<span class="chip" title="Estimated time">⏱ ${durationLabel(t.estimate_min)}</span>`);
       if (t.priority && t.priority < 3) out.push(`<span class="chip pri-${t.priority}">${PRIORITIES.find(p => p.id === t.priority)?.label}</span>`);
-      if (t.status === 'doing' || t.status === 'waiting') out.push(`<span class="chip">${STATUSES.find(s => s.id === t.status)?.label}</span>`);
+      if (t.status === 'doing' || (t.status === 'waiting' && !t.waiting_on)) out.push(`<span class="chip">${STATUSES.find(s => s.id === t.status)?.label}</span>`);
       const kids = kidsOf(t);
       if (kids.length) {
         const pr = progress(kids);
@@ -155,7 +166,6 @@ export default {
       }
       const files = atts.get(t.id)?.length;
       if (files) out.push(`<button type="button" class="chip" data-att-view="${t.id}" title="Attached files: press to look">📎 ${files}</button>`);
-      for (const m of membersOn(t)) out.push(`<span class="chip" title="Given to ${esc(m.name)}, who shares this project">👥 ${esc(m.name)}</span>`);
       for (const cid of t.contact_ids || []) {
         const c = people.contacts.find(x => x.id === cid);
         if (c) out.push(`<a class="chip" href="#/contacts/c/${c.id}" title="Contact">👤 ${esc(c.name || '?')}</a>`);
@@ -171,6 +181,7 @@ export default {
           <button type="button" class="drag-handle" aria-label="Select${draggable ? ' or move' : ''} ${esc(t.title)}">${icon('i-grip')}</button>
           <input type="checkbox" class="tick" ${isDone(t) ? 'checked' : ''} aria-label="Done">
           <input class="task-title" value="${esc(t.title)}" aria-label="Task" autocomplete="off">
+          ${whoHtml(t)}
           <button type="button" class="more entry-chip" data-act="quick-more" title="Edit the task, with its pills">More</button>
           <button type="button" class="details-btn" data-act="details" hidden aria-label="Details" aria-expanded="${open === t.id}"></button>
           ${open === t.id ? `<button type="button" class="entry-chip close-top" data-act="close-details" title="Close the panel">✓ Close${keys('Esc')}</button>` : ''}
@@ -219,8 +230,8 @@ export default {
       const aim = aimDate(t) || '';
       const aimTime = t.aim_at && t.aim_at.length > 10 ? t.aim_at.slice(11, 16) : '';
       const showTime = !!aimTime || aimTimeFor === t.id;
-      const members = membersOf(t), given = membersOn(t);
-      const moreSet = t.project_id || (t.contact_ids || []).length || given.length || t.case_id || (t.priority && Number(t.priority) !== 3) || (t.status && t.status !== 'todo');
+      const members = membersOf(t), owner = ownerOf(t);
+      const moreSet = t.project_id || (t.contact_ids || []).length || owner || t.waiting_on || t.case_id || (t.priority && Number(t.priority) !== 3) || (t.status && t.status !== 'todo');
       return `
         <div class="task-notes"></div>
         ${att.rowHtml(atts.get(t.id), { parent: t.id })}
@@ -240,19 +251,17 @@ export default {
         </div>
         </div>
         <details class="detail-more"${moreSet ? ' open' : ''}>
-          <summary>More <span class="more-what">project, people, case, priority</span></summary>
+          <summary>More <span class="more-what">project, owner, waiting on, people, case, priority</span></summary>
           <div class="detail-grid">
             <label>Priority<select name="priority">${PRIORITIES.map(p => `<option value="${p.id}" ${Number(t.priority) === p.id ? 'selected' : ''}>${p.label}</option>`).join('')}</select></label>
             <label>Status<select name="status">${STATUSES.map(s => `<option value="${s.id}" ${t.status === s.id ? 'selected' : ''}>${s.label}</option>`).join('')}</select></label>
             <label>Project<select name="project_id"><option value="">None</option>${data.projects.map(p => `<option value="${p.id}" ${t.project_id === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}${state.owner || !shared.length ? '' : `<optgroup label="👥 Shared with me">${shared.filter(x => x.p.status !== 'done').map(x => `<option value="${sharedValue(x)}">${esc(x.p.name)} (${esc(x.name)})</option>`).join('')}</optgroup>`}${state.owner ? '' : '<option value="__new">+ New project…</option>'}</select></label>
             ${t.project_id ? `<label>Milestone<select name="milestone_id"><option value="">None</option>${ms.map(m => `<option value="${m.id}" ${t.milestone_id === m.id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}<option value="__new">+ New milestone…</option></select></label>` : ''}
-            <label>People<select name="add_contact" data-filled="${(t.contact_ids || []).length || given.length ? 1 : ''}"><option value="">${members.length ? '+ Add a person…' : '+ Add a contact…'}</option>${(() => {
-              const free = members.filter(m => !given.includes(m)).map(m => `<option value="member:${m.user_id}">${esc(m.name)}</option>`).join('');
-              const contacts = people.contacts.filter(c => !(t.contact_ids || []).includes(c.id)).map(c => `<option value="${c.id}">${esc(c.name || '(no name)')}</option>`).join('');
-              return members.length ? `${free ? `<optgroup label="👥 Sharing this project">${free}</optgroup>` : ''}${contacts ? `<optgroup label="Contacts">${contacts}</optgroup>` : ''}` : contacts;
-            })()}</select></label>
+            ${members.length ? `<label>Owner<select name="owner_id"><option value="">Nobody (anyone)</option>${members.map(m => `<option value="${m.user_id}" ${owner === m.user_id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label>` : ''}
+            <label>Waiting on<select name="waiting_on"><option value="">Nobody</option>${t.waiting_on ? `<option value="=" selected>${esc(t.waiting_on)}</option>` : ''}<option value="__type">Other: type a name…</option></select></label>
+            <label>People<select name="add_contact" data-filled="${(t.contact_ids || []).length ? 1 : ''}"><option value="">+ Add a contact…</option>${people.contacts.filter(c => !(t.contact_ids || []).includes(c.id)).map(c => `<option value="${c.id}">${esc(c.name || '(no name)')}</option>`).join('')}</select></label>
             <label>Case<select name="case_id"><option value="">None</option>${people.cases.map(k => `<option value="${k.id}" ${t.case_id === k.id ? 'selected' : ''}>${esc(k.title)}</option>`).join('')}</select></label>
-            ${(t.contact_ids || []).length || given.length ? `<div class="energy-pick"><span>With</span>${given.map(m => `<span class="chip">👥 ${esc(m.name)} <button type="button" class="chip-x" data-act="remove-member" data-id="${m.user_id}" aria-label="Remove">×</button></span>`).join('')}${(t.contact_ids || []).map(cid => people.contacts.find(c => c.id === cid)).filter(Boolean).map(c => `<span class="chip">${esc(c.name)} <button type="button" class="chip-x" data-act="remove-contact" data-id="${c.id}" aria-label="Remove">×</button></span>`).join('')}</div>` : ''}
+            ${(t.contact_ids || []).length ? `<div class="energy-pick"><span>With</span>${t.contact_ids.map(cid => people.contacts.find(c => c.id === cid)).filter(Boolean).map(c => `<span class="chip">${esc(c.name)} <button type="button" class="chip-x" data-act="remove-contact" data-id="${c.id}" aria-label="Remove">×</button></span>`).join('')}</div>` : ''}
           </div>
         </details>
         <div class="detail-actions">
@@ -360,6 +369,7 @@ export default {
           </div>
           </div>`;
       }
+      if (project) html += assignNotice(project, scoped);
       html += '<!--list-->';
       const ph = project ? `New task in ${project.name}` : 'New task';
       let entry = addBox(ph, false, word('list_inbox'));
@@ -421,6 +431,17 @@ export default {
       const label = HORIZONS.find(x => x.id === h).label;
       const entry = addBox(h === 'inbox' ? 'New task' : `New task for ${word(`list_${h}`)}`, !open.length, label);
       return entry + listOf(open.length ? body : '');
+    }
+
+    // Tasks someone else made you the owner of since you last dismissed this: shown only in their project.
+    function assignNotice(project, scoped) {
+      const me = myUserId();
+      const given = me ? scoped.filter(t => !isDone(t) && t.owner_id === me && t.owner_by && t.owner_by !== me && (t.owner_at || '') > (assignSeen[project.id] || '')) : [];
+      if (!given.length) return '';
+      const givers = [...new Set(given.map(t => ownerName(t, t.owner_by) || 'Someone'))];
+      const names = givers.length > 1 ? `${givers.slice(0, -1).join(', ')} and ${givers.at(-1)}` : givers[0];
+      return `<div class="share-invite assign-notice"><span>👤 <b>${esc(names)}</b> gave you ${given.length === 1 ? 'a task' : `${given.length} tasks`}: ${given.map(t => `<b>${esc(t.title || 'Untitled')}</b>`).join(', ')}.</span>
+        <span class="spacer"></span><button type="button" data-act="assign-seen" data-project="${project.id}">Dismiss</button></div>`;
     }
 
     function viewProjects() {
@@ -629,7 +650,11 @@ export default {
       shared = await sharedProjects();
       if (state.owner && !theirs()) { state.owner = null; store.useSpace(null); if (state.project) return go('projects', null); }
       data = await loadAll();
+      // Your own contacts, even in a project someone shares with you.
+      if (state.owner) store.useSpace(null);
       people = await loadContacts();
+      if (state.owner) store.useSpace(store.spaceOf(state.owner));
+      assignSeen = (await store.getSettings()).assign_seen || {};
       atts = await att.byParent();
       for (const b of el.querySelectorAll('[data-view]')) b.setAttribute('aria-pressed', b.dataset.view === state.view);
       // Tasks | Projects: a project's own page counts as Projects; the list tabs are for Tasks only.
@@ -1364,8 +1389,17 @@ export default {
         const tm = body.querySelector(`[data-for="${id}"] [name="aim_time"]`)?.value || '';
         await change(id, { aim_at: d ? (tm ? `${d}T${tm}` : d) : null }, d ? `Target end date: ${shortDate(d)}` : 'Target end date cleared');
       } else if (t.name === 'add_contact') {
-        if (t.value.startsWith('member:')) await change(id, { member_ids: [...(task.member_ids || []), t.value.slice(7)] }, 'Added a person');
-        else if (t.value) await change(id, { contact_ids: [...(task.contact_ids || []), t.value] }, 'Added a person');
+        if (t.value) await change(id, { contact_ids: [...(task.contact_ids || []), t.value] }, 'Added a person');
+      } else if (t.name === 'owner_id') {
+        // Anyone sharing the project can give it to anyone, as often as they like; who did it and when is the notice (assignNotice).
+        const name = ownerName(task, t.value);
+        await change(id, { owner_id: t.value || null, owner_by: myUserId() || null, owner_at: new Date().toISOString() }, name ? `Owner: ${name}` : 'No owner: anyone can do it');
+      } else if (t.name === 'waiting_on') {
+        if (t.value === '=') return;
+        // Any name, typed: kept on the task as text, so everyone sharing it sees it.
+        const name = t.value === '__type' ? (await askText('Waiting on', { value: task.waiting_on || '', placeholder: 'A name, e.g. HMRC or the plumber', ok: 'Set' }))?.trim() : '';
+        if (t.value && !name) { render(); return; }
+        await change(id, name ? { waiting_on: name, status: 'waiting' } : { waiting_on: null, status: task.status === 'waiting' ? 'todo' : task.status }, name ? `Waiting on ${name}` : 'Not waiting');
       } else if (t.name === 'project_id' && t.value.startsWith('from:')) {
         if (!(await projectPicked([id], t.value))) render();
       } else if (t.name === 'project_id' && t.value === '__new') {
@@ -1387,7 +1421,7 @@ export default {
         if (t.name === 'priority') value = Number(t.value);
         if (t.name === 'estimate_min') value = t.value ? Number(t.value) : null;
         const fields = { [t.name]: value };
-        if (t.name === 'status') Object.assign(fields, value === 'done' ? doneFields(true) : { done_at: null });
+        if (t.name === 'status') Object.assign(fields, value === 'done' ? doneFields(true) : { done_at: null }, value !== 'waiting' && value !== 'done' && task.waiting_on ? { waiting_on: null } : {});
         if (t.name === 'project_id') fields.milestone_id = null;
         await change(id, fields, t.name === 'start_date' && value ? `Planned for ${shortDate(value)}` : t.name === 'horizon' ? `Transferred to ${HORIZONS.find(x => x.id === value)?.label || value}` : 'Saved');
       }
@@ -1454,8 +1488,10 @@ export default {
       const task = data.tasks.find(x => x.id === id);
       const act = b.dataset.act;
       b.closest('details')?.removeAttribute('open');
-      if (act === 'remove-member' && id) {
-        await change(id, { member_ids: (task.member_ids || []).filter(x => x !== b.dataset.id) }, 'Removed a person');
+      if (act === 'assign-seen') {
+        assignSeen = Object.assign({}, assignSeen, { [b.dataset.project]: new Date().toISOString() });
+        await store.updateSettings({ assign_seen: assignSeen });
+        render();
         return;
       }
       if (act === 'remove-contact' && id) {

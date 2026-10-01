@@ -89,7 +89,7 @@ async function makeNext(task) {
   const next = await addTask({
     title: task.title, notes: task.notes || '', project_id: task.project_id || null, milestone_id: task.milestone_id || null,
     horizon: task.horizon || 'now', energy: task.energy ?? null, estimate_min: task.estimate_min ?? null, priority: task.priority ?? 3,
-    contact_ids: task.contact_ids || [], member_ids: task.member_ids || [], case_id: task.case_id || null, colour: task.colour ?? null,
+    contact_ids: task.contact_ids || [], owner_id: task.owner_id ?? null, owner_by: task.owner_by ?? null, owner_at: task.owner_at ?? null, case_id: task.case_id || null, colour: task.colour ?? null,
     repeat, repeat_of: task.repeat_of || task.id, ...(task.rank ? { rank: task.rank } : {}), // where this one was
     aim_at: aim ? `${addDays(aim, shift)}${task.aim_at.slice(10)}` : (onPlanner ? null : date),
   });
