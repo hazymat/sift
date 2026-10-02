@@ -1038,3 +1038,4 @@ NOTES['1.60.48'] = [F("Projects: the Selections bar inside a project drops Move 
 NOTES['1.60.49'] = [F("Selections bars everywhere: ✕ (clear the selection) is at the start of the bar, before the count."), B("A new selection sometimes showed the Selections bar still scrolled along from last time, hiding its first buttons; it now always starts from the left.")]
 NOTES['1.60.50'] = [B("Tasks, project tasks and Lists: on a phone a long task or item name was cut off, even when tapped or in quick edit. Tapped, its whole name now shows, wrapping onto more lines; in the list it stays on one line.")]
 NOTES['1.60.51'] = [F("Selections bars: Assign to… and Move ▸ Project… open a small list above the button, one choice per line (↑ / ↓ move, Enter picks), in place of a second row of pills under the bar.")]
+NOTES['1.60.52'] = [B("Projects: tapping a milestone's name opened its menu, as its ⋯ does. Only ⋯ opens it now.")]

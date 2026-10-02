@@ -432,9 +432,9 @@ export default {
           const roots = top.filter(t => (t.milestone_id || null) === g.id);
           const tasks = visible(roots.flatMap(t => [t, ...under(t.id)]));
           const pr = progress(scoped.filter(t => t.milestone_id === g.id));
-          // A milestone's name opens its menu too (rename, date, done, move, delete), as its ⋯ does.
+          // Only its ⋯ opens a milestone's menu (rename, date, done, move, delete); tapping the name does nothing.
           const text = `${g.done_at ? '✓ ' : ''}${esc(g.name)}${g.due_date ? ` <span class="muted">⚑ ${shortDate(g.due_date)}</span>` : ''}`;
-          const label = g.name ? (g.id ? `<button type="button" class="ms-name" data-act="milestone-menu" data-ms="${g.id}" title="Rename, aim date, done, move or delete">${text}</button> <span class="muted">${pr.done}/${pr.total}</span><button type="button" class="ms-more" data-act="milestone-menu" data-ms="${g.id}" aria-label="Milestone: rename, aim date, done, move, delete">⋯</button>` : text) : '';
+          const label = g.name ? (g.id ? `<span class="ms-name">${text}</span> <span class="muted">${pr.done}/${pr.total}</span><button type="button" class="ms-more" data-act="milestone-menu" data-ms="${g.id}" aria-label="Milestone: rename, aim date, done, move, delete">⋯</button>` : text) : '';
           return (label ? head(label, ` data-milestone="${g.id || ''}"${g.done_at ? ' data-done' : ''}`) : '') + rowsOf(tasks);
         }).join(''));
       } else {

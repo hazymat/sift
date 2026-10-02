@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.52': [{ text: "Projects: tapping a milestone's name no longer opens its menu; its ⋯ does." }],
   '1.60.51': [{ text: "Selections bars: Assign to… (in a shared project) and Move ▸ Project… open a small list just above the button, one choice per line, instead of a second row of pills under the bar.", go: '#/tasks', open: ['#main [data-mode="projects"]'], at: '#main .project-grid .project-card' }],
   '1.60.50': [{ text: "Tasks, project tasks and Lists: tap a long task or item and its whole name shows, wrapping onto as many lines as it needs (on a phone it was cut off, even in quick edit). In the list it stays on one line.", go: '#/tasks/now', at: '#main .task-list > li[data-task] > .task-title' }],
   '1.60.49': [{ text: "Selections bars: the ✕ that clears a selection is now at the start of the bar, before \"1 selected\", and every new selection shows the bar from its start rather than wherever it was last scrolled to.", more: 'Every Selections bar: Tasks, projects, lists, Brain Dump, Find Things, Contacts, Batch Book and the Day Planner.' }],
@@ -94,6 +95,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.52': '2026-10-02T00:55:36Z',
   '1.60.51': '2026-10-02T00:52:24Z',
   '1.60.50': '2026-10-02T00:49:58Z',
   '1.60.49': '2026-10-02T00:48:48Z',
