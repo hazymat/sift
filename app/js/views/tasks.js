@@ -1218,12 +1218,13 @@ export default {
     }
     const taskActions = [
       { id: 'done', label: 'Done', key: 'Ctrl+Enter', run: ids => batchSet(ids, doneFields(true), 'Done:', { fade: true }) },
-      // Move ▸ opens sideways to the lists, less the one being looked at.
-      { id: 'now', label: 'Now', group: 'Move', when: () => state.view !== 'now' && !state.owner, run: ids => batchSet(ids, toList('now'), 'Transferred to Now:', { subs: true }) },
-      { id: 'next', label: 'Next', group: 'Move', when: () => state.view !== 'next' && !state.owner, run: ids => batchSet(ids, toList('next'), 'Transferred to Next:', { subs: true }) },
-      { id: 'later', label: 'Later', group: 'Move', when: () => state.view !== 'later' && !state.owner, run: ids => batchSet(ids, toList('later'), 'Transferred to Later:', { subs: true }) },
+      // Move ▸ opens sideways to the lists, less the one being looked at. Not inside a project: a task stays in its
+      // project (a misfiled one moves from its panel's List or Project choice), and Assign to… takes Move's place.
+      { id: 'now', label: 'Now', group: 'Move', when: () => state.view !== 'now' && !state.owner && !state.project, run: ids => batchSet(ids, toList('now'), 'Transferred to Now:', { subs: true }) },
+      { id: 'next', label: 'Next', group: 'Move', when: () => state.view !== 'next' && !state.owner && !state.project, run: ids => batchSet(ids, toList('next'), 'Transferred to Next:', { subs: true }) },
+      { id: 'later', label: 'Later', group: 'Move', when: () => state.view !== 'later' && !state.owner && !state.project, run: ids => batchSet(ids, toList('later'), 'Transferred to Later:', { subs: true }) },
       // Project…: the projects open as pills over the bar; the selection stays until one is picked.
-      { id: 'project', label: 'Project…', group: 'Move', keepSelection: true, when: () => !state.owner, run: ids => pickProject(ids) },
+      { id: 'project', label: 'Project…', group: 'Move', keepSelection: true, when: () => !state.owner && !state.project, run: ids => pickProject(ids) },
       // In a shared project: give the chosen tasks to someone sharing it (or nobody), as the 👤 Who pill does.
       { id: 'assign', label: 'Assign to…', keepSelection: true, when: () => !!state.project && projectMembers(state.project, state.owner).length > 0, run: ids => pickOwner(ids) },
       { id: 'archive', label: 'Archive', key: 'A', run: ids => batchSet(ids, { archived_at: new Date().toISOString() }, 'Archived', { subs: true }) },
