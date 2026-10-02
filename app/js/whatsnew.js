@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.49': [{ text: "Selections bars: the ✕ that clears a selection is now at the start of the bar, before \"1 selected\", and every new selection shows the bar from its start rather than wherever it was last scrolled to.", more: 'Every Selections bar: Tasks, projects, lists, Brain Dump, Find Things, Contacts, Batch Book and the Day Planner.' }],
   '1.60.48': [{ text: "Projects: the Selections bar inside a project no longer has Move ▸ (to a list or another project): tasks stay in their project. A task that's in the wrong one moves from its panel's List or Project choice.", go: '#/tasks', open: ['#main [data-mode="projects"]'], at: '#main .project-grid .project-card' }],
   '1.60.47': [{ text: "Projects: in a shared project, choose several tasks (press their ⠿) and the Selections bar has Assign to…, which gives them all to one person sharing the project, or to nobody.", go: '#/tasks', open: ['#main [data-mode="projects"]'], at: '#main .project-grid .project-card' }],
   '1.60.46': [{ text: "Projects: in compact spacing, and on a phone, a task's 👤 owner pill always shows the person's whole name; Waiting on shortens first when the line is tight.", go: '#/tasks', open: ['#main [data-mode="projects"]'], at: '#main .project-grid .project-card' }],
@@ -91,6 +92,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.49': '2026-10-02T00:48:48Z',
   '1.60.48': '2026-10-02T00:45:52Z',
   '1.60.47': '2026-10-02T00:41:20Z',
   '1.60.46': '2026-10-01T21:30:49Z',

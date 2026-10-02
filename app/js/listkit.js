@@ -79,11 +79,11 @@ export function createListKit({
       + `<span class="kit-group-items" hidden>${actions.filter(x => x.group === a.group).map(actionButton).join('')}</span></span>`;
   }).join('');
   bar.innerHTML = `
+    <button type="button" data-kit="clear" aria-label="Clear selection (Esc)">✕${keys('Esc')}</button>
     <span class="select-count"></span>
     ${indent ? `<button type="button" data-kit="indent">Indent${keys('Tab')}</button><button type="button" data-kit="outdent">Outdent${keys('Shift+Tab')}</button>` : ''}
     ${reorder ? '<button type="button" data-kit="up" aria-label="Move up">↑</button><button type="button" data-kit="down" aria-label="Move down">↓</button>' : ''}
-    ${actionsHtml}
-    <button type="button" data-kit="clear" aria-label="Clear selection (Esc)">✕${keys('Esc')}</button>`;
+    ${actionsHtml}`;
   const closeGroups = () => bar.querySelectorAll('[data-kit-group]').forEach(g => { g.setAttribute('aria-expanded', 'false'); g.textContent = `${g.dataset.kitGroup} ▸`; g.nextElementSibling.hidden = true; });
   document.body.append(bar);
 
@@ -100,7 +100,9 @@ export function createListKit({
     // Forget selections whose rows are gone (deleted, filtered out).
     const present = new Set(rows().map(r => r.dataset.id));
     for (const id of [...selected]) if (!present.has(id)) selected.delete(id);
+    const opening = bar.hidden && selected.size;
     bar.hidden = !selected.size;
+    if (opening) bar.scrollLeft = 0; // a new selection: the bar starts from its left end (✕ first)
     document.body.classList.toggle('has-select-bar', !!selected.size);
     bar.querySelector('.select-count').textContent = `${selected.size} selected`;
     if (!selected.size) closeGroups();
