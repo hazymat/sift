@@ -668,7 +668,7 @@ label.inline select { width: auto; max-width: 220px; font-size: .85rem; padding:
   gap: 4px;
   max-width: calc(100vw - 24px);
   overflow-x: auto;
-  padding: 6px 8px 6px 14px;
+  padding: 6px 8px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--bg) 90%, transparent);
   -webkit-backdrop-filter: var(--blur);

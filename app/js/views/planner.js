@@ -1769,14 +1769,13 @@ export default {
     const bar = document.createElement('div');
     bar.className = 'select-bar';
     bar.hidden = true;
-    bar.innerHTML = `<span class="select-count"></span>
+    bar.innerHTML = `<button type="button" data-sel="clear" aria-label="Clear selection">✕</button><span class="select-count"></span>
       <button type="button" data-sel="done">Done${keys(CTRL_ENTER)}</button>
       <button type="button" data-sel="pile">To place</button>
       <button type="button" data-sel="letgo" title="Didn't do these and they don't need doing">Let go</button>
       <button type="button" data-sel="tomorrow">Tomorrow</button>
       <button type="button" data-sel="archive">Archive${keys('A')}</button>
-      <button type="button" data-sel="delete" class="danger">Delete${keys('D')}</button>
-      <button type="button" data-sel="clear" aria-label="Clear selection">✕</button>`;
+      <button type="button" data-sel="delete" class="danger">Delete${keys('D')}</button>`;
     document.body.append(bar);
     this.bar = bar;
 
@@ -1793,7 +1792,9 @@ export default {
     function paintSelection() {
       for (const id of [...selected]) if (!items.some(i => i.id === id)) selected.delete(id);
       el.querySelectorAll('.line.has-item').forEach(r => r.classList.toggle('selected', selected.has(r.dataset.item)));
+      const opening = bar.hidden && selected.size;
       bar.hidden = !selected.size;
+      if (opening) bar.scrollLeft = 0; // a new selection: the bar starts from its left end (✕ first)
       document.body.classList.toggle('has-select-bar', !!selected.size);
       bar.querySelector('.select-count').textContent = `${selected.size} selected`;
     }
