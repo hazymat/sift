@@ -1205,6 +1205,17 @@ export default {
         if (await projectPicked(ids, v)) for (const kit of [kitOrdered, kitPlain, kitFlat]) kit.clear();
       }, { className: 'ms-menu project-pills' });
     }
+    function pickOwner(ids) {
+      const members = projectMembers(state.project, state.owner);
+      const same = new Set(ids.map(id => ownerOf(data.tasks.find(t => t.id === id) || {}) || ''));
+      const anchor = [...document.querySelectorAll('.select-bar:not([hidden]) [data-kit-action="assign"]')].at(-1);
+      const options = meFirst(members).map(m => ({ value: m.user_id, label: `👤 ${esc(m.name)}`, title: m.name, current: same.size === 1 && same.has(m.user_id) })).concat([{ value: '', label: 'Nobody (anyone)', current: same.size === 1 && same.has('') }]);
+      pillMenu(anchor, options, async v => {
+        const name = members.find(m => m.user_id === v)?.name;
+        await batchSet(ids, { owner_id: v || null, owner_by: myUserId() || null, owner_at: new Date().toISOString() }, name ? `Given to ${name}:` : 'No owner:');
+        for (const kit of [kitOrdered, kitPlain, kitFlat]) kit.clear();
+      }, { className: 'ms-menu project-pills' });
+    }
     const taskActions = [
       { id: 'done', label: 'Done', key: 'Ctrl+Enter', run: ids => batchSet(ids, doneFields(true), 'Done:', { fade: true }) },
       // Move ▸ opens sideways to the lists, less the one being looked at.
@@ -1213,6 +1224,8 @@ export default {
       { id: 'later', label: 'Later', group: 'Move', when: () => state.view !== 'later' && !state.owner, run: ids => batchSet(ids, toList('later'), 'Transferred to Later:', { subs: true }) },
       // Project…: the projects open as pills over the bar; the selection stays until one is picked.
       { id: 'project', label: 'Project…', group: 'Move', keepSelection: true, when: () => !state.owner, run: ids => pickProject(ids) },
+      // In a shared project: give the chosen tasks to someone sharing it (or nobody), as the 👤 Who pill does.
+      { id: 'assign', label: 'Assign to…', keepSelection: true, when: () => !!state.project && projectMembers(state.project, state.owner).length > 0, run: ids => pickOwner(ids) },
       { id: 'archive', label: 'Archive', key: 'A', run: ids => batchSet(ids, { archived_at: new Date().toISOString() }, 'Archived', { subs: true }) },
       { id: 'delete', label: 'Delete', key: 'D', danger: true, run: ids => batchSet(ids, { deleted_at: new Date().toISOString() }, 'Deleted', { subs: true }) },
     ];
