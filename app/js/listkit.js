@@ -116,6 +116,8 @@ export function createListKit({
       bar.querySelector('[data-kit="outdent"]').hidden = !sel.some(r => depthOf(r) > 0);
     }
     for (const a of actions) if (a.when) bar.querySelector(`[data-kit-action="${a.id}"]`).hidden = a.when() === false;
+    // A group (Move ▸) with nothing left in it goes too.
+    for (const g of bar.querySelectorAll('[data-kit-group]')) g.closest('.kit-group').hidden = ![...g.nextElementSibling.children].some(b => !b.hidden);
   }
 
   function clear() {
