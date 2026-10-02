@@ -31,6 +31,7 @@
 
 import { ENERGY } from './days.js';
 import { keys, CTRL_ENTER } from './keys.js';
+import { autosize } from './inline.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 export { esc as escPill };
@@ -82,6 +83,7 @@ export function editPills(root, spec) {
     const topHtml = spec.top?.(editing) || '';
     if (topHtml) { const top = document.createElement('div'); top.className = 'edit-pills pill-top'; top.dataset.key = editing; top.innerHTML = (spec.topDone === false ? '' : done) + topHtml; if (title) title.after(top); else host.append(top); }
     const html = spec.html(editing);
+    if (title?.matches('textarea.one-line')) requestAnimationFrame(() => autosize(title)); // its whole name shows while it's edited (app.css)
     if (topHtml && !html) { row.classList.add('pills-open'); return; }
     box.innerHTML = topHtml ? html + (spec.topDone === false ? done : '') : `${html}<button type="button" class="entry-chip pill-more" data-pill-more>More…</button>${done}`;
     // The pills in one row of their own, under the note line (not behind a More pill: that stays inline).

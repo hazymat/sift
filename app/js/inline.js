@@ -28,6 +28,7 @@ export function autosizeAll(root = document) {
 export function installInlineEditing() {
   document.addEventListener('focusin', ev => {
     if (inline(ev.target)) original.set(ev.target, ev.target.value);
+    if (ev.target instanceof HTMLTextAreaElement && ev.target.classList.contains('one-line')) requestAnimationFrame(() => autosize(ev.target)); // a name shown on one line opens out to all of it
   });
 
   // Capture phase so Esc is handled here before a view's own Esc (which may

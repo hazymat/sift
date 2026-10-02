@@ -8,6 +8,8 @@
 //                               --entry-x and --task-row-h
 //   slideRows(rows, opening)    rows sliding open (from nothing to their height) or closed
 
+import { autosizeAll } from './inline.js';
+
 // Lines joining a row to its sub-rows: from just under the row's tick box,
 // down and across to each sub-row's tick box, an L that carries on down while
 // more sub-rows follow. Level k's line runs down the middle of the tick boxes
@@ -46,6 +48,7 @@ export function groupOf(rows, n) {
 }
 
 export function measureRows(page, ul, entryInput = null) {
+  if (ul) autosizeAll(ul); // a name being edited shows in full (app.css), on browsers without field-sizing too
   // Where tick boxes sit in a row, for the lines joining sub-rows.
   const tk = ul?.querySelector(':scope > li[data-task] .tick');
   if (tk) {

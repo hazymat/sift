@@ -176,7 +176,7 @@ export default {
           <li data-id="${i.id}" data-task="${i.id}" data-depth="${i.depth}" class="${i.checked_at ? 'done' : ''} ${groupOf(shown, n)}">${treeHtml(shown, n, lay('margin'))}
             <button type="button" class="drag-handle" aria-label="Select or move">${icon('i-grip')}</button>
             ${isTemplate ? '<input type="checkbox" class="tick" disabled tabindex="-1" aria-hidden="true" style="visibility:hidden">' : `<input type="checkbox" class="tick" ${i.checked_at ? 'checked' : ''} aria-label="Ticked">`}
-            <input class="task-title" name="text" value="${esc(i.text)}" aria-label="Item" autocomplete="off">
+            <textarea class="task-title one-line" name="text" rows="1" aria-label="Item" autocomplete="off">${esc(i.text)}</textarea>
             <button type="button" class="more entry-chip" data-act="quick-more" title="Its note and files">More</button>
             <button type="button" class="details-btn" data-act="item-details" hidden aria-label="Details" aria-expanded="${openItem === i.id}"></button>
             ${openItem === i.id ? `<button type="button" class="entry-chip close-top" data-act="close-item" title="Close the panel">✓ Close${keys('Esc')}</button>` : ''}

@@ -399,7 +399,7 @@ export function createListKit({
     // Shift+↑ / ↓ in a row's text: stop editing it (leaving saves it), and select it and the next row that way.
     ul.addEventListener('keydown', ev => {
       if ((ev.key !== 'ArrowUp' && ev.key !== 'ArrowDown') || !ev.shiftKey || ev.ctrlKey || ev.altKey || ev.metaKey || ev.defaultPrevented) return;
-      if (!ev.target.matches('input:not([type="checkbox"])')) return;
+      if (!ev.target.matches('input:not([type="checkbox"]), textarea.one-line')) return;
       const li = ev.target.closest('li[data-id]');
       if (!li || li.parentElement !== ul) return;
       ev.preventDefault();
@@ -419,7 +419,7 @@ export function createListKit({
         // indented itself), Tab always indents and Shift+Tab outdents: when it
         // can't, it says why rather than moving on to the next field.
         if (ev.key !== 'Tab' || ev.defaultPrevented || ev.ctrlKey || ev.altKey || ev.metaKey) return;
-        if (!ev.target.matches('input:not([type="checkbox"])')) return;
+        if (!ev.target.matches('input:not([type="checkbox"]), textarea.one-line')) return;
         const li = ev.target.closest('li[data-id]');
         if (!li || li.parentElement !== ul) return;
         ev.preventDefault();
@@ -436,7 +436,7 @@ export function createListKit({
         const at = ev.target.selectionStart ?? null;
         Promise.resolve(commit(ev.shiftKey ? 'Outdented' : 'Indented')).then(() => {
           // Back in the row's text, where you were typing (not its tick box).
-          const f = ul?.querySelector(`li[data-id="${CSS.escape(id)}"] input:not([type="checkbox"])`);
+          const f = ul?.querySelector(`li[data-id="${CSS.escape(id)}"] :is(input:not([type="checkbox"]), textarea.one-line)`);
           f?.focus();
           if (f && at != null) try { f.setSelectionRange(at, at); } catch { /* not a text field */ }
         });

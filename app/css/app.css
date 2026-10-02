@@ -1636,6 +1636,12 @@ main:has(> .planner), main:has(.planner) { max-width: 1600px; }
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+/* Task and list item names (Tasks, project tasks, Lists): one line in the list, as before, fading out
+   when cut short; tapped (being written in, its pills or its panel open) the whole name shows, wrapping
+   onto as many lines as it needs (inline.js autosize where field-sizing isn't supported). */
+.task-list > li[data-task] > textarea.task-title { display: block; resize: none; overflow: hidden; field-sizing: content; min-height: 0; white-space: pre; overflow-wrap: normal; }
+.task-list > li[data-task]:not(.pills-open, :has(+ .task-details)) > textarea.task-title:not(:focus) { height: auto !important; text-overflow: ellipsis; }
+.task-list > li[data-task]:is(.pills-open, :has(+ .task-details)) > textarea.task-title, .task-list > li[data-task] > textarea.task-title:focus { white-space: pre-wrap; overflow-wrap: anywhere; }
 
 /* The link dropdown and chip menu use their own colours: papers change the
    page's text colour, which made them unreadable on some. A plain light card

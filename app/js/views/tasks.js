@@ -181,7 +181,7 @@ export default {
         <li data-task="${t.id}" data-id="${t.id}" data-depth="${t.depth ?? 0}" class="${isDone(t) ? 'done' : ''} ${group}">${tree}
           <button type="button" class="drag-handle" aria-label="Select${draggable ? ' or move' : ''} ${esc(t.title)}">${icon('i-grip')}</button>
           <input type="checkbox" class="tick" ${isDone(t) ? 'checked' : ''} aria-label="Done">
-          <input class="task-title" value="${esc(t.title)}" aria-label="Task" autocomplete="off">
+          <textarea class="task-title one-line" rows="1" aria-label="Task" autocomplete="off">${esc(t.title)}</textarea>
           ${whoHtml(t)}
           <button type="button" class="more entry-chip" data-act="quick-more" title="Edit the task, with its pills">More</button>
           <button type="button" class="details-btn" data-act="details" hidden aria-label="Details" aria-expanded="${open === t.id}"></button>
