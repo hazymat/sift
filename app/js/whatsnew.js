@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.47': [{ text: "Projects: in a shared project, choose several tasks (press their ⠿) and the Selections bar has Assign to…, which gives them all to one person sharing the project, or to nobody.", go: '#/tasks', open: ['#main [data-mode="projects"]'], at: '#main .project-grid .project-card' }],
   '1.60.46': [{ text: "Projects: in compact spacing, and on a phone, a task's 👤 owner pill always shows the person's whole name; Waiting on shortens first when the line is tight.", go: '#/tasks', open: ['#main [data-mode="projects"]'], at: '#main .project-grid .project-card' }],
   '1.60.45': [{ text: "Projects: a shared project has views of its own. Under its name, Everyone, Mine, each person's, and Nobody's show just those tasks. The 👁 menu adds This project: order (Mine first, or someone else's first) and group by (Milestones, or People: drop a task under a name to give it to them). Each person's choices are their own.", go: '#/tasks', open: ['#main [data-mode="projects"]'], at: '#main .project-grid .project-card', more: "Clicking into a task in a shared project, then More, now shows a 👤 Who pill to set its owner where Energy was; Energy is still in the task's full panel and in Tasks." }],
   '1.60.44': [{ text: "Sharing: you can set your name (first name, last name and a username no one else on your server has, all optional) so people you share with see it instead of the start of your email. Sift asks for it the first time you share something or accept an invitation; skip it and they see your email's first part as before.", go: '#/settings', at: '#main .sync-name', more: "Settings, Sync: Your name, to set or change it any time. The name shows everywhere people show on shared things: the Shared with pill and sheet, invitations, the Owner choice and owner pills on shared project tasks, and the Day Planner's sharing note. If two people sharing with you have the same first name, their last names show too." }],
@@ -89,6 +90,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.47': '2026-10-02T00:41:20Z',
   '1.60.46': '2026-10-01T21:30:49Z',
   '1.60.45': '2026-10-01T20:29:19Z',
   '1.60.44': '2026-10-01T20:24:30Z',
