@@ -1203,7 +1203,7 @@ export default {
       const anchor = [...document.querySelectorAll('.select-bar:not([hidden]) [data-kit-action="project"]')].at(-1);
       pillMenu(anchor, projectPills(same.size === 1 ? [...same][0] : null), async v => {
         if (await projectPicked(ids, v)) for (const kit of [kitOrdered, kitPlain, kitFlat]) kit.clear();
-      }, { className: 'ms-menu project-pills' });
+      }, { className: 'list-menu project-pills' });
     }
     function pickOwner(ids) {
       const members = projectMembers(state.project, state.owner);
@@ -1214,7 +1214,7 @@ export default {
         const name = members.find(m => m.user_id === v)?.name;
         await batchSet(ids, { owner_id: v || null, owner_by: myUserId() || null, owner_at: new Date().toISOString() }, name ? `Given to ${name}:` : 'No owner:');
         for (const kit of [kitOrdered, kitPlain, kitFlat]) kit.clear();
-      }, { className: 'ms-menu project-pills' });
+      }, { className: 'list-menu' });
     }
     const taskActions = [
       { id: 'done', label: 'Done', key: 'Ctrl+Enter', run: ids => batchSet(ids, doneFields(true), 'Done:', { fade: true }) },

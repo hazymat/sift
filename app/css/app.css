@@ -3152,8 +3152,8 @@ a.comment-mark:hover { color: var(--text); }
 .file-drop-hint { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translate(-50%, 20px); padding: 10px 16px; border-radius: 999px; background: var(--glass); border: 2px dashed var(--active-border, var(--muted)); color: var(--text); font-size: .9rem; opacity: 0; pointer-events: none; transition: opacity .15s, transform .15s; z-index: 50; backdrop-filter: blur(12px); }
 .file-drop-hint.show { opacity: 1; transform: translate(-50%, 0); }
 /* A comment's ⋯ menu: words, so a plain vertical menu (not the ⚡ pill style). */
-.pill-menu.comment-menu { flex-direction: column; align-items: stretch; gap: 2px; padding: 6px; border-radius: 16px; min-width: 170px; }
-.pill-menu.comment-menu button { font-family: var(--font); letter-spacing: normal; white-space: nowrap; text-align: left; font-size: .9rem; line-height: 1.3; padding: 7px 12px; border-radius: 10px; border-color: transparent; background: transparent; }
+.pill-menu:is(.comment-menu, .list-menu) { flex-direction: column; align-items: stretch; gap: 2px; padding: 6px; border-radius: 16px; min-width: 170px; }
+.pill-menu:is(.comment-menu, .list-menu) button { font-family: var(--font); letter-spacing: normal; white-space: nowrap; text-align: left; font-size: .9rem; line-height: 1.3; padding: 7px 12px; border-radius: 10px; border-color: transparent; background: transparent; }
 .date-quick { display: flex; gap: 10px; margin-top: 2px; }
 .date-quick .linklike { font-size: .8rem; padding: 0; }
 /* Sub-tasks (174): attached to their task, a little smaller, with an arrow. */
@@ -3270,16 +3270,16 @@ a.comment-mark:hover { color: var(--text); }
 /* Dropping onto a task: room opens under it (and its sub-tasks) for the carried one (sortable.js). */
 .task-list > li.dragging.nest-preview { padding-left: calc(var(--nest-pad, 36px) + 28px); position: relative; }
 .task-list > li.dragging.nest-preview::before { content: "↳"; position: absolute; left: calc(var(--nest-pad, 36px) + 6px); top: .55em; width: auto; background: none; color: var(--muted); font-size: .9rem; line-height: 1; }
-/* A comment's ⋯ menu looks like the glass dropdown lists (.dd-menu): one
-   frosted panel, plain rows that light up on hover, no boxes round each item. */
-.pill-menu.comment-menu {
+/* A comment's ⋯ menu, and a list of choices from a Selections bar (Assign to…, Move ▸ Project…; .list-menu),
+   look like the glass dropdown lists (.dd-menu): one frosted panel, plain rows that light up on hover, no boxes round each item. */
+.pill-menu:is(.comment-menu, .list-menu) {
   padding: 4px; gap: 0; border-radius: 14px;
   background: color-mix(in srgb, var(--menu-bg) 80%, transparent) !important;
   -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4);
   border: 1px solid var(--active-border) !important; box-shadow: 0 14px 34px rgba(0, 0, 0, .35);
 }
-.pill-menu.comment-menu button { border: 0 !important; background: transparent !important; box-shadow: none !important; border-radius: 10px; padding: 7px 12px; font-size: .9rem; color: var(--text); }
-.pill-menu.comment-menu button:hover, .pill-menu.comment-menu button:focus-visible { background: var(--glass-hover, color-mix(in srgb, var(--text) 10%, transparent)) !important; outline: none; }
+.pill-menu:is(.comment-menu, .list-menu) button { border: 0 !important; background: transparent !important; box-shadow: none !important; border-radius: 10px; padding: 7px 12px; font-size: .9rem; color: var(--text); }
+.pill-menu:is(.comment-menu, .list-menu) button:hover, .pill-menu:is(.comment-menu, .list-menu) button:focus-visible { background: var(--glass-hover, color-mix(in srgb, var(--text) 10%, transparent)) !important; outline: none; }
 
 /* 201: on Tasks, Alternate shading starts where the ruled line starts (the
    text column), so each shaded band sits exactly between two rules instead
@@ -4470,3 +4470,5 @@ html.kb-open :is(.sticky-top, .find-sticky, .dump-bar, .bb-sticky, .list-top, .b
 .stats-cols > span { flex: 1; height: 100%; display: flex; align-items: flex-end; }
 .stats-cols > span > span { width: 100%; min-height: 1px; background: var(--accent); border-radius: 3px 3px 0 0; }
 .stats-cols-ends { display: flex; justify-content: space-between; font-size: .8rem; margin-top: 4px; }
+.pill-menu.list-menu { z-index: 1200; flex-wrap: nowrap; min-width: 180px; max-height: min(60vh, 420px); overflow-y: auto; } /* over the toast and the Selections bar; long lists scroll */
+.pill-menu.list-menu button[aria-checked="true"] { font-weight: 600; }
