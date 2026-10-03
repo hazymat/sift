@@ -1039,3 +1039,4 @@ NOTES['1.60.49'] = [F("Selections bars everywhere: ✕ (clear the selection) is 
 NOTES['1.60.50'] = [B("Tasks, project tasks and Lists: on a phone a long task or item name was cut off, even when tapped or in quick edit. Tapped, its whole name now shows, wrapping onto more lines; in the list it stays on one line.")]
 NOTES['1.60.51'] = [F("Selections bars: Assign to… and Move ▸ Project… open a small list above the button, one choice per line (↑ / ↓ move, Enter picks), in place of a second row of pills under the bar.")]
 NOTES['1.60.52'] = [B("Projects: tapping a milestone's name opened its menu, as its ⋯ does. Only ⋯ opens it now.")]
+NOTES['1.60.53'] = [B("Projects: dragging a milestone's name could drop it between another milestone's name and its tasks, moving those tasks into the dragged milestone. A milestone now moves with all its tasks and only drops between milestones (or at the end); other headings can't be dragged.")]

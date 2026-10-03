@@ -435,7 +435,7 @@ export default {
           // Only its ⋯ opens a milestone's menu (rename, date, done, move, delete); tapping the name does nothing.
           const text = `${g.done_at ? '✓ ' : ''}${esc(g.name)}${g.due_date ? ` <span class="muted">⚑ ${shortDate(g.due_date)}</span>` : ''}`;
           const label = g.name ? (g.id ? `<span class="ms-name">${text}</span> <span class="muted">${pr.done}/${pr.total}</span><button type="button" class="ms-more" data-act="milestone-menu" data-ms="${g.id}" aria-label="Milestone: rename, aim date, done, move, delete">⋯</button>` : text) : '';
-          return (label ? head(label, ` data-milestone="${g.id || ''}"${g.done_at ? ' data-done' : ''}`) : '') + rowsOf(tasks);
+          return (label ? head(label, ` data-milestone="${g.id || ''}"${g.id ? ` data-section="${g.id}"` : ''}${g.done_at ? ' data-done' : ''}`) : '') + rowsOf(tasks);
         }).join(''));
       } else {
         const tasks = visible(scoped);
@@ -1265,7 +1265,18 @@ export default {
       await render();
       undoable(`${moving.length === 1 ? `"${moving[0].title}" is` : `${moving.length} tasks are`} now under "${target.title}"`, async () => { await store.updateMany('tasks', before); await render(); });
     }
-    const kitOrdered = this.kitOrdered = createListKit({ reorder: true, indent: true, maxDepth: MAX_DEPTH, holdAnywhere: true, sideways: false, noun: 'task', actions: taskActions, onReorder: persistOrder, onNest: nestUnder });
+    // A milestone's heading dragged (with its tasks) to before another milestone, or to the end.
+    async function moveMilestone(id, beforeId) {
+      const m = data.milestones.find(x => x.id === id);
+      if (!m) return render();
+      const others = data.milestones.filter(x => x.project_id === m.project_id && x.id !== id);
+      const at = beforeId ? others.findIndex(x => x.id === beforeId) : others.length;
+      const old = m.rank ?? null;
+      await store.update('milestones', id, { rank: keyBetween(at > 0 ? rankOf(others[at - 1]) : null, at < others.length ? rankOf(others[at]) : null) });
+      await render();
+      undoable(`Moved ${m.name}`, async () => { await store.update('milestones', id, { rank: old }); await render(); });
+    }
+    const kitOrdered = this.kitOrdered = createListKit({ reorder: true, indent: true, maxDepth: MAX_DEPTH, holdAnywhere: true, sideways: false, noun: 'task', actions: taskActions, onReorder: persistOrder, onNest: nestUnder, onSection: moveMilestone });
     const kitPlain = this.kitPlain = createListKit({ reorder: false, noun: 'task', actions: taskActions });
     // In Task Dump / Now / Next / Later only the order changes: just the moved
     // tasks get a new place (order.js), so tasks on other lists keep theirs.

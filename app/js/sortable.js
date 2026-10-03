@@ -32,6 +32,10 @@
 // dragged row keeps following the finger; the row it's over gets a dashed
 // outline (.nest-target), and the gap it would drop into otherwise has the same
 // dashed outline (.drop-slot), so there's always one outline saying where it lands.
+//
+// With `section` (a selector, e.g. a milestone's heading): such a row can be lifted
+// (other headings can't) and lands only at a section boundary: before another
+// section's heading, or after the last row. The view carries its rows along.
 import { holdToLift, HOLD_SKIP } from './hold.js';
 
 const TILT = -.8; // degrees: the slight twist of a carried row
@@ -42,7 +46,7 @@ const wobble = (from, to, kick) => Array.from({ length: 41 }, (_, n) => {
   return { rotate: `${(to + (from - to) * fade * Math.cos(turn) + kick * fade * Math.sin(turn)).toFixed(3)}deg` };
 });
 
-export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere = 0, keyboard = true, grid = false, onMove, onEnd, onCancel, onTap, onPaint, onLift, onDrag, onOnto } = {}) {
+export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere = 0, keyboard = true, grid = false, onMove, onEnd, onCancel, onTap, onPaint, onLift, onDrag, onOnto, section = null } = {}) {
   let origin = null; // where the dragged row was picked up: { parent, next }
   let onto = null; // the row the dragged one is over the middle of (onOnto)
   const setOnto = el => {
@@ -109,7 +113,7 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
       onMove?.(dragging);
       return;
     }
-    if (onOnto) {
+    if (onOnto && !isSection()) {
       // Over the middle third of a row: onto it, no reordering.
       const over = siblings().find(el => { const r = rectOf(el); return clientY > r.top + r.height / 3 && clientY < r.bottom - r.height / 3; });
       if (over) { if (over !== onto) slid(() => setOnto(over)); return; }
@@ -123,13 +127,17 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     onMove?.(dragging);
   }
   // Where the dragged row belongs for the pointer at clientY: before or after which row (null: where it is).
+  // A section heading only goes before another section's heading, or after the last row (fits).
+  const isSection = () => !!section && dragging?.matches(section);
   function spotFor(clientY) {
     let after = null;
-    for (const el of siblings()) {
+    const all = siblings(), sect = isSection();
+    const fits = (el, before) => !sect || (before ? el.matches(section) : !all[all.indexOf(el) + 1] || all[all.indexOf(el) + 1].matches(section));
+    for (const el of all) {
       const r = rectOf(el), mid = r.top + r.height / 2;
       const before = dragging.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING;
-      if (before && clientY < mid) return { el, before: true };
-      if (!before && clientY > mid && el.nextElementSibling !== dragging) after = { el };
+      if (before && clientY < mid && fits(el, true)) return { el, before: true };
+      if (!before && clientY > mid && el.nextElementSibling !== dragging && fits(el, false)) after = { el };
     }
     return after;
   }
@@ -177,7 +185,8 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
 
   // A hold anywhere on a row lifts it too (hold.js).
   const hold = anywhere ? holdToLift(list, {
-    rowAt: t => { const li = t.closest('li'); return li && li.parentElement === list && !li.hidden ? li : null; },
+    // Headings stay put, except a section's (section).
+    rowAt: t => { const li = t.closest('li'); return li && li.parentElement === list && !li.hidden && (!li.matches('.list-head') || (section && li.matches(section))) ? li : null; },
     skip: `${handle}, ${HOLD_SKIP}`,
     ms: anywhere,
     busy: () => !!dragging,

@@ -130,6 +130,7 @@ Rows and cards inside an area. "Top right" means on the row's own first line, at
   - Empty states: "Nothing matches." / "Nothing here." / "Nothing found"; Tasks has none apart from Done.
 - **No selection bar** on Scans or Contracts (so no press and hold to choose there either).
 - **Opening a card with a zoom** (the card grows into its page and shrinks back) is only on Find Things' boxes and the Lists page's cards: Batch Book recipes, Projects and Contacts open without it.
+- **List headings** don't drag, except a project's milestone headings: held and dragged, a milestone carries its tasks and only drops between milestones or at the end (1.60.53).
 - **Dragging cards to reorder** works on Batch Book recipes and the Lists page's cards, not on Find Things' boxes.
 - **Manager sheets**: Batch Book's "Edit books" sheet is its own (books also carry details and kinds of reading), and a project's milestones still use a small pop-up menu, not the one manager sheet.
 - **Drag handles**: an icon in most areas, a text "⠿" in the Day Planner; Contacts shows a ⠿ but can't be dragged.
