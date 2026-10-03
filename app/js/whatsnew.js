@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.53': [{ text: "Projects: dragging a milestone's name now moves the milestone with all its tasks, and it can only be dropped between milestones, never in among another milestone's tasks (which made those tasks look as if they'd changed milestone).", go: '#/tasks', open: ['#main [data-mode="projects"]'], at: '#main .project-grid .project-card' }],
   '1.60.52': [{ text: "Projects: tapping a milestone's name no longer opens its menu; its ⋯ does." }],
   '1.60.51': [{ text: "Selections bars: Assign to… (in a shared project) and Move ▸ Project… open a small list just above the button, one choice per line, instead of a second row of pills under the bar.", go: '#/tasks', open: ['#main [data-mode="projects"]'], at: '#main .project-grid .project-card' }],
   '1.60.50': [{ text: "Tasks, project tasks and Lists: tap a long task or item and its whole name shows, wrapping onto as many lines as it needs (on a phone it was cut off, even in quick edit). In the list it stays on one line.", go: '#/tasks/now', at: '#main .task-list > li[data-task] > .task-title' }],

@@ -36,6 +36,8 @@
 //     make them its sub-tasks); while dragging, the row shows indented with ↳
 //   holdSelect: press and hold a row (a card) selects it, with the hold's ripple (hold.js); while
 //     anything is selected, a tap on another row adds it or takes it out (Shift: the run from the last one)
+//   onSection(id, beforeId): a section's heading (li.list-head[data-section]) was dragged, with its
+//     rows, to before section beforeId (null: the end); it can only land between sections (sortable.js)
 //   rowSel: which elements are the rows, inside the attached element (default its li[data-id] children;
 //     e.g. Find Things' box cards, spread over several groups). Each needs data-id.
 // Shift+← / → / ↑ / ↓ while browsing cards with the keyboard (browse.js) selects from where it began.
@@ -51,7 +53,7 @@ export const typingIn = el => !!el?.closest?.('input:not([type="checkbox"]):not(
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 export function createListKit({
-  reorder = true, indent = false, maxDepth = 1, actions = [], onReorder, noun = 'item', grid = false, families = false, onNest = null, holdAnywhere = false, sideways = true, holdSelect = false, rowSel = ':scope > li[data-id]',
+  reorder = true, indent = false, maxDepth = 1, actions = [], onReorder, noun = 'item', grid = false, families = false, onNest = null, holdAnywhere = false, sideways = true, holdSelect = false, rowSel = ':scope > li[data-id]', onSection = null,
 } = {}) {
   const selected = new Set();
   let anchor = null;
@@ -203,6 +205,7 @@ export function createListKit({
 
   // ---------- group drag: the others ride along as a stack ----------
   let carried = [];
+  let liftedBefore = null; // a dragged section: the section it was before
   let liftParent = null; // the row the dragged one was nested under when lifted
   function liftGroup(held, group) {
     const h = held.getBoundingClientRect().height;
@@ -259,6 +262,7 @@ export function createListKit({
       holdMs: reorder ? 260 : 100000, // without reordering, a hold does nothing
       keyboard: reorder,
       grid,
+      section: onSection ? '.list-head[data-section]' : null,
       onTap: (li, ev) => { pick(li.dataset.id, ev.shiftKey); leaveTyping(); paint(); },
       onPaint: (from, to) => {
         const all = rows();
@@ -275,6 +279,15 @@ export function createListKit({
         paintBase = null;
         lifted = shape();
         document.body.classList.add('is-dragging');
+        if (li.matches('.list-head')) {
+          // A section's heading carries every row up to the next heading.
+          carried = [li];
+          for (let n = li.nextElementSibling; n && !n.matches('.list-head'); n = n.nextElementSibling) carried.push(n);
+          liftParent = null; liftDepth = 0;
+          liftedBefore = carried.at(-1).nextElementSibling?.dataset.section || null;
+          if (carried.length > 1) liftGroup(li, carried);
+          return;
+        }
         carried = selected.has(li.dataset.id) && selected.size > 1
           ? rows().filter(r => selected.has(r.dataset.id)).flatMap(r => withChildren(r))
           : withChildren(li);
@@ -289,7 +302,7 @@ export function createListKit({
       // While dragging sideways, the row snaps to the depth it will land at
       // and says so ("sub-item" / "top level").
       onDrag: ({ item, dx, dy }) => {
-        if (!indent) return 0;
+        if (!indent || item.matches('.list-head')) return 0;
         if (!sideways) {
           const out = outOfFamily(item, dy);
           showOut(item, out);
@@ -328,6 +341,14 @@ export function createListKit({
       },
       onEnd: ({ item, dx, onto }) => {
         item.classList.remove('nest-preview');
+        if (item.matches('.list-head')) {
+          document.body.classList.remove('is-dragging');
+          if (carried.length > 1) { dropGroup(item, carried); carried.slice(1).reverse().forEach(r => item.after(r)); }
+          const before = (carried.at(-1) || item).nextElementSibling?.dataset.section || null;
+          carried = []; lifted = null;
+          if (before !== liftedBefore) onSection(item.dataset.section, before);
+          return;
+        }
         if (onto && onNest) {
           document.body.classList.remove('is-dragging');
           onto.classList.remove('nest-target');
