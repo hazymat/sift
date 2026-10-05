@@ -9,6 +9,15 @@
 // or web address), else before a " - " / " – " / " (" or a joining phrase
 // ("because", "so that", …), else the words that fit with "…". Leading
 // filler ("I need to", "remember to") is dropped.
+//
+// It also spots a time typed anywhere in the line (spotTime), for the view to
+// offer as the task's time (offerTime): never used without asking.
+//
+//   summarise('Lavender 11.55-12.30').spotted
+//   → { time: '11:55', end_time: '12:30', title: 'Lavender', text: '11.55-12.30' }
+
+import { toast } from './toast.js';
+import { labelHistory } from './store.js';
 
 export const MAX = 50;
 
@@ -42,6 +51,12 @@ export function titleFrom(text) {
 }
 
 export function summarise(text, max = MAX) {
+  const short = shorten(text, max);
+  short.spotted = spotTime(text);
+  return short;
+}
+
+function shorten(text, max) {
   const whole = text.trim();
   if (whole.length <= max) return { title: whole, notes: '' };
   const min = 4; // a title needs a few characters at least
@@ -61,4 +76,68 @@ export function summarise(text, max = MAX) {
   const cut = tidy(whole).slice(0, max);
   const title = `${cut.slice(0, Math.max(cut.lastIndexOf(' '), min)).trim()}…`;
   return { title, notes: whole };
+}
+
+// ---------- times ----------
+// 11.55, 11:55, 1155h, 11.55am, 3pm; a range with -, –, ->, →, "to", "till",
+// "until" (11.55-12.30, 11:55 -> 12:30, 3-4pm); "at", "from" or "@" before it
+// goes with it. Not inside a number, date, price or web address (£3.50,
+// 12.10.2026, 1.60.56). Without am / pm, 1 to 6 o'clock is the afternoon,
+// and an end before its start is 12 hours later (11.30-1 → 13:00).
+const TOK = String.raw`\d{3,4}\s?h|\d{1,2}(?:[:.]\d{2})?(?:\s?(?:am|pm|a\.m\.|p\.m\.|h)(?![a-z]))?`;
+const SPOT = new RegExp(String.raw`(?<![\w.,:£$€/])(?:(?:at|from)\s+|@\s*)?(${TOK})(?:\s*(?:->|→|=>|-|\u2013|\u2014|to|till|til|until)\s*(${TOK}))?(?![\w:/]|[.,]\d)`, 'gi');
+
+// One time as typed → { min, half: 'am' | 'pm' | '' , bare: no minutes and no am / pm / h }
+function readTok(tok) {
+  const t = tok.toLowerCase().replace(/\s/g, '');
+  let m = t.match(/^(\d{1,2})(\d{2})h$/);
+  if (m) return Number(m[1]) < 24 && Number(m[2]) < 60 ? { min: Number(m[1]) * 60 + Number(m[2]), half: '', fixed: true } : null;
+  m = t.match(/^(\d{1,2})(?:[:.](\d{2}))?(a\.?m\.?|p\.?m\.?|h)?$/);
+  if (!m) return null;
+  const hour = Number(m[1]), mins = Number(m[2] || 0);
+  const half = m[3]?.[0] === 'a' ? 'am' : m[3]?.[0] === 'p' ? 'pm' : '';
+  if (mins > 59 || hour > 23 || (half && (hour > 12 || hour === 0))) return null;
+  return { hour, mins, half, fixed: m[3] === 'h', bare: !m[2] && !m[3] };
+}
+const at = (tok, half) => {
+  if (tok.min !== undefined) return tok.min;
+  const use = tok.half || half;
+  let hour = tok.hour;
+  if (use) hour = hour % 12 + (use === 'pm' ? 12 : 0);
+  else if (!tok.fixed && hour >= 1 && hour <= 6) hour += 12; // "3.30" in a day plan is the afternoon
+  return hour * 60 + tok.mins;
+};
+const hhmm = min => `${String(Math.floor(min / 60) % 24).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+
+// The first time in the text → { time, end_time, title (the text without it), text (as typed) } or null.
+export function spotTime(text) {
+  for (const m of (text || '').matchAll(SPOT)) {
+    const start = readTok(m[1]);
+    const end = m[2] ? readTok(m[2]) : null;
+    if (!start || (m[2] && !end)) continue;
+    if (start.bare && !(end && end.half)) continue; // "3" alone is a number, "3-4pm" is a time
+    let from, to = null;
+    if (end) {
+      to = at(end, '');
+      from = at(start, end.half);
+      if (start.bare && from > to) from = at(start, end.half === 'pm' ? 'am' : 'pm'); // 11-1pm
+      if (!end.half && !end.fixed && end.min === undefined && to <= from && to + 720 > from) to += 720;
+      if (to <= from) continue;
+    } else from = at(start, '');
+    const title = (text.slice(0, m.index) + ' ' + text.slice(m.index + m[0].length)).replace(/\s+/g, ' ').replace(/\s+([,.;:!?)])/g, '$1').replace(/^[\s,;:\u2013-]+|[\s,;:\u2013-]+$/g, '').trim();
+    if (!title) continue;
+    return { time: hhmm(from), end_time: to === null ? null : hhmm(to), title, text: m[0].trim() };
+  }
+  return null;
+}
+
+const showTime = time => time.replace(/^0?(\d+):/, '$1.'); // 8.30, as on paper (days.js)
+
+// After adding a task whose name had a time in it: ask, in the toast, whether to
+// use it (Set time); Undo beside it takes the task away again. added: the
+// "Added …" History entry; where: after the time (" on today's Day Planner").
+export const spotWhen = spot => (spot.end_time ? `${showTime(spot.time)} to ${showTime(spot.end_time)}` : showTime(spot.time));
+export function offerTime(spot, { added, undo, apply, where = '' }) {
+  if (added) labelHistory(added);
+  toast(`Set "${shorten(spot.title, MAX).title}" for ${spotWhen(spot)}${where}?`, { action: 'Set time', onAction: apply, more: undo ? { label: 'Undo', onAction: undo } : undefined, ms: 9000 });
 }

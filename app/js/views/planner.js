@@ -14,7 +14,7 @@ import { toast, undoable } from '../toast.js';
 import { richText, toHtml, previewLine, inlineAll, plainLines } from '../richtext.js';
 import { keepDraft, draftCleared } from '../drafts.js';
 import { autosizeAll } from '../inline.js';
-import { summarise } from '../summary.js';
+import { summarise, offerTime, spotWhen } from '../summary.js';
 import { loadAll as loadTasks, forDay, suggestions, doneFields, aimDate, addTask, horizonOf, planDay } from '../tasks.js';
 import * as att from '../attachments.js';
 import { typingIn } from '../listkit.js';
@@ -1387,11 +1387,17 @@ export default {
 
     // ---------- editing ----------
 
-    async function create(fields) {
+    async function create(fields, spotted = null) {
       const made = await addItem(date, fields);
       await refresh();
-      undoable(`Added "${made.title}"`, async () => { await store.remove('day_items', made.id); await refresh(); });
+      const unadd = async () => { await store.remove('day_items', made.id); await refresh(); };
+      if (spotted) offerItemTime(made, spotted, unadd); else undoable(`Added "${made.title}"`, unadd);
       return made;
+    }
+    // A time typed in a new item's name (summary.js spotTime): asked first, then its time and the name without it.
+    function offerItemTime(made, spotted, unadd) {
+      const title = summarise(spotted.title).title;
+      offerTime(spotted, { added: `Added "${made.title}"`, undo: unadd, apply: () => change(made.id, { title, time: spotted.time, end_time: spotted.end_time }, `Time set to ${spotWhen(spotted)}`) });
     }
 
     // Tap an item's text to edit it (js/editpills.js). In the schedule, as in Tasks: More at the far right of its line
@@ -1476,7 +1482,7 @@ export default {
         more.remove();
         if (save && text) {
           const parsed = parseTimed(text);
-          const made = await create({ title: parsed.title, time: parsed.time || time, end_time: parsed.end_time, notes });
+          const made = await create({ title: parsed.title, time: parsed.time || time, end_time: parsed.end_time, notes }, parsed.time ? null : summarise(text).spotted);
           if (open) reveal(made.id);
         }
       };
@@ -1727,7 +1733,7 @@ export default {
       input.value = '';
       draftCleared(input);
       const p = parseTimed(text);
-      const { title, notes: longText } = summarise(p.title); // long ones: short title, full text in the note
+      const { title, notes: longText, spotted } = summarise(p.title); // long ones: short title, full text in the note
       const notes = [longText, $('#dump-note').value.trim()].filter(Boolean).join('\n\n');
       const made = await addItem(date, { title, notes, time: p.time, end_time: p.end_time, rank: lastKey(items.filter(i => !i.time)), energy: draft.energy, estimate_min: draft.estimate_min });
       resetNew();
@@ -1735,7 +1741,8 @@ export default {
       if (leave) closeNew();
       await refresh();
       if (!open && !leave) input.focus();
-      undoable(`Added "${made.title}"`, async () => { await store.remove('day_items', made.id); await refresh(); });
+      const unadd = async () => { await store.remove('day_items', made.id); await refresh(); };
+      if (spotted && !p.time) offerItemTime(made, spotted, unadd); else undoable(`Added "${made.title}"`, unadd);
     }
     $('#dump').addEventListener('keydown', ev => {
       if (ev.key === 'Escape') {

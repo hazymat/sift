@@ -13,7 +13,7 @@ import { sharedProjects, projectMembers, sharedValue, sharedFrom, moveIntoShared
 import { ENERGY, isoDate, dateText, addDays, parseDate, addItem, durationChoices, durationLabel } from '../days.js';
 import { energyMenu, pillMenu } from '../pillmenu.js';
 import { tintHex, tintId, colourMenu } from '../colours.js';
-import { summarise } from '../summary.js';
+import { summarise, offerTime, spotWhen } from '../summary.js';
 import { createListKit } from '../listkit.js';
 import { rowSwipe } from '../rowswipe.js';
 import { rankOf, reorderWrites, keyBetween } from '../order.js';
@@ -645,7 +645,9 @@ export default {
         if (chain) nextAfter = made.id;
         await render();
         showAdded(body, [made.id]);
-        undoable(`Added ${lvl ? 'sub-task' : 'task'}: ${title}`, async () => { await store.remove('tasks', made.id); await render(); });
+        const spotted = summarise(title).spotted;
+        if (spotted) offerTaskTime(made.id, spotted, `Added ${lvl ? 'sub-task' : 'task'}: ${title}`);
+        else undoable(`Added ${lvl ? 'sub-task' : 'task'}: ${title}`, async () => { await store.remove('tasks', made.id); await render(); });
       };
       // Tab / Shift+Tab, or "- " at the start: in a level, or back out.
       const above = () => { let p = row.previousElementSibling; while (p && !p.matches('li[data-task][data-id]')) p = p.previousElementSibling; return p; };
@@ -915,6 +917,31 @@ export default {
 
     // ---------- adding ----------
 
+    // A time typed in a new task's name (summary.js spotTime): asked first, then the task goes on its planned
+    // day's Day Planner (today if none) at that time, and loses the time from its name.
+    function offerTaskTime(id, spotted, added) {
+      const unadd = async () => { await store.remove('tasks', id); await render(); };
+      offerTime(spotted, { added, undo: unadd, where: ' on the Day Planner', apply: async () => {
+        const task = await store.get('tasks', id);
+        if (!task) return;
+        const day = task.start_date || isoDate();
+        const title = summarise(spotted.title).title;
+        await store.update('tasks', id, { title });
+        const unplan = task.start_date ? null : await planDay(Object.assign({}, task, { title }), day);
+        const item = (await store.list('day_items', { filter: i => i.task_id === id && i.date === day && !i.archived_at }))[0];
+        const old = item && { title: item.title, time: item.time ?? null, end_time: item.end_time ?? null };
+        if (item) await store.update('day_items', item.id, { title, time: spotted.time, end_time: spotted.end_time });
+        await render();
+        const when = d => (d === isoDate() ? 'today' : shortDate(d));
+        undoable(`On the Day Planner for ${when(day)} at ${spotWhen(spotted)}`, async () => {
+          if (item && !unplan) await store.update('day_items', item.id, old);
+          if (unplan) await unplan();
+          await store.update('tasks', id, { title: task.title });
+          await render();
+        });
+      } });
+    }
+
     let lastTop = null; // the last top-level task added here ("- " lines go under it)
     let entryDepth = 0; // the New task line's level: 0 a task, 1 a sub-task, 2 under that
     async function addLines(lines, { parent: startParent = null, extras = {}, focus = true } = {}) {
@@ -925,9 +952,11 @@ export default {
       // New tasks added at the top (👁 Layout): above every task, in the order typed.
       const top = lay('add-top') ? data.tasks.map(x => rankOf(x)).sort()[0] || null : undefined;
       let prev = null;
+      let spotted = null;
       for (const line of lines) {
         // A long line gets a short title; the note keeps it all.
-        const { title, notes } = summarise(line.text);
+        const { title, notes, spotted: spot } = summarise(line.text);
+        spotted = lines.length === 1 ? spot : null;
         if (notes) shortened++;
         const note = [notes, extras.note].filter(Boolean).join('\n');
         const at = {};
@@ -940,6 +969,7 @@ export default {
       await render();
       if (focus) body.querySelector('#task-new')?.focus();
       showAdded(body, made); // after the focus, so its scroll to the new task wins
+      if (spotted) { offerTaskTime(made[0], spotted, `Added task: ${lines[0].text}`); return made; }
       undoable(`Added ${made.length} task${made.length === 1 ? '' : 's'} to ${HORIZONS.find(x => x.id === base.horizon)?.label || word('list_inbox')}${shortened ? ` (${shortened} long one${shortened === 1 ? '' : 's'} shortened, full text in the note)` : ''}`, async () => {
         await store.updateMany('tasks', made.map(id => [id, { deleted_at: new Date().toISOString() }]));
         await render();
