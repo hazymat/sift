@@ -1,5 +1,5 @@
-// A task as a case (like an IT support case): the one task full screen, its details first, then its whole
-// history in time order (opened, put on a day, ticked and unticked, comments with their photos and files,
+// A task as a case (like an IT support case): the one task full screen: its name, note and Add a comment
+// line first, its status, then its whole history newest first (opened, put on a day, ticked and unticked, comments with their photos and files,
 // let go, archived, and the edits this device made). ‹ Back or Esc closes it.
 //
 //   openCase({ task_id } | { item_id }, { closed, back })   View case in a task's full panel (Tasks, the Day Planner),
@@ -143,7 +143,7 @@ export async function openCase(owner, { closed, back } = {}) {
     ? `<button type="button" class="case-pic" data-att-open="${a.id}" title="${esc(a.name)}" aria-label="Look at ${esc(a.name)}"><img src="${a.thumb}" alt="" loading="lazy"></button>`
     : `<button type="button" class="case-file" data-att-open="${a.id}" title="${esc(a.name)}">${icon('i-note')} ${esc(att.shortName(a.name, 32))}</button>`)).join('');
 
-  // Everything that happened, oldest first.
+  // Everything that happened, newest first.
   function events() {
     const { task, days, comments, files, history, ids } = data;
     const out = [];
@@ -180,7 +180,7 @@ export async function openCase(owner, { closed, back } = {}) {
       for (const c of e.changes.filter(x => ids.has(x.id) && !x.created)) for (const f of Object.keys(c.after).filter(k => FIELD_WORDS[k] && !(k === 'status' && [c.before?.[k], c.after[k]].includes('done')))) parts.add(f === 'notes' ? 'Note edited' : `${FIELD_WORDS[f]}: ${show(f, c.before?.[f])} → ${show(f, c.after[f])}`);
       if (parts.size) push(e.at, 'Changed on this device', `<ul class="case-edits">${[...parts].map(p => `<li>${esc(p)}</li>`).join('')}</ul>`, 'is-edit');
     }
-    return out.sort((a, b) => a.at.localeCompare(b.at));
+    return out.sort((a, b) => b.at.localeCompare(a.at)); // newest first, nearest the Add a comment line
   }
 
   function historyHtml() {
@@ -210,15 +210,15 @@ export async function openCase(owner, { closed, back } = {}) {
       <p class="case-where muted">${where}${days.length && task ? ` · on the Day Planner ${days.filter(i => !i.deleted_at).length === 1 ? 'once' : `${days.filter(i => !i.deleted_at).length} times`}` : ''}</p>
       <h1 class="case-title"><span class="case-state ${state.cls}">${state.word}</span> <span class="case-name${main.done_at ? ' done' : ''}">${esc(main.title)}</span></h1>
       ${(main.notes || '').trim() ? `<section class="case-sec"><div class="case-notes">${toHtml(unlink(main.notes))}</div></section>` : ''}
+      <div class="case-add case-sec">
+        <input class="case-add-box no-inline" placeholder="Add a comment…" aria-label="Add a comment" autocomplete="off" enterkeyhint="send">
+        <button type="button" class="case-attach" data-case="attach" title="Attach photos, PDFs or text files, as a comment with its time (or drop them here)">${icon('i-clip')}</button>
+      </div>
       <section class="case-sec" aria-label="Status">${fieldsHtml(true)}
         ${main.deleted_at || main.dropped_at ? '' : `<div class="case-acts"><button type="button" class="case-tick${main.done_at ? '' : ' primary'}" data-case="tick">${main.done_at ? 'Reopen case' : '✓ Mark case done'}</button></div>`}
       </section>
       <section class="case-sec"><h2 class="case-h">History</h2>
         <ol class="case-log">${historyHtml()}</ol>
-        <div class="case-add">
-          <input class="case-add-box no-inline" placeholder="Add a comment…" aria-label="Add a comment" autocomplete="off" enterkeyhint="send">
-          <button type="button" class="case-attach" data-case="attach" title="Attach photos, PDFs or text files, as a comment with its time (or drop them here)">${icon('i-clip')}</button>
-        </div>
       </section>
       ${direct.length ? `<section class="case-sec"><h2 class="case-h">Attached</h2>${att.rowHtml(direct, { addButton: false, parent: (task || item).id })}</section>` : ''}
       ${fieldsHtml(false) ? `<section class="case-sec"><h2 class="case-h">Details</h2>${fieldsHtml(false)}</section>` : ''}
@@ -239,7 +239,6 @@ export async function openCase(owner, { closed, back } = {}) {
     typedComment = '';
     await render();
     page.querySelector('.case-add-box')?.focus();
-    page.scrollTop = page.scrollHeight;
     undoable('Comment added', async () => { await store.remove('comments', made.id); await render(); });
   }
   async function toggleDone() {
@@ -259,7 +258,7 @@ export async function openCase(owner, { closed, back } = {}) {
     else if (act === 'tick') toggleDone();
     else if (act === 'attach') {
       const picker = Object.assign(document.createElement('input'), { type: 'file', multiple: true, accept: att.ACCEPT, hidden: true });
-      picker.onchange = async () => { await attachAsComment(commentOwner(), [...picker.files], render); picker.remove(); page.scrollTop = page.scrollHeight; };
+      picker.onchange = async () => { await attachAsComment(commentOwner(), [...picker.files], render); picker.remove(); };
       document.body.append(picker);
       picker.click();
     }
