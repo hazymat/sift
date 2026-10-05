@@ -173,6 +173,7 @@ Rows and cards inside an area. "Top right" means on the row's own first line, at
 - Key labels sit in the middle of every button that shows a key, Windows included (1.60.02).
 - Day Planner: Esc closes a task's full panel however it was opened (1.60.04).
 - A tapped task or list item shows its whole name, wrapping onto more lines (Day Planner already did; Tasks, project tasks and Lists 1.60.49); resting, Tasks and Lists keep one line, the Day Planner two.
+- Medium and Extended spacing show every task's whole name and note, wrapping (Tasks, projects, Lists, Day Planner, 1.60.54); Compact keeps one line.
 - Brain Dump notes: → Task, Plan it and → Find Things moved from the card into its ⋯, and into the selection bar's Move ▸ (1.57.00).
 - Filter bars are all underlined tabs: Contacts' Recent | Directory | Cases, Scans' kinds, Contracts' views and Tidied's areas moved from pills to the shared bar (1.58.10).
 - Lists page: Lists | Templates (| Shared with me) are underlined tabs in a sticky top instead of plain-text headings, with one + New pill for the tab shown; on phones, Lists', Scans' and Contracts' Share, 👁 and ⋯ stay on the first line (Scans' and Contracts' search goes under them) (1.59.01).
