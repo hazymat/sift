@@ -27,6 +27,7 @@ import { keepDraft, draftCleared } from '../drafts.js';
 import { autosizeAll } from '../inline.js';
 import { addTask } from '../tasks.js';
 import { dayPanelHtml } from '../daypanel.js';
+import { openCase } from '../casepage.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -214,7 +215,7 @@ export default {
     }
     const closePanel = () => (panelFor ? togglePanel(panelFor) : null);
     // Esc closes the panel (never Advanced itself).
-    addEventListener('keydown', ev => { if (ev.key === 'Escape' && panelFor && !pop && !ev.defaultPrevented && !document.querySelector('dialog[open], .pill-menu') && !typingIn(ev.target)) { ev.preventDefault(); closePanel(); } }, { capture: true, signal: gone.signal });
+    addEventListener('keydown', ev => { if (ev.key === 'Escape' && panelFor && !pop && !ev.defaultPrevented && !document.querySelector('dialog[open], .pill-menu, .case-page') && !typingIn(ev.target)) { ev.preventDefault(); closePanel(); } }, { capture: true, signal: gone.signal });
 
     // All of a case's comments, over the page under its row: the full comments box (add, edit, remove, attach), scrolling.
     let pop = null;
@@ -477,6 +478,7 @@ export default {
       // The panel's own buttons: the same actions as the Selections bar.
       const panelId = b.closest('.item-details[data-for]')?.dataset.for;
       if (panelId) {
+        if (act === 'open-case') return openCase({ item_id: panelId }, { closed: render });
         const run = { 'let-go': letGo, 'take-back': takeBack, 'to-task': toTasks, 'make-unique': uniqueMany, 'archive-item': archive, delete: deleteMany }[act];
         if (run) { panelFor = null; await run([panelId]); }
         return;

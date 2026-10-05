@@ -1583,6 +1583,7 @@ const dayPlanner = {
       }
       else if (act === 'details') { if (editing === id) closeDetails(); else { editing = id; refresh(); } }
       else if (act === 'close-details') closeDetails();
+      else if (act === 'open-case') (await import('../casepage.js')).openCase({ item_id: id }, { closed: () => refresh() });
       else if (act === 'make-unique') { editing = null; await uniqueItems([id]); }
       else if (act === 'unschedule') { editing = null; await change(id, { time: null, end_time: null }, 'Time unallocated'); }
       else if (act === 'archive-item') {

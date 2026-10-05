@@ -268,6 +268,7 @@ export default {
         </details>
         <div class="detail-actions">
           ${depthIn(t, data.tasks) < MAX_DEPTH ? '<button type="button" data-act="add-sub">+ Sub-task</button>' : ''}
+          <button type="button" data-act="open-case" title="This task full screen: its details, then its whole history">Open as case</button>
           <span class="spacer"></span>
           <button type="button" data-act="archive">Archive</button>
           <button type="button" class="danger" data-act="delete">Delete</button>
@@ -1674,6 +1675,8 @@ export default {
         undoable('Added a sub-task', async () => { await store.remove('tasks', sub.id); await render(); });
       } else if ((act === 'plan-today' || act === 'plan-clear') && task) {
         await setPlanDay(task, act === 'plan-today' ? isoDate() : null);
+      } else if (act === 'open-case' && task) {
+        (await import('../casepage.js')).openCase({ task_id: task.id }, { closed: () => render() });
       } else if ((act === 'delete' || act === 'archive') && task) {
         await retire(task, act);
       }
