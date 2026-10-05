@@ -4476,3 +4476,8 @@ html.kb-open :is(.sticky-top, .find-sticky, .dump-bar, .bb-sticky, .list-top, .b
 #main:not([data-density="tight"]):not([data-density="loose"]) .task-note .note-medium { display: block; -webkit-line-clamp: none; overflow: visible; overflow-wrap: anywhere; }
 #main:not([data-density="tight"]) :is(.pile-paper, #lines) .line.has-item > .content > textarea.item-title:not(:focus) { max-height: none; -webkit-mask: none; mask: none; }
 #main:not([data-density="tight"]) .planner .plan-note { white-space: normal; display: block; -webkit-line-clamp: none; overflow: visible; overflow-wrap: anywhere; }
+/* Compact spacing, Day Planner: a task whose only pill is its 📝 keeps it on its line, at the far end, the
+   name wrapping before it; on a laptop, More takes its place while the task is hovered. */
+#main[data-density="tight"] :is(.pile-paper, #lines) .line.has-item > .content:has(> .note-tag):not(:has(> .span-tag:not(.note-tag))) > textarea.item-title { flex: 1 1 0; }
+#main[data-density="tight"] :is(.pile-paper, #lines) .line.has-item > .content:not(:has(> .span-tag:not(.note-tag))) > .note-tag { margin: 4px 4px 0 6px; align-self: flex-start; }
+@media (hover: hover) { #main[data-density="tight"] :is(.pile-paper, #lines) .line.has-item > .content:hover:not(:has(> .span-tag:not(.note-tag))) > .note-tag { visibility: hidden; } }

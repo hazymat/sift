@@ -1041,3 +1041,4 @@ NOTES['1.60.51'] = [F("Selections bars: Assign to… and Move ▸ Project… ope
 NOTES['1.60.52'] = [B("Projects: tapping a milestone's name opened its menu, as its ⋯ does. Only ⋯ opens it now.")]
 NOTES['1.60.53'] = [B("Projects: dragging a milestone's name could drop it between another milestone's name and its tasks, moving those tasks into the dragged milestone. A milestone now moves with all its tasks and only drops between milestones (or at the end); other headings can't be dragged.")]
 NOTES['1.60.54'] = [F("Tasks, projects, Lists and the Day Planner: in Medium and Extended spacing every task's whole name and note show, wrapping onto more lines. Compact keeps one line per task.")]
+NOTES['1.60.55'] = [F("Day Planner, Compact spacing: a task's 📝 stays on its line at the far right instead of dropping under a long name, so tasks take less height.")]
