@@ -23,6 +23,7 @@ import { deleteLinked, deleteAll, makeUnique } from '../link.js';
 import { pillMenu } from '../pillmenu.js';
 import { askEmptied } from '../ask.js';
 import { keys } from '../keys.js';
+import { summarise } from '../summary.js';
 import { keepDraft, draftCleared } from '../drafts.js';
 import { autosizeAll } from '../inline.js';
 import { addTask } from '../tasks.js';
@@ -414,7 +415,9 @@ export default {
       const title = ev.target.value.trim();
       if (!title) return;
       ev.target.value = '';
-      const made = await addItem(date, { title, rank: firstKey(items.filter(i => !i.time)) });
+      // A long line becomes a short title plus a note with the whole line: summarise(), the same as Tasks and the Day Planner.
+      const short = summarise(title);
+      const made = await addItem(date, { title: short.title, notes: short.notes, rank: firstKey(items.filter(i => !i.time)) });
       await render();
       $('#adv-new').focus();
       undoable(`Added "${title}"`, async () => { await store.remove('day_items', made.id); await render(); });
