@@ -245,6 +245,13 @@ export default {
       await render();
       undoable(`${words} ${label(ids)}`, async () => { await store.updateMany('day_items', before); await render(); });
     }
+    // Rows just dragged into Done: shown not done, then the tick box's tick and wave, then drawn again crossed out.
+    async function landTicked(ids) {
+      const rows = ids.map(id => el.querySelector(`.adv-row[data-id="${CSS.escape(id)}"]`)).filter(Boolean);
+      rows.forEach(r => { r.classList.remove('done'); r.querySelector('.tick').checked = true; });
+      await Promise.all(rows.map((r, n) => tickWave(r, { title: r.querySelector('.adv-title'), lane: r.querySelector('.adv-text'), delay: 100 + n * 200 }).done));
+      await render();
+    }
     async function tickMany(ids) {
       const cards = ids.map(id => el.querySelector(`.adv-row[data-id="${CSS.escape(id)}"]`)).filter(Boolean);
       await store.updateMany('day_items', ids.map(id => [id, { done_at: new Date().toISOString() }]));
@@ -338,7 +345,11 @@ export default {
         if (!writes.length) return render();
         await store.updateMany('day_items', writes);
         await render();
-        undoable(ticked.length ? `Done: ${label(ticked)}` : unticked.length ? `Not done: ${label(unticked)}` : words || 'Moved', async () => { await store.updateMany('day_items', before); await render(); });
+        // Dropped among the done ones: ticked off as by its tick box, the wave running along it where it landed.
+        if (ticked.length) await landTicked(ticked);
+        const undo = async () => { await store.updateMany('day_items', before); await render(); };
+        if (ticked.length) undoable(`Done: ${label(ticked)}`, undo, ticked.length === 1 ? { more: closingComment(ownerOf(ticked[0])) } : undefined);
+        else undoable(unticked.length ? `Not done: ${label(unticked)}` : words || 'Moved', undo);
       },
     });
 

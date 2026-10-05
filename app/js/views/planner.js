@@ -1852,13 +1852,13 @@ const dayPlanner = {
     }
     const clearSelection = () => { selected.clear(); paintSelection(); };
 
-    async function moveMany(fieldsById, label, wait = null) {
+    async function moveMany(fieldsById, label, wait = null, more = undefined) {
       const before = [...fieldsById.keys()].map(id => {
         const i = items.find(x => x.id === id);
         return [id, Object.fromEntries(Object.keys(fieldsById.get(id)).map(k => [k, i?.[k] ?? null]))];
       });
       await store.updateMany('day_items', [...fieldsById]);
-      const say = () => undoable(label, async () => { await store.updateMany('day_items', before); await refresh(); paintSelection(); });
+      const say = () => undoable(label, async () => { await store.updateMany('day_items', before); await refresh(); paintSelection(); }, more);
       if (wait) say();
       if (wait) await wait();
       await refresh();
@@ -2152,6 +2152,20 @@ const dayPlanner = {
       const n = p.ids.length;
       if (!t || !p.changes?.size) { renderLines(); renderPile(); paintSelection(); return; }
       const pushed = p.pushedCount ? `, pushed ${p.pushedCount} on` : '';
+      // Dragged across the done ones: ticked or unticked as by its tick box (Done / Not done, the wave where it landed).
+      const ticked = t.pile ? [...p.changes].filter(([, f]) => f.done_at).map(([id]) => id) : [];
+      const unticked = t.pile ? [...p.changes].filter(([, f]) => 'done_at' in f && !f.done_at).map(([id]) => id) : [];
+      const many = list => (list.length > 1 ? `${list.length} items` : '');
+      if (ticked.length) {
+        const it = items.find(i => i.id === ticked[0]);
+        await moveMany(p.changes, ticked.length > 1 ? `Done: ${many(ticked)}` : 'Done', null, ticked.length === 1 && it ? { more: closingComment(it.task_id ? { task_id: it.task_id } : { item_id: it.id }) } : undefined);
+        const rows = ticked.map(id => $('#pile-done').querySelector(`.line.has-item[data-item="${CSS.escape(id)}"]`)).filter(Boolean);
+        rows.forEach(row => { row.classList.remove('done'); row.querySelector('.tick').checked = true; });
+        await Promise.all(rows.map((row, n) => tickWave(row, { title: row.querySelector('.item-title'), parts: row.querySelectorAll('.content > :is(.span-tag, .note-tag), .content > .item-sub .pill-act'), lane: row.querySelector(':scope > .content') || row, delay: 100 + n * 200 }).done));
+        await refresh(); paintSelection();
+        return;
+      }
+      if (unticked.length) return moveMany(p.changes, unticked.length > 1 ? `Not done: ${many(unticked)}` : 'Not done');
       await moveMany(p.changes, t.pile ? `${n > 1 ? `${n} items` : 'Item'} moved in ${t.done ? 'Done' : 'Tasks'}` : `${n > 1 ? `Moved ${n} items` : 'Moved'} to ${fmt(t.time)}${pushed}`);
     };
     el.addEventListener('pointerup', endPress);
