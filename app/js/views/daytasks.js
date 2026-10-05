@@ -30,7 +30,7 @@ import { addTask } from '../tasks.js';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
 const byPlace = byRank();
-const EXPORT_DEFAULTS = { todo: true, done: true, notes: true, comments: true, times: false, files: true, schedule: false };
+const EXPORT_DEFAULTS = { todo: true, done: true, notes: true, comments: true, times: false, files: true, schedule: true };
 
 export default {
   async mount(el) {
@@ -422,7 +422,7 @@ export default {
 
     // ---------- share: the day's cases as text ----------
     let choices = { ...EXPORT_DEFAULTS };
-    store.getDeviceSettings().then(d => { choices = Object.assign({}, EXPORT_DEFAULTS, d.advanced_export || {}); });
+    store.getDeviceSettings().then(d => { choices = Object.assign({}, EXPORT_DEFAULTS, d.advanced_share || {}); });
     const unlink = s => (s || '').replace(/\[([^\]]*)\]\(sift:[^)]*\)/g, '$1');
     const plainNote = s => unlink(s).replace(/\*\*(.+?)\*\*/g, '$1').replace(/~~(.+?)~~/g, '$1').replace(/(^|\s)_(\S.*?)_(?=$|[\s).,!?:;])/g, '$1$2').replace(/^(?:#{1,6}|-#|\+#|#\+)\s+/gm, '');
     // A file added: when, and its name unless it's a photo.
@@ -494,7 +494,7 @@ export default {
       const k = ev.target.dataset.choice;
       if (!k) return;
       choices[k] = ev.target.checked;
-      await store.updateDeviceSettings({ advanced_export: choices });
+      await store.updateDeviceSettings({ advanced_share: choices });
     });
     $('.adv-export').addEventListener('click', async ev => {
       const dlg = $('.adv-export');
