@@ -71,25 +71,45 @@ export default {
     const go = d => { location.hash = `#/planner/${d}/advanced`; };
     const dayTitle = () => dateText(parseDate(date), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
-    // ---------- the cards ----------
-    const filesOf = new Map(); // owner id → its own files (not a comment's)
-    function card(i) {
+    // ---------- the rows ----------
+    // A row: ⠿, tick, the name with its note beside it (smaller, in italics), then on the right the
+    // latest comments, a line to add one, 📎 and All n. Pointing at the comments (or All n) opens all
+    // of the case's comments over the page, scrolling, to add, edit, remove and attach.
+    const LATEST = 2;
+    const filesOf = new Map(); // parent id → its files
+    let commentsOf = new Map(); // 'task_id:…' / 'item_id:…' → comments, oldest first
+    const keyOf = o => (o.task_id ? `task_id:${o.task_id}` : `item_id:${o.item_id}`);
+    const at = iso => { const d = new Date(iso); const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); return isoDate(d) === date ? time : `${dateText(d, { day: 'numeric', month: 'short' })} ${time}`; };
+    const oneLine = md => (md || '').replace(/\[([^\]]*)\]\(sift:[^)]*\)/g, '$1').replace(/\*\*|~~/g, '').replace(/^\s*[-*]\s+/gm, '• ').replace(/^(?:#{1,6}|-#|\+#|#\+)\s+/gm, '').split('\n').map(l => l.trim()).filter(Boolean).join(' · ');
+    function row(i) {
       const task = i.task_id && tasks.get(i.task_id);
       const project = task?.project_id && projects.get(task.project_id);
       const from = task ? `<a class="adv-from" href="#/tasks${project ? `/list/${project.id}` : ''}" title="Brought in from ${project ? 'a project' : 'Tasks'}: linked">${project ? `📁 ${esc(project.name)}` : '🔗 Tasks'}</a>` : '';
       const own = (filesOf.get(i.id) || []).concat(task ? filesOf.get(task.id) || [] : []);
-      return `<li class="adv-card${i.done_at ? ' done' : ''}" data-id="${i.id}">
-        <div class="adv-head">
-          <span class="drag-handle" role="button" tabindex="-1" aria-label="Choose or move">⠿</span>
-          <input type="checkbox" class="tick" aria-label="Done"${i.done_at ? ' checked' : ''}>
-          <textarea class="item-title adv-title no-inline" rows="1" aria-label="Task">${esc(i.title)}</textarea>
-          ${from}
-          <button type="button" class="adv-attach" data-act="attach" title="Attach photos, PDFs or text files, as a comment with its time (or drop them on the card)">${icon('i-clip')}</button>
-          <button type="button" class="adv-more" data-act="menu" aria-label="More for this task">⋯</button>
+      const list = commentsOf.get(keyOf(ownerOf(i.id))) || [];
+      const latest = list.slice(-LATEST).map(c => {
+        const files = filesOf.get(c.id) || [];
+        const text = oneLine(c.body) || (files.length ? '' : '…');
+        return `<li><span class="adv-at">${esc(at(c.at))}</span> <span class="adv-said">${esc(text)}${files.length ? ` <span class="adv-files">${files.some(f => f.kind === 'image') ? '📷' : '📎'}${files.length > 1 ? ` ${files.length}` : ''}</span>` : ''}</span></li>`;
+      }).join('');
+      const note = oneLine(i.notes);
+      return `<li class="adv-row${i.done_at ? ' done' : ''}" data-id="${i.id}">
+        <span class="drag-handle" role="button" tabindex="-1" aria-label="Choose or move">⠿</span>
+        <input type="checkbox" class="tick" aria-label="Done"${i.done_at ? ' checked' : ''}>
+        <div class="adv-text">
+          <textarea class="item-title adv-title no-inline" rows="1" aria-label="Task">${esc(i.title)}</textarea>${from}<button type="button" class="adv-note-peek${note ? '' : ' empty'}" data-act="note" title="${note ? 'Edit the note' : 'Add a note'}">${note ? esc(note) : '+ Note'}</button>
+          <div class="adv-note" data-note-for="${i.id}" hidden></div>
         </div>
-        <div class="adv-note" data-note-for="${i.id}"></div>
-        ${own.length ? att.rowHtml(own, { addButton: false, parent: i.id }) : ''}
-        ${commentsHtml(i.task_id && task ? { task_id: i.task_id } : { item_id: i.id })}
+        <div class="adv-side">
+          ${latest ? `<ol class="adv-latest" data-act="all" title="All comments">${latest}</ol>` : ''}
+          <div class="adv-quick">
+            <input class="adv-quick-add no-inline" placeholder="Add a comment…" aria-label="Add a comment" autocomplete="off">
+            <button type="button" class="adv-attach" data-act="attach" title="Attach photos, PDFs or text files, as a comment with its time (or drop them on the row)">${icon('i-clip')}</button>
+            ${own.length ? att.countChip(own) : ''}
+            ${list.length > LATEST ? `<button type="button" class="adv-all" data-act="all" title="All comments: add, edit, remove">All ${list.length}</button>` : ''}
+          </div>
+        </div>
+        <button type="button" class="adv-more" data-act="menu" aria-label="More for this task">⋯</button>
       </li>`;
     }
 
@@ -107,6 +127,12 @@ export default {
       projects = new Map((await store.list('projects')).map(p => [p.id, p]));
       filesOf.clear();
       for (const [parent, list] of await att.byParent()) filesOf.set(parent, list);
+      commentsOf = new Map();
+      for (const c of (await store.list('comments')).sort((x, y) => (x.at || '').localeCompare(y.at || ''))) {
+        const k = keyOf(c);
+        if (!commentsOf.has(k)) commentsOf.set(k, []);
+        commentsOf.get(k).push(c);
+      }
     }
 
     async function render() {
@@ -115,34 +141,100 @@ export default {
       const all = items.filter(i => !i.time && !i.dropped_at);
       const todo = all.filter(i => !i.done_at).sort(byPlace);
       const done = all.filter(i => i.done_at).sort(byPlace);
-      $('.adv-todo').innerHTML = todo.map(card).join('');
-      $('.adv-done').innerHTML = done.map(card).join('');
+      closePop();
+      $('.adv-todo').innerHTML = todo.map(row).join('');
+      $('.adv-done').innerHTML = done.map(row).join('');
       $('.adv-empty').hidden = !!todo.length;
       $('.adv-done-h').hidden = !done.length;
       el.querySelector('[data-count="todo"]').textContent = todo.length ? todo.length : '';
       el.querySelector('[data-count="done"]').textContent = done.length ? `${done.length}/${all.length}` : '';
       schedule();
       autosizeAll($('.adv-body'));
-      for (const box of el.querySelectorAll('[data-note-for]')) mountNote(box);
-      await mountComments(el, render);
       kit.attach($('.adv-todo'));
     }
     // Nothing is redrawn from under someone typing (a sync, the link following a change).
-    const refresh = async () => { if (typingIn(document.activeElement) && el.contains(document.activeElement)) return; await render(); };
+    const refresh = async () => { if ((typingIn(document.activeElement) && el.contains(document.activeElement)) || pop) return; await render(); };
 
-    // A card's note, under its name: the notes editor without a toolbar, as in Tasks.
-    function mountNote(box) {
+    // The note: its line beside the name opens the notes editor (no toolbar, as in Tasks) under it; leaving closes it.
+    function openNote(rowEl) {
+      const box = rowEl.querySelector('[data-note-for]');
       const it = items.find(i => i.id === box.dataset.noteFor);
-      if (!it || box._editor) return;
-      const auto = debounced(async () => {
-        const text = box._editor?.value.replace(/\s+$/, '');
-        if (text === undefined || text === (it.notes || '')) return;
-        await store.update('day_items', it.id, { notes: text });
-        it.notes = text;
-      }, 700);
-      box._editor = richText(box, { value: it.notes || '', placeholder: 'Note', origin: () => ({ collection: 'day_items', id: it.id, title: it.title, field: 'notes' }), onChange: () => auto.trigger(), bare: true });
-      box.addEventListener('focusout', () => auto.flush());
+      if (!it) return;
+      box.hidden = false;
+      rowEl.classList.add('noting');
+      if (!box._editor) {
+        const auto = debounced(async () => {
+          const text = box._editor?.value.replace(/\s+$/, '');
+          if (text === undefined || text === (it.notes || '')) return;
+          await store.update('day_items', it.id, { notes: text });
+          it.notes = text;
+        }, 700);
+        box._editor = richText(box, { value: it.notes || '', placeholder: 'Note', origin: () => ({ collection: 'day_items', id: it.id, title: it.title, field: 'notes' }), onChange: () => auto.trigger(), bare: true });
+        box.addEventListener('focusout', () => setTimeout(async () => { if (box.contains(document.activeElement)) return; await auto.flush(); render(); }, 150));
+      }
+      box._editor.focus?.();
+      if (!box.contains(document.activeElement)) box.querySelector('[contenteditable]')?.focus();
     }
+
+    // All of a case's comments, over the page under its row: the full comments box (add, edit, remove, attach), scrolling.
+    let pop = null, popTimer = null;
+    function openPop(rowEl) {
+      clearTimeout(popTimer);
+      if (pop?._row === rowEl) return;
+      closePop();
+      pop = document.createElement('div');
+      pop.className = 'adv-pop';
+      pop._row = rowEl;
+      pop.innerHTML = commentsHtml(ownerOf(rowEl.dataset.id));
+      rowEl.querySelector('.adv-side').append(pop);
+      mountComments(pop, () => {});
+      rowEl.classList.add('popped');
+      pop.addEventListener('pointerenter', () => clearTimeout(popTimer));
+      pop.addEventListener('pointerleave', () => laterClose());
+    }
+    function closePop() {
+      clearTimeout(popTimer);
+      if (!pop) return;
+      const was = pop;
+      pop = null;
+      was._row.classList.remove('popped');
+      was.remove();
+    }
+    // Leaving it closes it a moment later (not while writing in it), and the row's latest comments are drawn again.
+    function laterClose() {
+      clearTimeout(popTimer);
+      popTimer = setTimeout(() => { if (!pop || pop.contains(document.activeElement) || pop.querySelector('.pill-menu, .ref-picker')) return; closePop(); render(); }, 350);
+    }
+    const hovers = matchMedia('(hover: hover) and (pointer: fine)');
+    el.addEventListener('pointerover', ev => {
+      if (!hovers.matches) return;
+      const side = ev.target.closest?.('.adv-latest, .adv-all');
+      if (side) { clearTimeout(popTimer); popTimer = setTimeout(() => openPop(side.closest('.adv-row')), 300); }
+    }, page);
+    el.addEventListener('pointerout', ev => {
+      if (!hovers.matches || !pop) return;
+      if (ev.target.closest?.('.adv-latest, .adv-all') && !pop.contains(ev.relatedTarget)) laterClose();
+      else if (!ev.target.closest?.('.adv-latest, .adv-all')) clearTimeout(popTimer && !pop ? popTimer : null);
+    }, page);
+    document.addEventListener('pointerdown', ev => { if (pop && !pop.contains(ev.target) && !ev.target.closest('.adv-latest, .adv-all, .pill-menu, dialog, .toast')) { closePop(); render(); } }, page);
+    addEventListener('keydown', ev => { if (ev.key === 'Escape' && pop && !ev.defaultPrevented && !typingIn(ev.target)) { ev.preventDefault(); closePop(); render(); } }, { capture: true, signal: gone.signal });
+
+    // A comment typed on the row's own line: added there, and the row shows it.
+    el.addEventListener('keydown', async ev => {
+      const box = ev.target.closest?.('.adv-quick-add');
+      if (!box) return;
+      if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); box.value = ''; box.blur(); return; }
+      if (ev.key !== 'Enter') return;
+      ev.preventDefault();
+      const text = box.value.trim();
+      if (!text) return;
+      const id = box.closest('.adv-row').dataset.id;
+      const made = await store.create('comments', { ...ownerOf(id), at: new Date().toISOString(), body: text });
+      box.value = '';
+      await render();
+      el.querySelector(`.adv-row[data-id="${CSS.escape(id)}"] .adv-quick-add`)?.focus();
+      undoable('Comment added', async () => { await store.remove('comments', made.id); await render(); });
+    }, page);
 
     // ---------- choosing several (the selection bar) ----------
     const label = ids => (ids.length === 1 ? `"${items.find(i => i.id === ids[0])?.title || 'task'}"` : `${ids.length} tasks`);
@@ -154,11 +246,11 @@ export default {
       undoable(`${words} ${label(ids)}`, async () => { await store.updateMany('day_items', before); await render(); });
     }
     async function tickMany(ids) {
-      const cards = ids.map(id => el.querySelector(`.adv-card[data-id="${CSS.escape(id)}"]`)).filter(Boolean);
+      const cards = ids.map(id => el.querySelector(`.adv-row[data-id="${CSS.escape(id)}"]`)).filter(Boolean);
       await store.updateMany('day_items', ids.map(id => [id, { done_at: new Date().toISOString() }]));
       kit.clear();
       cards.forEach(c => { c.querySelector('.tick').checked = true; });
-      await Promise.all(cards.map((c, n) => tickWave(c.querySelector('.adv-head'), { title: c.querySelector('.adv-title'), delay: 100 + n * 200 }).done));
+      await Promise.all(cards.map((c, n) => tickWave(c, { title: c.querySelector('.adv-title'), lane: c.querySelector('.adv-text'), delay: 100 + n * 200 }).done));
       await fadeFold(cards);
       await render();
       undoable(`Done: ${label(ids)}`, async () => { await store.updateMany('day_items', ids.map(id => [id, { done_at: null }])); await render(); }, ids.length === 1 ? { more: closingComment(ownerOf(ids[0])) } : undefined);
@@ -208,7 +300,7 @@ export default {
         { id: 'done', label: 'Done', key: 'Ctrl+Enter', run: tickMany },
         { id: 'letgo', label: 'Let go', run: letGo },
         { id: 'to-tasks', label: '→ Tasks', run: toTasks },
-        { id: 'unique', label: 'Keep only here', run: uniqueMany, when: () => [...el.querySelectorAll('.adv-todo .adv-card.selected')].some(c => tasks.has(items.find(i => i.id === c.dataset.id)?.task_id)) },
+        { id: 'unique', label: 'Keep only here', run: uniqueMany, when: () => [...el.querySelectorAll('.adv-todo .adv-row.selected')].some(c => tasks.has(items.find(i => i.id === c.dataset.id)?.task_id)) },
         { id: 'archive', label: 'Archive', key: 'A', run: archive },
         { id: 'delete', label: 'Delete', key: 'D', danger: true, run: deleteMany },
       ],
@@ -225,7 +317,7 @@ export default {
     // ---------- on a card ----------
     el.addEventListener('change', async ev => {
       const t = ev.target;
-      const cardEl = t.closest('.adv-card');
+      const cardEl = t.closest('.adv-row');
       if (!cardEl) return;
       const id = cardEl.dataset.id;
       const it = items.find(i => i.id === id);
@@ -244,7 +336,7 @@ export default {
     el.addEventListener('keydown', ev => {
       const t = ev.target;
       if (t.classList?.contains('adv-title') && ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); t.blur(); }
-      if (t.classList?.contains('adv-title') && ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { const tick = t.closest('.adv-card').querySelector('.tick'); tick.checked = !tick.checked; tick.dispatchEvent(new Event('change', { bubbles: true })); }
+      if (t.classList?.contains('adv-title') && ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { const tick = t.closest('.adv-row').querySelector('.tick'); tick.checked = !tick.checked; tick.dispatchEvent(new Event('change', { bubbles: true })); }
       if (t.classList?.contains('adv-title') && ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); t.blur(); }
     }, page);
     el.addEventListener('input', ev => { if (ev.target.classList?.contains('adv-title')) { ev.target.style.height = 'auto'; ev.target.style.height = `${ev.target.scrollHeight}px`; } }, page);
@@ -254,18 +346,29 @@ export default {
     function attachTo(cardEl) {
       picker?.remove();
       picker = Object.assign(document.createElement('input'), { type: 'file', multiple: true, accept: att.ACCEPT, hidden: true });
-      picker.onchange = async () => { await attachAsComment(cardEl.querySelector('[data-comments]'), [...picker.files]); picker.remove(); picker = null; };
+      picker.onchange = async () => { await attachAsComment(ownerOf(cardEl.dataset.id), [...picker.files], render); picker.remove(); picker = null; };
       document.body.append(picker);
       picker.click();
     }
+    // A screenshot pasted into a row's Add a comment line: added as a comment of its own (with what's typed, if anything).
+    el.addEventListener('paste', async ev => {
+      const box = ev.target.closest?.('.adv-quick-add');
+      const files = [...(ev.clipboardData?.files || [])];
+      if (!box || !files.length) return;
+      ev.preventDefault();
+      const id = box.closest('.adv-row').dataset.id;
+      const text = box.value.trim();
+      if (text) { await store.create('comments', { ...ownerOf(id), at: new Date().toISOString(), body: text }); box.value = ''; }
+      await attachAsComment(ownerOf(id), files, render);
+    }, page);
     // Files dropped on a card (not on its comments, which take them themselves): the same.
-    el.addEventListener('dragover', ev => { if (ev.target.closest('.adv-card') && [...(ev.dataTransfer?.types || [])].includes('Files')) ev.preventDefault(); }, page);
+    el.addEventListener('dragover', ev => { if (ev.target.closest('.adv-row') && [...(ev.dataTransfer?.types || [])].includes('Files')) ev.preventDefault(); }, page);
     el.addEventListener('drop', async ev => {
-      const cardEl = ev.target.closest('.adv-card');
+      const cardEl = ev.target.closest('.adv-row');
       const files = [...(ev.dataTransfer?.files || [])];
       if (!cardEl || !files.length) return;
       ev.preventDefault();
-      await attachAsComment(cardEl.querySelector('[data-comments]'), files);
+      await attachAsComment(ownerOf(cardEl.dataset.id), files, render);
     }, page);
 
     el.addEventListener('click', async ev => {
@@ -278,11 +381,13 @@ export default {
       if (act === 'next') return go(addDays(date, 1));
       if (act === 'today') return go(isoDate());
       if (act === 'share') return openExport();
-      const cardEl = b.closest('.adv-card');
+      const cardEl = b.closest('.adv-row');
       if (!cardEl) return;
       const id = cardEl.dataset.id;
       const it = items.find(i => i.id === id);
       if (act === 'attach') return attachTo(cardEl);
+      if (act === 'note') return openNote(cardEl);
+      if (act === 'all') return pop?._row === cardEl ? (closePop(), render()) : openPop(cardEl);
       if (act === 'menu') {
         const linked = it?.task_id && tasks.has(it.task_id);
         const options = [
@@ -313,7 +418,6 @@ export default {
     // ---------- share: the day's cases as text ----------
     let choices = { ...EXPORT_DEFAULTS };
     store.getDeviceSettings().then(d => { choices = Object.assign({}, EXPORT_DEFAULTS, d.advanced_export || {}); });
-    const at = iso => { const d = new Date(iso); const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); return isoDate(d) === date ? time : `${dateText(d, { weekday: 'short', day: 'numeric', month: 'short' })} ${time}`; };
     const unlink = s => (s || '').replace(/\[([^\]]*)\]\(sift:[^)]*\)/g, '$1');
     const plainNote = s => unlink(s).replace(/\*\*(.+?)\*\*/g, '$1').replace(/~~(.+?)~~/g, '$1').replace(/(^|\s)_(\S.*?)_(?=$|[\s).,!?:;])/g, '$1$2').replace(/^(?:#{1,6}|-#|\+#|#\+)\s+/gm, '');
     // A file added: when, and its name unless it's a photo.
