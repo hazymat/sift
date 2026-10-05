@@ -4619,7 +4619,7 @@ html.case-open, html.case-open body { overflow: hidden; }
 .case-pic img { display: block; width: 96px; height: 96px; object-fit: cover; }
 .case-file { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; }
 .case-file .icon { width: 16px; height: 16px; }
-.case-add { display: flex; gap: 6px; align-items: center; margin-top: 12px; }
+.case-add { display: flex; gap: 6px; align-items: center; }
 .case-add-box { flex: 1; min-width: 0; box-sizing: border-box; padding: 9px 14px; border-radius: var(--radius-sm); border: 1px solid var(--glass-border); background: var(--glass); color: var(--text); font: inherit; }
 .case-attach { padding: 8px 10px; }
 .case-attach .icon { width: 18px; height: 18px; }
