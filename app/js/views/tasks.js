@@ -268,7 +268,7 @@ export default {
         </details>
         <div class="detail-actions">
           ${depthIn(t, data.tasks) < MAX_DEPTH ? '<button type="button" data-act="add-sub">+ Sub-task</button>' : ''}
-          <button type="button" data-act="open-case" title="This task full screen: its details, then its whole history">Open as case</button>
+          <button type="button" data-act="open-case" title="This task on a screen of its own: its note, its whole history, then its details">View case</button>
           <span class="spacer"></span>
           <button type="button" data-act="archive">Archive</button>
           <button type="button" class="danger" data-act="delete">Delete</button>

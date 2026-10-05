@@ -100,7 +100,7 @@ export default {
         <span class="drag-handle" role="button" tabindex="-1" aria-label="Choose or move">⠿</span>
         <input type="checkbox" class="tick" aria-label="Done"${i.done_at ? ' checked' : ''}>
         <div class="adv-text">
-          <textarea class="item-title adv-title no-inline" rows="1" aria-label="Task">${esc(i.title)}</textarea><button type="button" class="entry-chip pill-reveal adv-more-chip" data-act="panel" title="Open its full panel">${panelFor === i.id ? '✓ Close' : `More${keys('Shift+Enter')}`}</button>${from}<button type="button" class="adv-note-peek${note ? '' : ' empty'}" data-act="note" title="${note ? 'Edit the note' : 'Add a note'}">${note ? esc(note) : '+ Note'}</button>
+          <textarea class="item-title adv-title no-inline" rows="1" aria-label="Task">${esc(i.title)}</textarea><button type="button" class="entry-chip adv-case-chip" data-act="view-case" title="This task on a screen of its own: its note, its whole history, then its details (Back or Esc comes back here)">View case</button>${from}<button type="button" class="adv-note-peek${note ? '' : ' empty'}" data-act="note" title="${note ? 'Edit the note' : 'Add a note'}">${note ? esc(note) : '+ Note'}</button>
           <div class="adv-note" data-note-for="${i.id}" hidden></div>
         </div>
         <div class="adv-side">
@@ -478,7 +478,7 @@ export default {
       // The panel's own buttons: the same actions as the Selections bar.
       const panelId = b.closest('.item-details[data-for]')?.dataset.for;
       if (panelId) {
-        if (act === 'open-case') return openCase({ item_id: panelId }, { closed: render });
+        if (act === 'open-case') { location.hash = `#/planner/${date}/advanced/case/${panelId}`; return; }
         const run = { 'let-go': letGo, 'take-back': takeBack, 'to-task': toTasks, 'make-unique': uniqueMany, 'archive-item': archive, delete: deleteMany }[act];
         if (run) { panelFor = null; await run([panelId]); }
         return;
@@ -487,6 +487,7 @@ export default {
       if (!cardEl) return;
       const id = cardEl.dataset.id;
       if (act === 'panel') return togglePanel(id);
+      if (act === 'view-case') { location.hash = `#/planner/${date}/advanced/case/${id}`; return; }
       const it = items.find(i => i.id === id);
       if (act === 'attach') return attachTo(cardEl);
       if (act === 'note') return openNote(cardEl);
@@ -613,11 +614,17 @@ export default {
     });
 
     this.refresh = refresh;
-    this.show = async d => { date = /^\d{4}-\d{2}-\d{2}$/.test(d || '') ? d : isoDate(); kit.clear(); await render(); };
+    // #/planner/<date>/advanced/case/<item id>: one task as a case, on a screen of its own (casepage.js); Back and Esc come back here.
+    this.show = async (d, caseId) => {
+      date = /^\d{4}-\d{2}-\d{2}$/.test(d || '') ? d : isoDate();
+      if (caseId) return openCase({ item_id: caseId }, { back: () => { location.hash = `#/planner/${date}/advanced`; } });
+      kit.clear();
+      await render();
+    };
     await render();
   },
 
-  route([d]) { return this.show?.(d); },
+  route([d, , sub, id]) { return this.show?.(d, sub === 'case' ? id : null); },
 
   unmount() {
     this.gone?.abort();
