@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.61': [{ text: "Day Planner, Advanced: More beside a task's name (or its ⋯, or Shift+Enter while editing its name) opens the same full panel as in the Day Planner, under its row: estimated time, move to another day, energy, note, files, comments, and Let go, → Tasks, Make unique, Archive and Delete. Esc or ✓ Close puts it away.", go: '#/planner', at: '#main .advanced-link' }],
   '1.60.60': [{ text: "Day Planner and Advanced: Make unique is on the Selections bar (and Advanced's ⋯). Choose tasks brought in from Tasks or a project and Make unique keeps only the day's copy: the original leaves Tasks or its project, and its comments and files move onto the day's copy. Brain Dump notes are never touched.", go: '#/planner', at: '#main .advanced-link' }],
   '1.60.59': [
     { text: "Day Planner: Advanced, the link under the day's tasks, shows the day's tasks as cases, one row each: its tick, its name with the note beside it, and its latest comments on the right with a line to add one. Click the comments for all of them, to add, edit or remove. 📎 adds photos or files as a comment with its time. To do sits above Done, and the day's schedule is a list on the right. Share copies the day as rich or plain text, with choices of what goes in (comments, notes, files added, times, the schedule; comments without their times to start with).", go: '#/planner', at: '#main .advanced-link', more: "Advanced's ⋯ and Selections bar: Let go, → Tasks, Make unique (takes the original out of Tasks or its project, so only the day's copy stays), Archive and Delete." },
@@ -108,6 +109,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.61': '2026-10-05T14:35:22Z',
   '1.60.60': '2026-10-05T14:29:08Z',
   '1.60.59': '2026-10-05T14:20:53Z',
   '1.60.58': '2026-10-05T09:42:55Z',

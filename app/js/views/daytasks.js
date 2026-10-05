@@ -10,7 +10,7 @@
 // Tasks ticks the task (link.js), and comments are the task's.
 
 import * as store from '../store.js';
-import { isoDate, parseDate, addDays, itemsFor, addItem, dateText, showTime } from '../days.js';
+import { isoDate, parseDate, addDays, itemsFor, addItem, dateText, showTime, daySettings } from '../days.js';
 import { undoable, toast } from '../toast.js';
 import { richText, toHtml } from '../richtext.js';
 import { debounced } from '../autosave.js';
@@ -20,13 +20,13 @@ import { byRank, rankOf, reorderWrites, firstKey } from '../order.js';
 import { tickWave, fadeFold } from '../tickwave.js';
 import { commentsHtml, mountComments, commentsFor, closingComment, attachAsComment, moveComments } from '../comments.js';
 import { deleteLinked, deleteAll, makeUnique } from '../link.js';
-import { pillMenu } from '../pillmenu.js';
 import { askEmptied } from '../ask.js';
 import { keys } from '../keys.js';
 import { summarise, offerTime, spotWhen } from '../summary.js';
 import { keepDraft, draftCleared } from '../drafts.js';
 import { autosizeAll } from '../inline.js';
 import { addTask } from '../tasks.js';
+import { dayPanelHtml } from '../daypanel.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -40,6 +40,8 @@ export default {
     const page = { signal: gone.signal };
     let date = /^#\/planner\/(\d{4}-\d{2}-\d{2})/.exec(location.hash)?.[1] || isoDate();
     let items = [];
+    let panelFor = null; // the task whose full panel (More, ⋯) is open: daypanel.js, as in the Day Planner
+    let settings = {};
     let tasks = new Map(); // task id → task, for the cards brought in from Tasks
     let projects = new Map();
 
@@ -97,7 +99,7 @@ export default {
         <span class="drag-handle" role="button" tabindex="-1" aria-label="Choose or move">⠿</span>
         <input type="checkbox" class="tick" aria-label="Done"${i.done_at ? ' checked' : ''}>
         <div class="adv-text">
-          <textarea class="item-title adv-title no-inline" rows="1" aria-label="Task">${esc(i.title)}</textarea>${from}<button type="button" class="adv-note-peek${note ? '' : ' empty'}" data-act="note" title="${note ? 'Edit the note' : 'Add a note'}">${note ? esc(note) : '+ Note'}</button>
+          <textarea class="item-title adv-title no-inline" rows="1" aria-label="Task">${esc(i.title)}</textarea><button type="button" class="entry-chip pill-reveal adv-more-chip" data-act="panel" title="Open its full panel">${panelFor === i.id ? '✓ Close' : `More${keys('Shift+Enter')}`}</button>${from}<button type="button" class="adv-note-peek${note ? '' : ' empty'}" data-act="note" title="${note ? 'Edit the note' : 'Add a note'}">${note ? esc(note) : '+ Note'}</button>
           <div class="adv-note" data-note-for="${i.id}" hidden></div>
         </div>
         <div class="adv-side">
@@ -109,8 +111,8 @@ export default {
             ${list.length > LATEST ? `<button type="button" class="adv-all" data-act="all" title="All comments: add, edit, remove">All ${list.length}</button>` : ''}
           </div>
         </div>
-        <button type="button" class="adv-more" data-act="menu" aria-label="More for this task">⋯</button>
-      </li>`;
+        <button type="button" class="adv-more" data-act="panel" aria-label="More for this task" aria-expanded="${panelFor === i.id}">⋯</button>
+      </li>${panelFor === i.id ? `<li class="list-head adv-panel-li">${dayPanelHtml(i, { atts: filesOf.get(i.id) || [], durationMax: settings.duration_max_min, linked: !!task })}</li>` : ''}`;
     }
 
     function schedule() {
@@ -122,6 +124,8 @@ export default {
 
     async function load() {
       items = await itemsFor(date);
+      settings = await daySettings();
+      if (panelFor && !items.some(i => i.id === panelFor && !i.time)) panelFor = null;
       const ids = [...new Set(items.map(i => i.task_id).filter(Boolean))];
       tasks = new Map((await Promise.all(ids.map(id => store.get('tasks', id)))).filter(Boolean).map(t => [t.id, t]));
       projects = new Map((await store.list('projects')).map(p => [p.id, p]));
@@ -159,6 +163,7 @@ export default {
         if (back) { back.value = kept.value; back.focus(); back.setSelectionRange?.(kept.at ?? kept.value.length, kept.at ?? kept.value.length); }
       }
       autosizeAll($('.adv-body'));
+      mountPanel();
       kit.attach($('.adv-tasks'));
     }
     // Nothing is redrawn from under someone typing (a sync, the link following a change).
@@ -184,6 +189,32 @@ export default {
       box._editor.focus?.();
       if (!box.contains(document.activeElement)) box.querySelector('[contenteditable]')?.focus();
     }
+
+    // The full panel (More, ⋯): daypanel.js, the same as the Day Planner's. Its note saves as you type and on leaving it.
+    function mountPanel() {
+      const box = el.querySelector('.adv-panel-li .detail-notes[data-note-for]');
+      if (!box) return;
+      const it = items.find(i => i.id === box.dataset.noteFor);
+      const auto = debounced(async () => {
+        const text = box._editor?.value.replace(/\s+$/, '');
+        if (text === undefined || text === (it.notes || '')) return;
+        await store.update('day_items', it.id, { notes: text });
+        it.notes = text;
+      }, 700);
+      box._editor = richText(box, { value: it.notes || '', origin: () => ({ collection: 'day_items', id: it.id, title: it.title, field: 'notes' }), onChange: () => auto.trigger() });
+      box.addEventListener('focusout', () => setTimeout(async () => { if (box.contains(document.activeElement)) return; await auto.flush(); }, 150));
+      mountComments(el.querySelector('.adv-panel-li'), () => render());
+    }
+    async function togglePanel(id) {
+      const note = el.querySelector('.adv-panel-li .detail-notes');
+      if (note?.contains(document.activeElement)) document.activeElement.blur();
+      panelFor = panelFor === id ? null : id;
+      await render();
+      if (panelFor) el.querySelector('.adv-panel-li')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+    const closePanel = () => (panelFor ? togglePanel(panelFor) : null);
+    // Esc closes the panel (never Advanced itself).
+    addEventListener('keydown', ev => { if (ev.key === 'Escape' && panelFor && !pop && !ev.defaultPrevented && !document.querySelector('dialog[open], .pill-menu') && !typingIn(ev.target)) { ev.preventDefault(); closePanel(); } }, { capture: true, signal: gone.signal });
 
     // All of a case's comments, over the page under its row: the full comments box (add, edit, remove, attach), scrolling.
     let pop = null;
@@ -310,6 +341,7 @@ export default {
       undoable(`${label(ids)} ${ids.length === 1 ? 'is' : 'are'} now in Tasks`, async () => { for (const u of undo.reverse()) await u(); await render(); });
     }
     const letGo = ids => { const now = new Date().toISOString(); return setMany(ids, { dropped_at: now, archived_at: now }, 'Let go (in the Archive):'); };
+    const takeBack = ids => setMany(ids, { dropped_at: null, archived_at: null }, 'Taken back:');
     const archive = ids => setMany(ids, { archived_at: new Date().toISOString() }, 'Archived');
 
     // Choosing and dragging are listkit.js and sortable.js, the same code as Tasks (hold anywhere on a row to lift it,
@@ -356,6 +388,18 @@ export default {
     // ---------- on a card ----------
     el.addEventListener('change', async ev => {
       const t = ev.target;
+      const panelEl = t.closest('.item-details[data-for]');
+      if (panelEl && t.name) {
+        const id = panelEl.dataset.for, it = items.find(i => i.id === id), v = t.value;
+        const fields = t.name === 'estimate_min' ? (v === 'unsure' ? { estimate_min: null, estimate_unsure: true } : { estimate_min: v ? Number(v) : null, estimate_unsure: false }) : { [t.name]: v || null };
+        if ((t.name === 'date' || t.name === 'time') && !v) return;
+        const before = Object.fromEntries(Object.keys(fields).map(k => [k, it[k] ?? null]));
+        await store.update('day_items', id, fields);
+        if (t.name === 'date') panelFor = null;
+        await render();
+        undoable(t.name === 'date' ? `Moved to ${dateText(v)}` : t.name === 'estimate_min' ? (v ? 'Estimate saved' : 'Estimate cleared') : 'Saved', async () => { await store.update('day_items', id, before); await render(); });
+        return;
+      }
       const cardEl = t.closest('.adv-row');
       if (!cardEl) return;
       const id = cardEl.dataset.id;
@@ -375,6 +419,7 @@ export default {
     el.addEventListener('keydown', ev => {
       const t = ev.target;
       if (t.classList?.contains('adv-title') && ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); t.blur(); }
+      if (t.classList?.contains('adv-title') && ev.key === 'Enter' && ev.shiftKey) { ev.preventDefault(); const id = t.closest('.adv-row').dataset.id; t.blur(); if (panelFor !== id) togglePanel(id); }
       if (t.classList?.contains('adv-title') && ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { const tick = t.closest('.adv-row').querySelector('.tick'); tick.checked = !tick.checked; tick.dispatchEvent(new Event('change', { bubbles: true })); }
       if (t.classList?.contains('adv-title') && ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); t.blur(); }
     }, page);
@@ -411,7 +456,16 @@ export default {
     }, page);
 
     el.addEventListener('click', async ev => {
-      if (att.onClick(ev, () => null, () => render())) return;
+      if (att.onClick(ev, b => { const id = b.closest('.item-details[data-for]')?.dataset.for; return id ? { collection: 'day_items', id } : null; }, () => render())) return;
+      const bolt = ev.target.closest('[data-item-energy]');
+      if (bolt) {
+        const id = bolt.closest('.item-details').dataset.for, it = items.find(i => i.id === id);
+        const energy = it.energy === bolt.dataset.itemEnergy ? null : bolt.dataset.itemEnergy;
+        await store.update('day_items', id, { energy });
+        await render();
+        undoable(energy ? 'Energy saved' : 'Energy cleared', async () => { await store.update('day_items', id, { energy: it.energy ?? null }); await render(); });
+        return;
+      }
       const b = ev.target.closest('[data-act]');
       if (!b) return;
       const act = b.dataset.act;
@@ -420,24 +474,21 @@ export default {
       if (act === 'next') return go(addDays(date, 1));
       if (act === 'today') return go(isoDate());
       if (act === 'share') return openExport();
+      // The panel's own buttons: the same actions as the Selections bar.
+      const panelId = b.closest('.item-details[data-for]')?.dataset.for;
+      if (panelId) {
+        const run = { 'let-go': letGo, 'take-back': takeBack, 'to-task': toTasks, 'make-unique': uniqueMany, 'archive-item': archive, delete: deleteMany }[act];
+        if (run) { panelFor = null; await run([panelId]); }
+        return;
+      }
       const cardEl = b.closest('.adv-row');
       if (!cardEl) return;
       const id = cardEl.dataset.id;
+      if (act === 'panel') return togglePanel(id);
       const it = items.find(i => i.id === id);
       if (act === 'attach') return attachTo(cardEl);
       if (act === 'note') return openNote(cardEl);
       if (act === 'all') return pop?._row === cardEl ? (closePop(), render()) : openPop(cardEl);
-      if (act === 'menu') {
-        const linked = it?.task_id && tasks.has(it.task_id);
-        const options = [
-          { value: 'letgo', label: 'Let go', title: "Didn't do it and it doesn't need doing (to the Archive)" },
-          { value: 'to-tasks', label: '→ Tasks', title: linked ? 'Off this day; it stays in Tasks' : 'Off this day, into Tasks' },
-          { value: 'unique', label: 'Make unique', title: linked ? 'Keep only this copy: the original leaves Tasks or its project' : 'Already only here' },
-          { value: 'archive', label: 'Archive' },
-          { value: 'delete', label: 'Delete' },
-        ].filter(Boolean);
-        pillMenu(b, options, v => ({ letgo: letGo, 'to-tasks': toTasks, unique: uniqueMany, archive, delete: deleteMany })[v]?.([id]), { className: 'list-menu' });
-      }
     }, page);
 
     // New task: at the top of To do.

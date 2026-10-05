@@ -1052,3 +1052,4 @@ NOTES['1.60.59'] = [
     F("Deleting a task with a linked copy (Tasks and the Day Planner) asks whether to delete it everywhere or only there. Taking a task out of a project shared with someone always gets a second, red warning."),
 ]
 NOTES['1.60.60'] = [F("Day Planner and Advanced: Make unique on the Selections bar (and Advanced's ⋯) keeps only the day's copy of tasks brought in from Tasks or a project; the original goes to the Bin and its comments and files move across. It was there before only as Keep only here, and only for linked tasks, so it was easy to miss.")]
+NOTES['1.60.61'] = [F("Day Planner, Advanced: More beside a task (its ⋯, or Shift+Enter in its name) opens the Day Planner's own full panel under the row, with its details, energy, note, files, comments and actions; Esc or ✓ Close puts it away. The Day Planner's panel also has Make unique for tasks brought in from Tasks or a project.")]
