@@ -17,7 +17,7 @@ import { toHtml } from './richtext.js';
 import { undoable, toast } from './toast.js';
 import * as att from './attachments.js';
 import { attachAsComment } from './comments.js';
-import { ENERGY, dateText, dateTimeText, parseDate, durationLabel, showTime } from './days.js';
+import { ENERGY, dateText, dateTimeText, parseDate, durationLabel, showTime, isoDate } from './days.js';
 import { STATUSES, PRIORITIES, HORIZONS, doneFields, projectMembers } from './tasks.js';
 import { repeatLabel } from './repeat.js';
 import { keys } from './keys.js';
@@ -126,22 +126,30 @@ export async function openCase(owner, { closed, back } = {}) {
     return { word: main.status === 'doing' ? 'In progress' : main.status === 'waiting' ? 'Waiting' : 'Open', cls: 'open' };
   }
 
+  // The ticket's numbers, as Advanced's tiles (.adv-stat): time taken (casepage caseTimes), opened, closed.
+  function statsHtml() {
+    const { task, days, main } = data;
+    const opened = task?.created_at || days[0]?.created_at || main.created_at;
+    const took = caseTimes({ opened, comments: data.comments, closed: main.done_at });
+    const soFar = took.running ? ' <small>so far</small>' : '';
+    const stamp = iso => `${esc(timeOnly(iso))} <small>${esc(dayText(isoDate(new Date(iso))))}</small>`;
+    const tile = (cls, value, label, title = '') => `<div class="adv-stat ${cls}"${title ? ` title="${esc(title)}"` : ''}><b>${value}</b><span>${esc(label)}</span></div>`;
+    return `<div class="adv-stats case-stats">
+      ${tile('updates', took.working == null ? '<small>no comments yet</small>' : `${esc(tookText(took.working))}${soFar}`, 'Working time', 'From the first comment to closed')}
+      ${tile('', `${esc(tookText(took.open))}${soFar}`, 'Open time', 'From when it was made to closed')}
+      ${tile('open', stamp(opened), 'Opened')}
+      ${tile('closed', main.done_at ? stamp(main.done_at) : '<small>not yet</small>', 'Closed')}
+    </div>`;
+  }
+
   // The details: only what's set, each with when it last changed (from any device).
-  // basic: status, opened, closed, project, day (at the top); else the rest (under the history).
-  const BASIC = ['Status', 'Opened', 'Closed', 'Working time', 'Open time', 'Project', 'Day Planner'];
-  function fieldsHtml(basic) {
+  function detailsHtml() {
     const { task, item, days, main, project, milestone, people, kase, thought } = data;
     const live = days.filter(i => !i.deleted_at && !i.archived_at);
     const onDay = item || live[live.length - 1];
     const rows = [];
-    const add = (label, value, rec, field, raw = false) => { if (value) rows.push({ label, value: raw ? value : esc(value), at: rec && field ? clockTime(rec, field) : null }); };
+    const add = (label, value, rec, field) => { if (value) rows.push({ label, value: esc(value), at: rec && field ? clockTime(rec, field) : null }); };
     add('Status', task ? show('status', task.status || (task.done_at ? 'done' : 'todo')) : main.done_at ? 'Done' : 'To do', task || main, task ? 'status' : 'done_at');
-    add('Opened', whenText(task?.created_at || days[0]?.created_at || main.created_at));
-    if (main.done_at) add('Closed', whenText(main.done_at));
-    const took = caseTimes({ opened: task?.created_at || days[0]?.created_at || main.created_at, comments: data.comments, closed: main.done_at });
-    const soFar = took.running ? ' so far' : '';
-    add('Working time', took.working == null ? 'No comments yet' : `${tookText(took.working)}${soFar}`);
-    add('Open time', `${tookText(took.open)}${soFar}`);
     if (project) add('Project', `📁 ${project.name}`, task, 'project_id');
     if (milestone) add('Milestone', milestone.name, task, 'milestone_id');
     if (task && !project) add('List', show('horizon', task.horizon || 'now'), task, 'horizon');
@@ -157,9 +165,7 @@ export async function openCase(owner, { closed, back } = {}) {
     if (people.length) add('People', people.map(p => p.name || '(no name)').join(', '), main, 'contact_ids');
     if (kase) add('Case', kase.title, main, 'case_id');
     if (thought) add('Made from', 'a Brain Dump note', main, null);
-    const shown = rows.filter(r => BASIC.includes(r.label) === basic);
-    if (!shown.length) return '';
-    return `<dl class="case-grid">${shown.map(r => `<div><dt>${esc(r.label)}</dt><dd>${r.value}${r.at ? `<span class="case-changed muted">changed ${esc(whenText(r.at))}</span>` : ''}</dd></div>`).join('')}</dl>`;
+    return `<dl class="case-props">${rows.map(r => `<div><dt>${esc(r.label)}</dt><dd>${r.value}</dd><dd class="case-changed muted">${r.at ? `changed ${esc(whenText(r.at))}` : ''}</dd></div>`).join('')}</dl>`;
   }
 
   const fileButtons = list => list.map(a => (a.kind === 'image' && a.thumb
@@ -182,7 +188,7 @@ export async function openCase(owner, { closed, back } = {}) {
       const log = rec.done_log?.length ? rec.done_log : rec.done_at ? [{ at: rec.done_at, done: true }] : [];
       for (const t of log) if (!ticks.some(x => x.done === t.done && Math.abs(Date.parse(x.at) - Date.parse(t.at)) < 10000)) ticks.push(t);
     }
-    for (const t of ticks) push(t.at, t.done ? 'Closed: ticked done' : 'Reopened: unticked', '', t.done ? 'closed' : 'is-opened');
+    for (const t of ticks) push(t.at, t.done ? 'Closed: ticked done' : 'Reopened: unticked', '', t.done ? 'is-closed' : 'is-opened');
     for (const rec of [task, ...days].filter(Boolean)) {
       if (rec.dropped_at) push(rec.dropped_at, 'Let go', '', 'is-closed');
       else if (rec.archived_at) push(rec.archived_at, 'Archived', '', 'is-closed');
@@ -210,7 +216,7 @@ export async function openCase(owner, { closed, back } = {}) {
     let day = '';
     return events().map(e => {
       const d = dayHead(e.at);
-      const head = d !== day ? `<li class="case-day">${esc(d)}</li>` : '';
+      const head = d !== day ? `<li class="adv-group case-day"><span class="adv-h">${esc(d)}</span></li>` : '';
       day = d;
       return `${head}<li class="case-ev ${e.cls}"><time datetime="${esc(e.at)}" title="${esc(whenText(e.at))}">${esc(timeOnly(e.at))}</time><div class="case-ev-body"><span class="case-what">${esc(e.what)}</span>${e.body}</div></li>`;
     }).join('');
@@ -226,25 +232,29 @@ export async function openCase(owner, { closed, back } = {}) {
     const where = task ? (data.project ? `📁 ${esc(data.project.name)}` : 'Tasks') : 'Day Planner only';
     const direct = [...data.ids].flatMap(id => files.get(id) || []);
     page.setAttribute('aria-label', `Task: ${main.title}`);
+    const stateCls = state.cls === 'open' ? 'open' : state.cls === 'closed' ? 'closed' : 'gone';
     page.innerHTML = `<div class="case-wrap">
       <div class="case-top">
         <button type="button" class="back" data-case="back">‹ Back${keys('Esc')}</button>
       </div>
       <p class="case-where muted">${where}${days.length && task ? ` · on the Day Planner ${days.filter(i => !i.deleted_at).length === 1 ? 'once' : `${days.filter(i => !i.deleted_at).length} times`}` : ''}</p>
-      <h1 class="case-title"><span class="case-state ${state.cls}">${state.word}</span> <span class="case-name${main.done_at ? ' done' : ''}">${esc(main.title)}</span></h1>
-      ${(main.notes || '').trim() ? `<section class="case-sec"><div class="case-notes">${toHtml(unlink(main.notes))}</div></section>` : ''}
-      <div class="case-add case-sec">
-        <input class="case-add-box no-inline" placeholder="Add a comment…" aria-label="Add a comment" autocomplete="off" enterkeyhint="send">
-        <button type="button" class="case-attach" data-case="attach" title="Attach photos, PDFs or text files, as a comment with its time (or drop them here)">${icon('i-clip')}</button>
+      <div class="case-head">
+        <h1 class="case-title"><span class="adv-status ${stateCls}">${state.word}</span> <span class="case-name${main.done_at ? ' done' : ''}">${esc(main.title)}</span></h1>
+        ${main.deleted_at || main.dropped_at ? '' : `<button type="button" class="case-tick${main.done_at ? '' : ' primary'}" data-case="tick">${main.done_at ? 'Reopen case' : '✓ Mark case done'}</button>`}
       </div>
-      <section class="case-sec" aria-label="Status">${fieldsHtml(true)}
-        ${main.deleted_at || main.dropped_at ? '' : `<div class="case-acts"><button type="button" class="case-tick${main.done_at ? '' : ' primary'}" data-case="tick">${main.done_at ? 'Reopen case' : '✓ Mark case done'}</button></div>`}
+      ${statsHtml()}
+      <section class="adv-card case-sec">
+        ${(main.notes || '').trim() ? `<div class="adv-card-h"><h2 class="adv-h">Description</h2></div><div class="case-notes">${toHtml(unlink(main.notes))}</div>` : ''}
+        <div class="case-add">
+          <input class="case-add-box no-inline" placeholder="Add a comment…" aria-label="Add a comment" autocomplete="off" enterkeyhint="send">
+          <button type="button" class="case-attach" data-case="attach" title="Attach photos, PDFs or text files, as a comment with its time (or drop them here)">${icon('i-clip')}</button>
+        </div>
       </section>
-      <section class="case-sec"><h2 class="case-h">History</h2>
+      <section class="adv-card case-sec"><div class="adv-card-h"><h2 class="adv-h">History</h2></div>
         <ol class="case-log">${historyHtml()}</ol>
       </section>
-      ${direct.length ? `<section class="case-sec"><h2 class="case-h">Attached</h2>${att.rowHtml(direct, { addButton: false, parent: (task || item).id })}</section>` : ''}
-      ${fieldsHtml(false) ? `<section class="case-sec"><h2 class="case-h">Details</h2>${fieldsHtml(false)}</section>` : ''}
+      ${direct.length ? `<section class="adv-card case-sec"><div class="adv-card-h"><h2 class="adv-h">Attached</h2></div><div class="case-attached">${att.rowHtml(direct, { addButton: false, parent: (task || item).id })}</div></section>` : ''}
+      <section class="adv-card case-sec"><div class="adv-card-h"><h2 class="adv-h">Details</h2></div>${detailsHtml()}</section>
       <p class="case-honest muted">Ticks, comments, photos and files are kept with the task on every device. Edits to its details are listed only when made on this device (its History); "changed" beside each detail is the last time it changed on any device.</p>
     </div>`;
     const box = page.querySelector('.case-add-box');
