@@ -255,6 +255,17 @@ export default {
       await render();
       undoable(`Done: ${label(ids)}`, async () => { await store.updateMany('day_items', ids.map(id => [id, { done_at: null }])); await render(); }, ids.length === 1 ? { more: closingComment(ownerOf(ids[0])) } : undefined);
     }
+    // The Selections bar offers Done for to-do rows and Not done for done ones.
+    const isDoneId = id => !!items.find(i => i.id === id)?.done_at;
+    const picked = () => [...el.querySelectorAll('.adv-row.selected')].map(r => r.dataset.id);
+    async function untickMany(ids) {
+      ids = ids.filter(isDoneId);
+      const before = ids.map(id => [id, { done_at: items.find(i => i.id === id).done_at }]);
+      await store.updateMany('day_items', ids.map(id => [id, { done_at: null }]));
+      kit.clear();
+      await render();
+      undoable(`Not done: ${label(ids)}`, async () => { await store.updateMany('day_items', before); await render(); });
+    }
     const ownerOf = id => { const i = items.find(x => x.id === id); return i?.task_id && tasks.has(i.task_id) ? { task_id: i.task_id } : { item_id: id }; };
     async function deleteMany(ids) {
       const pick = await deleteLinked({ items: ids }, 'the Day Planner');
@@ -300,7 +311,8 @@ export default {
     const kit = this.kit = createListKit({
       reorder: true, holdAnywhere: true, sideways: false, noun: 'task',
       actions: [
-        { id: 'done', label: 'Done', key: 'Ctrl+Enter', run: tickMany },
+        { id: 'done', label: 'Done', key: 'Ctrl+Enter', run: ids => tickMany(ids.filter(id => !isDoneId(id))), when: () => picked().some(id => !isDoneId(id)) },
+        { id: 'undone', label: 'Not done', run: untickMany, when: () => picked().some(isDoneId) },
         { id: 'letgo', label: 'Let go', run: letGo },
         { id: 'to-tasks', label: '→ Tasks', run: toTasks },
         { id: 'unique', label: 'Keep only here', run: uniqueMany, when: () => [...el.querySelectorAll('.adv-row.selected')].filter(c => !items.find(i => i.id === c.dataset.id)?.done_at).some(c => tasks.has(items.find(i => i.id === c.dataset.id)?.task_id)) },

@@ -1818,6 +1818,7 @@ const dayPlanner = {
     bar.hidden = true;
     bar.innerHTML = `<button type="button" data-sel="clear" aria-label="Clear selection">✕</button><span class="select-count"></span>
       <button type="button" data-sel="done">Done${keys(CTRL_ENTER)}</button>
+      <button type="button" data-sel="undone">Not done</button>
       <button type="button" data-sel="pile">To place</button>
       <button type="button" data-sel="letgo" title="Didn't do these and they don't need doing">Let go</button>
       <button type="button" data-sel="tomorrow">Tomorrow</button>
@@ -1844,6 +1845,10 @@ const dayPlanner = {
       if (opening) bar.scrollLeft = 0; // a new selection: the bar starts from its left end (✕ first)
       document.body.classList.toggle('has-select-bar', !!selected.size);
       bar.querySelector('.select-count').textContent = `${selected.size} selected`;
+      // Done for to-do items, Not done for ticked ones.
+      const picked = items.filter(i => selected.has(i.id));
+      bar.querySelector('[data-sel="done"]').hidden = !picked.some(i => !i.done_at);
+      bar.querySelector('[data-sel="undone"]').hidden = !picked.some(i => i.done_at);
     }
     const clearSelection = () => { selected.clear(); paintSelection(); };
 
@@ -1864,13 +1869,20 @@ const dayPlanner = {
     bar.addEventListener('click', async ev => {
       const b = ev.target.closest('[data-sel]');
       if (!b) return;
-      const ids = items.filter(i => selected.has(i.id)).map(i => i.id);
+      let ids = items.filter(i => selected.has(i.id)).map(i => i.id);
       const n = ids.length;
       const plural = `${n} item${n === 1 ? '' : 's'}`;
       if (b.dataset.sel === 'clear') return clearSelection();
+      if (b.dataset.sel === 'undone') {
+        const ticked = ids.filter(id => items.find(i => i.id === id)?.done_at);
+        if (!ticked.length) return;
+        await moveMany(new Map(ticked.map(id => [id, { done_at: null }])), `Not done: ${ticked.length} item${ticked.length === 1 ? '' : 's'}`);
+      }
       if (b.dataset.sel === 'done') {
+        ids = ids.filter(id => !items.find(i => i.id === id)?.done_at);
+        if (!ids.length) return;
         const rows = ids.map(id => el.querySelector(`.line.has-item[data-item="${CSS.escape(id)}"]`)).filter(Boolean);
-        await moveMany(new Map(ids.map(id => [id, { done_at: new Date().toISOString() }])), `Done: ${plural}`, () => Promise.all(rows.map((row, n) => tickedOff(row, n))));
+        await moveMany(new Map(ids.map(id => [id, { done_at: new Date().toISOString() }])), `Done: ${ids.length} item${ids.length === 1 ? '' : 's'}`, () => Promise.all(rows.map((row, n) => tickedOff(row, n))));
       }
       if (b.dataset.sel === 'letgo') { const now = new Date().toISOString(); await moveMany(new Map(ids.map(id => [id, { dropped_at: now, archived_at: now }])), `Let go of ${plural} (in the Archive)`); clearSelection(); }
       if (b.dataset.sel === 'pile') await moveMany(new Map(ids.map(id => [id, { time: null, end_time: null }])), `${plural} back to To place`);
