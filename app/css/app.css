@@ -4558,6 +4558,8 @@ html.kb-open :is(.sticky-top, .find-sticky, .dump-bar, .bb-sticky, .list-top, .b
   .adv-pop { right: auto; left: -60px; }
 }
 .adv-empty { margin: 6px 0 0; }
+.adv-done-h { list-style: none; border-bottom: 1px solid color-mix(in srgb, var(--text) 10%, transparent); padding-top: 6px; }
+.adv-drop-hint { margin: 0 0 6px; font-size: .85rem; }
 .adv-schedule { position: sticky; top: 12px; padding: 0 0 10px 14px; border-left: 1px solid color-mix(in srgb, var(--text) 10%, transparent); }
 .adv-schedule .adv-h { margin-top: 4px; }
 .adv-sched { list-style: none; margin: 0; padding: 0; }

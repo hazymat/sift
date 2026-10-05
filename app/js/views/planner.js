@@ -765,17 +765,19 @@ const dayPlanner = {
     el.addEventListener('focusout', ev => { if (ev.target.matches?.('.line textarea.item-title')) requestAnimationFrame(clampTitles); }); // back to two lines
     el.addEventListener('input', ev => { if (ev.target.matches?.('#lines textarea.item-title')) requestAnimationFrame(clampTitles); }); // pills going under as it grows
 
-    function renderPile(gapAt = null) {
+    function renderPile(gapAt = null, gapInDone = false) {
       const all = items.filter(i => !i.time);
       const todo = all.filter(i => !i.done_at && !lifted.has(i.id)).sort(pileOrder);
       const done = all.filter(i => i.done_at && !lifted.has(i.id)).sort(pileOrder);
       const rows = todo.map(i => `<li data-pile="${i.id}">${itemRow(i, '')}</li>`);
-      if (gapAt != null) rows.splice(Math.min(gapAt, rows.length), 0, '<li class="pile-gap" aria-hidden="true"></li>');
+      const doneRows = done.map(i => `<li data-pile="${i.id}">${itemRow(i, '')}</li>`);
+      const gap = '<li class="pile-gap" aria-hidden="true"></li>';
+      if (gapAt != null) (gapInDone ? doneRows : rows).splice(Math.min(gapAt, (gapInDone ? doneRows : rows).length), 0, gap);
       $('#pile').innerHTML = rows.join('');
       overPlan();
       // Done ones stay in view, crossed out, at the bottom, after one empty ruled line (no Done heading to open).
       $('#pile-done').innerHTML = done.length ? '<li class="line pile-blank pile-gap-line" aria-hidden="true"><span class="margin"></span><span class="content"></span></li>'
-        + done.map(i => `<li data-pile="${i.id}">${itemRow(i, '')}</li>`).join('') : '';
+        + doneRows.join('') : '';
       // A short list gets a few empty ruled lines under it, like a page (tap one to add a task).
       $('#pile-blank').innerHTML = '<div class="line pile-blank"><span class="margin"></span><span class="content"></span></div>'.repeat(Math.max(0, 4 - todo.length - (done.length ? done.length + 1 : 0)));
       const count = $('.pile .task-count');
@@ -1888,10 +1890,12 @@ const dayPlanner = {
     function targetAt(x, y) {
       const pileBox = $('.pile').getBoundingClientRect();
       if (y >= pileBox.top && y <= pileBox.bottom && x >= pileBox.left && x <= pileBox.right) {
-        // Index among the (not carried) to-do rows: before the first row whose middle is below the pointer.
-        const rows = [...$('#pile').querySelectorAll(':scope > li[data-pile]')];
+        // Index among the (not carried) to-do rows, or the done ones when over those: before the first row whose middle is below the pointer.
+        const doneRows = [...$('#pile-done').querySelectorAll(':scope > li[data-pile]')];
+        const done = (doneRows.length > 0 || press?.ids.some(id => items.find(i => i.id === id)?.done_at)) && y >= $('#pile-done').getBoundingClientRect().top; // the only done one carried: below the to-do rows is still Done
+        const rows = done ? doneRows : [...$('#pile').querySelectorAll(':scope > li[data-pile]')];
         const index = rows.filter(r => { const b = r.getBoundingClientRect(); return b.top + b.height / 2 < y; }).length;
-        return { pile: true, index };
+        return { pile: true, index, done };
       }
       for (const line of linesEl.querySelectorAll('.line[data-time]')) {
         const r = line.getBoundingClientRect();
@@ -1944,10 +1948,11 @@ const dayPlanner = {
       return out;
     }
 
-    // Dropped into the tasks at `index`: no time, and a new place (order.js)
-    // for just the dropped items.
-    function pileChanges(index) {
-      const rest = items.filter(i => !i.time && !i.done_at && !press.ids.includes(i.id)).sort(pileOrder);
+    // Dropped into the tasks (or the done ones) at `index`: no time, ticked or unticked to match,
+    // and a new place (order.js) for just the dropped items.
+    function pileChanges(index, done = false) {
+      const rest = items.filter(i => !i.time && !!i.done_at === done && !press.ids.includes(i.id)).sort(pileOrder);
+      const now = new Date().toISOString();
       const carried = press.ids.map(id => items.find(i => i.id === id)).filter(Boolean);
       const order = [...rest.slice(0, index), ...carried, ...rest.slice(index)];
       const places = new Map(reorderWrites(order, i => rankOf(i), press.ids).map(([i, k]) => [i.id, k]));
@@ -1956,6 +1961,7 @@ const dayPlanner = {
         const f = {};
         if (i.time) { f.time = null; f.end_time = null; }
         if (places.has(i.id)) f.rank = places.get(i.id);
+        if (press.ids.includes(i.id) && !!i.done_at !== done) f.done_at = done ? now : null;
         if (Object.keys(f).length) out.set(i.id, f);
       }
       return out;
@@ -1986,15 +1992,15 @@ const dayPlanner = {
     // carried items at their new times, anything in the way pushed on.
     function showPreview(target) {
       $('#pile').classList.toggle('drop-target', !!target?.pile);
-      const key = target ? (target.pile ? `pile:${target.index}` : target.time) : '';
+      const key = target ? (target.pile ? `pile:${target.done ? 'done:' : ''}${target.index}` : target.time) : '';
       if (key === press.previewKey) return;
       press.previewKey = key;
       if (!target || target.pile) {
-        press.changes = target?.pile ? pileChanges(target.index) : null;
-        press.ghost.dataset.when = target?.pile ? 'Tasks' : '';
+        press.changes = target?.pile ? pileChanges(target.index, target.done) : null;
+        press.ghost.dataset.when = target?.pile ? (target.done ? 'Done' : 'Tasks') : '';
         if (!target) delete press.ghost.dataset.when;
         renderLines();
-        renderPile(target?.pile ? target.index : null);
+        renderPile(target?.pile ? target.index : null, !!target?.done);
         return;
       }
       renderPile();
@@ -2134,7 +2140,7 @@ const dayPlanner = {
       const n = p.ids.length;
       if (!t || !p.changes?.size) { renderLines(); renderPile(); paintSelection(); return; }
       const pushed = p.pushedCount ? `, pushed ${p.pushedCount} on` : '';
-      await moveMany(p.changes, t.pile ? `${n > 1 ? `${n} items` : 'Item'} moved in Tasks` : `${n > 1 ? `Moved ${n} items` : 'Moved'} to ${fmt(t.time)}${pushed}`);
+      await moveMany(p.changes, t.pile ? `${n > 1 ? `${n} items` : 'Item'} moved in ${t.done ? 'Done' : 'Tasks'}` : `${n > 1 ? `Moved ${n} items` : 'Moved'} to ${fmt(t.time)}${pushed}`);
     };
     el.addEventListener('pointerup', endPress);
     el.addEventListener('pointercancel', endPress);

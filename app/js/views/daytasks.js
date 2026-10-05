@@ -59,10 +59,8 @@ export default {
         <section class="adv-main" aria-label="Tasks">
           <div class="adv-new"><input id="adv-new" class="no-inline" placeholder="New task" autocomplete="off" enterkeyhint="done" aria-label="New task"></div>
           <h2 class="adv-h">To do <span class="adv-count muted" data-count="todo"></span></h2>
-          <ul class="adv-list adv-todo"></ul>
           <p class="adv-empty muted" hidden>Nothing to do on this day. Type a task above, or bring tasks in from the Day Planner.</p>
-          <h2 class="adv-h adv-done-h">Done <span class="adv-count muted" data-count="done"></span></h2>
-          <ul class="adv-list adv-done"></ul>
+          <ul class="adv-list adv-tasks"></ul>
         </section>
         <aside class="adv-schedule" aria-label="Schedule"><h2 class="adv-h">Schedule</h2><ol class="adv-sched"></ol></aside>
       </div>
@@ -149,12 +147,11 @@ export default {
       const todo = all.filter(i => !i.done_at).sort(byPlace);
       const done = all.filter(i => i.done_at).sort(byPlace);
       closePop();
-      $('.adv-todo').innerHTML = todo.map(row).join('');
-      $('.adv-done').innerHTML = done.map(row).join('');
+      // To do and Done are one list split by the Done heading, so a row drags within either and across it (ticking or unticking it).
+      const doneHead = all.length ? `<li class="list-head adv-done-h"><h2 class="adv-h">Done <span class="adv-count muted">${done.length ? `${done.length}/${all.length}` : ''}</span></h2>${done.length ? '' : '<p class="adv-drop-hint muted">Drag a task here, or tick it, when it\'s done.</p>'}</li>` : '';
+      $('.adv-tasks').innerHTML = todo.map(row).join('') + doneHead + done.map(row).join('');
       $('.adv-empty').hidden = !!todo.length;
-      $('.adv-done-h').hidden = !done.length;
       el.querySelector('[data-count="todo"]').textContent = todo.length ? todo.length : '';
-      el.querySelector('[data-count="done"]').textContent = done.length ? `${done.length}/${all.length}` : '';
       schedule();
       for (const box of el.querySelectorAll('.adv-quick-add')) { const id = box.closest('.adv-row').dataset.id; if (typed.get(id)) box.value = typed.get(id); keepDraft(box, `adv-comment:${id}`); }
       if (kept) {
@@ -162,7 +159,7 @@ export default {
         if (back) { back.value = kept.value; back.focus(); back.setSelectionRange?.(kept.at ?? kept.value.length, kept.at ?? kept.value.length); }
       }
       autosizeAll($('.adv-body'));
-      kit.attach($('.adv-todo'));
+      kit.attach($('.adv-tasks'));
     }
     // Nothing is redrawn from under someone typing (a sync, the link following a change).
     const refresh = async () => { if ((typingIn(document.activeElement) && el.contains(document.activeElement)) || pop) return; await render(); };
@@ -306,17 +303,30 @@ export default {
         { id: 'done', label: 'Done', key: 'Ctrl+Enter', run: tickMany },
         { id: 'letgo', label: 'Let go', run: letGo },
         { id: 'to-tasks', label: '→ Tasks', run: toTasks },
-        { id: 'unique', label: 'Keep only here', run: uniqueMany, when: () => [...el.querySelectorAll('.adv-todo .adv-row.selected')].some(c => tasks.has(items.find(i => i.id === c.dataset.id)?.task_id)) },
+        { id: 'unique', label: 'Keep only here', run: uniqueMany, when: () => [...el.querySelectorAll('.adv-row.selected')].filter(c => !items.find(i => i.id === c.dataset.id)?.done_at).some(c => tasks.has(items.find(i => i.id === c.dataset.id)?.task_id)) },
         { id: 'archive', label: 'Archive', key: 'A', run: archive },
         { id: 'delete', label: 'Delete', key: 'D', danger: true, run: deleteMany },
       ],
       onReorder: async (rows, words, ul, moved) => {
         const order = rows.map(r => items.find(i => i.id === r.id)).filter(Boolean);
-        const writes = reorderWrites(order, i => rankOf(i), moved);
-        const before = writes.map(([i]) => [i.id, { rank: i.rank ?? null }]);
-        await store.updateMany('day_items', writes.map(([i, rank]) => [i.id, { rank }]));
+        const places = new Map(reorderWrites(order, i => rankOf(i), moved).map(([i, rank]) => [i.id, rank]));
+        // Above the Done heading is to do, below it done: dragged across, a row is ticked or unticked.
+        const head = ul.querySelector('.adv-done-h');
+        const isDone = id => !!head && !!(head.compareDocumentPosition(ul.querySelector(`li[data-id="${CSS.escape(id)}"]`)) & Node.DOCUMENT_POSITION_FOLLOWING);
+        const now = new Date().toISOString(), writes = [], before = [];
+        const ticked = [], unticked = [];
+        for (const i of order) {
+          const fields = {};
+          if (places.has(i.id)) fields.rank = places.get(i.id);
+          if (isDone(i.id) !== !!i.done_at) { fields.done_at = i.done_at ? null : now; (i.done_at ? unticked : ticked).push(i.id); }
+          if (!Object.keys(fields).length) continue;
+          writes.push([i.id, fields]);
+          before.push([i.id, Object.fromEntries(Object.keys(fields).map(k => [k, i[k] ?? null]))]);
+        }
+        if (!writes.length) return render();
+        await store.updateMany('day_items', writes);
         await render();
-        undoable(words || 'Moved', async () => { await store.updateMany('day_items', before); await render(); });
+        undoable(ticked.length ? `Done: ${label(ticked)}` : unticked.length ? `Not done: ${label(unticked)}` : words || 'Moved', async () => { await store.updateMany('day_items', before); await render(); });
       },
     });
 
