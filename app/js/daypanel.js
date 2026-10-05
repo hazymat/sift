@@ -38,7 +38,7 @@ export function dayPanelHtml(i, { atts = [], durationMax, linked = false } = {})
         ${i.dropped_at
           ? '<button type="button" data-act="take-back" title="It needs doing after all">Take back</button>'
           : i.done_at ? '' : '<button type="button" data-act="let-go" title="Didn\'t do it and it doesn\'t need doing any more">Let go</button>'}
-        <button type="button" data-act="open-case" title="This task full screen: its details, then its whole history">Open as case</button>
+        <button type="button" data-act="open-case" title="This task on a screen of its own: its note, its whole history, then its details">View case</button>
         <button type="button" data-act="to-task" title="Take it off this day and keep it as a task">→ Tasks</button>
         ${linked ? '<button type="button" data-act="make-unique" title="Keep only this copy: the original leaves Tasks or its project">Make unique</button>' : ''}
         <button type="button" data-act="archive-item" title="Take it off this day into the Archive">Archive</button>

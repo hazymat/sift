@@ -2,7 +2,9 @@
 // history in time order (opened, put on a day, ticked and unticked, comments with their photos and files,
 // let go, archived, and the edits this device made). ‹ Back or Esc closes it.
 //
-//   openCase({ task_id } | { item_id }, { closed })   from Open as case in a task's full panel
+//   openCase({ task_id } | { item_id }, { closed, back })   View case in a task's full panel (Tasks, the Day Planner),
+//                                                           and Advanced's View case beside each name: its own address (#/planner/<date>/advanced/case/<id>):
+//                                                           back() goes there, and the address changing closes it
 //                                                     and the full panel in Tasks and the Day Planner
 //
 // A day item brought in from Tasks is the same case as its task (link.js): both records are read.
@@ -35,7 +37,7 @@ const FIELD_WORDS = { title: 'Name', notes: 'Note', energy: 'Energy', estimate_m
 
 let current = null; // the open case: { close }
 
-export async function openCase(owner, { closed } = {}) {
+export async function openCase(owner, { closed, back } = {}) {
   current?.close();
   const page = document.createElement('div');
   page.className = 'case-page';
@@ -106,7 +108,9 @@ export async function openCase(owner, { closed } = {}) {
   }
 
   // The details: only what's set, each with when it last changed (from any device).
-  function fieldsHtml() {
+  // basic: status, opened, closed, project, day (at the top); else the rest (under the history).
+  const BASIC = ['Status', 'Opened', 'Closed', 'Project', 'Day Planner'];
+  function fieldsHtml(basic) {
     const { task, item, days, main, project, milestone, people, kase, thought } = data;
     const live = days.filter(i => !i.deleted_at && !i.archived_at);
     const onDay = item || live[live.length - 1];
@@ -130,7 +134,9 @@ export async function openCase(owner, { closed } = {}) {
     if (people.length) add('People', people.map(p => p.name || '(no name)').join(', '), main, 'contact_ids');
     if (kase) add('Case', kase.title, main, 'case_id');
     if (thought) add('Made from', 'a Brain Dump note', main, null);
-    return `<dl class="case-grid">${rows.map(r => `<div><dt>${esc(r.label)}</dt><dd>${r.value}${r.at ? `<span class="case-changed muted">changed ${esc(whenText(r.at))}</span>` : ''}</dd></div>`).join('')}</dl>`;
+    const shown = rows.filter(r => BASIC.includes(r.label) === basic);
+    if (!shown.length) return '';
+    return `<dl class="case-grid">${shown.map(r => `<div><dt>${esc(r.label)}</dt><dd>${r.value}${r.at ? `<span class="case-changed muted">changed ${esc(whenText(r.at))}</span>` : ''}</dd></div>`).join('')}</dl>`;
   }
 
   const fileButtons = list => list.map(a => (a.kind === 'image' && a.thumb
@@ -200,22 +206,23 @@ export async function openCase(owner, { closed } = {}) {
     page.innerHTML = `<div class="case-wrap">
       <div class="case-top">
         <button type="button" class="back" data-case="back">‹ Back${keys('Esc')}</button>
-        <span class="spacer"></span>
-        ${main.deleted_at || main.dropped_at ? '' : `<button type="button" class="case-tick${main.done_at ? '' : ' primary'}" data-case="tick">${main.done_at ? 'Reopen' : '✓ Close: mark done'}</button>`}
       </div>
       <p class="case-where muted">${where}${days.length && task ? ` · on the Day Planner ${days.filter(i => !i.deleted_at).length === 1 ? 'once' : `${days.filter(i => !i.deleted_at).length} times`}` : ''}</p>
       <h1 class="case-title"><span class="case-state ${state.cls}">${state.word}</span> <span class="case-name${main.done_at ? ' done' : ''}">${esc(main.title)}</span></h1>
-      <section class="case-sec" aria-label="Details">${fieldsHtml()}</section>
-      ${(main.notes || '').trim() ? `<section class="case-sec"><h2 class="case-h">Note</h2><div class="case-notes">${toHtml(unlink(main.notes))}</div></section>` : ''}
-      ${direct.length ? `<section class="case-sec"><h2 class="case-h">Attached</h2>${att.rowHtml(direct, { addButton: false, parent: (task || item).id })}</section>` : ''}
+      ${(main.notes || '').trim() ? `<section class="case-sec"><div class="case-notes">${toHtml(unlink(main.notes))}</div></section>` : ''}
+      <section class="case-sec" aria-label="Status">${fieldsHtml(true)}
+        ${main.deleted_at || main.dropped_at ? '' : `<div class="case-acts"><button type="button" class="case-tick${main.done_at ? '' : ' primary'}" data-case="tick">${main.done_at ? 'Reopen case' : '✓ Mark case done'}</button></div>`}
+      </section>
       <section class="case-sec"><h2 class="case-h">History</h2>
         <ol class="case-log">${historyHtml()}</ol>
         <div class="case-add">
           <input class="case-add-box no-inline" placeholder="Add a comment…" aria-label="Add a comment" autocomplete="off" enterkeyhint="send">
           <button type="button" class="case-attach" data-case="attach" title="Attach photos, PDFs or text files, as a comment with its time (or drop them here)">${icon('i-clip')}</button>
         </div>
-        <p class="case-honest muted">Ticks, comments, photos and files are kept with the task on every device. Edits to its details are listed only when made on this device (its History); "changed" beside each detail is the last time it changed on any device.</p>
       </section>
+      ${direct.length ? `<section class="case-sec"><h2 class="case-h">Attached</h2>${att.rowHtml(direct, { addButton: false, parent: (task || item).id })}</section>` : ''}
+      ${fieldsHtml(false) ? `<section class="case-sec"><h2 class="case-h">Details</h2>${fieldsHtml(false)}</section>` : ''}
+      <p class="case-honest muted">Ticks, comments, photos and files are kept with the task on every device. Edits to its details are listed only when made on this device (its History); "changed" beside each detail is the last time it changed on any device.</p>
     </div>`;
     const box = page.querySelector('.case-add-box');
     box.value = typedComment;
@@ -248,7 +255,7 @@ export async function openCase(owner, { closed } = {}) {
   page.addEventListener('click', ev => {
     if (att.onClick(ev, () => null, () => render())) return;
     const act = ev.target.closest('[data-case]')?.dataset.case;
-    if (act === 'back') close();
+    if (act === 'back') leave();
     else if (act === 'tick') toggleDone();
     else if (act === 'attach') {
       const picker = Object.assign(document.createElement('input'), { type: 'file', multiple: true, accept: att.ACCEPT, hidden: true });
@@ -282,7 +289,7 @@ export async function openCase(owner, { closed } = {}) {
     if (ev.key !== 'Escape' || document.querySelector('dialog[open], .pill-menu')) return;
     ev.preventDefault();
     ev.stopImmediatePropagation();
-    if (ev.target.closest?.('.case-page input')) ev.target.blur(); else close();
+    if (ev.target.closest?.('.case-page input')) ev.target.blur(); else leave();
   }, { capture: true, signal: gone.signal });
   addEventListener('hashchange', () => close(), sig);
   // Changes from elsewhere (another device, the toast's Undo) show straight away.
@@ -293,6 +300,7 @@ export async function openCase(owner, { closed } = {}) {
     redraw = setTimeout(render, 250);
   });
 
+  const leave = () => (back ? back() : close());
   const opener = document.activeElement;
   function close() {
     if (current?.page !== page) return;
