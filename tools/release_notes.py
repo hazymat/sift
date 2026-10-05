@@ -1057,3 +1057,7 @@ NOTES['1.60.62'] = [F("Open as case: one task full screen, like a support case. 
 NOTES['1.60.63'] = [F("View case: in Advanced a View case button beside each task's name (in place of More) opens the task on a screen of its own, with its own address, so ‹ Back and Esc return to Advanced. The page now shows the name, note and status first (with ✓ Mark case done, renamed from Close so it isn't mistaken for leaving), then the history, then the other details. Open as case in the full panels is now View case too.")]
 NOTES['1.60.64'] = [F("Day Planner, Advanced, Share: choose the order, Not done first (as before) or Done first; remembered on this device.")]
 NOTES['1.60.65'] = [F("View case: Add a comment and 📎 moved to the top of the page, under the name and note; the history now runs newest first, so what was just added is at the top.")]
+NOTES['1.60.66'] = [
+    F("View case: Working time (first comment to closed) and Open time (created to closed) show with the status; open cases show the time so far."),
+    F("Advanced, Share: a Time taken choice (Working time, Open time, Both, None), in every format. Copy as rich text is now a ticket report: a header band with the date and counts, shaded section headings, each case with an Open or Closed label, its times and its comments, in plain tables that paste into Outlook, Word and Teams."),
+]
