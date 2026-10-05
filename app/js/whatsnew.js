@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.67': [{ text: "Day Planner, Advanced: laid out like an IT ticket queue. Counts at the top (To do, Done, Updates today, Scheduled), then one card with column heads (Status, Task, Latest update, Updated), To do and Done group bars, and a compact row per task with its status badge and when it was last updated. The schedule is a card on the right. Everything works as before: ticks, dragging, comments, View case, ⋯, Share and the Selections bar.", go: '#/planner', at: '#main .advanced-link' }],
   '1.60.66': [
     { text: "View case: Working time (from the first comment to closed) and Open time (from when the task was made to closed) show beside its status; while it's open, the time so far.", go: '#/planner/today/advanced', open: ['#main .adv-row .adv-case-chip'], at: '.case-page .case-grid' },
     { text: "Advanced, Share: choose Time taken on each case (Working time, Open time, Both or None), and Copy as rich text now gives a smart report: a dark header with the date, shaded section headings, each case with an Open or Closed label, its times on the right and its comments underneath. It pastes into Outlook, Word and Teams.", go: '#/planner/today/advanced', at: '#main [data-act=\"share\"]' },
@@ -117,6 +118,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.67': '2026-10-05T15:15:07Z',
   '1.60.66': '2026-10-05T15:13:04Z',
   '1.60.65': '2026-10-05T15:07:31Z',
   '1.60.64': '2026-10-05T14:57:10Z',
