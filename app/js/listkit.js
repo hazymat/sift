@@ -29,7 +29,7 @@
 //   kit.toggle(id, range): select or deselect a row from the view's own gesture (range: Shift, the run from the last one picked)
 //   onReorder(rows, label, ul, moved): rows = [{ id, depth }] in the new order; moved =
 //     the ids that were moved (so only they need a new place: order.js); persist them
-//   actions: [{ id, label, danger?, key?, group?, when?, run(ids) }]; ids are in list order;
+//   actions: [{ id, label, title?, danger?, key?, group?, when?, run(ids) }]; ids are in list order;
 //     key: its shortcut ('A', 'Ctrl+Enter'); group: the button it hides behind ('Move');
 //     when(): false hides it (e.g. Now, while looking at Now)
 //   onNest(ids, targetId): rows dropped onto the middle of another row (e.g. to
@@ -72,7 +72,7 @@ export function createListKit({
   bar.className = 'select-bar';
   bar.setAttribute('role', 'toolbar');
   bar.hidden = true;
-  const actionButton = a => `<button type="button" data-kit-action="${a.id}"${a.danger ? ' class="danger"' : ''}>${esc(a.label)}${a.key ? keys(a.key === 'Ctrl+Enter' ? CTRL_ENTER : a.key) : ''}</button>`;
+  const actionButton = a => `<button type="button" data-kit-action="${a.id}"${a.danger ? ' class="danger"' : ''}${a.title ? ` title="${esc(a.title)}"` : ''}>${esc(a.label)}${a.key ? keys(a.key === 'Ctrl+Enter' ? CTRL_ENTER : a.key) : ''}</button>`;
   // Actions in order; a group's (consecutive or not) sit behind one button, where its first one was.
   const actionsHtml = actions.map(a => {
     if (!a.group) return actionButton(a);

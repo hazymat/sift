@@ -1822,6 +1822,7 @@ const dayPlanner = {
       <button type="button" data-sel="pile">To place</button>
       <button type="button" data-sel="letgo" title="Didn't do these and they don't need doing">Let go</button>
       <button type="button" data-sel="tomorrow">Tomorrow</button>
+      <button type="button" data-sel="unique" title="Keep only the copy here: the original leaves Tasks or its project">Make unique</button>
       <button type="button" data-sel="archive">Archive${keys('A')}</button>
       <button type="button" data-sel="delete" class="danger">Delete${keys('D')}</button>`;
     document.body.append(bar);
@@ -1886,6 +1887,16 @@ const dayPlanner = {
       }
       if (b.dataset.sel === 'letgo') { const now = new Date().toISOString(); await moveMany(new Map(ids.map(id => [id, { dropped_at: now, archived_at: now }])), `Let go of ${plural} (in the Archive)`); clearSelection(); }
       if (b.dataset.sel === 'pile') await moveMany(new Map(ids.map(id => [id, { time: null, end_time: null }])), `${plural} back to To place`);
+      if (b.dataset.sel === 'unique') {
+        // Make unique: the day's copies stay, their originals leave Tasks or their project (link.js). Brain Dump is never touched.
+        const linked = ids.filter(id => items.find(i => i.id === id)?.task_id);
+        if (!linked.length) return toast(n === 1 ? 'Already unique: it is only here' : 'Already unique: they are only here');
+        const undo = await makeUnique(linked);
+        if (!undo) return;
+        await refresh(); clearSelection();
+        undoable(`Made unique: ${linked.length === 1 ? `"${items.find(i => i.id === linked[0])?.title || 'item'}"` : `${linked.length} items`}`, async () => { await undo(); await refresh(); });
+        return;
+      }
       if (b.dataset.sel === 'tomorrow') { await moveMany(new Map(ids.map(id => [id, { date: addDays(date, 1), carried_from: date }])), `${plural} moved to tomorrow`); clearSelection(); }
       if (b.dataset.sel === 'archive') { await moveMany(new Map(ids.map(id => [id, { archived_at: new Date().toISOString() }])), `Archived ${plural}`); clearSelection(); }
       if (b.dataset.sel === 'delete') {
