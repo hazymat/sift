@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.56': [{ text: "Tasks, New task: Shift+Enter to add a note no longer puts a line between the name and the note; the line sits under the note and pills, as when editing a task. In every spacing.", go: '#/tasks/now', at: '#task-entry' }],
   '1.60.55': [{ text: "Day Planner, Compact spacing: a task's 📝 stays on its line at the far right, with the name wrapping before it, so each task takes less height. On a laptop, More takes its place while you point at the task.", go: '#/planner', at: '#main .pile-paper' }],
   '1.60.54': [{ text: "Tasks, projects, Lists and the Day Planner: in Medium and Extended spacing (👁) every task shows its whole name and note, wrapping onto as many lines as they need. Compact still keeps each task on one line.", go: '#/tasks/now', at: '#main .task-list > li[data-task] > .task-title' }],
   '1.60.53': [{ text: "Projects: dragging a milestone's name now moves the milestone with all its tasks, and it can only be dropped between milestones, never in among another milestone's tasks (which made those tasks look as if they'd changed milestone).", go: '#/tasks', open: ['#main [data-mode="projects"]'], at: '#main .project-grid .project-card' }],
@@ -98,6 +99,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.56': '2026-10-05T06:49:21Z',
   '1.60.55': '2026-10-05T06:44:49Z',
   '1.60.54': '2026-10-05T00:54:39Z',
   '1.60.53': '2026-10-03T17:18:39Z',
