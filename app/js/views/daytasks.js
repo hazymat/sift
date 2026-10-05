@@ -58,14 +58,16 @@ export default {
         <button type="button" class="share-btn" data-act="share" title="Share or export this day's tasks"><svg class="icon" aria-hidden="true"><use href="#i-share"/></svg><span class="share-word"> Share</span></button>
       </div>
       <h1 class="adv-day"><span class="adv-date"></span> <span class="adv-word muted">Advanced</span></h1>
+      <div class="adv-stats" aria-label="This day at a glance"></div>
       <div class="adv-body">
-        <section class="adv-main" aria-label="Tasks">
-          <div class="adv-new"><input id="adv-new" class="no-inline" placeholder="New task" autocomplete="off" enterkeyhint="done" aria-label="New task"></div>
-          <h2 class="adv-h">To do <span class="adv-count muted" data-count="todo"></span></h2>
+        <section class="adv-main adv-card" aria-label="Tasks">
+          <div class="adv-new"><span class="adv-new-plus" aria-hidden="true">+</span><input id="adv-new" class="no-inline" placeholder="New task" autocomplete="off" enterkeyhint="done" aria-label="New task"></div>
+          <div class="adv-cols" aria-hidden="true"><span></span><span>Status</span><span>Task</span><span>Latest update</span><span>Updated</span><span></span></div>
+          <h2 class="adv-h adv-group">To do <span class="adv-count" data-count="todo"></span></h2>
           <p class="adv-empty muted" hidden>Nothing to do on this day. Type a task above, or bring tasks in from the Day Planner.</p>
           <ul class="adv-list adv-tasks"></ul>
         </section>
-        <aside class="adv-schedule" aria-label="Schedule"><h2 class="adv-h">Schedule</h2><ol class="adv-sched"></ol></aside>
+        <aside class="adv-schedule adv-card" aria-label="Schedule"><h2 class="adv-h adv-card-h">Schedule</h2><ol class="adv-sched"></ol></aside>
       </div>
     </div>
     <dialog class="sheet adv-export" aria-label="Share this day's tasks"></dialog>`;
@@ -96,9 +98,12 @@ export default {
         return `<li><span class="adv-at">${esc(at(c.at))}</span> <span class="adv-said">${esc(text)}${files.length ? ` <span class="adv-files">${files.some(f => f.kind === 'image') ? '📷' : '📎'}${files.length > 1 ? ` ${files.length}` : ''}</span>` : ''}</span></li>`;
       }).join('');
       const note = oneLine(i.notes);
+      // Updated: its latest comment, tick or change, as in a ticket queue.
+      const last = [list.at(-1)?.at, i.done_at, i.updated_at, task?.updated_at].filter(Boolean).sort().at(-1);
       return `<li class="adv-row${i.done_at ? ' done' : ''}" data-id="${i.id}">
         <span class="drag-handle" role="button" tabindex="-1" aria-label="Choose or move">⠿</span>
         <input type="checkbox" class="tick" aria-label="Done"${i.done_at ? ' checked' : ''}>
+        <span class="adv-status ${i.done_at ? 'closed' : 'open'}">${i.done_at ? 'Done' : 'To do'}</span>
         <div class="adv-text">
           <textarea class="item-title adv-title no-inline" rows="1" aria-label="Task">${esc(i.title)}</textarea><button type="button" class="entry-chip adv-case-chip" data-act="view-case" title="This task on a screen of its own: its note, its whole history, then its details (Back or Esc comes back here)">View case</button>${from}<button type="button" class="adv-note-peek${note ? '' : ' empty'}" data-act="note" title="${note ? 'Edit the note' : 'Add a note'}">${note ? esc(note) : '+ Note'}</button>
           <div class="adv-note" data-note-for="${i.id}" hidden></div>
@@ -112,6 +117,7 @@ export default {
             ${list.length > LATEST ? `<button type="button" class="adv-all" data-act="all" title="All comments: add, edit, remove">All ${list.length}</button>` : ''}
           </div>
         </div>
+        <time class="adv-updated" title="Last updated">${last ? esc(at(last)) : ''}</time>
         <button type="button" class="adv-more" data-act="panel" aria-label="More for this task" aria-expanded="${panelFor === i.id}">⋯</button>
       </li>${panelFor === i.id ? `<li class="list-head adv-panel-li">${dayPanelHtml(i, { atts: filesOf.get(i.id) || [], durationMax: settings.duration_max_min, linked: !!task })}</li>` : ''}`;
     }
@@ -153,10 +159,14 @@ export default {
       const done = all.filter(i => i.done_at).sort(byPlace);
       closePop();
       // To do and Done are one list split by the Done heading, so a row drags within either and across it (ticking or unticking it).
-      const doneHead = all.length ? `<li class="list-head adv-done-h"><h2 class="adv-h">Done <span class="adv-count muted">${done.length ? `${done.length}/${all.length}` : ''}</span></h2>${done.length ? '' : '<p class="adv-drop-hint muted">Drag a task here, or tick it, when it\'s done.</p>'}</li>` : '';
+      const doneHead = all.length ? `<li class="list-head adv-done-h"><h2 class="adv-h adv-group">Done <span class="adv-count">${done.length ? `${done.length}/${all.length}` : ''}</span></h2>${done.length ? '' : '<p class="adv-drop-hint muted">Drag a task here, or tick it, when it\'s done.</p>'}</li>` : '';
       $('.adv-tasks').innerHTML = todo.map(row).join('') + doneHead + done.map(row).join('');
       $('.adv-empty').hidden = !!todo.length;
       el.querySelector('[data-count="todo"]').textContent = todo.length ? todo.length : '';
+      // At a glance, as at the top of a ticket queue: open, done, and updates (comments) today.
+      const updates = all.reduce((n, i) => n + (commentsOf.get(keyOf(ownerOf(i.id))) || []).filter(c => c.at && isoDate(new Date(c.at)) === date).length, 0);
+      $('.adv-stats').innerHTML = [['open', 'To do', todo.length], ['closed', 'Done', `${done.length}<small>/${all.length}</small>`], ['updates', 'Updates', updates], ['sched', 'Scheduled', items.filter(i => i.time).length]]
+        .map(([cls, words, n]) => `<div class="adv-stat ${cls}"><b>${n}</b><span>${words}</span></div>`).join('');
       schedule();
       for (const box of el.querySelectorAll('.adv-quick-add')) { const id = box.closest('.adv-row').dataset.id; if (typed.get(id)) box.value = typed.get(id); keepDraft(box, `adv-comment:${id}`); }
       if (kept) {
