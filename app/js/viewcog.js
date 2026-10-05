@@ -101,6 +101,7 @@ const LAYOUTS = {
   planner: [
     { id: 'day-rel', label: 'Show "Today" or "In 5 days" under the date', def: true },
     { id: 'achievements', label: 'Show achievement count when tasks completed' },
+    { id: 'done-on-plan', label: 'Show ticked-off tasks on the schedule at the time they were done', def: true },
     { id: 'focus', label: 'Show day focus', def: true },
     { id: 'energy', label: 'Show energy', def: true },
   ],
