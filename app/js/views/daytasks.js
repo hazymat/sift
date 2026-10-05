@@ -30,7 +30,7 @@ import { addTask } from '../tasks.js';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
 const byPlace = byRank();
-const EXPORT_DEFAULTS = { todo: true, done: true, notes: true, comments: true, files: true, schedule: false };
+const EXPORT_DEFAULTS = { todo: true, done: true, notes: true, comments: true, times: false, files: true, schedule: false };
 
 export default {
   async mount(el) {
@@ -455,9 +455,9 @@ export default {
         if (!list.length) return;
         out.push('', bold(title));
         for (const c of list) {
-          out.push(`${c.i.done_at ? (wa ? '✅' : '[x]') : (wa ? '⬜' : '[ ]')} ${c.i.title}${c.i.done_at ? ` (done ${at(c.i.done_at)})` : ''}`);
+          out.push(`${c.i.done_at ? (wa ? '✅' : '[x]') : (wa ? '⬜' : '[ ]')} ${c.i.title}${c.i.done_at && choices.times ? ` (done ${at(c.i.done_at)})` : ''}`);
           if (c.note) out.push(...c.note.split('\n').filter(l => l.trim()).map(l => `    ${l.trim()}`));
-          for (const e of c.log) out.push(`    ${at(e.at)}  ${e.text.split('\n').join('\n           ')}`);
+          for (const e of c.log) out.push(choices.times ? `    ${at(e.at)}  ${e.text.split('\n').join('\n           ')}` : `    - ${e.text.split('\n').join('\n      ')}`);
         }
       };
       cases('To do', todo);
@@ -467,13 +467,13 @@ export default {
     }
     function asHtml({ todo, done, timed }) {
       const cases = (title, list) => (list.length ? `<h4>${esc(title)}</h4>${list.map(c => `
-        <p style="margin:.8em 0 .2em"><b>${c.i.done_at ? '☑' : '☐'} ${c.i.done_at ? `<s>${esc(c.i.title)}</s>` : esc(c.i.title)}</b>${c.i.done_at ? ` <span style="color:#666">(done ${esc(at(c.i.done_at))})</span>` : ''}</p>
+        <p style="margin:.8em 0 .2em"><b>${c.i.done_at ? '☑' : '☐'} ${c.i.done_at ? `<s>${esc(c.i.title)}</s>` : esc(c.i.title)}</b>${c.i.done_at && choices.times ? ` <span style="color:#666">(done ${esc(at(c.i.done_at))})</span>` : ''}</p>
         ${c.noteHtml ? `<div style="color:#444;margin-left:1.5em">${c.noteHtml}</div>` : ''}
-        ${c.log.length ? `<table style="margin-left:1.5em;border-collapse:collapse">${c.log.map(e => `<tr><td style="color:#666;padding:2px 12px 2px 0;vertical-align:top;white-space:nowrap">${esc(at(e.at))}</td><td style="padding:2px 0">${e.html}</td></tr>`).join('')}</table>` : ''}`).join('')}` : '');
+        ${c.log.length ? `<table style="margin-left:1.5em;border-collapse:collapse">${c.log.map(e => `<tr>${choices.times ? `<td style="color:#666;padding:2px 12px 2px 0;vertical-align:top;white-space:nowrap">${esc(at(e.at))}</td>` : '<td style="color:#666;padding:2px 8px 2px 0;vertical-align:top">•</td>'}<td style="padding:2px 0">${e.html}</td></tr>`).join('')}</table>` : ''}`).join('')}` : '');
       return `<h3>${esc(dayTitle())}</h3>${cases('To do', todo)}${cases('Done', done)}`
         + (timed.length ? `<h4>Schedule</h4><ul style="list-style:none;padding-left:0">${timed.map(i => `<li>${i.done_at ? '☑' : '☐'} <b>${esc(showTime(i.time))}${i.end_time ? `–${esc(showTime(i.end_time))}` : ''}</b> ${esc(i.title)}</li>`).join('')}</ul>` : '');
     }
-    const CHOICES = [['todo', 'To do'], ['done', 'Done'], ['notes', 'Notes'], ['comments', 'Comments, with their times'], ['files', 'Photos and files added (when, and file names; not the files)'], ['schedule', "The day's schedule (timed items)"]];
+    const CHOICES = [['todo', 'To do'], ['done', 'Done'], ['notes', 'Notes'], ['comments', 'Comments'], ['files', 'Photos and files added (file names; not the files)'], ['times', 'Times (when each comment, file and tick happened)'], ['schedule', "The day's schedule (timed items)"]];
     function openExport() {
       const dlg = $('.adv-export');
       dlg.innerHTML = `<div class="sheet-handle"></div>
