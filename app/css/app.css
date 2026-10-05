@@ -4548,6 +4548,7 @@ html.kb-open :is(.sticky-top, .find-sticky, .dump-bar, .bb-sticky, .list-top, .b
 .adv-quick .att-count { font-size: .75rem; padding: 1px 6px; }
 /* All of a case's comments, over the page under its row, scrolling. */
 .adv-pop { position: absolute; z-index: 30; top: 100%; right: -36px; width: min(520px, 92vw); max-height: min(60vh, 520px); overflow: auto; padding: 8px 14px 6px; border-radius: 16px; border: 1px solid var(--glass-border); background: var(--glass-strong); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); box-shadow: var(--shadow); }
+.adv-pop.up { top: auto; bottom: 100%; }
 .adv-pop .comments { margin: 0; }
 .adv-row.popped { z-index: 31; }
 @media (max-width: 760px) {

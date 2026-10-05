@@ -198,6 +198,13 @@ export default {
       pop.innerHTML = commentsHtml(ownerOf(rowEl.dataset.id));
       rowEl.querySelector('.adv-side').append(pop);
       mountComments(pop, () => {});
+      // Never off the page: it opens upwards when there's more room above, and is never taller than the room it has.
+      const side = rowEl.querySelector('.adv-side').getBoundingClientRect();
+      const tabbar = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tabbar-h')) || 0;
+      const below = innerHeight - side.bottom - 16 - (matchMedia('(max-width: 760px)').matches ? tabbar : 0), above = side.top - 16;
+      const up = below < 260 && above > below;
+      pop.classList.toggle('up', up);
+      pop.style.maxHeight = `${Math.max(140, Math.min(520, up ? above : below))}px`;
       rowEl.classList.add('popped');
     }
     function closePop() {
