@@ -1640,7 +1640,7 @@ main:has(> .planner), main:has(.planner) { max-width: 1600px; }
    when cut short; tapped (being written in, its pills or its panel open) the whole name shows, wrapping
    onto as many lines as it needs (inline.js autosize where field-sizing isn't supported). */
 .task-list > li[data-task] > textarea.task-title { display: block; resize: none; overflow: hidden; field-sizing: content; min-height: 0; white-space: pre; overflow-wrap: normal; }
-.task-list > li[data-task]:not(.pills-open, :has(+ .task-details)) > textarea.task-title:not(:focus) { height: auto !important; text-overflow: ellipsis; }
+#main[data-density="tight"] .task-list > li[data-task]:not(.pills-open, :has(+ .task-details)) > textarea.task-title:not(:focus) { height: auto !important; text-overflow: ellipsis; }
 .task-list > li[data-task]:is(.pills-open, :has(+ .task-details)) > textarea.task-title, .task-list > li[data-task] > textarea.task-title:focus { white-space: pre-wrap; overflow-wrap: anywhere; }
 
 /* The link dropdown and chip menu use their own colours: papers change the
@@ -4470,3 +4470,9 @@ html.kb-open :is(.sticky-top, .find-sticky, .dump-bar, .bb-sticky, .list-top, .b
 .stats-cols-ends { display: flex; justify-content: space-between; font-size: .8rem; margin-top: 4px; }
 .pill-menu.list-menu { z-index: 1200; flex-wrap: nowrap; min-width: 180px; max-height: min(60vh, 420px); overflow-y: auto; } /* over the toast and the Selections bar; long lists scroll */
 .pill-menu.list-menu button[aria-checked="true"] { font-weight: 600; }
+/* Medium and Extended spacing: every task's whole name and note show, wrapping onto as many lines as they
+   need (Tasks, projects, Lists, the Day Planner); Compact keeps one line, cut short. */
+#main:not([data-density="tight"]) .task-list > li[data-task] > textarea.task-title { white-space: pre-wrap; overflow-wrap: anywhere; }
+#main:not([data-density="tight"]):not([data-density="loose"]) .task-note .note-medium { display: block; -webkit-line-clamp: none; overflow: visible; overflow-wrap: anywhere; }
+#main:not([data-density="tight"]) :is(.pile-paper, #lines) .line.has-item > .content > textarea.item-title:not(:focus) { max-height: none; -webkit-mask: none; mask: none; }
+#main:not([data-density="tight"]) .planner .plan-note { white-space: normal; display: block; -webkit-line-clamp: none; overflow: visible; overflow-wrap: anywhere; }
