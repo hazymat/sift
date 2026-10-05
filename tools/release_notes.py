@@ -1051,3 +1051,4 @@ NOTES['1.60.59'] = [
     F("Day Planner, Bring items in: Move, don't copy takes claimed tasks out of Tasks and their project. Advanced has Keep only here, which does the same for tasks already brought in; their comments and files move with them."),
     F("Deleting a task with a linked copy (Tasks and the Day Planner) asks whether to delete it everywhere or only there. Taking a task out of a project shared with someone always gets a second, red warning."),
 ]
+NOTES['1.60.60'] = [F("Day Planner and Advanced: Make unique on the Selections bar (and Advanced's ⋯) keeps only the day's copy of tasks brought in from Tasks or a project; the original goes to the Bin and its comments and files move across. It was there before only as Keep only here, and only for linked tasks, so it was easy to miss.")]

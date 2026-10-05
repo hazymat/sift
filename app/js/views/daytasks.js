@@ -284,12 +284,12 @@ export default {
     }
     async function uniqueMany(ids) {
       const linked = ids.filter(id => tasks.has(items.find(i => i.id === id)?.task_id));
-      if (!linked.length) { toast(ids.length === 1 ? "This one is only here already" : 'These are only here already'); return; }
+      if (!linked.length) { toast(ids.length === 1 ? 'Already unique: it is only here' : 'Already unique: they are only here'); return; }
       const undo = await makeUnique(linked);
       if (!undo) return;
       kit.clear();
       await render();
-      undoable(`Kept only here: ${label(linked)}`, async () => { await undo(); await render(); });
+      undoable(`Made unique: ${label(linked)}`, async () => { await undo(); await render(); });
     }
     // → Tasks: it leaves the day and becomes a task (one brought in from a task just leaves the day).
     async function toTasks(ids) {
@@ -322,7 +322,7 @@ export default {
         { id: 'undone', label: 'Not done', run: untickMany, when: () => picked().some(isDoneId) },
         { id: 'letgo', label: 'Let go', run: letGo },
         { id: 'to-tasks', label: '→ Tasks', run: toTasks },
-        { id: 'unique', label: 'Keep only here', run: uniqueMany, when: () => [...el.querySelectorAll('.adv-row.selected')].filter(c => !items.find(i => i.id === c.dataset.id)?.done_at).some(c => tasks.has(items.find(i => i.id === c.dataset.id)?.task_id)) },
+        { id: 'unique', label: 'Make unique', run: uniqueMany, title: 'Keep only the copy here: the original leaves Tasks or its project' },
         { id: 'archive', label: 'Archive', key: 'A', run: archive },
         { id: 'delete', label: 'Delete', key: 'D', danger: true, run: deleteMany },
       ],
@@ -432,7 +432,7 @@ export default {
         const options = [
           { value: 'letgo', label: 'Let go', title: "Didn't do it and it doesn't need doing (to the Archive)" },
           { value: 'to-tasks', label: '→ Tasks', title: linked ? 'Off this day; it stays in Tasks' : 'Off this day, into Tasks' },
-          linked && { value: 'unique', label: 'Keep only here', title: 'Take the original out of Tasks or its project; only this copy stays' },
+          { value: 'unique', label: 'Make unique', title: linked ? 'Keep only this copy: the original leaves Tasks or its project' : 'Already only here' },
           { value: 'archive', label: 'Archive' },
           { value: 'delete', label: 'Delete' },
         ].filter(Boolean);
