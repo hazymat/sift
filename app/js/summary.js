@@ -1,5 +1,6 @@
 // Long lines typed as a task (or plan item) become a short title plus a note
-// holding the whole line as typed.
+// holding the whole line as typed. Tasks' New task, the Day Planner's New task
+// and Advanced day tasks all call this one function, so a change here reaches all three.
 //
 //   summarise('Call the council about the bins: they missed us twice …')
 //   → { title: 'Call the council about the bins', notes: '<the whole line>' }

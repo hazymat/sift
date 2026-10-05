@@ -84,6 +84,7 @@ const SHELL = [
   'js/views/placeholder.js',
   'js/views/tasks.js',
   'js/views/planner.js',
+  'js/views/daytasks.js',
   'js/views/dump.js',
   'js/views/places.js',
   'js/views/contacts.js',

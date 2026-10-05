@@ -32,6 +32,7 @@ import { word } from '../words.js';
 import { offerUrlAt } from '../weburl.js';
 import { tickWave, fadeFold } from '../tickwave.js';
 import { commentsHtml, mountComments, moveComments, closingComment } from '../comments.js';
+import { deleteLinked, deleteAll, makeUnique } from '../link.js';
 import { shareSheet, people, sharedWithText, invitesHtml, theirIconHtml, scopeText } from '../sharing.js';
 import { sharesNow, inShare, myUserId, personName } from '../sync.js';
 
@@ -50,7 +51,7 @@ function achieveText(done, total) {
 }
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-export default {
+const dayPlanner = {
   async mount(el) {
     // Page-wide listeners are all tied to this signal and removed in unmount(),
     // so redrawing the page (after a sync, a words change) doesn't pile them up.
@@ -127,6 +128,7 @@ export default {
             <ul id="pile-done" class="pile-list pile-done"></ul>
             <div id="pile-blank" aria-hidden="true"></div>
           </div>
+          <a class="advanced-link" href="#/planner/${date}/advanced" title="This day's tasks as cases: comments, notes and files on show">Advanced</a>
           <p class="muted hint">${esc(word('ph_day_tasks'))}</p>
         </section>
         <section class="day-notes">
@@ -763,17 +765,19 @@ export default {
     el.addEventListener('focusout', ev => { if (ev.target.matches?.('.line textarea.item-title')) requestAnimationFrame(clampTitles); }); // back to two lines
     el.addEventListener('input', ev => { if (ev.target.matches?.('#lines textarea.item-title')) requestAnimationFrame(clampTitles); }); // pills going under as it grows
 
-    function renderPile(gapAt = null) {
+    function renderPile(gapAt = null, gapInDone = false) {
       const all = items.filter(i => !i.time);
       const todo = all.filter(i => !i.done_at && !lifted.has(i.id)).sort(pileOrder);
       const done = all.filter(i => i.done_at && !lifted.has(i.id)).sort(pileOrder);
       const rows = todo.map(i => `<li data-pile="${i.id}">${itemRow(i, '')}</li>`);
-      if (gapAt != null) rows.splice(Math.min(gapAt, rows.length), 0, '<li class="pile-gap" aria-hidden="true"></li>');
+      const doneRows = done.map(i => `<li data-pile="${i.id}">${itemRow(i, '')}</li>`);
+      const gap = '<li class="pile-gap" aria-hidden="true"></li>';
+      if (gapAt != null) (gapInDone ? doneRows : rows).splice(Math.min(gapAt, (gapInDone ? doneRows : rows).length), 0, gap);
       $('#pile').innerHTML = rows.join('');
       overPlan();
       // Done ones stay in view, crossed out, at the bottom, after one empty ruled line (no Done heading to open).
       $('#pile-done').innerHTML = done.length ? '<li class="line pile-blank pile-gap-line" aria-hidden="true"><span class="margin"></span><span class="content"></span></li>'
-        + done.map(i => `<li data-pile="${i.id}">${itemRow(i, '')}</li>`).join('') : '';
+        + doneRows.join('') : '';
       // A short list gets a few empty ruled lines under it, like a page (tap one to add a task).
       $('#pile-blank').innerHTML = '<div class="line pile-blank"><span class="margin"></span><span class="content"></span></div>'.repeat(Math.max(0, 4 - todo.length - (done.length ? done.length + 1 : 0)));
       const count = $('.pile .task-count');
@@ -802,6 +806,9 @@ export default {
     // day's bring_skip). The count on ↓ Bring items in is what's waiting from
     // earlier days and the calendar, never the tasks (there are always some).
     let bringTab = 'tasks';
+    // Move, don't copy (this device): claiming takes the task out of Tasks, as Make unique does (link.js).
+    let bringMove = false;
+    store.getDeviceSettings().then(d => { bringMove = !!d.bring_move; });
     let showSkipped = false;
     let alreadyOpen = false;
     const skipped = () => new Set(day.bring_skip || []);
@@ -916,6 +923,7 @@ export default {
       const alreadyWords = date === isoDate() ? "already in today's plan" : `already planned for ${dayCalled()}`;
       return `
         <p class="muted hint">Claim what you'll do ${date === isoDate() ? 'today' : `on ${dayCalled()}`}. Tick off anything done already, or archive what's no longer needed.</p>
+        <label class="bring-move"><input type="checkbox" data-bring-move${bringMove ? ' checked' : ''}> Move, don't copy <span class="muted">(claimed tasks leave Tasks and their project, and live only on this day)</span></label>
         ${already.length ? `<details class="bring-already"${alreadyOpen ? ' open' : ''}><summary>📅 ${already.length} ${alreadyWords}</summary><ul>${already.map(t => `<li class="hand">${esc(t.title)}</li>`).join('')}</ul></details>` : ''}
         ${skippedHtml(open.filter(t => skip.has(t.id) && !onDay.has(t.id)), (t, aside) => card(t, '', aside))}
         ${section(`For ${dayCalled()}`, top, aimNote)}
@@ -1074,10 +1082,15 @@ export default {
       const before = { horizon: task.horizon ?? null, start_date: task.start_date ?? null, archived_at: task.archived_at ?? null, done_at: task.done_at ?? null, status: task.status ?? 'todo' };
       let undoPlan = null;
       await leave(b);
+      let undoMove = null;
       if (act === 'claim') {
         // Onto this day, off any other (a task is on one day only).
         undoPlan = await planDay(task, date);
         await store.update('tasks', task.id, { horizon: 'now' });
+        if (bringMove) {
+          const made = (await store.list('day_items', { filter: i => i.task_id === task.id && i.date === date && !i.archived_at }))[0];
+          if (made) undoMove = await makeUnique([made.id], { confirm: 'caveats' });
+        }
       } else if (act === 'archive') {
         await store.update('tasks', task.id, { archived_at: new Date().toISOString() });
       } else if (act === 'done') {
@@ -1085,8 +1098,9 @@ export default {
       }
       await refresh();
       await renderTasks();
-      const label = { claim: `"${task.title}" is on ${dayCalled()}`, archive: `Archived "${task.title}"`, done: `Done: ${task.title}` }[act];
+      const label = { claim: `"${task.title}" ${undoMove ? 'moved to' : 'is on'} ${dayCalled()}`, archive: `Archived "${task.title}"`, done: `Done: ${task.title}` }[act];
       undoable(label, async () => {
+        if (undoMove) await undoMove();
         if (undoPlan) await undoPlan();
         await store.update('tasks', task.id, before);
         await refresh();
@@ -1121,11 +1135,14 @@ export default {
       });
     }
 
+    // A copy of a task (brought in) asks whether the task goes too (link.js).
     async function deleteItem(id) {
       const gone = items.find(i => i.id === id);
-      await store.remove('day_items', id);
+      const pick = await deleteLinked({ items: [id] }, 'the Day Planner');
+      if (!pick) return;
+      const undo = await deleteAll(pick);
       await refresh();
-      undoable(`Deleted "${gone?.title || 'item'}"`, async () => { await store.restore('day_items', id); await refresh(); });
+      undoable(`Deleted "${gone?.title || 'item'}"${pick.tasks.length ? ' everywhere' : ''}`, async () => { await undo(); await refresh(); });
     }
     // Phones: swipe an item sideways, in the plan or the day's tasks, as in
     // Tasks (rowswipe.js): left for ✓ Done and ⋯ More, right for Delete.
@@ -1200,6 +1217,7 @@ export default {
     }, page);
 
     async function render() {
+      $('.advanced-link').href = `#/planner/${date}/advanced`;
       paintSharing();
       settings = await daySettings();
       [day, items] = await Promise.all([getDay(date), itemsFor(date)]);
@@ -1305,6 +1323,7 @@ export default {
     }
     // Ticking a calendar on or off: the days fetched are forgotten and fetched again from all those chosen.
     $('#bring').addEventListener('change', async ev => {
+      if (ev.target.matches('[data-bring-move]')) { bringMove = ev.target.checked; await store.updateDeviceSettings({ bring_move: bringMove }); return; }
       const box = ev.target.closest('[data-cal-id]');
       if (!box) return;
       const ids = [...$('#bring').querySelectorAll('[data-cal-id]:checked')].map(x => x.dataset.calId);
@@ -1634,11 +1653,8 @@ export default {
       } else if (t.classList.contains('item-title') && id) {
         const it = items.find(i => i.id === id);
         if (t.value.trim()) await change(id, { title: t.value.trim() });
-        else if (it && await askEmptied('item')) {
-          await store.remove('day_items', id);
-          await refresh();
-          undoable(`Deleted "${it.title}"`, async () => { await store.restore('day_items', id); await refresh(); });
-        } else if (it) t.value = it.title;
+        else if (it && await askEmptied('item')) await deleteItem(id);
+        else if (it) t.value = it.title;
       } else if (t.classList.contains('margin-time')) {
         // Typed start time in the margin: 12.45, 12:45, 1245 or 14
         const m = t.value.trim().match(/^(\d{1,2})(?:[.:\s]?(\d{2}))?$/);
@@ -1802,6 +1818,7 @@ export default {
     bar.hidden = true;
     bar.innerHTML = `<button type="button" data-sel="clear" aria-label="Clear selection">✕</button><span class="select-count"></span>
       <button type="button" data-sel="done">Done${keys(CTRL_ENTER)}</button>
+      <button type="button" data-sel="undone">Not done</button>
       <button type="button" data-sel="pile">To place</button>
       <button type="button" data-sel="letgo" title="Didn't do these and they don't need doing">Let go</button>
       <button type="button" data-sel="tomorrow">Tomorrow</button>
@@ -1828,16 +1845,20 @@ export default {
       if (opening) bar.scrollLeft = 0; // a new selection: the bar starts from its left end (✕ first)
       document.body.classList.toggle('has-select-bar', !!selected.size);
       bar.querySelector('.select-count').textContent = `${selected.size} selected`;
+      // Done for to-do items, Not done for ticked ones.
+      const picked = items.filter(i => selected.has(i.id));
+      bar.querySelector('[data-sel="done"]').hidden = !picked.some(i => !i.done_at);
+      bar.querySelector('[data-sel="undone"]').hidden = !picked.some(i => i.done_at);
     }
     const clearSelection = () => { selected.clear(); paintSelection(); };
 
-    async function moveMany(fieldsById, label, wait = null) {
+    async function moveMany(fieldsById, label, wait = null, more = undefined) {
       const before = [...fieldsById.keys()].map(id => {
         const i = items.find(x => x.id === id);
         return [id, Object.fromEntries(Object.keys(fieldsById.get(id)).map(k => [k, i?.[k] ?? null]))];
       });
       await store.updateMany('day_items', [...fieldsById]);
-      const say = () => undoable(label, async () => { await store.updateMany('day_items', before); await refresh(); paintSelection(); });
+      const say = () => undoable(label, async () => { await store.updateMany('day_items', before); await refresh(); paintSelection(); }, more);
       if (wait) say();
       if (wait) await wait();
       await refresh();
@@ -1848,29 +1869,45 @@ export default {
     bar.addEventListener('click', async ev => {
       const b = ev.target.closest('[data-sel]');
       if (!b) return;
-      const ids = items.filter(i => selected.has(i.id)).map(i => i.id);
+      let ids = items.filter(i => selected.has(i.id)).map(i => i.id);
       const n = ids.length;
       const plural = `${n} item${n === 1 ? '' : 's'}`;
       if (b.dataset.sel === 'clear') return clearSelection();
+      if (b.dataset.sel === 'undone') {
+        const ticked = ids.filter(id => items.find(i => i.id === id)?.done_at);
+        if (!ticked.length) return;
+        await moveMany(new Map(ticked.map(id => [id, { done_at: null }])), `Not done: ${ticked.length} item${ticked.length === 1 ? '' : 's'}`);
+      }
       if (b.dataset.sel === 'done') {
+        ids = ids.filter(id => !items.find(i => i.id === id)?.done_at);
+        if (!ids.length) return;
         const rows = ids.map(id => el.querySelector(`.line.has-item[data-item="${CSS.escape(id)}"]`)).filter(Boolean);
-        await moveMany(new Map(ids.map(id => [id, { done_at: new Date().toISOString() }])), `Done: ${plural}`, () => Promise.all(rows.map((row, n) => tickedOff(row, n))));
+        await moveMany(new Map(ids.map(id => [id, { done_at: new Date().toISOString() }])), `Done: ${ids.length} item${ids.length === 1 ? '' : 's'}`, () => Promise.all(rows.map((row, n) => tickedOff(row, n))));
       }
       if (b.dataset.sel === 'letgo') { const now = new Date().toISOString(); await moveMany(new Map(ids.map(id => [id, { dropped_at: now, archived_at: now }])), `Let go of ${plural} (in the Archive)`); clearSelection(); }
       if (b.dataset.sel === 'pile') await moveMany(new Map(ids.map(id => [id, { time: null, end_time: null }])), `${plural} back to To place`);
       if (b.dataset.sel === 'tomorrow') { await moveMany(new Map(ids.map(id => [id, { date: addDays(date, 1), carried_from: date }])), `${plural} moved to tomorrow`); clearSelection(); }
       if (b.dataset.sel === 'archive') { await moveMany(new Map(ids.map(id => [id, { archived_at: new Date().toISOString() }])), `Archived ${plural}`); clearSelection(); }
-      if (b.dataset.sel === 'delete') { await moveMany(new Map(ids.map(id => [id, { deleted_at: new Date().toISOString() }])), `Deleted ${plural}`); clearSelection(); }
+      if (b.dataset.sel === 'delete') {
+        const pick = await deleteLinked({ items: ids }, 'the Day Planner');
+        if (!pick) return;
+        const undo = await deleteAll(pick);
+        clearSelection();
+        await refresh();
+        undoable(`Deleted ${plural}${pick.tasks.length ? ' everywhere' : ''}`, async () => { await undo(); await refresh(); });
+      }
     });
 
     // Where a drop would land: the line under the middle of what's carried.
     function targetAt(x, y) {
       const pileBox = $('.pile').getBoundingClientRect();
       if (y >= pileBox.top && y <= pileBox.bottom && x >= pileBox.left && x <= pileBox.right) {
-        // Index among the (not carried) to-do rows: before the first row whose middle is below the pointer.
-        const rows = [...$('#pile').querySelectorAll(':scope > li[data-pile]')];
+        // Index among the (not carried) to-do rows, or the done ones when over those: before the first row whose middle is below the pointer.
+        const doneRows = [...$('#pile-done').querySelectorAll(':scope > li[data-pile]')];
+        const done = (doneRows.length > 0 || press?.ids.some(id => items.find(i => i.id === id)?.done_at)) && y >= $('#pile-done').getBoundingClientRect().top; // the only done one carried: below the to-do rows is still Done
+        const rows = done ? doneRows : [...$('#pile').querySelectorAll(':scope > li[data-pile]')];
         const index = rows.filter(r => { const b = r.getBoundingClientRect(); return b.top + b.height / 2 < y; }).length;
-        return { pile: true, index };
+        return { pile: true, index, done };
       }
       for (const line of linesEl.querySelectorAll('.line[data-time]')) {
         const r = line.getBoundingClientRect();
@@ -1923,10 +1960,11 @@ export default {
       return out;
     }
 
-    // Dropped into the tasks at `index`: no time, and a new place (order.js)
-    // for just the dropped items.
-    function pileChanges(index) {
-      const rest = items.filter(i => !i.time && !i.done_at && !press.ids.includes(i.id)).sort(pileOrder);
+    // Dropped into the tasks (or the done ones) at `index`: no time, ticked or unticked to match,
+    // and a new place (order.js) for just the dropped items.
+    function pileChanges(index, done = false) {
+      const rest = items.filter(i => !i.time && !!i.done_at === done && !press.ids.includes(i.id)).sort(pileOrder);
+      const now = new Date().toISOString();
       const carried = press.ids.map(id => items.find(i => i.id === id)).filter(Boolean);
       const order = [...rest.slice(0, index), ...carried, ...rest.slice(index)];
       const places = new Map(reorderWrites(order, i => rankOf(i), press.ids).map(([i, k]) => [i.id, k]));
@@ -1935,6 +1973,7 @@ export default {
         const f = {};
         if (i.time) { f.time = null; f.end_time = null; }
         if (places.has(i.id)) f.rank = places.get(i.id);
+        if (press.ids.includes(i.id) && !!i.done_at !== done) f.done_at = done ? now : null;
         if (Object.keys(f).length) out.set(i.id, f);
       }
       return out;
@@ -1965,15 +2004,15 @@ export default {
     // carried items at their new times, anything in the way pushed on.
     function showPreview(target) {
       $('#pile').classList.toggle('drop-target', !!target?.pile);
-      const key = target ? (target.pile ? `pile:${target.index}` : target.time) : '';
+      const key = target ? (target.pile ? `pile:${target.done ? 'done:' : ''}${target.index}` : target.time) : '';
       if (key === press.previewKey) return;
       press.previewKey = key;
       if (!target || target.pile) {
-        press.changes = target?.pile ? pileChanges(target.index) : null;
-        press.ghost.dataset.when = target?.pile ? 'Tasks' : '';
+        press.changes = target?.pile ? pileChanges(target.index, target.done) : null;
+        press.ghost.dataset.when = target?.pile ? (target.done ? 'Done' : 'Tasks') : '';
         if (!target) delete press.ghost.dataset.when;
         renderLines();
-        renderPile(target?.pile ? target.index : null);
+        renderPile(target?.pile ? target.index : null, !!target?.done);
         return;
       }
       renderPile();
@@ -2113,7 +2152,21 @@ export default {
       const n = p.ids.length;
       if (!t || !p.changes?.size) { renderLines(); renderPile(); paintSelection(); return; }
       const pushed = p.pushedCount ? `, pushed ${p.pushedCount} on` : '';
-      await moveMany(p.changes, t.pile ? `${n > 1 ? `${n} items` : 'Item'} moved in Tasks` : `${n > 1 ? `Moved ${n} items` : 'Moved'} to ${fmt(t.time)}${pushed}`);
+      // Dragged across the done ones: ticked or unticked as by its tick box (Done / Not done, the wave where it landed).
+      const ticked = t.pile ? [...p.changes].filter(([, f]) => f.done_at).map(([id]) => id) : [];
+      const unticked = t.pile ? [...p.changes].filter(([, f]) => 'done_at' in f && !f.done_at).map(([id]) => id) : [];
+      const many = list => (list.length > 1 ? `${list.length} items` : '');
+      if (ticked.length) {
+        const it = items.find(i => i.id === ticked[0]);
+        await moveMany(p.changes, ticked.length > 1 ? `Done: ${many(ticked)}` : 'Done', null, ticked.length === 1 && it ? { more: closingComment(it.task_id ? { task_id: it.task_id } : { item_id: it.id }) } : undefined);
+        const rows = ticked.map(id => $('#pile-done').querySelector(`.line.has-item[data-item="${CSS.escape(id)}"]`)).filter(Boolean);
+        rows.forEach(row => { row.classList.remove('done'); row.querySelector('.tick').checked = true; });
+        await Promise.all(rows.map((row, n) => tickWave(row, { title: row.querySelector('.item-title'), parts: row.querySelectorAll('.content > :is(.span-tag, .note-tag), .content > .item-sub .pill-act'), lane: row.querySelector(':scope > .content') || row, delay: 100 + n * 200 }).done));
+        await refresh(); paintSelection();
+        return;
+      }
+      if (unticked.length) return moveMany(p.changes, unticked.length > 1 ? `Not done: ${many(unticked)}` : 'Not done');
+      await moveMany(p.changes, t.pile ? `${n > 1 ? `${n} items` : 'Item'} moved in ${t.done ? 'Done' : 'Tasks'}` : `${n > 1 ? `Moved ${n} items` : 'Moved'} to ${fmt(t.time)}${pushed}`);
     };
     el.addEventListener('pointerup', endPress);
     el.addEventListener('pointercancel', endPress);
@@ -2420,4 +2473,30 @@ export default {
     this.bar?.remove();
     document.body.classList.remove('has-select-bar', 'is-dragging');
   },
+};
+
+// The Day Planner, or one day's Advanced day tasks (#/planner/<date>/advanced, views/daytasks.js).
+const advancedHash = () => /^#\/planner\/[^/]*\/advanced/.test(location.hash);
+export default {
+  async mount(el, ctx) {
+    this.el = el;
+    this.ctx = ctx;
+    this.view = advancedHash() ? (await import('./daytasks.js')).default : dayPlanner;
+    await this.view.mount(el, ctx);
+    this.refresh = () => this.view.refresh?.();
+  },
+  async route(rest) {
+    const advanced = rest[1] === 'advanced';
+    const view = advanced ? (await import('./daytasks.js')).default : dayPlanner;
+    if (view === this.view) return this.view.route?.(rest);
+    this.view.unmount?.();
+    // A fresh #main, as app.js gives each area: the old one still carries the other view's click handlers.
+    const fresh = this.el.cloneNode(false);
+    this.el.replaceWith(fresh);
+    this.el = fresh;
+    this.view = view;
+    await view.mount(this.el, this.ctx);
+  },
+  arrived() { this.view.arrived?.(); },
+  unmount() { this.view?.unmount?.(); },
 };

@@ -6,11 +6,11 @@
 //        → { name: value, … } when OK is pressed (or Enter), null when closed
 //        (skip: 'Label' adds a third button, which answers 'skip'; error: a line in red)
 //   await askText(title, { value, placeholder, label, ok, type, text }) → string | null
-//   await askYes(title, { text, ok, danger }) → true | false
+//   await askYes(title, { text, ok, danger, safe }) → true | false (safe: Cancel has the focus, so Enter cancels)
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-export function ask({ title, text = '', fields = [], ok = 'OK', cancel = 'Cancel', danger = false, skip = '', error = '' }) {
+export function ask({ title, text = '', fields = [], ok = 'OK', cancel = 'Cancel', danger = false, skip = '', error = '', safe = false }) {
   return new Promise(resolve => {
     const dlg = document.createElement('dialog');
     dlg.className = 'sheet ask-sheet';
@@ -42,7 +42,7 @@ export function ask({ title, text = '', fields = [], ok = 'OK', cancel = 'Cancel
     dlg.querySelector('[data-ask="skip"]')?.addEventListener('click', () => { answer = 'skip'; dlg.close(); });
     dlg.addEventListener('close', () => { dlg.remove(); resolve(answer); });
     dlg.showModal();
-    (dlg.querySelector('input, select') || dlg.querySelector('[type="submit"]')).focus();
+    (dlg.querySelector('input, select') || dlg.querySelector(safe ? '[data-ask="cancel"]' : '[type="submit"]')).focus(); // safe: Enter cancels
   });
 }
 
@@ -51,8 +51,8 @@ export async function askText(title, { value = '', placeholder = '', label = '',
   return r ? r.v : null;
 }
 
-export async function askYes(title, { text = '', ok = 'Yes', cancel = 'Cancel', danger = false } = {}) {
-  return !!(await ask({ title, text, ok, cancel, danger }));
+export async function askYes(title, { text = '', ok = 'Yes', cancel = 'Cancel', danger = false, safe = false } = {}) {
+  return !!(await ask({ title, text, ok, cancel, danger, safe }));
 }
 
 // All the text of a note (or an item's name) was removed, e.g. select all and
