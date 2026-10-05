@@ -29,9 +29,10 @@
 // With `onOnto(target | null)`, the middle of a row means "onto it" (e.g. make
 // it a sub-task) rather than before or after it: the list isn't reordered
 // there, onOnto says which row it's over, and onEnd gets it as `onto`. The
-// dragged row keeps following the finger; the row it's over gets a dashed
-// outline (.nest-target), and the gap it would drop into otherwise has the same
-// dashed outline (.drop-slot), so there's always one outline saying where it lands.
+// dragged row keeps following the finger and the row it's over gets a dashed
+// outline (.nest-target). In every list (not grids), with or without onOnto, the
+// gap it would drop into has the same dashed outline (.drop-slot), so there's
+// always one outline saying where it lands.
 //
 // With `section` (a selector, e.g. a milestone's heading): such a row can be lifted
 // (other headings can't) and lands only at a section boundary: before another
@@ -68,7 +69,7 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     const closed = dragging && el !== dragging && (dragging.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING) ? baseMargin - parseFloat(getComputedStyle(dragging).marginBottom) : 0;
     return { top: r.top + closed, bottom: r.bottom + closed, height: b.height };
   };
-  let slot = null; // the dashed outline of the gap it will drop into (with onOnto)
+  let slot = null; // the dashed outline of the gap it will drop into (every list, not grids)
   let dragging = null;
   let pending = null; // pressed; waiting to see if it's a tap, swipe or hold
   let painting = null;
@@ -172,7 +173,7 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     addEventListener('pointercancel', strayEnd);
     addEventListener('keydown', escKey, true);
     onLift?.(item);
-    if (onOnto && !grid) {
+    if (!grid) {
       slot = document.createElement('div');
       slot.className = 'drop-slot';
       slot.setAttribute('aria-hidden', 'true');

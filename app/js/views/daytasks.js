@@ -23,6 +23,7 @@ import { deleteLinked, deleteAll, makeUnique } from '../link.js';
 import { pillMenu } from '../pillmenu.js';
 import { askEmptied } from '../ask.js';
 import { keys } from '../keys.js';
+import { keepDraft, draftCleared } from '../drafts.js';
 import { autosizeAll } from '../inline.js';
 import { addTask } from '../tasks.js';
 
@@ -135,8 +136,13 @@ export default {
       }
     }
 
+    // What's being typed on a row's Add a comment line, kept through every redraw (and a reload: drafts.js), with the cursor.
+    const typed = new Map();
+    el.addEventListener('input', ev => { const box = ev.target.closest?.('.adv-quick-add'); if (box) typed.set(box.closest('.adv-row').dataset.id, box.value); }, page);
     async function render() {
       $('.adv-date').textContent = dayTitle();
+      const focus = document.activeElement?.closest?.('.adv-quick-add, .adv-title, #adv-new');
+      const kept = focus && { id: focus.closest('.adv-row')?.dataset.id, cls: focus.id ? '#adv-new' : focus.classList.contains('adv-title') ? '.adv-title' : '.adv-quick-add', value: focus.value, at: focus.selectionStart };
       await load();
       const all = items.filter(i => !i.time && !i.dropped_at);
       const todo = all.filter(i => !i.done_at).sort(byPlace);
@@ -149,6 +155,11 @@ export default {
       el.querySelector('[data-count="todo"]').textContent = todo.length ? todo.length : '';
       el.querySelector('[data-count="done"]').textContent = done.length ? `${done.length}/${all.length}` : '';
       schedule();
+      for (const box of el.querySelectorAll('.adv-quick-add')) { const id = box.closest('.adv-row').dataset.id; if (typed.get(id)) box.value = typed.get(id); keepDraft(box, `adv-comment:${id}`); }
+      if (kept) {
+        const back = kept.cls === '#adv-new' ? $('#adv-new') : el.querySelector(`.adv-row[data-id="${CSS.escape(kept.id || '')}"] ${kept.cls}`);
+        if (back) { back.value = kept.value; back.focus(); back.setSelectionRange?.(kept.at ?? kept.value.length, kept.at ?? kept.value.length); }
+      }
       autosizeAll($('.adv-body'));
       kit.attach($('.adv-todo'));
     }
@@ -223,7 +234,7 @@ export default {
     el.addEventListener('keydown', async ev => {
       const box = ev.target.closest?.('.adv-quick-add');
       if (!box) return;
-      if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); box.value = ''; box.blur(); return; }
+      if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); box.blur(); return; } // what's typed stays, as in comments
       if (ev.key !== 'Enter') return;
       ev.preventDefault();
       const text = box.value.trim();
@@ -231,6 +242,8 @@ export default {
       const id = box.closest('.adv-row').dataset.id;
       const made = await store.create('comments', { ...ownerOf(id), at: new Date().toISOString(), body: text });
       box.value = '';
+      typed.delete(id);
+      draftCleared(box);
       await render();
       el.querySelector(`.adv-row[data-id="${CSS.escape(id)}"] .adv-quick-add`)?.focus();
       undoable('Comment added', async () => { await store.remove('comments', made.id); await render(); });
@@ -294,8 +307,11 @@ export default {
     const letGo = ids => { const now = new Date().toISOString(); return setMany(ids, { dropped_at: now, archived_at: now }, 'Let go (in the Archive):'); };
     const archive = ids => setMany(ids, { archived_at: new Date().toISOString() }, 'Archived');
 
+    // Choosing and dragging are listkit.js and sortable.js, the same code as Tasks (hold anywhere on a row to lift it,
+    // the tilt and wobble, rows sliding aside, the dashed outline where it lands), so a change there reaches both.
+    // Day tasks have no sub-tasks, so no indenting or dropping onto a row.
     const kit = this.kit = createListKit({
-      reorder: true, grid: true, noun: 'task',
+      reorder: true, holdAnywhere: true, sideways: false, noun: 'task',
       actions: [
         { id: 'done', label: 'Done', key: 'Ctrl+Enter', run: tickMany },
         { id: 'letgo', label: 'Let go', run: letGo },
@@ -358,7 +374,7 @@ export default {
       ev.preventDefault();
       const id = box.closest('.adv-row').dataset.id;
       const text = box.value.trim();
-      if (text) { await store.create('comments', { ...ownerOf(id), at: new Date().toISOString(), body: text }); box.value = ''; }
+      if (text) { await store.create('comments', { ...ownerOf(id), at: new Date().toISOString(), body: text }); box.value = ''; typed.delete(id); draftCleared(box); }
       await attachAsComment(ownerOf(id), files, render);
     }, page);
     // Files dropped on a card (not on its comments, which take them themselves): the same.
