@@ -33,6 +33,7 @@ import { offerUrlAt } from '../weburl.js';
 import { tickWave, fadeFold } from '../tickwave.js';
 import { commentsHtml, mountComments, moveComments, closingComment } from '../comments.js';
 import { deleteLinked, deleteAll, makeUnique } from '../link.js';
+import { dayPanelHtml } from '../daypanel.js';
 import { shareSheet, people, sharedWithText, invitesHtml, theirIconHtml, scopeText } from '../sharing.js';
 import { sharesNow, inShare, myUserId, personName } from '../sync.js';
 
@@ -519,38 +520,8 @@ const dayPlanner = {
       mountComments(el, refresh);
     }
 
-    // Time and Until only on the schedule: a day task gets its time by being dragged onto it.
-    function details(i) {
-      return `
-        <div class="item-details" data-for="${i.id}">
-          <div class="panel-sec detail-sec wide"><span class="panel-h">Details</span><div class="detail-grid">
-          ${i.time ? `<label>Time<input type="time" name="time" value="${i.time}"></label>
-          <label>Until<input type="time" name="end_time" value="${i.end_time || ''}"></label>` : ''}
-          <label>Estimated time<select name="estimate_min">
-            <option value="" ${!i.estimate_min && !i.estimate_unsure ? 'selected' : ''}>Not estimated</option>
-            <option value="unsure" ${i.estimate_unsure && !i.estimate_min ? 'selected' : ''}>Not sure yet</option>
-            ${[...new Set([...durationChoices(settings.duration_max_min), ...(i.estimate_min ? [Number(i.estimate_min)] : [])])].sort((a, b) => a - b)
-              .map(m => `<option value="${m}" ${Number(i.estimate_min) === m ? 'selected' : ''}>${durationLabel(m)}</option>`).join('')}
-          </select></label>
-          <label>Move to another day<input type="date" name="date" value="${i.date}"></label>
-          </div>
-          <div class="energy-pick" role="group" aria-label="Energy"><span>Energy</span>
-            ${ENERGY.map(e => `<button type="button" class="bolts" data-item-energy="${e.id}" aria-pressed="${i.energy === e.id}" title="${esc(`${e.label}: ${e.hint}`)}" aria-label="${e.label}">${e.bolts}</button>`).join('')}
-          </div></div>
-          <div class="wide detail-note"><span class="field-label">Note</span><div class="detail-notes" data-note-for="${i.id}"></div></div>
-          <div class="wide">${att.rowHtml(atts.get(i.id), { parent: i.id })}</div>
-          <div class="wide">${commentsHtml(i.task_id ? { task_id: i.task_id } : { item_id: i.id })}</div>
-          <div class="detail-actions">
-            ${i.time ? '<button type="button" data-act="unschedule" title="Remove the start and end time and put it back in To place">Unallocate time</button>' : ''}
-            ${i.dropped_at
-              ? '<button type="button" data-act="take-back" title="It needs doing after all">Take back</button>'
-              : i.done_at ? '' : '<button type="button" data-act="let-go" title="Didn\'t do it and it doesn\'t need doing any more">Let go</button>'}
-            <button type="button" data-act="to-task" title="Take it off this day and keep it as a task">→ Tasks</button>
-            <button type="button" data-act="archive-item" title="Take it off this day into the Archive">Archive</button>
-            <button type="button" class="danger" data-act="delete">Delete</button>
-          </div>
-        </div>`;
-    }
+    // The full panel (daypanel.js, shared with Advanced day tasks).
+    const details = i => dayPanelHtml(i, { atts: atts.get(i.id), durationMax: settings.duration_max_min, linked: !!i.task_id });
 
     // 👁 Layout: a task ticked off in the Tasks list also shows on the schedule, crossed out, at the
     // time it was ticked (that day only). Its own row, so a slot can hold any number; inside an item
@@ -1612,6 +1583,7 @@ const dayPlanner = {
       }
       else if (act === 'details') { if (editing === id) closeDetails(); else { editing = id; refresh(); } }
       else if (act === 'close-details') closeDetails();
+      else if (act === 'make-unique') { editing = null; await uniqueItems([id]); }
       else if (act === 'unschedule') { editing = null; await change(id, { time: null, end_time: null }, 'Time unallocated'); }
       else if (act === 'archive-item') {
         editing = null;
@@ -1867,6 +1839,15 @@ const dayPlanner = {
       if (!wait) say();
     }
 
+    // Make unique: the day's copies stay, their originals leave Tasks or their project (link.js). Brain Dump is never touched.
+    async function uniqueItems(ids) {
+      const linked = ids.filter(id => items.find(i => i.id === id)?.task_id);
+      if (!linked.length) return toast(ids.length === 1 ? 'Already unique: it is only here' : 'Already unique: they are only here');
+      const undo = await makeUnique(linked);
+      if (!undo) return refresh();
+      await refresh(); clearSelection();
+      undoable(`Made unique: ${linked.length === 1 ? `"${items.find(i => i.id === linked[0])?.title || 'item'}"` : `${linked.length} items`}`, async () => { await undo(); await refresh(); });
+    }
     bar.addEventListener('click', async ev => {
       const b = ev.target.closest('[data-sel]');
       if (!b) return;
@@ -1887,16 +1868,7 @@ const dayPlanner = {
       }
       if (b.dataset.sel === 'letgo') { const now = new Date().toISOString(); await moveMany(new Map(ids.map(id => [id, { dropped_at: now, archived_at: now }])), `Let go of ${plural} (in the Archive)`); clearSelection(); }
       if (b.dataset.sel === 'pile') await moveMany(new Map(ids.map(id => [id, { time: null, end_time: null }])), `${plural} back to To place`);
-      if (b.dataset.sel === 'unique') {
-        // Make unique: the day's copies stay, their originals leave Tasks or their project (link.js). Brain Dump is never touched.
-        const linked = ids.filter(id => items.find(i => i.id === id)?.task_id);
-        if (!linked.length) return toast(n === 1 ? 'Already unique: it is only here' : 'Already unique: they are only here');
-        const undo = await makeUnique(linked);
-        if (!undo) return;
-        await refresh(); clearSelection();
-        undoable(`Made unique: ${linked.length === 1 ? `"${items.find(i => i.id === linked[0])?.title || 'item'}"` : `${linked.length} items`}`, async () => { await undo(); await refresh(); });
-        return;
-      }
+      if (b.dataset.sel === 'unique') return uniqueItems(ids);
       if (b.dataset.sel === 'tomorrow') { await moveMany(new Map(ids.map(id => [id, { date: addDays(date, 1), carried_from: date }])), `${plural} moved to tomorrow`); clearSelection(); }
       if (b.dataset.sel === 'archive') { await moveMany(new Map(ids.map(id => [id, { archived_at: new Date().toISOString() }])), `Archived ${plural}`); clearSelection(); }
       if (b.dataset.sel === 'delete') {
