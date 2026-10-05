@@ -4626,3 +4626,4 @@ html.case-open, html.case-open body { overflow: hidden; }
 .case-acts { display: flex; margin-top: 10px; }
 .case-honest { margin: 14px 0 0; font-size: .8rem; }
 @media (max-width: 520px) { .case-top .back kbd { display: none; } .case-title { font-size: 1.3rem; } .case-ev { grid-template-columns: 44px minmax(0, 1fr); } }
+.adv-order { grid-auto-flow: column; justify-content: start; gap: 18px; }
