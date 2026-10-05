@@ -32,7 +32,7 @@ import { openCase } from '../casepage.js';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
 const byPlace = byRank();
-const EXPORT_DEFAULTS = { todo: true, done: true, notes: true, comments: true, times: false, files: true, schedule: true };
+const EXPORT_DEFAULTS = { todo: true, done: true, notes: true, comments: true, times: false, files: true, schedule: true, doneFirst: false };
 
 export default {
   async mount(el) {
@@ -559,8 +559,7 @@ export default {
           c.log.forEach((e, n) => { const last = n === c.log.length - 1; out.push(`  ${last ? '└─' : '├─'} ${choices.times ? `${at(e.at)}  ` : ''}${e.text.split('\n').join(`\n  ${last ? '  ' : '│ '}  `)}`); });
         }
       };
-      cases('To do', todo);
-      cases('Done', done);
+      if (choices.doneFirst) { cases('Done', done); cases('To do', todo); } else { cases('To do', todo); cases('Done', done); }
       if (timed.length) out.push('', bold('Schedule'), ...timed.map(i => `${i.done_at ? (wa ? '✅' : '[x]') : (wa ? '⬜' : '[ ]')} ${showTime(i.time)}${i.end_time ? `–${showTime(i.end_time)}` : ''} ${i.title}`));
       return out.join('\n');
     }
@@ -569,7 +568,7 @@ export default {
         <p style="margin:.8em 0 .2em"><b>${c.i.done_at ? '☑' : '☐'} ${c.i.done_at ? `<s>${esc(c.i.title)}</s>` : esc(c.i.title)}</b>${c.i.done_at && choices.times ? ` <span style="color:#666">(done ${esc(at(c.i.done_at))})</span>` : ''}</p>
         ${c.noteHtml ? `<div style="color:#444;margin-left:1.5em">${c.noteHtml}</div>` : ''}
         ${c.log.length ? `<table style="margin-left:.45em;border-collapse:collapse">${c.log.map((e, n) => `<tr><td style="color:#999;padding:0 6px 0 0;vertical-align:top;white-space:nowrap;font-family:Consolas,Menlo,monospace;line-height:1.5">${n === c.log.length - 1 ? '└─' : '├─'}</td>${choices.times ? `<td style="color:#666;padding:0 12px 0 0;vertical-align:top;white-space:nowrap;line-height:1.5">${esc(at(e.at))}</td>` : ''}<td style="padding:0;line-height:1.5">${e.html}</td></tr>`).join('')}</table>` : ''}`).join('')}` : '');
-      return `<h3>${esc(dayTitle())}</h3>${cases('To do', todo)}${cases('Done', done)}`
+      return `<h3>${esc(dayTitle())}</h3>${choices.doneFirst ? cases('Done', done) + cases('To do', todo) : cases('To do', todo) + cases('Done', done)}`
         + (timed.length ? `<h4>Schedule</h4><ul style="list-style:none;padding-left:0">${timed.map(i => `<li>${i.done_at ? '☑' : '☐'} <b>${esc(showTime(i.time))}${i.end_time ? `–${esc(showTime(i.end_time))}` : ''}</b> ${esc(i.title)}</li>`).join('')}</ul>` : '');
     }
     const CHOICES = [['todo', 'To do'], ['done', 'Done'], ['notes', 'Notes'], ['comments', 'Comments'], ['files', 'Photos and files added (file names; not the files)'], ['times', 'Times (when each comment, file and tick happened)'], ['schedule', "The day's schedule (timed items)"]];
@@ -579,6 +578,8 @@ export default {
         <h2>Share ${esc(dayTitle())}</h2>
         <p class="muted">What goes in:</p>
         <div class="adv-choices">${CHOICES.map(([k, words]) => `<label><input type="checkbox" data-choice="${k}"${choices[k] ? ' checked' : ''}> ${esc(words)}</label>`).join('')}</div>
+        <p class="muted">Order:</p>
+        <div class="adv-choices adv-order" role="radiogroup" aria-label="Order"><label><input type="radio" name="adv-order" data-order="todo"${choices.doneFirst ? '' : ' checked'}> Not done first</label><label><input type="radio" name="adv-order" data-order="done"${choices.doneFirst ? ' checked' : ''}> Done first</label></div>
         <div class="sheet-actions adv-export-actions">
           <button type="button" data-export="close">Cancel</button>
           <span class="spacer"></span>
@@ -591,8 +592,9 @@ export default {
     }
     $('.adv-export').addEventListener('change', async ev => {
       const k = ev.target.dataset.choice;
-      if (!k) return;
-      choices[k] = ev.target.checked;
+      if (ev.target.dataset.order) choices.doneFirst = ev.target.dataset.order === 'done';
+      else if (k) choices[k] = ev.target.checked;
+      else return;
       await store.updateDeviceSettings({ advanced_share: choices });
     });
     $('.adv-export').addEventListener('click', async ev => {

@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.64': [{ text: "Day Planner, Advanced, Share: a new Order choice, Not done first (as before) or Done first. Sift remembers it for next time.", go: '#/planner', at: '#main .advanced-link' }],
   '1.60.63': [{ text: "Day Planner, Advanced: View case beside each task's name (where More was) opens the task on a screen of its own: its name, note and status first, with ✓ Mark case done; then its whole history; then the rest of its details. ‹ Back or Esc goes back to Advanced. The full panel is still on ⋯ or Shift+Enter, and View case is in it too (and in Tasks and the Day Planner).", go: '#/planner/today/advanced', at: '#main .adv-row .adv-case-chip' }],
   '1.60.62': [{ text: "Tasks, the Day Planner and Advanced: Open as case shows one task full screen, like a support case: its details first (status, when it was opened and closed, project, day, owner, people and the rest, each with when it last changed), its note and files, then its whole history in time order: opened, put on a day, ticked and unticked, every comment with its photos and files, let go or archived, and the edits made on this device. Add a comment or a photo at the bottom, or close it as done. ‹ Back or Esc goes back. It's at the bottom of a task's full panel (More) in Advanced, the Day Planner and Tasks.", go: '#/planner/today/advanced', open: ['#main .adv-row .adv-more'], at: '#main .adv-panel-li [data-act="open-case"]', more: "The Day Planner and Tasks: Open as case at the bottom of a task's full panel." }],
   '1.60.61': [{ text: "Day Planner, Advanced: More beside a task's name (or its ⋯, or Shift+Enter while editing its name) opens the same full panel as in the Day Planner, under its row: estimated time, move to another day, energy, note, files, comments, and Let go, → Tasks, Make unique, Archive and Delete. Esc or ✓ Close puts it away.", go: '#/planner', at: '#main .advanced-link' }],
@@ -111,6 +112,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.64': '2026-10-05T14:57:10Z',
   '1.60.63': '2026-10-05T14:53:35Z',
   '1.60.62': '2026-10-05T14:44:38Z',
   '1.60.61': '2026-10-05T14:35:22Z',
