@@ -74,7 +74,7 @@ export default {
 
     // ---------- the rows ----------
     // A row: ⠿, tick, the name with its note beside it (smaller, in italics), then on the right the
-    // latest comments, a line to add one, 📎 and All n. Pointing at the comments (or All n) opens all
+    // latest comments, a line to add one, 📎 and All n. Clicking the comments (or All n) opens all
     // of the case's comments over the page, scrolling, to add, edit, remove and attach.
     const LATEST = 2;
     const filesOf = new Map(); // parent id → its files
@@ -188,9 +188,8 @@ export default {
     }
 
     // All of a case's comments, over the page under its row: the full comments box (add, edit, remove, attach), scrolling.
-    let pop = null, popTimer = null;
+    let pop = null;
     function openPop(rowEl) {
-      clearTimeout(popTimer);
       if (pop?._row === rowEl) return;
       closePop();
       pop = document.createElement('div');
@@ -200,34 +199,17 @@ export default {
       rowEl.querySelector('.adv-side').append(pop);
       mountComments(pop, () => {});
       rowEl.classList.add('popped');
-      pop.addEventListener('pointerenter', () => clearTimeout(popTimer));
-      pop.addEventListener('pointerleave', () => laterClose());
     }
     function closePop() {
-      clearTimeout(popTimer);
       if (!pop) return;
       const was = pop;
       pop = null;
       was._row.classList.remove('popped');
       was.remove();
     }
-    // Leaving it closes it a moment later (not while writing in it), and the row's latest comments are drawn again.
-    function laterClose() {
-      clearTimeout(popTimer);
-      popTimer = setTimeout(() => { if (!pop || pop.contains(document.activeElement) || pop.querySelector('.pill-menu, .ref-picker')) return; closePop(); render(); }, 350);
-    }
-    const hovers = matchMedia('(hover: hover) and (pointer: fine)');
-    el.addEventListener('pointerover', ev => {
-      if (!hovers.matches) return;
-      const side = ev.target.closest?.('.adv-latest, .adv-all');
-      if (side) { clearTimeout(popTimer); popTimer = setTimeout(() => openPop(side.closest('.adv-row')), 300); }
-    }, page);
-    el.addEventListener('pointerout', ev => {
-      if (!hovers.matches || !pop) return;
-      if (ev.target.closest?.('.adv-latest, .adv-all') && !pop.contains(ev.relatedTarget)) laterClose();
-      else if (!ev.target.closest?.('.adv-latest, .adv-all')) clearTimeout(popTimer && !pop ? popTimer : null);
-    }, page);
-    document.addEventListener('pointerdown', ev => { if (pop && !pop.contains(ev.target) && !ev.target.closest('.adv-latest, .adv-all, .pill-menu, dialog, .toast')) { closePop(); render(); } }, page);
+    // It opens only on a click (the latest comments, or All n). A press anywhere else closes it and still does what was pressed
+    // (a tick ticks): the row's latest comments are drawn again only after that click has happened.
+    document.addEventListener('pointerdown', ev => { if (pop && !pop.contains(ev.target) && !ev.target.closest('.adv-latest, .adv-all, .pill-menu, dialog, .toast')) { closePop(); setTimeout(refresh, 400); } }, page);
     addEventListener('keydown', ev => { if (ev.key === 'Escape' && pop && !ev.defaultPrevented && !typingIn(ev.target)) { ev.preventDefault(); closePop(); render(); } }, { capture: true, signal: gone.signal });
 
     // A comment typed on the row's own line: added there, and the row shows it.
