@@ -23,7 +23,7 @@ import { deleteLinked, deleteAll, makeUnique } from '../link.js';
 import { pillMenu } from '../pillmenu.js';
 import { askEmptied } from '../ask.js';
 import { keys } from '../keys.js';
-import { summarise } from '../summary.js';
+import { summarise, offerTime, spotWhen } from '../summary.js';
 import { keepDraft, draftCleared } from '../drafts.js';
 import { autosizeAll } from '../inline.js';
 import { addTask } from '../tasks.js';
@@ -420,7 +420,16 @@ export default {
       const made = await addItem(date, { title: short.title, notes: short.notes, rank: firstKey(items.filter(i => !i.time)) });
       await render();
       $('#adv-new').focus();
-      undoable(`Added "${title}"`, async () => { await store.remove('day_items', made.id); await render(); });
+      const unadd = async () => { await store.remove('day_items', made.id); await render(); };
+      // A time typed in the name (summary.js spotTime): the same Set time message as Tasks and the Day Planner.
+      const spotted = short.spotted;
+      if (!spotted) { undoable(`Added "${made.title}"`, unadd); return; }
+      offerTime(spotted, { added: `Added "${made.title}"`, undo: unadd, apply: async () => {
+        const before = await store.get('day_items', made.id);
+        await store.update('day_items', made.id, { title: summarise(spotted.title).title, time: spotted.time, end_time: spotted.end_time });
+        await render();
+        undoable(`Time set to ${spotWhen(spotted)}`, async () => { await store.update('day_items', made.id, { title: before.title, time: before.time, end_time: before.end_time }); await render(); });
+      } });
     });
 
     // ---------- share: the day's cases as text ----------
