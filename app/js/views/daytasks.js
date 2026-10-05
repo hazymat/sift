@@ -1,4 +1,4 @@
-// Advanced day tasks: one day's tasks as cases, for working on several at once
+// Advanced day tasks (Esc never leaves it: it only steps out of what's being edited; ‹ Day Planner does): one day's tasks as cases, for working on several at once
 // (#/planner/<YYYY-MM-DD>/advanced, from the Advanced link under the Day
 // Planner's tasks). Each task is a card with its tick, note, comments and
 // files all on show; ticked ones drop to Done, crossed out. The day's schedule
@@ -44,7 +44,7 @@ export default {
 
     el.innerHTML = `<div class="adv">
       <div class="adv-top">
-        <button type="button" class="back" data-act="back">‹ Day Planner${keys('Esc')}</button>
+        <button type="button" class="back" data-act="back">‹ Day Planner</button>
         <div class="day-nav adv-nav">
           <button type="button" data-act="prev" class="day-step" aria-label="Previous day"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg></button>
           <button type="button" data-act="today">Today</button>

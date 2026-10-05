@@ -434,7 +434,6 @@ function stepUp(hash) {
   if (!rest.length) return null;
   if (id === 'recipes' && rest[1] === 'make') return rest.includes('list') ? '#/recipes' : `#/recipes/${rest[0]}`; // a batch opened from the batches list goes back to it
   if (['lists', 'scans', 'contracts', 'recipes'].includes(id)) return `#/${id}`;
-  if (id === 'planner' && rest[1] === 'advanced') return `#/planner/${rest[0]}`; // Advanced day tasks back to the day
   if (id === 'tasks' && rest[0] === 'list' && rest[1]) return '#/tasks/projects'; // a project's page
   if (id === 'contacts') {
     if (rest[0] === 'c') return '#/contacts';
