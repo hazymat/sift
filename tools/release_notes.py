@@ -1062,3 +1062,4 @@ NOTES['1.60.66'] = [
     F("Advanced, Share: a Time taken choice (Working time, Open time, Both, None), in every format. Copy as rich text is now a ticket report: a header band with the date and counts, shaded section headings, each case with an Open or Closed label, its times and its comments, in plain tables that paste into Outlook, Word and Teams."),
 ]
 NOTES['1.60.67'] = [F("Day Planner, Advanced: a ticket-queue layout, with counts at the top, column heads, To do and Done group bars, a status badge and Updated time on each row, and the schedule as a card on the right. Nothing about how it works has changed.")]
+NOTES['1.60.68'] = [F("View case restyled to match Advanced's ticket queue: status label, Mark case done beside the name, time tiles, and cards for the description with Add a comment, the history grouped by day, and the details as a list.")]

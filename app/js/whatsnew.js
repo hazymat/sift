@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.68': [{ text: "View case now looks like Advanced's ticket queue: an Open or Closed label by the name with ✓ Mark case done beside it, tiles for working time, open time, opened and closed, then cards for the description and Add a comment, the history (grouped by day, comments marked in amber, opened in blue, closed in green) and the details as a list.", go: '#/planner/today/advanced', open: ['#main .adv-row .adv-case-chip'], at: '.case-page .case-stats' }],
   '1.60.67': [{ text: "Day Planner, Advanced: laid out like an IT ticket queue. Counts at the top (To do, Done, Updates today, Scheduled), then one card with column heads (Status, Task, Latest update, Updated), To do and Done group bars, and a compact row per task with its status badge and when it was last updated. The schedule is a card on the right. Everything works as before: ticks, dragging, comments, View case, ⋯, Share and the Selections bar.", go: '#/planner', at: '#main .advanced-link' }],
   '1.60.66': [
     { text: "View case: Working time (from the first comment to closed) and Open time (from when the task was made to closed) show beside its status; while it's open, the time so far.", go: '#/planner/today/advanced', open: ['#main .adv-row .adv-case-chip'], at: '.case-page .case-grid' },
@@ -118,6 +119,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.68': '2026-10-05T15:19:45Z',
   '1.60.67': '2026-10-05T15:15:07Z',
   '1.60.66': '2026-10-05T15:13:04Z',
   '1.60.65': '2026-10-05T15:07:31Z',
