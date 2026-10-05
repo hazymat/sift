@@ -10,6 +10,7 @@ import { flash, SOFT, WASH } from '../flash.js';
 import * as store from '../store.js';
 import { shareSheet, sharedWithText, invitesHtml, theirIconHtml } from '../sharing.js';
 import { sharedProjects, projectMembers, sharedValue, sharedFrom, moveIntoShared, loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES, HORIZONS, horizonOf, planDay, MAX_DEPTH, depthIn, levelsUnder, archiveOldDone } from '../tasks.js';
+import { deleteLinked, deleteAll } from '../link.js';
 import { ENERGY, isoDate, dateText, addDays, parseDate, addItem, durationChoices, durationLabel } from '../days.js';
 import { energyMenu, pillMenu } from '../pillmenu.js';
 import { tintHex, tintId, colourMenu } from '../colours.js';
@@ -1258,7 +1259,7 @@ export default {
       // In a shared project: give the chosen tasks to someone sharing it (or nobody), as the 👤 Who pill does.
       { id: 'assign', label: 'Assign to…', keepSelection: true, when: () => !!state.project && projectMembers(state.project, state.owner).length > 0, run: ids => pickOwner(ids) },
       { id: 'archive', label: 'Archive', key: 'A', run: ids => batchSet(ids, { archived_at: new Date().toISOString() }, 'Archived', { subs: true }) },
-      { id: 'delete', label: 'Delete', key: 'D', danger: true, run: ids => batchSet(ids, { deleted_at: new Date().toISOString() }, 'Deleted', { subs: true }) },
+      { id: 'delete', label: 'Delete', key: 'D', danger: true, run: ids => deleteTasks(withSubs(ids)) },
     ];
 
     // Phones: swipe a task sideways (rowswipe.js): left for ✓ Done and ⋯ More, right for Delete.
@@ -1686,12 +1687,23 @@ export default {
       for (let r = li.nextElementSibling; r && !(r.matches('li[data-task]') && Number(r.dataset.depth || 0) <= d) && !r.matches('.list-head'); r = r.nextElementSibling) out.push(r);
       return out;
     }
+    // Deleting tasks with copies on the Day Planner asks whether those go too (link.js).
+    async function deleteTasks(ids, label = null) {
+      const pick = await deleteLinked({ tasks: ids }, state.project ? 'this project' : 'Tasks');
+      if (!pick) return false;
+      const undo = await deleteAll(pick);
+      open = null;
+      await render();
+      undoable(`${label || `Deleted ${ids.length} task${ids.length === 1 ? '' : 's'}`}${pick.items.length ? ' and its Day Planner copies' : ''}`, async () => { await undo(); await render(); });
+      return true;
+    }
     // Delete or archive a task, with its sub-tasks.
     async function retire(task, act) {
       const field = act === 'delete' ? 'deleted_at' : 'archived_at';
       const ids = [task.id];
       const collect = pid => data.tasks.filter(k => k.parent_task_id === pid).forEach(k => { ids.push(k.id); collect(k.id); });
       collect(task.id);
+      if (act === 'delete') return deleteTasks(ids, `Deleted "${task.title}"${ids.length > 1 ? ` and ${ids.length - 1} sub-task${ids.length > 2 ? 's' : ''}` : ''}`);
       const now = new Date().toISOString();
       await store.updateMany('tasks', ids.map(x => [x, { [field]: now }]));
       open = null;

@@ -4490,3 +4490,59 @@ html.kb-open :is(.sticky-top, .find-sticky, .dump-bar, .bb-sticky, .list-top, .b
 #main[data-density="tight"] :is(.pile-paper, #lines) .line.has-item > .content:has(> .note-tag):not(:has(> .span-tag:not(.note-tag))) > textarea.item-title { flex: 1 1 0; }
 #main[data-density="tight"] :is(.pile-paper, #lines) .line.has-item > .content:not(:has(> .span-tag:not(.note-tag))) > .note-tag { margin: 4px 4px 0 6px; align-self: flex-start; }
 @media (hover: hover) { #main[data-density="tight"] :is(.pile-paper, #lines) .line.has-item > .content:hover:not(:has(> .span-tag:not(.note-tag))) > .note-tag { visibility: hidden; } }
+
+/* Advanced day tasks (views/daytasks.js): one day's tasks as cases, each a card with its note, comments and files on show; the day's schedule as a list on the right. */
+.pile .advanced-link { display: inline-block; margin: 6px 0 0 4px; font-size: .85rem; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+.pile .advanced-link:hover { color: var(--text); }
+.adv-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.adv-top .back { padding: 6px 14px 6px 10px; }
+.adv-top .adv-nav { margin: 0; }
+.adv-top .spacer { flex: 1; }
+.adv-top .share-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; }
+.adv-top .share-btn .icon { width: 18px; height: 18px; }
+.adv-day { margin: 6px 0 12px; font-size: 1.6rem; }
+.adv-word { font-size: .95rem; font-weight: 500; }
+.adv-body { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 20px; align-items: start; }
+@media (max-width: 1000px) { .adv-body { grid-template-columns: 1fr; } .adv-schedule { order: -1; } }
+.adv-h { display: flex; align-items: baseline; gap: 8px; margin: 14px 0 8px; font-size: .85rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.adv-new input { width: 100%; box-sizing: border-box; padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--glass-border); background: var(--glass); color: var(--text); font: inherit; }
+.adv-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); gap: 12px; align-items: start; }
+.adv-card { position: relative; padding: 8px 12px 6px 4px; border-radius: 18px; border: 1px solid var(--glass-border); background: var(--glass); box-shadow: var(--glass-highlight); }
+.adv-card.selected { outline: 2px solid var(--accent); outline-offset: -1px; }
+.adv-head { position: relative; display: flex; align-items: flex-start; gap: 4px; }
+.adv-head .drag-handle { width: 26px; height: 30px; flex: none; }
+.adv-head .tick { margin: 7px 6px 0 0; }
+.adv-title { flex: 1; min-width: 0; padding: 4px 0; border: 0; background: transparent; box-shadow: none; resize: none; overflow: hidden; color: var(--text); font: inherit; font-weight: 600; line-height: 1.4; field-sizing: content; }
+.adv-title:focus { outline: none; }
+.adv-card.done .adv-title { text-decoration: line-through; opacity: .5; }
+.adv-card.done :is(.adv-note, .comments, .att-row) { opacity: .7; }
+.adv-from { flex: none; align-self: center; font-size: .75rem; color: var(--muted); text-decoration: none; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--glass-border); max-width: 9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adv-from:hover { color: var(--text); }
+.adv-attach, .adv-more { flex: none; padding: 4px 8px; background: none; border: 0; box-shadow: none; color: var(--muted); cursor: pointer; }
+.adv-attach .icon { width: 17px; height: 17px; }
+.adv-attach:hover, .adv-more:hover { color: var(--text); }
+.adv-note, .adv-card > .comments, .adv-card > .att-row { margin-left: 34px; }
+.adv-note { font-size: .9rem; color: var(--muted); }
+.adv-card .comments { margin: 2px 0 4px 34px; }
+.adv-card .comments > .panel-h { display: none; }
+.adv-empty { margin: 4px 0 0; }
+.adv-schedule { position: sticky; top: 12px; padding: 4px 14px 10px; border-radius: 18px; border: 1px solid var(--glass-border); background: var(--glass); }
+.adv-sched { list-style: none; margin: 0; padding: 0; }
+.adv-sched li { padding: 5px 0; border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent); font-size: .9rem; }
+.adv-sched li:last-child { border-bottom: 0; }
+.adv-sched .adv-when { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 4px; }
+.adv-sched li.done .adv-what, .adv-sched li.dropped .adv-what { text-decoration: line-through; opacity: .55; }
+.adv-choices { display: grid; gap: 8px; margin: 4px 0 14px; }
+.adv-choices label { display: flex; gap: 8px; align-items: center; }
+.adv-export-actions { flex-wrap: wrap; }
+.bring-move { display: flex; gap: 8px; align-items: baseline; margin: 2px 0 10px; font-size: .9rem; }
+.bring-move .muted { font-size: .82rem; }
+/* A card's note reads as a line under the name until clicked into. */
+.adv-note .rich { display: block; }
+.adv-note .rich-edit, .adv-note .rich-raw { min-height: 1.5em; padding: 2px 6px; font-size: .9rem; line-height: 1.4; background: transparent; border-color: transparent; box-shadow: none; }
+.adv-note:focus-within .rich-edit, .adv-note:focus-within .rich-raw { background: var(--glass-track); border-color: var(--active-border); }
+.adv-note .md-bar { display: none; }
+.adv-note:focus-within .md-bar { display: flex; }
+.adv-card .comment-add-row { display: flex; align-items: flex-start; }
+.adv-note .md-full { display: none; }
+.adv-note:focus-within .md-full { display: inline-flex; }

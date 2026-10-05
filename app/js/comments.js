@@ -14,6 +14,7 @@
 //   commentTexts()                every owner's comments as one string each (search)
 //   closingComment(owner)         the toast button after ticking something done
 //   moveComments(from, to)        e.g. a day-only item became a task: { item_id } → { task_id }
+//   attachAsComment(box, files)   files added as a comment of their own (timed like one)
 //
 // Links, as in notes: 📞 or 📝 typed (or pressed beside the box while writing)
 // opens the same search and puts a link in; phone numbers and emails become
@@ -352,6 +353,16 @@ function wire(box) {
       undoable('Comment deleted', async () => { await store.restore('comments', c.id); await draw(box); });
     }, { className: 'comment-menu' });
   });
+}
+
+// Files as a comment of their own, so when they were added shows as a comment's time does (the Advanced day tasks' 📎 Attach).
+export async function attachAsComment(box, files) {
+  if (!files.length) return;
+  const made = await store.create('comments', { ...ownerOf(box.dataset.comments), at: new Date().toISOString(), body: '' });
+  const added = await att.addFiles({ collection: 'comments', id: made.id }, files);
+  if (!added.length) { await store.remove('comments', made.id); return; }
+  await draw(box);
+  undoable(`Attached ${added.length === 1 ? added[0].name : `${added.length} files`}`, async () => { await store.remove('comments', made.id); for (const a of added) await store.remove('attachments', a.id); await draw(box); });
 }
 
 export async function mountComments(root, changed) {
