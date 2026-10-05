@@ -391,7 +391,7 @@ export default {
     });
     $('.view-menu').addEventListener('keydown', ev => { if (ev.key === 'Enter' && ev.target.dataset.nudgeText) ev.target.blur(); });
     // A 👁 Layout switch changed (here or on another device): Achievements follows it.
-    document.addEventListener('sift-layout', ev => { if (ev.detail?.area === 'planner') didThings(); }, page);
+    document.addEventListener('sift-layout', ev => { if (ev.detail?.area === 'planner') { didThings(); renderLines(); } }, page);
     $('.view-menu').addEventListener('click', async ev => {
       const b = ev.target.closest('[data-view-paper], [data-view-slot], [data-view-layout]');
       if (!b) return;
@@ -456,6 +456,7 @@ export default {
             ${noteEditing === i.id
               ? `<div class="note-edit" data-note-for="${i.id}"></div>`
               : subLine(i)}
+            ${doneInside.get(i.id)?.length ? `<div class="item-sub done-here">${doneInside.get(i.id).map(ticked => `<span title="Ticked off at ${fmt(fromMin(ticked.t))}">✓ ${fmt(fromMin(ticked.t))} <s>${esc(ticked.item.title)}</s></span>`).join('')}</div>` : ''}
           </span>
           ${i.time ? '<span class="resize-grip" title="Drag down to set how long" aria-hidden="true"></span>' : ''}
         </div>
@@ -549,6 +550,16 @@ export default {
         </div>`;
     }
 
+    // 👁 Layout: a task ticked off in the Tasks list also shows on the schedule, crossed out, at the
+    // time it was ticked (that day only). Its own row, so a slot can hold any number; inside an item
+    // spanning several slots it goes under that item's name instead (doneInside), keeping the block whole.
+    let doneInside = new Map();
+    const doneCopies = list => (layoutOn('planner', 'done-on-plan') ? list.filter(task => !task.time && task.done_at && !lifted.has(task.id)).map(task => {
+      const tickedAt = new Date(task.done_at);
+      return isoDate(tickedAt) === date ? { item: task, t: tickedAt.getHours() * 60 + tickedAt.getMinutes() } : null;
+    }).filter(Boolean).sort((first, second) => first.t - second.t) : []);
+    const doneRow = ticked => `<div class="line done done-copy" data-done-copy="${ticked.item.id}"><span class="margin">${fmt(fromMin(ticked.t))}</span><span class="content"><span class="copy-gap" aria-hidden="true">⠿</span><input type="checkbox" class="tick" checked aria-label="Done" title="Ticked off at ${fmt(fromMin(ticked.t))}. Untick to put it back in Tasks"><span class="item-title">${esc(ticked.item.title)}</span></span></div>`;
+
     function emptyRow(time, label, cls = '', takenBy = '') {
       return takenBy
         ? `<div class="line blank covered ${cls}" data-time="${time}" title="Taken by ${esc(takenBy)}"><span class="margin">${label}</span><span class="content"></span></div>`
@@ -577,12 +588,22 @@ export default {
       const rows = [];
       const itemEntry = (i, label) => rows.push({ html: itemRow(i, label), item: i });
 
-      // Before the day starts
-      timed.filter(i => at(i.time) < start).forEach(i => itemEntry(i, fmt(i.time)));
-
       // Covered = inside another item's time
       const spans = timed.map(i => [at(i.time), i.end_time ? at(i.end_time) : i.estimate_min ? at(i.time) + i.estimate_min : at(i.time), i]);
       const coveredBy = t => spans.find(([a, b]) => t > a && t < b)?.[2];
+      doneInside = new Map();
+      const copies = doneCopies(list).filter(ticked => {
+        const inside = spans.find(([from, to]) => to > from && ticked.t >= from && ticked.t < to)?.[2];
+        if (inside) doneInside.set(inside.id, (doneInside.get(inside.id) || []).concat(ticked));
+        return !inside;
+      });
+      // Timed items and ticked-off tasks between two slot lines, in time order.
+      const byTime = (first, second) => first.t - second.t;
+      const extras = (from, to, timedHere) => timedHere.map(item => ({ t: at(item.time), add: () => itemEntry(item, fmt(item.time)) }))
+        .concat(copies.filter(ticked => ticked.t >= from && ticked.t < to).map(ticked => ({ t: ticked.t, add: () => rows.push({ html: doneRow(ticked) }) }))).sort(byTime).forEach(entry => entry.add());
+
+      // Before the day starts
+      extras(-1, start, timed.filter(i => at(i.time) < start));
 
       for (let t = start; t <= end; t += step) {
         const here = timed.filter(i => at(i.time) >= t && at(i.time) < t + step && at(i.time) <= end + step - 1);
@@ -594,7 +615,7 @@ export default {
           const by = coveredBy(t);
           rows.push({ html: emptyRow(fromMin(t), label, by?._mark || '', by ? by.title : ''), coveredBy: by });
         }
-        between.forEach(i => itemEntry(i, fmt(i.time)));
+        extras(t, t + step, between);
       }
 
       // An item that runs over later slot lines becomes one block: the lines
@@ -614,9 +635,10 @@ export default {
       // Evening: anything after the last line's slot. It can be switched off
       // in Settings, but items already there still show.
       const evening = timed.filter(i => at(i.time) >= end + step);
-      if (settings.show_evening || evening.length) {
+      const eveningDone = copies.filter(c => c.t >= end + step);
+      if (settings.show_evening || evening.length || eveningDone.length) {
         out.push(`<div class="line section-label"><span class="margin"></span><span class="content">${esc(settings.evening_label || DAY_DEFAULTS.evening_label)}</span></div>`);
-        out.push(...evening.map(i => itemRow(i, fmt(i.time))));
+        evening.map(item => ({ t: at(item.time), html: itemRow(item, fmt(item.time)) })).concat(eveningDone.map(ticked => ({ t: ticked.t, html: doneRow(ticked) }))).sort(byTime).forEach(entry => out.push(entry.html));
         if (settings.show_evening) out.push(`<div class="line blank" data-time="evening"><span class="margin"></span><span class="content" data-act="add-at"></span></div>`);
       }
       linesEl.innerHTML = out.join('');
@@ -1596,7 +1618,9 @@ export default {
       const t = ev.target;
       const itemEl = t.closest('[data-item], [data-for]');
       const id = itemEl?.dataset.item || itemEl?.dataset.for;
-      if (t.classList.contains('task-tick')) {
+      const copyOf = t.closest('[data-done-copy]')?.dataset.doneCopy;
+      if (copyOf && t.classList.contains('tick')) await change(copyOf, { done_at: null }, 'Not done'); // a ticked-off task's place on the schedule (doneRow)
+      else if (t.classList.contains('task-tick')) {
         const taskId = t.closest('[data-task]').dataset.task;
         await store.update('tasks', taskId, doneFields(t.checked));
         renderTasks();
