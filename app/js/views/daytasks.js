@@ -27,12 +27,12 @@ import { keepDraft, draftCleared } from '../drafts.js';
 import { autosizeAll } from '../inline.js';
 import { addTask } from '../tasks.js';
 import { dayPanelHtml } from '../daypanel.js';
-import { openCase } from '../casepage.js';
+import { openCase, caseTimes, tookText } from '../casepage.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
 const byPlace = byRank();
-const EXPORT_DEFAULTS = { todo: true, done: true, notes: true, comments: true, times: false, files: true, schedule: true, doneFirst: false };
+const EXPORT_DEFAULTS = { todo: true, done: true, notes: true, comments: true, times: false, files: true, schedule: true, doneFirst: false, took: 'working' };
 
 export default {
   async mount(el) {
@@ -529,7 +529,8 @@ export default {
     // One case: its updates in time order (comments, and the files added to it).
     async function caseOf(i) {
       const owner = ownerOf(i.id);
-      const comments = choices.comments ? await commentsFor(owner) : [];
+      const all = await commentsFor(owner);
+      const comments = choices.comments ? all : [];
       const files = await att.byParent();
       const log = [];
       for (const c of comments) {
@@ -538,7 +539,8 @@ export default {
       }
       if (choices.files) for (const a of (files.get(i.id) || []).concat(owner.task_id ? files.get(owner.task_id) || [] : [])) log.push({ at: a.created_at, text: fileLine(a), html: esc(fileLine(a)) });
       log.sort((a, b) => (a.at || '').localeCompare(b.at || ''));
-      return { i, note: choices.notes ? plainNote(i.notes).trim() : '', noteHtml: choices.notes && (i.notes || '').trim() ? toHtml(unlink(i.notes)) : '', log };
+      const took = caseTimes({ opened: (owner.task_id && tasks.get(owner.task_id)?.created_at) || i.created_at, comments: all, closed: i.done_at });
+      return { i, took, note: choices.notes ? plainNote(i.notes).trim() : '', noteHtml: choices.notes && (i.notes || '').trim() ? toHtml(unlink(i.notes)) : '', log };
     }
     async function exportParts() {
       const all = items.filter(i => !i.time && !i.dropped_at);
@@ -546,6 +548,16 @@ export default {
       const done = choices.done ? all.filter(i => i.done_at).sort(byPlace) : [];
       const timed = choices.schedule ? items.filter(i => i.time).sort((a, b) => a.time.localeCompare(b.time)) : [];
       return { todo: await Promise.all(todo.map(caseOf)), done: await Promise.all(done.map(caseOf)), timed };
+    }
+    // Time taken, as chosen in Share (casepage.js caseTimes): working time, open time, both or none. Open cases: so far.
+    const TOOK = [['working', 'Working time (first comment to closed)'], ['open', 'Open time (created to closed)'], ['both', 'Both'], ['none', 'None']];
+    function tookParts(c) {
+      if (choices.took === 'none') return [];
+      const soFar = c.took.running ? ' so far' : '';
+      const out = [];
+      if (choices.took !== 'open') out.push(['Working', c.took.working == null ? 'no comments yet' : `${tookText(c.took.working)}${soFar}`]);
+      if (choices.took !== 'working') out.push(['Open', `${tookText(c.took.open)}${soFar}`]);
+      return out;
     }
     function asText({ todo, done, timed }, wa = false) {
       const bold = s => (wa ? `*${s}*` : s);
@@ -555,6 +567,8 @@ export default {
         out.push('', bold(title));
         for (const c of list) {
           out.push(`${c.i.done_at ? (wa ? '✅' : '[x]') : (wa ? '⬜' : '[ ]')} ${c.i.title}${c.i.done_at && choices.times ? ` (done ${at(c.i.done_at)})` : ''}`);
+          const took = tookParts(c);
+          if (took.length) out.push(`    Time taken: ${took.map(([k, v]) => `${k.toLowerCase()} ${v}`).join(', ')}`);
           if (c.note) out.push(...c.note.split('\n').filter(l => l.trim()).map(l => `    ${l.trim()}`));
           c.log.forEach((e, n) => { const last = n === c.log.length - 1; out.push(`  ${last ? '└─' : '├─'} ${choices.times ? `${at(e.at)}  ` : ''}${e.text.split('\n').join(`\n  ${last ? '  ' : '│ '}  `)}`); });
         }
@@ -563,13 +577,38 @@ export default {
       if (timed.length) out.push('', bold('Schedule'), ...timed.map(i => `${i.done_at ? (wa ? '✅' : '[x]') : (wa ? '⬜' : '[ ]')} ${showTime(i.time)}${i.end_time ? `–${showTime(i.end_time)}` : ''} ${i.title}`));
       return out.join('\n');
     }
+    // Rich text: a ticket report. Plain tables and inline styles only, so it pastes into Outlook, Word and Teams.
     function asHtml({ todo, done, timed }) {
-      const cases = (title, list) => (list.length ? `<h4>${esc(title)}</h4>${list.map(c => `
-        <p style="margin:.8em 0 .2em"><b>${c.i.done_at ? '☑' : '☐'} ${c.i.done_at ? `<s>${esc(c.i.title)}</s>` : esc(c.i.title)}</b>${c.i.done_at && choices.times ? ` <span style="color:#666">(done ${esc(at(c.i.done_at))})</span>` : ''}</p>
-        ${c.noteHtml ? `<div style="color:#444;margin-left:1.5em">${c.noteHtml}</div>` : ''}
-        ${c.log.length ? `<table style="margin-left:.45em;border-collapse:collapse">${c.log.map((e, n) => `<tr><td style="color:#999;padding:0 6px 0 0;vertical-align:top;white-space:nowrap;font-family:Consolas,Menlo,monospace;line-height:1.5">${n === c.log.length - 1 ? '└─' : '├─'}</td>${choices.times ? `<td style="color:#666;padding:0 12px 0 0;vertical-align:top;white-space:nowrap;line-height:1.5">${esc(at(e.at))}</td>` : ''}<td style="padding:0;line-height:1.5">${e.html}</td></tr>`).join('')}</table>` : ''}`).join('')}` : '');
-      return `<h3>${esc(dayTitle())}</h3>${choices.doneFirst ? cases('Done', done) + cases('To do', todo) : cases('To do', todo) + cases('Done', done)}`
-        + (timed.length ? `<h4>Schedule</h4><ul style="list-style:none;padding-left:0">${timed.map(i => `<li>${i.done_at ? '☑' : '☐'} <b>${esc(showTime(i.time))}${i.end_time ? `–${esc(showTime(i.end_time))}` : ''}</b> ${esc(i.title)}</li>`).join('')}</ul>` : '');
+      const FONT = "font-family:'Segoe UI',Calibri,Arial,sans-serif";
+      const NAVY = '#1f3a5f', LINE = '#d9e1ec', SOFT = '#5b6b80';
+      const td = (style, html) => `<td style="${style}">${html}</td>`;
+      const pill = (done) => `<span style="display:inline-block;padding:1px 8px;border-radius:9px;font-size:11px;font-weight:700;letter-spacing:.04em;color:#fff;background:${done ? '#2f855a' : '#2b6cb0'}">${done ? 'CLOSED' : 'OPEN'}</span>`;
+      const kase = c => {
+        const took = tookParts(c);
+        const meta = [...(c.i.done_at && choices.times ? [['Closed', at(c.i.done_at)]] : []), ...took];
+        const log = c.log.map(e => `<tr>${choices.times ? td(`width:1%;padding:4px 12px 4px 0;vertical-align:top;white-space:nowrap;border-top:1px solid #eef2f7;color:${SOFT};font-size:12px`, esc(at(e.at))) : ''}${td('padding:4px 0 4px 10px;vertical-align:top;border-top:1px solid #eef2f7;border-left:2px solid #cbd5e1;font-size:13px', e.html)}</tr>`).join('');
+        return `<tr><td style="padding:10px 14px;border-bottom:1px solid ${LINE};border-left:4px solid ${c.i.done_at ? '#2f855a' : '#2b6cb0'}">
+          <table cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse"><tr>
+            ${td('vertical-align:top', `${pill(c.i.done_at)} <b style="font-size:14px;color:#1a202c">${esc(c.i.title)}</b>`)}
+            ${meta.length ? td(`vertical-align:top;text-align:right;white-space:nowrap;font-size:12px;color:${SOFT}`, meta.map(([k, v]) => `${esc(k)}: <b style="color:#1a202c">${esc(v)}</b>`).join('<br>')) : ''}
+          </tr></table>
+          ${c.noteHtml ? `<div style="margin:6px 0 0;font-size:13px;color:#4a5568">${c.noteHtml}</div>` : ''}
+          ${log ? `<table cellpadding="0" cellspacing="0" style="width:100%;margin-top:6px;border-collapse:collapse">${log}</table>` : ''}
+        </td></tr>`;
+      };
+      const section = (title, list) => (list.length ? `<tr><td style="padding:7px 14px;background:#e8eef6;color:${NAVY};font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid ${LINE}">${esc(title)} (${list.length})</td></tr>${list.map(kase).join('')}` : '');
+      const sched = timed.length ? `<tr><td style="padding:7px 14px;background:#e8eef6;color:${NAVY};font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid ${LINE}">Schedule</td></tr>
+        <tr><td style="padding:6px 14px 10px"><table cellpadding="0" cellspacing="0" style="border-collapse:collapse">${timed.map(i => `<tr>${td(`padding:3px 14px 3px 0;white-space:nowrap;font-size:13px;color:${SOFT}`, `${esc(showTime(i.time))}${i.end_time ? `–${esc(showTime(i.end_time))}` : ''}`)}${td('padding:3px 0;font-size:13px', `${i.done_at ? '☑' : '☐'} ${esc(i.title)}`)}</tr>`).join('')}</table></td></tr>` : '';
+      const counts = `${todo.length ? `${todo.length} open` : ''}${todo.length && done.length ? ' · ' : ''}${done.length ? `${done.length} closed` : ''}`;
+      return `<table cellpadding="0" cellspacing="0" style="${FONT};width:100%;max-width:760px;border-collapse:collapse;border:1px solid ${LINE};color:#1a202c">
+        <tr><td style="padding:14px 16px;background:${NAVY};color:#fff">
+          <table cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse"><tr>
+            ${td('vertical-align:bottom;color:#fff', `<div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#b8c7dc">Day report</div><div style="font-size:20px;font-weight:700;color:#fff">${esc(dayTitle())}</div>`)}
+            ${td('vertical-align:bottom;text-align:right;font-size:13px;color:#dbe4f0', esc(counts))}
+          </tr></table>
+        </td></tr>
+        ${choices.doneFirst ? section('Done', done) + section('To do', todo) : section('To do', todo) + section('Done', done)}${sched}
+      </table>`;
     }
     const CHOICES = [['todo', 'To do'], ['done', 'Done'], ['notes', 'Notes'], ['comments', 'Comments'], ['files', 'Photos and files added (file names; not the files)'], ['times', 'Times (when each comment, file and tick happened)'], ['schedule', "The day's schedule (timed items)"]];
     function openExport() {
@@ -578,6 +617,8 @@ export default {
         <h2>Share ${esc(dayTitle())}</h2>
         <p class="muted">What goes in:</p>
         <div class="adv-choices">${CHOICES.map(([k, words]) => `<label><input type="checkbox" data-choice="${k}"${choices[k] ? ' checked' : ''}> ${esc(words)}</label>`).join('')}</div>
+        <p class="muted">Time taken on each case (open ones: so far):</p>
+        <div class="adv-choices adv-order" role="radiogroup" aria-label="Time taken">${TOOK.map(([k, words]) => `<label><input type="radio" name="adv-took" data-took="${k}"${choices.took === k ? ' checked' : ''}> ${esc(words)}</label>`).join('')}</div>
         <p class="muted">Order:</p>
         <div class="adv-choices adv-order" role="radiogroup" aria-label="Order"><label><input type="radio" name="adv-order" data-order="todo"${choices.doneFirst ? '' : ' checked'}> Not done first</label><label><input type="radio" name="adv-order" data-order="done"${choices.doneFirst ? ' checked' : ''}> Done first</label></div>
         <div class="sheet-actions adv-export-actions">
@@ -593,6 +634,7 @@ export default {
     $('.adv-export').addEventListener('change', async ev => {
       const k = ev.target.dataset.choice;
       if (ev.target.dataset.order) choices.doneFirst = ev.target.dataset.order === 'done';
+      else if (ev.target.dataset.took) choices.took = ev.target.dataset.took;
       else if (k) choices[k] = ev.target.checked;
       else return;
       await store.updateDeviceSettings({ advanced_share: choices });

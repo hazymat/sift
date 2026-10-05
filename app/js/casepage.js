@@ -37,6 +37,25 @@ const FIELD_WORDS = { title: 'Name', notes: 'Note', energy: 'Energy', estimate_m
 
 let current = null; // the open case: { close }
 
+// Time taken on a case, from the times Sift keeps (also Advanced's Share). Open time: created to closed (ticked
+// done); working time: the first comment (or file added as one) to closed. Open cases: the time so far (running).
+//   caseTimes({ opened, comments, closed })  → { open, working, running }  (milliseconds; working null with no comments)
+export function caseTimes({ opened, comments = [], closed = null }) {
+  const end = closed ? Date.parse(closed) : Date.now();
+  const first = comments.map(c => c.at).filter(Boolean).sort()[0];
+  // A comment older than the record (comments carried over by Make unique or → Tasks): open since then.
+  const start = [opened, first].filter(Boolean).sort()[0];
+  return { open: start ? Math.max(0, end - Date.parse(start)) : null, working: first ? Math.max(0, end - Date.parse(first)) : null, running: !closed };
+}
+// 45 min, 3 h 20 min, 2 d 4 h
+export function tookText(ms) {
+  if (ms == null) return '';
+  const min = Math.round(ms / 60000);
+  if (min < 60) return `${Math.max(min, 1)} min`;
+  const h = Math.floor(min / 60), d = Math.floor(h / 24);
+  return d ? `${d} d${h % 24 ? ` ${h % 24} h` : ''}` : `${h} h${min % 60 ? ` ${min % 60} min` : ''}`;
+}
+
 export async function openCase(owner, { closed, back } = {}) {
   current?.close();
   const page = document.createElement('div');
@@ -109,7 +128,7 @@ export async function openCase(owner, { closed, back } = {}) {
 
   // The details: only what's set, each with when it last changed (from any device).
   // basic: status, opened, closed, project, day (at the top); else the rest (under the history).
-  const BASIC = ['Status', 'Opened', 'Closed', 'Project', 'Day Planner'];
+  const BASIC = ['Status', 'Opened', 'Closed', 'Working time', 'Open time', 'Project', 'Day Planner'];
   function fieldsHtml(basic) {
     const { task, item, days, main, project, milestone, people, kase, thought } = data;
     const live = days.filter(i => !i.deleted_at && !i.archived_at);
@@ -119,6 +138,10 @@ export async function openCase(owner, { closed, back } = {}) {
     add('Status', task ? show('status', task.status || (task.done_at ? 'done' : 'todo')) : main.done_at ? 'Done' : 'To do', task || main, task ? 'status' : 'done_at');
     add('Opened', whenText(task?.created_at || days[0]?.created_at || main.created_at));
     if (main.done_at) add('Closed', whenText(main.done_at));
+    const took = caseTimes({ opened: task?.created_at || days[0]?.created_at || main.created_at, comments: data.comments, closed: main.done_at });
+    const soFar = took.running ? ' so far' : '';
+    add('Working time', took.working == null ? 'No comments yet' : `${tookText(took.working)}${soFar}`);
+    add('Open time', `${tookText(took.open)}${soFar}`);
     if (project) add('Project', `📁 ${project.name}`, task, 'project_id');
     if (milestone) add('Milestone', milestone.name, task, 'milestone_id');
     if (task && !project) add('List', show('horizon', task.horizon || 'now'), task, 'horizon');

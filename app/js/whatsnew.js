@@ -25,6 +25,10 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.66': [
+    { text: "View case: Working time (from the first comment to closed) and Open time (from when the task was made to closed) show beside its status; while it's open, the time so far.", go: '#/planner/today/advanced', open: ['#main .adv-row .adv-case-chip'], at: '.case-page .case-grid' },
+    { text: "Advanced, Share: choose Time taken on each case (Working time, Open time, Both or None), and Copy as rich text now gives a smart report: a dark header with the date, shaded section headings, each case with an Open or Closed label, its times on the right and its comments underneath. It pastes into Outlook, Word and Teams.", go: '#/planner/today/advanced', at: '#main [data-act=\"share\"]' },
+  ],
   '1.60.65': [{ text: "View case: Add a comment (and 📎) is now at the top, under the task's name and note, and the history runs newest first just below, so a new comment shows straight away.", go: '#/planner/today/advanced', open: ['#main .adv-row .adv-case-chip'], at: '.case-page .case-add' }],
   '1.60.64': [{ text: "Day Planner, Advanced, Share: a new Order choice, Not done first (as before) or Done first. Sift remembers it for next time.", go: '#/planner', at: '#main .advanced-link' }],
   '1.60.63': [{ text: "Day Planner, Advanced: View case beside each task's name (where More was) opens the task on a screen of its own: its name, note and status first, with ✓ Mark case done; then its whole history; then the rest of its details. ‹ Back or Esc goes back to Advanced. The full panel is still on ⋯ or Shift+Enter, and View case is in it too (and in Tasks and the Day Planner).", go: '#/planner/today/advanced', at: '#main .adv-row .adv-case-chip' }],
@@ -113,6 +117,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.66': '2026-10-05T15:13:04Z',
   '1.60.65': '2026-10-05T15:07:31Z',
   '1.60.64': '2026-10-05T14:57:10Z',
   '1.60.63': '2026-10-05T14:53:35Z',
