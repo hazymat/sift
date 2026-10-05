@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.58': [{ text: "Day Planner: a task ticked off in the Tasks list now also shows on the schedule, crossed out, at the time it was ticked, so the schedule shows what you actually did. Several can share one hour; one ticked during a longer item shows under that item's name. Switch it off in 👁, Layout.", go: '#/planner', open: ['#main details.view-menu > summary'], at: '#main [data-layout-set="done-on-plan"]' }],
   '1.60.57': [{ text: "Day Planner and Tasks, New task: type a time in a new task's name (Lavender 11.55, 11.55-12.30, 1155h, 11:55 -> 12:30, 3-4pm) and Sift asks, in the message at the bottom, whether to set it as the task's time: Set time puts it in the schedule (from Tasks, on its planned day's Day Planner, else today's) and takes the time out of the name.", go: '#/planner', at: '#main .pile-new' }],
   '1.60.56': [{ text: "Tasks, New task: Shift+Enter to add a note no longer puts a line between the name and the note; the line sits under the note and pills, as when editing a task. In every spacing.", go: '#/tasks/now', at: '#task-entry' }],
   '1.60.55': [{ text: "Day Planner, Compact spacing: a task's 📝 stays on its line at the far right, with the name wrapping before it, so each task takes less height. On a laptop, More takes its place while you point at the task.", go: '#/planner', at: '#main .pile-paper' }],
@@ -100,6 +101,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.58': '2026-10-05T09:42:55Z',
   '1.60.57': '2026-10-05T09:39:56Z',
   '1.60.56': '2026-10-05T06:49:21Z',
   '1.60.55': '2026-10-05T06:44:49Z',
