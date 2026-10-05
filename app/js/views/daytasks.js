@@ -457,7 +457,7 @@ export default {
         for (const c of list) {
           out.push(`${c.i.done_at ? (wa ? '✅' : '[x]') : (wa ? '⬜' : '[ ]')} ${c.i.title}${c.i.done_at && choices.times ? ` (done ${at(c.i.done_at)})` : ''}`);
           if (c.note) out.push(...c.note.split('\n').filter(l => l.trim()).map(l => `    ${l.trim()}`));
-          for (const e of c.log) out.push(choices.times ? `    ${at(e.at)}  ${e.text.split('\n').join('\n           ')}` : `    - ${e.text.split('\n').join('\n      ')}`);
+          c.log.forEach((e, n) => { const last = n === c.log.length - 1; out.push(`  ${last ? '└─' : '├─'} ${choices.times ? `${at(e.at)}  ` : ''}${e.text.split('\n').join(`\n  ${last ? '  ' : '│ '}  `)}`); });
         }
       };
       cases('To do', todo);
@@ -469,7 +469,7 @@ export default {
       const cases = (title, list) => (list.length ? `<h4>${esc(title)}</h4>${list.map(c => `
         <p style="margin:.8em 0 .2em"><b>${c.i.done_at ? '☑' : '☐'} ${c.i.done_at ? `<s>${esc(c.i.title)}</s>` : esc(c.i.title)}</b>${c.i.done_at && choices.times ? ` <span style="color:#666">(done ${esc(at(c.i.done_at))})</span>` : ''}</p>
         ${c.noteHtml ? `<div style="color:#444;margin-left:1.5em">${c.noteHtml}</div>` : ''}
-        ${c.log.length ? `<table style="margin-left:1.5em;border-collapse:collapse">${c.log.map(e => `<tr>${choices.times ? `<td style="color:#666;padding:2px 12px 2px 0;vertical-align:top;white-space:nowrap">${esc(at(e.at))}</td>` : '<td style="color:#666;padding:2px 8px 2px 0;vertical-align:top">•</td>'}<td style="padding:2px 0">${e.html}</td></tr>`).join('')}</table>` : ''}`).join('')}` : '');
+        ${c.log.length ? `<table style="margin-left:.45em;border-collapse:collapse">${c.log.map((e, n) => `<tr><td style="color:#999;padding:0 6px 0 0;vertical-align:top;white-space:nowrap;font-family:Consolas,Menlo,monospace;line-height:1.5">${n === c.log.length - 1 ? '└─' : '├─'}</td>${choices.times ? `<td style="color:#666;padding:0 12px 0 0;vertical-align:top;white-space:nowrap;line-height:1.5">${esc(at(e.at))}</td>` : ''}<td style="padding:0;line-height:1.5">${e.html}</td></tr>`).join('')}</table>` : ''}`).join('')}` : '');
       return `<h3>${esc(dayTitle())}</h3>${cases('To do', todo)}${cases('Done', done)}`
         + (timed.length ? `<h4>Schedule</h4><ul style="list-style:none;padding-left:0">${timed.map(i => `<li>${i.done_at ? '☑' : '☐'} <b>${esc(showTime(i.time))}${i.end_time ? `–${esc(showTime(i.end_time))}` : ''}</b> ${esc(i.title)}</li>`).join('')}</ul>` : '');
     }
