@@ -50,8 +50,10 @@ const wobble = (from, to, kick) => Array.from({ length: 41 }, (_, n) => {
 export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere = 0, keyboard = true, grid = false, onMove, onEnd, onCancel, onTap, onPaint, onLift, onDrag, onOnto, section = null } = {}) {
   let origin = null; // where the dragged row was picked up: { parent, next }
   let onto = null; // the row the dragged one is over the middle of (onOnto)
+  let leftOnto = null; // the row it was last onto, and when it came off: { el, at }
   const setOnto = el => {
     if (el === onto) return;
+    leftOnto = onto && !el ? { el: onto, at: performance.now() } : null;
     onto = el;
     onOnto?.(el);
     if (slot) slot.hidden = !!el; // the row it's over has the dashed outline instead (.nest-target)
@@ -115,8 +117,9 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
       return;
     }
     if (onOnto && !isSection()) {
-      // Over the middle third of a row: onto it, no reordering.
-      const over = siblings().find(el => { const r = rectOf(el); return clientY > r.top + r.height / 3 && clientY < r.bottom - r.height / 3; });
+      // Over the middle third of a row: onto it, no reordering. Once onto it, it stays so till nearly off
+      // its edge, so a finger's last little shift as it lifts (iPhone) doesn't drop it beside the row instead.
+      const over = siblings().find(el => { const r = rectOf(el), edge = r.height * (el === onto ? .15 : 1 / 3); return clientY > r.top + edge && clientY < r.bottom - edge; });
       if (over) { if (over !== onto) slid(() => setOnto(over)); return; }
       // Off it again: its own room comes back and it takes its new place in one go, so the rows
       // only slide to where they end up (not back to where they were first).
@@ -158,6 +161,7 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
 
   function lift(item, x, y) {
     dragging = item;
+    leftOnto = null;
     origin = { parent: item.parentNode, next: item.nextSibling };
     offsetY = y - item.getBoundingClientRect().top;
     offsetX = x - item.getBoundingClientRect().left;
@@ -291,8 +295,10 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     item.style.marginBottom = '';
     item.style.removeProperty('--dx');
     dragging = null;
-    const target = onto;
+    // Let go just after coming off a row (the finger shifting as it lifts): onto that row still, as was shown.
+    const target = onto || (!cancelled && leftOnto?.el.isConnected && performance.now() - leftOnto.at < 150 ? leftOnto.el : null);
     if (onto) setOnto(null);
+    leftOnto = null;
     const id = item.dataset.id;
     const put = () => {
       if (item.isConnected) { if (cancelled) onCancel?.({ item }); else onEnd?.({ item, dx, onto: target }); }
