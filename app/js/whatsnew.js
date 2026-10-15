@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.70': [{ text: "Lists and Find Things: opening or closing a card just as you switch away from the tab or app no longer causes a hidden error. Nothing else changes." }],
   '1.60.69': [{ text: "Lists, Tasks: on a phone, an item dragged onto another one now goes inside it when you let go, as its dashed outline showed, rather than landing underneath it.", go: '#/lists', at: '#main .list-card' }],
   '1.60.68': [{ text: "View case now looks like Advanced's ticket queue: an Open or Closed label by the name with ✓ Mark case done beside it, tiles for working time, open time, opened and closed, then cards for the description and Add a comment, the history (grouped by day, comments marked in amber, opened in blue, closed in green) and the details as a list.", go: '#/planner/today/advanced', open: ['#main .adv-row .adv-case-chip'], at: '.case-page .case-stats' }],
   '1.60.67': [{ text: "Day Planner, Advanced: laid out like an IT ticket queue. Counts at the top (To do, Done, Updates today, Scheduled), then one card with column heads (Status, Task, Latest update, Updated), To do and Done group bars, and a compact row per task with its status badge and when it was last updated. The schedule is a card on the right. Everything works as before: ticks, dragging, comments, View case, ⋯, Share and the Selections bar.", go: '#/planner', at: '#main .advanced-link' }],
@@ -120,6 +121,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.70': '2026-10-15T06:00:09Z',
   '1.60.69': '2026-10-12T20:47:57Z',
   '1.60.68': '2026-10-05T15:19:45Z',
   '1.60.67': '2026-10-05T15:15:07Z',

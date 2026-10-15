@@ -7,7 +7,8 @@
 export const ZOOM = 'box-zoom';
 
 export async function zoom(update) {
-  if (!document.startViewTransition) return update();
+  if (!document.startViewTransition || document.hidden) return update();
   const t = document.startViewTransition(update);
+  t.ready.catch(() => {}); // skipped (e.g. the tab went to the background): not an error
   await t.finished.catch(() => {});
 }
