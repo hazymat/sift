@@ -336,7 +336,8 @@ export default {
       for (const t of nested) {
         if (hideBelow != null && t.depth > hideBelow) continue;
         hideBelow = null;
-        if (!state.showDone && isDone(t) && !waitsForParent(t) && !(t.done_at > new Date(Date.now() - 60000).toISOString())) continue;
+        // (A task just ticked goes at once: its wave and fade have already played, tickAway.)
+        if (!state.showDone && isDone(t) && !waitsForParent(t)) continue;
         out.push(t);
         if (collapsed.has(t.id)) hideBelow = t.depth;
       }
