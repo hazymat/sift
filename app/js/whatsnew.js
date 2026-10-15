@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.71': [{ text: "Tasks and Projects: a task you tick off now stays gone after it fades away, instead of coming back into the list for a minute. Show done brings it back." }],
   '1.60.70': [{ text: "Lists and Find Things: opening or closing a card just as you switch away from the tab or app no longer causes a hidden error. Nothing else changes." }],
   '1.60.69': [{ text: "Lists, Tasks: on a phone, an item dragged onto another one now goes inside it when you let go, as its dashed outline showed, rather than landing underneath it.", go: '#/lists', at: '#main .list-card' }],
   '1.60.68': [{ text: "View case now looks like Advanced's ticket queue: an Open or Closed label by the name with ✓ Mark case done beside it, tiles for working time, open time, opened and closed, then cards for the description and Add a comment, the history (grouped by day, comments marked in amber, opened in blue, closed in green) and the details as a list.", go: '#/planner/today/advanced', open: ['#main .adv-row .adv-case-chip'], at: '.case-page .case-stats' }],
@@ -121,6 +122,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.71': '2026-10-15T19:14:13Z',
   '1.60.70': '2026-10-15T06:00:09Z',
   '1.60.69': '2026-10-12T20:47:57Z',
   '1.60.68': '2026-10-05T15:19:45Z',
