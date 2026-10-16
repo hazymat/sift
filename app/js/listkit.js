@@ -256,6 +256,8 @@ export function createListKit({
     if (wired.has(ul)) { paint(); return; }
     wired.add(ul);
     if (holdAnywhere && reorder) ul.dataset.holdDrag = '';
+    // A stray text selection left on the page (iPhone) steals the next hold, so a drag never starts: let it go first.
+    ul.addEventListener('touchstart', () => { const sel = getSelection(); if (sel?.rangeCount && !sel.isCollapsed && !typingIn(document.activeElement)) sel.removeAllRanges(); }, { passive: true });
     sortable(ul, {
       handle: '.drag-handle',
       anywhere: holdAnywhere && reorder ? 300 : 0,
@@ -276,6 +278,7 @@ export function createListKit({
         paint();
       },
       onLift: li => {
+        getSelection()?.removeAllRanges();
         paintBase = null;
         lifted = shape();
         document.body.classList.add('is-dragging');
