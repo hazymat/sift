@@ -947,7 +947,7 @@ export default {
 
     let lastTop = null; // the last top-level task added here ("- " lines go under it)
     let entryDepth = 0; // the New task line's level: 0 a task, 1 a sub-task, 2 under that
-    async function addLines(lines, { parent: startParent = null, extras = {}, focus = true } = {}) {
+    async function addLines(lines, { parent: startParent = null, extras = {}, focus = true, pad = false } = {}) {
       const made = [];
       let parent = startParent;
       const base = { project_id: state.project || null, horizon: LISTS.includes(state.view) ? state.view : 'inbox', ...extras.fields };
@@ -969,8 +969,10 @@ export default {
         made.push(t.id);
         if (!line.sub) { parent = t.id; lastTop = t.id; }
       }
+      // Writing pad: the next line opens just under the task added, as Enter in a task's name does.
+      if (pad) nextAfter = made.at(-1);
       await render();
-      if (focus) body.querySelector('#task-new')?.focus();
+      if (focus && !pad) body.querySelector('#task-new')?.focus();
       showAdded(body, made); // after the focus, so its scroll to the new task wins
       if (spotted) { offerTaskTime(made[0], spotted, `Added task: ${lines[0].text}`); return made; }
       undoable(`Added ${made.length} task${made.length === 1 ? '' : 's'} to ${HORIZONS.find(x => x.id === base.horizon)?.label || word('list_inbox')}${shortened ? ` (${shortened} long one${shortened === 1 ? '' : 's'} shortened, full text in the note)` : ''}`, async () => {
@@ -1084,7 +1086,7 @@ export default {
         ta.value = '';
         draftCleared(ta);
         reset();
-        return addLines([{ text, sub }], { parent: under || (sub ? lastTop : null), extras: { fields, note }, focus });
+        return addLines([{ text, sub }], { parent: under || (sub ? lastTop : null), extras: { fields, note }, focus, pad: focus && lay('add-top') });
       };
       // Esc or Ctrl+Enter in the note (before the notes editor's own Esc): with a
       // task typed, it's added (as Enter on its line); without, a note written is
