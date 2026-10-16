@@ -4053,6 +4053,9 @@ body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none
 @media (hover: none) {
   :is(#task-body, [data-hold-drag] > li) { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   :is(#task-body, [data-hold-drag] > li) :is(:is(input, textarea):not(.task-title), .task-title:focus, [contenteditable="true"], [contenteditable="true"] *) { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
+  /* Buttons and the bars of areas and tabs: never text to select. */
+  :is(button, nav, summary, [role="button"], [role="tab"], .tabbar) { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  :is(button, nav, summary, [role="button"], [role="tab"], .tabbar) :is(input, textarea, [contenteditable="true"], [contenteditable="true"] *) { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
 }
 
 /* Day Planner: Google Calendar above the schedule (👁 Show Google Calendar; planner.js, gcal.js). */
