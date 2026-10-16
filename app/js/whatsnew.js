@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.73': [{ text: "Tasks on iPhone: holding your finger on the list no longer starts a text selection that covers the rows in blue blocks. Typing in a task's name or note selects text as before." }],
   '1.60.72': [{ text: "Tasks: New task now writes like a pad. Type a task and press Enter: it goes in just under the New task line and the cursor carries on in a fresh line under it, so tasks go down the page in the order you type them. Tab makes the next line a sub-task, Shift+Tab brings it back; Esc or clicking away finishes. Advanced's New task keeps them in typed order too. To go back to how it was, untick 👁, Layout, Write like a pad.", go: '#/tasks', at: '#task-new' }],
   '1.60.71': [{ text: "Tasks and Projects: a task you tick off now stays gone after it fades away, instead of coming back into the list for a minute. Show done brings it back." }],
   '1.60.70': [{ text: "Lists and Find Things: opening or closing a card just as you switch away from the tab or app no longer causes a hidden error. Nothing else changes." }],
