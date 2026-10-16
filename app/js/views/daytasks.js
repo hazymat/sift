@@ -16,7 +16,8 @@ import { richText, toHtml } from '../richtext.js';
 import { debounced } from '../autosave.js';
 import * as att from '../attachments.js';
 import { createListKit, typingIn } from '../listkit.js';
-import { byRank, rankOf, reorderWrites, firstKey } from '../order.js';
+import { byRank, rankOf, reorderWrites, firstKey, keyBetween } from '../order.js';
+import { layoutOn } from '../viewcog.js';
 import { tickWave, fadeFold } from '../tickwave.js';
 import { commentsHtml, mountComments, commentsFor, closingComment, attachAsComment, moveComments } from '../comments.js';
 import { deleteLinked, deleteAll, makeUnique } from '../link.js';
@@ -504,7 +505,9 @@ export default {
       if (act === 'all') return pop?._row === cardEl ? (closePop(), render()) : openPop(cardEl);
     }, page);
 
-    // New task: at the top of To do.
+    // New task: at the top of To do. Writing like a pad (Tasks' 👁 Layout): the ones typed one after another go under each other.
+    let padAfter = null;
+    $('#adv-new').addEventListener('blur', () => { padAfter = null; });
     $('#adv-new').addEventListener('keydown', async ev => {
       if (ev.key === 'Escape') { ev.target.blur(); return; }
       if (ev.key !== 'Enter') return;
@@ -514,8 +517,11 @@ export default {
       ev.target.value = '';
       // A long line becomes a short title plus a note with the whole line: summarise(), the same as Tasks and the Day Planner.
       const short = summarise(title);
-      const made = await addItem(date, { title: short.title, notes: short.notes, rank: firstKey(items.filter(i => !i.time)) });
+      const todo = items.filter(i => !i.time), after = layoutOn('tasks', 'pad') && todo.find(i => i.id === padAfter);
+      const rank = after ? keyBetween(rankOf(after), todo.map(i => rankOf(i)).filter(k => k > rankOf(after)).sort()[0] || null) : firstKey(todo);
+      const made = await addItem(date, { title: short.title, notes: short.notes, rank });
       await render();
+      padAfter = made.id;
       $('#adv-new').focus();
       const unadd = async () => { await store.remove('day_items', made.id); await render(); };
       // A time typed in the name (summary.js spotTime): the same Set time message as Tasks and the Day Planner.
