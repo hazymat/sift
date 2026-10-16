@@ -86,6 +86,7 @@ const LAYOUTS = {
     { id: 'lined', label: 'Lined Paper' },
     { id: 'margin', label: 'Show margin', needs: 'lined' },
     { id: 'add-top', label: 'New tasks appear at top', def: true },
+    { id: 'pad', label: 'Write like a pad: after Enter, the next line opens under the task just added (Tab for a sub-task; Advanced too)', def: true, needs: 'add-top' },
     { id: 'pills-hide', label: 'Hide pills behind More (editing / new)', def: true },
     { id: 'more-panel', label: 'More goes straight to the full panel', needs: 'pills-hide' },
   ],

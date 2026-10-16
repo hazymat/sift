@@ -1086,7 +1086,7 @@ export default {
         ta.value = '';
         draftCleared(ta);
         reset();
-        return addLines([{ text, sub }], { parent: under || (sub ? lastTop : null), extras: { fields, note }, focus, pad: focus && lay('add-top') });
+        return addLines([{ text, sub }], { parent: under || (sub ? lastTop : null), extras: { fields, note }, focus, pad: focus && lay('add-top') && lay('pad') });
       };
       // Esc or Ctrl+Enter in the note (before the notes editor's own Esc): with a
       // task typed, it's added (as Enter on its line); without, a note written is

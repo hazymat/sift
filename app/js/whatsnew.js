@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.72': [{ text: "Tasks: New task now writes like a pad. Type a task and press Enter: it goes in just under the New task line and the cursor carries on in a fresh line under it, so tasks go down the page in the order you type them. Tab makes the next line a sub-task, Shift+Tab brings it back; Esc or clicking away finishes. Advanced's New task keeps them in typed order too. To go back to how it was, untick 👁, Layout, Write like a pad.", go: '#/tasks', at: '#task-new' }],
   '1.60.71': [{ text: "Tasks and Projects: a task you tick off now stays gone after it fades away, instead of coming back into the list for a minute. Show done brings it back." }],
   '1.60.70': [{ text: "Lists and Find Things: opening or closing a card just as you switch away from the tab or app no longer causes a hidden error. Nothing else changes." }],
   '1.60.69': [{ text: "Lists, Tasks: on a phone, an item dragged onto another one now goes inside it when you let go, as its dashed outline showed, rather than landing underneath it.", go: '#/lists', at: '#main .list-card' }],
@@ -122,6 +123,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.72': '2026-10-16T22:03:12Z',
   '1.60.71': '2026-10-15T19:14:13Z',
   '1.60.70': '2026-10-15T06:00:09Z',
   '1.60.69': '2026-10-12T20:47:57Z',
