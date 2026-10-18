@@ -3359,6 +3359,8 @@ dialog.att-view::backdrop { background: rgb(0 0 0 / .82); }
 .av-btn[hidden] { display: none; }
 .av-btn .icon { width: 22px; height: 22px; stroke-width: 2; }
 .av-close { top: calc(8px + env(safe-area-inset-top)); right: 12px; }
+.av-share { top: calc(8px + env(safe-area-inset-top)); left: 12px; }
+.av-btn:disabled { opacity: .4; }
 .av-arrow { top: 50%; transform: translateY(-50%); }
 .av-prev { left: 12px; }
 .av-next { right: 12px; }
