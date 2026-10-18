@@ -158,7 +158,8 @@ const DOC_ICON = '<svg class="av-doc-icon" viewBox="0 0 48 48" aria-hidden="true
 // The viewer: a picture full size to fit the screen, or for other files a
 // document card with Open. ← / → (the side arrows, or a swipe) move through the
 // note's files, stopping at the first and last; Esc, ✕ or a click on the dark
-// background closes it.
+// background closes it. Share (top left) hands the file itself to the device's
+// share sheet, or saves it where files can't be shared (Firefox on a computer).
 export function view(atts, start = 0) {
   if (!atts?.length) return;
   const dlg = document.createElement('dialog');
@@ -167,15 +168,37 @@ export function view(atts, start = 0) {
   dlg.innerHTML = `<div class="av-stage"></div>
     <p class="av-name" aria-live="polite"></p>
     <button type="button" class="av-btn av-close" aria-label="Close" title="Close (Esc)">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button>
+    <button type="button" class="av-btn av-share" aria-label="Share" title="Share">${svg('<path d="M12 15V3M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>')}</button>
     <button type="button" class="av-btn av-arrow av-prev" aria-label="Previous file" title="Previous (←)">${svg('<path d="M14.5 6l-6 6 6 6"/>')}</button>
     <button type="button" class="av-btn av-arrow av-next" aria-label="Next file" title="Next (→)">${svg('<path d="M9.5 6l6 6-6 6"/>')}</button>`;
   const stage = dlg.querySelector('.av-stage');
   const urls = new Map();
+  const files = new Map(); // id → File, kept ready so Share runs straight from the tap (iPhones refuse a share sheet after a wait)
   let at = -1;
   const urlOf = a => {
-    if (!urls.has(a.id)) urls.set(a.id, blobOf(a).then(b => (b ? URL.createObjectURL(b) : null)));
+    if (!urls.has(a.id)) urls.set(a.id, blobOf(a).then(b => {
+      if (!b) return null;
+      files.set(a.id, new File([b], a.name || 'file', { type: b.type || a.mime || '' }));
+      return URL.createObjectURL(b);
+    }));
     return urls.get(a.id);
   };
+  const shareBtn = dlg.querySelector('.av-share');
+  const canShare = file => { try { return !!navigator.canShare?.({ files: [file] }); } catch { return false; } };
+  async function share() {
+    const a = atts[at], file = files.get(a.id);
+    if (!file) return;
+    if (canShare(file)) {
+      try { await navigator.share({ files: [file], title: a.name }); return; }
+      catch (err) { if (err?.name === 'AbortError') return; } // closed the sheet; anything else saves instead
+    }
+    const link = document.createElement('a');
+    link.href = await urlOf(a);
+    link.download = file.name;
+    document.body.append(link);
+    link.click();
+    link.remove();
+  }
   const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   async function show(i, dir = 0) {
@@ -200,8 +223,13 @@ export function view(atts, start = 0) {
       slide.animate([{ transform: `translateX(${dir * 60}px)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 220, easing: 'ease-out' });
       for (const o of old) o.animate([{ transform: 'none', opacity: 1 }, { transform: `translateX(${-dir * 60}px)`, opacity: 0 }], { duration: 180, easing: 'ease-in', fill: 'forwards' }).onfinish = () => o.remove();
     } else old.forEach(o => o.remove());
+    shareBtn.disabled = true;
     const url = await urlOf(a);
     if (at !== i) return;
+    shareBtn.disabled = !url;
+    const sharing = url && canShare(files.get(a.id));
+    shareBtn.setAttribute('aria-label', sharing ? 'Share' : 'Save a copy');
+    shareBtn.title = sharing ? 'Share' : 'Save a copy';
     if (!url) {
       slide.insertAdjacentHTML('beforeend', `<p class="av-missing">This file isn't on this device yet: open Sift where it was added and let it sync.</p>`);
       slide.querySelector('.av-open')?.setAttribute('disabled', '');
@@ -218,6 +246,7 @@ export function view(atts, start = 0) {
   });
   dlg.addEventListener('click', async ev => {
     if (ev.target.closest('.av-close')) return close();
+    if (ev.target.closest('.av-share')) return share();
     if (ev.target.closest('.av-prev')) return show(at - 1, -1);
     if (ev.target.closest('.av-next')) return show(at + 1, 1);
     if (ev.target.closest('.av-open')) {

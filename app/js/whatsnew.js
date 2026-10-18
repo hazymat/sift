@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.75': [{ text: "Pictures and files: the viewer that opens when you press an attached photo or file now has a Share button at the top left. On an iPhone it opens the share sheet with the picture or file itself (Messages, Mail, Save Image and so on); on Windows, Windows' Share. Where a browser can't share files (Firefox on a computer), the same button saves a copy instead.", go: '#/dump', open: ['#main .att-open, #main .att-count'], at: '.att-view .av-share', more: 'The same viewer, and its Share button, opens from Tasks, the Day Planner, lists, Find Things and Scans.' }],
   '1.60.74': [{ text: "iPhone: the bar of areas at the bottom, tabs and buttons can no longer be selected as text. A bit of selected text left on the page also no longer stops you dragging a task onto another one to make it a sub-task." }],
   '1.60.73': [{ text: "Tasks on iPhone: holding your finger on the list no longer starts a text selection that covers the rows in blue blocks. Typing in a task's name or note selects text as before." }],
   '1.60.72': [{ text: "Tasks: New task now writes like a pad. Type a task and press Enter: it goes in just under the New task line and the cursor carries on in a fresh line under it, so tasks go down the page in the order you type them. Tab makes the next line a sub-task, Shift+Tab brings it back; Esc or clicking away finishes. Advanced's New task keeps them in typed order too. To go back to how it was, untick 👁, Layout, Write like a pad.", go: '#/tasks', at: '#task-new' }],
@@ -125,6 +126,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.75': '2026-10-18T16:27:05Z',
   '1.60.74': '2026-10-16T23:15:54Z',
   '1.60.73': '2026-10-16T23:13:21Z',
   '1.60.72': '2026-10-16T22:03:12Z',
