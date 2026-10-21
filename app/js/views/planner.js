@@ -22,6 +22,7 @@ import { rowSwipe } from '../rowswipe.js';
 import { holdToLift, HOLD_SKIP } from '../hold.js';
 import * as gcal from '../gcal.js';
 import { atEdge, caretTo, caretAt } from '../walk.js';
+import { flash, MOVED } from '../flash.js';
 import { debounced } from '../autosave.js';
 import { editPills, selectPill, energyPill } from '../editpills.js';
 import { keys, CTRL_ENTER } from '../keys.js';
@@ -736,6 +737,7 @@ const dayPlanner = {
     el.addEventListener('focusout', ev => { if (ev.target.matches?.('.line textarea.item-title')) requestAnimationFrame(clampTitles); }); // back to two lines
     el.addEventListener('input', ev => { if (ev.target.matches?.('#lines textarea.item-title')) requestAnimationFrame(clampTitles); }); // pills going under as it grows
 
+    let movedPulse = null; // a task just moved with Shift+Alt+↑ / ↓: its pulse starts again if a save redraws it straight after
     function renderPile(gapAt = null, gapInDone = false) {
       const all = items.filter(i => !i.time);
       const todo = all.filter(i => !i.done_at && !lifted.has(i.id)).sort(pileOrder);
@@ -758,6 +760,7 @@ const dayPlanner = {
       clampTitles();
       markAlt($('.pile-paper'));
       mountNoteEditors();
+      if (movedPulse && Date.now() < movedPulse.until) flash($('.pile-paper').querySelector(`.line.has-item[data-item="${CSS.escape(movedPulse.id)}"]`), MOVED);
     }
 
     // Tasks for this day: planned (start date), aim today, ongoing multi-day,
@@ -1419,6 +1422,8 @@ const dayPlanner = {
       const stop = walkStops($('.pile-paper')).find(s => s.key === item.id);
       if (!stop) return;
       stop.row.scrollIntoView({ block: 'nearest' });
+      movedPulse = { id: item.id, until: Date.now() + 600 };
+      flash(stop.row, MOVED);
       walkGo(stop, part, caret); // and again after any later redraw (the name's own save)
     });
 

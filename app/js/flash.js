@@ -16,6 +16,7 @@
 //                             a swipe lands on)
 //   WASH                      one flash of see-through yellow filling it (e.g. the
 //                             tab a swipe lands on)
+//   MOVED                     one quick yellow pulse inside it, no scrolling (a row moved with Shift+Alt+↑ / ↓)
 //   unflash(el)               stop its pulse now
 //
 // installFlash() (from app.js) watches for the item to appear after the page
@@ -39,6 +40,7 @@ const FIND = {
 export const SOFT = { pulses: 1, colour: '60 125 230', strength: .7, ms: 1100, width: 1.5, glow: 8 };
 
 export const WASH = { pulses: 1, colour: '255 224 70', strength: .55, ms: 450, width: 60, glow: 0, inset: true, radius: 8 }; // width: enough ring to fill it
+export const MOVED = { pulses: 1, scroll: false, ms: 650, width: 2, glow: 10, inset: true, radius: 8 };
 export const RING = { pulses: 1, colour: '125 195 255', strength: 1, ms: 900, width: 1, glow: 0, inset: true, radius: 8 };
 
 export function flash(el, { scroll = true, pulses = PULSES, colour = null, strength = 1, ms = PULSE_MS, width = 3, glow = 18, inset = false, radius = 12 } = {}) {

@@ -52,6 +52,7 @@ import { holdToLift } from './hold.js';
 import { toast } from './toast.js';
 import { keys, CTRL_ENTER } from './keys.js';
 import { caretAt, caretSet } from './walk.js';
+import { flash, MOVED } from './flash.js';
 
 // Is the keyboard busy with text (so Delete / Backspace edit it, not the list)?
 export const typingIn = el => !!el?.closest?.('input:not([type="checkbox"]):not([type="radio"]):not([type="button"]), textarea, select, [contenteditable]:not([contenteditable="false"])');
@@ -279,8 +280,12 @@ export function createListKit({
 
   // ---------- wiring a freshly rendered list ----------
   const wired = new WeakSet(); // a list element that survives re-renders is wired once
+  // Rows just moved with Shift+Alt+↑ / ↓ pulse yellow once (flash.js), again if a save redraws them straight after.
+  let movedPulse = null;
+  const pulseMoved = () => { if (movedPulse && Date.now() < movedPulse.until) for (const id of movedPulse.ids) flash(ul?.querySelector(`li[data-id="${CSS.escape(id)}"]`), MOVED); };
   function attach(list) {
     ul = list;
+    pulseMoved();
     if (!ul) { paint(); return; }
     if (wired.has(ul)) { paint(); return; }
     wired.add(ul);
@@ -479,6 +484,8 @@ export function createListKit({
         const row = ul?.querySelector(`li[data-id="${CSS.escape(id)}"]`);
         if (!row) return;
         row.scrollIntoView({ block: 'nearest' });
+        movedPulse = { ids: withChildren(row).map(r => r.dataset.id), until: Date.now() + 600 };
+        pulseMoved();
         if (refocus) return refocus(id, part, caret);
         const field = [...row.querySelectorAll(TYPING)][field_index] || row.querySelector(TYPING);
         if (!field) return;
