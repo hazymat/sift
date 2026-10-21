@@ -3511,11 +3511,16 @@ dialog.att-view::backdrop { background: rgb(0 0 0 / .82); }
 .scans-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
 .scans-head .scan-btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 20px; font-size: 1rem; }
 .scans-head .scan-btn .icon { width: 20px; height: 20px; }
+.scans-head .scan-photos { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.scans-head .scan-photos .icon { width: 18px; height: 18px; }
 .scans-head > .search-wrap { flex: 1 1 12em; }
 /* Phones: Scan (or + New contract), Share, 👁 and ⋯ on one line, the search full width under them (as Find Things'). */
 @media (max-width: 560px) {
   .scans-head > .search-wrap { order: 1; flex-basis: 100%; }
   .scans-head > .page-share { margin-left: auto; }
+  .scans-head .scan-btn { padding: 9px 14px; }
+  .scans-head .scan-photos { padding-inline: 12px; }
+  .scans-head { gap: 6px; }
 }
 .scan-kinds { margin: 0 0 8px; }
 .scan-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-top: 10px; }
