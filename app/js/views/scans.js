@@ -252,7 +252,7 @@ export default {
     async function take(files, camera = false) {
       if (!files.length) return;
       // A photo just taken with the camera is cut to the page and gets the scanned look (👁, Layout).
-      const opts = { look: camera && layoutOn('scans', 'scan-look'), edges: camera && layoutOn('scans', 'scan-edges') };
+      const opts = { look: camera && layoutOn('scans', 'scan-look') && (layoutOn('scans', 'scan-grey') ? 'grey' : 'colour'), edges: camera && layoutOn('scans', 'scan-edges') };
       if (pickFor) {
         const made = await addPages(pickFor, files, opts);
         await render();
