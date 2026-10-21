@@ -6,8 +6,9 @@
 //          summary?, note?, linked { collection, id, title }?, reminder_task_id?
 //
 //   KINDS                       the kinds, with labels
-//   newScan(files, fields)      saved at once with a default title ("Receipt 26 Sep 14:32")
-//   addPages(scan, files)       more pages (photos shrunk to 2000px, PDFs as they are)
+//   newScan(files, fields, { look })  saved at once with a default title ("Receipt 26 Sep 14:32")
+//   addPages(scan, files, { look })  more pages (photos shrunk to 2000px, PDFs as they are;
+//                               look: camera photos get the scanned look, scanlook.js)
 //   pagesByScan()               Map(scan id → its pages, oldest first)
 //   expirySoon(scan)            'past' | 'soon' (within 60 days) | ''
 //   binProvider                 for Archive & Bin
@@ -15,6 +16,7 @@
 import * as store from './store.js';
 import { addFiles } from './attachments.js';
 import { toast } from './toast.js';
+import { scanLook } from './scanlook.js';
 
 export const KINDS = [
   { id: 'receipt', label: 'Receipt', plural: 'Receipts' },
@@ -47,10 +49,11 @@ async function shrink(file) {
   } catch { return file; }
 }
 
-export async function addPages(scan, files) {
+export async function addPages(scan, files, { look = false } = {}) {
   const ready = [];
   for (const f of files) {
-    const s = await shrink(f);
+    let s = await shrink(f);
+    if (look && s.type.startsWith('image/')) s = await scanLook(s);
     if (s.size > MAX_BYTES) { toast(`Not added: ${f.name} is over 10 MB`); continue; }
     ready.push(s);
   }
@@ -60,10 +63,10 @@ export async function addPages(scan, files) {
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const stamp = d => `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.toTimeString().slice(0, 5)}`;
 
-export async function newScan(files, fields = {}) {
+export async function newScan(files, fields = {}, opts = {}) {
   const kind = fields.kind || 'receipt';
   const scan = await store.create('scans', { title: `${kindLabel(kind)} ${stamp(new Date())}`, kind, expiry_date: null, letter_date: null, summary: '', note: '', linked: null, ...fields });
-  const pages = files.length ? await addPages(scan, files) : [];
+  const pages = files.length ? await addPages(scan, files, opts) : [];
   if (files.length && !pages.length) { await store.remove('scans', scan.id); return null; }
   return scan;
 }

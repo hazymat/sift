@@ -7,7 +7,7 @@
 
 import { keys } from '../keys.js';
 import * as store from '../store.js';
-import { cogHtml } from '../viewcog.js';
+import { cogHtml, layoutOn } from '../viewcog.js';
 import { shareHtml } from '../share.js';
 import { KINDS, kindLabel, newScan, addPages, pagesByScan, expirySoon } from '../scans.js';
 import * as att from '../attachments.js';
@@ -156,29 +156,33 @@ export default {
     // ---------- adding ----------
 
     let pickFor = null; // a scan getting another page, or null for new scans
+    let fromCamera = false;
     function pick(forScan = null, camera = COARSE) {
       pickFor = forScan;
+      fromCamera = camera;
       input.multiple = !camera;
       if (camera) input.setAttribute('capture', 'environment'); else input.removeAttribute('capture');
       input.value = '';
       input.click();
     }
-    async function take(files) {
+    async function take(files, camera = false) {
       if (!files.length) return;
+      // A photo just taken with the camera gets the scanned look (👁, Layout).
+      const opts = { look: camera && layoutOn('scans', 'scan-look') };
       if (pickFor) {
-        const made = await addPages(pickFor, files);
+        const made = await addPages(pickFor, files, opts);
         await render();
         if (made.length) undoable(`Added ${made.length === 1 ? 'a page' : `${made.length} pages`}`, async () => { for (const m of made) await store.remove('attachments', m.id); await render(); });
         return;
       }
       const made = [];
-      for (const f of files) { const s = await newScan([f]); if (s) made.push(s); }
+      for (const f of files) { const s = await newScan([f], {}, opts); if (s) made.push(s); }
       if (!made.length) return;
       undoable(made.length === 1 ? `Saved: ${made[0].title}` : `Saved ${made.length} scans`, async () => { for (const s of made) await store.remove('scans', s.id); location.hash = '#/scans'; await render(); });
       if (made.length === 1) location.hash = `#/scans/${made[0].id}`;
       else await render();
     }
-    input.addEventListener('change', () => take([...input.files]));
+    input.addEventListener('change', () => take([...input.files], fromCamera));
 
     // Files dropped anywhere on the page (el is shared by every area: these go when Scans is left).
     const hasFiles = ev => [...(ev.dataTransfer?.types || [])].includes('Files');

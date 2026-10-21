@@ -99,6 +99,9 @@ const LAYOUTS = {
     { id: 'lined', label: 'Lined paper', def: true },
     { id: 'margin', label: 'Show margin', def: true, needs: 'lined' },
   ],
+  scans: [
+    { id: 'scan-look', label: 'Camera photos get a scanned look (grey, the paper white)', def: true },
+  ],
   planner: [
     { id: 'day-rel', label: 'Show "Today" or "In 5 days" under the date', def: true },
     { id: 'achievements', label: 'Show achievement count when tasks completed' },
