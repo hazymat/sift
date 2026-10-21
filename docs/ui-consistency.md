@@ -18,7 +18,7 @@ Every version that changes something on screen adds a What's new entry with a Sh
 
 **Keys**
 - **Shift+Enter** goes one step further: name, then quick edit with its note, then the full panel. Lists and the Day Planner's tasks (not its schedule) have no quick stage and go straight to the panel (1.55.05, 1.58.06, 1.58.09).
-- **↑ / ↓** move editing between rows edited in place (Tasks, Day Planner, an open list, a box's things); **Shift+↑ / ↓** select. The blue browsing box is only for cards and grids (1.55.07).
+- **↑ / ↓** move editing between rows edited in place (Tasks, Day Planner, an open list, a box's things); **Shift+↑ / ↓** select. The blue browsing box is only for cards and grids (1.55.07). Only from the row's own name: never from Add a comment or another field in a row, and not at all in Advanced, where tasks are chosen only from the ⠿ (with text typed it selects to the start or end of the line; Esc clears a choice, 1.60.78).
 - **Ticking off** (one tick, or Done / Tick on a selection bar) plays the same animation everywhere: `tickWave` then `fadeFold` in `tickwave.js` (tick springs with a ring, letters hop, light passes, line drawn, then fade and fold if the row is leaving). Tasks, Projects, Day Planner, Lists (1.56.02).
 - **Key labels on buttons** use `keys()` from `keys.js` (one box per key). A button showing a key centres its text, icon and keys as boxes (one rule in `app.css`), so they sit in the middle on every platform, Windows included (1.60.02).
 - **Esc closes a full panel** (✓ Close Esc) wherever the focus is, unless a sheet or pill menu is open on top (Day Planner 1.60.04).

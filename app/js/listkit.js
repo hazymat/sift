@@ -21,6 +21,7 @@
 //   sideways: false: dragging sideways doesn't indent or outdent (Tasks: onto a row makes a
 //     sub-item; a sub-item dragged down off the bottom of its family comes out of it)
 //   holdAnywhere: press and hold anywhere on a row drags it too (sortable.js), not only its ⠿
+//   textSelect: false keeps Shift+↑ / ↓ in a row's text fields as plain text selection (choosing starts only from the ⠿)
 //     (the ⠿ is still there for choosing several); holding it then doesn't open its panel (holdopen.js)
 //   families: rows keep their depth and a parent carries its children, but there's no indenting
 //   grid: true for cards laid out in rows and columns (drag follows the pointer both ways)
@@ -53,7 +54,7 @@ export const typingIn = el => !!el?.closest?.('input:not([type="checkbox"]):not(
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 export function createListKit({
-  reorder = true, indent = false, maxDepth = 1, actions = [], onReorder, noun = 'item', grid = false, families = false, onNest = null, holdAnywhere = false, sideways = true, holdSelect = false, rowSel = ':scope > li[data-id]', onSection = null,
+  reorder = true, indent = false, maxDepth = 1, actions = [], onReorder, noun = 'item', grid = false, families = false, onNest = null, holdAnywhere = false, sideways = true, holdSelect = false, rowSel = ':scope > li[data-id]', onSection = null, textSelect = true,
 } = {}) {
   const selected = new Set();
   let anchor = null;
@@ -421,7 +422,7 @@ export function createListKit({
     }
 
     // Shift+↑ / ↓ in a row's text: stop editing it (leaving saves it), and select it and the next row that way.
-    ul.addEventListener('keydown', ev => {
+    if (textSelect) ul.addEventListener('keydown', ev => {
       if ((ev.key !== 'ArrowUp' && ev.key !== 'ArrowDown') || !ev.shiftKey || ev.ctrlKey || ev.altKey || ev.metaKey || ev.defaultPrevented) return;
       if (!ev.target.matches('input:not([type="checkbox"]), textarea.one-line')) return;
       const li = ev.target.closest('li[data-id]');
