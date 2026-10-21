@@ -25,6 +25,10 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.80': [
+    { text: "Scans: a page photographed with Scan on a phone is now cut to the edges of the paper and straightened, so the table around it goes and a page shot at a slant comes out square. If the edges can't be found clearly, the whole photo is kept.", go: '#/scans', open: ['#main details.view-menu > summary'], at: '#main [data-layout-set="scan-edges"]' },
+    { text: "Scans: the text on photographed pages is read, on your device (nothing is sent anywhere), and shows under Pages as Text on it, with Copy. Searching Scans finds words in it. The first time, Sift fetches its reader (about 7 MB) from its own site.", go: '#/scans', open: ['#main .scan-card'], at: '#main .scan-text-sec', more: 'Switch either off in 👁, Layout.' },
+  ],
   '1.60.79': [{ text: "Scans: a page photographed with Scan on a phone now looks scanned: grey, with the paper white and the writing dark, and the shadows and yellow light taken out. Untick it in 👁, Layout to keep photos in colour.", go: '#/scans', open: ['#main details.view-menu > summary'], at: '#main [data-layout-set="scan-look"]' }],
   '1.60.78': [{ text: "Day Planner, Advanced: Shift with ↑ or ↓ in Add a comment (or a task's name) no longer starts choosing tasks; it selects the typed text to the start or end, as anywhere else. Tasks are chosen only from the ⠿ grab bars on the left, and Esc lets go of the chosen tasks, as in Tasks.", go: '#/planner/today/advanced', at: '#main .adv-row .drag-handle' }],
   '1.60.77': [{ text: "Keyboard browsing: going back up with the ↑ arrow no longer leaves the outlined box, note or card hidden under the bar at the top of the page (Find Things, and every other area with a bar that stays put)." }],
@@ -130,6 +134,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.80': '2026-10-21T13:11:42Z',
   '1.60.79': '2026-10-21T13:04:08Z',
   '1.60.78': '2026-10-21T13:02:04Z',
   '1.60.77': '2026-10-21T12:38:56Z',

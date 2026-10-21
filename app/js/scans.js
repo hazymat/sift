@@ -3,12 +3,15 @@
 // collection "scans"), so they are kept, synced and backed up like any other
 // attached file, and open in the same viewer.
 //   scans: title, kind (receipt|id|warranty|letter|other), expiry_date?, letter_date?,
-//          summary?, note?, linked { collection, id, title }?, reminder_task_id?
+//          summary?, note?, linked { collection, id, title }?, reminder_task_id?,
+//          page_text? { page (attachment) id: the text read on it (ocr.js) }
 //
 //   KINDS                       the kinds, with labels
 //   newScan(files, fields, { look })  saved at once with a default title ("Receipt 26 Sep 14:32")
 //   addPages(scan, files, { look })  more pages (photos shrunk to 2000px, PDFs as they are;
-//                               look: camera photos get the scanned look, scanlook.js)
+//                               look: camera photos get the scanned look, edges: cut to the
+//                               page's edges and straightened; scanlook.js)
+//   textOf(scan, pages?)        the text read on its pages, in page order
 //   pagesByScan()               Map(scan id → its pages, oldest first)
 //   expirySoon(scan)            'past' | 'soon' (within 60 days) | ''
 //   binProvider                 for Archive & Bin
@@ -49,11 +52,11 @@ async function shrink(file) {
   } catch { return file; }
 }
 
-export async function addPages(scan, files, { look = false } = {}) {
+export async function addPages(scan, files, { look = false, edges = false } = {}) {
   const ready = [];
   for (const f of files) {
     let s = await shrink(f);
-    if (look && s.type.startsWith('image/')) s = await scanLook(s);
+    if ((look || edges) && s.type.startsWith('image/')) s = await scanLook(s, { look, edges });
     if (s.size > MAX_BYTES) { toast(`Not added: ${f.name} is over 10 MB`); continue; }
     ready.push(s);
   }
@@ -80,6 +83,12 @@ export async function pagesByScan() {
   return map;
 }
 
+export function textOf(s, pages = null) {
+  const read = s.page_text || {};
+  const order = pages ? pages.map(a => a.id).filter(id => read[id]) : Object.keys(read);
+  return order.map(id => read[id]).filter(Boolean).join('\n\n');
+}
+
 export function expirySoon(s, today = new Date().toISOString().slice(0, 10)) {
   if (!s.expiry_date) return '';
   if (s.expiry_date < today) return 'past';
@@ -95,7 +104,7 @@ export const binProvider = {
     const inState = r => !r.purged_at && (kind === 'bin' ? !!r.deleted_at : !r.deleted_at && !!r.archived_at);
     const at = r => (kind === 'bin' ? r.deleted_at : r.archived_at);
     return (await store.list('scans', { includeDeleted: true })).filter(inState)
-      .map(s => ({ collection: 'scans', id: s.id, kind: kindLabel(s.kind), title: s.title, subtitle: s.summary || '', detail: s.expiry_date ? `expires ${s.expiry_date}` : '', at: at(s), children: [], search: `${s.title} ${s.summary || ''} ${s.note || ''}` }))
+      .map(s => ({ collection: 'scans', id: s.id, kind: kindLabel(s.kind), title: s.title, subtitle: s.summary || '', detail: s.expiry_date ? `expires ${s.expiry_date}` : '', at: at(s), children: [], search: `${s.title} ${s.summary || ''} ${s.note || ''} ${textOf(s)}` }))
       .sort((a, b) => (b.at || '').localeCompare(a.at || ''));
   },
 };

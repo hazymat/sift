@@ -70,6 +70,7 @@ const SHELL = [
   'js/walk.js',
   'js/scans.js',
   'js/scanlook.js',
+  'js/ocr.js',
   'js/contracts.js',
   'js/install.js',
   'js/link.js',
@@ -127,13 +128,16 @@ self.addEventListener('message', event => {
 
 // Cache first for our own files; anything missing from the shell list is
 // fetched and cached on first use. Other origins go straight to the network.
+// Libraries in vendor/ (big, with their version in their folder's name) go in
+// a cache of their own that updates don't empty, so they're fetched only once.
+const LIBS = 'siftlib';
 self.addEventListener('fetch', event => {
   const { request } = event;
   if (request.method !== 'GET' || new URL(request.url).origin !== location.origin) return;
   if (VERSION === 'dev' && location.hostname === 'localhost') return; // always fresh while developing
 
   event.respondWith((async () => {
-    const cache = await caches.open(CACHE);
+    const cache = await caches.open(new URL(request.url).pathname.includes('/vendor/') ? LIBS : CACHE);
     const cached = await cache.match(request, { ignoreSearch: request.mode === 'navigate' });
     if (cached) return cached;
     try {

@@ -1071,6 +1071,10 @@ NOTES['1.60.74'] = [B("iPhone: the bar of areas at the bottom, tabs and buttons 
 NOTES['1.60.75'] = [F("Picture and file viewer: a Share button (top left) hands the file itself to the device's share sheet (iPhone, Android, Windows' Share); where a browser can't share files, it saves a copy instead. Everywhere the viewer opens: Brain Dump, Tasks, the Day Planner, lists, Find Things and Scans.")]
 NOTES['1.60.71'] = [B("Tasks and Projects: a ticked task faded out, then came back into the list for up to a minute even with done tasks hidden.")]
 NOTES['1.60.76'] = [B("Day Planner: editing a task in the Tasks list beside the schedule squeezed its name into a strip as narrow as one letter, because its More button's Shift and Enter key boxes took the room.")]
+NOTES['1.60.80'] = [
+    F("Scans: camera photos are cut to the edges of the page and straightened (perspective corrected) before the scanned look; when no clear page edge is found the whole photo is kept. On the device, no library. 👁, Layout turns it off."),
+    F("Scans: the text on photographed pages is read on the device with Tesseract (bundled in app/vendor, English; about 7 MB fetched once from Sift's own site, kept between updates). It shows under Pages as Text on it, with Copy, and Scans' search and Sift's search find words in it. 👁, Layout turns it off."),
+]
 NOTES['1.60.79'] = [F("Scans: photos taken with the camera (Scan on a phone, or + Page) get a scanned look: grey, the paper's uneven light and shadows evened out so it shows white and the writing dark. Done on the device. On by default; 👁, Layout turns it off.")]
 NOTES['1.60.77'] = [B("Keyboard browsing: going back up with the up arrow left the outlined box, note or card hidden under the bar at the top of the page (Find Things, and the other areas with a bar that stays put).")]
 NOTES['1.60.78'] = [B("Day Planner, Advanced: Shift with the up or down arrow in Add a comment started choosing tasks; now it selects the typed text, and tasks are chosen only from the grab bars on the left. Esc lets go of chosen tasks, as in Tasks.")]
