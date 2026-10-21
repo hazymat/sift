@@ -1,6 +1,7 @@
 // Files attached to a note: photos, PDFs and text files. The file itself is
 // kept on this device (the `blobs` store); an `attachments` record (name, type,
-// size and, for photos, a small thumbnail) says which note it belongs to.
+// size and, for photos and PDFs, a small thumbnail; for PDFs, `pages`) says
+// which note it belongs to. A PDF's thumbnail is its first page (pdfthumb.js).
 //
 //   byParent()                         → Map(note id → attachments)
 //   rowHtml(atts, { addButton, parent }) → thumbnails / file chips, plus a 📎 Attach button
@@ -66,11 +67,13 @@ export async function addFiles(parent, files, ids = []) {
     if (!kind) { skipped.push(`${file.name} (only photos, PDFs and text files)`); continue; }
     if (file.size > MAX_BYTES) { skipped.push(`${file.name} (over ${sizeLabel(MAX_BYTES)})`); continue; }
     const id = ids[index] || store.uuidv7();   // fixed ids: examples.js
+    const preview = kind === 'pdf' ? await (await import('./pdfthumb.js')).pdfPreview(file, THUMB) : null;
     await store.putBlob(id, file);
     made.push(await store.create('attachments', {
       id, parent_collection: parent.collection, parent_id: parent.id, blob_id: id,
       name: file.name || 'file', mime: file.type || (kind === 'pdf' ? 'application/pdf' : 'text/plain'), kind, size: file.size,
-      thumb: kind === 'image' ? await thumbnail(file) : null,
+      thumb: kind === 'image' ? await thumbnail(file) : preview?.thumb || null,
+      pages: preview?.pages || null,
     }));
   }
   if (skipped.length) toast(`Not added: ${skipped.join(', ')}`);
@@ -95,9 +98,9 @@ export function rowHtml(atts = [], { addButton = true, parent = atts[0]?.parent_
   const items = atts.map(a => {
     const arriving = a.here === false;
     const label = `${a.name} (${sizeLabel(a.size)})${arriving ? ' · still arriving on this device through sync' : ''}`;
-    const asPhoto = a.kind === 'image' && a.thumb;
+    const asPhoto = (a.kind === 'image' || a.kind === 'pdf') && a.thumb;
     const body = asPhoto
-      ? `<img src="${a.thumb}" alt="" loading="lazy">`
+      ? `<img src="${a.thumb}" alt="" loading="lazy">${a.kind === 'pdf' ? `<span class="att-pdf">PDF${a.pages > 1 ? ` · ${a.pages}` : ''}</span>` : ''}`
       : `${icon('i-note')}<span class="att-name">${a.kind === 'pdf' ? 'PDF · ' : ''}${esc(shortName(a.name))}</span>`;
     return `<span class="att att-${asPhoto ? 'img' : 'file'}${arriving ? ' att-arriving' : ''}">${arriving ? `<span class="att-wait">still arriving · ${sizeLabel(a.size)}</span>` : ''}
       <button type="button" class="att-open" data-att-open="${a.id}" title="${esc(label)}" aria-label="Open ${esc(a.name)}">${body}</button>
@@ -214,7 +217,7 @@ export function view(atts, start = 0) {
       slide.innerHTML = a.thumb ? `<img alt="" src="${a.thumb}">` : '<img alt="">';
       slide.querySelector('img').alt = a.name;
     } else {
-      slide.innerHTML = `<div class="av-doc">${DOC_ICON}<div class="av-doc-name"></div><div class="av-doc-size">${a.kind === 'pdf' ? 'PDF' : 'Text file'} · ${sizeLabel(a.size)}</div><button type="button" class="av-open">Open</button></div>`;
+      slide.innerHTML = `<div class="av-doc">${a.thumb ? `<img class="av-doc-thumb" alt="" src="${a.thumb}">` : DOC_ICON}<div class="av-doc-name"></div><div class="av-doc-size">${a.kind === 'pdf' ? `PDF${a.pages > 1 ? ` · ${a.pages} pages` : ''}` : 'Text file'} · ${sizeLabel(a.size)}</div><button type="button" class="av-open">Open</button></div>`;
       slide.querySelector('.av-doc-name').textContent = a.name;
     }
     const old = [...stage.children];

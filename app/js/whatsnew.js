@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.81': [{ text: "Scans and attached files: a PDF now shows a small picture of its first page, marked PDF with its number of pages, instead of a plain file chip; the scan's card shows it too, with the PDF's pages counted. Opening it shows the picture above Open. Its text shows under Text on it and is searched (a PDF that's only pictures of pages has its first page read).", go: '#/scans', at: '#main .scan-grid', more: 'Every area with attached files: Brain Dump, Tasks, the Day Planner, lists, Find Things, Contracts.' }],
   '1.60.80': [
     { text: "Scans: a page photographed with Scan on a phone is now cut to the edges of the paper and straightened, so the table around it goes and a page shot at a slant comes out square. If the edges can't be found clearly, the whole photo is kept.", go: '#/scans', open: ['#main details.view-menu > summary'], at: '#main [data-layout-set="scan-edges"]' },
     { text: "Scans: the text on photographed pages is read, on your device (nothing is sent anywhere), and shows under Pages as Text on it, with Copy. Searching Scans finds words in it. The first time, Sift fetches its reader (about 7 MB) from its own site.", go: '#/scans', open: ['#main .scan-card'], at: '#main .scan-text-sec', more: 'Switch either off in 👁, Layout.' },
@@ -134,6 +135,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.81': '2026-10-21T13:16:10Z',
   '1.60.80': '2026-10-21T13:11:42Z',
   '1.60.79': '2026-10-21T13:04:08Z',
   '1.60.78': '2026-10-21T13:02:04Z',

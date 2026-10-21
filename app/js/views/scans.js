@@ -53,9 +53,10 @@ export default {
       const first = p[0];
       const soon = expirySoon(s);
       const thumb = first?.thumb ? `<img src="${first.thumb}" alt="" loading="lazy">` : DOC;
+      const count = p.reduce((total, a) => total + (a.pages || 1), 0); // a PDF counts its own pages
       return `
         <a class="scan-card${s.kind === 'id' ? ' is-id' : ''}" href="#/scans/${s.id}" data-id="${s.id}">
-          <span class="scan-thumb">${thumb}${p.length > 1 ? `<span class="scan-count">${p.length} pages</span>` : ''}</span>
+          <span class="scan-thumb">${thumb}${count > 1 ? `<span class="scan-count">${count} pages</span>` : ''}</span>
           <span class="scan-title">${esc(s.title || 'Untitled')}</span>
           <span class="scan-meta"><span class="chip">${esc(kindLabel(s.kind))}</span><span class="muted">${niceDate(s.letter_date || s.created_at)}</span>${s.expiry_date ? `<span class="chip${soon ? ` expiry-${soon}` : ''}" title="Expiry date">${soon === 'past' ? 'expired' : 'expires'} ${niceDate(s.expiry_date)}</span>` : ''}</span>
         </a>`;
@@ -91,7 +92,7 @@ export default {
       const p = pages.get(s.id) || [];
       const text = textOf(s, p);
       const progress = reading.get(s.id);
-      if (!text && !progress && !(layoutOn('scans', 'scan-read') && p.some(a => a.kind === 'image'))) return '<div class="panel-sec scan-text-sec" hidden></div>';
+      if (!text && !progress && !(layoutOn('scans', 'scan-read') && p.some(a => a.kind === 'image' || a.kind === 'pdf'))) return '<div class="panel-sec scan-text-sec" hidden></div>';
       if (s.kind === 'id' && !revealed.has(s.id)) return '<div class="panel-sec scan-text-sec" hidden></div>';
       const body = progress === 'reading' ? '<span class="muted">Reading the text, on this device…</span>'
         : text ? `<div class="scan-text">${esc(text)}</div>`
@@ -101,10 +102,38 @@ export default {
     }
     const redrawText = s => { const sec = root.querySelector('.scan-text-sec'); if (sec && state.id === s.id) sec.outerHTML = textHtml(s); };
 
+    // A PDF's own text; one that's only pictures of pages has its first page read like a photo.
+    async function pdfText(blob, readText) {
+      const { pdfPreview } = await import('../pdfthumb.js');
+      const small = await pdfPreview(blob);
+      if (!small) throw new Error('PDF not opened');
+      if (small.text) return small.text;
+      const big = await pdfPreview(blob, 2000);
+      return big ? readText(await (await fetch(big.thumb)).blob()) : '';
+    }
+
+    // PDFs added before they had previews (or while pdf.js couldn't be fetched) get one.
+    let previewsTried = false;
+    async function fillPreviews() {
+      if (previewsTried) return;
+      previewsTried = true;
+      const missing = [];
+      for (const p of pages.values()) for (const a of p) if (a.kind === 'pdf' && !a.thumb && await store.hasBlob(a.blob_id)) missing.push(a);
+      if (!missing.length) return;
+      const { pdfPreview } = await import('../pdfthumb.js');
+      let made = 0;
+      for (const a of missing) {
+        const blob = await store.getBlob(a.blob_id);
+        const preview = blob && await pdfPreview(blob);
+        if (preview) { await store.update('attachments', a.id, { thumb: preview.thumb, pages: preview.pages }); made++; }
+      }
+      if (made && !(noteEditor && root.querySelector('.scan-note')?.contains(document.activeElement)) && !root.contains(document.activeElement)) await render();
+    }
+
     // Read the pages not read yet, one at a time, saving each as it's done.
     async function readPages(s) {
       if (!layoutOn('scans', 'scan-read') || reading.get(s.id) === 'reading') return;
-      const todo = (pages.get(s.id) || []).filter(a => a.kind === 'image' && !(s.page_text && a.id in s.page_text));
+      const todo = (pages.get(s.id) || []).filter(a => (a.kind === 'image' || a.kind === 'pdf') && !(s.page_text && a.id in s.page_text));
       if (!todo.length) return;
       const here = [];
       for (const a of todo) { const blob = await store.getBlob(a.blob_id); if (blob) here.push([a, blob]); }
@@ -115,7 +144,7 @@ export default {
       let failed = false;
       for (const [a, blob] of here) {
         let text;
-        try { text = await readText(blob); } catch (err) { console.warn('Reading the text failed:', err); failed = true; break; }
+        try { text = a.kind === 'pdf' ? await pdfText(blob, readText) : await readText(blob); } catch (err) { console.warn('Reading the text failed:', err); failed = true; break; }
         const now = await store.get('scans', s.id);
         if (!now) return reading.delete(s.id);
         const read = Object.assign({}, now.page_text || {});
@@ -180,6 +209,7 @@ export default {
       if (s && noteEditor && root.querySelector('.scan-note')?.contains(document.activeElement)) return;
       noteEditor = null;
       root.innerHTML = s ? pageHtml(s) : listHtml();
+      fillPreviews();
       if (s) {
         let notePend = null;
         const noteAuto = debounced(async () => { const md = notePend; notePend = null; if (md !== null) await store.update('scans', s.id, { note: md }); }, 600);
