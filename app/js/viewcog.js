@@ -103,6 +103,7 @@ const LAYOUTS = {
     { id: 'scan-edges', label: 'Camera photos are cut to the edges of the page and straightened', def: true },
     { id: 'scan-look', label: 'Camera photos get a scanned look (grey, the paper white)', def: true },
     { id: 'scan-read', label: 'Read the text on scanned pages (on this device, English)', def: true },
+    { id: 'keep-all', label: "Keep every scan's pages on this device (untick to keep only the scans you choose; with sync on, the rest stay on your server and come back when opened)", def: true },
   ],
   planner: [
     { id: 'day-rel', label: 'Show "Today" or "In 5 days" under the date', def: true },

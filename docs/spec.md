@@ -221,7 +221,7 @@ A recipe book that also records every time a recipe is **made**: a batch of wine
   - **Mentions** (to build): typing `@` opens a picker over contacts, tasks, day items, Brain Dump thoughts, boxes, cases and recipes; choosing one inserts a chip, stored as `[@Name](sift:<collection>/<id>)`. Tapping a chip opens the thing; the thing lists where it's mentioned ("Mentioned in: Tue 3 Oct notes").
 - **Text to list** (every area): wherever plain text becomes list items (Find Things contents, Day Planner dump box, Brain Dump, Contacts research mode, Tasks), the same entry is used: one item per line, a line starting with `-` (or a space) is a sub-item of the line above, **Ctrl+Enter** (⌘+Enter on Mac) adds, with the same hint text. Shared helper: `js/listentry.js`.
 - `settings` (single record, synced): `default_calendar_id, week_start, theme, pinned_areas[], day_start, day_end, slot_min, paper_style, down_days[], hint_down_day, hint_walk_breaks`.
-- `device_settings` (local only, never synced): `server_url, device_name, keep_all_scans_on_device`.
+- `device_settings` (local only, never synced): `server_url, device_name, scans_kept, scans_away` (scans whose pages this device keeps, or doesn't, against Scans' 👁 Layout switch Keep every scan on this device).
 
 ## 5. UI
 
@@ -316,8 +316,7 @@ Where it applies (2026-09-25): Brain Dump notes, Find Things boxes and things, L
 
 - Blob encrypted client-side; `blob_id` = SHA-256 of ciphertext (integrity check on download).
 - Blobs are immutable: upload only what the server lacks (`HEAD`), download on demand.
-- Thumbnails always synced to every device. Full pages downloaded when opened, and kept if `keep_on_device` (per scan) or `keep_all_scans_on_device` (per device, default on for laptop).
-- Old full pages on iPhone can be evicted locally once confirmed uploaded; re-fetched on demand.
+- Thumbnails always synced to every device. A scan's pages are kept on a device if Scans' 👁 Layout, Keep every scan on this device is on (the default) and the scan isn't unticked there, or it's off and the scan's Keep on this device is ticked. Pages not kept aren't fetched by sync; once confirmed uploaded they leave the device (`store.dropBlob`), and are fetched again when opened (and leave again after).
 - Purging a scan's tombstone deletes its blobs on the server.
 
 ### 8.5 Server (sift-server)

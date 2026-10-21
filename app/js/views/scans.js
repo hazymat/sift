@@ -11,7 +11,8 @@ import { keys } from '../keys.js';
 import * as store from '../store.js';
 import { cogHtml, layoutOn } from '../viewcog.js';
 import { shareHtml } from '../share.js';
-import { KINDS, kindLabel, newScan, addPages, pagesByScan, expirySoon, textOf } from '../scans.js';
+import { KINDS, kindLabel, newScan, addPages, pagesByScan, expirySoon, textOf, keptHere, setKeptHere, leaveDevice } from '../scans.js';
+import { signedIn } from '../sync.js';
 import * as att from '../attachments.js';
 import { richText } from '../richtext.js';
 import { debounced } from '../autosave.js';
@@ -38,6 +39,7 @@ export default {
     let noteEditor = null;
     const revealed = new Set(); // ID scans shown unblurred on this visit
     const reading = new Map(); // scan id → 'reading' | 'failed'
+    let kept = () => true; // scan id → its pages kept on this device (scans.js keptHere)
     const gone = this.gone = new AbortController();
 
     el.innerHTML = '<div class="scans"></div><input type="file" class="scan-input" hidden multiple>';
@@ -58,7 +60,7 @@ export default {
         <a class="scan-card${s.kind === 'id' ? ' is-id' : ''}" href="#/scans/${s.id}" data-id="${s.id}">
           <span class="scan-thumb">${thumb}${count > 1 ? `<span class="scan-count">${count} pages</span>` : ''}</span>
           <span class="scan-title">${esc(s.title || 'Untitled')}</span>
-          <span class="scan-meta"><span class="chip">${esc(kindLabel(s.kind))}</span><span class="muted">${niceDate(s.letter_date || s.created_at)}</span>${s.expiry_date ? `<span class="chip${soon ? ` expiry-${soon}` : ''}" title="Expiry date">${soon === 'past' ? 'expired' : 'expires'} ${niceDate(s.expiry_date)}</span>` : ''}</span>
+          <span class="scan-meta"><span class="chip">${esc(kindLabel(s.kind))}</span>${signedIn() && !kept(s.id) ? '<span class="chip" title="Its pages are on your server, not on this device; they come back when opened">☁ Server</span>' : ''}<span class="muted">${niceDate(s.letter_date || s.created_at)}</span>${s.expiry_date ? `<span class="chip${soon ? ` expiry-${soon}` : ''}" title="Expiry date">${soon === 'past' ? 'expired' : 'expires'} ${niceDate(s.expiry_date)}</span>` : ''}</span>
         </a>`;
     }
 
@@ -171,7 +173,7 @@ export default {
           <div class="panel-sec"><span class="panel-h">Kind</span>
             <div class="energy-pick scan-kind-pick" role="group" aria-label="Kind">${KINDS.map(k => `<button type="button" data-set-kind="${k.id}" aria-pressed="${s.kind === k.id}">${k.label}</button>`).join('')}</div>
           </div>
-          <div class="panel-sec scan-pages${s.kind === 'id' && !revealed.has(s.id) ? ' is-id' : ''}"><span class="panel-h">Pages${s.kind === 'id' ? (revealed.has(s.id) ? '' : ' <button type="button" class="linklike" data-act="reveal">Show</button>') : ''}</span>
+          <div class="panel-sec scan-pages${s.kind === 'id' && !revealed.has(s.id) ? ' is-id' : ''}"><span class="panel-h">Pages${s.kind === 'id' ? (revealed.has(s.id) ? '' : ' <button type="button" class="linklike" data-act="reveal">Show</button>') : ''}${signedIn() ? `<label class="scan-keep" title="Untick to free space: its pages stay on your server and come back when opened"><input type="checkbox" data-act="keep-here"${kept(s.id) ? ' checked' : ''}> Keep on this device</label>` : ''}</span>
             ${att.rowHtml(p, { addButton: false }).replace('</div>', `<button type="button" class="att-add" data-act="add-page">${icon('i-plus')}<span>Page</span></button></div>`)}
           </div>
           ${textHtml(s)}
@@ -203,6 +205,7 @@ export default {
     const render = this.render = this.refresh = async () => {
       scans = (await store.list('scans', { filter: s => !s.archived_at })).sort((a, b) => b.created_at.localeCompare(a.created_at));
       pages = await pagesByScan();
+      kept = await keptHere();
       const s = state.id && scanOf(state.id);
       if (state.id && !s) { state.id = null; if (location.hash !== '#/scans') location.hash = '#/scans'; }
       // Keep the note being written (a sync may redraw the page).
@@ -296,9 +299,26 @@ export default {
       const at = ev.target.selectionStart;
       render().then(() => { const q = root.querySelector('.scan-search'); q?.focus(); q?.setSelectionRange(at, at); });
     });
-    root.addEventListener('change', ev => {
+    // Pages of scans not kept here, now on the server, leave this device.
+    const tidy = async () => { if (signedIn() && await leaveDevice()) await render(); };
+    document.addEventListener('sift-layout', ev => { if (ev.detail?.id === 'keep-all' || ev.detail?.id === null) render().then(tidy); }, { signal: gone.signal });
+
+    root.addEventListener('change', async ev => {
       const f = ev.target;
       const s = state.id && scanOf(state.id);
+      if (f.matches('[data-act="keep-here"]') && s) {
+        await setKeptHere(s.id, f.checked);
+        if (f.checked) {
+          // Fetch any pages not here yet, so it's all on this device.
+          const { downloadFile } = await import('../sync.js');
+          for (const a of pages.get(s.id) || []) if (!await store.hasBlob(a.blob_id)) await downloadFile(a).catch(() => null);
+          toast('Kept on this device');
+        } else {
+          const gone = await leaveDevice();
+          toast(gone ? 'Its pages left this device; they come back when opened' : 'Its pages leave this device once they are on your server');
+        }
+        return render();
+      }
       if (!s || !f.name || f.matches('.scan-search')) return;
       const v = f.type === 'date' ? f.value || null : f.value.trim();
       if (f.name === 'title' && !v) { f.value = s.title; return; }
@@ -371,6 +391,7 @@ export default {
     }, { signal: gone.signal });
 
     await render();
+    tidy();
   },
 
   unmount() {
