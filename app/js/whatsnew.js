@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.82': [{ text: "Tasks, Lists, Find Things and the Day Planner: with the cursor in a task's or item's name or note, Shift+Alt+↑ or ↓ moves it up or down the list, its sub-tasks or sub-items going with it. The cursor stays where it was, so you can carry on typing.", go: '#/tasks', at: '#main .task-list > li[data-task] > .task-title', more: "The same in the Day Planner's Tasks, Advanced, an open list and a box's things. A sub-task moves among its parent's sub-tasks, and never out of them." }],
   '1.60.81': [{ text: "Scans and attached files: a PDF now shows a small picture of its first page, marked PDF with its number of pages, instead of a plain file chip; the scan's card shows it too, with the PDF's pages counted. Opening it shows the picture above Open. Its text shows under Text on it and is searched (a PDF that's only pictures of pages has its first page read).", go: '#/scans', at: '#main .scan-grid', more: 'Every area with attached files: Brain Dump, Tasks, the Day Planner, lists, Find Things, Contracts.' }],
   '1.60.80': [
     { text: "Scans: a page photographed with Scan on a phone is now cut to the edges of the paper and straightened, so the table around it goes and a page shot at a slant comes out square. If the edges can't be found clearly, the whole photo is kept.", go: '#/scans', open: ['#main details.view-menu > summary'], at: '#main [data-layout-set="scan-edges"]' },
@@ -135,6 +136,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.82': '2026-10-21T13:19:11Z',
   '1.60.81': '2026-10-21T13:16:10Z',
   '1.60.80': '2026-10-21T13:11:42Z',
   '1.60.79': '2026-10-21T13:04:08Z',

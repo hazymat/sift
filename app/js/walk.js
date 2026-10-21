@@ -3,7 +3,8 @@
 // a field and put it at a field's start or end.
 //
 //   atEdge(el, 'up' | 'down')   → is the cursor on the field's first / last line?
-//   caretTo(el, 'start' | 'end')
+//   caretTo(el, 'start' | 'end' | n)
+//   caretAt(el) → where the cursor is (characters from the start); caretSet(el, n) puts it back there
 
 export function atEdge(el, dir) {
   if (el.matches('input')) return true;
@@ -51,6 +52,7 @@ export function atEdge(el, dir) {
 }
 
 export function caretTo(el, at) {
+  if (typeof at === 'number') return caretSet(el, at);
   if (el.matches('input, textarea')) {
     const n = at === 'start' ? 0 : el.value.length;
     el.setSelectionRange(n, n);
@@ -62,4 +64,24 @@ export function caretTo(el, at) {
   const s = getSelection();
   s.removeAllRanges();
   s.addRange(r);
+}
+
+export function caretAt(el) {
+  if (el.matches('input, textarea')) return el.selectionStart ?? 0;
+  const sel = getSelection();
+  if (!sel.rangeCount || !el.contains(sel.anchorNode)) return 0;
+  const r = document.createRange();
+  r.selectNodeContents(el);
+  r.setEnd(sel.anchorNode, sel.anchorOffset);
+  return r.toString().length;
+}
+export function caretSet(el, offset_chars) {
+  if (el.matches('input, textarea')) { try { el.setSelectionRange(offset_chars, offset_chars); } catch { /* not a text field */ } return; }
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  let left_chars = offset_chars;
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (left_chars <= node.length) { getSelection().collapse(node, left_chars); return; }
+    left_chars -= node.length;
+  }
+  caretTo(el, 'end');
 }

@@ -9,6 +9,8 @@
 //                        selected and nothing being typed, the selected ones)
 //   Shift+↑ / ↓          in a row's text: stop editing, and select it and the row
 //                        above / below; again (nothing typed): the range grows or shrinks
+//   Shift+Alt+↑ / ↓      in a row's name or note (not a field marked data-no-move): move it (with its sub-rows) up / down
+//                        past its neighbour, never out of its parent; the cursor stays put
 //   Esc                  clear the selection
 //   Delete / Backspace   the bar's Delete (not while typing; Undo in the message)
 //   an action's key      its button (e.g. Ctrl+Enter Done, A Archive, D Delete)
@@ -21,6 +23,8 @@
 //   sideways: false: dragging sideways doesn't indent or outdent (Tasks: onto a row makes a
 //     sub-item; a sub-item dragged down off the bottom of its family comes out of it)
 //   holdAnywhere: press and hold anywhere on a row drags it too (sortable.js), not only its ⠿
+//   refocus(id, part, caret): after Shift+Alt+↑ / ↓ and the redraw, put the cursor back in the row's 'name' or 'note'
+//     at caret (a view that walks between fields, e.g. Tasks, whose note editor only opens on its own); else the same field again
 //   textSelect: false keeps Shift+↑ / ↓ in a row's text fields as plain text selection (choosing starts only from the ⠿)
 //     (the ⠿ is still there for choosing several); holding it then doesn't open its panel (holdopen.js)
 //   families: rows keep their depth and a parent carries its children, but there's no indenting
@@ -47,14 +51,17 @@ import { sortable } from './sortable.js';
 import { holdToLift } from './hold.js';
 import { toast } from './toast.js';
 import { keys, CTRL_ENTER } from './keys.js';
+import { caretAt, caretSet } from './walk.js';
 
 // Is the keyboard busy with text (so Delete / Backspace edit it, not the list)?
 export const typingIn = el => !!el?.closest?.('input:not([type="checkbox"]):not([type="radio"]):not([type="button"]), textarea, select, [contenteditable]:not([contenteditable="false"])');
 
+const TYPING = 'input:not([type="checkbox"]):not([type="radio"]):not([type="button"]), textarea, [contenteditable]:not([contenteditable="false"])';
+
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 export function createListKit({
-  reorder = true, indent = false, maxDepth = 1, actions = [], onReorder, noun = 'item', grid = false, families = false, onNest = null, holdAnywhere = false, sideways = true, holdSelect = false, rowSel = ':scope > li[data-id]', onSection = null, textSelect = true,
+  reorder = true, indent = false, maxDepth = 1, actions = [], onReorder, noun = 'item', grid = false, families = false, onNest = null, holdAnywhere = false, sideways = true, holdSelect = false, rowSel = ':scope > li[data-id]', onSection = null, textSelect = true, refocus = null,
 } = {}) {
   const selected = new Set();
   let anchor = null;
@@ -179,6 +186,27 @@ export function createListKit({
       return { id: r.dataset.id, depth: d };
     });
     return onReorder?.(out, label, ul, moved);
+  }
+
+  // Shift+Alt+↑ / ↓: a row and its sub-rows past the next visible sibling (and that one's sub-rows).
+  // Top-level rows cross a project's milestone or person headings, as a drag does; nothing else is
+  // crossed (e.g. Advanced's Done heading, which would tick it), and a sub-row stays in its parent.
+  const crossable = '.list-head[data-milestone], .list-head[data-owner-group]';
+  const shown = r => !r.hidden && r.getClientRects().length > 0;
+  function stepRow(li, dir) {
+    const group = withChildren(li), depth = depthOf(li);
+    let at = dir < 0 ? li.previousElementSibling : group.at(-1).nextElementSibling;
+    // Past what isn't drawn, and (going up) a sibling's sub-rows, to the sibling itself.
+    while (at && at.matches('li[data-id]') && (!shown(at) || (dir < 0 && depthOf(at) > depth))) at = dir < 0 ? at.previousElementSibling : at.nextElementSibling;
+    if (!at) return false;
+    if (at.matches('li[data-id]')) {
+      if (depthOf(at) < depth) return false; // the end of its family
+      if (dir < 0) at.before(...group); else withChildren(at).at(-1).after(...group);
+      return true;
+    }
+    if (depth || !at.matches(crossable)) return false;
+    if (dir < 0) at.before(...group); else at.after(...group);
+    return true;
   }
 
   function shiftDepth(targets, by) {
@@ -435,6 +463,28 @@ export function createListKit({
       cursor = null;
       extend(ev.key === 'ArrowUp' ? -1 : 1);
       paint();
+    });
+
+    // Shift+Alt+↑ / ↓ in a row's name or note: move it, keep typing where you were.
+    if (reorder && !grid) ul.addEventListener('keydown', ev => {
+      if ((ev.key !== 'ArrowUp' && ev.key !== 'ArrowDown') || !ev.shiftKey || !ev.altKey || ev.ctrlKey || ev.metaKey || ev.defaultPrevented || ev.isComposing) return;
+      const li = typingIn(ev.target) && !ev.target.closest('[data-no-move]') && ev.target.closest('li[data-id]');
+      if (!li || li.parentElement !== ul) return;
+      ev.preventDefault(); ev.stopPropagation();
+      const fields = [...li.querySelectorAll(TYPING)], field_index = fields.indexOf(ev.target.closest(TYPING)), caret = caretAt(fields[field_index] || ev.target);
+      if (!stepRow(li, ev.key === 'ArrowUp' ? -1 : 1)) { toast(`Already the ${ev.key === 'ArrowUp' ? 'first' : 'last'} ${depthOf(li) ? `sub-${noun}` : noun}`); return; }
+      const id = li.dataset.id, part = field_index <= 0 ? 'name' : 'note';
+      fields[field_index]?.focus({ preventScroll: true }); // the row was moved in the page, so the cursor goes with it until the redraw
+      Promise.resolve(commit(ev.key === 'ArrowUp' ? 'Moved up' : 'Moved down', withChildren(li).map(r => r.dataset.id))).then(() => {
+        const row = ul?.querySelector(`li[data-id="${CSS.escape(id)}"]`);
+        if (!row) return;
+        row.scrollIntoView({ block: 'nearest' });
+        if (refocus) return refocus(id, part, caret);
+        const field = [...row.querySelectorAll(TYPING)][field_index] || row.querySelector(TYPING);
+        if (!field) return;
+        if (document.activeElement !== field) field.focus({ preventScroll: true });
+        caretSet(field, caret);
+      });
     });
 
     // Tab / Shift+Tab while editing a row

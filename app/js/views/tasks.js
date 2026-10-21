@@ -1311,13 +1311,15 @@ export default {
       await render();
       undoable(`Moved ${m.name}`, async () => { await store.update('milestones', id, { rank: old }); await render(); });
     }
-    const kitOrdered = this.kitOrdered = createListKit({ reorder: true, indent: true, maxDepth: MAX_DEPTH, holdAnywhere: true, sideways: false, noun: 'task', actions: taskActions, onReorder: persistOrder, onNest: nestUnder, onSection: moveMilestone });
+    // Shift+Alt+↑ / ↓ moved a task: the cursor back in its name or note, where it was (walkTo survives the redraw).
+    const refocus = (id, part, caret) => { const stop = walkStops().find(x => x.key === id); if (stop) walkGo(stop, part, caret); };
+    const kitOrdered = this.kitOrdered = createListKit({ reorder: true, indent: true, maxDepth: MAX_DEPTH, holdAnywhere: true, sideways: false, noun: 'task', actions: taskActions, onReorder: persistOrder, onNest: nestUnder, onSection: moveMilestone, refocus });
     const kitPlain = this.kitPlain = createListKit({ reorder: false, noun: 'task', actions: taskActions });
     // In Task Dump / Now / Next / Later only the order changes: just the moved
     // tasks get a new place (order.js), so tasks on other lists keep theirs.
     // Now / Next / Later: the same drag rules as All tasks (sideways, onto a task,
     // in and out of a task's sub-tasks), with only the moved tasks re-placed.
-    const kitFlat = this.kitFlat = createListKit({ reorder: true, indent: true, maxDepth: MAX_DEPTH, holdAnywhere: true, sideways: false, onNest: (ids, target) => nestUnder(ids, target), noun: 'task', onReorder: persistOrder, actions: taskActions });
+    const kitFlat = this.kitFlat = createListKit({ reorder: true, indent: true, maxDepth: MAX_DEPTH, holdAnywhere: true, sideways: false, onNest: (ids, target) => nestUnder(ids, target), noun: 'task', onReorder: persistOrder, actions: taskActions, refocus });
 
         // ---------- editing ----------
 
