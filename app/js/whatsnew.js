@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.87': [{ text: "Scans: the scanned look now keeps colour. The paper still comes out white with the shadows gone, but coloured print, logos and stamps keep their colour. For black and white as before, tick 👁, Layout, In black and white (under the scanned look).", go: '#/scans', open: ['#main details.view-menu > summary'], at: '#main [data-layout-set="scan-grey"]' }],
   '1.60.86': [{ text: "Scans: Photos, beside Scan, takes photos you already have (from your photo library or files) and treats them like a new scan: cut to the page's edges, given the scanned look, and their text read. On a scan's page, From photos beside + Page adds one as the next page.", go: '#/scans', at: '#main [data-act="photos"]' }],
   '1.60.85': [{ text: "Contacts, a case: attach photos and documents under Files (Attach photos or documents, or drop them on the case); each shows in the Timeline too. Add note is gone: Log it has a ✎ Note kind for anything else. Every entry's When starts at the time now (Now puts it back) and ✎ beside a saved entry changes its date, time and words.", go: '#/contacts/cases', open: ['#main .c-list .c-card a.c-main'], at: '#main .case-files', more: "A contact's own Log has the same When with Now, and ✎ on each logged call or visit." }],
   '1.60.84': [{ text: "Tasks, Lists, Find Things and the Day Planner: a task or item moved with Shift+Alt+↑ or ↓ gives one quick yellow pulse where it lands (its sub-tasks or sub-items too), so you can see where it went.", go: '#/tasks', at: '#main .task-list > li[data-task] > .task-title' }],
@@ -140,6 +141,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.87': '2026-10-21T22:27:57Z',
   '1.60.86': '2026-10-21T22:18:25Z',
   '1.60.85': '2026-10-21T16:27:54Z',
   '1.60.84': '2026-10-21T13:58:34Z',

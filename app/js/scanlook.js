@@ -1,10 +1,11 @@
-// The "scanned" look for a page photographed with the camera: grey, with the
-// paper's uneven light and shadows taken out so it shows white and the writing
-// dark, as a scanner would. Before that, the page's edges are looked for and,
+// The "scanned" look for a page photographed with the camera: the paper's
+// uneven light and shadows taken out so it shows white and the writing dark,
+// as a scanner would, in colour or in black and white. Before that, the page's edges are looked for and,
 // when found, everything around them is cut away and the page drawn square on.
 // Everything happens on this device, on a canvas.
 //
 //   scanLook(file, { edges, look })  a new JPEG File, or the same file if it can't be drawn
+//                                    (look: 'colour' or 'grey', or false for none)
 //   findPage(image)                  the page's corners [[x, y] ×4, clockwise from top left], or null
 
 const BLOCK = 16; // the paper's light is measured in squares this big
@@ -37,22 +38,37 @@ function paperLight(grey, width, height) {
   return { grid, cols, rows };
 }
 
-export function scanPixels(image) {
+// grey: black and white with the writing dark. Otherwise in colour: the paper's
+// own colour (its brightest part) made white, then the same evening out with a
+// gentler curve, so coloured print and logos keep their colour.
+export function scanPixels(image, { grey: inGrey = false } = {}) {
   const { data, width, height } = image;
   const grey = new Float32Array(width * height);
   for (let n = 0; n < grey.length; n++) grey[n] = 0.299 * data[n * 4] + 0.587 * data[n * 4 + 1] + 0.114 * data[n * 4 + 2];
   const { grid, cols, rows } = paperLight(grey, width, height);
+  // The paper's colour: the average of the brightest twentieth of the picture.
+  const balance = [1, 1, 1];
+  if (!inGrey) {
+    const sorted = Float32Array.from(grey).sort();
+    const bright = sorted[Math.floor(sorted.length * 0.95)];
+    const total = [0, 0, 0];
+    let count = 0;
+    for (let n = 0; n < grey.length; n++) if (grey[n] >= bright) { total[0] += data[n * 4]; total[1] += data[n * 4 + 1]; total[2] += data[n * 4 + 2]; count++; }
+    const paperGrey = (0.299 * total[0] + 0.587 * total[1] + 0.114 * total[2]) / count;
+    for (let ch = 0; ch < 3; ch++) balance[ch] = total[ch] ? paperGrey / (total[ch] / count) : 1;
+  }
   for (let y = 0; y < height; y++) {
     const gy = Math.min(rows - 1, Math.max(0, y / BLOCK - 0.5)), y0 = gy | 0, y1 = Math.min(rows - 1, y0 + 1), fy = gy - y0;
     for (let x = 0; x < width; x++) {
       const gx = Math.min(cols - 1, Math.max(0, x / BLOCK - 0.5)), x0 = gx | 0, x1 = Math.min(cols - 1, x0 + 1), fx = gx - x0;
-      const light = (grid[y0 * cols + x0] * (1 - fx) + grid[y0 * cols + x1] * fx) * (1 - fy) + (grid[y1 * cols + x0] * (1 - fx) + grid[y1 * cols + x1] * fx) * fy;
+      const light = Math.max(40, (grid[y0 * cols + x0] * (1 - fx) + grid[y0 * cols + x1] * fx) * (1 - fy) + (grid[y1 * cols + x0] * (1 - fx) + grid[y1 * cols + x1] * fx) * fy);
+      const n = y * width + x, at = n * 4;
       // 1 is the paper itself; below about 0.45 is ink. Between them a curve keeps soft pencil readable.
-      const ratio = Math.min(1, grey[y * width + x] / Math.max(light, 40));
-      const level = Math.min(1, Math.max(0, (ratio - 0.45) / 0.47));
-      const out = 255 * Math.pow(level, 1.6);
-      const at = (y * width + x) * 4;
-      data[at] = data[at + 1] = data[at + 2] = out;
+      const ratio = Math.min(1, grey[n] / light);
+      if (inGrey) { data[at] = data[at + 1] = data[at + 2] = 255 * Math.pow(Math.min(1, Math.max(0, (ratio - 0.45) / 0.47)), 1.6); continue; }
+      const level = Math.pow(Math.min(1, Math.max(0, (ratio - 0.2) / 0.72)), 1.25);
+      const scale = ratio > 0.01 ? 255 * level / (ratio * light) : 0;
+      for (let ch = 0; ch < 3; ch++) data[at + ch] = Math.min(255, data[at + ch] * balance[ch] * scale);
     }
   }
   return image;
@@ -249,7 +265,7 @@ export async function scanLook(file, { edges = true, look = true } = {}) {
       canvas.height = image.height;
     }
     if (!quad && !look) return file;
-    ctx.putImageData(look ? scanPixels(image) : image, 0, 0);
+    ctx.putImageData(look ? scanPixels(image, { grey: look === 'grey' }) : image, 0, 0);
     const blob = await new Promise(done => canvas.toBlob(done, 'image/jpeg', 0.8));
     return blob ? new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }) : file;
   } catch { return file; }

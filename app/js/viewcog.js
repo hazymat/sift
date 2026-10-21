@@ -101,7 +101,8 @@ const LAYOUTS = {
   ],
   scans: [
     { id: 'scan-edges', label: 'Camera photos are cut to the edges of the page and straightened', def: true },
-    { id: 'scan-look', label: 'Camera photos get a scanned look (grey, the paper white)', def: true },
+    { id: 'scan-look', label: 'Camera photos get a scanned look (the paper white, shadows gone)', def: true },
+    { id: 'scan-grey', label: 'In black and white', needs: 'scan-look' },
     { id: 'scan-read', label: 'Read the text on scanned pages (on this device, English)', def: true },
     { id: 'keep-all', label: "Keep every scan's pages on this device (untick to keep only the scans you choose; with sync on, the rest stay on your server and come back when opened)", def: true },
   ],
