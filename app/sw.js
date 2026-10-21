@@ -71,6 +71,7 @@ const SHELL = [
   'js/scans.js',
   'js/scanlook.js',
   'js/ocr.js',
+  'js/pdfthumb.js',
   'js/contracts.js',
   'js/install.js',
   'js/link.js',
