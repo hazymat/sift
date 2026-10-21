@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.84': [{ text: "Tasks, Lists, Find Things and the Day Planner: a task or item moved with Shift+Alt+↑ or ↓ gives one quick yellow pulse where it lands (its sub-tasks or sub-items too), so you can see where it went.", go: '#/tasks', at: '#main .task-list > li[data-task] > .task-title' }],
   '1.60.83': [{ text: "Scans, with sync on: choose which scans stay on this device to save space. On a scan's page, untick Keep on this device (by Pages): its pages leave this device once they're on your server, its card shows ☁ Server, and they come back whenever you open them. To keep only the scans you tick, untick 👁, Layout, Keep every scan's pages on this device.", go: '#/scans', open: ['#main details.view-menu > summary'], at: '#main [data-layout-set="keep-all"]', more: "A scan's own Keep on this device is on its page, beside Pages." }],
   '1.60.82': [{ text: "Tasks, Lists, Find Things and the Day Planner: with the cursor in a task's or item's name or note, Shift+Alt+↑ or ↓ moves it up or down the list, its sub-tasks or sub-items going with it. The cursor stays where it was, so you can carry on typing.", go: '#/tasks', at: '#main .task-list > li[data-task] > .task-title', more: "The same in the Day Planner's Tasks, Advanced, an open list and a box's things. A sub-task moves among its parent's sub-tasks, and never out of them." }],
   '1.60.81': [{ text: "Scans and attached files: a PDF now shows a small picture of its first page, marked PDF with its number of pages, instead of a plain file chip; the scan's card shows it too, with the PDF's pages counted. Opening it shows the picture above Open. Its text shows under Text on it and is searched (a PDF that's only pictures of pages has its first page read).", go: '#/scans', at: '#main .scan-grid', more: 'Every area with attached files: Brain Dump, Tasks, the Day Planner, lists, Find Things, Contracts.' }],
@@ -137,6 +138,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.84': '2026-10-21T13:58:34Z',
   '1.60.83': '2026-10-21T13:21:57Z',
   '1.60.82': '2026-10-21T13:19:11Z',
   '1.60.81': '2026-10-21T13:16:10Z',
