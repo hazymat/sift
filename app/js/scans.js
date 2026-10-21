@@ -14,12 +14,21 @@
 //   textOf(scan, pages?)        the text read on its pages, in page order
 //   pagesByScan()               Map(scan id → its pages, oldest first)
 //   expirySoon(scan)            'past' | 'soon' (within 60 days) | ''
+//   keptHere()                  scan id → are its pages kept on this device?
+//   setKeptHere(id, keep)       this device's choice for one scan
+//   leaveDevice()               pages of scans not kept here, already on the server, leave this device
+//
+// Which scans' pages stay on this device is this device's own choice: 👁,
+// Layout, Keep every scan on this device (on), and on each scan Keep on this
+// device, which goes against it (device settings scans_away, scans_kept).
+// The rest are fetched from the sync server when opened, and leave again.
 //   binProvider                 for Archive & Bin
 
 import * as store from './store.js';
 import { addFiles } from './attachments.js';
 import { toast } from './toast.js';
 import { scanLook } from './scanlook.js';
+import { layoutOn } from './viewcog.js';
 
 export const KINDS = [
   { id: 'receipt', label: 'Receipt', plural: 'Receipts' },
@@ -87,6 +96,26 @@ export function textOf(s, pages = null) {
   const read = s.page_text || {};
   const order = pages ? pages.map(a => a.id).filter(id => read[id]) : Object.keys(read);
   return order.map(id => read[id]).filter(Boolean).join('\n\n');
+}
+
+export async function keptHere() {
+  const { scans_kept: kept, scans_away: away } = await store.getDeviceSettings();
+  const all = layoutOn('scans', 'keep-all');
+  return id => (all ? !away.includes(id) : kept.includes(id));
+}
+
+export async function setKeptHere(id, keep) {
+  const { scans_kept: kept, scans_away: away } = await store.getDeviceSettings();
+  await store.updateDeviceSettings({ scans_kept: kept.filter(x => x !== id).concat(keep ? [id] : []), scans_away: away.filter(x => x !== id).concat(keep ? [] : [id]) });
+}
+
+export async function leaveDevice() {
+  const kept = await keptHere();
+  let gone = 0;
+  for (const a of await store.list('attachments', { filter: x => x.parent_collection === 'scans' })) {
+    if (!kept(a.parent_id) && await store.hasBlob(a.blob_id) && await store.dropBlob(a.blob_id)) gone++;
+  }
+  return gone;
 }
 
 export function expirySoon(s, today = new Date().toISOString().slice(0, 10)) {

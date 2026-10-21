@@ -603,11 +603,16 @@ export async function downloadFile(a, space = store.space()) {
   return null;
 }
 
+// Scans this device doesn't keep (scans.js keptHere) aren't fetched until opened.
+const scansKept = async () => (await import('./scans.js')).keptHere();
+const skipHere = (space, a, kept) => space.isLocal && a.parent_collection === 'scans' && !kept(a.parent_id);
+
 async function pullFiles() {
   let arrived = 0;
+  const kept = await scansKept();
   for (const space of fileSpaces()) {
     for (const a of await space.list('attachments')) {
-      if (a.size > MAX_AUTO_DOWNLOAD || await space.hasBlob(a.blob_id)) continue;
+      if (a.size > MAX_AUTO_DOWNLOAD || skipHere(space, a, kept) || await space.hasBlob(a.blob_id)) continue;
       if (await downloadFile(a, space)) arrived++;
       setStatus({ filesWaiting: Math.max(0, status.filesWaiting - 1) });
     }
@@ -617,9 +622,10 @@ async function pullFiles() {
 // How many files are still to go up or come down to this device.
 async function filesWaiting() {
   let n = 0;
+  const kept = await scansKept();
   for (const space of fileSpaces()) {
     n += (await space.blobsToUpload()).length;
-    for (const a of await space.list('attachments')) if (a.size <= MAX_AUTO_DOWNLOAD && !await space.hasBlob(a.blob_id)) n++;
+    for (const a of await space.list('attachments')) if (a.size <= MAX_AUTO_DOWNLOAD && !skipHere(space, a, kept) && !await space.hasBlob(a.blob_id)) n++;
   }
   return n;
 }
@@ -634,6 +640,7 @@ function syncFiles() {
     try {
       setStatus({ files: 'syncing', filesWaiting: await filesWaiting(), filesWaitingUp: (await Promise.all(fileSpaces().map(sp => sp.blobsToUpload()))).flat().length });
       await pushFiles();
+      await (await import('./scans.js')).leaveDevice(); // now they're up, scans not kept here can go
       const arrived = await pullFiles();
       setStatus({ files: 'idle', fileError: null, filesWaiting: await filesWaiting(), filesWaitingUp: (await Promise.all(fileSpaces().map(sp => sp.blobsToUpload()))).flat().length, filesArrived: arrived });
     } catch (e) {

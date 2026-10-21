@@ -312,7 +312,7 @@ export async function updateSettings(changes) {
 export async function getDeviceSettings() {
   const db = await local.open();
   const value = await promisify(db.transaction('sync_meta').objectStore('sync_meta').get('device_settings'));
-  return { server_url: null, device_name: null, keep_all_scans_on_device: true, ...(value || {}) };
+  return { server_url: null, device_name: null, scans_kept: [], scans_away: [], ...(value || {}) };
 }
 
 export async function updateDeviceSettings(changes) {
@@ -572,6 +572,19 @@ function makeSpace(name) {
     return (await promisify(db.transaction('blobs').objectStore('blobs').getAll())).filter(r => !r.uploaded_at && !(isLocal && demoIds.has(r.blob_id)));
   }
 
+  // A file that's safely on the server leaves this device (it's fetched again when opened). False if it isn't up yet.
+  async function dropBlob(blobId) {
+    await open();
+    const tx = db.transaction('blobs', 'readwrite');
+    const os = tx.objectStore('blobs');
+    const row = await promisify(os.get(blobId));
+    if (!row?.uploaded_at) { await done(tx); return false; }
+    os.delete(blobId);
+    await done(tx);
+    blobHere.delete(blobId);
+    return true;
+  }
+
   async function markBlobUploaded(blobId) {
     await open();
     const tx = db.transaction('blobs', 'readwrite');
@@ -715,7 +728,7 @@ function makeSpace(name) {
     return changed;
   }
 
-  return { name, isLocal, open, erase, write, create, update, remove, restore, updateMany, purgeMany, exportAll, mergeRecords, get, list, outboxSize, putBlob, getBlob, hasBlob, blobsToUpload, markBlobUploaded, metaGet, metaSet, outboxAll, queueAll, queue, forget, seqIn, markPushed, applyRemote };
+  return { name, isLocal, open, erase, write, create, update, remove, restore, updateMany, purgeMany, exportAll, mergeRecords, get, list, outboxSize, putBlob, getBlob, hasBlob, dropBlob, blobsToUpload, markBlobUploaded, metaGet, metaSet, outboxAll, queueAll, queue, forget, seqIn, markPushed, applyRemote };
 }
 
 export const local = makeSpace(LOCAL_DB);
@@ -816,6 +829,7 @@ export function mergeRecords(collection, incoming) { return local.mergeRecords(c
 export function outboxSize() { return local.outboxSize(); }
 export function blobsToUpload() { return local.blobsToUpload(); }
 export function markBlobUploaded(blobId) { return local.markBlobUploaded(blobId); }
+export function dropBlob(blobId) { return local.dropBlob(blobId); }
 export function metaGet(key) { return local.metaGet(key); }
 export function metaSet(key, value) { return local.metaSet(key, value); }
 export function outboxAll() { return local.outboxAll(); }
