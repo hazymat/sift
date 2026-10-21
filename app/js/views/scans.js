@@ -1,7 +1,8 @@
 // Scans: #/scans (every scan, newest first) and #/scans/<id> (one scan).
 // Scan takes a photo on a phone (or picks files on a laptop) and saves it at
-// once as "Receipt 26 Sep 14:32"; the scan then opens so its kind, dates and
-// note can be filled in, or not. Photos and PDFs dropped on the page become
+// once as "Receipt 26 Sep 14:32"; From photos does the same with photos
+// already taken (cut to the page and given the scanned look, as a new photo).
+// The scan then opens so its kind, dates and note can be filled in, or not. Photos and PDFs dropped on the page become
 // scans too (on a scan's page, more pages of it). IDs (passport, licence) are
 // shown blurred until you tap them, for anyone looking over your shoulder.
 // The text on each photographed page is read on this device (ocr.js) once the
@@ -71,6 +72,7 @@ export default {
       return `
         <div class="scans-head">
           <button type="button" class="primary scan-btn" data-act="scan">${icon('i-scans')}<span>Scan</span></button>
+          <button type="button" class="scan-photos" data-act="photos" title="From photos: ones you already have, cut to the page and given the scanned look like a new scan">${icon('i-photo')}<span>Photos</span></button>
           <input type="search" class="search scan-search" placeholder="Search scans…" value="${esc(state.q)}" aria-label="Search scans">
           ${shareHtml()}
           ${cogHtml('scans')}
@@ -174,7 +176,7 @@ export default {
             <div class="energy-pick scan-kind-pick" role="group" aria-label="Kind">${KINDS.map(k => `<button type="button" data-set-kind="${k.id}" aria-pressed="${s.kind === k.id}">${k.label}</button>`).join('')}</div>
           </div>
           <div class="panel-sec scan-pages${s.kind === 'id' && !revealed.has(s.id) ? ' is-id' : ''}"><span class="panel-h">Pages${s.kind === 'id' ? (revealed.has(s.id) ? '' : ' <button type="button" class="linklike" data-act="reveal">Show</button>') : ''}${signedIn() ? `<label class="scan-keep" title="Untick to free space: its pages stay on your server and come back when opened"><input type="checkbox" data-act="keep-here"${kept(s.id) ? ' checked' : ''}> Keep on this device</label>` : ''}</span>
-            ${att.rowHtml(p, { addButton: false }).replace('</div>', `<button type="button" class="att-add" data-act="add-page">${icon('i-plus')}<span>Page</span></button></div>`)}
+            ${att.rowHtml(p, { addButton: false }).replace('</div>', `<button type="button" class="att-add" data-act="add-page">${icon('i-plus')}<span>Page</span></button><button type="button" class="att-add" data-act="add-photo" title="A photo you already have, as the next page">${icon('i-photo')}<span>From photos</span></button></div>`)}
           </div>
           ${textHtml(s)}
           <div class="panel-sec"><span class="panel-h">Details</span>
@@ -236,12 +238,14 @@ export default {
     // ---------- adding ----------
 
     let pickFor = null; // a scan getting another page, or null for new scans
-    let fromCamera = false;
-    function pick(forScan = null, camera = COARSE) {
+    let fromCamera = false; // photos taken, or chosen with From photos, are treated as scans of paper
+    // how: 'camera' (take a photo), 'photos' (ones already taken), 'files' (photos and PDFs as they are)
+    function pick(forScan = null, how = COARSE ? 'camera' : 'files') {
       pickFor = forScan;
-      fromCamera = camera;
-      input.multiple = !camera;
-      if (camera) input.setAttribute('capture', 'environment'); else input.removeAttribute('capture');
+      fromCamera = how !== 'files';
+      input.multiple = how !== 'camera';
+      input.accept = how === 'files' ? 'image/*,application/pdf' : 'image/*';
+      if (how === 'camera') input.setAttribute('capture', 'environment'); else input.removeAttribute('capture');
       input.value = '';
       input.click();
     }
@@ -346,10 +350,12 @@ export default {
       if (!b) return;
       const act = b.dataset.act;
       if (act === 'scan') return pick();
-      if (act === 'files') { b.closest('details')?.removeAttribute('open'); return pick(null, false); }
+      if (act === 'photos') return pick(null, 'photos');
+      if (act === 'files') { b.closest('details')?.removeAttribute('open'); return pick(null, 'files'); }
       if (act === 'home') { location.hash = '#/scans'; return; }
       if (!s) return;
       if (act === 'add-page') return pick(s);
+      if (act === 'add-photo') return pick(s, 'photos');
       if (act === 'reveal') { revealed.add(s.id); return render(); }
       if (act === 'copy-text') { try { await navigator.clipboard.writeText(textOf(s, pages.get(s.id) || [])); toast('Text copied'); } catch { toast("Couldn't copy"); } return; }
       if (act === 'open-linked') return openRef(`${s.linked.collection}/${s.linked.id}`);

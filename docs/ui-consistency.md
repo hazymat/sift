@@ -9,7 +9,7 @@ Audited at 1.54.09 (29 September 2026), updated for 1.60.11.
 Every version that changes something on screen adds a What's new entry with a Show me pointing at it (`app/js/whatsnew.js`, see "What's new" in `docs/working-notes.md`).
 
 **Buttons and menus**
-- **+ New [thing]** is a pill at the top left of the page. Scans' "Scan" button is the one exception (it takes a photo).
+- **+ New [thing]** is a pill at the top left of the page. Scans' "Scan" button is the one exception (it takes a photo), with "From photos" beside it for photos already taken.
 - **⋯ menus** hold only rarely used things (Show Archive, Show Bin, import, export, example data). Primary actions never go in one. ⋯ menus open below the top bar and sticky bars and scroll inside if long (1.55.03).
 - **Green means open or close** (More, More (full), ✓ Close, a note's ⤢ and its Done), and a green button with a key shows it (hidden on touch screens) (1.55.04, 1.55.14). Shared rule in `app.css` (search `.close-top, .md-full`).
 - **The picture and file viewer** (`view()` in `attachments.js`, used everywhere a photo or file opens) has round glass buttons: ✕ top right, Share top left (the device's share sheet with the file itself, or Save a copy where files can't be shared), ‹ › at the sides (at the bottom on phones) (1.60.75).

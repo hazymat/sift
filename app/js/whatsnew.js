@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.86': [{ text: "Scans: Photos, beside Scan, takes photos you already have (from your photo library or files) and treats them like a new scan: cut to the page's edges, given the scanned look, and their text read. On a scan's page, From photos beside + Page adds one as the next page.", go: '#/scans', at: '#main [data-act="photos"]' }],
   '1.60.85': [{ text: "Contacts, a case: attach photos and documents under Files (Attach photos or documents, or drop them on the case); each shows in the Timeline too. Add note is gone: Log it has a ✎ Note kind for anything else. Every entry's When starts at the time now (Now puts it back) and ✎ beside a saved entry changes its date, time and words.", go: '#/contacts/cases', open: ['#main .c-list .c-card a.c-main'], at: '#main .case-files', more: "A contact's own Log has the same When with Now, and ✎ on each logged call or visit." }],
   '1.60.84': [{ text: "Tasks, Lists, Find Things and the Day Planner: a task or item moved with Shift+Alt+↑ or ↓ gives one quick yellow pulse where it lands (its sub-tasks or sub-items too), so you can see where it went.", go: '#/tasks', at: '#main .task-list > li[data-task] > .task-title' }],
   '1.60.83': [{ text: "Scans, with sync on: choose which scans stay on this device to save space. On a scan's page, untick Keep on this device (by Pages): its pages leave this device once they're on your server, its card shows ☁ Server, and they come back whenever you open them. To keep only the scans you tick, untick 👁, Layout, Keep every scan's pages on this device.", go: '#/scans', open: ['#main details.view-menu > summary'], at: '#main [data-layout-set="keep-all"]', more: "A scan's own Keep on this device is on its page, beside Pages." }],
@@ -139,6 +140,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.86': '2026-10-21T22:18:25Z',
   '1.60.85': '2026-10-21T16:27:54Z',
   '1.60.84': '2026-10-21T13:58:34Z',
   '1.60.83': '2026-10-21T13:21:57Z',
