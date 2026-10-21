@@ -137,6 +137,18 @@ function nearest(list, from, dir) {
     .reduce((a, b) => (Math.abs((b.q.left + b.q.right) / 2 - x) < Math.abs((a.q.left + a.q.right) / 2 - x) ? b : a)).e;
 }
 
+// Going up, scrollIntoView stops at the window's top edge, under the app bar and the area's sticky bar: scroll on until it clears them.
+const STICKY = '.appbar, .find-bar, .find-sticky, .sticky-top, .dump-bar, .bb-sticky, .list-top, .box-top, .box-lid';
+function clearSticky(el) {
+  const elTop = el.getBoundingClientRect().top;
+  let barsBottom = 0;
+  for (const bar of document.querySelectorAll(STICKY)) {
+    const barRect = bar.getBoundingClientRect();
+    if (barRect.height && barRect.top < innerHeight / 2 && !bar.contains(el)) barsBottom = Math.max(barsBottom, barRect.bottom);
+  }
+  if (elTop < barsBottom + 8) scrollBy(0, elTop - barsBottom - 8);
+}
+
 export function installBrowse({ busy, area }) {
   const cfg = () => AREAS[area()];
   const items = c => (c?.items ? all(c.items) : []);
@@ -159,6 +171,7 @@ export function installBrowse({ busy, area }) {
     inBar = false;
     paint();
     el.scrollIntoView({ block: 'nearest' });
+    clearSticky(el);
   };
   goTo = go;
   const stop = () => { on = false; inBar = false; key = null; barPick = null; selFrom = null; paint(); };
