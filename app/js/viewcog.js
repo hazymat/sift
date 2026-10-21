@@ -100,7 +100,9 @@ const LAYOUTS = {
     { id: 'margin', label: 'Show margin', def: true, needs: 'lined' },
   ],
   scans: [
+    { id: 'scan-edges', label: 'Camera photos are cut to the edges of the page and straightened', def: true },
     { id: 'scan-look', label: 'Camera photos get a scanned look (grey, the paper white)', def: true },
+    { id: 'scan-read', label: 'Read the text on scanned pages (on this device, English)', def: true },
   ],
   planner: [
     { id: 'day-rel', label: 'Show "Today" or "In 5 days" under the date', def: true },

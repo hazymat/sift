@@ -4,12 +4,14 @@
 // note can be filled in, or not. Photos and PDFs dropped on the page become
 // scans too (on a scan's page, more pages of it). IDs (passport, licence) are
 // shown blurred until you tap them, for anyone looking over your shoulder.
+// The text on each photographed page is read on this device (ocr.js) once the
+// scan is opened, kept in page_text, shown under its pages and searched.
 
 import { keys } from '../keys.js';
 import * as store from '../store.js';
 import { cogHtml, layoutOn } from '../viewcog.js';
 import { shareHtml } from '../share.js';
-import { KINDS, kindLabel, newScan, addPages, pagesByScan, expirySoon } from '../scans.js';
+import { KINDS, kindLabel, newScan, addPages, pagesByScan, expirySoon, textOf } from '../scans.js';
 import * as att from '../attachments.js';
 import { richText } from '../richtext.js';
 import { debounced } from '../autosave.js';
@@ -35,6 +37,7 @@ export default {
     let pages = new Map();
     let noteEditor = null;
     const revealed = new Set(); // ID scans shown unblurred on this visit
+    const reading = new Map(); // scan id → 'reading' | 'failed'
     const gone = this.gone = new AbortController();
 
     el.innerHTML = '<div class="scans"></div><input type="file" class="scan-input" hidden multiple>';
@@ -61,7 +64,7 @@ export default {
     function listHtml() {
       const words = state.q.toLowerCase().split(/\s+/).filter(Boolean);
       const shown = scans.filter(s => (state.kind === 'all' || s.kind === state.kind)
-        && words.every(w => `${s.title} ${s.summary || ''} ${s.note || ''} ${kindLabel(s.kind)} ${s.linked?.title || ''}`.toLowerCase().includes(w)));
+        && words.every(w => `${s.title} ${s.summary || ''} ${s.note || ''} ${kindLabel(s.kind)} ${s.linked?.title || ''} ${textOf(s)}`.toLowerCase().includes(w)));
       return `
         <div class="scans-head">
           <button type="button" class="primary scan-btn" data-act="scan">${icon('i-scans')}<span>Scan</span></button>
@@ -83,6 +86,48 @@ export default {
 
     // ---------- one scan ----------
 
+    // The text read on its pages (not on a blurred ID until it's shown).
+    function textHtml(s) {
+      const p = pages.get(s.id) || [];
+      const text = textOf(s, p);
+      const progress = reading.get(s.id);
+      if (!text && !progress && !(layoutOn('scans', 'scan-read') && p.some(a => a.kind === 'image'))) return '<div class="panel-sec scan-text-sec" hidden></div>';
+      if (s.kind === 'id' && !revealed.has(s.id)) return '<div class="panel-sec scan-text-sec" hidden></div>';
+      const body = progress === 'reading' ? '<span class="muted">Reading the text, on this device…</span>'
+        : text ? `<div class="scan-text">${esc(text)}</div>`
+        : progress === 'failed' ? '<span class="muted">The text couldn\'t be read. The first time, Sift needs to be online to fetch its reader.</span>'
+        : '<span class="muted">No text found.</span>';
+      return `<div class="panel-sec scan-text-sec"><span class="panel-h">Text on it${text && progress !== 'reading' ? ' <button type="button" class="linklike" data-act="copy-text">Copy</button>' : ''}</span>${body}</div>`;
+    }
+    const redrawText = s => { const sec = root.querySelector('.scan-text-sec'); if (sec && state.id === s.id) sec.outerHTML = textHtml(s); };
+
+    // Read the pages not read yet, one at a time, saving each as it's done.
+    async function readPages(s) {
+      if (!layoutOn('scans', 'scan-read') || reading.get(s.id) === 'reading') return;
+      const todo = (pages.get(s.id) || []).filter(a => a.kind === 'image' && !(s.page_text && a.id in s.page_text));
+      if (!todo.length) return;
+      const here = [];
+      for (const a of todo) { const blob = await store.getBlob(a.blob_id); if (blob) here.push([a, blob]); }
+      if (!here.length) return;
+      reading.set(s.id, 'reading');
+      redrawText(s);
+      const { readText } = await import('../ocr.js');
+      let failed = false;
+      for (const [a, blob] of here) {
+        let text;
+        try { text = await readText(blob); } catch (err) { console.warn('Reading the text failed:', err); failed = true; break; }
+        const now = await store.get('scans', s.id);
+        if (!now) return reading.delete(s.id);
+        const read = Object.assign({}, now.page_text || {});
+        read[a.id] = text;
+        await store.update('scans', s.id, { page_text: read });
+        const local = scanOf(s.id);
+        if (local) local.page_text = read;
+      }
+      if (failed) reading.set(s.id, 'failed'); else reading.delete(s.id);
+      redrawText(scanOf(s.id) || s);
+    }
+
     function pageHtml(s) {
       const p = pages.get(s.id) || [];
       const letter = s.kind === 'letter';
@@ -100,6 +145,7 @@ export default {
           <div class="panel-sec scan-pages${s.kind === 'id' && !revealed.has(s.id) ? ' is-id' : ''}"><span class="panel-h">Pages${s.kind === 'id' ? (revealed.has(s.id) ? '' : ' <button type="button" class="linklike" data-act="reveal">Show</button>') : ''}</span>
             ${att.rowHtml(p, { addButton: false }).replace('</div>', `<button type="button" class="att-add" data-act="add-page">${icon('i-plus')}<span>Page</span></button></div>`)}
           </div>
+          ${textHtml(s)}
           <div class="panel-sec"><span class="panel-h">Details</span>
             <div class="detail-grid">
               ${letter ? `<label>Letter date<input type="date" name="letter_date" value="${s.letter_date || ''}"></label>` : ''}
@@ -145,6 +191,7 @@ export default {
         });
         const box = root.querySelector('.scan-note');
         box.addEventListener('focusout', ev => { if (!box.contains(ev.relatedTarget)) noteAuto.flush(); });
+        readPages(s);
       }
     };
 
@@ -167,8 +214,8 @@ export default {
     }
     async function take(files, camera = false) {
       if (!files.length) return;
-      // A photo just taken with the camera gets the scanned look (👁, Layout).
-      const opts = { look: camera && layoutOn('scans', 'scan-look') };
+      // A photo just taken with the camera is cut to the page and gets the scanned look (👁, Layout).
+      const opts = { look: camera && layoutOn('scans', 'scan-look'), edges: camera && layoutOn('scans', 'scan-edges') };
       if (pickFor) {
         const made = await addPages(pickFor, files, opts);
         await render();
@@ -254,6 +301,7 @@ export default {
       if (!s) return;
       if (act === 'add-page') return pick(s);
       if (act === 'reveal') { revealed.add(s.id); return render(); }
+      if (act === 'copy-text') { try { await navigator.clipboard.writeText(textOf(s, pages.get(s.id) || [])); toast('Text copied'); } catch { toast("Couldn't copy"); } return; }
       if (act === 'open-linked') return openRef(`${s.linked.collection}/${s.linked.id}`);
       if (act === 'unlink') return change(s.id, { linked: null }, 'Taken off');
       if (act === 'file-with') {
