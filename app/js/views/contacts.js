@@ -24,10 +24,17 @@ import { askText } from '../ask.js';
 import { word } from '../words.js';
 import { tintHex, tintId, colourMenu } from '../colours.js';
 import { keys } from '../keys.js';
+import * as att from '../attachments.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
 const OLDER_DAYS = 60;
+// A datetime-local field's value for a moment, in local time.
+const pad2 = n => String(n).padStart(2, '0');
+const localValue = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+// When a log entry happened: a When field still following the clock is "now", to the second.
+const atFrom = input => (input.dataset.live === '1' || !input.value ? new Date().toISOString() : new Date(input.value).toISOString());
+const whenField = (iso, live) => `<span class="log-when"><input type="datetime-local" name="at" value="${localValue(iso ? new Date(iso) : new Date())}"${live ? ' data-live="1"' : ' class="no-inline"'} aria-label="When"><button type="button" data-act="log-now" title="Set to the time now">Now</button></span>`;
 
 function ago(iso) {
   if (!iso) return '';
@@ -40,13 +47,18 @@ function ago(iso) {
   if (d < 14) return `${d} day${d === 1 ? '' : 's'} ago`;
   return dateText(new Date(iso), { day: 'numeric', month: 'short', year: 'numeric' });
 }
-const when = iso => dateTimeText(new Date(iso), { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+// Another year's date says which year.
+const when = iso => dateTimeText(new Date(iso), { weekday: 'short', day: 'numeric', month: 'short', year: new Date(iso).getFullYear() === new Date().getFullYear() ? undefined : 'numeric', hour: '2-digit', minute: '2-digit' });
 
 export default {
   async mount(el) {
     const state = this.state = { tab: 'recent', id: null, q: '' };
     let data = { contacts: [], categories: [], cases: [], interactions: [] };
     let editors = [];
+    let editing = null; // the log entry being edited: 'interactions:<id>' or 'case_notes:<id>'
+    let atts = new Map();
+    // A new entry's When follows the clock until it's changed by hand (Now puts it back).
+    this.clock = setInterval(() => { for (const f of el.querySelectorAll('input[name="at"][data-live="1"]')) f.value = localValue(new Date()); }, 15000);
 
     el.innerHTML = `
       <div class="sticky-top-mark" aria-hidden="true"></div>
@@ -191,16 +203,34 @@ export default {
 
     // openTasks: the contact's open tasks; when there are any, the log can also
     // go on one of them as a comment (js/comments.js).
+    // A case's log also takes a plain Note (a case note, no one contacted).
     function logForm(prefix, openTasks = []) {
+      const hows = prefix === 'case' ? HOW : HOW.filter(h => !h.caseOnly);
       return `
         <div class="log-form" data-log-form="${prefix}">
-          <select name="how">${HOW.map(h => `<option value="${h.id}">${h.icon} ${h.label}</option>`).join('')}</select>
+          <select name="how" aria-label="What kind">${hows.map(h => `<option value="${h.id}">${h.icon} ${h.label}</option>`).join('')}</select>
           <select name="direction"><option value="out">I contacted them</option><option value="in">They contacted me</option></select>
           <input name="summary" placeholder="${esc(word('ph_log_what'))}" autocomplete="off">
           ${openTasks.length ? `<select name="task_id" aria-label="Also a comment on a task"><option value="">Not about a task</option>${openTasks.map(t => `<option value="${t.id}">💬 ${esc(t.title)}</option>`).join('')}</select>` : ''}
+          ${whenField(null, true)}
           <button type="button" data-act="log-${prefix}">Log it</button>
         </div>`;
     }
+
+    // A saved log entry (a call, visit... or a case note) opened to change its when, kind and words.
+    function entryEditor(coll, r) {
+      const isNote = coll === 'case_notes';
+      return `<li class="entry-edit" data-entry="${coll}:${r.id}"><div class="log-form">
+        ${isNote ? '' : `<select name="how" aria-label="What kind">${HOW.filter(h => !h.caseOnly).map(h => `<option value="${h.id}"${h.id === r.how ? ' selected' : ''}>${h.icon} ${h.label}</option>`).join('')}</select>
+        <select name="direction"><option value="out">I contacted them</option><option value="in"${r.direction === 'in' ? ' selected' : ''}>They contacted me</option></select>`}
+        <input name="summary" class="no-inline" value="${esc(isNote ? r.body : r.summary)}" placeholder="${esc(word(isNote ? 'ph_case_note' : 'ph_log_what'))}" autocomplete="off" aria-label="${isNote ? 'Note' : 'What happened'}">
+        ${whenField(r.at, false)}
+        <button type="button" class="primary" data-act="entry-save">Save${keys('Enter')}</button>
+        <button type="button" data-act="entry-cancel">Cancel${keys('Esc')}</button>
+        <button type="button" class="danger" data-act="entry-delete">Delete</button>
+      </div></li>`;
+    }
+    const editBtn = (coll, id) => `<button type="button" class="icon-btn small entry-edit-btn" data-act="entry-edit" data-entry="${coll}:${id}" title="Edit (when, words)" aria-label="Edit">✎</button>`;
 
     async function viewContact() {
       const c = byId(state.id);
@@ -249,7 +279,8 @@ export default {
           <div id="c-notes"></div>
           <h3 class="milestone">Log</h3>
           ${logForm('contact', tasks.filter(t => !t.done_at))}
-          <ul class="timeline">${timeline.map(e => `<li class="${e.kind}"><span class="muted">${when(e.at)}</span> ${esc(e.text)}</li>`).join('')}</ul>
+          <ul class="timeline">${timeline.map(e => (e.id && editing === `interactions:${e.id}` ? entryEditor('interactions', log.find(i => i.id === e.id))
+            : `<li class="${e.kind}"><span class="muted">${when(e.at)}</span> ${esc(e.text)}${e.id ? editBtn('interactions', e.id) : ''}</li>`)).join('')}</ul>
           ${cases.length || tasks.length || dayItems.length || mentions.length || scans.length ? `<h3 class="milestone">Connected</h3><ul class="links">
             ${cases.map(k => `<li><a href="#/contacts/cases/${k.id}">Case: ${esc(k.title)}</a></li>`).join('')}
             ${tasks.map(t => `<li><a href="#/tasks/list${t.project_id ? `/${t.project_id}` : ''}">Task: ${esc(t.title)}</a></li>`).join('')}
@@ -293,9 +324,12 @@ export default {
       // Comments on the case's tasks (js/comments.js), each under its task's name.
       const taskIds = new Map(tasks.map(t => [t.id, t]));
       const comments = await store.list('comments', { filter: c => taskIds.has(c.task_id) });
+      atts = await att.byParent();
+      const files = atts.get(k.id) || [];
       const events = [
-        ...log.map(i => ({ at: i.at, type: 'log', html: `${HOW.find(h => h.id === i.how)?.icon || ''} <b>${i.direction === 'in' ? 'In' : 'Out'}</b>${i.contact_id ? ` · ${esc(byId(i.contact_id)?.name || '')}` : ''}${i.detail_used ? ` · ${esc(i.detail_used)}` : ''}${i.summary ? `: ${esc(i.summary)}` : ''}` })),
-        ...notes.map(n => ({ at: n.at, type: 'note', html: `✎ ${inlineAll(n.body)}` })),
+        ...files.map(a => ({ at: a.created_at, type: 'file', html: `📎 <button type="button" class="link-btn" data-att-open="${a.id}">${esc(a.name)}</button> attached` })),
+        ...log.map(i => ({ at: i.at, type: 'log', entry: ['interactions', i], html: `${HOW.find(h => h.id === i.how)?.icon || ''} <b>${i.direction === 'in' ? 'In' : 'Out'}</b>${i.contact_id ? ` · ${esc(byId(i.contact_id)?.name || '')}` : ''}${i.detail_used ? ` · ${esc(i.detail_used)}` : ''}${i.summary ? `: ${esc(i.summary)}` : ''}` })),
+        ...notes.map(n => ({ at: n.at, type: 'note', entry: ['case_notes', n], html: `✎ ${inlineAll(n.body)}` })),
         ...tasks.map(t => ({ at: t.created_at, type: 'task', html: `☐ Task: <a href="#/tasks/list">${esc(t.title)}</a>${t.done_at ? ' (done)' : ''}` })),
         ...comments.map(c => ({ at: c.at, type: 'comment', html: `💬 <a href="#/tasks/list">${esc(taskIds.get(c.task_id).title)}</a>: ${c.body ? inlineAll(c.body) : '📎'}` })),
         ...scans.map(sc => ({ at: sc.letter_date || sc.created_at, type: 'letter', html: `📄 <a href="#/scans/${sc.id}">${esc(sc.title)}</a>${sc.summary ? `: ${esc(sc.summary)}` : ''}` })),
@@ -319,11 +353,13 @@ export default {
           <div class="c-details">${(k.contact_ids || []).map(id => byId(id)).filter(Boolean).map(c => `<span class="chip"><a href="#/contacts/c/${c.id}">${esc(c.name)}</a> ${detailChips(c)} <button type="button" class="chip-x" data-act="case-unlink" data-id="${c.id}">×</button></span>`).join('')}
             <select id="case-add-contact"><option value="">+ Add a contact…</option>${data.contacts.filter(c => !k.contact_ids?.includes(c.id)).map(c => `<option value="${c.id}">${esc(c.name || '(no name)')}</option>`).join('')}</select>
           </div>
+          <h3 class="milestone">Files</h3>
+          <div class="case-files">${att.rowHtml(files, { parent: k.id, addButton: 'Attach photos or documents' })}</div>
           <h3 class="milestone">Timeline</h3>
           ${logForm('case')}
-          <div class="case-note"><input id="case-note" placeholder="${esc(word('ph_case_note'))}" autocomplete="off"><button type="button" data-act="case-note">Add note</button>
-            <button type="button" data-act="case-task">+ Task</button></div>
-          <ul class="timeline">${events.map(e => `<li class="${e.type}"><span class="muted">${when(e.at)}</span> ${e.html}</li>`).join('') || '<li class="muted">Nothing yet.</li>'}</ul>
+          <div class="case-note"><button type="button" data-act="case-task">+ Task</button></div>
+          <ul class="timeline">${events.map(e => (e.entry && editing === `${e.entry[0]}:${e.entry[1].id}` ? entryEditor(e.entry[0], e.entry[1])
+            : `<li class="${e.type}"><span class="muted">${when(e.at)}</span> ${e.html}${e.entry ? editBtn(e.entry[0], e.entry[1].id) : ''}</li>`)).join('') || '<li class="muted">Nothing yet.</li>'}</ul>
           <p class="muted hint">${esc(word('ph_case_letters'))}</p>
           <div class="detail-actions"><span class="spacer"></span>
             <button type="button" data-act="archive-case">Archive</button>
@@ -343,6 +379,8 @@ export default {
         : state.tab === 'cases' ? await viewCases()
         : state.tab === 'contact' ? await viewContact()
         : viewRecent();
+      const ed = body.querySelector('.entry-edit [name="summary"]');
+      if (ed && !body.contains(document.activeElement)) { ed.focus(); ed.setSelectionRange(ed.value.length, ed.value.length); }
       const cap = body.querySelector('#c-new');
       if (cap) keepDraft(cap, 'contacts:new');
       if (cap) cap.addEventListener('keydown', ev => { if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); capture(); } });
@@ -434,6 +472,47 @@ export default {
       undoable(label, async () => { await store.update('contacts', id, old); render(); });
     }
 
+    // Saving (or deleting) the log entry being edited. The time is kept to the second unless it was changed.
+    async function entryDone(row, del) {
+      const [coll, id] = row.dataset.entry.split(':');
+      const r = await store.get(coll, id);
+      editing = null;
+      if (!r) return render();
+      if (del) {
+        await store.remove(coll, id);
+        await render();
+        undoable(coll === 'case_notes' ? 'Note deleted' : 'Log entry deleted', async () => { await store.restore(coll, id); render(); });
+        return;
+      }
+      const atField = row.querySelector('[name="at"]');
+      const text = row.querySelector('[name="summary"]').value.trim();
+      const fields = { at: atField.value && atField.value !== localValue(new Date(r.at)) ? new Date(atField.value).toISOString() : r.at };
+      if (coll === 'case_notes') {
+        if (!text) { editing = row.dataset.entry; toast('A note needs some words: Delete takes it away'); return; }
+        fields.body = text;
+      } else Object.assign(fields, { summary: text, how: row.querySelector('[name="how"]').value, direction: row.querySelector('[name="direction"]').value });
+      const old = Object.fromEntries(Object.keys(fields).map(x => [x, r[x] ?? null]));
+      if (Object.keys(fields).every(x => fields[x] === old[x])) return render();
+      await store.update(coll, id, fields);
+      await render();
+      undoable('Saved', async () => { await store.update(coll, id, old); render(); });
+    }
+    el.addEventListener('keydown', ev => {
+      const row = ev.target.closest('.entry-edit');
+      if (row && ev.key === 'Enter' && !ev.isComposing && ev.target.matches('input')) { ev.preventDefault(); entryDone(row, false); }
+      else if (row && ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); editing = null; render(); }
+      else if (ev.key === 'Enter' && !ev.isComposing && ev.target.matches('.log-form [name="summary"]')) { ev.preventDefault(); ev.target.closest('.log-form').querySelector('[data-act^="log-"]:not([data-act="log-now"])').click(); }
+    });
+    // Changing a new entry's When by hand stops it following the clock; a Note has no "who contacted whom".
+    el.addEventListener('input', ev => { if (ev.target.matches('input[name="at"]')) delete ev.target.dataset.live; });
+    el.addEventListener('change', ev => {
+      if (!ev.target.matches('.log-form [name="how"]')) return;
+      const f = ev.target.closest('.log-form'), note = ev.target.value === 'note';
+      f.querySelector('[name="direction"]').hidden = note;
+      f.querySelector('[name="summary"]').placeholder = word(note ? 'ph_case_note' : 'ph_log_what');
+    });
+    att.enableDrop(el, '[data-case-page]', node => ({ collection: 'cases', id: node.dataset.casePage }), () => render());
+
     // Tapping a number/email logs a contact attempt, then lets the link work.
     el.addEventListener('click', async ev => {
       const link = ev.target.closest('a[data-log]');
@@ -446,8 +525,13 @@ export default {
     }, true);
 
     el.addEventListener('click', async ev => {
+      if (state.tab === 'cases' && state.id && att.onClick(ev, () => ({ collection: 'cases', id: state.id }), () => render())) return;
       const b = ev.target.closest('[data-act], [data-tab], [data-status], [data-rate]');
       if (!b) return;
+      if (b.dataset.act === 'log-now') { const f = b.parentElement.querySelector('[name="at"]'); f.value = localValue(new Date()); if (!b.closest('.entry-edit')) f.dataset.live = '1'; return; }
+      if (b.dataset.act === 'entry-edit') { editing = b.dataset.entry; return render(); }
+      if (b.dataset.act === 'entry-cancel') { editing = null; return render(); }
+      if (b.dataset.act === 'entry-save' || b.dataset.act === 'entry-delete') return entryDone(b.closest('.entry-edit'), b.dataset.act === 'entry-delete');
       if (b.dataset.tab) { go(b.dataset.tab === 'recent' ? '#/contacts' : `#/contacts/${b.dataset.tab}`); return; }
       b.closest('details.tool-menu')?.removeAttribute('open');
       const act = b.dataset.act;
@@ -487,7 +571,7 @@ export default {
         if (act === 'log-contact') {
           const f = b.closest('.log-form');
           const taskId = f.querySelector('[name="task_id"]')?.value || null;
-          const made = await logInteraction({ contact_id: c.id, how: f.querySelector('[name="how"]').value, direction: f.querySelector('[name="direction"]').value, summary: f.querySelector('[name="summary"]').value.trim(), task_id: taskId });
+          const made = await logInteraction({ contact_id: c.id, how: f.querySelector('[name="how"]').value, direction: f.querySelector('[name="direction"]').value, summary: f.querySelector('[name="summary"]').value.trim(), task_id: taskId, at: atFrom(f.querySelector('[name="at"]')) });
           // On a task too: a comment in words ("I called Sam: left a message").
           const how = made.how === 'call' ? 'called' : made.how === 'email' ? 'emailed' : made.how === 'text' ? 'texted' : made.how;
           const said = taskId && await store.create('comments', { task_id: taskId, at: made.at, body: `${HOW.find(h => h.id === made.how)?.icon || ''} ${made.direction === 'in' ? `${c.name || 'They'} ${how} me` : `I ${how} ${c.name || 'them'}`}${made.summary ? `: ${made.summary}` : ''}`.trim(), from_interaction_id: made.id });
@@ -532,18 +616,19 @@ export default {
         if (act === 'case-unlink') return upd({ contact_ids: k.contact_ids.filter(x => x !== b.dataset.id) }, 'Removed from case');
         if (act === 'log-case') {
           const f = b.closest('.log-form');
-          const made = await logInteraction({ case_id: k.id, contact_id: k.contact_ids?.[0] || null, how: f.querySelector('[name="how"]').value, direction: f.querySelector('[name="direction"]').value, summary: f.querySelector('[name="summary"]').value.trim() });
+          const how = f.querySelector('[name="how"]').value, summary = f.querySelector('[name="summary"]').value.trim(), at = atFrom(f.querySelector('[name="at"]'));
+          if (how === 'note') {
+            if (!summary) { toast('Write the note first'); f.querySelector('[name="summary"]').focus(); return; }
+            const n = await store.create('case_notes', { case_id: k.id, at, body: summary });
+            await store.update('cases', k.id, { status: k.status });
+            await render();
+            undoable('Note added', async () => { await store.remove('case_notes', n.id); render(); });
+            return;
+          }
+          const made = await logInteraction({ case_id: k.id, contact_id: k.contact_ids?.[0] || null, how, direction: f.querySelector('[name="direction"]').value, summary, at });
           await store.update('cases', k.id, { status: k.status });
           await render();
           undoable('Logged', async () => { await store.remove('interactions', made.id); render(); });
-          return;
-        }
-        if (act === 'case-note') {
-          const text = body.querySelector('#case-note').value.trim();
-          if (!text) return;
-          const n = await store.create('case_notes', { case_id: k.id, at: new Date().toISOString(), body: text });
-          await render();
-          undoable('Note added', async () => { await store.remove('case_notes', n.id); render(); });
           return;
         }
         if (act === 'case-task') {
@@ -610,6 +695,7 @@ export default {
       }
     });
 
+    this.stopEditing = () => { editing = null; };
     await render();
   },
 
@@ -627,10 +713,12 @@ export default {
     } else {
       Object.assign(this.state, { tab: ['directory', 'cases'].includes(tab) ? tab : 'recent', id: id || null });
     }
+    this.stopEditing?.();
     return this.render();
   },
 
   unmount() {
+    clearInterval(this.clock);
     this.kit?.destroy();
     this.topWatch?.disconnect();
     removeEventListener('keydown', this.onKey);

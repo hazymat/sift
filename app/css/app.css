@@ -1293,6 +1293,13 @@ a.chip { color: var(--text); text-decoration: none; }
 .timeline li { font-size: .9rem; }
 .timeline li .muted { font-size: .75rem; margin-right: 6px; }
 .timeline li.look { opacity: .6; }
+.log-form .log-when { display: inline-flex; gap: 4px; flex: 0 1 auto; }
+.log-form .log-when input { flex: 0 1 auto; min-width: 0; }
+.log-form [hidden] { display: none; }
+.timeline .entry-edit-btn { display: inline-grid; margin-left: 6px; width: 26px; height: 26px; min-height: 0; padding: 0; opacity: .45; vertical-align: middle; }
+.timeline li:hover .entry-edit-btn, .timeline .entry-edit-btn:focus-visible { opacity: 1; }
+.timeline li.entry-edit { padding: 6px 0; }
+.case-files { margin: 4px 0 8px; }
 .links { margin: 0; padding-left: 18px; }
 .links a { color: var(--accent); }
 .raw-body summary { cursor: pointer; color: var(--muted); font-size: .85rem; }
