@@ -21,7 +21,7 @@ import { typingIn } from '../listkit.js';
 import { rowSwipe } from '../rowswipe.js';
 import { holdToLift, HOLD_SKIP } from '../hold.js';
 import * as gcal from '../gcal.js';
-import { atEdge, caretTo } from '../walk.js';
+import { atEdge, caretTo, caretAt } from '../walk.js';
 import { debounced } from '../autosave.js';
 import { editPills, selectPill, energyPill } from '../editpills.js';
 import { keys, CTRL_ENTER } from '../keys.js';
@@ -1395,6 +1395,31 @@ const dayPlanner = {
       ev.preventDefault();
       if (up) walkGo(s, 'name', 'end');
       else if (stops[i + 1]) walkGo(stops[i + 1], 'name', 'start');
+    });
+
+    // Shift+Alt+↑ / ↓ in a day task's name or note (the Tasks, not the schedule): it moves up or down past the next one, as in Tasks, the cursor staying put.
+    el.addEventListener('keydown', async ev => {
+      if ((ev.key !== 'ArrowUp' && ev.key !== 'ArrowDown') || !ev.shiftKey || !ev.altKey || ev.ctrlKey || ev.metaKey || ev.defaultPrevented || ev.isComposing) return;
+      const t = ev.target, row = t.closest?.('.pile-paper .line.has-item[data-item]');
+      if (!row || !typingIn(t) || t.closest('.is-full')) return;
+      ev.preventDefault(); ev.stopPropagation();
+      const item = items.find(i => i.id === row.dataset.item);
+      if (!item || item.time) return;
+      const up = ev.key === 'ArrowUp', part = t.matches('.item-title') ? 'name' : 'note', caret = caretAt(t);
+      const order = items.filter(i => !i.time && !!i.done_at === !!item.done_at).sort(pileOrder);
+      const at = order.indexOf(item), to = at + (up ? -1 : 1);
+      if (!order[to]) return toast(`Already the ${up ? 'first' : 'last'} task`);
+      order.splice(at, 1); order.splice(to, 0, item);
+      const places = reorderWrites(order, i => rankOf(i), [item.id]);
+      // What was typed is saved first: the name by leaving it; the note quietly, staying open (noteEditing) so the redraw keeps it.
+      const box = t.closest('[data-note-for]');
+      if (box?._editor) { await leaveNoteBox(box, { redraw: false }); box._editor = null; noteEditing = item.id; }
+      else { t.blur(); await new Promise(done => setTimeout(done)); await store.idle(); }
+      await moveMany(new Map(places.map(([i, rank]) => [i.id, { rank }])), up ? 'Moved up' : 'Moved down');
+      const stop = walkStops($('.pile-paper')).find(s => s.key === item.id);
+      if (!stop) return;
+      stop.row.scrollIntoView({ block: 'nearest' });
+      walkGo(stop, part, caret); // and again after any later redraw (the name's own save)
     });
 
     // ---------- editing ----------
