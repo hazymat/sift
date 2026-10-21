@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.79': [{ text: "Scans: a page photographed with Scan on a phone now looks scanned: grey, with the paper white and the writing dark, and the shadows and yellow light taken out. Untick it in 👁, Layout to keep photos in colour.", go: '#/scans', open: ['#main details.view-menu > summary'], at: '#main [data-layout-set="scan-look"]' }],
   '1.60.78': [{ text: "Day Planner, Advanced: Shift with ↑ or ↓ in Add a comment (or a task's name) no longer starts choosing tasks; it selects the typed text to the start or end, as anywhere else. Tasks are chosen only from the ⠿ grab bars on the left, and Esc lets go of the chosen tasks, as in Tasks.", go: '#/planner/today/advanced', at: '#main .adv-row .drag-handle' }],
   '1.60.77': [{ text: "Keyboard browsing: going back up with the ↑ arrow no longer leaves the outlined box, note or card hidden under the bar at the top of the page (Find Things, and every other area with a bar that stays put)." }],
   '1.60.76': [{ text: "Day Planner: clicking into a task in the Tasks list beside the schedule no longer squeezes its name into a narrow strip. Its More button there is smaller (no Shift and Enter key boxes), so the name keeps most of the column.", go: '#/planner', at: '#main .pile-paper' }],
@@ -129,6 +130,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.79': '2026-10-21T13:04:08Z',
   '1.60.78': '2026-10-21T13:02:04Z',
   '1.60.77': '2026-10-21T12:38:56Z',
   '1.60.76': '2026-10-21T12:36:51Z',

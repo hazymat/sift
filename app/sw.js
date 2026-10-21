@@ -69,6 +69,7 @@ const SHELL = [
   'js/attachments.js',
   'js/walk.js',
   'js/scans.js',
+  'js/scanlook.js',
   'js/contracts.js',
   'js/install.js',
   'js/link.js',
