@@ -11,6 +11,7 @@ export const HOW = [
   { id: 'visit', label: 'Visit', icon: '🚪' },
   { id: 'meeting', label: 'Meeting', icon: '🤝' },
   { id: 'other', label: 'Other', icon: '•' },
+  { id: 'note', label: 'Note', icon: '✎', caseOnly: true }, // a case's plain note (kept as a case note)
 ];
 
 export const RESEARCH = [
@@ -124,7 +125,7 @@ export async function logInteraction(fields) {
       const details = made.detail_used
         ? c.details.map(d => (d.value === made.detail_used ? { ...d, last_used_at: made.at } : d))
         : c.details;
-      await store.update('contacts', c.id, { last_contacted_at: made.at, details });
+      await store.update('contacts', c.id, { last_contacted_at: [c.last_contacted_at, made.at].filter(Boolean).sort().at(-1), details }); // a back-dated entry doesn't move it back
     }
   }
   return made;
