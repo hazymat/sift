@@ -225,6 +225,8 @@ export default {
       if (panelFor) el.querySelector('.adv-panel-li')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
     const closePanel = () => (panelFor ? togglePanel(panelFor) : null);
+    // Esc with tasks chosen: they're let go first, as in Tasks.
+    addEventListener('keydown', ev => { if (ev.key === 'Escape' && !ev.defaultPrevented && !document.querySelector('dialog[open], .pill-menu, .case-page') && !typingIn(ev.target) && this.kit?.escape()) ev.preventDefault(); }, { capture: true, signal: gone.signal });
     // Esc closes the panel (never Advanced itself).
     addEventListener('keydown', ev => { if (ev.key === 'Escape' && panelFor && !pop && !ev.defaultPrevented && !document.querySelector('dialog[open], .pill-menu, .case-page') && !typingIn(ev.target)) { ev.preventDefault(); closePanel(); } }, { capture: true, signal: gone.signal });
 
@@ -360,7 +362,7 @@ export default {
     // the tilt and wobble, rows sliding aside, the dashed outline where it lands), so a change there reaches both.
     // Day tasks have no sub-tasks, so no indenting or dropping onto a row.
     const kit = this.kit = createListKit({
-      reorder: true, holdAnywhere: true, sideways: false, noun: 'task',
+      reorder: true, holdAnywhere: true, sideways: false, noun: 'task', textSelect: false, // choosing only from the ⠿, never Shift+arrows in a name or Add a comment
       actions: [
         { id: 'done', label: 'Done', key: 'Ctrl+Enter', run: ids => tickMany(ids.filter(id => !isDoneId(id))), when: () => picked().some(id => !isDoneId(id)) },
         { id: 'undone', label: 'Not done', run: untickMany, when: () => picked().some(isDoneId) },
