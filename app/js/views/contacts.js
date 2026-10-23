@@ -7,7 +7,7 @@
 import { cogHtml, menuHtml, separateHtml, choiceOf, setChoice } from '../viewcog.js';
 import { tableHtml, shown as tableRows, wireTable, anyFilter } from '../detailtable.js';
 import { rankOf, byRank, reorderWrites } from '../order.js';
-import { shareHtml } from '../share.js';
+import { shareHtml, printers } from '../share.js';
 import * as store from '../store.js';
 import {
   loadContacts, createContact, contactFromText, extractDetails, logInteraction, lastActivity,
@@ -76,6 +76,7 @@ export default {
     let editing = null; // the log entry being edited: 'interactions:<id>' or 'case_notes:<id>'
     let atts = new Map();
     let pending = []; // files chosen for the entry about to be logged (attached once it's saved)
+    let printable = null; // the open case, as drawn, for its 🖨 Print… (printCase)
     let factsEdit = false; // a case's references and people open to change
     let draft = { how: 'call', dir: 'out' }; // the New entry's kind and Received / Sent, kept between redraws
     // A new entry's When follows the clock until it's changed by hand (Now puts it back).
@@ -486,6 +487,63 @@ export default {
     }
     const caseTable = this.caseTable = wireTable(body, { cols: CASE_COLS, rows: casesShown, view: caseView, save: next => { setChoice('contacts', 'case-table', JSON.stringify(next)); render(); } });
 
+    // Share, 🖨 Print… on an open case: a case report (print.js), its photos as thumbnails in the Timeline and/or full size at the end.
+    printers.contacts = () => (state.tab === 'cases' && state.id && printable?.k.id === state.id ? (printCase(), true) : false);
+    async function printCase() {
+      const { openPrint, filePicture } = await import('../print.js');
+      const { k, events, status, refs, people, days } = printable;
+      const words = html => { const div = document.createElement('div'); div.innerHTML = html || ''; div.querySelectorAll('button, a').forEach(x => x.replaceWith(x.textContent)); return div.innerHTML; };
+      const fileOf = new Map([...atts.values()].flat().map(a => [a.id, a]));
+      const filesFor = e => (e.type === 'file' ? [fileOf.get(/data-att-open="([^"]+)"/.exec(e.body)?.[1])].filter(Boolean) : e.entry ? atts.get(e.entry[1].id) || [] : []);
+      const CSS = `.chead { padding: 1.1em 1.3em; border-radius: .3em; background: #1f3a5f; color: #fff; display: flex; justify-content: space-between; align-items: flex-end; gap: 1em; }
+        .chead .eye { font-size: .72em; letter-spacing: .14em; text-transform: uppercase; color: #b8c7dc; } .chead h1 { font-size: 1.9em; margin: .1em 0 0; line-height: 1.15; }
+        .chead .right { text-align: right; font-size: .9em; color: #dbe4f0; white-space: nowrap; }
+        .pill { display: inline-block; padding: .1em .7em; border-radius: 1em; font-size: .78em; font-weight: 700; letter-spacing: .06em; color: #fff; background: var(--st); }
+        .bw .chead { background: none; color: var(--ink); border-top: .25em solid var(--ink); border-bottom: 1px solid var(--ink); border-radius: 0; padding: .8em 0; }
+        .bw .chead .eye, .bw .chead .right { color: var(--soft); } .bw .pill { background: none; color: var(--ink); border: 1px solid var(--ink); }
+        .facts { width: 100%; border-collapse: collapse; margin: 1em 0 .4em; font-size: .92em; } .facts td { padding: .25em 0; vertical-align: top; } .facts td:first-child { color: var(--soft); width: 7.5em; }
+        .sum { border-left: .2em solid var(--rule); padding: .3em 0 .3em .9em; margin: .8em 0 1.3em; }
+        .sec { font-size: .8em; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #1f3a5f; background: #e8eef6; padding: .55em .9em; margin: 1.2em 0 .5em; break-after: avoid; }
+        .bw .sec { color: var(--ink); background: none; border-bottom: 1.5px solid var(--ink); padding: .4em 0; }
+        .ev { display: flex; gap: .9em; padding: .55em 0 .7em; border-bottom: 1px solid #eef2f7; break-inside: avoid; }
+        .ic { width: 2.2em; height: 2.2em; border-radius: 50%; border: .15em solid #94a3b8; display: flex; align-items: center; justify-content: center; flex: none; font-size: .95em; }
+        .ev.in .ic { border-color: #2b6cb0; } .ev.out .ic { border-color: #d69e2e; } .bw .ev .ic { border-color: var(--ink); filter: grayscale(1); }
+        .ev .hd { font-size: .85em; color: var(--soft); } .ev .hd b { color: var(--ink); font-size: 1.08em; } .ev .bd { margin-top: .15em; } .ev .bd p { margin: .2em 0; }
+        .thumbs { display: flex; flex-wrap: wrap; gap: .6em; margin-top: .45em; } .thumbs img { height: 6.5em; border: 1px solid var(--rule); border-radius: .2em; } .fname { font-size: .85em; color: var(--soft); }
+        .full { break-inside: avoid; margin: 0 0 1.4em; } .full img { max-width: 100%; max-height: 11.5cm; border: 1px solid var(--rule); display: block; } .full div { font-size: .8em; color: var(--soft); margin-top: .3em; }
+`;
+      openPrint({ kind: 'case', title: k.title || 'Case', back: 'Case', defaults: { details: true, timeline: true, times: true, tasks: true, order: 'old', photos: 'both' },
+        options: [['What goes in'], { check: 'details', words: 'Summary and details (references, people)' }, { check: 'timeline', words: 'Timeline' }, { check: 'times', words: 'Times on each entry' },
+          { check: 'tasks', words: "Tasks, their comments and filed scans" },
+          ['Timeline order'], { seg: 'order', items: [['old', 'Oldest first'], ['new', 'Newest first']] },
+          ['Photos and documents'], { seg: 'photos', items: [['thumbs', 'Thumbnails in the Timeline'], ['both', 'Thumbnails, and full size at the end'], ['full', 'Full size at the end'], ['names', 'File names only'], ['none', 'Leave out']], hint: 'PDFs print their first page.' }],
+        build: async (ch, keep) => {
+          const pics = new Map();
+          const picOf = async a => { if (!pics.has(a.id)) pics.set(a.id, await filePicture(a, keep)); return pics.get(a.id); };
+          const shown = events.filter(e => ch.tasks || !/^(task|comment|scan)/.test(e.type)).slice().sort((x, y) => (ch.order === 'old' ? x.at.localeCompare(y.at) : y.at.localeCompare(x.at)));
+          const all = [];
+          const evHtml = async e => {
+            const files = filesFor(e);
+            all.push(...files);
+            const thumbs = ['thumbs', 'both'].includes(ch.photos) ? (await Promise.all(files.map(async a => { const src = await picOf(a); return src ? `<img class="photo" src="${src}" alt="">` : `<span class="fname">📎 ${esc(a.name)}</span>`; }))).join('') : '';
+            const names = ch.photos === 'names' || ch.photos === 'full' ? files.map(a => `<span class="fname">📎 ${esc(a.name)}</span>`).join(' ') : '';
+            const body = e.type === 'file' ? (thumbs ? '' : ch.photos === 'none' ? '' : names) : words(e.body);
+            return `<div class="ev ${/ctl-in/.test(e.type) ? 'in' : /ctl-out/.test(e.type) ? 'out' : ''}"><div class="ic">${e.icon}</div><div><div class="hd">${ch.times ? `${esc(when(e.at))} · ` : ''}<b>${words(e.head)}</b></div>${body ? `<div class="bd">${body}</div>` : ''}${thumbs ? `<div class="thumbs">${thumbs}</div>` : e.type !== 'file' && names ? `<div class="bd">${names}</div>` : ''}</div></div>`;
+          };
+          const timeline = ch.timeline ? (await Promise.all(shown.filter(e => e.type !== 'file' || ch.photos !== 'none').map(evHtml))).join('') : '';
+          if (!ch.timeline) for (const e of events) all.push(...filesFor(e));
+          const full = ['both', 'full'].includes(ch.photos) ? (await Promise.all(all.map(async a => { const src = await picOf(a); return src ? `<div class="full"><img class="photo" src="${src}" alt=""><div>${esc(a.name)} · ${esc(dateText(new Date(a.created_at), { day: 'numeric', month: 'short', year: 'numeric' }))}</div></div>` : ''; }))).join('') : '';
+          const opened = dateText(new Date(k.opened_at || k.created_at), { day: 'numeric', month: 'short', year: 'numeric' });
+          return { flow: true, css: CSS, html: `<div class="flow" style="--st:${status.id === 'closed' ? '#2f855a' : status.id === 'waiting' ? '#d69e2e' : '#2b6cb0'}">
+            <div class="chead"><div><div class="eye">Case</div><h1>${esc(k.title)}</h1></div><div class="right"><span class="pill">${esc(status.label.toUpperCase())}</span><br>Opened ${esc(opened)} · ${days} day${days === 1 ? '' : 's'}</div></div>
+            ${ch.details ? `<table class="facts">${refs.map(r => `<tr><td>${esc(r.label || 'Reference')}</td><td><b>${esc(r.value)}</b></td></tr>`).join('')}
+              ${people.length ? `<tr><td>People</td><td>${people.map(c => esc([c.name, ...(c.details || []).filter(d => d.value && /phone|email/.test(d.kind || '')).map(d => d.value)].join(' · '))).join('<br>')}</td></tr>` : ''}
+              <tr><td>Printed</td><td>${esc(dateText(new Date(), { day: 'numeric', month: 'short', year: 'numeric' }))}</td></tr></table>${k.summary ? `<div class="sum">${esc(k.summary)}</div>` : ''}` : ''}
+            ${timeline ? `<div class="sec">Timeline (${ch.order === 'old' ? 'oldest' : 'newest'} first)</div>${timeline}` : ''}
+            ${full ? `<div class="sec">Photos and documents</div>${full}` : ''}</div>` };
+        } });
+    }
+
     async function viewCase() {
       const k = data.cases.find(x => x.id === state.id);
       if (!k) return '<div class="empty"><h2>That case has gone.</h2></div>';
@@ -523,6 +581,7 @@ export default {
       const days = Math.max(0, Math.floor((Date.parse(k.closed_at || new Date().toISOString()) - Date.parse(k.opened_at || k.created_at)) / 86400000));
       const refs = (k.references || []).filter(r => r.value);
       const people = (k.contact_ids || []).map(id => byId(id)).filter(Boolean);
+      printable = { k, events, status, refs, people, days };
       return `
         <div class="kase-top"><button type="button" class="back" data-act="cases-home">‹ Cases${keys('Esc')}</button>
           <span class="spacer"></span>${shareHtml()}

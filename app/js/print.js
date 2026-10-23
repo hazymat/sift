@@ -160,9 +160,13 @@ export async function openPrint(opts) {
   return { close, redraw: draw };
 }
 
-// A file's picture as a URL the preview can show (made into the printout's own URL list, freed on leaving).
-export async function fileUrl(a, keep) {
-  const { blobOf } = await import('./attachments.js');
+// A file's picture for the preview: a photo as its own URL (freed on leaving), a PDF as its first page, else null.
+export async function filePicture(a, keep, size = 1000) {
+  const { blobOf, kindOf } = await import('./attachments.js');
+  const kind = kindOf(a.mime, a.name);
+  if (kind !== 'image' && kind !== 'pdf') return null;
   const blob = await blobOf(a);
-  return blob ? keep(URL.createObjectURL(blob)) : '';
+  if (!blob) return null;
+  if (kind === 'image') return keep(URL.createObjectURL(blob));
+  try { return (await (await import('./pdfthumb.js')).pdfPreview(blob, size))?.thumb || null; } catch { return null; }
 }

@@ -1,6 +1,7 @@
 // Share (the pill left of 👁 and ⋯, like the Day Planner's): copies what the
-// page shows, as plain text, rich text or for WhatsApp. The Day Planner
-// shares its own day; every other area reads its rows off the page.
+// page shows, as plain text, rich text, for WhatsApp or as Markdown, or prints it (🖨 Print…, print.js).
+// The Day Planner shares its own day; every other area reads its rows off the page, only the chosen ones
+// when some are chosen. An opened thing with its own printout (a case) sets it in `printers`.
 import { toast } from './toast.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -11,6 +12,9 @@ export const shareHtml = () => `<details class="tool-menu share-menu page-share"
     <button type="button" data-page-share="plain">Copy to clipboard – plain text</button>
     <button type="button" data-page-share="rich">Copy to clipboard – rich text</button>
     <button type="button" data-page-share="whatsapp">Copy to clipboard – WhatsApp</button>
+    <button type="button" data-page-share="markdown">Copy to clipboard – Markdown</button>
+    <hr>
+    <button type="button" data-page-print>🖨 Print…</button>
   </div>
 </details>`;
 
@@ -32,23 +36,56 @@ function pageRows(area) {
   const how = ROWS[area];
   if (!how) return [];
   return [...document.querySelectorAll(how.rows)].filter(row => row.offsetParent && !row.closest('[hidden]'))
-    .map(row => ({ text: how.text(row), depth: +row.dataset.depth || 0, done: row.classList.contains('done') })).filter(row => row.text);
+    .map(row => ({ text: how.text(row), depth: +row.dataset.depth || 0, done: row.classList.contains('done'), chosen: row.classList.contains('selected') })).filter(row => row.text)
+    .filter((row, n, all) => row.chosen || !all.some(x => x.chosen));
 }
+const ticksIn = area => ['tasks', 'lists'].includes(area);
 
 function pageText(area, title, kind) {
-  const whatsapp = kind === 'whatsapp';
-  const mark = row => (!['tasks', 'lists'].includes(area) ? '•' : row.done ? (whatsapp ? '✅' : '[x]') : (whatsapp ? '⬜' : '[ ]'));
+  const whatsapp = kind === 'whatsapp', md = kind === 'markdown';
+  if (md) return [`# ${title}`, '', ...pageRows(area).map(row => `${'  '.repeat(row.depth)}- ${ticksIn(area) ? (row.done ? '[x] ' : '[ ] ') : ''}${row.text}`)].join('\n');
+  const mark = row => (!ticksIn(area) ? '•' : row.done ? (whatsapp ? '✅' : '[x]') : (whatsapp ? '⬜' : '[ ]'));
   return [whatsapp ? `*${title}*` : title, '', ...pageRows(area).map(row => `${'    '.repeat(row.depth)}${mark(row)} ${row.text}`)].join('\n');
 }
 
 function pageHtml(area, title) {
-  const ticks = ['tasks', 'lists'].includes(area);
+  const ticks = ticksIn(area);
   const items = pageRows(area).map(row => `<li style="margin-left:${row.depth * 1.5}em">${ticks ? (row.done ? '☑ ' : '☐ ') : ''}${esc(row.text)}</li>`).join('');
   return `<h3>${esc(title)}</h3><ul style="list-style:${ticks ? 'none;padding-left:0' : 'disc'}">${items}</ul>`;
 }
 
+export const printers = {};
+const pageTitle = () => {
+  const tab = [...document.querySelectorAll('#main [role="tablist"] [aria-pressed="true"], #main [role="tablist"] [aria-selected="true"]')].find(btn => btn.offsetParent);
+  return document.title.replace(/ · Sift$/, '') + (tab ? ` – ${tab.textContent.trim()}` : '');
+};
+
+// 🖨 Print… on an area's page: what it shows, as a tidy list.
+async function printPage(area) {
+  const rows = pageRows(area), title = pageTitle();
+  if (!rows.length) return toast('Nothing on this page to print');
+  const { openPrint } = await import('./print.js');
+  const ticks = ticksIn(area), chosen = rows.some(row => row.chosen);
+  const CSS = `h1 { font: 700 2em Georgia, serif; margin: 0 0 .1em; } .when { color: var(--soft); font-size: .9em; margin-bottom: 1.2em; border-bottom: .15em solid var(--accent); padding-bottom: .5em; }
+    ul { list-style: none; margin: 0; padding: 0; } li { display: flex; gap: .7em; align-items: baseline; padding: .45em 0; border-bottom: 1px solid var(--rule); break-inside: avoid; }
+    .box { width: .95em; height: .95em; border: .12em solid var(--ink); border-radius: .2em; flex: none; display: inline-flex; align-items: center; justify-content: center; font-size: .85em; }
+    .dot { color: var(--accent); flex: none; } li.done .t { text-decoration: line-through; color: var(--soft); }`;
+  openPrint({ kind: `page-${area}`, title, back: title.split(' – ')[0], defaults: { ticked: true, boxes: true },
+    options: ticks ? [['What goes in'], { check: 'ticked', words: 'Ticked ones (crossed out)' }, { check: 'boxes', words: 'Tick boxes' }] : [{ hint: 'What the page shows, as a list.' }],
+    build: async ch => ({ flow: true, css: CSS, count: chosen ? `only the ${rows.length} chosen` : '',
+      html: `<div class="flow"><h1>${esc(title)}</h1><div class="when">${esc(new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }))}</div><ul>${rows.filter(row => !ticks || ch.ticked || !row.done)
+        .map(row => `<li class="${row.done ? 'done' : ''}" style="margin-left:${row.depth * 1.6}em">${ticks && ch.boxes ? `<span class="box">${row.done ? '✓' : ''}</span>` : '<span class="dot">•</span>'}<span class="t">${esc(row.text)}</span></li>`).join('')}</ul></div>` }) });
+}
+
 export function installShare(getArea) {
   document.addEventListener('click', async ev => {
+    const printBtn = ev.target.closest('[data-page-print]');
+    if (printBtn) {
+      printBtn.closest('details')?.removeAttribute('open');
+      const area = getArea();
+      if (!(await printers[area]?.())) printPage(area);
+      return;
+    }
     const btn = ev.target.closest('[data-page-share]');
     if (!btn) return;
     btn.closest('details')?.removeAttribute('open');
@@ -64,7 +101,7 @@ export function installShare(getArea) {
           'text/plain': new Blob([pageText(area, title, 'plain')], { type: 'text/plain' }),
         })]);
       } else await navigator.clipboard.writeText(pageText(area, title, kind));
-      toast({ plain: 'Copied as plain text', rich: 'Copied as rich text', whatsapp: 'Copied for WhatsApp' }[kind]);
+      toast({ plain: 'Copied as plain text', rich: 'Copied as rich text', whatsapp: 'Copied for WhatsApp', markdown: 'Copied as Markdown' }[kind]);
     } catch {
       toast("Couldn't copy: the browser blocked the clipboard");
     }
