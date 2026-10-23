@@ -138,7 +138,7 @@ export const lastActivity = c => [c.captured_at, c.looked_up_at?.[0], c.last_con
 
 export const binProvider = {
   area: 'contacts',
-  label: 'Contacts',
+  label: 'Contacts and Cases',
   async entries(kind) {
     const inState = r => !r.purged_at && (kind === 'bin' ? !!r.deleted_at : !r.deleted_at && !!r.archived_at);
     const at = r => (kind === 'bin' ? r.deleted_at : r.archived_at);

@@ -52,7 +52,7 @@ export const SECTIONS = [
     ['rule', 'Ruled lines', '--rule'], ['margin', 'Margin line', '--margin-rule'], ['focusink', 'Day focus ink', '--focus-ink'], ['energyink', 'Energy ink', '--energy-ink'],
   ] },
   area('lists', 'Lists', [['title', 'List items', ['.task-title', 'color']], ['titlefont', 'List items font', ['.task-title', 'font-family']]]),
-  area('places', 'Find Things'), area('contacts', 'Contacts'), area('scans', 'Scans'), area('contracts', 'Contracts'), area('recipes', 'Recipes'), area('bin', 'Archive and Bin'), area('settings', 'Settings'),
+  area('places', 'Find Things'), area('contacts', 'Contacts and Cases'), area('scans', 'Scans'), area('contracts', 'Contracts'), area('recipes', 'Recipes'), area('bin', 'Archive and Bin'), area('settings', 'Settings'),
 ];
 export const isFont = key => key.endsWith('font');
 const isBlur = key => key.endsWith('blur');
