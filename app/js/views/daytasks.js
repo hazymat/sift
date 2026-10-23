@@ -645,9 +645,17 @@ export default {
           <button type="button" data-export="plain">Copy as plain text</button>
           <button type="button" data-export="whatsapp">Copy for WhatsApp</button>
           ${navigator.share ? '<button type="button" data-export="share">Share…</button>' : ''}
+          <button type="button" data-export="print">🖨 Print…</button>
           <button type="button" class="primary" data-export="rich">Copy as rich text</button>
         </div>`;
       dlg.showModal();
+    }
+    // 🖨 Print… in the Share sheet: the same report, with the same choices, on paper (print.js).
+    async function printReport() {
+      const { openPrint } = await import('../print.js');
+      const BW = '.flow > table { max-width: none !important; } .bw td { background: none !important; color: #1a202c !important; } .bw td[style*="#1f3a5f"] { border-bottom: 2px solid #1a202c !important; } .bw td div, .bw td span { color: #1a202c !important; } .bw span[style*="border-radius:9px"] { background: none !important; border: 1px solid #1a202c; } .bw td[style*="border-left:4px"] { border-left-color: #1a202c !important; }';
+      openPrint({ kind: 'advanced', title: dayTitle(), back: 'Advanced', options: [{ hint: 'What goes in, the time taken and the order follow the Share sheet\'s choices.' }],
+        build: async () => ({ flow: true, css: BW, html: `<div class="flow">${asHtml(await exportParts())}</div>` }) });
     }
     $('.adv-export').addEventListener('change', async ev => {
       const k = ev.target.dataset.choice;
@@ -663,6 +671,7 @@ export default {
       const how = ev.target.closest('[data-export]')?.dataset.export;
       if (!how) return;
       if (how === 'close') return dlg.close();
+      if (how === 'print') { dlg.close(); return printReport(); }
       const parts = await exportParts();
       try {
         if (how === 'share') await navigator.share({ title: dayTitle(), text: asText(parts) });

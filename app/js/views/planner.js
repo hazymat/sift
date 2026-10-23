@@ -85,6 +85,8 @@ const dayPlanner = {
             <button type="button" data-share="plain">Copy to clipboard – plain text</button>
             <button type="button" data-share="rich">Copy to clipboard – rich text</button>
             <button type="button" data-share="whatsapp">Copy to clipboard – WhatsApp</button>
+            <hr>
+            <button type="button" data-print-day>🖨 Print this day…</button>
           </div>
         </details>
         <details class="tool-menu view-menu">
@@ -2380,6 +2382,10 @@ const dayPlanner = {
       }
     }
     el.addEventListener('click', ev => {
+      if (ev.target.closest('[data-print-day]')) {
+        ev.target.closest('details')?.removeAttribute('open');
+        return void import('../printday.js').then(m => m.printDay(date));
+      }
       const b = ev.target.closest('[data-share]');
       if (!b) return;
       b.closest('details')?.removeAttribute('open');
