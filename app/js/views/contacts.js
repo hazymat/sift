@@ -41,6 +41,9 @@ const STATUS_EMOJI = { open: '📂', waiting: '⏳', closed: '✅' };
 // Cases never dragged sort newest opened first.
 const openedOrder = kase => -(Date.parse(kase.opened_at || kase.created_at) / 1e4 || 0);
 const rankOfCase = kase => rankOf(kase, openedOrder);
+// Contacts never dragged sort latest activity first.
+const activityOrder = contact => -(Date.parse(lastActivity(contact)) / 1e4 || 0);
+const byContact = byRank(activityOrder);
 const shortDay = iso => (iso ? dateText(new Date(iso), { day: 'numeric', month: 'short', year: 'numeric' }) : '');
 // Time since, in a few letters: "now", "3h", "2d", "5w".
 const shortAgo = iso => { const mins = (Date.now() - Date.parse(iso)) / 60000; return mins < 60 ? 'now' : mins < 1440 ? `${Math.round(mins / 60)}h` : mins < 20160 ? `${Math.round(mins / 1440)}d` : `${Math.round(mins / 10080)}w`; };
@@ -159,7 +162,7 @@ export default {
       const words = state.q.toLowerCase().split(/\s+/).filter(Boolean);
       const match = c => words.every(w => `${c.name} ${c.about} ${c.body} ${c.notes} ${(c.details || []).map(d => d.value).join(' ')}`.toLowerCase().includes(w));
       const cutoff = new Date(Date.now() - OLDER_DAYS * 86400000).toISOString();
-      const sorted = data.contacts.filter(match).sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned) || lastActivity(b).localeCompare(lastActivity(a)));
+      const sorted = data.contacts.filter(match).sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned) || byContact(a, b));
       const recent = sorted.filter(c => c.pinned || lastActivity(c) >= cutoff || c.status === 'stored' && lastActivity(c) >= cutoff);
       const older = sorted.filter(c => !recent.includes(c));
       return `
@@ -168,7 +171,7 @@ export default {
           <button type="button" class="primary" data-act="capture">Save ${keys(SHORTCUT)}</button>
         </div>
         <input type="search" id="c-q" class="search" placeholder="${esc(word('ph_contact_search'))}" value="${esc(state.q)}" autocomplete="off">
-        <ul class="c-list kit-list">${recent.map(contactCard).join('') || (older.length ? '' : '<li class="empty"><h2>No contacts yet. Paste a number above.</h2></li>')}
+        <ul class="c-list kit-list recent-list">${recent.map(contactCard).join('') || (older.length ? '' : '<li class="empty"><h2>No contacts yet. Paste a number above.</h2></li>')}
           ${older.length ? `<li class="list-head older-head">Older <span class="muted">(untouched for ${OLDER_DAYS} days)</span></li>${older.map(contactCard).join('')}` : ''}
         </ul>`;
     }
@@ -581,7 +584,8 @@ export default {
       const cap = body.querySelector('#c-new');
       if (cap) keepDraft(cap, 'contacts:new');
       if (cap) cap.addEventListener('keydown', ev => { if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); capture(); } });
-      kit.attach(body.querySelector('.kit-list'));
+      kit.attach(body.querySelector('.recent-list'));
+      dirKit.attach(body.querySelector('.research-list'));
       caseKit.attach(body.querySelector('.case-cards'));
       const research = body.querySelector('#research-new');
       if (research) listEntry(research, addCandidates, { draft: `contacts:research:${state.id}` });
@@ -607,18 +611,24 @@ export default {
       await render();
       undoable(`${label} ${ids.length} contact${ids.length === 1 ? '' : 's'}`, async () => { await store.updateMany('contacts', before); await render(); });
     }
-    const kit = this.kit = createListKit({
-      reorder: false,
-      holdSelect: true, // press and hold a card selects it; then a tap adds or takes out
-      noun: 'contact',
-      actions: [
-        { id: 'colour', label: 'Colour…', run: ids => { colourMenu(document.querySelector('[data-kit-action="colour"]'), null, v => batch(ids, { colour: v }, 'Colour of')); } },
-        { id: 'store', label: 'Store', run: ids => batch(ids, { status: 'stored' }, 'Stored') },
-        { id: 'pin', label: 'Pin', run: ids => batch(ids, { pinned: true }, 'Pinned') },
-        { id: 'archive', label: 'Archive', key: 'A', run: ids => batch(ids, { archived_at: new Date().toISOString() }, 'Archived') },
-        { id: 'delete', label: 'Delete', key: 'D', danger: true, run: ids => batch(ids, { deleted_at: new Date().toISOString() }, 'Deleted') },
-      ],
-    });
+    const contactActions = [
+      { id: 'colour', label: 'Colour…', run: ids => { colourMenu(document.querySelector('[data-kit-action="colour"]'), null, v => batch(ids, { colour: v }, 'Colour of')); } },
+      { id: 'store', label: 'Store', run: ids => batch(ids, { status: 'stored' }, 'Stored') },
+      { id: 'pin', label: 'Pin', run: ids => batch(ids, { pinned: true }, 'Pinned') },
+      { id: 'archive', label: 'Archive', key: 'A', run: ids => batch(ids, { archived_at: new Date().toISOString() }, 'Archived') },
+      { id: 'delete', label: 'Delete', key: 'D', danger: true, run: ids => batch(ids, { deleted_at: new Date().toISOString() }, 'Deleted') },
+    ];
+    // Recent's cards drag into your own order (`rank`); never dragged, they keep to latest activity first.
+    async function contactOrder(rows, label, ul, moved) {
+      const writes = reorderWrites(rows, row => rankOf(byId(row.id), activityOrder), moved);
+      const before = writes.map(([row]) => [row.id, { rank: byId(row.id)?.rank ?? null }]);
+      await store.updateMany('contacts', writes.map(([row, rank]) => [row.id, { rank }]));
+      await render();
+      undoable('Moved a contact', async () => { await store.updateMany('contacts', before); await render(); });
+    }
+    const kit = this.kit = createListKit({ reorder: true, grid: true, holdSelect: true, noun: 'contact', onReorder: contactOrder, actions: contactActions }); // hold to choose, drag by the ⠿
+    // A Directory category lists research buttons under each card, so its cards are chosen but not dragged.
+    const dirKit = this.dirKit = createListKit({ reorder: false, holdSelect: true, noun: 'contact', actions: contactActions });
     const now = () => new Date().toISOString();
     const caseKit = this.caseKit = createListKit({
       reorder: true, grid: true, holdSelect: true, noun: 'case', onReorder: persistCaseOrder, // as Batch Book's cards: hold to choose, drag by the ⠿
@@ -629,7 +639,7 @@ export default {
         ]),
     });
     this.onKey = ev => {
-      if (ev.key === 'Escape' && !ev.target.closest('input, textarea, select, [contenteditable]') && (kit.escape() || caseKit.escape())) ev.preventDefault();
+      if (ev.key === 'Escape' && !ev.target.closest('input, textarea, select, [contenteditable]') && (kit.escape() || dirKit.escape() || caseKit.escape())) ev.preventDefault();
       // A row of the Cases table opens with Enter, as a click.
       const row = ev.key === 'Enter' && ev.target.closest?.('tr[data-case-row]');
       if (row) { ev.preventDefault(); go(`#/contacts/cases/${row.dataset.caseRow}`); }
@@ -991,6 +1001,7 @@ export default {
   unmount() {
     clearInterval(this.clock);
     this.kit?.destroy();
+    this.dirKit?.destroy();
     this.caseKit?.destroy();
     this.caseTable?.close();
     this.gone?.abort();
