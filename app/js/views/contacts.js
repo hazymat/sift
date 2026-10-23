@@ -29,6 +29,8 @@ import * as att from '../attachments.js';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
 const OLDER_DAYS = 60;
+// What a logged entry says: "I called Sam", "They wrote me".
+const SAID = { call: 'called', text: 'texted', email: 'emailed', letter: 'wrote', visit: 'visited', meeting: 'met', other: 'contacted' };
 // A datetime-local field's value for a moment, in local time.
 const pad2 = n => String(n).padStart(2, '0');
 const localValue = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
@@ -346,41 +348,55 @@ export default {
       const comments = await store.list('comments', { filter: c => taskIds.has(c.task_id) });
       atts = await att.byParent();
       const files = atts.get(k.id) || [];
-      const events = [
-        ...files.map(a => ({ at: a.created_at, type: 'file', html: `📎 <button type="button" class="link-btn" data-att-open="${a.id}">${esc(a.name)}</button> attached` })),
-        ...log.map(i => ({ at: i.at, type: 'log', entry: ['interactions', i], html: `${HOW.find(h => h.id === i.how)?.icon || ''} <b>${i.direction === 'in' ? 'In' : 'Out'}</b>${i.contact_id ? ` · ${esc(byId(i.contact_id)?.name || '')}` : ''}${i.detail_used ? ` · ${esc(i.detail_used)}` : ''}${i.summary ? `: ${esc(i.summary)}` : ''}` })),
-        ...notes.map(n => ({ at: n.at, type: 'note', entry: ['case_notes', n], html: `✎ ${n.body ? inlineAll(n.body) : '<span class="muted">Note</span>'}` })),
-        ...tasks.map(t => ({ at: t.created_at, type: 'task', html: `☐ Task: <a href="#/tasks/list">${esc(t.title)}</a>${t.done_at ? ' (done)' : ''}` })),
-        ...comments.map(c => ({ at: c.at, type: 'comment', html: `💬 <a href="#/tasks/list">${esc(taskIds.get(c.task_id).title)}</a>: ${c.body ? inlineAll(c.body) : '📎'}` })),
-        ...scans.map(sc => ({ at: sc.letter_date || sc.created_at, type: 'letter', html: `📄 <a href="#/scans/${sc.id}">${esc(sc.title)}</a>${sc.summary ? `: ${esc(sc.summary)}` : ''}` })),
-      ].sort((a, b) => b.at.localeCompare(a.at));
+      // The Timeline: one callout per event, its kind's emoji on the rail at the left, newest first.
+      const who = i => (i.contact_id && byId(i.contact_id)?.name) || '';
+      const said = i => { const verb = SAID[i.how] || 'contacted'; return i.direction === 'in' ? `${who(i) || 'They'} ${verb}${i.how === 'call' || i.how === 'visit' ? '' : ' me'}` : `I ${verb}${who(i) ? ` ${who(i)}` : ''}`; };
+      const events = files.map(a => ({ at: a.created_at, type: 'file', icon: '📎', head: 'Attached to the case', body: `<button type="button" class="link-btn" data-att-open="${a.id}">${esc(a.name)}</button>` }))
+        .concat(log.map(i => ({ at: i.at, type: `log ctl-${i.direction === 'in' ? 'in' : 'out'}`, icon: HOW.find(h => h.id === i.how)?.icon || '•', entry: ['interactions', i], head: esc(said(i)), body: `${i.detail_used ? `<span class="muted">${esc(i.detail_used)}</span> ` : ''}${esc(i.summary || '')}` })))
+        .concat(notes.map(n => ({ at: n.at, type: 'note', icon: '📝', entry: ['case_notes', n], head: 'Note', body: n.body ? inlineAll(n.body) : '' })))
+        .concat(tasks.map(t => ({ at: t.created_at, type: `task${t.done_at ? ' ctl-done' : ''}`, icon: t.done_at ? '✅' : '☑️', head: t.done_at ? 'Task (done)' : 'Task', body: `<a href="#/tasks/list">${esc(t.title)}</a>` })))
+        .concat(comments.map(c => ({ at: c.at, type: 'comment', icon: '💬', head: `On <a href="#/tasks/list">${esc(taskIds.get(c.task_id).title)}</a>`, body: c.body ? inlineAll(c.body) : '📎' })))
+        .concat(scans.map(sc => ({ at: sc.letter_date || sc.created_at, type: 'scan', icon: '🧾', head: 'Scan', body: `<a href="#/scans/${sc.id}">${esc(sc.title)}</a>${sc.summary ? `: ${esc(sc.summary)}` : ''}` })))
+        .sort((a, b) => b.at.localeCompare(a.at));
+      const monthOf = iso => dateText(new Date(iso), { month: 'long', year: 'numeric' });
+      const timeline = events.map((e, n) => {
+        const month = n === 0 || monthOf(e.at) !== monthOf(events[n - 1].at) ? `<li class="ctl-month"><span>${esc(monthOf(e.at))}</span></li>` : '';
+        if (e.entry && editing === `${e.entry[0]}:${e.entry[1].id}`) return month + entryEditor(e.entry[0], e.entry[1]);
+        return `${month}<li class="ctl-item ctl-${e.type}"${e.entry ? ` data-entry="${e.entry[0]}:${e.entry[1].id}"` : ''}>
+          <span class="ctl-icon" aria-hidden="true">${e.icon}</span>
+          <div class="ctl-card"><div class="ctl-head"><time>${when(e.at)}</time> <b>${e.head}</b>${e.entry ? editBtn(e.entry[0], e.entry[1].id) : ''}</div>
+            ${e.body ? `<div class="ctl-body">${e.body}</div>` : ''}${e.entry ? filesOf(e.entry[1].id) : ''}</div></li>`;
+      }).join('');
+      const status = CASE_STATUS.find(x => x.id === k.status) || CASE_STATUS[0];
       return `
-        <div class="project-head">
-          <button type="button" class="back" data-act="cases-home">‹ Cases${keys('Esc')}</button>
-          <input class="project-name" name="title" value="${esc(k.title)}" data-case="${k.id}" aria-label="Case title">
-        </div>
-        <div class="c-page" data-case-page="${k.id}">
-          <div class="energy-pick"><span>Status</span>${CASE_STATUS.map(s => `<button type="button" data-act="case-status" data-value="${s.id}" aria-pressed="${k.status === s.id}">${s.label}</button>`).join('')}</div>
-          <label class="wide">Summary<input name="summary" value="${esc(k.summary)}" data-case="${k.id}" placeholder="${esc(word('ph_case_summary'))}" autocomplete="off"></label>
-          <h3 class="milestone">References</h3>
-          <ul class="detail-rows">${(k.references || []).map((r, n) => `
-            <li data-ref="${n}"><input name="label" value="${esc(r.label)}" class="d-label" aria-label="Label"><input name="value" value="${esc(r.value)}" aria-label="Value">
-              <button type="button" class="icon-btn small" data-act="copy-ref" title="Copy">⧉</button>
-              <button type="button" class="icon-btn small" data-act="del-ref" aria-label="Remove">×</button></li>`).join('')}
-          </ul>
-          <button type="button" data-act="add-ref">+ Reference (case no, ref…)</button>
-          <h3 class="milestone">People</h3>
-          <div class="c-details">${(k.contact_ids || []).map(id => byId(id)).filter(Boolean).map(c => `<span class="chip"><a href="#/contacts/c/${c.id}">${esc(c.name)}</a> ${detailChips(c)} <button type="button" class="chip-x" data-act="case-unlink" data-id="${c.id}">×</button></span>`).join('')}
-            <select id="case-add-contact"><option value="">+ Add a contact…</option>${data.contacts.filter(c => !k.contact_ids?.includes(c.id)).map(c => `<option value="${c.id}">${esc(c.name || '(no name)')}</option>`).join('')}</select>
-          </div>
-          <h3 class="milestone">Files</h3>
-          <div class="case-files">${att.rowHtml(files, { parent: k.id, addButton: 'Attach photos or documents' })}</div>
-          <h3 class="milestone">New entry</h3>
-          ${logForm('case')}
-          <h3 class="milestone">Timeline</h3>
-          <ul class="timeline">${events.map(e => (e.entry && editing === `${e.entry[0]}:${e.entry[1].id}` ? entryEditor(e.entry[0], e.entry[1])
-            : `<li class="${e.type}"${e.entry ? ` data-entry="${e.entry[0]}:${e.entry[1].id}"` : ''}><span class="muted">${when(e.at)}</span> ${e.html}${e.entry ? editBtn(e.entry[0], e.entry[1].id) + filesOf(e.entry[1].id) : ''}</li>`)).join('') || '<li class="muted">Nothing yet.</li>'}</ul>
-          <p class="muted hint">${esc(word('ph_case_letters'))}</p>
+        <div class="kase-top"><button type="button" class="back" data-act="cases-home">‹ Cases${keys('Esc')}</button></div>
+        <div class="c-page kase" data-case-page="${k.id}">
+          <header class="kase-head">
+            <textarea class="kase-title one-line" name="title" data-case="${k.id}" rows="1" aria-label="Case title">${esc(k.title)}</textarea>
+            <div class="kase-sub"><span class="adv-status ${k.status === 'closed' ? 'closed' : k.status === 'waiting' ? 'waiting' : 'open'}">${status.label}</span>
+              <span class="muted kase-opened">Opened ${esc(dateText(new Date(k.opened_at || k.created_at), { day: 'numeric', month: 'short', year: 'numeric' }))}${(k.references || []).find(r => r.value) ? ` · ${esc((k.references || []).find(r => r.value).value)}` : ''}</span></div>
+            ${k.summary ? `<p class="kase-summary">${esc(k.summary)}</p>` : ''}
+          </header>
+          <section class="adv-card case-sec"><div class="adv-card-h"><h2 class="adv-h">New entry</h2></div>
+            ${logForm('case')}</section>
+          <section class="adv-card case-sec"><div class="adv-card-h"><h2 class="adv-h">Photos and documents <span class="adv-count">${files.length || ''}</span></h2></div>
+            <div class="case-files">${att.rowHtml(files, { parent: k.id, addButton: 'Attach to the case' })}</div></section>
+          <section class="adv-card case-sec"><div class="adv-card-h"><h2 class="adv-h">Timeline <span class="adv-count">${events.length || ''}</span></h2></div>
+            <ol class="ctl">${timeline || '<li class="ctl-empty muted">Nothing yet. Log a call, letter or note above.</li>'}</ol></section>
+          <section class="adv-card case-sec"><div class="adv-card-h"><h2 class="adv-h">Details</h2></div><div class="kase-details">
+            <div class="energy-pick"><span>Status</span>${CASE_STATUS.map(x => `<button type="button" data-act="case-status" data-value="${x.id}" aria-pressed="${k.status === x.id}">${x.label}</button>`).join('')}</div>
+            <label class="wide">Summary<input name="summary" value="${esc(k.summary)}" data-case="${k.id}" placeholder="${esc(word('ph_case_summary'))}" autocomplete="off"></label>
+            <h3 class="kase-h">References</h3>
+            <ul class="detail-rows">${(k.references || []).map((r, n) => `
+              <li data-ref="${n}"><input name="label" value="${esc(r.label)}" class="d-label" aria-label="Label"><input name="value" value="${esc(r.value)}" aria-label="Value">
+                <button type="button" class="icon-btn small" data-act="copy-ref" title="Copy">⧉</button>
+                <button type="button" class="icon-btn small" data-act="del-ref" aria-label="Remove">×</button></li>`).join('')}
+            </ul>
+            <button type="button" class="kase-add" data-act="add-ref">+ Reference (case no, ref…)</button>
+            <h3 class="kase-h">People</h3>
+            <div class="c-details">${(k.contact_ids || []).map(id => byId(id)).filter(Boolean).map(c => `<span class="chip"><a href="#/contacts/c/${c.id}">${esc(c.name)}</a> ${detailChips(c)} <button type="button" class="chip-x" data-act="case-unlink" data-id="${c.id}">×</button></span>`).join('')}
+              <select id="case-add-contact"><option value="">+ Add a contact…</option>${data.contacts.filter(c => !k.contact_ids?.includes(c.id)).map(c => `<option value="${c.id}">${esc(c.name || '(no name)')}</option>`).join('')}</select>
+            </div></div></section>
           <div class="detail-actions"><button type="button" data-act="case-task">+ Task for this case</button><span class="spacer"></span>
             <button type="button" data-act="archive-case">Archive</button>
             <button type="button" class="danger" data-act="delete-case">Delete</button>
@@ -394,6 +410,8 @@ export default {
     const render = this.render = this.refresh = async () => {
       data = await loadContacts();
       for (const b of el.querySelectorAll('[data-tab]')) b.setAttribute('aria-pressed', b.dataset.tab === (state.tab === 'contact' ? '' : state.tab));
+      // An opened case or contact is a page of its own: no + New, tabs, Share or menus above it, its ‹ back top left.
+      el.classList.toggle('c-opened', state.tab === 'contact' || (state.tab === 'cases' && !!state.id));
       el.querySelector('.c-new-btn').textContent = state.tab === 'cases' ? '+ New case' : '+ New contact';
       body.innerHTML = state.tab === 'directory' ? viewDirectory()
         : state.tab === 'cases' ? await viewCases()
