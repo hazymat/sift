@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.03': [{ text: "Contacts and Contracts: an open contact or contract has the Share pill top right, with the copies and Print…: a tidy sheet with its details, notes and log (a contact) or note and files (a contract). A contract's reference prints hidden unless you choose it in full.", go: '#/contracts', open: ['#main tr[data-id], #main .contract-card'], at: '#main .project-head .share-menu' }],
   '1.61.02': [{ text: "Brain Dump: a note's ⋯ has Print…: the note with its title big, when it was written, its pictures small or big and lines to write more, in the note's colour or black and white. Its copies now match every Share menu: plain text, rich text, WhatsApp and Markdown.", go: '#/dump', open: ['#thoughts > li[data-id] details.note-more > summary'], at: '#thoughts [data-act="print-note"]' }],
   '1.61.01': [{ text: "Batch Book: an open recipe or batch has a Share pill: Share with someone…, the copies, Print… and 🏷 Print labels…. Print the whole recipe scaled up or down (×½, ×2 or any amount you type), short ones two or three to a page; a batch adds its readings, diary and tasting notes.", go: '#/recipes', open: ['#main .bb-card'], at: '#main .bb-top .share-menu', more: 'Print labels… makes labels for bottles, jars, tins or boxes on the usual A4 label sheets (21, 8 or 4 to a sheet), starting part way down a used sheet.' }],
   '1.61.00': [{ text: "Scans: an open scan has a Share pill top right: Share the file…, Copy the text on it, the copies and Print…. Print in colour, grey or black and white with Contrast and Lightness sliders, one or two to a page, with its title and date, and the text read on it on a page of its own.", go: '#/scans', open: ['#main .scan-card'], at: '#main .project-head .share-menu', more: 'Black and white makes faded receipts and letters crisp and saves ink.' }],
@@ -160,6 +161,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.03': '2026-10-23T13:24:23Z',
   '1.61.02': '2026-10-23T13:20:29Z',
   '1.61.01': '2026-10-23T13:16:50Z',
   '1.61.00': '2026-10-23T13:11:01Z',

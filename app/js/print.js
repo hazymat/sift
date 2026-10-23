@@ -170,3 +170,24 @@ export async function filePicture(a, keep, size = 1000) {
   if (kind === 'image') return keep(URL.createObjectURL(blob));
   try { return (await (await import('./pdfthumb.js')).pdfPreview(blob, size))?.thumb || null; } catch { return null; }
 }
+
+// One thing's details as a tidy sheet (an open contact, a contract): a band with its name, its facts in two columns,
+// then sections. facts: [[label, value]]; parts: [{ key, words, heading, html, on }] (each a choice, on by default unless on: false);
+// secret: { words, facts: [[label, shown, full]] } a choice to print those in full.
+export function printRecord({ kind, title, back, eyebrow = '', colour = '', facts = [], parts = [], secret = null }) {
+  const CSS = `.rh { border-bottom: .18em solid var(--accent); padding-bottom: .5em; margin-bottom: 1em; } .rh .eye { font-size: .72em; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+    .rh h1 { font: 700 2em/1.1 Georgia, serif; margin: .1em 0 0; } .when { color: var(--soft); font-size: .8em; margin-top: .3em; }
+    .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 0 2em; margin-bottom: 1em; } .facts div { display: flex; gap: .8em; padding: .32em 0; border-bottom: 1px solid var(--rule); break-inside: avoid; }
+    .facts span { color: var(--soft); min-width: 7.5em; flex: none; } .facts b { font-weight: 600; overflow-wrap: anywhere; }
+    h2 { font: 700 1.15em Georgia, serif; color: var(--accent); margin: 1em 0 .4em; } .part { break-inside: avoid-page; } .part p { margin: 0 0 .5em; line-height: 1.45; }
+    .part ul { margin: 0; padding-left: 1.2em; } .part li { margin: 0 0 .3em; } .lines div { height: 2.1em; border-bottom: 1px solid var(--rule); }`;
+  const defaults = { lines: 0, full: false };
+  for (const p of parts) defaults[p.key] = p.on !== false;
+  return openPrint({ kind, title, back, defaults,
+    options: [...(parts.length ? [['What goes in'], ...parts.map(p => ({ check: p.key, words: p.words }))] : []), ...(secret ? [{ check: 'full', words: secret.words }] : []), { range: 'lines', words: 'Lines for notes', min: 0, max: 20 }],
+    build: async ch => ({ flow: true, css: CSS + (colour ? `.colour { --accent: ${colour}; }` : ''),
+      html: `<div class="flow"><header class="rh">${eyebrow ? `<div class="eye">${esc(eyebrow)}</div>` : ''}<h1>${esc(title)}</h1><div class="when">Printed ${esc(new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }))}</div></header>
+        <div class="facts">${facts.concat(secret ? secret.facts.map(([label, shown, full]) => [label, ch.full ? full : shown]) : []).filter(([, v]) => String(v ?? '').trim()).map(([label, v]) => `<div><span>${esc(label)}</span><b>${esc(v)}</b></div>`).join('')}</div>
+        ${parts.filter(p => ch[p.key] && p.html).map(p => `<section class="part"><h2>${esc(p.heading || p.words)}</h2>${p.html}</section>`).join('')}
+        ${ch.lines ? `<h2>Notes</h2><div class="lines">${'<div></div>'.repeat(ch.lines)}</div>` : ''}</div>` }) });
+}
