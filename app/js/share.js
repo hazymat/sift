@@ -22,7 +22,8 @@ const ROWS = {
   dump: { rows: '#thoughts > li[data-id]', text: row => (row.querySelector('.thought-flat')?.textContent || '').trim() },
   lists: { rows: '#main li[data-id]:has(> input[name="text"]), #main .project-grid .list-card', text: row => valueOf(row, ':scope > input[name="text"]') || firstLine(row) },
   places: { rows: '#main .box-card, #main li[data-item]:not(.thing-panel)', text: row => valueOf(row, 'input[name="name"]') || firstLine(row) },
-  contacts: { rows: '#main .c-card', text: row => firstLine(row.querySelector('a.c-main') || row) },
+  // A case open: its Timeline, each event on one line, under the case's name.
+  contacts: { rows: '#main .c-card, #main .ctl-item', text: row => (row.matches('.ctl-item') ? (row.querySelector('.ctl-card')?.innerText || '').replace(/✎/g, '').replace(/\s+/g, ' ').trim() : firstLine(row.querySelector('a.c-main') || row)), title: () => document.querySelector('#main .kase-title')?.value.trim() },
   scans: { rows: '#main .scan-card', text: firstLine },
   contracts: { rows: '#main tr[data-id], #main .contract-card', text: row => (row.matches('tr') ? [...row.cells].map(cell => cell.innerText.trim()).filter(Boolean).join(' · ') : firstLine(row)) },
 };
@@ -54,7 +55,7 @@ export function installShare(getArea) {
     const area = getArea();
     const kind = btn.dataset.pageShare;
     const tab = [...document.querySelectorAll('#main [role="tablist"] [aria-pressed="true"], #main [role="tablist"] [aria-selected="true"]')].find(btn => btn.offsetParent);
-    const title = document.title.replace(/ · Sift$/, '') + (tab ? ` – ${tab.textContent.trim()}` : '');
+    const title = ROWS[area]?.title?.() || document.title.replace(/ · Sift$/, '') + (tab ? ` – ${tab.textContent.trim()}` : '');
     if (!pageRows(area).length) return toast('Nothing on this page to share');
     try {
       if (kind === 'rich' && window.ClipboardItem) {
