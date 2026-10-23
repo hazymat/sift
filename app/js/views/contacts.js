@@ -4,7 +4,9 @@
 //   #/contacts/cases           Cases list;  #/contacts/cases/<id>  one case's timeline
 //   #/contacts/c/<id>          One contact (opening it stamps "looked up")
 
-import { cogHtml } from '../viewcog.js';
+import { cogHtml, menuHtml, separateHtml, choiceOf, setChoice } from '../viewcog.js';
+import { tableHtml, shown as tableRows, wireTable, anyFilter } from '../detailtable.js';
+import { rankOf, byRank, reorderWrites } from '../order.js';
 import { shareHtml } from '../share.js';
 import * as store from '../store.js';
 import {
@@ -35,6 +37,11 @@ const SAID_IN = { call: 'Call received', text: 'Text received', email: 'Email re
 const SAID_OUT = { call: 'Call made', text: 'Text sent', email: 'Email sent', letter: 'Letter sent', visit: 'Visit made', meeting: 'Meeting', other: 'Sent' };
 const KIND_ORDER = ['call', 'letter', 'email', 'note', 'text', 'visit', 'meeting', 'other']; // a case's New entry: the usual ones first
 const STATUS_COLOUR = { open: 'var(--accent)', waiting: '#d9a441', closed: '#4caf7a' };
+const STATUS_EMOJI = { open: '📂', waiting: '⏳', closed: '✅' };
+// Cases never dragged sort newest opened first.
+const openedOrder = kase => -(Date.parse(kase.opened_at || kase.created_at) / 1e4 || 0);
+const rankOfCase = kase => rankOf(kase, openedOrder);
+const shortDay = iso => (iso ? dateText(new Date(iso), { day: 'numeric', month: 'short', year: 'numeric' }) : '');
 // Time since, in a few letters: "now", "3h", "2d", "5w".
 const shortAgo = iso => { const mins = (Date.now() - Date.parse(iso)) / 60000; return mins < 60 ? 'now' : mins < 1440 ? `${Math.round(mins / 60)}h` : mins < 20160 ? `${Math.round(mins / 1440)}d` : `${Math.round(mins / 10080)}w`; };
 // A datetime-local field's value for a moment, in local time.
@@ -104,6 +111,9 @@ export default {
     this.topWatch?.disconnect();
     this.topWatch = new IntersectionObserver(([e]) => stickyTop.classList.toggle('stuck', !e.isIntersecting && e.boundingClientRect.top < 200), { rootMargin: `-${parseFloat(getComputedStyle(stickyTop).top) || 0}px 0px 0px 0px` });
     this.topWatch.observe(el.querySelector('.sticky-top-mark'));
+    // View choices arriving from another device redraw the Cases list.
+    this.gone = new AbortController();
+    document.addEventListener('sift-layout', ev => { if (ev.detail?.id === null && state.tab === 'cases' && !state.id) render(); }, { signal: this.gone.signal });
     const go = hash => { if (location.hash !== hash) location.hash = hash; else render(); };
 
     const byId = id => data.contacts.find(c => c.id === id);
@@ -359,19 +369,119 @@ export default {
 
     // ---------- cases ----------
 
-    function viewCases() {
-      if (state.id) return viewCase();
-      const cases = [...data.cases].sort((a, b) => (a.status === 'closed') - (b.status === 'closed') || (b.updated_at || '').localeCompare(a.updated_at || ''));
-      return `
-        <ul class="c-list">${cases.map(k => `
-          <li class="c-card"><a class="c-main" href="#/contacts/cases/${k.id}">
-            <span class="c-name">${esc(k.title)}</span>
-            <span class="muted c-about">${CASE_STATUS.find(s => s.id === k.status)?.label} · ${(k.contact_ids || []).map(id => byId(id)?.name).filter(Boolean).map(esc).join(', ')}</span>
-          </a><span class="muted c-when">${ago(k.updated_at)}</span></li>`).join('') || '<li class="empty"><h2>No cases.</h2></li>'}
-        </ul>
-        <button type="button" data-act="new-case">+ New case</button>
-        <p class="muted hint">${esc(word('ph_cases'))}</p>`;
+    // The Cases list: Open, Closed or All (its filter bar), as a Details table (the default: columns that
+    // resize, sort and filter, detailtable.js) or as Batch Book style cards (👁, Show cases as). Cards drag
+    // into your own order (`rank`); in All, a card dropped under Closed closes the case, under Open reopens it.
+    const caseShow = () => choiceOf('contacts', 'case-show', 'open');
+    const caseLook = () => choiceOf('contacts', 'case-look', 'table');
+    const caseView = () => { try { return Object.assign({ sort: { id: 'opened', dir: 'desc' } }, JSON.parse(choiceOf('contacts', 'case-table', '{}'))); } catch { return { sort: { id: 'opened', dir: 'desc' } }; } };
+    const isClosed = kase => kase.status === 'closed';
+    const caseOf = id => data.cases.find(kase => kase.id === id);
+    const statusOf = kase => CASE_STATUS.find(option => option.id === kase.status) || CASE_STATUS[0];
+    const badge = kase => `<span class="case-badge" style="--st:${STATUS_COLOUR[statusOf(kase).id]}">${statusOf(kase).label}</span>`;
+    const peopleOf = kase => (kase.contact_ids || []).map(id => byId(id)).filter(Boolean).map(label);
+    const refOf = kase => (kase.references || []).find(ref => ref.value)?.value || '';
+    let caseInfo = new Map(); // per case: entries, latest entry (its words), last activity, files
+    async function loadCaseInfo() {
+      const notes = await store.list('case_notes');
+      atts = await att.byParent();
+      caseInfo = new Map(data.cases.map(kase => {
+        const entries = data.interactions.filter(entry => entry.case_id === kase.id).concat(notes.filter(note => note.case_id === kase.id)).sort((one, two) => (two.at || '').localeCompare(one.at || ''));
+        const latest = entries[0];
+        const latestText = !latest ? '' : latest.how ? `${HOW.find(how => how.id === latest.how)?.icon || '•'} ${latest.summary || (latest.direction === 'in' ? SAID_IN : SAID_OUT)[latest.how] || ''}` : `📝 ${plainLines(latest.body || '')[0] || 'Note'}`;
+        const files = (atts.get(kase.id) || []).concat(entries.flatMap(entry => atts.get(entry.id) || []));
+        const last = [kase.opened_at || kase.created_at, kase.closed_at, latest?.at].concat(files.map(file => file.created_at)).filter(Boolean).sort().at(-1);
+        return [kase.id, { entries: entries.length, latest, latestText, files, last }];
+      }));
     }
+    const info = kase => caseInfo.get(kase.id) || { entries: 0, latestText: '', files: [], last: '' };
+    const CASE_COLS = [
+      { id: 'opened', label: 'Opened', type: 'date', width: 112, value: kase => kase.opened_at || kase.created_at, text: kase => shortDay(kase.opened_at || kase.created_at), html: kase => `<time>${shortDay(kase.opened_at || kase.created_at)}</time>`, cls: 'dt-date' },
+      { id: 'name', label: 'Name', type: 'text', width: 250, value: kase => kase.title || '', text: kase => kase.title || '', html: kase => `<b title="${esc(kase.title)}">${esc(kase.title || 'Untitled')}</b>`, cls: 'dt-name' },
+      { id: 'status', label: 'Status', type: 'list', width: 104, value: kase => CASE_STATUS.indexOf(statusOf(kase)), text: kase => statusOf(kase).label, html: badge },
+      { id: 'people', label: 'People', type: 'text', width: 150, value: kase => peopleOf(kase).join(', '), text: kase => peopleOf(kase).join(', '), html: kase => esc(peopleOf(kase).join(', ')) },
+      { id: 'latest', label: 'Latest entry', type: 'text', width: 260, value: kase => info(kase).latestText, text: kase => info(kase).latestText, html: kase => `<span class="muted" title="${esc(info(kase).latestText)}">${esc(info(kase).latestText)}</span>` },
+      { id: 'updated', label: 'Updated', type: 'date', width: 120, value: kase => info(kase).last, text: kase => ago(info(kase).last), html: kase => `<span class="muted" title="${esc(info(kase).last ? when(info(kase).last) : '')}">${ago(info(kase).last)}</span>`, cls: 'dt-date' },
+      { id: 'entries', label: 'Entries', type: 'num', width: 96, value: kase => info(kase).entries, text: kase => String(info(kase).entries), html: kase => info(kase).entries || '', cls: 'num' },
+      { id: 'files', label: 'Files', type: 'num', width: 76, value: kase => info(kase).files.length, text: kase => String(info(kase).files.length), html: kase => (info(kase).files.length ? `📎 ${info(kase).files.length}` : ''), cls: 'num' },
+      { id: 'ref', label: 'Reference', type: 'text', width: 130, value: refOf, text: refOf, html: kase => esc(refOf(kase)) },
+    ];
+    const casesShown = () => data.cases.filter(kase => caseShow() === 'all' || (caseShow() === 'closed') === isClosed(kase));
+
+    function caseCard(kase) {
+      const facts = info(kase);
+      const photo = facts.files.find(file => file.kind === 'image' && file.thumb);
+      const chips = peopleOf(kase).map(name => `<span class="chip">👤 ${esc(name)}</span>`).concat(refOf(kase) ? [`<span class="chip"># ${esc(refOf(kase))}</span>`] : []);
+      return `<li class="bb-card-li case-card" data-id="${kase.id}" data-depth="0" style="--bb:${STATUS_COLOUR[statusOf(kase).id]}">
+        <button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button>
+        <a class="bb-card" href="#/contacts/cases/${kase.id}">
+          <span class="bb-card-pic">${photo ? `<img src="${photo.thumb}" alt="" loading="lazy">` : `<span class="bb-card-emoji">${STATUS_EMOJI[statusOf(kase).id]}</span>`}${badge(kase)}</span>
+          <span class="bb-card-body">
+            <span class="bb-card-title">${esc(kase.title || 'Untitled')}</span>
+            ${kase.summary || facts.latestText ? `<span class="muted bb-card-desc">${esc(kase.summary || facts.latestText)}</span>` : ''}
+            ${chips.length ? `<span class="bb-card-tags">${chips.join('')}</span>` : ''}
+            <span class="muted bb-card-made">Opened ${shortDay(kase.opened_at || kase.created_at)}${facts.entries ? ` · ${facts.entries} entr${facts.entries === 1 ? 'y' : 'ies'}` : ''}${facts.files.length ? ` · 📎 ${facts.files.length}` : ''}</span>
+          </span>
+        </a>
+        <div class="bb-card-acts"><span class="muted case-card-when">${facts.last ? `Updated ${ago(facts.last)}` : ''}</span>
+          <details class="tool-menu bb-card-menu">
+            <summary class="icon-btn" aria-label="More" title="More">${icon('i-more')}</summary>
+            <div class="menu"><span class="menu-label muted">Status</span>
+              ${CASE_STATUS.map(option => `<button type="button" data-case-card-status="${option.id}"><i class="kase-dot" style="--st:${STATUS_COLOUR[option.id]}"></i> ${option.label}${option.id === kase.status ? ' ✓' : ''}</button>`).join('')}
+              <hr><button type="button" data-case-card="archive">Archive</button><button type="button" class="danger" data-case-card="delete">Delete</button></div>
+          </details></div>
+      </li>`;
+    }
+    function caseCards(cases) {
+      const ordered = cases.slice().sort(byRank(openedOrder));
+      if (caseShow() !== 'all') return `<ul class="bb-grid bb-cards case-cards">${ordered.map(caseCard).join('')}</ul>`;
+      const section = (id, title, list) => `<li class="bb-chapter-title case-group" data-sec="${id}" style="--bb:${STATUS_COLOUR[id]}"><span>${STATUS_EMOJI[id]}</span> ${title} <span class="muted">${list.length}</span></li>${list.map(caseCard).join('')}`;
+      return `<ul class="bb-grid bb-cards case-cards">${section('open', 'Open', ordered.filter(kase => !isClosed(kase)))}${section('closed', 'Closed', ordered.filter(isClosed))}</ul>`;
+    }
+
+    async function viewCases() {
+      if (state.id) return viewCase();
+      await loadCaseInfo();
+      const cases = casesShown();
+      const open = data.cases.filter(kase => !isClosed(kase)).length;
+      const view = caseView();
+      const list = !data.cases.length ? '' : caseLook() === 'cards'
+        ? (cases.length ? caseCards(cases) : `<div class="empty"><h2>No ${caseShow()} cases.</h2></div>`)
+        : tableHtml({ cols: CASE_COLS, rows: tableRows(cases, CASE_COLS, view), view, cls: 'case-table', rowAttrs: kase => `data-id="${kase.id}" data-case-row="${kase.id}"` });
+      return `
+        <div class="dump-filter-row case-show-row"><div class="dump-filter" role="tablist" aria-label="Which cases">
+          ${[['open', 'Open', open], ['closed', 'Closed', data.cases.length - open], ['all', 'All', data.cases.length]].map(([id, title, count]) => `<button type="button" data-case-show="${id}" aria-pressed="${caseShow() === id}">${title} <span class="muted">${count}</span></button>`).join('')}
+          </div>${caseLook() === 'table' && anyFilter(view) ? '<button type="button" class="case-unfilter" data-act="case-unfilter">✕ Clear filters</button>' : ''}</div>
+        ${list || `<div class="empty"><h2>No cases yet.</h2><p class="muted">${esc(word('ph_cases'))}</p></div>`}`;
+    }
+    // 👁 on the Cases list: Show cases as Details or Cards, instead of Spacing (which doesn't fit a table).
+    const casesMenuHtml = () => `<h4>Show cases as</h4><div class="view-opts" role="group" aria-label="Show cases as">
+        ${[['table', '☰ Details'], ['cards', '▦ Cards']].map(([id, title]) => `<button type="button" data-case-look="${id}" aria-pressed="${caseLook() === id}">${title}</button>`).join('')}</div>${separateHtml()}`;
+    const statusPatch = (kase, status) => ({ status, closed_at: status === 'closed' ? (kase.closed_at || new Date().toISOString()) : null });
+    async function changeCases(ids, patchOf, label) {
+      const writes = ids.filter(caseOf).map(id => [id, patchOf(caseOf(id))]);
+      const before = writes.map(([id, patch]) => [id, Object.fromEntries(Object.keys(patch).map(field => [field, caseOf(id)[field] ?? null]))]);
+      await store.updateMany('cases', writes);
+      await render();
+      undoable(`${label}${writes.length > 1 ? ` ${writes.length} cases` : ''}`, async () => { await store.updateMany('cases', before); await render(); });
+    }
+    async function persistCaseOrder(rows, label, ul, moved) {
+      const sectionAt = id => { for (let prev = ul.querySelector(`li[data-id="${CSS.escape(id)}"]`)?.previousElementSibling; prev; prev = prev.previousElementSibling) if (prev.dataset.sec) return prev.dataset.sec; return null; };
+      const patch = new Map(reorderWrites(rows, row => rankOfCase(caseOf(row.id)), moved).map(([row, key]) => [row.id, { rank: key }]));
+      let into = null;
+      for (const id of moved) {
+        const kase = caseOf(id), section = sectionAt(id);
+        if (!kase || !section || (section === 'closed') === isClosed(kase)) continue;
+        into = section;
+        patch.set(id, Object.assign(patch.get(id) || {}, statusPatch(kase, section)));
+      }
+      if (!patch.size) return;
+      const before = Array.from(patch.keys()).map(id => [id, Object.fromEntries(Object.keys(patch.get(id)).map(field => [field, caseOf(id)?.[field] ?? null]))]);
+      await store.updateMany('cases', Array.from(patch.entries()));
+      await render();
+      undoable(into === 'closed' ? 'Closed' : into ? 'Reopened' : 'Moved a case', async () => { await store.updateMany('cases', before); await render(); });
+    }
+    const caseTable = this.caseTable = wireTable(body, { cols: CASE_COLS, rows: casesShown, view: caseView, save: next => { setChoice('contacts', 'case-table', JSON.stringify(next)); render(); } });
 
     async function viewCase() {
       const k = data.cases.find(x => x.id === state.id);
@@ -455,6 +565,10 @@ export default {
       // An opened case or contact is a page of its own: no + New, tabs, Share or menus above it, its ‹ back top left.
       el.classList.toggle('c-opened', state.tab === 'contact' || (state.tab === 'cases' && !!state.id));
       el.querySelector('.c-new-btn').textContent = state.tab === 'cases' ? '+ New case' : '+ New contact';
+      const casesList = state.tab === 'cases' && !state.id;
+      const menu = el.querySelector('.page-cog .view-settings');
+      if (menu.dataset.cases !== String(casesList)) { menu.innerHTML = casesList ? casesMenuHtml() : menuHtml('contacts'); menu.dataset.cases = String(casesList); }
+      if (!casesList) caseTable.close();
       body.innerHTML = state.tab === 'directory' ? viewDirectory()
         : state.tab === 'cases' ? await viewCases()
         : state.tab === 'contact' ? await viewContact()
@@ -468,6 +582,7 @@ export default {
       if (cap) keepDraft(cap, 'contacts:new');
       if (cap) cap.addEventListener('keydown', ev => { if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); capture(); } });
       kit.attach(body.querySelector('.kit-list'));
+      caseKit.attach(body.querySelector('.case-cards'));
       const research = body.querySelector('#research-new');
       if (research) listEntry(research, addCandidates, { draft: `contacts:research:${state.id}` });
       // Esc leaves the box, keeping what's typed (as a draft); the next Esc leaves the case.
@@ -504,8 +619,20 @@ export default {
         { id: 'delete', label: 'Delete', key: 'D', danger: true, run: ids => batch(ids, { deleted_at: new Date().toISOString() }, 'Deleted') },
       ],
     });
+    const now = () => new Date().toISOString();
+    const caseKit = this.caseKit = createListKit({
+      reorder: true, grid: true, holdSelect: true, noun: 'case', onReorder: persistCaseOrder, // as Batch Book's cards: hold to choose, drag by the ⠿
+      actions: CASE_STATUS.map(option => ({ id: `status-${option.id}`, label: `${STATUS_EMOJI[option.id]} ${option.label}`, group: 'Status', run: ids => changeCases(ids, kase => statusPatch(kase, option.id), `Marked ${option.label.toLowerCase()}`) }))
+        .concat([
+          { id: 'archive', label: 'Archive', key: 'A', run: ids => changeCases(ids, () => ({ archived_at: now() }), 'Archived') },
+          { id: 'delete', label: 'Delete', key: 'D', danger: true, run: ids => changeCases(ids, () => ({ deleted_at: now() }), 'Deleted') },
+        ]),
+    });
     this.onKey = ev => {
-      if (ev.key === 'Escape' && !ev.target.closest('input, textarea, select, [contenteditable]') && kit.escape()) ev.preventDefault();
+      if (ev.key === 'Escape' && !ev.target.closest('input, textarea, select, [contenteditable]') && (kit.escape() || caseKit.escape())) ev.preventDefault();
+      // A row of the Cases table opens with Enter, as a click.
+      const row = ev.key === 'Enter' && ev.target.closest?.('tr[data-case-row]');
+      if (row) { ev.preventDefault(); go(`#/contacts/cases/${row.dataset.caseRow}`); }
     };
     addEventListener('keydown', this.onKey);
 
@@ -647,6 +774,16 @@ export default {
       const whenBox = ev.target.closest('.kc-when');
       if (whenBox && ev.target.matches('input')) { try { ev.target.showPicker?.(); } catch {} return; }
       if (whenBox) { const f = whenBox.querySelector('input'); try { f.showPicker ? f.showPicker() : f.focus(); } catch { f.focus(); } return; }
+      const caseBtn = ev.target.closest('[data-case-show], [data-case-look], [data-case-card-status], [data-case-card], tr[data-case-row]');
+      if (caseBtn) {
+        if (caseBtn.dataset.caseShow) { caseKit.escape(); setChoice('contacts', 'case-show', caseBtn.dataset.caseShow); return render(); }
+        if (caseBtn.dataset.caseLook) { setChoice('contacts', 'case-look', caseBtn.dataset.caseLook); for (const other of caseBtn.parentElement.children) other.setAttribute('aria-pressed', String(other === caseBtn)); return render(); }
+        if (caseBtn.dataset.caseRow) return ev.target.closest('a, button') ? undefined : go(`#/contacts/cases/${caseBtn.dataset.caseRow}`);
+        caseBtn.closest('details')?.removeAttribute('open');
+        const id = caseBtn.closest('li[data-id]').dataset.id;
+        if (caseBtn.dataset.caseCardStatus) return changeCases([id], kase => statusPatch(kase, caseBtn.dataset.caseCardStatus), `Marked ${caseBtn.dataset.caseCardStatus}`);
+        return caseBtn.dataset.caseCard === 'delete' ? changeCases([id], () => ({ deleted_at: now() }), 'Deleted') : changeCases([id], () => ({ archived_at: now() }), 'Archived');
+      }
       const b = ev.target.closest('[data-act], [data-tab], [data-status], [data-rate]');
       if (!b) return;
       if (b.dataset.act === 'log-now') { const f = b.parentElement.querySelector('[name="at"]'); f.value = localValue(new Date()); if (!b.closest('.entry-edit')) f.dataset.live = '1'; drawWhen(f); return; }
@@ -676,6 +813,7 @@ export default {
       if (act === 'new-case') return newCase();
       if (act === 'dir-home') return go('#/contacts/directory');
       if (act === 'cases-home') return go('#/contacts/cases');
+      if (act === 'case-unfilter') { const view = caseView(); view.filters = {}; setChoice('contacts', 'case-table', JSON.stringify(view)); return render(); }
       if (act === 'back') { history.length > 1 ? history.back() : go('#/contacts'); return; }
 
       if (c) {
@@ -853,6 +991,9 @@ export default {
   unmount() {
     clearInterval(this.clock);
     this.kit?.destroy();
+    this.caseKit?.destroy();
+    this.caseTable?.close();
+    this.gone?.abort();
     this.topWatch?.disconnect();
     removeEventListener('keydown', this.onKey);
   },

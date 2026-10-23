@@ -101,9 +101,9 @@ const AREAS = {
   },
   contacts: {
     search: '#c-q',
-    items: '#main .c-card',
+    items: '#main .c-card, #main .case-card, #main tr[data-case-row]',
     enter: () => focusEnd($('#c-new')),
-    open: el => click(el.querySelector('a.c-main')),
+    open: el => click(el.querySelector('a.c-main, a.bb-card') || el),
   },
   scans: { search: '.scan-search', items: '#main .scan-card', open: el => click(el) },
   recipes: { search: '.bb-search', bar: '#main .bb-sections [data-section]', items: '#main .bb-cards > li[data-id], #main .bb-shared > li, #main .bb-batch-list > li[data-id], #main div.bb-batches > .bb-batch-row', open: el => click(el.querySelector('.bb-card, .bb-batch-row') || el) },

@@ -38,7 +38,7 @@ import * as store from './store.js';
 const kind = () => Math.min(screen.width, screen.height) < 600 ? 'phone' : 'computer';
 const SEPARATE = 'sift-view-separate';
 const separate = () => { try { return localStorage.getItem(SEPARATE) === '1'; } catch { return false; } };
-const isViewKey = k => /^sift-(layout|shade|density):/.test(k);
+const isViewKey = k => /^sift-(layout|shade|density|view):/.test(k);
 // A view choice: kept on this device and, unless it's kept separate, synced to the same kind of device.
 function saveView(k, value) {
   try { localStorage.setItem(k, value); } catch { /* not kept */ }
@@ -149,10 +149,19 @@ export function spacingHtml(area) {
     </div>`;
 }
 
+// A page's own view choice (e.g. Cases as Details or Cards, a table's columns), kept and synced as the others.
+const choiceKey = (area, id) => `sift-view:${area}:${id}`;
+export function choiceOf(area, id, def = '') {
+  try { return localStorage.getItem(choiceKey(area, id)) ?? def; } catch { return def; }
+}
+export const setChoice = (area, id, value) => saveView(choiceKey(area, id), value);
+
+// The menu's usual contents (a page that changes them by tab puts them back with this).
+export const menuHtml = (area, extra = '') => `${extra}${layoutHtml(area)}${lookHtml(area)}${spacingHtml(area)}${separateHtml()}`;
 export function cogHtml(area, extra = '') {
   return `<details class="tool-menu view-menu page-cog">
       <summary class="icon-btn" aria-label="View settings" title="View settings"><svg class="icon" aria-hidden="true"><use href="#i-view"/></svg></summary>
-      <div class="menu view-settings">${extra}${layoutHtml(area)}${lookHtml(area)}${spacingHtml(area)}${separateHtml()}</div>
+      <div class="menu view-settings">${menuHtml(area, extra)}</div>
     </details>`;
 }
 
