@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.02': [{ text: "Brain Dump: a note's ⋯ has Print…: the note with its title big, when it was written, its pictures small or big and lines to write more, in the note's colour or black and white. Its copies now match every Share menu: plain text, rich text, WhatsApp and Markdown.", go: '#/dump', open: ['#thoughts > li[data-id] details.note-more > summary'], at: '#thoughts [data-act="print-note"]' }],
   '1.61.01': [{ text: "Batch Book: an open recipe or batch has a Share pill: Share with someone…, the copies, Print… and 🏷 Print labels…. Print the whole recipe scaled up or down (×½, ×2 or any amount you type), short ones two or three to a page; a batch adds its readings, diary and tasting notes.", go: '#/recipes', open: ['#main .bb-card'], at: '#main .bb-top .share-menu', more: 'Print labels… makes labels for bottles, jars, tins or boxes on the usual A4 label sheets (21, 8 or 4 to a sheet), starting part way down a used sheet.' }],
   '1.61.00': [{ text: "Scans: an open scan has a Share pill top right: Share the file…, Copy the text on it, the copies and Print…. Print in colour, grey or black and white with Contrast and Lightness sliders, one or two to a page, with its title and date, and the text read on it on a page of its own.", go: '#/scans', open: ['#main .scan-card'], at: '#main .project-head .share-menu', more: 'Black and white makes faded receipts and letters crisp and saves ink.' }],
   '1.60.99': [{ text: "Lists: an open list has the Share pill (👥 Share with someone… is in it now) with Print…: the list with round ticks under its name and a line in its colour, in two columns, one column or as pocket cards (four to a page, to cut out), with blank lines to add more.", go: '#/lists', open: ['#main .list-card'], at: '#main .project-head .share-menu', more: "An open project's 👥 Share is now its Share pill too, with Print… for its tasks." }],
@@ -159,6 +160,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.02': '2026-10-23T13:20:29Z',
   '1.61.01': '2026-10-23T13:16:50Z',
   '1.61.00': '2026-10-23T13:11:01Z',
   '1.60.99': '2026-10-23T13:07:07Z',
