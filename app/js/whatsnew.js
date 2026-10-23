@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.95': [{ text: "Batch Book: dragging a recipe straight sideways now moves the recipe next to it out of the way and shows the gap, without having to drag down a little first. A recipe can no longer be dragged above its book's title. The same goes for the Lists page's cards and Brain Dump's notes.", go: '#/recipes', at: '#main .bb-card-li .kit-grip' }],
   '1.60.94': [
     { text: "Contacts and Cases, Cases: the list is now a details table, like a file explorer's. Opened comes first, then the case's name in bold, its status, people, latest entry, when it was last updated, how many entries and files, and its reference. Drag a column's edge to make it wider or narrower, click a heading to sort by it (again for the other way), and its ▾ sorts or filters it, as in a spreadsheet.", go: '#/contacts/cases', at: '#main .dt-wrap, #main .case-cards' },
     { text: "Contacts and Cases, Cases: Open, Closed and All along the top show just the cases you want. 👁 has Show cases as Details or Cards: cards look like Batch Book's, with each case's status, summary or latest entry, people and reference, and they drag into your own order. In All, dropping a card under Closed closes the case.", go: '#/contacts/cases', open: ['#main details.view-menu > summary'], at: '#main [data-case-look]', more: "Hold a card to choose several, then change their status, archive or delete them from the bar at the bottom." },
@@ -152,6 +153,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.95': '2026-10-23T12:46:24Z',
   '1.60.94': '2026-10-23T12:20:22Z',
   '1.60.93': '2026-10-23T12:10:28Z',
   '1.60.92': '2026-10-23T12:10:04Z',

@@ -114,10 +114,24 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
   // Where the dragged item's visual centre now is, so the DOM follows it.
   function place(clientY, clientX = 0) {
     if (grid) {
-      // The card under the pointer (its middle part, so cards of different sizes don't jitter).
+      // A heading among the cards (e.g. a book's title): the pointer on it puts the card at the start of
+      // that heading's run (coming up) or the end of the run before (coming down), so never above its book's title.
+      // A stuck (sticky) heading is only showing over its own cards, so it doesn't count.
+      const head = siblings().find(el => { if (el.matches('[data-id]') || el.classList.contains('stuck')) return false; const r = el.getBoundingClientRect(); return clientY >= r.top && clientY < r.bottom; });
+      if (head) {
+        const up = dragging.compareDocumentPosition(head) & Node.DOCUMENT_POSITION_PRECEDING;
+        if (up) { if (head.nextElementSibling !== dragging) slid(() => head.after(dragging)); }
+        else if (head.previousElementSibling !== dragging) slid(() => head.before(dragging));
+        onMove?.(dragging);
+        return;
+      }
+      // The card under the dragged card's middle (not the pointer: it holds the card by a corner), within
+      // that card's middle part, so cards of different sizes don't jitter.
+      const midX = clientX - offsetX + dragging.offsetWidth / 2, midY = clientY - offsetY + dragging.offsetHeight / 2;
       const under = siblings().find(el => {
+        if (!el.matches('[data-id]')) return false;
         const r = cardRect(el);
-        return clientX > r.left + r.width * 0.2 && clientX < r.right - r.width * 0.2 && clientY > r.top + r.height * 0.2 && clientY < r.bottom - r.height * 0.2;
+        return midX > r.left + r.width * 0.2 && midX < r.right - r.width * 0.2 && midY > r.top + r.height * 0.2 && midY < r.bottom - r.height * 0.2;
       });
       if (!under) return;
       slid(() => { if (dragging.compareDocumentPosition(under) & Node.DOCUMENT_POSITION_PRECEDING) list.insertBefore(dragging, under); else under.after(dragging); });
