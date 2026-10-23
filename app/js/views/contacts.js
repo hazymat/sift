@@ -7,7 +7,7 @@
 import { cogHtml, menuHtml, separateHtml, choiceOf, setChoice } from '../viewcog.js';
 import { tableHtml, shown as tableRows, wireTable, anyFilter } from '../detailtable.js';
 import { rankOf, byRank, reorderWrites } from '../order.js';
-import { shareHtml, printers } from '../share.js';
+import { shareHtml, printers, sharers } from '../share.js';
 import * as store from '../store.js';
 import {
   loadContacts, createContact, contactFromText, extractDetails, logInteraction, lastActivity,
@@ -15,7 +15,7 @@ import {
 } from '../contacts.js';
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
-import { richText, previewLine, plainLines, inlineAll } from '../richtext.js';
+import { richText, previewLine, plainLines, inlineAll, toHtml } from '../richtext.js';
 import { debounced } from '../autosave.js';
 import { mentionsOf } from '../refs.js';
 import { keepDraft, draftCleared } from '../drafts.js';
@@ -319,11 +319,13 @@ export default {
         ...log.map(i => ({ at: i.at, text: `${HOW.find(h => h.id === i.how)?.icon || ''} ${i.direction === 'in' ? 'They' : 'I'} ${i.how === 'call' ? 'called' : i.how === 'email' ? 'emailed' : i.how === 'text' ? 'texted' : i.how}${i.detail_used ? ` (${i.detail_used})` : ''}${i.summary ? `: ${i.summary}` : ''}`, kind: 'log', id: i.id })),
         ...(c.looked_up_at || []).slice(0, 5).map(at => ({ at, text: 'Looked up', kind: 'look' })),
       ].filter(e => e.at).sort((a, b) => b.at.localeCompare(a.at));
+      contactShown = { c, timeline, cases, tasks: tasks.filter(t => !t.done_at) };
       return `
         <div class="project-head">
           <button type="button" class="back" data-act="back">‹ Back${keys('Esc')}</button>
           <input class="project-name" name="name" value="${esc(c.name)}" placeholder="${esc(word('ph_contact_name'))}" data-edit="${c.id}" aria-label="Name">
           <button type="button" class="pin" data-act="pin-contact" aria-pressed="${!!c.pinned}" title="Pin">${c.pinned ? '★' : '☆'}</button>
+          ${shareHtml()}
         </div>
         <div class="c-page" data-contact="${c.id}">
           <div class="detail-grid">
@@ -488,7 +490,28 @@ export default {
     const caseTable = this.caseTable = wireTable(body, { cols: CASE_COLS, rows: casesShown, view: caseView, save: next => { setChoice('contacts', 'case-table', JSON.stringify(next)); render(); } });
 
     // Share, 🖨 Print… on an open case: a case report (print.js), its photos as thumbnails in the Timeline and/or full size at the end.
-    printers.contacts = () => (state.tab === 'cases' && state.id && printable?.k.id === state.id ? (printCase(), true) : false);
+    // An open contact: Share copies its name, details and notes; Print… a contact sheet (print.js printRecord).
+    let contactShown = null;
+    const openContact = () => (state.tab === 'contact' && state.id && contactShown?.c.id === state.id ? contactShown : null);
+    sharers.contacts = () => {
+      const shown = openContact();
+      if (!shown) return null;
+      const { c } = shown;
+      return { title: c.name || 'Contact', lines: [c.about, (c.details || []).filter(d => d.value).map(d => `${d.label ? `${d.label}: ` : ''}${d.value}`).join('\n'), plainLines(c.notes).join('\n')] };
+    };
+    printers.contacts = () => {
+      const shown = openContact();
+      if (shown) {
+        const { c, timeline, cases, tasks } = shown;
+        import('../print.js').then(({ printRecord }) => printRecord({ kind: 'contact', title: c.name || 'Contact', back: 'Contact', eyebrow: c.kind === 'organisation' ? 'Organisation' : 'Contact', colour: c.colour ? tintHex(c) : '',
+          facts: [['About', c.about], ...(c.details || []).map(d => [d.label || 'Detail', d.value])],
+          parts: [{ key: 'notes', words: 'Notes', html: c.notes?.trim() ? toHtml(c.notes) : '' },
+            { key: 'log', words: 'Log', html: timeline.length ? `<ul>${timeline.map(e => `<li><b>${esc(when(e.at))}</b> ${esc(e.text)}</li>`).join('')}</ul>` : '' },
+            { key: 'connected', words: 'Cases and tasks', html: cases.length || tasks.length ? `<ul>${cases.map(k => `<li>Case: ${esc(k.title)}</li>`).join('')}${tasks.map(t => `<li>Task: ${esc(t.title)}</li>`).join('')}</ul>` : '' }] }));
+        return true;
+      }
+      return state.tab === 'cases' && state.id && printable?.k.id === state.id ? (printCase(), true) : false;
+    };
     async function printCase() {
       const { openPrint, filePicture } = await import('../print.js');
       const { k, events, status, refs, people, days } = printable;

@@ -5,10 +5,10 @@
 import { keys } from '../keys.js';
 import * as store from '../store.js';
 import { cogHtml } from '../viewcog.js';
-import { shareHtml } from '../share.js';
+import { shareHtml, printers, sharers } from '../share.js';
 import { CATEGORIES, FREQUENCIES, STATUSES, categoryLabel, perYear, money, renewalSoon, newContract, renew } from '../contracts.js';
 import * as att from '../attachments.js';
-import { richText } from '../richtext.js';
+import { richText, toHtml, plainLines } from '../richtext.js';
 import { debounced } from '../autosave.js';
 import { toast, undoable } from '../toast.js';
 import { openPicker } from '../linkpicker.js';
@@ -114,6 +114,7 @@ export default {
         <div class="project-head">
           <button type="button" class="back" data-act="home">‹ Contracts${keys('Esc')}</button>
           <input class="project-name" name="name" value="${esc(c.name)}" aria-label="Name" placeholder="e.g. Home insurance">
+          ${shareHtml()}
         </div>
         <div class="scan-page contract-page" data-id="${c.id}">
           <div class="panel-sec"><span class="panel-h">Status</span>
@@ -198,6 +199,27 @@ export default {
         box.addEventListener('focusout', ev => { if (!box.contains(ev.relatedTarget)) noteAuto.flush(); });
       }
     };
+    // An open contract: Share copies its details and note; Print… a contract sheet (print.js printRecord), the reference hidden unless chosen.
+    const factsOf = c => [['Status', STATUSES.find(x => x[0] === c.status)?.[1]], ['Kind', categoryLabel(c.category)], ['Provider', c.provider], ['Covers', c.covers],
+      ['Cost', c.cost != null && c.cost !== '' ? `${money(c.cost)} ${FREQUENCIES.find(x => x[0] === (c.cost_frequency || 'monthly'))?.[1] || ''}`.trim() : ''], ['A year', perYear(c) && c.cost_frequency !== 'annual' ? money(perYear(c)) : ''],
+      ['Paid by', c.payment_method_note], ['Started', niceDate(c.start_date)], ['Renews', niceDate(c.renewal_date)], ['Ends', niceDate(c.end_date)], ['Notice', c.notice_days ? `${c.notice_days} days` : ''],
+      ['Renews by itself', c.auto_renew ? 'Yes' : ''], ['Phone', c.provider_phone], ['Website', c.provider_url], ...(c.custom_fields || []).map(f => [f.label || 'Detail', f.value])];
+    sharers.contracts = () => {
+      const c = state.id && byId(state.id);
+      return c ? { title: c.name || 'Contract', lines: [factsOf(c).filter(([, v]) => String(v || '').trim()).map(([k, v]) => `${k}: ${v}`).join('\n'), plainLines(c.notes).join('\n')] } : null;
+    };
+    printers.contracts = async () => {
+      const c = state.id && byId(state.id);
+      if (!c) return false;
+      const contact = c.contact_id && await store.get('contacts', c.contact_id);
+      const files = atts.get(c.id) || [];
+      const { printRecord } = await import('../print.js');
+      printRecord({ kind: 'contract', title: c.name || 'Contract', back: 'Contract', eyebrow: categoryLabel(c.category), facts: [...factsOf(c), ['Contact', contact?.name]],
+        secret: c.reference ? { words: 'The reference in full', facts: [['Reference', masked(c.reference), c.reference]] } : null,
+        parts: [{ key: 'note', words: 'Note', html: c.notes?.trim() ? toHtml(c.notes) : '' }, { key: 'files', words: 'Names of its files', heading: 'Files', html: files.length ? `<ul>${files.map(a => `<li>${esc(a.name)}</li>`).join('')}</ul>` : '' }] });
+      return true;
+    };
+
     this.route = rest => { state.id = rest[0] || null; state.reveal = false; render(); };
 
     // Files dropped anywhere on a contract's page go into its Files.
