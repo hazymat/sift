@@ -236,6 +236,30 @@ export default {
       kit.attach(list);
     };
 
+    // ⋯ 🖨 Print… on a note (print.js): its words as written, the title big, with its date and attached pictures if wanted.
+    async function printNote(t) {
+      const { openPrint, esc: pesc, filePicture } = await import('../print.js');
+      const files = (await store.list('attachments', { filter: a => a.parent_id === t.id })).filter(a => ['image', 'pdf'].includes(att.kindOf(a.mime, a.name)));
+      const title = t.title || titleFrom(t.body);
+      const after = afterTitle(t.body, title);
+      const lines = t.body.split('\n'), firstAt = lines.findIndex(l => l.trim());
+      const rest = after !== null ? [...(after ? [after] : []), ...lines.slice(firstAt + 1)].join('\n') : t.body;
+      const CSS = `h1 { font: 700 1.9em/1.15 Georgia, serif; margin: 0; } .when { color: var(--soft); font-size: .85em; margin: .3em 0 1em; padding-bottom: .5em; border-bottom: .15em solid var(--accent); }
+        .body { font-size: 1.1em; line-height: 1.5; } .body a { color: inherit; } .pics { display: flex; flex-wrap: wrap; gap: 4mm; margin-top: 1.2em; }
+        .pics img { max-width: 100%; max-height: 12cm; border-radius: 2mm; } .pics.small img { max-width: 45%; max-height: 6cm; }
+        .lines div { height: 2.1em; border-bottom: 1px solid var(--rule); } .lines { margin-top: 1em; }`;
+      openPrint({ kind: 'note', title, back: word('area_dump'), defaults: { when: true, pics: 'small', lines: 0, colour: true },
+        options: [['What goes in'], { check: 'when', words: 'When it was written' }, ...(files.length ? [{ seg: 'pics', items: [['small', 'Pictures small'], ['big', 'Pictures big'], ['none', 'No pictures']] }] : []),
+          { range: 'lines', words: 'Lines to write more', min: 0, max: 20 }, { check: 'colour', words: "In the note's colour" }],
+        build: async (ch, keep) => {
+          const pics = ch.pics === 'none' ? [] : (await Promise.all(files.map(a => filePicture(a, keep, 1400)))).filter(Boolean);
+          return { flow: true, css: CSS + (ch.colour ? `.colour { --accent: ${tintHex(t)}; }` : ''),
+            html: `<div class="flow"><h1>${titleHtml(t.body, title)}</h1>${ch.when ? `<div class="when">${pesc(dateText(new Date(t.created_at), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }))}</div>` : '<div class="when"></div>'}
+              <div class="body">${rest.trim() ? toHtml(unlinkText(rest)) : ''}</div>${pics.length ? `<div class="pics ${ch.pics}">${pics.map(src => `<img class="photo" src="${src}" alt="">`).join('')}</div>` : ''}
+              ${ch.lines ? `<div class="lines">${'<div></div>'.repeat(ch.lines)}</div>` : ''}</div>` };
+        } });
+    }
+
     // Like iPhone Notes: the first line is the title (shown bold); if it had
     // to be shortened, the whole text follows underneath.
     function thoughtBody(t) {
@@ -304,10 +328,15 @@ export default {
                 <button type="button" data-act="comment" title="Add this note to a task, as a dated comment">💬 Add as comment to task…</button>
                 <button type="button" data-act="append" title="Add this note to the end of a task's note">📝 Append to task note…</button>
                 <button type="button" data-att-add title="Attach photos, PDFs or text files (or drop them onto the note)">${icon('i-clip')} Attach…</button>
-                <button type="button" data-act="copy-plain">${icon('i-share')} Copy – plain text</button>
-                <button type="button" data-act="copy-rich">${icon('i-share')} Copy – with formatting</button>
-                ${navigator.share ? `<button type="button" data-act="share-sheet">${icon('i-share')} Share…</button>` : ''}
+                <hr>
                 ${theirsOwner() ? '' : '<button type="button" data-act="share-people">👥 Share with someone…</button>'}
+                ${navigator.share ? `<button type="button" data-act="share-sheet">${icon('i-share')} Share…</button>` : ''}
+                <button type="button" data-act="copy-plain">Copy to clipboard – plain text</button>
+                <button type="button" data-act="copy-rich">Copy to clipboard – rich text</button>
+                <button type="button" data-act="copy-whatsapp">Copy to clipboard – WhatsApp</button>
+                <button type="button" data-act="copy-md">Copy to clipboard – Markdown</button>
+                <hr>
+                <button type="button" data-act="print-note">🖨 Print…</button>
                 <hr>
                 ${theirsOwner() ? `<button type="button" data-share-leave="${fromOthers(['note']).find(sh => sh.info.id === t.id)?.id || ''}">Leave this shared note</button>` : '<button type="button" class="danger" data-act="delete">Delete</button>'}
               </div>
@@ -699,18 +728,22 @@ export default {
         const count = (await store.list('items', { filter: i => i.place_id === boxId })).length;
         const item = await store.create('items', { name: t.body.split('\n')[0].trim().slice(0, 200), place_id: boxId, parent_item_id: null, notes: '', quantity: null, sort_order: count, last_moved_at: null });
         await convert(t, { collection: 'items', id: item.id }, 'Added to the box');
-      } else if (act === 'copy-plain' || act === 'copy-rich' || act === 'share-sheet') {
-        // Share a saved note: the text as written (links as their words).
+      } else if (act === 'print-note') {
+        li.querySelector('details[open]')?.removeAttribute('open');
+        return printNote(t);
+      } else if (['copy-plain', 'copy-rich', 'copy-whatsapp', 'copy-md', 'share-sheet'].includes(act)) {
+        // Share a saved note: the text as written (links as their words); Markdown as it's kept, WhatsApp with its own marks.
         const text = unlinkText(t.body);
+        const plain = text.replace(/\*\*|~~/g, ''); // no bold or cross-out marks
         try {
-          if (act === 'share-sheet') { await navigator.share({ title: t.title || titleFrom(t.body), text: text.replace(/\*\*|~~/g, '') }); return; }
+          if (act === 'share-sheet') { await navigator.share({ title: t.title || titleFrom(t.body), text: plain }); return; }
           if (act === 'copy-rich' && window.ClipboardItem) {
             await navigator.clipboard.write([new ClipboardItem({
               'text/html': new Blob([toHtml(text)], { type: 'text/html' }),
-              'text/plain': new Blob([text], { type: 'text/plain' }),
+              'text/plain': new Blob([plain], { type: 'text/plain' }),
             })]);
-          } else await navigator.clipboard.writeText(text.replace(/\*\*|~~/g, '')); // plain: no bold or cross-out marks
-          toast(act === 'copy-rich' ? 'Copied with formatting' : 'Copied');
+          } else await navigator.clipboard.writeText({ 'copy-md': text, 'copy-whatsapp': text.replace(/\*\*(.+?)\*\*/g, '*$1*').replace(/~~(.+?)~~/g, '~$1~') }[act] ?? plain);
+          toast({ 'copy-rich': 'Copied as rich text', 'copy-whatsapp': 'Copied for WhatsApp', 'copy-md': 'Copied as Markdown' }[act] || 'Copied as plain text');
         } catch (err) {
           if (err?.name !== 'AbortError') toast("Couldn't share it from here");
         }
