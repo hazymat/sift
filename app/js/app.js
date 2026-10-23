@@ -285,6 +285,39 @@ function installWheelRows() {
   }, { passive: false });
 }
 
+// Sideways rows (filter bars, tabs) keep where they were scrolled to when their page or their
+// buttons are drawn again (a tap on Batch Book's books redraws the page, which put the row
+// back at its start), and the chosen tab is brought into view if it's off either end.
+const SIDEWAYS_ROWS = '.dump-filter, .bb-sections, .bb-status, .bb-tags-list, #task-views, .tasks-head .segmented, .find-new';
+function installRowKeep() {
+  const scrolled = new Map(); // where each row was last scrolled to, by page and row
+  const keyOf = row => `${location.hash.split('?')[0]}|${row.id || row.getAttribute('aria-label') || row.className}`;
+  addEventListener('scroll', ev => { if (ev.target instanceof Element && ev.target.matches(SIDEWAYS_ROWS)) scrolled.set(keyOf(ev.target), ev.target.scrollLeft); }, { capture: true, passive: true });
+  const settle = row => {
+    const was = scrolled.get(keyOf(row));
+    if (was != null) row.scrollLeft = was;
+    const chosen = row.querySelector('[aria-pressed="true"], [aria-selected="true"]');
+    if (!chosen || row.scrollWidth <= row.clientWidth + 1) return;
+    const rowBox = row.getBoundingClientRect(), chosenBox = chosen.getBoundingClientRect(), edge = 24; // room for the fade at the edges
+    if (chosenBox.left < rowBox.left) row.scrollLeft -= rowBox.left - chosenBox.left + edge;
+    else if (chosenBox.right > rowBox.right) row.scrollLeft += chosenBox.right - rowBox.right + edge;
+    scrolled.set(keyOf(row), row.scrollLeft);
+  };
+  new MutationObserver(changes => {
+    const rows = new Set();
+    for (const change of changes) {
+      if (change.type === 'attributes') { if (change.target.parentElement?.matches(SIDEWAYS_ROWS)) rows.add(change.target.parentElement); continue; } // another tab chosen
+      if (change.target.matches?.(SIDEWAYS_ROWS)) rows.add(change.target); // its buttons drawn again
+      for (const node of change.addedNodes) {
+        if (!(node instanceof Element)) continue;
+        if (node.matches(SIDEWAYS_ROWS)) rows.add(node);
+        for (const row of node.querySelectorAll(SIDEWAYS_ROWS)) rows.add(row);
+      }
+    }
+    for (const row of rows) if (row.isConnected) settle(row);
+  }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-pressed', 'aria-selected'] });
+}
+
 // Phones: with the keyboard up the bottom tabs hide (they'd float above it), and bars stuck at the top
 // stay at the top of what's visible: iPhone slides the whole page up under the keyboard, stuck bars
 // with it, so they're moved back down by as much (--vv-top).
@@ -616,6 +649,7 @@ async function boot() {
   installSwipe();
   installKeyboard();
   installWheelRows();
+  installRowKeep();
   // A dropdown menu opens inside the screen: flipped to the other side if
   // it would run off the left or right edge.
   document.addEventListener('toggle', ev => {
