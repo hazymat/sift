@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.91': [{ text: "Contacts and Cases: the Recent, Directory and Cases tabs under + New stand out now, each with its own colour and emoji (🕘 📇 🗂️), as Batch Book's books do.", go: '#/contacts', at: '#c-tabs' }],
   '1.60.90': [{ text: "Filter bars that scroll sideways (Batch Book's books, Brain Dump's types and the rest) stay where you scrolled them when you tap one, and the one you picked stays in view. Before, Batch Book's books jumped back to the start.", go: '#/recipes', at: '#main .bb-sections' }],
   '1.60.89': [{ text: "Contacts and Cases: an open case has a new look. ‹ Cases is at the top left (no + New case or tabs above it), with the case's name big under it. New entry comes first, then the case's photos and documents, then the Timeline: each event in its own callout, its emoji in a circle on a line down the left, its date first, months marked. Status, summary, references and people are in Details at the bottom.", go: '#/contacts/cases', open: ['#main .c-list .c-card a.c-main'], at: '#main .ctl', more: "An open contact also hides + New contact and the tabs above it." }],
   '1.60.88': [{ text: "Contacts is now called Contacts and Cases. On a case, New entry is a box of its own: pick the kind (Letter, Call, Note…), say what happened, set When, and 📎 Attach photos or documents to that entry, so a letter keeps its date and its place in the Timeline. An entry's files show under it, and ✎ on a saved entry adds or removes them. + Task for this case moved to the bottom of the page.", go: '#/contacts/cases', open: ['#main .c-list .c-card a.c-main'], at: '#main .log-box[data-log-form]', more: "A contact's own Log has the same box and Attach. Files dropped on an entry in the Timeline go on that entry." }],
@@ -144,6 +145,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.91': '2026-10-23T12:03:00Z',
   '1.60.90': '2026-10-23T09:20:44Z',
   '1.60.89': '2026-10-23T09:10:11Z',
   '1.60.88': '2026-10-23T08:59:08Z',
