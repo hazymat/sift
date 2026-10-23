@@ -329,6 +329,7 @@ main {
   color: var(--muted);
 }
 .tab span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tab span.tab-two { line-height: 1.05; text-align: center; margin-bottom: -6px; }
 .tab[aria-current] { color: var(--text); }
 
 .sheet {
@@ -1289,6 +1290,18 @@ a.chip { color: var(--text); text-decoration: none; }
 .log-form { display: flex; flex-wrap: wrap; gap: 6px; }
 .log-form select { width: auto; padding: 6px 8px; color: var(--text); }
 .log-form input { flex: 1 1 180px; padding: 6px 10px; color: var(--text); }
+/* New entry (and an entry open to edit): its own box, one kind of thing per row. */
+.log-box { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--glass-border); border-radius: 14px; background: var(--glass-track); }
+.log-box .log-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.log-box .log-kind select { flex: 1 1 140px; }
+.log-box .log-foot .log-when { flex: 1 1 230px; }
+.log-box .log-foot .log-when input { flex: 1 1 auto; }
+.log-box .log-foot .spacer { flex: 1; }
+.log-box .log-foot [data-act^="log-"]:last-child { margin-left: auto; }
+.log-box .att-row { margin: 0; }
+.log-pending { display: flex; flex-wrap: wrap; gap: 6px; }
+.log-pending:empty { display: none; }
+.timeline .entry-files .att-row { margin: 4px 0 2px; }
 .timeline { list-style: none; margin: 8px 0; padding: 0 0 0 12px; border-left: 2px solid var(--glass-border); display: grid; gap: 6px; }
 .timeline li { font-size: .9rem; }
 .timeline li .muted { font-size: .75rem; margin-right: 6px; }
@@ -1304,8 +1317,6 @@ a.chip { color: var(--text); text-decoration: none; }
 .links a { color: var(--accent); }
 .raw-body summary { cursor: pointer; color: var(--muted); font-size: .85rem; }
 .raw-body pre { white-space: pre-wrap; font-family: inherit; margin: 6px 0; padding: 10px; border-radius: 12px; background: var(--glass-track); }
-.case-note { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
-.case-note input { flex: 1 1 220px; padding: 6px 10px; color: var(--text); }
 .chip-x { padding: 0 4px; background: none; border: 0; box-shadow: none; color: var(--muted); }
 #case-add-contact { width: auto; padding: 4px 8px; font-size: .85rem; color: var(--text); }
 

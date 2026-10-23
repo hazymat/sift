@@ -166,12 +166,14 @@ function renderNav() {
   const activeInMore = more.some(a => a.id === current);
 
   // Bottom bar (phone): pinned areas + More.
+  // A long two-part name ("Contacts and Cases") goes on two short lines rather than being cut off.
+  const tabLabel = label => (label.length > 12 && / and /.test(label) ? `<span class="tab-two">${label.replace(' and ', '<br>&amp; ')}</span>` : `<span>${label}</span>`);
   $('#tabbar').innerHTML = pinned.map(id => {
     const a = area(id);
     return `<a href="#/${path(a)}" class="tab" ${a.id === current ? 'aria-current="page"' : ''}>
-      ${icon(a.icon)}<span>${a.label}</span></a>`;
+      ${icon(a.icon)}${tabLabel(a.label)}</a>`;
   }).join('') + `<button type="button" class="tab" id="more-tab" ${activeInMore ? 'aria-current="page"' : ''}>
-      ${icon(activeInMore ? area(current).icon : 'i-more')}<span>${activeInMore ? area(current).label : 'More'}</span></button>`;
+      ${icon(activeInMore ? area(current).icon : 'i-more')}${tabLabel(activeInMore ? area(current).label : 'More')}</button>`;
 
   $('#more-list').innerHTML = more.map(a =>
     `<a href="#/${path(a)}" ${a.id === current ? 'aria-current="page"' : ''}>${icon(a.icon)}<span>${a.label}</span></a>`

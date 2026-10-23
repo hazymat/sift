@@ -5,7 +5,7 @@ import { STATS_SERVER } from '../stats.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const DAY_MS = 864e5;
-const AREA_NAMES = { dump: 'Brain Dump', tasks: 'Tasks', projects: 'Projects', planner: 'Day Planner', lists: 'Lists', 'find-things': 'Find Things', places: 'Find Things', contacts: 'Contacts', scans: 'Scans', contracts: 'Contracts', recipes: 'Batch Book', bin: 'Archive and Bin', settings: 'Settings', history: 'History', welcome: 'Welcome', stats: 'Usage stats', home: 'Home' };
+const AREA_NAMES = { dump: 'Brain Dump', tasks: 'Tasks', projects: 'Projects', planner: 'Day Planner', lists: 'Lists', 'find-things': 'Find Things', places: 'Find Things', contacts: 'Contacts and Cases', scans: 'Scans', contracts: 'Contracts', recipes: 'Batch Book', bin: 'Archive and Bin', settings: 'Settings', history: 'History', welcome: 'Welcome', stats: 'Usage stats', home: 'Home' };
 const areaName = id => AREA_NAMES[id] || id;
 const mins = s => (s >= 3600 ? `${(s / 3600).toFixed(1)} h` : `${Math.round(s / 60)} min`);
 const pct = (n, of) => (of ? `${Math.round((100 * n) / of)}%` : '-');
