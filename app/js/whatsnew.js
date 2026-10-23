@@ -25,6 +25,11 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.94': [
+    { text: "Contacts and Cases, Cases: the list is now a details table, like a file explorer's. Opened comes first, then the case's name in bold, its status, people, latest entry, when it was last updated, how many entries and files, and its reference. Drag a column's edge to make it wider or narrower, click a heading to sort by it (again for the other way), and its ▾ sorts or filters it, as in a spreadsheet.", go: '#/contacts/cases', at: '#main .dt-wrap, #main .case-cards' },
+    { text: "Contacts and Cases, Cases: Open, Closed and All along the top show just the cases you want. 👁 has Show cases as Details or Cards: cards look like Batch Book's, with each case's status, summary or latest entry, people and reference, and they drag into your own order. In All, dropping a card under Closed closes the case.", go: '#/contacts/cases', open: ['#main details.view-menu > summary'], at: '#main [data-case-look]', more: "Hold a card to choose several, then change their status, archive or delete them from the bar at the bottom." },
+    { text: "Contacts and Cases, Recent: contact cards drag too. Hold a card's ⠿ and drop it where you want it; contacts you never drag keep to the most recently used first.", go: '#/contacts', at: '#main .recent-list' },
+  ],
   '1.60.93': [{ text: "Batch Book: a recipe dragged by its ⠿ handle now stays under the pointer (before, it moved at half the speed and fell behind), the other recipes slide aside, and a dashed outline shows the gap it will drop into, as when dragging a task. The same goes for the Lists page's cards and Brain Dump's notes.", go: '#/recipes', at: '#main .bb-card-li .kit-grip' }],
   '1.60.92': [{ text: "Contacts and Cases: an open case has a whole new look. The case is a card with its status colour down the side, its name as a heading and a big status button (tap it to change Open, Waiting or Closed), with days open, entries and time since the last, and its references and people as chips (tap a reference to copy it). New entry has big kind tiles, Received or Sent, a When button that says Now (tap it to pick another time), 📷 and 📎, all one size. Share and ⋯ are at the top right.", go: '#/contacts/cases', open: ['#main .c-list .c-card a.c-main'], at: '#main .kase-hero' }],
   '1.60.91': [{ text: "Contacts and Cases: the Recent, Directory and Cases tabs under + New stand out now, each with its own colour and emoji (🕘 📇 🗂️), as Batch Book's books do.", go: '#/contacts', at: '#c-tabs' }],
@@ -147,6 +152,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.94': '2026-10-23T12:20:22Z',
   '1.60.93': '2026-10-23T12:10:28Z',
   '1.60.92': '2026-10-23T12:10:04Z',
   '1.60.91': '2026-10-23T12:03:00Z',
