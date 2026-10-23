@@ -29,6 +29,7 @@ import { signedIn, status as syncStatus } from '../sync.js';
 import { linkUrls } from '../weburl.js';
 import { addExamples, addNewPhotos, isBrandNew, needsWipe, photosBehind, setUpBooks, wipeBook } from '../examples.js';
 import { feature } from '../stats.js';
+import { shareHtml, printers, sharers } from '../share.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -130,7 +131,7 @@ export default {
             <div class="menu">
               <button type="button" data-card="copy">📋 Copy to clipboard</button>
               ${from ? '<button type="button" data-card="dup">⧉ Make a copy of my own</button>' : '<button type="button" data-card="share">👥 Share…</button><button type="button" data-card="dup">⧉ Duplicate</button>'}
-              <button type="button" data-card="print">🖨️ Print</button>
+              <button type="button" data-card="print">🖨 Print…</button>
               ${from ? `<button type="button" data-share-leave="${fromOthers(['recipe']).find(sh => sh.owner_id === from.owner_id && sh.info.id === r.id)?.id || ''}">Leave this shared recipe</button>` : `
               <button type="button" data-card="colour">🎨 Colour…</button>
               <span class="menu-label muted">Move to</span>
@@ -331,7 +332,9 @@ export default {
       const who = sharedWithText({ kind: 'recipe', id: r.id });
       return who ? `<button type="button" class="share-btn-people" data-act="share-recipe" data-recipe="${r.id}" title="Shared with ${esc(who)}">👥<span class="share-words"> Shared with ${esc(who)}</span></button>` : '';
     };
-    const top = (act, label, extra = '') => `<div class="bb-top"><button type="button" class="back" data-act="${act}">‹ ${esc(label)}${keys('Esc')}</button><span class="spacer"></span>${extra}${cogHtml('recipes', paperHtml())}</div>`;
+    // Share on an open recipe or batch: 👥 Share with someone… (your own recipe), the copies, 🖨 Print… and 🏷 Print labels… (printrecipe.js).
+    const sharePill = r => shareHtml({ top: r && !state.owner ? `<button type="button" data-act="share-recipe" data-recipe="${r.id}">👥 Share with someone…</button>` : '', bottom: '<button type="button" data-act="print-labels">🏷 Print labels…</button>' });
+    const top = (act, label, extra = '', r = null) => `<div class="bb-top"><button type="button" class="back" data-act="${act}">‹ ${esc(label)}${keys('Esc')}</button><span class="spacer"></span>${extra}${sharePill(r)}${cogHtml('recipes', paperHtml())}</div>`;
 
     // ---------- a recipe ----------
 
@@ -340,7 +343,7 @@ export default {
       if (!r) return '<div class="empty"><h2>That recipe has gone.</h2></div>';
       const sec = sectionFor(r);
       const made = makesOf(r.id);
-      return `${top('home', 'Recipes', `${shareMark(r)}<button type="button" class="primary bb-make-btn" data-act="make" title="Start a batch: its own copy of this recipe">🧪 Make this${state.times !== 1 ? ` ×${qtyText(state.times)}` : ''}</button>`)}
+      return `${top('home', 'Recipes', `${shareMark(r)}<button type="button" class="primary bb-make-btn" data-act="make" title="Start a batch: its own copy of this recipe">🧪 Make this${state.times !== 1 ? ` ×${qtyText(state.times)}` : ''}</button>`, r)}
         <article class="bb-paper" data-paper="${paper()}" style="--bb:${colourOf(r)};${workMargin(r, state.times)}">
           ${photoStrip(r.id)}
           <header class="bb-title-row">
@@ -409,7 +412,7 @@ export default {
       const gravity = types.some(isGravity);
       const f = m.fields || {};
       const goal = k => `<label><span>${k}</span><input data-field-key="${k}" value="${esc(f[k] || '')}" aria-label="${k}" placeholder="…"></label>`;
-      return `${state.fromList ? top('home', 'Batches', shareMark(r)) : top('to-recipe', r?.title || 'Recipe', shareMark(r))}
+      return `${state.fromList ? top('home', 'Batches', shareMark(r), r) : top('to-recipe', r?.title || 'Recipe', shareMark(r), r)}
         <article class="bb-paper bb-make" data-paper="${paper()}" style="--bb:${colourOf(r)};${workMargin(m, 1)}">
           ${photoStrip(m.id)}
           <header class="bb-title-row">
@@ -509,7 +512,6 @@ export default {
       tasting = null;
       dirty = false;
       el.innerHTML = `<div class="bb">${state.make ? makePage() : state.recipe ? recipePage() : overview()}</div>`;
-      if (printAfter && state.recipe && !state.make) { printAfter = false; setTimeout(() => print(), 300); }
       kitFor().attach(el.querySelector('.bb-cards'));
       batchKit.attach(el.querySelector('.bb-batch-list'));
       watchSticky();
@@ -846,7 +848,8 @@ export default {
       }
       const act = b.dataset.act;
       if (act === 'home') return go('#/recipes');
-      if (act === 'share-recipe') { const r = recipeOf(b.dataset.recipe); if (r) shareSheet({ kind: 'recipe', id: r.id, name: r.title }, `"${r.title || 'Untitled'}"`); return; }
+      if (act === 'print-labels') { b.closest('details')?.removeAttribute('open'); return printLabelsHere(); }
+      if (act === 'share-recipe') { b.closest('details')?.removeAttribute('open'); const r = recipeOf(b.dataset.recipe); if (r) shareSheet({ kind: 'recipe', id: r.id, name: r.title }, `"${r.title || 'Untitled'}"`); return; }
       if (act === 'share-list') { const list = lists.find(l => l.id === makeOf(state.make)?.list_id); if (list) shareSheet({ kind: 'list', id: list.id, name: list.name || 'Untitled' }, `"${list.name || 'Untitled'}"`); return; }
       if (act === 'new') return newRecipe();
 
@@ -1074,12 +1077,44 @@ export default {
       return out;
     }
 
-    // The recipe as plain text: name, ingredients, numbered steps (amounts filled in).
-    function recipeText(r) {
+    // The recipe as plain text: name, ingredients, numbered steps (amounts filled in, at times the amounts).
+    function recipeLines(r, times = 1) {
       const div = document.createElement('div');
       const ings = r.ingredients || [];
-      const steps = stepsOf(r).map((x, n) => { div.innerHTML = stepHtml(x.text, ings, 1, esc); return `${n + 1}. ${div.textContent.trim()}`; });
-      return [r.title || 'Untitled', r.description || '', '', ings.length ? 'Ingredients' : '', ...ings.map(i => `- ${ingredientText(i)}${i.note ? ` (${i.note})` : ''}`), '', steps.length ? 'Steps' : '', ...steps].filter((x, n, all) => x || (all[n - 1] && n < all.length - 1)).join('\n').trim();
+      const steps = stepsOf(r).map((x, n) => { div.innerHTML = stepHtml(x.text, ings, times, esc); return `${n + 1}. ${div.textContent.trim()}`; });
+      return [r.description || '', ings.length ? ['Ingredients', ...ings.map(i => `- ${ingredientText(i, times)}${i.note ? ` (${i.note})` : ''}`)].join('\n') : '', steps.length ? ['Steps', ...steps].join('\n') : ''].filter(Boolean);
+    }
+    const recipeText = r => [r.title || 'Untitled', ...recipeLines(r)].join('\n\n');
+    // The Share pill's copies: the open recipe (at the scale shown) or batch.
+    sharers.recipes = () => {
+      const m = state.make && makeOf(state.make), r = state.recipe && recipeOf(state.recipe);
+      if (m) return { title: batchName(m, r?.title), lines: recipeLines(m) };
+      return r ? { title: `${r.title || 'Untitled'}${state.times !== 1 ? ` (×${qtyText(state.times)})` : ''}`, lines: recipeLines(r, state.times) } : null;
+    };
+    // What printrecipe.js prints: a recipe, or a batch (its own copy of the recipe, readings, diary and tasting notes).
+    function printItem(r, m = null) {
+      r = r || {};
+      const rec = m || r;
+      const extra = m ? { Date: batchDay(m.date), Status: statusLabel(m.status), 'Current state': m.state || '' } : { Tags: (r.tags || []).join(', ') };
+      return { title: m ? batchName(m, r.title) : r.title, emoji: sectionFor(r).emoji, colour: colourOf(r), book: r.type || '', description: m?.description || r.description || '', fields: rec.fields || {}, extra, rec, photo: photoOf(rec.id) || photoOf(r.id),
+        batch: m ? { tasting: m.tasting, readings: entriesOf(m.id, 'reading').map(e => ({ day: batchDay(e.date), what: isGravity(e.type) ? `${e.label || 'SG'} ${e.gravity ? e.gravity.toFixed(3) : ''}` : `${e.type} ${e.value || ''}`, text: e.text })), diary: entriesOf(m.id, 'diary').filter(e => e.text?.trim()).map(e => ({ day: batchDay(e.date), text: e.text })) } : null };
+    }
+    const bookItems = r => data.recipes.filter(x => (x.type || '') === (r.type || '')).sort(byPlace).map(x => printItem(x));
+    printers.recipes = async () => {
+      const m = state.make && makeOf(state.make), r = state.recipe && recipeOf(state.recipe);
+      if (!m && !r) return false;
+      const { printRecipes } = await import('../printrecipe.js');
+      printRecipes(m ? { items: [printItem(r, m)], title: batchName(m, r?.title), back: 'Batch' } : { items: [printItem(r)], title: r.title || 'Untitled', back: 'Recipe', times: state.times, book: state.owner ? null : bookItems(r) });
+      return true;
+    };
+    async function printLabelsHere() {
+      const m = state.make && makeOf(state.make), r = (m ? recipeOf(m.recipe_id) : state.recipe && recipeOf(state.recipe)) || {};
+      const abv = m && abvOf(entriesOf(m.id, 'reading'));
+      const book = r.type || '';
+      const { printLabels } = await import('../printrecipe.js');
+      printLabels({ title: r.title || 'Untitled', emoji: sectionFor(r).emoji, colour: colourOf(r), back: m ? 'Batch' : 'Recipe', batch: !!m,
+        eye: [book, m?.batch_no ? `Batch ${m.batch_no}` : ''].filter(Boolean).join(' · '), sub: m?.description || r.description || '', date: m ? batchDay(m.date) : '',
+        abv: abv ? `${abv.abv.toFixed(1)}%` : '', og: abv ? abv.og.toFixed(3) : '', fg: abv ? abv.fg.toFixed(3) : '', ings: ((m || r).ingredients || []).map(i => i.item).filter(Boolean) });
     }
 
     async function cardAction(b) {
@@ -1110,7 +1145,7 @@ export default {
         toast(owner ? `"${copy.title}" is now in your own recipes too` : 'Duplicated', { action: 'Open', onAction: () => go(`#/recipes/${made.id}`) });
         return render();
       }
-      if (act === 'print') { printAfter = true; return go(`#/recipes/${id}${ownerPath(owner)}`); }
+      if (act === 'print') { const { printRecipes } = await import('../printrecipe.js'); return printRecipes({ items: [printItem(r)], title: r.title || 'Untitled', back: 'Recipes', book: owner ? null : bookItems(r) }); }
       if (act === 'colour') {
         const book = sectionFor(r).colour;
         return pillMenu(li.querySelector('.bb-card-menu summary'), [{ value: '', label: `<span class="swatch" style="--sw:${book}"></span>`, title: 'The book\'s colour', current: !r.colour }].concat(TINTS.map(c => ({ value: c.id, label: `<span class="swatch" style="--sw:${c.hex}"></span>`, title: c.label, current: c.id === r.colour }))),
@@ -1139,7 +1174,6 @@ export default {
       const writes = reorderWrites(rows, rankOfRecipe, [made.id]);
       if (writes.length) await store.updateMany('recipes', writes.map(([x, k]) => [x.id, { rank: k }]));
     }
-    let printAfter = false;
 
     // The bar at the top stays while the recipes scroll; with a glass background once it's stuck.
     // Each book's heading sticks just under it (--bb-stick: how far down that is).

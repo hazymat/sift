@@ -6,8 +6,8 @@ import { toast } from './toast.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-// top: the menu's first items (an opened list's 👥 Share with someone…), then a line; label: the pill's words.
-export const shareHtml = ({ top = '', title = 'Share (S)', cls = '' } = {}) => `<details class="tool-menu share-menu page-share${cls ? ` ${cls}` : ''}">
+// top: the menu's first items (an opened list's 👥 Share with someone…), then a line; bottom: more after Print… (🏷 Print labels…); title: the pill's tip.
+export const shareHtml = ({ top = '', bottom = '', title = 'Share (S)', cls = '' } = {}) => `<details class="tool-menu share-menu page-share${cls ? ` ${cls}` : ''}">
   <summary class="share-btn" role="button" title="${esc(title)}"><svg class="icon" aria-hidden="true"><use href="#i-share"/></svg> Share</summary>
   <div class="menu">
     ${top ? `${top}<hr>` : ''}
@@ -16,7 +16,7 @@ export const shareHtml = ({ top = '', title = 'Share (S)', cls = '' } = {}) => `
     <button type="button" data-page-share="whatsapp">Copy to clipboard – WhatsApp</button>
     <button type="button" data-page-share="markdown">Copy to clipboard – Markdown</button>
     <hr>
-    <button type="button" data-page-print>🖨 Print…</button>
+    <button type="button" data-page-print>🖨 Print…</button>${bottom}
   </div>
 </details>`;
 

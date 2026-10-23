@@ -12,6 +12,7 @@ const SHELL = [
   'js/zoom.js',
   'js/print.js',
   'js/printday.js',
+  'js/printrecipe.js',
   'js/stats.js',
   'js/views/stats.js',
   'js/store.js',
