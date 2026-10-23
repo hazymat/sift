@@ -6,9 +6,11 @@ import { toast } from './toast.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-export const shareHtml = () => `<details class="tool-menu share-menu page-share">
-  <summary class="share-btn" role="button" title="Share (S)"><svg class="icon" aria-hidden="true"><use href="#i-share"/></svg> Share</summary>
+// top: the menu's first items (an opened list's 👥 Share with someone…), then a line; label: the pill's words.
+export const shareHtml = ({ top = '', title = 'Share (S)', cls = '' } = {}) => `<details class="tool-menu share-menu page-share${cls ? ` ${cls}` : ''}">
+  <summary class="share-btn" role="button" title="${esc(title)}"><svg class="icon" aria-hidden="true"><use href="#i-share"/></svg> Share</summary>
   <div class="menu">
+    ${top ? `${top}<hr>` : ''}
     <button type="button" data-page-share="plain">Copy to clipboard – plain text</button>
     <button type="button" data-page-share="rich">Copy to clipboard – rich text</button>
     <button type="button" data-page-share="whatsapp">Copy to clipboard – WhatsApp</button>
@@ -61,8 +63,8 @@ const pageTitle = () => {
 };
 
 // 🖨 Print… on an area's page: what it shows, as a tidy list.
-async function printPage(area) {
-  const rows = pageRows(area), title = pageTitle();
+export async function printPage(area, title = pageTitle()) {
+  const rows = pageRows(area);
   if (!rows.length) return toast('Nothing on this page to print');
   const { openPrint } = await import('./print.js');
   const ticks = ticksIn(area), chosen = rows.some(row => row.chosen);

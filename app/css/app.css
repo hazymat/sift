@@ -3957,6 +3957,8 @@ kbd + kbd, .pill-reveal kbd + kbd, .pill-done kbd + kbd { margin-left: 3px; }
 .share-people li { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--glass-border); }
 .share-people li > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .share-error { color: #e0573a; margin: 0 0 8px; }
+/* An open project has its own Share (with 👥 people) in its head, so the area's Share steps aside. */
+#main:has(.project-head .page-share) .area-share { display: none; }
 .project-head .share-btn-people { padding: 4px 12px; font-size: .85rem; white-space: nowrap; }
 .share-chip { cursor: pointer; }
 .day-people { display: contents; }
