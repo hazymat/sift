@@ -80,12 +80,12 @@ export default {
           </div>
         </details>
       </div>
-      <!-- Recent | Directory | Cases: a filter bar like Brain Dump's and Tasks' (underlined tabs). -->
-      <div class="dump-filter-row">
+      <!-- Recent | Directory | Cases: the area's main tabs, coloured with an emoji each as Batch Book's books. -->
+      <div class="dump-filter-row c-tabs-row">
         <div class="dump-filter" id="c-tabs" role="tablist" aria-label="Show">
-          <button type="button" data-tab="recent">Recent</button>
-          <button type="button" data-tab="directory">Directory</button>
-          <button type="button" data-tab="cases">Cases</button>
+          <button type="button" data-tab="recent" style="--bb:#5aa9e6">🕘 Recent</button>
+          <button type="button" data-tab="directory" style="--bb:#9b7fe0">📇 Directory</button>
+          <button type="button" data-tab="cases" style="--bb:#e0a040">🗂️ Cases</button>
         </div>
       </div>
       </div>

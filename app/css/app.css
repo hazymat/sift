@@ -3370,6 +3370,10 @@ a.comment-mark:hover { color: var(--text); }
 .dump-kinds .kind-new { opacity: .7; border-style: dashed; }
 .dump-kinds .kind-new:hover, .dump-kinds .kind-new:focus-visible { opacity: 1; }
 .dump-filter-row .filter-more { letter-spacing: .1em; }
+/* Contacts and Cases' main tabs: Batch Book's coloured book tabs, a little bigger. */
+.c-tabs-row #c-tabs button { padding: 8px 14px 7px; font-size: .98rem; border-bottom: 3px solid color-mix(in srgb, var(--bb) 35%, transparent); }
+.c-tabs-row #c-tabs button[aria-pressed="true"] { color: var(--text); font-weight: 650; border-bottom-color: var(--bb); background: color-mix(in srgb, var(--bb) 18%, transparent); border-radius: 10px 10px 0 0; }
+.c-tabs-row #c-tabs button:hover:not([aria-pressed="true"]) { color: var(--text); background: color-mix(in srgb, var(--bb) 8%, transparent); border-radius: 10px 10px 0 0; }
 /* 202: the Schedule's open item and its panel are one rounded box too, like
    the Day Planner's Tasks and the Tasks page (the time stays in the margin). */
 #lines .line.has-item:has(+ .item-details) { border-bottom: 0; }
