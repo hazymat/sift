@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.00': [{ text: "Scans: an open scan has a Share pill top right: Share the file…, Copy the text on it, the copies and Print…. Print in colour, grey or black and white with Contrast and Lightness sliders, one or two to a page, with its title and date, and the text read on it on a page of its own.", go: '#/scans', open: ['#main .scan-card'], at: '#main .project-head .share-menu', more: 'Black and white makes faded receipts and letters crisp and saves ink.' }],
   '1.60.99': [{ text: "Lists: an open list has the Share pill (👥 Share with someone… is in it now) with Print…: the list with round ticks under its name and a line in its colour, in two columns, one column or as pocket cards (four to a page, to cut out), with blank lines to add more.", go: '#/lists', open: ['#main .list-card'], at: '#main .project-head .share-menu', more: "An open project's 👥 Share is now its Share pill too, with Print… for its tasks." }],
   '1.60.98': [{ text: "Contacts and Cases: an open case's Share has Print…: a case report with its details and Timeline, photos as thumbnails, full size at the end, names only or left out, in colour or black and white (lines only, photos in grey).", go: '#/contacts/cases', open: ['#main [data-case-row]', '#main .kase-top .share-menu summary'], at: '#main .kase-top [data-page-print]', more: "Every area's Share menu now ends with Print… (what the page shows, as a tidy list; in Tasks, only the chosen tasks when some are chosen) and has Copy to clipboard – Markdown." }],
   '1.60.97': [{ text: "Batch Book: 👁 Spacing now changes the recipe cards. Tight shows small cards with just the picture and name, so many more fit on the screen. Medium (the usual) shows the picture, name and description, without tags or how often it's been made. Loose shows everything. Every card keeps Make, ★ and ⋯.", go: '#/recipes', open: ['#main details.view-menu > summary'], at: '#main .density-opts' }],
@@ -157,6 +158,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.00': '2026-10-23T13:11:01Z',
   '1.60.99': '2026-10-23T13:07:07Z',
   '1.60.98': '2026-10-23T13:01:20Z',
   '1.60.97': '2026-10-23T12:59:25Z',

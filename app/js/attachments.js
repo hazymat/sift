@@ -142,6 +142,25 @@ const siblingsOf = async a => (await store.list('attachments', { filter: x => x.
   .sort((x, y) => x.created_at.localeCompare(y.created_at));
 
 // Opens the viewer on one file, with the rest of its note's files either side.
+// Share the file… (an open scan's Share): every file in one share sheet, or saved one by one where the browser can't share files.
+export async function shareFiles(atts, title = '') {
+  const files = [];
+  for (const a of atts) { const b = await blobOf(a); if (b) files.push(new File([b], a.name || 'file', { type: b.type || a.mime || '' })); }
+  if (!files.length) return false;
+  let can = false;
+  try { can = !!navigator.canShare?.({ files }); } catch { /* no file sharing here */ }
+  if (can) {
+    try { await navigator.share({ files, title }); return true; } catch (err) { if (err?.name === 'AbortError') return true; }
+  }
+  for (const file of files) {
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(file); link.download = file.name;
+    document.body.append(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 60000);
+  }
+  return true;
+}
+
 export async function open(id) {
   const a = await store.get('attachments', id);
   if (!a) return;

@@ -11,7 +11,7 @@
 import { keys } from '../keys.js';
 import * as store from '../store.js';
 import { cogHtml, layoutOn } from '../viewcog.js';
-import { shareHtml } from '../share.js';
+import { shareHtml, printers, sharers } from '../share.js';
 import { KINDS, kindLabel, newScan, addPages, pagesByScan, expirySoon, textOf, keptHere, setKeptHere, leaveDevice } from '../scans.js';
 import { signedIn } from '../sync.js';
 import * as att from '../attachments.js';
@@ -170,6 +170,7 @@ export default {
         <div class="project-head">
           <button type="button" class="back" data-act="home">‹ Scans${keys('Esc')}</button>
           <input class="project-name" name="title" value="${esc(s.title)}" aria-label="Title" placeholder="Title">
+          ${shareHtml({ top: `<button type="button" data-act="share-file">Share the file…</button>${textOf(s, p) ? '<button type="button" data-act="copy-text">Copy the text on it</button>' : ''}` })}
         </div>
         <div class="scan-page" data-id="${s.id}">
           <div class="panel-sec"><span class="panel-h">Kind</span>
@@ -229,6 +230,65 @@ export default {
         readPages(s);
       }
     };
+
+    // Share on an open scan: its words (copies) and 🖨 Print… (pages in colour, grey or black and white, with a contrast choice).
+    const open = () => state.id && scanOf(state.id);
+    sharers.scans = () => {
+      const s = open();
+      if (!s) return null;
+      const facts = [kindLabel(s.kind), s.letter_date && `Dated ${niceDate(s.letter_date)}`, s.expiry_date && `Expires ${niceDate(s.expiry_date)}`].filter(Boolean).join(' · ');
+      return { title: s.title, lines: [facts, s.summary, textOf(s, pages.get(s.id) || [])] };
+    };
+    printers.scans = () => (open() ? (printScan(open()), true) : false);
+    async function printScan(s) {
+      const { openPrint, esc: pesc } = await import('../print.js');
+      const files = (pages.get(s.id) || []).filter(a => a.kind === 'image' || a.kind === 'pdf');
+      if (!files.length) return toast('No pages to print yet');
+      let pictures = null; // made once, the choices only change how they look
+      const picturesOf = async keep => {
+        if (pictures) return pictures;
+        const out = [];
+        for (const a of files) {
+          const blob = await att.blobOf(a);
+          if (!blob) continue;
+          if (a.kind === 'image') out.push(keep(URL.createObjectURL(blob)));
+          else { try { out.push(...await (await import('../pdfthumb.js')).pdfPages(blob)); } catch { /* pdf.js not here */ } }
+        }
+        return (pictures = out);
+      };
+      const text = textOf(s, files);
+      const CSS = `.scanpage { padding: 9mm; display: flex; flex-direction: column; gap: 4mm; }
+        .scanpage .sh { display: flex; justify-content: space-between; align-items: baseline; border-bottom: .12em solid var(--ink); padding-bottom: .25em; font-size: .9em; }
+        .scanpage .sh b { font: 700 1.25em Georgia, serif; } .scanpage .sh span { color: var(--soft); }
+        .scanpage .pics { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 5mm; }
+        .scanpage .pic { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+        .scanpage img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .scanpage .n { text-align: center; font-size: .75em; color: var(--soft); }
+        .txt h1 { font: 700 1.6em Georgia, serif; margin: 0 0 .6em; } .txt p { white-space: pre-wrap; margin: 0 0 .8em; line-height: 1.45; }`;
+      openPrint({
+        kind: 'scan', title: s.title, back: 'Scan', look: false,
+        defaults: { tone: s.kind === 'receipt' || s.kind === 'letter' ? 'bw' : 'colour', contrast: 40, light: 50, size: 'fit', head: true, text: false, paper: 'A4' },
+        options: [
+          ['Look'], { seg: 'tone', items: [['colour', 'Colour'], ['grey', 'Grey'], ['bw', 'Black and white']], hint: 'Black and white: crisp ink on white, saves toner and reads well on letters and receipts.' },
+          { range: 'contrast', words: 'Contrast', min: 0, max: 100 }, { range: 'light', words: 'Lightness', min: 0, max: 100 },
+          ['Pages'], { seg: 'size', items: [['fit', 'One to a page'], ['two', 'Two to a page']] },
+          { check: 'head', words: 'Title and date at the top' }, ...(text ? [{ check: 'text', words: 'The text read on it, on a page of its own' }] : []),
+        ],
+        build: async (ch, keep) => {
+          const pics = await picturesOf(keep);
+          const contrast = 0.6 + ch.contrast / 50, light = 0.7 + ch.light * 0.006;
+          const filter = ch.tone === 'colour' ? `contrast(${contrast}) brightness(${light})` : `grayscale(1) contrast(${(ch.tone === 'bw' ? contrast * 1.6 : contrast).toFixed(2)}) brightness(${light.toFixed(2)})`;
+          const per = ch.size === 'two' ? 2 : 1, sheets = [];
+          for (let n = 0; n < pics.length; n += per) {
+            sheets.push(`<section class="sheet scanpage">${ch.head ? `<div class="sh"><b>${pesc(s.title)}</b><span>${pesc([kindLabel(s.kind), niceDate(s.letter_date || s.created_at)].join(' · '))}</span></div>` : ''}
+              <div class="pics">${pics.slice(n, n + per).map(src => `<div class="pic"><img src="${src}" alt="" style="filter:${filter}"></div>`).join('')}</div>
+              ${pics.length > per ? `<div class="n">${n / per + 1} of ${Math.ceil(pics.length / per)}</div>` : ''}</section>`);
+          }
+          if (ch.text && text) sheets.push(`<section class="sheet scanpage txt"><h1>${pesc(s.title)}</h1>${text.split(/\n{2,}/).map(para => `<p>${pesc(para)}</p>`).join('')}</section>`);
+          return { css: CSS, html: sheets.join(''), count: `${sheets.length} ${sheets.length === 1 ? 'page' : 'pages'}`, note: pics.length ? '' : "The pages aren't on this device yet" };
+        },
+      });
+    }
 
     this.route = rest => {
       state.id = rest[0] || null;
@@ -357,6 +417,7 @@ export default {
       if (act === 'add-page') return pick(s);
       if (act === 'add-photo') return pick(s, 'photos');
       if (act === 'reveal') { revealed.add(s.id); return render(); }
+      if (act === 'share-file') { b.closest('details')?.removeAttribute('open'); if (!await att.shareFiles(pages.get(s.id) || [], s.title)) toast('No pages on this device yet'); return; }
       if (act === 'copy-text') { try { await navigator.clipboard.writeText(textOf(s, pages.get(s.id) || [])); toast('Text copied'); } catch { toast("Couldn't copy"); } return; }
       if (act === 'open-linked') return openRef(`${s.linked.collection}/${s.linked.id}`);
       if (act === 'unlink') return change(s.id, { linked: null }, 'Taken off');

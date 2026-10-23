@@ -34,7 +34,11 @@ const ROWS = {
   contracts: { rows: '#main tr[data-id], #main .contract-card', text: row => (row.matches('tr') ? [...row.cells].map(cell => cell.innerText.trim()).filter(Boolean).join(' · ') : firstLine(row)) },
 };
 
+// An opened thing whose words aren't rows (a scan) sets sharers[area]: () => ({ title, lines }) or null; its lines go as they are, no bullets.
+export const sharers = {};
 function pageRows(area) {
+  const own = sharers[area]?.();
+  if (own) return own.lines.filter(Boolean).map(text => ({ text, depth: 0, bare: true }));
   const how = ROWS[area];
   if (!how) return [];
   return [...document.querySelectorAll(how.rows)].filter(row => row.offsetParent && !row.closest('[hidden]'))
@@ -45,14 +49,16 @@ const ticksIn = area => ['tasks', 'lists'].includes(area);
 
 function pageText(area, title, kind) {
   const whatsapp = kind === 'whatsapp', md = kind === 'markdown';
-  if (md) return [`# ${title}`, '', ...pageRows(area).map(row => `${'  '.repeat(row.depth)}- ${ticksIn(area) ? (row.done ? '[x] ' : '[ ] ') : ''}${row.text}`)].join('\n');
+  if (md) return [`# ${title}`, '', ...pageRows(area).map(row => (row.bare ? `${row.text}\n` : `${'  '.repeat(row.depth)}- ${ticksIn(area) ? (row.done ? '[x] ' : '[ ] ') : ''}${row.text}`))].join('\n').trim();
   const mark = row => (!ticksIn(area) ? '•' : row.done ? (whatsapp ? '✅' : '[x]') : (whatsapp ? '⬜' : '[ ]'));
-  return [whatsapp ? `*${title}*` : title, '', ...pageRows(area).map(row => `${'    '.repeat(row.depth)}${mark(row)} ${row.text}`)].join('\n');
+  return [whatsapp ? `*${title}*` : title, '', ...pageRows(area).map(row => (row.bare ? `${row.text}\n` : `${'    '.repeat(row.depth)}${mark(row)} ${row.text}`))].join('\n').trim();
 }
 
 function pageHtml(area, title) {
   const ticks = ticksIn(area);
-  const items = pageRows(area).map(row => `<li style="margin-left:${row.depth * 1.5}em">${ticks ? (row.done ? '☑ ' : '☐ ') : ''}${esc(row.text)}</li>`).join('');
+  const rows = pageRows(area);
+  if (rows[0]?.bare) return `<h3>${esc(title)}</h3>${rows.map(row => `<p>${esc(row.text).replace(/\n/g, '<br>')}</p>`).join('')}`;
+  const items = rows.map(row => `<li style="margin-left:${row.depth * 1.5}em">${ticks ? (row.done ? '☑ ' : '☐ ') : ''}${esc(row.text)}</li>`).join('');
   return `<h3>${esc(title)}</h3><ul style="list-style:${ticks ? 'none;padding-left:0' : 'disc'}">${items}</ul>`;
 }
 
@@ -94,7 +100,7 @@ export function installShare(getArea) {
     const area = getArea();
     const kind = btn.dataset.pageShare;
     const tab = [...document.querySelectorAll('#main [role="tablist"] [aria-pressed="true"], #main [role="tablist"] [aria-selected="true"]')].find(btn => btn.offsetParent);
-    const title = ROWS[area]?.title?.() || document.title.replace(/ · Sift$/, '') + (tab ? ` – ${tab.textContent.trim()}` : '');
+    const title = sharers[area]?.()?.title || ROWS[area]?.title?.() || document.title.replace(/ · Sift$/, '') + (tab ? ` – ${tab.textContent.trim()}` : '');
     if (!pageRows(area).length) return toast('Nothing on this page to share');
     try {
       if (kind === 'rich' && window.ClipboardItem) {
