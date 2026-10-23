@@ -2,13 +2,13 @@
 // from them, and plain lists. #/lists  and  #/lists/<list id>
 
 import { cogHtml, layoutOn } from '../viewcog.js';
-import { shareHtml } from '../share.js';
+import { shareHtml, printers } from '../share.js';
 import * as store from '../store.js';
 import { loadLists, nestItems, progress, createList, addItems, useTemplate, missingFromTemplate } from '../lists.js';
 import { createListKit } from '../listkit.js';
 import { listEntry, listHint } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
-import { richText, previewLine } from '../richtext.js';
+import { richText, previewLine, plainLines } from '../richtext.js';
 import { debounced } from '../autosave.js';
 import * as att from '../attachments.js';
 import { editPills } from '../editpills.js';
@@ -156,6 +156,42 @@ export default {
       });
     }
 
+    // ---------- printing (Share, 🖨 Print…) ----------
+
+    // One list on paper: its name over a line in its colour, round ticks, blank lines to add more; one column,
+    // two, or pocket cards (four copies to a page, to cut out).
+    printers.lists = () => (state.id && listOf(state.id) ? (printList(listOf(state.id)), true) : false);
+    async function printList(l) {
+      const { openPrint } = await import('../print.js');
+      const all = nestItems(itemsOf(l.id));
+      const pr = progress(all);
+      const CSS = `.lh { display: flex; align-items: baseline; gap: .6em; border-bottom: .3em solid var(--lc); padding-bottom: .35em; margin-bottom: .3em; }
+        .lh h1 { font: 700 2.4em/1.1 Georgia, serif; margin: 0; } .meta { color: var(--soft); font-size: .9em; letter-spacing: .03em; margin-bottom: 1.1em; }
+        .bw { --lc: #1a202c; } ul { list-style: none; margin: 0; padding: 0; } .cols2 ul { columns: 2; column-gap: 2.2em; }
+        li { display: flex; gap: .75em; align-items: baseline; padding: .55em 0 .5em; border-bottom: 1px dotted color-mix(in srgb, var(--lc) 45%, #fff); break-inside: avoid; min-height: 2.6em; }
+        .bw li { border-bottom-color: #999; }
+        .tk { width: 1.05em; height: 1.05em; border-radius: 50%; border: .14em solid var(--lc); flex: none; display: inline-flex; align-items: center; justify-content: center; font-size: .8em; font-weight: 700; color: var(--lc); transform: translateY(.15em); }
+        li.done .t { text-decoration: line-through; color: var(--soft); } li .n { display: block; font-size: .82em; color: var(--soft); margin-top: .1em; } li.sub { padding-left: 1.6em; }
+        li.blank .tk { opacity: .45; } .tail { margin-top: 1.4em; color: var(--soft); font-size: .75em; letter-spacing: .1em; text-transform: uppercase; }
+        .cards { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; height: 100%; }
+        .card { border: 1px dashed #bbb; padding: 7% 8%; overflow: hidden; font-size: .78em; } .card .lh h1 { font-size: 1.9em; }`;
+      openPrint({ kind: 'list', title: l.name || 'Untitled', back: l.name || 'List', defaults: { style: 'two', ticked: 'end', notes: true, subs: true, meta: true, blank: 6 },
+        options: [['Style'], { seg: 'style', items: [['two', 'Two columns'], ['one', 'One column'], ['cards', 'Pocket cards']], hint: 'Pocket cards: four copies to a page, to cut out and keep in a pocket.' },
+          ['Ticked items'], { seg: 'ticked', items: [['out', 'Leave out'], ['end', 'Crossed out, at the end'], ['place', 'Crossed out, in place']] },
+          ['Also'], { check: 'notes', words: 'Notes under items' }, { check: 'subs', words: 'Sub-items, indented' }, { check: 'meta', words: 'How many to get, and the date' }, { range: 'blank', words: 'Blank lines', min: 0, max: 30 }],
+        build: async ch => {
+          let items = all.filter(i => ch.subs || !i.depth);
+          if (ch.ticked === 'out') items = items.filter(i => !i.checked_at);
+          if (ch.ticked === 'end') items = items.filter(i => !i.checked_at).concat(items.filter(i => i.checked_at));
+          const li = i => `<li class="${i.checked_at ? 'done' : ''}${i.depth ? ' sub' : ''}"><span class="tk">${i.checked_at ? '✓' : ''}</span><span class="t">${esc(i.text)}${ch.notes && i.notes ? `<span class="n">${esc(plainLines(i.notes).join(' · '))}</span>` : ''}</span></li>`;
+          const body = `<div class="lh"><h1>${esc(l.name || 'Untitled')}</h1></div>${ch.meta ? `<div class="meta">${pr.total - pr.done} to get · ${pr.done} got · ${esc(dateText(new Date(), { weekday: 'long', day: 'numeric', month: 'long' }))}</div>` : ''}
+            <ul>${items.map(li).join('')}${'<li class="blank"><span class="tk"></span></li>'.repeat(ch.blank)}</ul>`;
+          const colour = `--lc:${tintHex(l)}`;
+          if (ch.style === 'cards') return { css: CSS, count: '1 page, 4 cards', html: `<section class="sheet" style="${colour}"><div class="cards">${`<div class="card">${body}</div>`.repeat(4)}</div></section>` };
+          return { flow: true, css: CSS, html: `<div class="flow ${ch.style === 'two' ? 'cols2' : ''}" style="${colour}">${body}</div>` };
+        } });
+    }
+
     // ---------- one list ----------
 
     function page() {
@@ -200,7 +236,8 @@ export default {
           <button type="button" class="note-dot list-colour" data-act="list-colour" title="List colour" aria-label="List colour"><span class="swatch" style="--sw:${tintHex(l)}"></span></button>
           <input class="project-name" name="name" value="${esc(l.name)}" data-list-name="${l.id}" aria-label="List name" placeholder="${esc(word('ph_list_name'))}">
           ${isTemplate ? '<span class="chip">Template</span>' : ''}
-          ${from ? theirIconHtml(from.share) : `<button type="button" class="share-btn-people" data-act="share-people" title="${who ? `Shared with ${esc(who)}` : 'Share with someone on your server'}">👥<span class="share-words"> ${who ? `Shared with ${esc(who)}` : 'Share'}</span></button>`}
+          ${from ? theirIconHtml(from.share) : ''}
+          ${shareHtml({ top: from ? '' : `<button type="button" data-act="share-people">👥 ${who ? `Shared with ${esc(who)}…` : 'Share with someone…'}</button>`, title: who ? `Shared with ${who}` : 'Share (S)' })}
           ${cogHtml('lists')}
         </div>
         ${isTemplate ? `

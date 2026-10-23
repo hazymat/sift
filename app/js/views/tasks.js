@@ -5,7 +5,7 @@
 
 import { keepDraft, draftCleared } from '../drafts.js';
 import { cogHtml, layoutOn } from '../viewcog.js';
-import { shareHtml } from '../share.js';
+import { shareHtml, printers, printPage } from '../share.js';
 import { flash, SOFT, WASH } from '../flash.js';
 import * as store from '../store.js';
 import { shareSheet, sharedWithText, invitesHtml, theirIconHtml } from '../sharing.js';
@@ -101,7 +101,7 @@ export default {
         <div class="segmented" id="task-views" role="tablist" aria-label="Views">
           ${VIEWS.map(v => `<button type="button" data-view="${v.id}">${v.label}</button>`).join('')}<button type="button" data-view="list">All</button>
         </div>
-        ${shareHtml()}
+        ${shareHtml({ cls: 'area-share' })}
           ${cogHtml('tasks', '<div class="project-view"></div>')}
         <details class="tool-menu page-more">
           <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
@@ -129,6 +129,8 @@ export default {
     // ---------- pieces ----------
 
     const projectOf = t => data.projects.find(p => p.id === t.project_id);
+    // Share, 🖨 Print… on an open project: its tasks under its own name.
+    printers.tasks = () => { const p = state.project && (theirs()?.p || data.projects.find(x => x.id === state.project)); return p ? (printPage('tasks', p.name || 'Project'), true) : false; };
     // The people sharing a task's project (projectMembers), and its owner among them (owner_id; null: anyone can do it).
     // (member_ids: how 1.60.40 kept it.)
     const membersOf = t => (projectOf(t) ? projectMembers(t.project_id, state.owner) : []);
@@ -386,7 +388,8 @@ export default {
             <button type="button" class="note-dot list-colour" data-act="project-colour" title="Project colour" aria-label="Project colour"><span class="swatch" style="--sw:${projectHex(project)}"></span></button>
             <input class="project-name" value="${esc(project.name)}" aria-label="Project name" data-project="${project.id}">
             ${status !== 'active' ? `<span class="chip">${status === 'done' ? 'Finished' : 'Paused'}</span>` : ''}
-            ${from ? theirIconHtml(from.share) : `<button type="button" class="share-btn-people" data-act="share-project" title="${who ? `Shared with ${esc(who)}` : 'Share with someone on your server'}">👥<span class="share-words"> ${who ? `Shared with ${esc(who)}` : 'Share'}</span></button>`}
+            ${from ? theirIconHtml(from.share) : ''}
+            ${shareHtml({ top: from ? '' : `<button type="button" data-act="share-project">👥 ${who ? `Shared with ${esc(who)}…` : 'Share with someone…'}</button>`, title: who ? `Shared with ${who}` : 'Share (S)' })}
           </div>
           <div class="list-actions">
             <div class="bar list-bar"><span style="width:${pr.pct}%"></span></div>
