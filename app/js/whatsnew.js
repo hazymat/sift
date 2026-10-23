@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.96': [{ text: "Day Planner: Share, Print this day… prints a day sheet to fill in with a pen: the schedule, the day's tasks and blank lines to add more, Day focus and Energy, and a blank Notes space. A5, A4, A3 or Letter, in colour or black and white, one day or a week. It prints an empty day too. Advanced's Share has a Print button for its day report.", go: '#/planner', open: ['#main .share-menu summary'], at: '#main [data-print-day]' }],
   '1.60.95': [{ text: "Batch Book: dragging a recipe straight sideways now moves the recipe next to it out of the way and shows the gap, without having to drag down a little first. A recipe can no longer be dragged above its book's title. The same goes for the Lists page's cards and Brain Dump's notes.", go: '#/recipes', at: '#main .bb-card-li .kit-grip' }],
   '1.60.94': [
     { text: "Contacts and Cases, Cases: the list is now a details table, like a file explorer's. Opened comes first, then the case's name in bold, its status, people, latest entry, when it was last updated, how many entries and files, and its reference. Drag a column's edge to make it wider or narrower, click a heading to sort by it (again for the other way), and its ▾ sorts or filters it, as in a spreadsheet.", go: '#/contacts/cases', at: '#main .dt-wrap, #main .case-cards' },
@@ -153,6 +154,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.96': '2026-10-23T12:56:09Z',
   '1.60.95': '2026-10-23T12:46:24Z',
   '1.60.94': '2026-10-23T12:20:22Z',
   '1.60.93': '2026-10-23T12:10:28Z',

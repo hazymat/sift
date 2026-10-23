@@ -125,7 +125,7 @@ export const writingIn = root => !!document.activeElement?.closest?.('.rich') &&
 export const countChip = atts => (atts?.length ? `<button type="button" class="chip att-count" data-att-view="${atts[0].parent_id}" title="${atts.length} attached: press to look" aria-label="Open ${atts.length} attached ${atts.length === 1 ? 'file' : 'files'}">${icon('i-clip')} ${atts.length}</button>` : '');
 
 // The file itself: on this device, or fetched from the sync server.
-async function blobOf(a) {
+export async function blobOf(a) {
   let blob = await store.getBlob(a.blob_id);
   if (!blob) {
     // Added on another device: fetch it from the sync server.
