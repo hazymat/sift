@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.60.93': [{ text: "Batch Book: a recipe dragged by its ⠿ handle now stays under the pointer (before, it moved at half the speed and fell behind), the other recipes slide aside, and a dashed outline shows the gap it will drop into, as when dragging a task. The same goes for the Lists page's cards and Brain Dump's notes.", go: '#/recipes', at: '#main .bb-card-li .kit-grip' }],
   '1.60.92': [{ text: "Contacts and Cases: an open case has a whole new look. The case is a card with its status colour down the side, its name as a heading and a big status button (tap it to change Open, Waiting or Closed), with days open, entries and time since the last, and its references and people as chips (tap a reference to copy it). New entry has big kind tiles, Received or Sent, a When button that says Now (tap it to pick another time), 📷 and 📎, all one size. Share and ⋯ are at the top right.", go: '#/contacts/cases', open: ['#main .c-list .c-card a.c-main'], at: '#main .kase-hero' }],
   '1.60.91': [{ text: "Contacts and Cases: the Recent, Directory and Cases tabs under + New stand out now, each with its own colour and emoji (🕘 📇 🗂️), as Batch Book's books do.", go: '#/contacts', at: '#c-tabs' }],
   '1.60.90': [{ text: "Filter bars that scroll sideways (Batch Book's books, Brain Dump's types and the rest) stay where you scrolled them when you tap one, and the one you picked stays in view. Before, Batch Book's books jumped back to the start.", go: '#/recipes', at: '#main .bb-sections' }],
@@ -146,6 +147,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.60.93': '2026-10-23T12:10:28Z',
   '1.60.92': '2026-10-23T12:10:04Z',
   '1.60.91': '2026-10-23T12:03:00Z',
   '1.60.90': '2026-10-23T09:20:44Z',

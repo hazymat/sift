@@ -24,13 +24,14 @@
 // dx, dy }) may return the sideways shift to show (e.g. snapped to a depth).
 
 // With `grid: true` the items sit in rows and columns (cards): the dragged one
-// follows the pointer both ways and drops into the card it is over.
+// follows the pointer both ways and drops into the card it is over; the other
+// cards slide aside (both ways) and its gap has the .drop-slot outline as in lists.
 //
 // With `onOnto(target | null)`, the middle of a row means "onto it" (e.g. make
 // it a sub-task) rather than before or after it: the list isn't reordered
 // there, onOnto says which row it's over, and onEnd gets it as `onto`. The
 // dragged row keeps following the finger and the row it's over gets a dashed
-// outline (.nest-target). In every list (not grids), with or without onOnto, the
+// outline (.nest-target). In every list, with or without onOnto, the
 // gap it would drop into has the same dashed outline (.drop-slot), so there's
 // always one outline saying where it lands.
 //
@@ -92,27 +93,34 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
   };
 
   // The other rows slide to their new places rather than jump (from where they're showing now).
+  // In a grid they slide sideways too.
   function slid(move) {
     const others = siblings();
-    const was = new Map(others.map(el => [el, el.getBoundingClientRect().top]));
+    const was = new Map(others.map(el => { const b = el.getBoundingClientRect(); return [el, { left: b.left, top: b.top }]; }));
     for (const el of others) for (const a of el.getAnimations()) if (a.id === 'make-room') a.cancel();
     move();
     for (const el of others) {
-      const d = was.get(el) - el.getBoundingClientRect().top;
-      if (Math.abs(d) > 1) el.animate([{ transform: `translateY(${d}px)` }, { transform: 'none' }], { duration: 150, easing: 'cubic-bezier(.2, .8, .2, 1)', id: 'make-room' });
+      const b = el.getBoundingClientRect(), dx = grid ? was.get(el).left - b.left : 0, dy = was.get(el).top - b.top;
+      if (Math.abs(dx) > 1 || Math.abs(dy) > 1) el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 150, easing: 'cubic-bezier(.2, .8, .2, 1)', id: 'make-room' });
     }
   }
+  // A card's place as it will be once done sliding.
+  const cardRect = el => {
+    const b = el.getBoundingClientRect(), t = getComputedStyle(el).transform;
+    const m = t !== 'none' && el.getAnimations().some(a => a.id === 'make-room') ? new DOMMatrixReadOnly(t) : null;
+    return { left: b.left - (m?.m41 || 0), right: b.right - (m?.m41 || 0), top: b.top - (m?.m42 || 0), bottom: b.bottom - (m?.m42 || 0), width: b.width, height: b.height };
+  };
 
   // Where the dragged item's visual centre now is, so the DOM follows it.
   function place(clientY, clientX = 0) {
     if (grid) {
       // The card under the pointer (its middle part, so cards of different sizes don't jitter).
       const under = siblings().find(el => {
-        const r = el.getBoundingClientRect();
+        const r = cardRect(el);
         return clientX > r.left + r.width * 0.2 && clientX < r.right - r.width * 0.2 && clientY > r.top + r.height * 0.2 && clientY < r.bottom - r.height * 0.2;
       });
       if (!under) return;
-      if (dragging.compareDocumentPosition(under) & Node.DOCUMENT_POSITION_PRECEDING) list.insertBefore(dragging, under); else under.after(dragging);
+      slid(() => { if (dragging.compareDocumentPosition(under) & Node.DOCUMENT_POSITION_PRECEDING) list.insertBefore(dragging, under); else under.after(dragging); });
       onMove?.(dragging);
       return;
     }
@@ -168,6 +176,7 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     startX = lastX = x;
     startY = lastY = y;
     item.classList.add('dragging');
+    item.style.transition = 'none'; // a transform transition of its own (cards) would make it trail the pointer at half speed
     if (!grid) { item.style.rotate = `${TILT}deg`; item.animate(wobble(0, TILT, -2.2), { duration: 700 }); } // it twists in with a wobble
     baseMargin = parseFloat(getComputedStyle(item).marginBottom) || 0;
     // The finger's events can stop reaching the list once it lifts (the view redraws the row, or
@@ -177,14 +186,12 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     addEventListener('pointercancel', strayEnd);
     addEventListener('keydown', escKey, true);
     onLift?.(item);
-    if (!grid) {
-      slot = document.createElement('div');
-      slot.className = 'drop-slot';
-      slot.setAttribute('aria-hidden', 'true');
-      slot.style.borderRadius = getComputedStyle(item).borderRadius;
-      document.body.append(slot);
-      follow(y, x);
-    }
+    slot = document.createElement('div');
+    slot.className = 'drop-slot';
+    slot.setAttribute('aria-hidden', 'true');
+    slot.style.borderRadius = getComputedStyle(item).borderRadius;
+    document.body.append(slot);
+    follow(y, x);
     navigator.vibrate?.(10);
   }
 
@@ -291,6 +298,7 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     const from = getComputedStyle(item).transform, dx = lastX - startX;
     item.classList.remove('dragging');
     item.style.transform = '';
+    item.style.transition = '';
     item.style.rotate = '';
     item.style.marginBottom = '';
     item.style.removeProperty('--dx');
