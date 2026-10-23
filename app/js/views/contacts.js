@@ -24,13 +24,19 @@ import { askText } from '../ask.js';
 import { word } from '../words.js';
 import { tintHex, tintId, colourMenu } from '../colours.js';
 import { keys } from '../keys.js';
+import { pillMenu } from '../pillmenu.js';
 import * as att from '../attachments.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
 const OLDER_DAYS = 60;
-// What a logged entry says: "I called Sam", "They wrote me".
-const SAID = { call: 'called', text: 'texted', email: 'emailed', letter: 'wrote', visit: 'visited', meeting: 'met', other: 'contacted' };
+// What a case's logged entry says: "Letter received", "Call made".
+const SAID_IN = { call: 'Call received', text: 'Text received', email: 'Email received', letter: 'Letter received', visit: 'They visited', meeting: 'Meeting', other: 'Received' };
+const SAID_OUT = { call: 'Call made', text: 'Text sent', email: 'Email sent', letter: 'Letter sent', visit: 'Visit made', meeting: 'Meeting', other: 'Sent' };
+const KIND_ORDER = ['call', 'letter', 'email', 'note', 'text', 'visit', 'meeting', 'other']; // a case's New entry: the usual ones first
+const STATUS_COLOUR = { open: 'var(--accent)', waiting: '#d9a441', closed: '#4caf7a' };
+// Time since, in a few letters: "now", "3h", "2d", "5w".
+const shortAgo = iso => { const mins = (Date.now() - Date.parse(iso)) / 60000; return mins < 60 ? 'now' : mins < 1440 ? `${Math.round(mins / 60)}h` : mins < 20160 ? `${Math.round(mins / 1440)}d` : `${Math.round(mins / 10080)}w`; };
 // A datetime-local field's value for a moment, in local time.
 const pad2 = n => String(n).padStart(2, '0');
 const localValue = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
@@ -60,8 +66,10 @@ export default {
     let editing = null; // the log entry being edited: 'interactions:<id>' or 'case_notes:<id>'
     let atts = new Map();
     let pending = []; // files chosen for the entry about to be logged (attached once it's saved)
+    let factsEdit = false; // a case's references and people open to change
+    let draft = { how: 'call', dir: 'out' }; // the New entry's kind and Received / Sent, kept between redraws
     // A new entry's When follows the clock until it's changed by hand (Now puts it back).
-    this.clock = setInterval(() => { for (const f of el.querySelectorAll('input[name="at"][data-live="1"]')) f.value = localValue(new Date()); }, 15000);
+    this.clock = setInterval(() => { for (const f of el.querySelectorAll('input[name="at"][data-live="1"]')) { f.value = localValue(new Date()); drawWhen(f); } }, 15000);
 
     el.innerHTML = `
       <div class="sticky-top-mark" aria-hidden="true"></div>
@@ -212,7 +220,7 @@ export default {
       return `
         <div class="log-form log-box" data-log-form="${prefix}">
           <div class="log-row log-kind"><select name="how" aria-label="What kind">${hows.map(h => `<option value="${h.id}">${h.icon} ${h.label}</option>`).join('')}</select>
-            <select name="direction"><option value="out">I contacted them</option><option value="in">They contacted me</option></select></div>
+            <select name="direction"><option value="out">Sent</option><option value="in">Received</option></select></div>
           <input name="summary" placeholder="${esc(word('ph_log_what'))}" autocomplete="off">
           ${openTasks.length ? `<select name="task_id" aria-label="Also a comment on a task"><option value="">Not about a task</option>${openTasks.map(t => `<option value="${t.id}">💬 ${esc(t.title)}</option>`).join('')}</select>` : ''}
           <div class="log-pending">${pendingHtml()}</div>
@@ -223,8 +231,9 @@ export default {
     }
     const pendingHtml = () => pending.map((f, n) => `<span class="chip">📎 ${esc(att.shortName(f.name))} <button type="button" class="chip-x" data-act="pending-x" data-n="${n}" aria-label="Don't attach ${esc(f.name)}">×</button></span>`).join('');
     const drawPending = () => { for (const p of el.querySelectorAll('.log-pending')) p.innerHTML = pendingHtml(); };
-    function pickPending() {
-      const input = Object.assign(document.createElement('input'), { type: 'file', multiple: true, accept: att.ACCEPT, hidden: true });
+    function pickPending(camera = false) {
+      const input = Object.assign(document.createElement('input'), { type: 'file', multiple: !camera, accept: camera ? 'image/*' : att.ACCEPT, hidden: true });
+      if (camera) input.setAttribute('capture', 'environment');
       input.onchange = () => { pending = pending.concat(Array.from(input.files)); input.remove(); drawPending(); };
       document.body.append(input);
       input.click();
@@ -235,6 +244,34 @@ export default {
       pending = [];
       return files.length ? att.addFiles({ collection, id }, files) : [];
     }
+    // A case's New entry: the kind as big tiles, Received | Sent, what happened, then When, 📷, 📎 and Log it in one bar.
+    // (Hidden how and direction fields keep the Log it handler the same as the contact page's.)
+    function composer() {
+      const tiles = KIND_ORDER.map(id => HOW.find(h => h.id === id)).map(h => `<button type="button" class="kc-kind" data-kind="${h.id}" aria-pressed="${draft.how === h.id}"><b aria-hidden="true">${h.icon}</b>${h.label}</button>`).join('');
+      const now = new Date();
+      return `<div class="log-form kc" data-log-form="case">
+        <input type="hidden" name="how" value="${draft.how}"><input type="hidden" name="direction" value="${draft.dir}">
+        <div class="kc-kinds" role="group" aria-label="What kind">${tiles}</div>
+        <div class="kc-seg" role="group" aria-label="Received or sent"${draft.how === 'note' ? ' hidden' : ''}><button type="button" data-dir="in" aria-pressed="${draft.dir === 'in'}">↙ Received</button><button type="button" data-dir="out" aria-pressed="${draft.dir === 'out'}">↗ Sent</button></div>
+        <textarea name="summary" class="kc-text" rows="3" placeholder="${esc(word(draft.how === 'note' ? 'ph_case_note' : 'ph_log_what'))}"></textarea>
+        <div class="log-pending">${pendingHtml()}</div>
+        <div class="kc-bar">
+          <label class="kc-btn kc-when"><input type="datetime-local" name="at" value="${localValue(now)}" data-live="1" aria-label="When"><span class="kc-ico" aria-hidden="true">🕘</span><span class="kc-when-t"><b>Now</b><small>${esc(when(now.toISOString()))}</small></span></label>
+          <button type="button" class="kc-btn round" data-act="log-now" title="Back to the time now" aria-label="Back to now" hidden>↺</button>
+          <button type="button" class="kc-btn round" data-act="log-camera" title="Take a photo" aria-label="Take a photo">📷</button>
+          <button type="button" class="kc-btn round" data-act="log-attach" title="Attach photos, PDFs or text files" aria-label="Attach files">📎</button>
+          <button type="button" class="kc-btn primary" data-act="log-case">Log it</button>
+        </div></div>`;
+    }
+    // The When button's words: "Now" while it follows the clock, else the date and time chosen.
+    function drawWhen(input) {
+      const box = input.closest('.kc-when');
+      if (!box) return;
+      const live = input.dataset.live === '1', at = input.value ? new Date(input.value) : new Date();
+      box.querySelector('.kc-when-t').innerHTML = live ? `<b>Now</b><small>${esc(when(at.toISOString()))}</small>`
+        : `<b>${esc(dateText(at, { weekday: 'short', day: 'numeric', month: 'short' }))}</b><small>${esc(dateTimeText(at, { hour: '2-digit', minute: '2-digit' }))}</small>`;
+      box.parentElement.querySelector('[data-act="log-now"]').hidden = live;
+    }
     const filesOf = id => (atts.get(id)?.length ? `<div class="entry-files">${att.rowHtml(atts.get(id), { addButton: false, parent: id })}</div>` : '');
 
     // A saved log entry (a call, visit... or a case note) opened to change its when, kind and words.
@@ -242,7 +279,7 @@ export default {
       const isNote = coll === 'case_notes';
       return `<li class="entry-edit" data-entry="${coll}:${r.id}"><div class="log-form log-box">
         ${isNote ? '' : `<div class="log-row log-kind"><select name="how" aria-label="What kind">${HOW.filter(h => !h.caseOnly).map(h => `<option value="${h.id}"${h.id === r.how ? ' selected' : ''}>${h.icon} ${h.label}</option>`).join('')}</select>
-        <select name="direction"><option value="out">I contacted them</option><option value="in"${r.direction === 'in' ? ' selected' : ''}>They contacted me</option></select></div>`}
+        <select name="direction"><option value="out">Sent</option><option value="in"${r.direction === 'in' ? ' selected' : ''}>Received</option></select></div>`}
         <input name="summary" class="no-inline" value="${esc(isNote ? r.body : r.summary)}" placeholder="${esc(word(isNote ? 'ph_case_note' : 'ph_log_what'))}" autocomplete="off" aria-label="${isNote ? 'Note' : 'What happened'}">
         ${att.rowHtml(atts.get(r.id) || [], { parent: r.id })}
         <div class="log-row log-foot">${whenField(r.at, false)}</div>
@@ -350,7 +387,7 @@ export default {
       const files = atts.get(k.id) || [];
       // The Timeline: one callout per event, its kind's emoji on the rail at the left, newest first.
       const who = i => (i.contact_id && byId(i.contact_id)?.name) || '';
-      const said = i => { const verb = SAID[i.how] || 'contacted'; return i.direction === 'in' ? `${who(i) || 'They'} ${verb}${i.how === 'call' || i.how === 'visit' ? '' : ' me'}` : `I ${verb}${who(i) ? ` ${who(i)}` : ''}`; };
+      const said = i => `${(i.direction === 'in' ? SAID_IN : SAID_OUT)[i.how] || (i.direction === 'in' ? 'Received' : 'Sent')}${who(i) ? ` · ${who(i)}` : ''}`;
       const events = files.map(a => ({ at: a.created_at, type: 'file', icon: '📎', head: 'Attached to the case', body: `<button type="button" class="link-btn" data-att-open="${a.id}">${esc(a.name)}</button>` }))
         .concat(log.map(i => ({ at: i.at, type: `log ctl-${i.direction === 'in' ? 'in' : 'out'}`, icon: HOW.find(h => h.id === i.how)?.icon || '•', entry: ['interactions', i], head: esc(said(i)), body: `${i.detail_used ? `<span class="muted">${esc(i.detail_used)}</span> ` : ''}${esc(i.summary || '')}` })))
         .concat(notes.map(n => ({ at: n.at, type: 'note', icon: '📝', entry: ['case_notes', n], head: 'Note', body: n.body ? inlineAll(n.body) : '' })))
@@ -368,39 +405,44 @@ export default {
             ${e.body ? `<div class="ctl-body">${e.body}</div>` : ''}${e.entry ? filesOf(e.entry[1].id) : ''}</div></li>`;
       }).join('');
       const status = CASE_STATUS.find(x => x.id === k.status) || CASE_STATUS[0];
+      const entries = log.concat(notes);
+      const last = entries.map(x => x.at).sort().at(-1);
+      const days = Math.max(0, Math.floor((Date.parse(k.closed_at || new Date().toISOString()) - Date.parse(k.opened_at || k.created_at)) / 86400000));
+      const refs = (k.references || []).filter(r => r.value);
+      const people = (k.contact_ids || []).map(id => byId(id)).filter(Boolean);
       return `
-        <div class="kase-top"><button type="button" class="back" data-act="cases-home">‹ Cases${keys('Esc')}</button></div>
+        <div class="kase-top"><button type="button" class="back" data-act="cases-home">‹ Cases${keys('Esc')}</button>
+          <span class="spacer"></span>${shareHtml()}
+          <details class="tool-menu page-more">
+            <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
+            <div class="menu"><button type="button" data-act="facts-edit">Edit references and people</button><button type="button" data-act="case-task">Add a task for this case</button><hr>
+              <button type="button" data-act="archive-case">Archive case</button><button type="button" class="danger" data-act="delete-case">Delete case</button></div>
+          </details></div>
         <div class="c-page kase" data-case-page="${k.id}">
-          <header class="kase-head">
+          <header class="kase-hero" style="--st:${STATUS_COLOUR[status.id]}">
+            <div class="kase-eyebrow"><span class="kase-fold" aria-hidden="true">📁</span>Case<span aria-hidden="true">·</span>opened ${esc(dateText(new Date(k.opened_at || k.created_at), { day: 'numeric', month: 'short', year: 'numeric' }))}</div>
             <textarea class="kase-title one-line" name="title" data-case="${k.id}" rows="1" aria-label="Case title">${esc(k.title)}</textarea>
-            <div class="kase-sub"><span class="adv-status ${k.status === 'closed' ? 'closed' : k.status === 'waiting' ? 'waiting' : 'open'}">${status.label}</span>
-              <span class="muted kase-opened">Opened ${esc(dateText(new Date(k.opened_at || k.created_at), { day: 'numeric', month: 'short', year: 'numeric' }))}${(k.references || []).find(r => r.value) ? ` · ${esc((k.references || []).find(r => r.value).value)}` : ''}</span></div>
-            ${k.summary ? `<p class="kase-summary">${esc(k.summary)}</p>` : ''}
+            <textarea class="kase-summary one-line" name="summary" data-case="${k.id}" rows="1" placeholder="Add a summary" aria-label="Summary">${esc(k.summary)}</textarea>
+            <button type="button" class="kase-status" data-act="case-status-menu" aria-haspopup="menu" title="Change the status"><i aria-hidden="true"></i>${status.label}<span class="kase-caret" aria-hidden="true">▾</span></button>
+            <div class="kase-stats"><div><b>${days}</b><span>day${days === 1 ? '' : 's'} ${k.status === 'closed' ? 'it took' : 'open'}</span></div><div><b>${entries.length}</b><span>entr${entries.length === 1 ? 'y' : 'ies'}</span></div><div><b>${last ? shortAgo(last) : '–'}</b><span>since last</span></div></div>
+            ${factsEdit ? `<div class="kase-edit">
+              <ul class="detail-rows">${(k.references || []).map((r, n) => `
+                <li data-ref="${n}"><input name="label" value="${esc(r.label)}" class="d-label" aria-label="What it is"><input name="value" value="${esc(r.value)}" aria-label="Reference">
+                  <button type="button" class="kc-btn round" data-act="del-ref" aria-label="Remove">×</button></li>`).join('')}</ul>
+              <div class="kase-edit-people">${people.map(c => `<span class="kase-fact"><em aria-hidden="true">👤</em>${esc(c.name)}<button type="button" class="chip-x" data-act="case-unlink" data-id="${c.id}" aria-label="Take ${esc(c.name)} off the case">×</button></span>`).join('')}</div>
+              <div class="kase-edit-bar"><button type="button" class="kc-btn" data-act="add-ref">+ Reference</button>
+                <select id="case-add-contact" class="kc-btn" aria-label="Add a person"><option value="">+ Person…</option>${data.contacts.filter(c => !k.contact_ids?.includes(c.id)).map(c => `<option value="${c.id}">${esc(c.name || '(no name)')}</option>`).join('')}</select>
+                <span class="spacer"></span><button type="button" class="kc-btn primary" data-act="facts-done">Done</button></div></div>`
+            : `<div class="kase-facts">${refs.map(r => `<button type="button" class="kase-fact" data-act="copy-ref" data-value="${esc(r.value)}" title="Copy ${esc(r.value)}"><em aria-hidden="true">#</em>${esc(r.value)}${r.label ? ` <small>${esc(r.label)}</small>` : ''}</button>`).join('')}
+              ${people.map(c => `<a class="kase-fact" href="#/contacts/c/${c.id}"><em aria-hidden="true">👤</em>${esc(c.name)}</a>`).join('')}
+              <button type="button" class="kase-fact add" data-act="facts-edit">${refs.length || people.length ? '✎ Edit' : '+ Reference or person'}</button></div>`}
           </header>
-          <section class="adv-card case-sec"><div class="adv-card-h"><h2 class="adv-h">New entry</h2></div>
-            ${logForm('case')}</section>
-          <section class="adv-card case-sec"><div class="adv-card-h"><h2 class="adv-h">Photos and documents <span class="adv-count">${files.length || ''}</span></h2></div>
-            <div class="case-files">${att.rowHtml(files, { parent: k.id, addButton: 'Attach to the case' })}</div></section>
-          <section class="adv-card case-sec"><div class="adv-card-h"><h2 class="adv-h">Timeline <span class="adv-count">${events.length || ''}</span></h2></div>
-            <ol class="ctl">${timeline || '<li class="ctl-empty muted">Nothing yet. Log a call, letter or note above.</li>'}</ol></section>
-          <section class="adv-card case-sec"><div class="adv-card-h"><h2 class="adv-h">Details</h2></div><div class="kase-details">
-            <div class="energy-pick"><span>Status</span>${CASE_STATUS.map(x => `<button type="button" data-act="case-status" data-value="${x.id}" aria-pressed="${k.status === x.id}">${x.label}</button>`).join('')}</div>
-            <label class="wide">Summary<input name="summary" value="${esc(k.summary)}" data-case="${k.id}" placeholder="${esc(word('ph_case_summary'))}" autocomplete="off"></label>
-            <h3 class="kase-h">References</h3>
-            <ul class="detail-rows">${(k.references || []).map((r, n) => `
-              <li data-ref="${n}"><input name="label" value="${esc(r.label)}" class="d-label" aria-label="Label"><input name="value" value="${esc(r.value)}" aria-label="Value">
-                <button type="button" class="icon-btn small" data-act="copy-ref" title="Copy">⧉</button>
-                <button type="button" class="icon-btn small" data-act="del-ref" aria-label="Remove">×</button></li>`).join('')}
-            </ul>
-            <button type="button" class="kase-add" data-act="add-ref">+ Reference (case no, ref…)</button>
-            <h3 class="kase-h">People</h3>
-            <div class="c-details">${(k.contact_ids || []).map(id => byId(id)).filter(Boolean).map(c => `<span class="chip"><a href="#/contacts/c/${c.id}">${esc(c.name)}</a> ${detailChips(c)} <button type="button" class="chip-x" data-act="case-unlink" data-id="${c.id}">×</button></span>`).join('')}
-              <select id="case-add-contact"><option value="">+ Add a contact…</option>${data.contacts.filter(c => !k.contact_ids?.includes(c.id)).map(c => `<option value="${c.id}">${esc(c.name || '(no name)')}</option>`).join('')}</select>
-            </div></div></section>
-          <div class="detail-actions"><button type="button" data-act="case-task">+ Task for this case</button><span class="spacer"></span>
-            <button type="button" data-act="archive-case">Archive</button>
-            <button type="button" class="danger" data-act="delete-case">Delete</button>
-          </div>
+          ${composer()}
+          <h2 class="kase-lab"><span>Photos and documents</span><span>${files.length || ''}</span></h2>
+          <div class="kase-files">${att.rowHtml(files, { parent: k.id, addButton: 'Add' })}</div>
+          <h2 class="kase-lab"><span>Timeline</span><span>${events.length || ''}</span></h2>
+          <ol class="ctl">${timeline || '<li class="ctl-empty muted">Nothing yet. Log a call, letter or note above.</li>'}</ol>
+          <div class="kase-foot"><button type="button" class="kc-btn" data-act="case-task">+ Task</button><button type="button" class="kc-btn" data-act="archive-case">Archive</button><button type="button" class="kc-btn danger" data-act="delete-case">Delete</button></div>
         </div>`;
     }
 
@@ -417,6 +459,9 @@ export default {
         : state.tab === 'cases' ? await viewCases()
         : state.tab === 'contact' ? await viewContact()
         : viewRecent();
+      // The chosen kind tile in view, even when it's one the row has to scroll to.
+      const kindOn = body.querySelector('.kc-kind[aria-pressed="true"]');
+      if (kindOn) kindOn.parentElement.scrollLeft = kindOn.offsetLeft - kindOn.parentElement.offsetLeft - 14;
       const ed = body.querySelector('.entry-edit [name="summary"]');
       if (ed && !body.contains(document.activeElement)) { ed.focus(); ed.setSelectionRange(ed.value.length, ed.value.length); }
       const cap = body.querySelector('#c-new');
@@ -539,10 +584,10 @@ export default {
       const row = ev.target.closest('.entry-edit');
       if (row && ev.key === 'Enter' && !ev.isComposing && ev.target.matches('input')) { ev.preventDefault(); entryDone(row, false); }
       else if (row && ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); editing = null; render(); }
-      else if (ev.key === 'Enter' && !ev.isComposing && ev.target.matches('.log-form [name="summary"]')) { ev.preventDefault(); ev.target.closest('.log-form').querySelector('[data-act^="log-"]:not([data-act="log-now"])').click(); }
+      else if (ev.key === 'Enter' && !ev.isComposing && ev.target.matches('.log-form [name="summary"]') && (ev.target.matches('input') || ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); ev.target.closest('.log-form').querySelector('[data-act="log-case"], [data-act="log-contact"]').click(); }
     });
     // Changing a new entry's When by hand stops it following the clock; a Note has no "who contacted whom".
-    el.addEventListener('input', ev => { if (ev.target.matches('input[name="at"]')) delete ev.target.dataset.live; });
+    el.addEventListener('input', ev => { if (ev.target.matches('input[name="at"]')) { delete ev.target.dataset.live; drawWhen(ev.target); } });
     el.addEventListener('change', ev => {
       if (!ev.target.matches('.log-form [name="how"]')) return;
       const f = ev.target.closest('.log-form'), note = ev.target.value === 'note';
@@ -581,9 +626,31 @@ export default {
 
     el.addEventListener('click', async ev => {
       if ((state.tab === 'cases' || state.tab === 'contact') && state.id && att.onClick(ev, entryParent, attDone)) return;
+      // The New entry's kind tiles and Received | Sent: changed in place, so what's typed stays.
+      const tile = ev.target.closest('[data-kind], [data-dir]');
+      if (tile) {
+        const form = tile.closest('.kc');
+        if (tile.dataset.kind) {
+          draft.how = tile.dataset.kind;
+          for (const x of form.querySelectorAll('[data-kind]')) x.setAttribute('aria-pressed', x === tile);
+          form.querySelector('[name="how"]').value = draft.how;
+          form.querySelector('.kc-seg').hidden = draft.how === 'note';
+          form.querySelector('[name="summary"]').placeholder = word(draft.how === 'note' ? 'ph_case_note' : 'ph_log_what');
+        } else {
+          draft.dir = tile.dataset.dir;
+          for (const x of form.querySelectorAll('[data-dir]')) x.setAttribute('aria-pressed', x === tile);
+          form.querySelector('[name="direction"]').value = draft.dir;
+        }
+        return;
+      }
+      // Tapping When opens the date and time picker (a phone opens it itself).
+      const whenBox = ev.target.closest('.kc-when');
+      if (whenBox && ev.target.matches('input')) { try { ev.target.showPicker?.(); } catch {} return; }
+      if (whenBox) { const f = whenBox.querySelector('input'); try { f.showPicker ? f.showPicker() : f.focus(); } catch { f.focus(); } return; }
       const b = ev.target.closest('[data-act], [data-tab], [data-status], [data-rate]');
       if (!b) return;
-      if (b.dataset.act === 'log-now') { const f = b.parentElement.querySelector('[name="at"]'); f.value = localValue(new Date()); if (!b.closest('.entry-edit')) f.dataset.live = '1'; return; }
+      if (b.dataset.act === 'log-now') { const f = b.parentElement.querySelector('[name="at"]'); f.value = localValue(new Date()); if (!b.closest('.entry-edit')) f.dataset.live = '1'; drawWhen(f); return; }
+      if (b.dataset.act === 'log-camera') return pickPending(true);
       if (b.dataset.act === 'log-attach') return pickPending();
       if (b.dataset.act === 'pending-x') { pending.splice(Number(b.dataset.n), 1); return drawPending(); }
       if (b.dataset.act === 'entry-edit') { editing = b.dataset.entry; return render(); }
@@ -668,9 +735,15 @@ export default {
           undoable(label, async () => { await store.update('cases', k.id, old); render(); });
         };
         if (act === 'case-status') return upd({ status: b.dataset.value, closed_at: b.dataset.value === 'closed' ? new Date().toISOString() : null }, CASE_STATUS.find(s => s.id === b.dataset.value).label);
+        if (act === 'add-ref') factsEdit = true;
         if (act === 'add-ref') return upd({ references: [...(k.references || []), { label: 'Case no', value: '' }] }, 'Added a reference');
         if (act === 'del-ref') { const n = Number(b.closest('[data-ref]').dataset.ref); return upd({ references: k.references.filter((_, i) => i !== n) }, 'Removed'); }
-        if (act === 'copy-ref') { const n = Number(b.closest('[data-ref]').dataset.ref); await navigator.clipboard?.writeText(k.references[n].value); toast('Copied'); return; }
+        if (act === 'copy-ref') { await navigator.clipboard?.writeText(b.dataset.value); toast(`Copied ${b.dataset.value}`); return; }
+        if (act === 'facts-edit' || act === 'facts-done') { factsEdit = act === 'facts-edit'; await render(); if (factsEdit) body.querySelector('.kase-edit input, .kase-edit select')?.focus(); return; }
+        if (act === 'case-status-menu') {
+          return pillMenu(b, CASE_STATUS.map(x => ({ value: x.id, label: `<i class="kase-dot" style="--st:${STATUS_COLOUR[x.id]}"></i>${x.label}${x.id === k.status ? ' ✓' : ''}`, current: x.id === k.status })),
+            v => { if (v !== k.status) upd({ status: v, closed_at: v === 'closed' ? new Date().toISOString() : null }, CASE_STATUS.find(x => x.id === v).label); }, { className: 'list-menu kase-menu' });
+        }
         if (act === 'case-unlink') return upd({ contact_ids: k.contact_ids.filter(x => x !== b.dataset.id) }, 'Removed from case');
         if (act === 'log-case') {
           const f = b.closest('.log-form');
@@ -755,7 +828,7 @@ export default {
       }
     });
 
-    this.stopEditing = () => { editing = null; pending = []; };
+    this.stopEditing = () => { editing = null; pending = []; factsEdit = false; };
     await render();
   },
 

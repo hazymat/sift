@@ -1304,25 +1304,90 @@ a.chip { color: var(--text); text-decoration: none; }
 .timeline .entry-files .att-row { margin: 4px 0 2px; }
 /* A case's page (Contacts and Cases): New entry, the case's own files, the Timeline, then its details, each a card in the ticket look (.adv-card). */
 .c-opened > :is(.sticky-top, .sticky-top-mark) { display: none; }
-.kase-top { display: flex; align-items: center; margin: 0 0 10px; }
-.kase { display: grid; gap: 0; max-width: 820px; }
-.c-opened .kase-top, .c-opened .kase-head { max-width: 820px; }
-.kase-head { margin: 0 2px 14px; }
-.kase-title { display: block; width: 100%; box-sizing: border-box; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; resize: none; overflow: hidden; color: var(--text); font: inherit; font-size: 1.55rem; font-weight: 650; line-height: 1.2; field-sizing: content; }
-.kase-title:focus { outline: none; box-shadow: 0 2px 0 var(--accent); }
-.kase-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 8px; }
-.kase-sub .adv-status { margin-top: 0; }
-.kase-summary { margin: 8px 0 0; color: var(--muted); }
-.kase-details .detail-rows li { flex-wrap: nowrap; }
-.kase-details .detail-rows input { min-width: 0; flex: 1 1 0; }
-.kase-details .detail-rows .d-label { flex: 0 1 34%; }
 .adv-status.waiting { color: #d9a441; border-color: color-mix(in srgb, #d9a441 50%, transparent); background: color-mix(in srgb, #d9a441 10%, transparent); }
-.kase-opened { font-size: .78rem; }
-.case-sec .log-box { border: 0; border-radius: 0 0 14px 14px; background: none; padding: 10px 12px 12px; }
-.case-sec .case-files { padding: 4px 10px; }
-.kase-details { display: grid; gap: 8px; padding: 10px 12px 12px; }
-.kase-details .kase-h { margin: 6px 0 0; font-size: .8rem; font-weight: 600; color: var(--muted); }
-.kase-details .kase-add { justify-self: start; }
+/* A case (Contacts and Cases, 1.60.92): one control size everywhere (.kc-btn: 44px, 14px corners, glass), a hero
+   card with the status built in, the New entry composer as the one raised surface, then the photos and the Timeline. */
+.kase-top, .kase { max-width: 760px; }
+.kase-top { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; }
+.kase-top .spacer { flex: 1; }
+.kase-top .page-share { margin-left: 0; }
+.kase { --kc-h: 44px; --kc-r: 14px; display: block; }
+.kc-btn { height: var(--kc-h); min-height: var(--kc-h); display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; border-radius: var(--kc-r); border: 1px solid var(--glass-border); background: var(--glass); box-shadow: none; color: var(--text); font: inherit; font-size: .95rem; font-weight: 550; white-space: nowrap; cursor: pointer; }
+.kc-btn.round { width: var(--kc-h); padding: 0; border-radius: 999px; font-size: 1.15rem; }
+.kc-btn.primary { background: var(--accent); border-color: transparent; color: #0b1626; font-weight: 700; }
+.kc-btn.danger { color: var(--danger, #ff8a8a); }
+.kc-btn[hidden] { display: none; }
+select.kc-btn { width: auto; padding: 0 14px; }
+/* The hero: the case's own card, its status colour down the left (as a project's colour edge). */
+.kase-hero { position: relative; margin: 0 0 22px; padding: 18px 16px 16px 21px; border-radius: 20px; border: 1px solid var(--glass-border); background: linear-gradient(160deg, color-mix(in srgb, var(--st) 15%, var(--glass)) 0%, var(--glass) 60%); overflow: hidden; }
+.kase-hero::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--st); }
+.kase-eyebrow { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: .74rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.kase-fold { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 8px; background: var(--glass-track); border: 1px solid var(--glass-border); font-size: .95rem; letter-spacing: 0; }
+.kase-title, .kase-summary { display: block; width: 100%; box-sizing: border-box; margin: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; resize: none; overflow: hidden; color: var(--text); font: inherit; field-sizing: content; }
+.kase-title { font-size: 1.7rem; font-weight: 700; line-height: 1.15; letter-spacing: -.015em; text-wrap: balance; }
+.kase-summary { margin-top: 8px; font-size: 1rem; line-height: 1.4; color: var(--muted); }
+.kase-summary::placeholder { color: var(--muted); opacity: .6; }
+.kase-title:focus, .kase-summary:focus { outline: none; box-shadow: 0 2px 0 var(--accent); }
+.kase-status { margin-top: 16px; height: 52px; display: inline-flex; align-items: center; gap: 10px; padding: 0 20px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--st) 55%, transparent); background: color-mix(in srgb, var(--st) 16%, transparent); box-shadow: none; color: var(--st); font: inherit; font-size: 1.1rem; font-weight: 700; cursor: pointer; }
+.kase-status i, .kase-dot { width: 12px; height: 12px; flex: none; border-radius: 99px; background: var(--st, currentColor); box-shadow: 0 0 0 4px color-mix(in srgb, var(--st, currentColor) 25%, transparent); }
+.kase-dot { display: inline-block; margin-right: 12px; vertical-align: -1px; }
+.kase-caret { font-size: .85rem; opacity: .7; }
+.pill-menu.kase-menu { min-width: 220px; }
+.pill-menu.kase-menu button { padding: 11px 14px; font-size: 1rem; font-weight: 600; }
+.kase-stats { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 16px; border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent); border-bottom: 1px solid color-mix(in srgb, var(--text) 10%, transparent); }
+.kase-stats div { padding: 10px 0 10px 12px; border-left: 1px solid color-mix(in srgb, var(--text) 10%, transparent); }
+.kase-stats div:first-child { border-left: 0; padding-left: 0; }
+.kase-stats b { display: block; font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.kase-stats span { font-size: .72rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.kase-facts, .kase-edit-people { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.kase-fact { height: 36px; display: inline-flex; align-items: center; gap: 8px; padding: 0 14px 0 5px; border-radius: 999px; border: 1px solid var(--glass-border); background: var(--glass); box-shadow: none; color: var(--text); font: inherit; font-size: .9rem; font-weight: 550; text-decoration: none; cursor: pointer; }
+.kase-fact em { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 99px; background: var(--glass-track); font-style: normal; font-size: .85rem; }
+.kase-fact small { color: var(--muted); font-weight: 500; }
+.kase-fact.add { padding: 0 14px; border-style: dashed; color: var(--muted); }
+.kase-fact .chip-x { margin-left: -4px; }
+.kase-edit { display: grid; gap: 10px; margin-top: 14px; }
+.kase-edit .detail-rows li { flex-wrap: nowrap; }
+.kase-edit .detail-rows input { min-width: 0; flex: 1 1 0; height: var(--kc-h); border-radius: var(--kc-r); }
+.kase-edit .detail-rows .d-label { flex: 0 1 36%; }
+.kase-edit-people:empty { display: none; }
+.kase-edit-bar { display: flex; flex-wrap: wrap; gap: 8px; }
+.kase-edit-bar .spacer { flex: 1; }
+/* New entry: the one raised surface on the page. */
+.kc { display: grid; gap: 12px; margin: 0 0 26px; padding: 14px; border-radius: 20px; border: 1px solid var(--glass-border); background: color-mix(in srgb, var(--text) 7%, var(--glass)); box-shadow: 0 10px 30px rgb(0 0 0 / .28); }
+.kc-kinds { display: flex; gap: 8px; margin: 0 -14px; padding: 0 14px 2px; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+.kc-kinds::-webkit-scrollbar { display: none; }
+.kc-kind { flex: none; width: 66px; height: 66px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0; border-radius: var(--kc-r); border: 1px solid var(--glass-border); background: var(--glass-track); box-shadow: none; color: var(--muted); font: inherit; font-size: .72rem; font-weight: 600; cursor: pointer; }
+.kc-kind b { font-size: 1.5rem; line-height: 1; }
+.kc-kind[aria-pressed="true"] { color: var(--text); background: color-mix(in srgb, var(--accent) 16%, transparent); border-color: var(--accent); }
+.kc-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; height: var(--kc-h); padding: 4px; border-radius: var(--kc-r); border: 1px solid var(--glass-border); background: var(--glass-track); }
+.kc-seg[hidden] { display: none; }
+.kc-seg button { height: auto; min-height: 0; padding: 0; border-radius: 10px; border: 1px solid transparent; background: none; box-shadow: none; color: var(--muted); font: inherit; font-size: .92rem; font-weight: 600; cursor: pointer; }
+.kc-seg button[aria-pressed="true"] { color: var(--text); background: var(--glass); border-color: var(--glass-border); box-shadow: 0 1px 6px rgb(0 0 0 / .25); }
+.kc-text { width: 100%; box-sizing: border-box; min-height: 84px; padding: 12px 14px; border-radius: var(--kc-r); border: 1px solid var(--glass-border); background: var(--glass-track); box-shadow: none; color: var(--text); font: inherit; font-size: 1rem; line-height: 1.4; resize: vertical; field-sizing: content; }
+.kc .log-pending:empty { display: none; }
+.kc-bar { display: flex; gap: 8px; align-items: center; }
+.kc-when { position: relative; flex: 1; min-width: 0; justify-content: flex-start; padding: 0 10px; }
+.kc-when input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; opacity: 0; cursor: pointer; }
+.kc-ico { width: 28px; height: 28px; flex: none; display: grid; place-items: center; border-radius: 8px; background: var(--glass-track); font-size: .95rem; }
+.kc-when-t { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; line-height: 1.1; }
+.kc-when-t b { font-weight: 650; }
+.kc-when-t small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; color: var(--muted); font-size: .74rem; font-weight: 500; }
+/* The case's own photos and documents: big square tiles, + first. */
+.kase-lab { display: flex; justify-content: space-between; margin: 0 0 10px; font-size: .74rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.kase-files { margin: 0 0 26px; }
+.kase-files .att-row { gap: 8px; margin: 0; }
+.kase-files .att-open { width: 76px; height: 76px; justify-content: center; border-radius: var(--kc-r); }
+.kase-files .att-img .att-open img { width: 76px; height: 76px; max-width: none; object-fit: cover; }
+.kase-files .att-file .att-open { flex-direction: column; padding: 6px; font-size: .7rem; text-align: center; }
+.kase-files .att-name { max-width: 9ch; }
+.kase-files .att-add { order: -1; width: 76px; height: 76px; justify-content: center; padding: 0; border: 1.5px dashed var(--glass-border); border-radius: var(--kc-r); color: var(--muted); font-size: 1.6rem; }
+.kase-files .att-add span { display: none; }
+.kase-files .att-add .icon { display: none; }
+.kase-files .att-add::before { content: '+'; font-size: 1.8rem; font-weight: 300; line-height: 1; }
+.kase .ctl { padding: 0; }
+.kase .ctl-body { white-space: pre-wrap; }
+.kase-foot { display: flex; gap: 8px; margin-top: 26px; }
+.kase-foot .kc-btn { flex: 1; }
 /* The Timeline: a rail down the left with each event's emoji on it (all lined up), and the event in its own callout. */
 .ctl { list-style: none; margin: 0; padding: 6px 12px 14px; }
 .ctl-month { position: relative; padding: 12px 0 6px 56px; font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }

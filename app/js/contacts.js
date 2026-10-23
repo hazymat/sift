@@ -11,7 +11,7 @@ export const HOW = [
   { id: 'visit', label: 'Visit', icon: '🚪' },
   { id: 'meeting', label: 'Meeting', icon: '🤝' },
   { id: 'other', label: 'Other', icon: '•' },
-  { id: 'note', label: 'Note', icon: '✎', caseOnly: true }, // a case's plain note (kept as a case note)
+  { id: 'note', label: 'Note', icon: '📝', caseOnly: true }, // a case's plain note (kept as a case note)
 ];
 
 export const RESEARCH = [
