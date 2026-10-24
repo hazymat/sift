@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.05': [{ text: 'Batch Book: tags are a Tags dropdown at the right of the books bar instead of a row of pills, so the recipes start higher up. The ⋯ for editing books is now at the end of the books (also in the page\'s ⋯ menu, as Edit books).', go: '#/recipes', at: '#main .bb-sections-bar' }],
   '1.61.04': [{ text: "Keyboard: the arrow keys work the same in every area. ↓ from the search box stops on the filter row (Scans' kinds, Contracts' Current or Ended, Lists or Templates, Contacts' tabs, Archive and Bin), ← and → switch filter, ↓ again goes to the cards. In Tasks, the Day Planner, an open list and a box, Esc out of a name keeps that row highlighted, so ↑ and ↓ carry on and Enter edits it again.", go: '#/scans', at: '#main .scan-kinds' }],
   '1.61.03': [{ text: "Contacts and Contracts: an open contact or contract has the Share pill top right, with the copies and Print…: a tidy sheet with its details, notes and log (a contact) or note and files (a contract). A contract's reference prints hidden unless you choose it in full.", go: '#/contracts', open: ['#main tr[data-id], #main .contract-card'], at: '#main .project-head .share-menu' }],
   '1.61.02': [{ text: "Brain Dump: a note's ⋯ has Print…: the note with its title big, when it was written, its pictures small or big and lines to write more, in the note's colour or black and white. Its copies now match every Share menu: plain text, rich text, WhatsApp and Markdown.", go: '#/dump', open: ['#thoughts > li[data-id] details.note-more > summary'], at: '#thoughts [data-act="print-note"]' }],
@@ -162,6 +163,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.05': '2026-10-24T20:33:43Z',
   '1.61.04': '2026-10-24T02:36:10Z',
   '1.61.03': '2026-10-23T13:24:23Z',
   '1.61.02': '2026-10-23T13:20:29Z',

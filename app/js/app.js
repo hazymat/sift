@@ -288,7 +288,7 @@ function installWheelRows() {
 // Sideways rows (filter bars, tabs) keep where they were scrolled to when their page or their
 // buttons are drawn again (a tap on Batch Book's books redraws the page, which put the row
 // back at its start), and the chosen tab is brought into view if it's off either end.
-const SIDEWAYS_ROWS = '.dump-filter, .bb-sections, .bb-status, .bb-tags-list, #task-views, .tasks-head .segmented, .find-new';
+const SIDEWAYS_ROWS = '.dump-filter, .bb-sections, .bb-status, #task-views, .tasks-head .segmented, .find-new';
 function installRowKeep() {
   const scrolled = new Map(); // where each row was last scrolled to, by page and row
   const keyOf = row => `${location.hash.split('?')[0]}|${row.id || row.getAttribute('aria-label') || row.className}`;
