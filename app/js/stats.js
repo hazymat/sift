@@ -178,6 +178,18 @@ export function start(fresh) {
     if (d.errors++ < 20) track('error', { message: plain(message), where: String(where || '').replace(location.origin, '').slice(0, 200), area: area() });
   };
   addEventListener('error', ev => broke(ev.message, ev.filename && `${ev.filename}:${ev.lineno}:${ev.colno}`));
+  // A tap that something else caught over a button (an invisible layer): which thing, and over which button. For finding such bugs.
+  const named = e => `${e.tagName.toLowerCase()}${e.id ? `#${e.id}` : ''}${typeof e.className === 'string' && e.className ? `.${e.className.trim().split(/\s+/).slice(0, 3).join('.')}` : ''}${e.dataset?.fa ? `[fa=${e.dataset.fa}]` : ''}${e.dataset?.act ? `[act=${e.dataset.act}]` : ''}`;
+  let lastBlock = 0;
+  addEventListener('pointerdown', ev => {
+    if (ev.pointerType === 'mouse' || Date.now() - lastBlock < 30000 || !ev.target?.closest) return;
+    const tappable = 'button, summary, a[href], input, select, textarea, [role="button"]';
+    if (ev.target.closest(tappable)) return;
+    const under = document.elementsFromPoint(ev.clientX, ev.clientY).find(e => e.matches(tappable));
+    if (!under || under.contains(ev.target)) return;
+    lastBlock = Date.now();
+    broke(`Tap blocked: ${named(ev.target)} over ${named(under)}`, `${Math.round(ev.clientX)},${Math.round(ev.clientY)} of ${innerWidth}x${innerHeight}`);
+  }, { capture: true, passive: true });
   addEventListener('unhandledrejection', ev => broke(ev.reason?.message || ev.reason, ev.reason?.stack?.split('\n')[1]?.trim()));
   addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') send(); });
   setInterval(tick, TICK_S * 1000);

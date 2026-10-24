@@ -12,7 +12,8 @@
 import { keys } from './keys.js';
 import * as store from './store.js';
 import * as att from './attachments.js';
-import { stepsOf, amountText, stepHtml, stepRefs, stepWaits, qtyText, batchName } from './batchbook.js';
+import { stepsOf, amountText, stepHtml, stepRefs, stepWaits, qtyText, batchName, sectionsOf, sectionOf } from './batchbook.js';
+import { TINTS } from './colours.js';
 import * as timers from './timers.js';
 import { toast } from './toast.js';
 
@@ -31,7 +32,8 @@ const keep = k => { k.touched = Date.now(); try { localStorage.setItem(KEPT, JSO
 // How many are being cooked (Batch Book's 🍳 Cooking pill).
 export const cooking = () => kept().tabs.length;
 const wide = () => matchMedia('(min-width: 761px)').matches;
-const columns = () => (matchMedia('(min-width: 1400px)').matches ? 3 : matchMedia('(min-width: 900px)').matches ? 2 : 1);
+// Side by side: 2 on an iPad, 3 on an iPad Pro in landscape, 4 on a big screen (any narrower and the writing is too small to read from the stove).
+const columns = () => (matchMedia('(min-width: 1800px)').matches ? 4 : matchMedia('(min-width: 1200px)').matches ? 3 : matchMedia('(min-width: 900px)').matches ? 2 : 1);
 export const isOpen = () => !!document.querySelector('.fa-screen');
 let closeOpen = null;
 
@@ -56,7 +58,8 @@ async function loadTab(tab) {
   const atts = new Map();
   for (const a of files) { if (!atts.has(a.parent_id)) atts.set(a.parent_id, []); atts.get(a.parent_id).push(a); }
   const title = tab.c === 'recipe_makes' ? batchName(rec, recipe?.title) : rec.title || 'Untitled';
-  return { tab, rec, atts, title, steps: stepsOf(rec), ings: rec.ingredients || [], where: { recipe_id: recipe?.id || null, make_id: tab.c === 'recipe_makes' ? rec.id : null, owner: tab.owner || null, title } };
+  const colour = TINTS.find(c => c.id === recipe?.colour)?.hex || sectionOf(sectionsOf(await store.getSettings(), []), recipe?.type).colour; // its book's colour, as on its card
+  return { tab, rec, atts, title, colour, steps: stepsOf(rec), ings: rec.ingredients || [], where: { recipe_id: recipe?.id || null, make_id: tab.c === 'recipe_makes' ? rec.id : null, owner: tab.owner || null, title } };
 }
 
 // openFollow({ c: 'recipes' | 'recipe_makes', id, owner, times }): opens Follow along on that one (added as a tab).
@@ -81,7 +84,10 @@ export async function openFollow(open) {
   el.setAttribute('role', 'dialog');
   el.setAttribute('aria-label', 'Follow along');
   document.body.append(el);
+  // Its own page: everything else is hidden while it's open (nothing underneath to scroll or to catch taps), and the page comes back where it was.
+  const backTo = scrollY;
   document.body.classList.add('follow-open');
+  scrollTo(0, 0);
   const urls = [];
   let shown = []; // the drawn pots: { pot, box, roll, goTo, cur }
   const save = () => { k.tabs = pots.map(p => p.tab); keep(k); };
@@ -107,8 +113,8 @@ export async function openFollow(open) {
       <div class="fa-extra">${photo(p, st)}${starts}${doneBtn(p, n, done)}</div></section>`;
   };
   // One pot: its ingredients (folded unless it's the only one on a wide screen) and its drum of steps.
-  const potHtml = (p, n, { alone }) => `<div class="fa-pot${alone ? ' fa-alone' : ''}" data-pot="${n}">
-      ${alone ? '' : `<div class="fa-pot-head"><b>${esc(p.title)}</b>${scaleHtml(p)}</div>`}
+  const potHtml = (p, n, { alone }) => `<div class="fa-pot${alone ? ' fa-alone' : ''}" data-pot="${n}" style="--pot:${p.colour}">
+      ${alone && pots.length < 2 ? '' : `<div class="fa-pot-head"><b>${esc(p.title)}</b>${alone ? '' : scaleHtml(p)}</div>`}
       <aside class="fa-ings"><details class="fa-fold"${alone && wide() ? ' open' : ''}><summary><span>🧺 Ingredients</span><span class="muted fa-count">${p.ings.length}</span>${alone ? scaleHtml(p) : ''}</summary>${alone ? `<div class="fa-fold-scale">${scaleHtml(p)}</div>` : ''}<div class="fa-ing-body"></div></details></aside>
       <div class="fa-drum" tabindex="-1">${p.steps.length ? p.steps.map((st, s) => stepOf(p, st, s)).join('') : '<p class="muted fa-none">No steps yet.</p>'}</div>
       ${alone ? `<div class="fa-dots" aria-hidden="true">${p.steps.map((_, s) => `<i data-dot="${s}"></i>`).join('')}</div>` : ''}
@@ -195,7 +201,7 @@ export async function openFollow(open) {
     // Side by side: the chosen one and the ones after it (round the end).
     const which = Array.from({ length: cols }, (_, n) => (k.at + n) % pots.length);
     el.innerHTML = `<div class="fa-top"><button type="button" class="back" data-fa="close">‹ Back${keys('Esc')}</button>
-        <h1>${pots.length > 1 ? 'Follow along' : esc(pots[k.at].title)}</h1>        <div class="fa-timers" aria-label="Timers"></div><button type="button" class="fa-add" data-fa="timer" title="A countdown or a stopwatch" aria-label="New timer">⏰ +<span class="fa-word"> Timer</span></button>
+        <h1${pots.length > 1 ? '' : ` class="fa-title" style="--pot:${pots[k.at].colour}"`}>${pots.length > 1 ? 'Follow along' : esc(pots[k.at].title)}</h1>        <div class="fa-timers" aria-label="Timers"></div><button type="button" class="fa-add" data-fa="timer" title="A countdown or a stopwatch" aria-label="New timer">⏰ +<span class="fa-word"> Timer</span></button>
         <button type="button" class="fa-finish" data-fa="finish" title="Clear ${pots.length > 1 ? 'these recipes' : 'this recipe'} from Follow along" aria-label="Finished cooking">✓<span class="fa-word"> Finished cooking</span></button></div>
       <div class="fa-timers fa-phone-timers" aria-label="Timers"></div>
       ${tabsHtml()}
@@ -219,17 +225,27 @@ export async function openFollow(open) {
 
   // + Recipe: another recipe, or a batch on the go, to cook alongside.
   async function addPot() {
-    const [recipes, makes] = await Promise.all([store.local.list('recipes', { filter: r => !r.archived_at }), store.local.list('recipe_makes', { filter: m => !m.archived_at && m.status !== 'done' })]);
+    const [recipes, makes] = await Promise.all([store.local.list('recipes', { filter: r => !r.archived_at }), store.local.list('recipe_makes', { filter: m => !m.archived_at })]);
     const titleOf = id => recipes.find(r => r.id === id)?.title;
     const open = new Set(pots.map(p => p.tab.id));
-    const rows = [...makes.filter(m => !open.has(m.id)).map(m => ({ c: 'recipe_makes', id: m.id, label: `🧪 ${batchName(m, titleOf(m.recipe_id))}` })), ...recipes.filter(r => !open.has(r.id)).sort((a, b) => (a.title || '').localeCompare(b.title || '')).map(r => ({ c: 'recipes', id: r.id, label: r.title || 'Untitled' }))];
+    // Recipes first; batches (there can be hundreds) folded in their own panel, newest first, opened by a search that finds one.
+    const recipeRows = recipes.filter(r => !open.has(r.id)).sort((a, b) => (a.title || '').localeCompare(b.title || '')).map(r => ({ c: 'recipes', id: r.id, label: r.title || 'Untitled' }));
+    const batchRows = makes.filter(m => !open.has(m.id)).sort((a, b) => (b.date || b.created_at || '').localeCompare(a.date || a.created_at || '')).map(m => ({ c: 'recipe_makes', id: m.id, label: `🧪 ${batchName(m, titleOf(m.recipe_id))}` }));
+    const rows = recipeRows.concat(batchRows);
+    const pick = (r, n) => `<button type="button" data-pick="${n}">${esc(r.label)}</button>`;
     const dlg = document.createElement('dialog');
     dlg.className = 'sheet fa-pick';
-    dlg.innerHTML = `<div class="sheet-handle"></div><h2>Cook another at the same time</h2><input type="search" class="fa-pick-q" placeholder="Search recipes…" aria-label="Search recipes">
-      <div class="fa-pick-list">${rows.map((r, n) => `<button type="button" data-pick="${n}">${esc(r.label)}</button>`).join('') || '<p class="muted">Nothing else to add.</p>'}</div>`;
+    dlg.innerHTML = `<div class="sheet-handle"></div><h2>Cook another at the same time</h2><input type="search" class="fa-pick-q" placeholder="Search recipes and batches…" aria-label="Search recipes and batches">
+      <div class="fa-pick-list">${recipeRows.map(pick).join('')}
+        ${batchRows.length ? `<details class="fa-pick-batches"><summary>🧪 Batches <span class="muted">${batchRows.length}</span></summary><div class="fa-pick-list">${batchRows.map((r, n) => pick(r, recipeRows.length + n)).join('')}</div></details>` : ''}
+        ${rows.length ? '' : '<p class="muted">Nothing else to add.</p>'}</div>`;
     document.body.append(dlg);
-    const q = dlg.querySelector('.fa-pick-q');
-    q.addEventListener('input', () => { const w = q.value.trim().toLowerCase(); dlg.querySelectorAll('[data-pick]').forEach(b => { b.hidden = !!w && !b.textContent.toLowerCase().includes(w); }); });
+    const q = dlg.querySelector('.fa-pick-q'), fold = dlg.querySelector('.fa-pick-batches');
+    q.addEventListener('input', () => {
+      const w = q.value.trim().toLowerCase();
+      dlg.querySelectorAll('[data-pick]').forEach(b => { b.hidden = !!w && !b.textContent.toLowerCase().includes(w); });
+      if (fold) { const hits = [...fold.querySelectorAll('[data-pick]')].filter(b => !b.hidden).length; fold.hidden = !!w && !hits; if (w) fold.open = hits > 0; }
+    });
     let chosen = null;
     dlg.addEventListener('click', ev => { const b = ev.target.closest('[data-pick]'); if (b) { chosen = rows[+b.dataset.pick]; dlg.close(); } });
     dlg.addEventListener('keydown', ev => { if (ev.key === 'Enter' && ev.target === q) { const b = [...dlg.querySelectorAll('[data-pick]')].find(x => !x.hidden); if (b) { ev.preventDefault(); b.click(); } } });
@@ -243,7 +259,6 @@ export async function openFollow(open) {
     draw();
   }
 
-  // ✓ Finished cooking: every tab put away (and, if asked, the timers that belong to them stopped).
   // Finished cooking: these recipes and their timers go, with Undo in the message (no asking first).
   async function finish() {
     const ids = new Set(pots.map(p => p.tab.id));
@@ -289,6 +304,7 @@ export async function openFollow(open) {
     urls.forEach(u => URL.revokeObjectURL(u));
     el.remove();
     document.body.classList.remove('follow-open');
+    scrollTo(0, backTo);
     dispatchEvent(new CustomEvent('sift-follow-closed'));
   }
   function onKey(ev) {
@@ -334,8 +350,9 @@ export async function openFollow(open) {
 }
 
 const CSS = `
-body.follow-open { overflow: hidden; }
-.fa-screen { position: fixed; inset: 0; z-index: 900; background: var(--bg); background-image: var(--bg-image, none); color: var(--text); display: flex; flex-direction: column; padding: calc(10px + var(--safe-top)) clamp(10px, 2vw, 22px) calc(10px + var(--safe-bottom)); }
+html:has(body.follow-open), body.follow-open { overflow: hidden; }
+body.follow-open > :is(.appbar, #main, #tabbar, #update-banner, #timer-dock, .select-bar:not(.tm-bar)) { display: none !important; }
+.fa-screen { position: relative; height: 100dvh; z-index: 900; background: var(--bg); background-image: var(--bg-image, none); color: var(--text); display: flex; flex-direction: column; padding: calc(10px + var(--safe-top)) clamp(10px, 2vw, 22px) calc(10px + var(--safe-bottom)); }
 .fa-top, .fa-tabs, .fa-phone-timers { position: relative; z-index: 3; } /* above the steps: iPad Safari can let a rolled step (scaled, on its own layer) take taps outside the drum until the window is resized */
 .fa-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; min-width: 0; flex-wrap: wrap; }
 .fa-top .back { padding: 6px 14px 6px 10px; flex: none; }
@@ -359,8 +376,11 @@ body.follow-open { overflow: hidden; }
 .fa-pot { flex: 1; min-width: 0; min-height: 0; display: grid; grid-template-columns: minmax(240px, 1fr) 2fr; gap: 18px; position: relative; }
 .fa-side-by-side { display: grid; grid-template-columns: repeat(var(--cols), 1fr); gap: 14px; }
 .fa-side-by-side .fa-pot { display: flex; flex-direction: column; gap: 8px; background: color-mix(in srgb, var(--text) 3%, transparent); border: 1px solid var(--glass-border); border-radius: 22px; padding: 10px; }
-.fa-pot-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 2px 6px; }
-.fa-pot-head b { font-size: 1.05rem; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fa-pot-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 2px 6px 8px; margin-bottom: 8px; border-bottom: 3px solid var(--pot, var(--accent)); }
+.fa-pot-head b { font-size: clamp(1.3rem, 2vw, 1.75rem); font-weight: 650; flex: 1 1 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fa-alone > .fa-pot-head { grid-column: 1 / -1; }
+.fa-alone:has(> .fa-pot-head) { grid-template-rows: auto minmax(0, 1fr); }
+.fa-top h1.fa-title { font-size: clamp(1.4rem, 2.4vw, 1.9rem); padding-bottom: 4px; border-bottom: 3px solid var(--pot, var(--accent)); flex: 0 1 auto; margin-right: auto; }
 .fa-ings { min-height: 0; overflow: auto; background: var(--glass); border: 1px solid var(--glass-border); border-radius: 22px; padding: 14px 18px; }
 .fa-fold summary { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; list-style: none; font-weight: 600; margin-bottom: 8px; cursor: default; }
 .fa-fold summary::-webkit-details-marker { display: none; }
@@ -412,6 +432,9 @@ body.follow-open { overflow: hidden; }
 .fa-pick-q { width: 100%; margin: 6px 0 10px; }
 .fa-pick-list { display: flex; flex-direction: column; gap: 6px; max-height: 55vh; overflow: auto; }
 .fa-pick-list button { text-align: left; padding: 10px 14px; }
+.fa-pick-batches > summary { padding: 10px 14px; font-weight: 600; cursor: pointer; border-radius: 14px; background: var(--glass); }
+.fa-pick-batches > .fa-pick-list { max-height: none; overflow: visible; margin-top: 6px; }
+.fa-pick-batches[hidden] { display: none; }
 @media (max-width: 760px) {
   .fa-fold-scale { display: block; margin-bottom: 6px; }
   .fa-top { flex-wrap: nowrap; gap: 6px; }
