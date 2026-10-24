@@ -150,7 +150,7 @@ export default {
     this.barWatch?.disconnect();
     this.barWatch = new IntersectionObserver(([e]) => {
       $('.dump-bar')?.classList.toggle('stuck', !e.isIntersecting && e.boundingClientRect.top < 200);
-    }, { rootMargin: `-${parseFloat(getComputedStyle($('.dump-bar')).top) || 0}px 0px 0px 0px` });
+    }, { rootMargin: `-${(parseFloat(getComputedStyle($('.dump-bar')).top) || 0) + (parseFloat(getComputedStyle($('.dump-bar')).paddingTop) || 0)}px 0px 0px 0px` });
     this.barWatch.observe($('.dump-bar-mark'));
     // The capture box is the notes editor (toolbar, emoji links, numbers and
     // emails become contacts). What you're typing is kept as a draft until

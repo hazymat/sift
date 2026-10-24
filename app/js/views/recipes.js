@@ -1145,7 +1145,7 @@ export default {
       if (!bar) return;
       const mark = el.querySelector('.bb-sticky-mark');
       const place = () => el.style.setProperty('--bb-stick', `${(parseFloat(getComputedStyle(bar).top) || 0) + bar.offsetHeight}px`);
-      const seen = new IntersectionObserver(([e]) => { bar.classList.toggle('stuck', !e.isIntersecting && e.boundingClientRect.top < 200); place(); }, { rootMargin: `-${parseFloat(getComputedStyle(bar).top) || 0}px 0px 0px 0px` });
+      const seen = new IntersectionObserver(([e]) => { bar.classList.toggle('stuck', !e.isIntersecting && e.boundingClientRect.top < 200); place(); }, { rootMargin: `-${(parseFloat(getComputedStyle(bar).top) || 0) + (parseFloat(getComputedStyle(bar).paddingTop) || 0)}px 0px 0px 0px` });
       seen.observe(mark);
       const size = new ResizeObserver(place);
       size.observe(bar);

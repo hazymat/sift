@@ -460,15 +460,15 @@ button.danger { color: #ff8a80; }
 }
 .find-bar { position: sticky; top: calc(var(--safe-top) + 62px); z-index: 5; margin-bottom: 10px; }
 /* An area's main page: its whole top sticks (Find Things, Tasks, Contacts; Batch Book has its own), glass once stuck; on the boxes page the search inside it doesn't stick by itself. */
-.find-sticky, .sticky-top { position: sticky; top: calc(var(--safe-top) + 62px); z-index: 5; margin: 0 -10px 10px; padding: 0 10px; border-radius: 0 0 16px 16px; transition: box-shadow .15s, background-color .15s; }
+.find-sticky, .sticky-top { position: sticky; top: calc(var(--safe-top) + 62px); z-index: 5; margin: 0 -10px 8px; padding: 0 10px 2px; border-radius: 0 0 16px 16px; transition: box-shadow .15s, background-color .15s; }
 .find-sticky .find-bar { position: static; }
 .find-sticky .find-areas { margin-bottom: 6px; }
 .sticky-top-mark, .find-sticky-mark { height: 1px; margin-bottom: -1px; }
 /* A sticky bar is its own layer, so a menu opened in it can only sit as high as the bar. While one is open, lift that bar above the other sticky bars on the page (still under the app bar). */
 :is(.find-bar, .find-sticky, .sticky-top, .dump-bar, .bb-sticky, .list-top, .box-top, .box-lid):has(details[open]) { z-index: 9; }
-:is(.find-sticky, .sticky-top).stuck { padding-top: 8px; padding-bottom: 2px; background: var(--glass-strong); -webkit-backdrop-filter: blur(18px) saturate(1.3); backdrop-filter: blur(18px) saturate(1.3); box-shadow: 0 10px 18px -10px rgba(0, 0, 0, .55); }
-@media (min-width: 768px) { .find-sticky, .sticky-top { top: 62px; } :is(.find-sticky, .sticky-top).stuck { padding-top: 14px; } }
-@media (max-width: 767px) { .find-sticky, .sticky-top { top: 0; } :is(.find-sticky, .sticky-top).stuck { padding-top: calc(var(--safe-top) + 8px); } }
+:is(.find-sticky, .sticky-top).stuck { background: var(--glass-strong); -webkit-backdrop-filter: blur(18px) saturate(1.3); backdrop-filter: blur(18px) saturate(1.3); box-shadow: 0 10px 18px -10px rgba(0, 0, 0, .55); }
+@media (min-width: 768px) { .find-sticky, .sticky-top { top: 62px; } }
+@media (max-width: 767px) { .find-sticky, .sticky-top { top: 0; } }
 .search {
   font-size: 1.05rem;
   padding: 12px 18px !important;
@@ -3138,11 +3138,11 @@ html:not(.show-hints) #main:not([data-area="settings"]) .hint { display: none; }
 /* Brain Dump: search and kinds stick under the top bar while you scroll the
    notes (same place as Find Things' search); stuck, they get a glass
    background and a soft shadow underneath. */
-.dump-bar { position: sticky; top: calc(var(--safe-top) + 62px); z-index: 5; margin: 0 -10px 10px; padding: 0 10px; border-radius: 0 0 16px 16px; transition: box-shadow .15s, background-color .15s; }
+.dump-bar { position: sticky; top: calc(var(--safe-top) + 62px); z-index: 5; margin: 0 -10px 8px; padding: 0 10px 2px; border-radius: 0 0 16px 16px; transition: box-shadow .15s, background-color .15s; }
 .dump-bar-mark { height: 1px; margin-bottom: -1px; }
-.dump-bar.stuck { padding-top: 8px; padding-bottom: 2px; background: var(--glass-strong); -webkit-backdrop-filter: blur(18px) saturate(1.3); backdrop-filter: blur(18px) saturate(1.3); box-shadow: 0 10px 18px -10px rgba(0, 0, 0, .55); }
-@media (min-width: 768px) { .dump-bar { top: 62px; } .dump-bar.stuck { padding-top: 14px; } } /* tucked just under the top bar, no gap */
-@media (max-width: 767px) { .dump-bar { top: 0; } .dump-bar.stuck { padding-top: calc(var(--safe-top) + 8px); } }
+.dump-bar.stuck { background: var(--glass-strong); -webkit-backdrop-filter: blur(18px) saturate(1.3); backdrop-filter: blur(18px) saturate(1.3); box-shadow: 0 10px 18px -10px rgba(0, 0, 0, .55); }
+@media (min-width: 768px) { .dump-bar { top: 62px; } } /* tucked just under the top bar, no gap */
+@media (max-width: 767px) { .dump-bar { top: 0; } }
 
 /* Brain Dump, Look → Multicolour: each note's own soft colour over the glass (colours.js). */
 #main[data-shade="colour"] .thought[style*="--tint"] {
@@ -4249,11 +4249,11 @@ body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none
 .bb-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
 .bb-head > .search-wrap { flex: 1 1 12em; }
 /* The top bar stays while the recipes scroll (as Brain Dump's does); stuck, it gets a glass background. */
-.bb-sticky { position: sticky; top: calc(var(--safe-top) + 62px); z-index: 5; margin: 0 -10px 10px; padding: 0 10px; border-radius: 0 0 16px 16px; transition: box-shadow .15s, background-color .15s; }
+.bb-sticky { position: sticky; top: calc(var(--safe-top) + 62px); z-index: 5; margin: 0 -10px 6px; padding: 0 10px 4px; border-radius: 0 0 16px 16px; transition: box-shadow .15s, background-color .15s; }
 .bb-sticky-mark { height: 1px; margin-bottom: -1px; }
-.bb-sticky.stuck { padding-top: 8px; padding-bottom: 4px; background: var(--glass-strong); -webkit-backdrop-filter: blur(18px) saturate(1.3); backdrop-filter: blur(18px) saturate(1.3); box-shadow: 0 10px 18px -10px rgba(0, 0, 0, .55); }
-@media (min-width: 768px) { .bb-sticky { top: 62px; } .bb-sticky.stuck { padding-top: 14px; } }
-@media (max-width: 767px) { .bb-sticky { top: 0; } .bb-sticky.stuck { padding-top: calc(var(--safe-top) + 8px); } }
+.bb-sticky.stuck { background: var(--glass-strong); -webkit-backdrop-filter: blur(18px) saturate(1.3); backdrop-filter: blur(18px) saturate(1.3); box-shadow: 0 10px 18px -10px rgba(0, 0, 0, .55); }
+@media (min-width: 768px) { .bb-sticky { top: 62px; } }
+@media (max-width: 767px) { .bb-sticky { top: 0; } }
 /* Books: the same filter bar as Brain Dump's kinds (underlined, in the book's colour). */
 .bb-sections-bar { display: flex; align-items: stretch; margin: 6px 0 8px; border-bottom: 1px solid var(--glass-border); }
 .bb-sections, .bb-status { display: flex; gap: 2px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
@@ -4520,11 +4520,11 @@ textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
 
 /* An open list (views/lists.js): its name, progress, Reset ticks and Show / hide ticked stay at
    the top while the items scroll (as Brain Dump's bar), with a glass backing once stuck. */
-.list-top { position: sticky; top: calc(var(--safe-top) + 62px); z-index: 5; margin: 0 -10px 6px; padding: 0 10px; border-radius: 0 0 16px 16px; transition: box-shadow .15s, background-color .15s; }
+.list-top { position: sticky; top: calc(var(--safe-top) + 62px); z-index: 5; margin: 0 -10px 4px; padding: 0 10px 2px; border-radius: 0 0 16px 16px; transition: box-shadow .15s, background-color .15s; }
 .list-top-mark { height: 1px; margin-bottom: -1px; }
-.list-top.stuck { padding-top: 8px; padding-bottom: 2px; background: var(--glass-strong); -webkit-backdrop-filter: blur(18px) saturate(1.3); backdrop-filter: blur(18px) saturate(1.3); box-shadow: 0 10px 18px -10px rgba(0, 0, 0, .55); }
-@media (min-width: 768px) { .list-top { top: 62px; } .list-top.stuck { padding-top: 14px; } }
-@media (max-width: 767px) { .list-top { top: 0; } .list-top.stuck { padding-top: calc(var(--safe-top) + 8px); } }
+.list-top.stuck { background: var(--glass-strong); -webkit-backdrop-filter: blur(18px) saturate(1.3); backdrop-filter: blur(18px) saturate(1.3); box-shadow: 0 10px 18px -10px rgba(0, 0, 0, .55); }
+@media (min-width: 768px) { .list-top { top: 62px; } }
+@media (max-width: 767px) { .list-top { top: 0; } }
 .list-top .project-head { flex-wrap: nowrap; gap: 6px; margin-bottom: 6px; padding: 6px 8px; }
 .list-top .project-head .project-name { min-width: 0; font-size: 1.15rem; padding-inline: 4px; }
 .list-top .project-head > :not(.project-name) { flex: none; }
@@ -4576,12 +4576,12 @@ textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
 .box-photo .att-open img { width: 100%; height: 100%; object-fit: cover; display: block; }
 /* Scrolling down a long box, its top stays in view: back and search, then the lid with its label, each with a backing once stuck. */
 .box-top { position: sticky; top: calc(var(--safe-top) + 62px); z-index: 6; margin: 0 -10px; padding: 0 10px; border-radius: 0 0 16px 16px; transition: box-shadow .15s, background-color .15s; }
-.box-top.stuck { padding-top: 8px; background: var(--glass-strong); -webkit-backdrop-filter: blur(18px) saturate(1.3); backdrop-filter: blur(18px) saturate(1.3); box-shadow: 0 10px 18px -10px rgba(0, 0, 0, .55); }
+.box-top.stuck { background: var(--glass-strong); -webkit-backdrop-filter: blur(18px) saturate(1.3); backdrop-filter: blur(18px) saturate(1.3); box-shadow: 0 10px 18px -10px rgba(0, 0, 0, .55); }
 .box-lid { position: sticky; top: calc(var(--safe-top) + 62px + var(--box-top-h, 0px)); z-index: 4; }
 /* The lid looks the same stuck or not: always solid (the glass over the page, as a colour), so nothing shows through it and it doesn't darken when it sticks. */
 .box-lid { background: linear-gradient(to bottom, color-mix(in srgb, var(--tint) 26%, transparent), color-mix(in srgb, var(--tint) 14%, transparent)), color-mix(in srgb, var(--text) 9%, var(--bg)); }
-@media (min-width: 768px) { .box-top { top: 62px; } .box-lid { top: calc(62px + var(--box-top-h, 0px)); } .box-top.stuck { padding-top: 14px; } }
-@media (max-width: 767px) { .box-top { top: 0; } .box-lid { top: var(--box-top-h, 0px); } .box-top.stuck { padding-top: calc(var(--safe-top) + 8px); } }
+@media (min-width: 768px) { .box-top { top: 62px; } .box-lid { top: calc(62px + var(--box-top-h, 0px)); } }
+@media (max-width: 767px) { .box-top { top: 0; } .box-lid { top: var(--box-top-h, 0px); } }
 .box-page .box-page-head input.box-code-input { font-family: "Arial Narrow", "Helvetica Neue", Arial, sans-serif; font-weight: 500; font-size: 1.45rem; max-width: 14ch; text-transform: uppercase; letter-spacing: .16em; padding: 6px 10px 6px 14px; border-radius: 2px; border: 0; color: #eceae4; background: linear-gradient(to bottom, #3a3a3a 0, #121212 18%, #0a0a0a 55%, #161616 100%); text-shadow: 0 1px 0 rgba(255, 255, 255, .35), 0 -1px 0 rgba(0, 0, 0, .9), 0 0 1px rgba(255, 255, 255, .5); box-shadow: 0 2px 3px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .18), inset 0 -1px 0 rgba(0, 0, 0, .8); transform: rotate(-1.2deg); }
 .box-page .box-page-head input.box-code-input::placeholder { color: #8d8b86; opacity: 1; text-shadow: none; }
 .box-page .box-page-head input.box-code-input:placeholder-shown { font-size: 1.05rem; min-width: 6.4em; }
@@ -4607,6 +4607,13 @@ textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
   .box-page > .hint, .box-page > .sheet-actions { margin-left: 14px; margin-right: 14px; }
 }
 
+/* Sticky top bars keep the gap above them (--stick-pad) all the time, pulled up over what's above by as much, so nothing
+   moves when they stick or unstick (it used to be added on sticking, so the bar slid up then jumped back down).
+   The views watch for sticking --stick-pad further down (stickRoot in app.js). Taps go through that gap until it's glass. */
+:is(.find-sticky, .sticky-top, .dump-bar, .bb-sticky, .list-top, .box-top) { --stick-pad: 8px; padding-top: var(--stick-pad); margin-top: calc(-1 * var(--stick-pad)); pointer-events: none; }
+:is(.find-sticky, .sticky-top, .dump-bar, .bb-sticky, .list-top, .box-top) > *, :is(.find-sticky, .sticky-top, .dump-bar, .bb-sticky, .list-top, .box-top).stuck { pointer-events: auto; }
+@media (min-width: 768px) { :is(.find-sticky, .sticky-top, .dump-bar, .bb-sticky, .list-top, .box-top) { --stick-pad: 14px; } }
+@media (max-width: 767px) { :is(.find-sticky, .sticky-top, .dump-bar, .bb-sticky, .list-top, .box-top) { --stick-pad: calc(var(--safe-top) + 8px); } }
 /* Phones with the keyboard up (installKeyboard in app.js): no bottom tabs, and stuck bars stay at the top of what's visible. */
 html.kb-open .tabbar { display: none; }
 html.kb-open :is(.sticky-top, .find-sticky, .dump-bar, .bb-sticky, .list-top, .box-top, .box-lid).stuck { transform: translateY(var(--vv-top, 0px)); }

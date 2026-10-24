@@ -325,7 +325,7 @@ export default {
       this.topWatch?.disconnect();
       const mark = body.querySelector('.list-top-mark, .sticky-top-mark'), top = body.querySelector('.list-top, .sticky-top');
       if (mark && top) {
-        this.topWatch = new IntersectionObserver(([e]) => top.classList.toggle('stuck', !e.isIntersecting && e.boundingClientRect.top < 200), { rootMargin: `-${parseFloat(getComputedStyle(top).top) || 0}px 0px 0px 0px` });
+        this.topWatch = new IntersectionObserver(([e]) => top.classList.toggle('stuck', !e.isIntersecting && e.boundingClientRect.top < 200), { rootMargin: `-${(parseFloat(getComputedStyle(top).top) || 0) + (parseFloat(getComputedStyle(top).paddingTop) || 0)}px 0px 0px 0px` });
         this.topWatch.observe(mark);
       }
       if (chainAfter) { const id = chainAfter; chainAfter = null; openNewAfter(id); }
