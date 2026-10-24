@@ -129,7 +129,7 @@ export default {
       await store.updateSettings({ recipe_sort: settings.recipe_sort });
     }
 
-    // A card: its picture, name and how often it's been made; Make and ⋯ More under it.
+    // A card: its picture, name and how often it's been made; ☆ and ⋯ More (Follow along, Make, …) under it.
     // from: a person sharing it with you ({ owner_id, name }); their cards don't drag.
     function card(r, from = null) {
       const sec = sectionFor(r);
@@ -149,11 +149,13 @@ export default {
         </span>
         </a>
         <div class="bb-card-acts">
-          <button type="button" class="bb-card-make" data-card="make" title="Start a batch of this">🧪 Make</button>
           ${from ? '' : `<button type="button" class="pin bb-pin" data-card="pin" aria-pressed="${!!r.pinned}" title="${r.pinned ? 'Unpin' : 'Pin: first in its book, and under ★ Pinned'}">${r.pinned ? '★' : '☆'}</button>`}
           <details class="tool-menu bb-card-menu">
             <summary class="icon-btn" aria-label="More" title="More">${icon('i-more')}</summary>
             <div class="menu">
+              ${stepsOf(r).length ? '<button type="button" data-card="follow">▶ Follow along</button>' : ''}
+              <button type="button" data-card="make">🧪 Make</button>
+              <hr>
               <button type="button" data-card="copy">📋 Copy to clipboard</button>
               ${from ? '<button type="button" data-card="dup">⧉ Make a copy of my own</button>' : '<button type="button" data-card="share">👥 Share…</button><button type="button" data-card="dup">⧉ Duplicate</button>'}
               <button type="button" data-card="print">🖨 Print…</button>
@@ -295,7 +297,7 @@ export default {
       const times = o.collection === 'recipes' ? state.times : 1;
       const ings = rec.ingredients || [];
       return `<div class="bb-method" data-owner="${o.collection}:${o.id}">
-        <h2 class="bb-h"><span>🥄 Steps</span>${steps.length ? '<button type="button" class="bb-follow" data-act="follow" title="Cook from it: one step at a time, big, with timers">▶ Follow along</button>' : ''}</h2>
+        <h2 class="bb-h"><span>🥄 Steps</span></h2>
         ${ings.length ? `<div class="bb-ref-picks"><span class="muted">Put in:</span>${ings.map(i => `<button type="button" class="chip" data-ref="${esc(i.item)}">${esc(i.item)}</button>`).join('')}</div>` : ''}
         <div class="bb-lines bb-steps">
           ${steps.map((x, n) => line(`${n + 1}`, `
@@ -326,6 +328,7 @@ export default {
     };
     // Share on an open recipe or batch: 👥 Share with someone… (your own recipe), the copies, 🖨 Print… and 🏷 Print labels… (printrecipe.js).
     const sharePill = r => shareHtml({ top: r && !state.owner ? `<button type="button" data-act="share-recipe" data-recipe="${r.id}">👥 Share with someone…</button>` : '', bottom: '<button type="button" data-act="print-labels">🏷 Print labels…</button>' });
+    const followBtn = rec => (stepsOf(rec || {}).length ? '<button type="button" class="bb-follow" data-act="follow" title="Cook from it: one step at a time, big, with timers">▶<span class="bb-follow-word"> Follow along</span></button>' : '');
     const top = (act, label, extra = '', r = null) => `<div class="bb-top"><button type="button" class="back" data-act="${act}">‹ ${esc(label)}${keys('Esc')}</button><span class="spacer"></span>${extra}${sharePill(r)}${cogHtml('recipes', paperHtml())}</div>`;
 
     // ---------- a recipe ----------
@@ -335,7 +338,7 @@ export default {
       if (!r) return '<div class="empty"><h2>That recipe has gone.</h2></div>';
       const sec = sectionFor(r);
       const made = makesOf(r.id);
-      return `${top('home', 'Recipes', `${shareMark(r)}<button type="button" class="primary bb-make-btn" data-act="make" title="Start a batch: its own copy of this recipe">🧪 Make this${state.times !== 1 ? ` ×${qtyText(state.times)}` : ''}</button>`, r)}
+      return `${top('home', 'Recipes', `${shareMark(r)}${followBtn(r)}<button type="button" class="primary bb-make-btn" data-act="make" title="Start a batch: its own copy of this recipe">🧪 Make<span class="bb-follow-word"> this</span>${state.times !== 1 ? ` ×${qtyText(state.times)}` : ''}</button>`, r)}
         <article class="bb-paper" data-paper="${paper()}" style="--bb:${colourOf(r)};${workMargin(r, state.times)}">
           ${photoStrip(r.id)}
           <header class="bb-title-row">
@@ -404,7 +407,7 @@ export default {
       const gravity = types.some(isGravity);
       const f = m.fields || {};
       const goal = k => `<label><span>${k}</span><input data-field-key="${k}" value="${esc(f[k] || '')}" aria-label="${k}" placeholder="…"></label>`;
-      return `${state.fromList ? top('home', 'Batches', shareMark(r), r) : top('to-recipe', r?.title || 'Recipe', shareMark(r), r)}
+      return `${state.fromList ? top('home', 'Batches', shareMark(r) + followBtn(m), r) : top('to-recipe', r?.title || 'Recipe', shareMark(r) + followBtn(m), r)}
         <article class="bb-paper bb-make" data-paper="${paper()}" style="--bb:${colourOf(r)};${workMargin(m, 1)}">
           ${photoStrip(m.id)}
           <header class="bb-title-row">
@@ -1152,6 +1155,7 @@ export default {
       const act = b.dataset.card;
       if (b.dataset.cardBook !== undefined) return moveRecipes([id], { type: b.dataset.cardBook }, `Moved to ${b.dataset.cardBook || 'No book'}`);
       if (act === 'make') return makeThis(r, owner, 1);
+      if (act === 'follow') return followOpen() ? null : openFollow({ c: 'recipes', id: r.id, owner, times: 1 });
       if (act === 'pin') return moveRecipes([id], { pinned: !r.pinned }, r.pinned ? 'Unpinned' : 'Pinned');
       if (act === 'copy') {
         try { await navigator.clipboard.writeText(recipeText(r)); toast('Copied the recipe'); } catch { toast('Couldn\'t copy here'); }

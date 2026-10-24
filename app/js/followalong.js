@@ -10,10 +10,9 @@
 // ✓ Finished cooking (clears them all) or 3 days without being opened; the screen is kept awake while it's open.
 
 import { keys } from './keys.js';
-import { ask } from './ask.js';
 import * as store from './store.js';
 import * as att from './attachments.js';
-import { stepsOf, amountText, stepHtml, stepRefs, stepWait, qtyText, batchName } from './batchbook.js';
+import { stepsOf, amountText, stepHtml, stepRefs, stepWaits, qtyText, batchName } from './batchbook.js';
 import * as timers from './timers.js';
 import { toast } from './toast.js';
 
@@ -34,6 +33,7 @@ export const cooking = () => kept().tabs.length;
 const wide = () => matchMedia('(min-width: 761px)').matches;
 const columns = () => (matchMedia('(min-width: 1400px)').matches ? 3 : matchMedia('(min-width: 900px)').matches ? 2 : 1);
 export const isOpen = () => !!document.querySelector('.fa-screen');
+let closeOpen = null;
 
 // A name for a step's timer: the word before its wait ("then simmer for 15 minutes" → "Simmer, step 4"), else its first.
 function waitName(text, n) {
@@ -74,6 +74,7 @@ export async function openFollow(open) {
   k.at = Math.max(0, Math.min(k.at, pots.length - 1));
   keep(k);
   if (!pots.length) return;
+  closeOpen?.(); // one open at a time, and the one before lets go of everything it was listening to
   document.querySelector('.fa-screen')?.remove();
   const el = document.createElement('div');
   el.className = 'fa-screen';
@@ -93,10 +94,12 @@ export async function openFollow(open) {
   };
   const photo = (p, st) => { const a = (p.atts.get(st.id) || []).find(x => x.thumb); return a ? `<button type="button" class="fa-photo" data-photo="${a.id}" aria-label="Look at the photo"><img src="${a.thumb}" alt="" data-full="${a.id}"></button>` : ''; };
   const stepOf = (p, st, n) => {
-    const wait = stepWait(st.text);
+    // A Start button for each different time the step mentions; with more than one, each timer's name says its time.
+    const waits = stepWaits(st.text), name = waitName(st.text, n + 1);
+    const starts = waits.map(secs => `<button type="button" class="fa-wait" data-wait="${secs}" data-name="${esc(waits.length > 1 ? `${name}, ${timers.lengthText(secs)}` : name)}">⏰ Start ${timers.lengthText(secs)} timer</button>`).join('');
     return `<section class="fa-step" data-n="${n}"><div class="fa-num">Step ${n + 1}<span class="fa-of"> of ${p.steps.length}</span></div>
       <div class="fa-text">${stepHtml(st.text, p.ings, p.tab.times, esc) || '<span class="muted">Empty step</span>'}</div>
-      ${photo(p, st) || wait ? `<div class="fa-extra">${photo(p, st)}${wait ? `<button type="button" class="fa-wait" data-wait="${wait}" data-name="${esc(waitName(st.text, n + 1))}">⏰ Start ${timers.lengthText(wait)} timer</button>` : ''}</div>` : ''}</section>`;
+      ${photo(p, st) || starts ? `<div class="fa-extra">${photo(p, st)}${starts}</div>` : ''}</section>`;
   };
   // One pot: its ingredients (folded unless it's the only one on a wide screen) and its drum of steps.
   const potHtml = (p, n, { alone }) => `<div class="fa-pot${alone ? ' fa-alone' : ''}" data-pot="${n}">
@@ -222,18 +225,21 @@ export async function openFollow(open) {
   }
 
   // ✓ Finished cooking: every tab put away (and, if asked, the timers that belong to them stopped).
+  // Finished cooking: these recipes and their timers go, with Undo in the message (no asking first).
   async function finish() {
     const ids = new Set(pots.map(p => p.tab.id));
     const going = timers.list().filter(t => ids.has(t.make_id) || ids.has(t.recipe_id));
-    if (going.length) {
-      const how = await ask({ title: 'Finished cooking', text: `${going.length === 1 ? `${going[0].name} is` : `${going.length} timers are`} still going.`, ok: going.length === 1 ? 'Stop it too' : 'Stop them too', skip: 'Keep timers', cancel: 'Cancel' });
-      if (!how) return;
-      if (how !== 'skip') for (const t of going) await timers.dismiss(t);
-    }
+    const was = JSON.parse(JSON.stringify(k));
+    for (const t of going) await store.local.remove('timers', t.id);
     pots.length = 0;
     k.at = 0;
     save();
     close();
+    toast(going.length ? `Finished cooking: ${going.length === 1 ? '1 timer' : `${going.length} timers`} stopped` : 'Finished cooking', { action: 'Undo', onAction: async () => {
+      for (const t of going) await store.local.restore('timers', t.id);
+      keep(was);
+      openFollow(null);
+    } });
   }
 
   // The screen stays on while cooking.
@@ -254,6 +260,7 @@ export async function openFollow(open) {
   }, { passive: true });
 
   function close() {
+    if (closeOpen === close) closeOpen = null;
     ro?.disconnect();
     unwatch();
     removeEventListener('keydown', onKey, true);
@@ -275,6 +282,7 @@ export async function openFollow(open) {
     else if (ev.key === 'Home' || ev.key === 'End') { ev.preventDefault(); f?.goTo(ev.key === 'Home' ? 0 : f.pot.steps.length - 1); }
   }
   addEventListener('keydown', onKey, true);
+  closeOpen = close;
   el.addEventListener('click', ev => {
     if (timers.onClick(ev, { open: t => { const n = pots.findIndex(p => p.tab.id === (t.make_id || t.recipe_id)); if (n >= 0) switchTo(n); } })) return;
     const b = ev.target.closest('button, .fa-step, summary');

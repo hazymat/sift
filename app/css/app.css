@@ -4280,10 +4280,9 @@ body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none
 .bb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
 .bb-card-li { position: relative; display: flex; flex-direction: column; overflow: hidden; border-radius: 20px; list-style: none; border: 1px solid var(--glass-border); background: var(--glass); box-shadow: var(--glass-highlight), var(--shadow-sm); transition: transform .15s; }
 .bb-card-li:hover { transform: translateY(-2px); }
-.bb-card-li:has(details[open]) { overflow: visible; z-index: 4; transform: none; }
+.bb-card-li:has(details[open]) { overflow: visible; z-index: 6; transform: none; } /* above the sticky search bar (5) so its menu is never under it */
 .bb-card { display: flex; flex-direction: column; flex: 1; min-width: 0; color: var(--text); border-radius: 20px 20px 0 0; overflow: hidden; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 .bb-card-acts { display: flex; align-items: center; gap: 6px; padding: 0 10px 10px 14px; }
-.bb-card-make { padding: 4px 12px; font-size: .85rem; }
 .bb-pin { width: 32px; height: 32px; padding: 0; background: none; border: 0; box-shadow: none; font-size: 1.15rem; color: var(--muted); }
 .bb-pin[aria-pressed="true"] { color: #e5b53a; }
 .bb-sections-edit.filter-more { letter-spacing: .1em; font-size: 1rem; }
@@ -4298,7 +4297,8 @@ body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none
 .bb-card-menu hr { border: 0; border-top: 1px solid var(--glass-border); margin: 4px 0; }
 .bb-shared-title { position: static; margin-top: 22px !important; }
 .bb-shared { margin: 10px 0 0; padding: 0; list-style: none; }
-.bb-make-btn { white-space: nowrap; }
+.bb-make-btn, .bb-follow { white-space: nowrap; }
+@media (max-width: 560px) { .bb-follow-word { display: none; } }
 .bb-listline { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 2px 0 8px; font-size: .92rem; }
 .bb-listline select { width: auto; max-width: 100%; flex: 0 1 auto; }
 .bb-stock-btn { padding: 3px 9px; margin-left: 4px; font-size: .85rem; white-space: nowrap; background: none; border: 1px solid var(--glass-border); box-shadow: none; color: var(--muted); }
@@ -4328,7 +4328,6 @@ body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none
 #main[data-area="recipes"][data-density="tight"] .bb-card-body { height: 3.4em; padding: 7px 10px 6px; border-top-width: 3px; }
 #main[data-area="recipes"][data-density="tight"] .bb-card-title { font-size: .92rem; }
 #main[data-area="recipes"][data-density="tight"] .bb-card-acts { gap: 2px; padding: 0 4px 6px 8px; }
-#main[data-area="recipes"][data-density="tight"] .bb-card-make { padding: 3px 9px; font-size: .8rem; }
 #main[data-area="recipes"][data-density="tight"] :is(.bb-pin, .bb-card-menu > summary) { width: 28px; height: 28px; }
 @media (max-width: 640px) { #main[data-area="recipes"][data-density="tight"] .bb-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .bb-batches { display: grid; gap: 6px; }
