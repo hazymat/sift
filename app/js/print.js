@@ -50,8 +50,6 @@ const screenCss = `
 .print-hint { color: var(--muted); font-size: .8rem; margin: 4px 0 0; }
 .print-actions { display: flex; gap: 8px; margin-top: 16px; align-items: center; }
 .print-actions .spacer { flex: 1; }
-.print-share { display: flex; gap: 8px; margin-top: 16px; align-items: center; flex-wrap: wrap; color: var(--muted); font-size: .88rem; }
-.print-share span { margin-right: auto; }
 .print-view { min-height: 0; display: flex; flex-direction: column; background: rgba(0, 0, 0, .28); border: 1px solid var(--glass-border); border-radius: 18px; overflow: hidden; }
 .print-view-head { display: flex; justify-content: space-between; gap: 10px; color: var(--muted); font-size: .8rem; padding: 8px 14px 0; }
 .print-frame { flex: 1; width: 100%; border: 0; background: transparent; }
@@ -64,7 +62,13 @@ const screenCss = `
 
 const settingsOf = async () => (await store.getDeviceSettings()).print || {};
 
-// opts: { kind, title, back, options: [...], defaults: {...}, build: async choices => ({ css, html, count?, note? }), paper: false, look: false }
+// What the next Print screen is for: 'print', or 'png' / 'pdf' (Share as picture… / PDF… in a Share menu: the same screen, ending in Share).
+let next = { as: 'print', at: 0 };
+export const shareNext = as => { next = { as, at: Date.now() }; };
+const PHOTO = { s: 0.6, m: 1, l: 1.5, xl: 2.2 };
+
+// opts: { kind, title, back, options: [...], defaults: {...}, build: async choices => ({ css, html, count?, note? }), paper: false, look: false, photos: true }
+// photos: a Photo size choice; the printout's CSS sizes its pictures by var(--ps) (1 = medium).
 // An option is ['Heading'], { seg: key, items: [[value, words]], hint }, { check: key, words }, { range: key, words, min, max },
 // { select: key, words, items: [[value, words]] }, { text: key, words, placeholder } or { hint: words }.
 export async function openPrint(opts) {
@@ -72,7 +76,10 @@ export async function openPrint(opts) {
   if (!document.getElementById('print-screen-css')) document.head.append(Object.assign(document.createElement('style'), { id: 'print-screen-css', textContent: screenCss }));
   const saved = (await settingsOf())[opts.kind] || {};
   const choices = Object.assign({ look: 'colour', paper: 'A4' }, opts.defaults, saved);
+  const as = Date.now() - next.at < 10000 ? next.as : 'print';
+  next = { as: 'print', at: 0 };
   const options = [...opts.options];
+  if (opts.photos) { choices.photo_size ??= 'm'; options.push(['Photo size'], { seg: 'photo_size', items: [['s', 'Small'], ['m', 'Medium'], ['l', 'Large'], ['xl', 'Extra large']] }); }
   if (opts.look !== false) options.push(['Look'], { seg: 'look', items: [['colour', 'Colour'], ['bw', 'Black and white']], hint: 'Black and white: lines only, no blocks of colour, photos in grey.' });
   if (opts.paper !== false) options.push(['Paper'], { seg: 'paper', items: Object.keys(PAPERS).map(p => [p, p]) });
   const el = document.createElement('div');
@@ -89,10 +96,10 @@ export async function openPrint(opts) {
     if (o.text) return `<label class="print-row">${esc(o.words)} <input type="text" data-text="${o.text}" value="${esc(choices[o.text] || '')}" placeholder="${esc(o.placeholder || '')}"></label>`;
     return '';
   };
-  el.innerHTML = `<div class="print-top"><button type="button" class="back" data-print="close">‹ ${esc(opts.back || 'Back')}${keys('Esc')}</button><h1>Print: ${esc(opts.title)}</h1></div>
+  el.innerHTML = `<div class="print-top"><button type="button" class="back" data-print="close">‹ ${esc(opts.back || 'Back')}${keys('Esc')}</button><h1>${{ print: 'Print', png: 'Share as picture', pdf: 'Share as PDF' }[as]}: ${esc(opts.title)}</h1></div>
     <div class="print-grid"><div class="print-opts">${options.map(control).join('')}
-      <div class="print-share"><span>Share as</span><button type="button" data-print="png" title="A picture of the printout, to send in WhatsApp or anywhere">🖼 Picture</button><button type="button" data-print="pdf" title="A PDF of the printout, pages and all">📄 PDF</button></div>
-      <div class="print-actions"><button type="button" data-print="close">Cancel</button><span class="spacer"></span><button type="button" class="primary" data-print="go">🖨 Print${keys(MAC ? '⌘+P' : 'Ctrl+P')}</button></div></div>
+      <div class="print-actions"><button type="button" data-print="close">Cancel</button><span class="spacer"></span>${as === 'print' ? `<button type="button" class="primary" data-print="go">🖨 Print${keys(MAC ? '⌘+P' : 'Ctrl+P')}</button>`
+        : `<button type="button" class="primary" data-print="${as}" title="To WhatsApp or anywhere, as a file">${as === 'png' ? '🖼' : '📄'} Share</button>`}</div></div>
     <div class="print-view"><div class="print-view-head"><span class="print-count"></span><span class="print-note"></span></div><iframe class="print-frame" title="Print preview"></iframe></div></div>`;
   document.body.append(el);
   document.body.classList.add('printing-open');
@@ -111,7 +118,7 @@ export async function openPrint(opts) {
     if (mine !== drawn) return;
     const [pw, ph] = PAPERS[choices.paper] || PAPERS.A4;
     const page = out.page || { size: `${pw}mm ${ph}mm`, margin: out.flow ? '12mm 13mm' : '0' };
-    frame.srcdoc = lastDoc = `<!doctype html><html><head><meta charset="utf-8"><style>:root { --pw: ${pw}; --ph: ${ph}; } @page { size: ${page.size}; margin: ${page.margin}; }${BASE_CSS}${out.css || ''}</style></head>
+    frame.srcdoc = lastDoc = `<!doctype html><html><head><meta charset="utf-8"><style>:root { --pw: ${pw}; --ph: ${ph}; --ps: ${PHOTO[choices.photo_size] || 1}; } @page { size: ${page.size}; margin: ${page.margin}; }${BASE_CSS}${out.css || ''}</style></head>
       <body class="${choices.look === 'bw' ? 'bw' : 'colour'}">${out.html}</body></html>`;
     el.querySelector('.print-count').textContent = `Preview · ${choices.paper}${out.count ? ` · ${out.count}` : ''}`;
     el.querySelector('.print-note').textContent = out.note || 'Your choices are kept for next time';
@@ -164,7 +171,7 @@ export async function openPrint(opts) {
     changed();
   });
   await draw();
-  el.querySelector('[data-print="go"]').focus();
+  el.querySelector('.print-actions .primary').focus();
   return { close, redraw: draw };
 }
 

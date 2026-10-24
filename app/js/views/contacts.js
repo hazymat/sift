@@ -532,10 +532,10 @@ export default {
         .ic { width: 2.2em; height: 2.2em; border-radius: 50%; border: .15em solid #94a3b8; display: flex; align-items: center; justify-content: center; flex: none; font-size: .95em; }
         .ev.in .ic { border-color: #2b6cb0; } .ev.out .ic { border-color: #d69e2e; } .bw .ev .ic { border-color: var(--ink); filter: grayscale(1); }
         .ev .hd { font-size: .85em; color: var(--soft); } .ev .hd b { color: var(--ink); font-size: 1.08em; } .ev .bd { margin-top: .15em; } .ev .bd p { margin: .2em 0; }
-        .thumbs { display: flex; flex-wrap: wrap; gap: .6em; margin-top: .45em; } .thumbs img { height: 6.5em; border: 1px solid var(--rule); border-radius: .2em; } .fname { font-size: .85em; color: var(--soft); }
-        .full { break-inside: avoid; margin: 0 0 1.4em; } .full img { max-width: 100%; max-height: 11.5cm; border: 1px solid var(--rule); display: block; } .full div { font-size: .8em; color: var(--soft); margin-top: .3em; }
+        .thumbs { display: flex; flex-wrap: wrap; gap: .6em; margin-top: .45em; } .thumbs img { height: calc(6.5em * var(--ps, 1)); max-width: 100%; border: 1px solid var(--rule); border-radius: .2em; } .fname { font-size: .85em; color: var(--soft); }
+        .full { break-inside: avoid; margin: 0 0 1.4em; } .full img { max-width: 100%; max-height: calc(10cm * var(--ps, 1)); border: 1px solid var(--rule); display: block; } .full div { font-size: .8em; color: var(--soft); margin-top: .3em; }
 `;
-      openPrint({ kind: 'case', title: k.title || 'Case', back: 'Case', defaults: { details: true, timeline: true, times: true, tasks: true, order: 'old', photos: 'both' },
+      openPrint({ kind: 'case', title: k.title || 'Case', back: 'Case', photos: true, defaults: { details: true, timeline: true, times: true, tasks: true, order: 'old', photos: 'both' },
         options: [['What goes in'], { check: 'details', words: 'Summary and details (references, people)' }, { check: 'timeline', words: 'Timeline' }, { check: 'times', words: 'Times on each entry' },
           { check: 'tasks', words: "Tasks, their comments and filed scans" },
           ['Timeline order'], { seg: 'order', items: [['old', 'Oldest first'], ['new', 'Newest first']] },

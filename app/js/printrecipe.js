@@ -24,7 +24,7 @@ const RECIPE_CSS = `
 .rh h1 { font: 700 2.1em/1.08 Georgia, serif; margin: .05em 0 0; }
 .rh .ds { font: italic 1.05em Georgia, serif; color: var(--soft); margin: .25em 0 0; }
 .rh .sc { display: inline-block; margin-left: .5em; font: 700 .42em/1 system-ui, sans-serif; vertical-align: middle; padding: .35em .6em; border-radius: 1em; border: .14em solid var(--accent); color: var(--accent); }
-.rh img.photo { width: 7.5em; height: 5.6em; object-fit: cover; border-radius: .3em; flex: none; }
+.rh img.photo { width: calc(7.5em * var(--ps, 1)); height: calc(5.6em * var(--ps, 1)); max-width: 45%; object-fit: cover; border-radius: .3em; flex: none; }
 .facts { display: flex; flex-wrap: wrap; gap: .3em 1.4em; font-size: .9em; margin: 0 0 .8em; }
 .facts span { color: var(--soft); } .facts b { font-weight: 600; }
 .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr); gap: 1.6em; }
@@ -47,7 +47,7 @@ export async function printRecipes({ items, title, back, times = 1, book = null 
   const one = items[0];
   const pictures = new Map();
   return openPrint({
-    kind: 'recipe', title, back,
+    kind: 'recipe', title, back, photos: true,
     defaults: { _times: times, _by: '', which: 'this', per: 'auto', layout: 'side', photo: true, details: true, batch: true, lines: 0 },
     options: [
       ['Scale'], { select: '_times', words: 'Amounts', items: SCALES }, { text: '_by', words: 'Or by', placeholder: 'like 1.25 or 750/1000' },

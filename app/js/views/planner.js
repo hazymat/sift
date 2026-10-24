@@ -87,6 +87,8 @@ const dayPlanner = {
             <button type="button" data-share="whatsapp">Copy to clipboard – WhatsApp</button>
             <hr>
             <button type="button" data-print-day>🖨 Print this day…</button>
+            <button type="button" data-print-day="png">🖼 Share as picture…</button>
+            <button type="button" data-print-day="pdf">📄 Share as PDF…</button>
           </div>
         </details>
         <details class="tool-menu view-menu">
@@ -2382,8 +2384,10 @@ const dayPlanner = {
       }
     }
     el.addEventListener('click', ev => {
-      if (ev.target.closest('[data-print-day]')) {
-        ev.target.closest('details')?.removeAttribute('open');
+      const printDay = ev.target.closest('[data-print-day]');
+      if (printDay) {
+        printDay.closest('details')?.removeAttribute('open');
+        if (printDay.dataset.printDay) import('../print.js').then(m => m.shareNext(printDay.dataset.printDay)); // the day sheet as a picture or PDF
         return void import('../printday.js').then(m => m.printDay(date));
       }
       const b = ev.target.closest('[data-share]');

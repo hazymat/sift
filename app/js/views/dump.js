@@ -246,16 +246,16 @@ export default {
       const rest = after !== null ? [...(after ? [after] : []), ...lines.slice(firstAt + 1)].join('\n') : t.body;
       const CSS = `h1 { font: 700 1.9em/1.15 Georgia, serif; margin: 0; } .when { color: var(--soft); font-size: .85em; margin: .3em 0 1em; padding-bottom: .5em; border-bottom: .15em solid var(--accent); }
         .body { font-size: 1.1em; line-height: 1.5; } .body a { color: inherit; } .pics { display: flex; flex-wrap: wrap; gap: 4mm; margin-top: 1.2em; }
-        .pics img { max-width: 100%; max-height: 12cm; border-radius: 2mm; } .pics.small img { max-width: 45%; max-height: 6cm; }
+        .pics img { max-width: 100%; max-height: calc(7cm * var(--ps, 1)); border-radius: 2mm; }
         .lines div { height: 2.1em; border-bottom: 1px solid var(--rule); } .lines { margin-top: 1em; }`;
-      openPrint({ kind: 'note', title, back: word('area_dump'), defaults: { when: true, pics: 'small', lines: 0, colour: true },
-        options: [['What goes in'], { check: 'when', words: 'When it was written' }, ...(files.length ? [{ seg: 'pics', items: [['small', 'Pictures small'], ['big', 'Pictures big'], ['none', 'No pictures']] }] : []),
+      openPrint({ kind: 'note', title, back: word('area_dump'), photos: files.length > 0, defaults: { when: true, pics: 'show', lines: 0, colour: true },
+        options: [['What goes in'], { check: 'when', words: 'When it was written' }, ...(files.length ? [{ seg: 'pics', items: [['show', 'With its pictures'], ['none', 'No pictures']] }] : []),
           { range: 'lines', words: 'Lines to write more', min: 0, max: 20 }, { check: 'colour', words: "In the note's colour" }],
         build: async (ch, keep) => {
           const pics = ch.pics === 'none' ? [] : (await Promise.all(files.map(a => filePicture(a, keep, 1400)))).filter(Boolean);
           return { flow: true, css: CSS + (ch.colour ? `.colour { --accent: ${tintHex(t)}; }` : ''),
             html: `<div class="flow"><h1>${titleHtml(t.body, title)}</h1>${ch.when ? `<div class="when">${pesc(dateText(new Date(t.created_at), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }))}</div>` : '<div class="when"></div>'}
-              <div class="body">${rest.trim() ? toHtml(unlinkText(rest)) : ''}</div>${pics.length ? `<div class="pics ${ch.pics}">${pics.map(src => `<img class="photo" src="${src}" alt="">`).join('')}</div>` : ''}
+              <div class="body">${rest.trim() ? toHtml(unlinkText(rest)) : ''}</div>${pics.length ? `<div class="pics">${pics.map(src => `<img class="photo" src="${src}" alt="">`).join('')}</div>` : ''}
               ${ch.lines ? `<div class="lines">${'<div></div>'.repeat(ch.lines)}</div>` : ''}</div>` };
         } });
     }
@@ -337,6 +337,8 @@ export default {
                 <button type="button" data-act="copy-md">Copy to clipboard – Markdown</button>
                 <hr>
                 <button type="button" data-act="print-note">🖨 Print…</button>
+                <button type="button" data-act="print-note" data-as="png">🖼 Share as picture…</button>
+                <button type="button" data-act="print-note" data-as="pdf">📄 Share as PDF…</button>
                 <hr>
                 ${theirsOwner() ? `<button type="button" data-share-leave="${fromOthers(['note']).find(sh => sh.info.id === t.id)?.id || ''}">Leave this shared note</button>` : '<button type="button" class="danger" data-act="delete">Delete</button>'}
               </div>
@@ -730,6 +732,7 @@ export default {
         await convert(t, { collection: 'items', id: item.id }, 'Added to the box');
       } else if (act === 'print-note') {
         li.querySelector('details[open]')?.removeAttribute('open');
+        if (b.dataset.as) (await import('../print.js')).shareNext(b.dataset.as);
         return printNote(t);
       } else if (['copy-plain', 'copy-rich', 'copy-whatsapp', 'copy-md', 'share-sheet'].includes(act)) {
         // Share a saved note: the text as written (links as their words); Markdown as it's kept, WhatsApp with its own marks.

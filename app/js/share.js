@@ -1,5 +1,6 @@
 // Share (the pill left of 👁 and ⋯, like the Day Planner's): copies what the
-// page shows, as plain text, rich text, for WhatsApp or as Markdown, or prints it (🖨 Print…, print.js).
+// page shows, as plain text, rich text, for WhatsApp or as Markdown, or prints it (🖨 Print…, print.js) or shares
+// the printout as a picture or PDF file (the same Print screen, ending in Share; printshare.js).
 // The Day Planner shares its own day; every other area reads its rows off the page, only the chosen ones
 // when some are chosen. An opened thing with its own printout (a case) sets it in `printers`.
 import { toast } from './toast.js';
@@ -16,7 +17,9 @@ export const shareHtml = ({ top = '', bottom = '', title = 'Share (S)', cls = ''
     <button type="button" data-page-share="whatsapp">Copy to clipboard – WhatsApp</button>
     <button type="button" data-page-share="markdown">Copy to clipboard – Markdown</button>
     <hr>
-    <button type="button" data-page-print>🖨 Print…</button>${bottom}
+    <button type="button" data-page-print>🖨 Print…</button>
+    <button type="button" data-page-print="png">🖼 Share as picture…</button>
+    <button type="button" data-page-print="pdf">📄 Share as PDF…</button>${bottom}
   </div>
 </details>`;
 
@@ -91,6 +94,7 @@ export function installShare(getArea) {
     if (printBtn) {
       printBtn.closest('details')?.removeAttribute('open');
       const area = getArea();
+      if (printBtn.dataset.pagePrint) (await import('./print.js')).shareNext(printBtn.dataset.pagePrint); // Share as picture / PDF: the same Print screen, ending in Share
       if (!(await printers[area]?.())) printPage(area);
       return;
     }
