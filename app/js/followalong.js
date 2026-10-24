@@ -93,13 +93,18 @@ export async function openFollow(open) {
     return `<ul class="fa-ing-list">${p.ings.map(i => `<li${used.has(i.id) ? ' class="fa-used"' : ''}><b>${esc(amountText(i, p.tab.times))}</b><span>${esc(i.item)}${i.note ? ` <span class="muted">(${esc(i.note)})</span>` : ''}</span></li>`).join('')}</ul>`;
   };
   const photo = (p, st) => { const a = (p.atts.get(st.id) || []).find(x => x.thumb); return a ? `<button type="button" class="fa-photo" data-photo="${a.id}" aria-label="Look at the photo"><img src="${a.thumb}" alt="" data-full="${a.id}"></button>` : ''; };
+  // A step ticked off: a big green ✓ on its left; its pill (bottom right, on the step in the middle) ticks it and moves on.
+  const isDone = (p, st) => (p.tab.done || []).includes(st.id);
+  const doneBtn = (p, n, done) => (done ? '<button type="button" class="fa-done-btn fa-undone" data-done="0">↺ Not done</button>'
+    : `<button type="button" class="fa-done-btn" data-done="1">✓ Done${n < p.steps.length - 1 ? ', next' : ''}${keys('Enter')}</button>`);
   const stepOf = (p, st, n) => {
     // A Start button for each different time the step mentions; with more than one, each timer's name says its time.
     const waits = stepWaits(st.text), name = waitName(st.text, n + 1);
     const starts = waits.map(secs => `<button type="button" class="fa-wait" data-wait="${secs}" data-name="${esc(waits.length > 1 ? `${name}, ${timers.lengthText(secs)}` : name)}">⏰ Start ${timers.lengthText(secs)} timer</button>`).join('');
-    return `<section class="fa-step" data-n="${n}"><div class="fa-num">Step ${n + 1}<span class="fa-of"> of ${p.steps.length}</span></div>
+    const done = isDone(p, st);
+    return `<section class="fa-step${done ? ' fa-done' : ''}" data-n="${n}">${done ? '<span class="fa-tick" aria-label="Done">✓</span>' : ''}<div class="fa-num">Step ${n + 1}<span class="fa-of"> of ${p.steps.length}</span></div>
       <div class="fa-text">${stepHtml(st.text, p.ings, p.tab.times, esc) || '<span class="muted">Empty step</span>'}</div>
-      ${photo(p, st) || starts ? `<div class="fa-extra">${photo(p, st)}${starts}</div>` : ''}</section>`;
+      <div class="fa-extra">${photo(p, st)}${starts}${doneBtn(p, n, done)}</div></section>`;
   };
   // One pot: its ingredients (folded unless it's the only one on a wide screen) and its drum of steps.
   const potHtml = (p, n, { alone }) => `<div class="fa-pot${alone ? ' fa-alone' : ''}" data-pot="${n}">
@@ -143,9 +148,23 @@ export async function openFollow(open) {
         s.classList.toggle('fa-cur', n === near);
       });
       if (near !== me.cur || !box.querySelector('.fa-ing-list')) { me.cur = near; p.tab.at = near; save(); box.querySelector('.fa-ing-body').innerHTML = ingsHtml(p, near); }
-      box.querySelectorAll('[data-dot]').forEach(x => x.classList.toggle('on', +x.dataset.dot === me.cur));
+      box.querySelectorAll('[data-dot]').forEach(x => { x.classList.toggle('on', +x.dataset.dot === me.cur); x.classList.toggle('done', isDone(p, p.steps[+x.dataset.dot])); });
     };
     me.later = () => { if (!frame) frame = requestAnimationFrame(me.roll); };
+    // Tick a step off (and move on to the next), or untick it.
+    me.mark = (n, done) => {
+      const st = p.steps[n];
+      if (!st) return;
+      p.tab.done = (p.tab.done || []).filter(id => id !== st.id).concat(done ? [st.id] : []);
+      save();
+      const old = items()[n], fresh = document.createElement('div');
+      fresh.innerHTML = stepOf(p, st, n);
+      const step = fresh.firstElementChild;
+      step.className = old.className.replace(/\s*fa-done/, '') + (done ? ' fa-done' : '');
+      step.style.cssText = old.style.cssText;
+      old.replaceWith(step);
+      if (done && n < p.steps.length - 1) me.goTo(n + 1); else me.roll();
+    };
     me.goTo = (n, smooth = true) => {
       const s = items()[Math.max(0, Math.min(p.steps.length - 1, n))];
       if (s) d.scrollTo({ top: s.offsetTop + s.offsetHeight / 2 - d.clientHeight / 2, behavior: smooth ? 'smooth' : 'auto' });
@@ -279,6 +298,7 @@ export async function openFollow(open) {
     if (ev.key === 'Escape') { if (document.querySelector('.pill-menu')) return; ev.preventDefault(); ev.stopPropagation(); close(); }
     else if (move && !ev.ctrlKey && !ev.metaKey && !ev.altKey) { ev.preventDefault(); ev.stopPropagation(); f?.goTo(f.cur + move); }
     else if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') { ev.preventDefault(); ev.stopPropagation(); if (pots.length > 1) switchTo(k.at + (ev.key === 'ArrowRight' ? 1 : -1)); } // the tabs, not the area's behind
+    else if (ev.key === 'Enter' && f && !ev.target.closest?.('button, summary, a')) { ev.preventDefault(); f.mark(f.cur, !f.pot.steps[f.cur] || !isDone(f.pot, f.pot.steps[f.cur])); }
     else if (ev.key === 'Home' || ev.key === 'End') { ev.preventDefault(); f?.goTo(ev.key === 'Home' ? 0 : f.pot.steps.length - 1); }
   }
   addEventListener('keydown', onKey, true);
@@ -306,6 +326,7 @@ export async function openFollow(open) {
       el.querySelectorAll(`[data-timer="${going.id}"]`).forEach(pill => { pill.classList.remove('tm-flash'); void pill.offsetWidth; pill.classList.add('tm-flash'); });
       return toast(`${going.name} is already going: tap its time for more`);
     }
+    if (b.dataset.done) { const n = +b.closest('.fa-step').dataset.n; return s?.mark(n, b.dataset.done === '1'); }
     if (b.dataset.photo) { const list = s.pot.atts.get(s.pot.steps[+b.closest('.fa-step').dataset.n].id) || []; return att.view(list, Math.max(0, list.findIndex(a => a.id === b.dataset.photo))); }
     if (b.matches('.fa-step') && !b.classList.contains('fa-cur')) s?.goTo(+b.dataset.n);
   });
@@ -367,6 +388,16 @@ body.follow-open { overflow: hidden; }
 .fa-photo { padding: 0; border-radius: 18px; overflow: hidden; background: none; flex: none; max-width: 100%; }
 .fa-photo img { display: block; width: min(380px, 100%); max-height: 34vh; object-fit: cover; }
 .fa-wait { font-size: 1rem; }
+.fa-step { position: relative; }
+.fa-done-btn { margin-left: auto; font-size: 1rem; font-weight: 600; padding: 8px 18px; background: rgba(52, 168, 83, .9); border-color: rgba(120, 220, 140, .9); color: #fff; }
+.fa-done-btn.fa-undone { background: var(--glass); border-color: var(--glass-border); color: var(--muted); font-weight: 500; }
+.fa-done-btn kbd { opacity: .7; }
+.fa-step:not(.fa-cur) .fa-done-btn { visibility: hidden; }
+.fa-step.fa-done { padding-left: 84px; }
+.fa-tick { position: absolute; left: 18px; top: 18px; width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center; background: rgb(52, 168, 83); color: #fff; font-size: 1.9rem; font-weight: 800; box-shadow: 0 4px 14px rgba(52, 168, 83, .45); animation: fa-tick .35s cubic-bezier(.2, 1.6, .4, 1); }
+.fa-done .fa-text { opacity: .62; }
+@keyframes fa-tick { from { transform: scale(.3); opacity: 0; } }
+.fa-dots i.done { background: rgb(52, 168, 83); }
 .fa-dots { position: absolute; right: 2px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 7px; pointer-events: none; }
 .fa-dots i { width: 7px; height: 7px; border-radius: 4px; background: color-mix(in srgb, var(--text) 30%, transparent); transition: height .2s, background .2s; }
 .fa-dots i.on { height: 20px; background: var(--accent); }
@@ -398,6 +429,8 @@ body.follow-open { overflow: hidden; }
   .fa-fold[open] summary::after { content: "▴"; }
   .fa-drum { flex: 1; padding: 0 2px; }
   .fa-step { padding: 14px 16px; }
+  .fa-step.fa-done { padding-left: 62px; }
+  .fa-tick { left: 12px; top: 14px; width: 40px; height: 40px; font-size: 1.5rem; }
   .fa-text { font-size: 1.75rem; }
   .fa-photo img { width: 100%; max-height: 28vh; }
   .fa-dots { display: none; }

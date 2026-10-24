@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.15': [{ text: "Batch Book, Follow along: the green ✓ Done, next pill at the bottom right of the step you're on ticks it off (a big green tick on its left) and rolls on to the next step. ↺ Not done takes it back; on a computer, Enter does it too.", go: '#/recipes', open: ['#main .bb-card', '#main .bb-follow'], at: '.fa-cur .fa-done-btn' }],
   '1.61.14': [{ text: "Batch Book: ▶ Follow along is now at the top of a recipe or batch, by Make this. On the main page, a card's ⋯ menu has ▶ Follow along and 🧪 Make at the top instead of the Make pill under each card.", go: '#/recipes', at: '#main .bb-card-menu summary' },
     { text: "Batch Book, Follow along: ✓ Finished cooking no longer asks about timers. It clears the recipes and their timers, and Undo in the message brings them all back.", go: '#/recipes', open: ['#main .bb-card'], at: '#main .bb-follow' },
     { text: "Batch Book, Follow along: a step that mentions more than one time (\"+5 mins … +10 more mins\") has a Start button for each, not just the first.", go: '#/recipes', open: ['#main .bb-card', '#main .bb-follow'], at: '.fa-wait' },
@@ -178,6 +179,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.15': '2026-10-24T23:01:33Z',
   '1.61.14': '2026-10-24T22:55:26Z',
   '1.61.13': '2026-10-24T22:45:21Z',
   '1.61.12': '2026-10-24T22:26:19Z',
