@@ -30,6 +30,7 @@ import { linkUrls } from '../weburl.js';
 import { addExamples, addNewPhotos, isBrandNew, needsWipe, photosBehind, setUpBooks, wipeBook } from '../examples.js';
 import { feature } from '../stats.js';
 import { shareHtml, printers, sharers } from '../share.js';
+import { openFollow, isOpen as followOpen, cooking } from '../followalong.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -212,6 +213,7 @@ export default {
         <div class="bb-sticky">
           <div class="bb-head">
             <button type="button" class="primary" data-act="new">+ New recipe</button>
+            ${cooking() ? `<button type="button" class="bb-cooking" data-act="cooking" title="Back to Follow along">🍳 Cooking (${cooking()})</button>` : ''}
             <input type="search" class="search bb-search" placeholder="Search recipes…" value="${esc(state.q)}" aria-label="Search recipes">
             <div class="bb-mode segmented" role="group" aria-label="Show"><button type="button" data-mode="recipes" aria-pressed="${!state.batches}">📖 Recipes</button><button type="button" data-mode="batches" aria-pressed="${state.batches}">🧪 Batches</button></div>
             ${cogHtml('recipes', `${state.batches ? '' : sortHtml()}${paperHtml()}`)}
@@ -293,7 +295,7 @@ export default {
       const times = o.collection === 'recipes' ? state.times : 1;
       const ings = rec.ingredients || [];
       return `<div class="bb-method" data-owner="${o.collection}:${o.id}">
-        <h2 class="bb-h"><span>🥄 Steps</span></h2>
+        <h2 class="bb-h"><span>🥄 Steps</span>${steps.length ? '<button type="button" class="bb-follow" data-act="follow" title="Cook from it: one step at a time, big, with timers">▶ Follow along</button>' : ''}</h2>
         ${ings.length ? `<div class="bb-ref-picks"><span class="muted">Put in:</span>${ings.map(i => `<button type="button" class="chip" data-ref="${esc(i.item)}">${esc(i.item)}</button>`).join('')}</div>` : ''}
         <div class="bb-lines bb-steps">
           ${steps.map((x, n) => line(`${n + 1}`, `
@@ -516,11 +518,26 @@ export default {
       }
       if (focusNext) { const f = el.querySelector(focusNext); focusNext = null; if (f) { f.focus(); f.select?.(); } }
       if (walkNext) { const w = walkNext; walkNext = null; const f = el.querySelector(w.key); if (f && !el.contains(document.activeElement)) arrive(f, w.at); }
+      followWanted();
     };
     // After a sync: redraw unless something is being written in (then when it's left).
     this.refresh = async () => { if (writing()) { dirty = true; return; } await render(); };
     el.addEventListener('focusout', () => setTimeout(() => { if (dirty && !writing()) render(); }, 0));
     const later = async () => { data = await loadBook(); if (writing()) dirty = true; else await render(); };
+
+    // Follow along (followalong.js): the open recipe (at the scale shown) or batch, to cook from.
+    function follow() {
+      const m = state.make ? makeOf(state.make) : null;
+      const rec = m || recipeOf(state.recipe);
+      if (!rec || followOpen()) return;
+      openFollow({ c: m ? 'recipe_makes' : 'recipes', id: rec.id, owner: state.owner, times: m ? 1 : state.times });
+    }
+    // A timer's pill (timers.js) opens its recipe's Follow along.
+    const followWanted = () => { let want = null; try { want = sessionStorage.getItem('sift_follow'); } catch {} if (want && want === (state.make || state.recipe)) { try { sessionStorage.removeItem('sift_follow'); } catch {} follow(); } };
+    this.onFollow = () => followWanted();
+    addEventListener('sift-follow', this.onFollow);
+    this.onFollowClosed = () => { if (!state.recipe && !state.make) render(); }; // the 🍳 Cooking pill's count
+    addEventListener('sift-follow-closed', this.onFollowClosed);
 
     // ---------- saving ----------
 
@@ -860,6 +877,8 @@ export default {
       }
       if (act === 'examples') { b.disabled = true; await addExamples(); toast('Added example recipes: change or delete them as you like'); return render(); }
       if (act === 'make') return makeThis(recipeOf(state.recipe));
+      if (act === 'follow') return follow();
+      if (act === 'cooking') return openFollow(null).then(() => { if (!followOpen()) render(); });
       if (act === 'reading') {
         const type = b.dataset.type || 'Gravity', grav = isGravity(type);
         const made = await store.create('recipe_entries', Object.assign({ make_id: state.make, recipe_id: makeOf(state.make)?.recipe_id, kind: 'reading', type, date: today(), text: '' },
@@ -1375,6 +1394,9 @@ export default {
   unmount() {
     if (this.state.fresh) { this.dropIfEmpty(this.state.fresh, typedOnPage()); this.state.fresh = null; }
     removeEventListener('keydown', this.onKey);
+    removeEventListener('sift-follow', this.onFollow);
+    removeEventListener('sift-follow-closed', this.onFollowClosed);
+    document.querySelector('.fa-screen') && document.querySelector('.fa-screen .back')?.click();
     removeEventListener('keydown', this.onEsc, true);
     this.kit?.destroy();
     this.batchKit?.destroy();

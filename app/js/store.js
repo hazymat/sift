@@ -21,10 +21,11 @@ export const COLLECTIONS = [
   'comments',
   'note_versions',
   'recipes', 'recipe_makes', 'recipe_entries',
+  'timers',
   'settings',
 ];
 
-const DB_VERSION = 11; // bump when adding object stores; onupgradeneeded only adds what's missing
+const DB_VERSION = 12; // bump when adding object stores; onupgradeneeded only adds what's missing
 const LOCAL_DB = 'sift_local';
 const SYSTEM_FIELDS = new Set(['id', '_field_clocks', '_dirty_fields', '_server_seq', '_share_seqs']);
 const SETTINGS_ID = 'settings'; // fixed id so every device edits the same record
@@ -210,6 +211,7 @@ let lastEntry = null;
 const pick = (obj, fields) => Object.fromEntries(fields.map(f => [f, obj?.[f] ?? null]));
 
 function noteChange(collection, before, after) {
+  if (collection === 'timers') return; // a timer's pause or extra minute isn't something to undo
   const fields = Object.keys(after).filter(f => !QUIET.has(f) && !same(before?.[f] ?? null, after[f] ?? null));
   if (!fields.length) return;
   pending ??= { changes: [], at: new Date().toISOString() };

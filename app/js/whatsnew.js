@@ -25,6 +25,9 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.12': [{ text: "Batch Book: ▶ Follow along, by the Steps heading of a recipe or batch, opens it to cook from: one step at a time in big writing with its photo, the steps before and after smaller either side, and the ingredients with the scale (on a phone, folded at the top). Read only, and it keeps the screen on.", go: '#/recipes', open: ['#main .bb-card'], at: '#main .bb-follow' },
+    { text: "Batch Book, Follow along: cook several at once. + Recipe adds another as a tab (tap a tab, or swipe on a phone, to switch), ◫ Side by side shows two or three at once on an iPad or computer, and 🍳 Cooking on Batch Book's main page gets you back in. ✓ Finished cooking clears them all.", go: '#/recipes', open: ['#main .bb-card'], at: '#main .bb-follow' },
+    { text: "Batch Book, Follow along: ⏲ + Timer starts countdowns and stopwatches, as many as you like. A step that says \"15 minutes\" has a one-tap timer. They're synced, so they keep going if Sift is closed or on another device, and show at the bottom right of every page. A finished one turns red and beeps until you press ✕.", go: '#/recipes', open: ['#main .bb-card'], at: '#main .bb-follow' }],
   '1.61.11': [{ text: "Batch Book: a new recipe goes first in its book, so you can find it again. 👁 has Sort: Your order (drag them), Newest first, Oldest first, A to Z, Most made or Made lately. On a book's tab it sorts that book; on All it sorts every book. Dragging a recipe switches its book back to Your order.", go: '#/recipes', open: ['#main .bb-head .page-cog summary'], at: '#main .bb-sort-opts' }],
   '1.61.10': [{ text: "Batch Book: batch rows are tidier. The ⠿ for choosing sits inside each row, as in Tasks, and Delete is a red pill that always sits at the right end of the row. A new recipe you leave without filling anything in isn't kept.", go: '#/recipes', open: ['#main .bb-card'], at: '#main .bb-paper .bb-batch-list' }],
   '1.61.09': [{ text: "Batch Book: on an open recipe, each batch at the bottom has a Delete pill. Tap a batch's ⠿ (or press and hold it) to choose several, then Delete on the bar. The scale buttons have ×4 too, on recipes and batches.", go: '#/recipes', open: ['#main .bb-card'], at: '#main .bb-paper .bb-batch-list', more: 'A batch\'s scale buttons (×⅓, ×½, ×2, ×4, ×…) change its own amounts, as before.' }],
@@ -169,6 +172,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.12': '2026-10-24T22:26:19Z',
   '1.61.11': '2026-10-24T22:15:34Z',
   '1.61.10': '2026-10-24T22:12:50Z',
   '1.61.09': '2026-10-24T21:54:53Z',

@@ -12,6 +12,7 @@ import { installViewCog } from './viewcog.js';
 import { installShare } from './share.js';
 import { installDropdowns, installMenuFlip } from './dropdown.js';
 import { installFileDrop } from './attachments.js';
+import { installTimers } from './timers.js';
 import { flushAll } from './autosave.js';
 import { installBrowse } from './browse.js';
 import { word, applyWords } from './words.js';
@@ -345,7 +346,7 @@ function installSwipe() {
     if (document.body.classList.contains('is-dragging') || getSelection()?.toString()) return true;
     const areasBar = $('#tabbar')?.getBoundingClientRect();
     if (areasBar?.height && s.y >= areasBar.top) return true;
-    if (s.el.closest?.('dialog, .rich.is-full, .drag-handle, .kit-grip, .drag-grip, .resize-grip, input[type="range"], .dd-menu, .pill-menu')) return true;
+    if (s.el.closest?.('dialog, .fa-screen, .rich.is-full, .drag-handle, .kit-grip, .drag-grip, .resize-grip, input[type="range"], .dd-menu, .pill-menu')) return true;
     for (let n = s.el; n && n !== document.body; n = n.parentElement) {
       if (n.scrollWidth > n.clientWidth + 1 && /auto|scroll/.test(getComputedStyle(n).overflowX)) return true;
     }
@@ -613,6 +614,7 @@ async function boot() {
   installDropdowns();
   installMenuFlip();
   installFileDrop();
+  installTimers();
   // Search everything: the laptop's top bar, and the top of the phone's More list.
   {
     const top = $('#top-search');
