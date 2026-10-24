@@ -19,7 +19,7 @@ import { toast, undoable } from '../toast.js';
 import { askText, askYes } from '../ask.js';
 import { dateText, isoDate, PAPERS } from '../days.js';
 import { cogHtml } from '../viewcog.js';
-import { rankOf, byRank, reorderWrites } from '../order.js';
+import { rankOf, byRank, reorderWrites, firstKey } from '../order.js';
 import { createListKit } from '../listkit.js';
 import { shareSheet, sharedWithText, people, fromOthers, invitesHtml, theirIconHtml } from '../sharing.js';
 import { TINTS } from '../colours.js';
@@ -104,7 +104,29 @@ export default {
       title: (a, b) => batchName(a, recipeOf(a.recipe_id)?.title).localeCompare(batchName(b, recipeOf(b.recipe_id)?.title)),
       custom: byBatchPlace,
     }[batchSort()] || byBatchPlace);
-    const shown = () => data.recipes.filter(matches).sort((a, b) => order(a) - order(b) || Number(!!b.pinned) - Number(!!a.pinned) || byPlace(a, b));
+    // Each book's own order (settings.recipe_sort, synced, by book name): Your order (dragged; new recipes go first) or one of these.
+    const RECIPE_SORTS = [['custom', 'Your order'], ['new', 'Newest first'], ['old', 'Oldest first'], ['title', 'A to Z'], ['most', 'Most made'], ['recent', 'Made lately']];
+    const recipeSort = book => (settings.recipe_sort || {})[book] || 'custom';
+    const lastMade = r => makesOf(r.id).reduce((at, m) => (m.date || '') > at ? m.date : at, '');
+    const SORT_BY = {
+      new: (a, b) => (b.created_at || '').localeCompare(a.created_at || ''),
+      old: (a, b) => (a.created_at || '').localeCompare(b.created_at || ''),
+      title: (a, b) => (a.title || '').localeCompare(b.title || ''),
+      most: (a, b) => makesOf(b.id).length - makesOf(a.id).length,
+      recent: (a, b) => lastMade(b).localeCompare(lastMade(a)),
+    };
+    const shown = () => data.recipes.filter(matches).sort((a, b) => order(a) - order(b) || Number(!!b.pinned) - Number(!!a.pinned) || (SORT_BY[recipeSort(a.type || '')] || (() => 0))(a, b) || byPlace(a, b));
+    // 👁 on the recipes: Sort, for the book shown (on All or ★ Pinned, every book at once).
+    const sortHtml = () => {
+      const book = state.section && !pinnedTab() ? state.section : null;
+      const on = book !== null ? recipeSort(book) : (sections.every(x => recipeSort(x.name) === recipeSort(sections[0]?.name || '')) ? recipeSort(sections[0]?.name || '') : '');
+      return `<h4>Sort ${book !== null ? `${esc(book || 'No book')}` : 'every book'}</h4><div class="view-opts bb-sort-opts" role="group" aria-label="Sort recipes">
+        ${RECIPE_SORTS.map(([v, l]) => `<button type="button" data-recipe-sort="${v}" aria-pressed="${on === v}">${l}</button>`).join('')}</div>`;
+    };
+    async function setRecipeSort(books, v) {
+      settings.recipe_sort = Object.assign({}, settings.recipe_sort, Object.fromEntries(books.map(b => [b, v])));
+      await store.updateSettings({ recipe_sort: settings.recipe_sort });
+    }
 
     // A card: its picture, name and how often it's been made; Make and ⋯ More under it.
     // from: a person sharing it with you ({ owner_id, name }); their cards don't drag.
@@ -192,7 +214,7 @@ export default {
             <button type="button" class="primary" data-act="new">+ New recipe</button>
             <input type="search" class="search bb-search" placeholder="Search recipes…" value="${esc(state.q)}" aria-label="Search recipes">
             <div class="bb-mode segmented" role="group" aria-label="Show"><button type="button" data-mode="recipes" aria-pressed="${!state.batches}">📖 Recipes</button><button type="button" data-mode="batches" aria-pressed="${state.batches}">🧪 Batches</button></div>
-            ${cogHtml('recipes', paperHtml())}
+            ${cogHtml('recipes', `${state.batches ? '' : sortHtml()}${paperHtml()}`)}
             <details class="tool-menu page-more">
               <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
               <div class="menu"><a href="#" data-act="sections">Edit books</a><a href="#" data-act="import">Import recipes</a><a href="#" data-act="examples">Add example recipes</a><a href="#/bin/archive/recipes">Show Archive</a><a href="#/bin/bin/recipes">Show Bin</a></div>
@@ -764,6 +786,10 @@ export default {
       if (view && !ev.target.closest('a')) return openStep(view);
       const b = ev.target.closest('button, [data-act]');
       if (!b) return;
+      if (b.dataset.recipeSort) {
+        await setRecipeSort(state.section && !pinnedTab() ? [state.section] : sections.map(x => x.name), b.dataset.recipeSort);
+        return render();
+      }
       if (b.dataset.bbPaper) {
         settings.batch_paper = b.dataset.bbPaper;
         for (const p of el.querySelectorAll('.bb-paper')) p.dataset.paper = b.dataset.bbPaper;
@@ -899,7 +925,7 @@ export default {
     async function newRecipe() {
       const section = (!pinnedTab() && state.section) || sections[0]?.name || '';
       const fields = Object.fromEntries(sectionOf(sections, section).fields.map(k => [k, '']));
-      const r = await store.create('recipes', { title: 'New recipe', type: section, tags: [], description: '', ingredients: [], steps: [], fields });
+      const r = await store.create('recipes', { rank: firstKey(data.recipes.filter(x => (x.type || '') === section && !x.pinned), madeAt), title: 'New recipe', type: section, tags: [], description: '', ingredients: [], steps: [], fields });
       focusNext = '.bb-title';
       state.fresh = r.id;
       go(`#/recipes/${r.id}`);
@@ -1291,19 +1317,28 @@ export default {
       const book = new Map(rows.map(r => [r.id, recipeOf(r.id)?.type || '']));
       if (!state.section || pinnedTab()) for (const id of moved) { const b = bookAt(id); if (b !== null) book.set(id, b); }
       const patch = new Map();
+      // A book sorted some other way switches to Your order (quietly, as the batches list): all its recipes get places as they now show.
+      const sorted = Array.from(new Set(moved.map(id => book.get(id)))).filter(name => recipeSort(name) !== 'custom');
+      const sortsWere = Object.assign({}, settings.recipe_sort);
       // Each book's pinned and unpinned recipes are placed separately (pinned always come first).
       for (const name of new Set(book.values())) {
         for (const pinned of [true, false]) {
-          for (const [r, k] of reorderWrites(rows.filter(r => book.get(r.id) === name && !!recipeOf(r.id)?.pinned === pinned), r => rankOfRecipe(recipeOf(r.id)), moved)) patch.set(r.id, { rank: k });
+          const inBook = rows.filter(r => book.get(r.id) === name && !!recipeOf(r.id)?.pinned === pinned);
+          for (const [r, k] of reorderWrites(inBook, r => rankOfRecipe(recipeOf(r.id)), sorted.includes(name) ? inBook.map(r => r.id) : moved)) patch.set(r.id, { rank: k });
         }
       }
+      if (sorted.length) await setRecipeSort(sorted, 'custom');
       for (const [id, b] of book) if (b !== (recipeOf(id)?.type || '')) patch.set(id, Object.assign(patch.get(id) || { rank: rankOfRecipe(recipeOf(id)) }, { type: b }));
       if (!patch.size) return;
       const before = Array.from(patch.keys()).map(id => [id, { rank: recipeOf(id)?.rank ?? null, type: recipeOf(id)?.type || '' }]);
       await store.updateMany('recipes', Array.from(patch.entries()));
       await render();
       const into = Array.from(patch.values()).find(x => x.type !== undefined);
-      undoable(into ? `Moved to ${into.type || 'No book'}` : 'Moved a recipe', async () => { await store.updateMany('recipes', before); await render(); });
+      undoable(into ? `Moved to ${into.type || 'No book'}` : sorted.length ? 'Moved a recipe (sorted by Your order now)' : 'Moved a recipe', async () => {
+        await store.updateMany('recipes', before);
+        if (sorted.length) { settings.recipe_sort = sortsWere; await store.updateSettings({ recipe_sort: sortsWere }); }
+        await render();
+      });
     }
 
     // Esc with recipes chosen: the choosing ends first (before keyboard browsing's own Esc).
