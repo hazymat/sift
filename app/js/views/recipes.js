@@ -38,7 +38,7 @@ const shortDate = iso => (iso ? dateText(new Date(`${iso.slice(0, 10)}T12:00`), 
 const STATUSES = [['planned', 'Planned', '📝'], ['going', 'On the go', '🫧'], ['done', 'Done', '✅']];
 const statusLabel = v => { const st = STATUSES.find(x => x[0] === (v || 'going')); return `${st[2]} ${st[1]}`; };
 const GOALS = ['ABV goal', 'Sweetness goal', 'Final sweetness'];
-const SCALES = [1 / 3, 0.5, 1, 2, 3];
+const SCALES = [1 / 3, 0.5, 1, 2, 3, 4];
 const now = () => new Date().toISOString();
 // Recipes never dragged sort by when they were made.
 const madeAt = r => Date.parse(r.created_at) / 1e4 || 0;
@@ -146,21 +146,22 @@ export default {
     }
 
     // In the batches list a row isn't a link (a hold on a link can't drag, hold.js): pressing it opens the batch.
-    function batchRow(m, draggable = false) {
+    // A batch's row, picked with its ⠿ (both lists); fromList: Esc and ‹ go back to the batches list, else to its recipe, whose rows have Delete.
+    function batchRow(m, fromList = false) {
       const r = recipeOf(m.recipe_id);
       const sec = sectionFor(r);
       const abv = abvOf(entriesOf(m.id, 'reading'));
       const photo = photoOf(m.id);
-      const href = `#/recipes/${m.recipe_id}/make/${m.id}${draggable ? '/list' : ''}${ownerPath()}`; // /list: Esc and ‹ go back to the batches list
-      return `<${draggable ? `div role="link" tabindex="0" data-href="${href}"` : `a href="${href}"`} class="bb-batch-row" style="--bb:${colourOf(r)}">
+      const href = `#/recipes/${m.recipe_id}/make/${m.id}${fromList ? '/list' : ''}${ownerPath()}`;
+      return `<li data-id="${m.id}" data-depth="0"><button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button><div role="link" tabindex="0" data-href="${href}" class="bb-batch-row" style="--bb:${colourOf(r)}">
         ${photo ? `<img class="bb-batch-pic" src="${photo.thumb}" alt="">` : `<span class="bb-batch-emoji">${sec.emoji}</span>`}
         <span class="bb-batch-no">${esc(batchName(m, r?.title))}</span>
         <span class="bb-batch-name">${m.name && !m.name.includes(r?.title || '') ? `<span class="muted">${esc(r?.title || 'Untitled')}</span>` : ''}${m.description && m.description !== r?.description ? ` <span class="muted">· ${esc(m.description)}</span>` : ''}</span>
         ${batchName(m, r?.title).includes(batchDay(m.date)) ? '' : `<span class="muted">${shortDate(m.date)}</span>`}
         ${abv ? `<span class="chip">${abv.abv.toFixed(2)}%</span>` : ''}
-        ${draggable ? `<button type="button" class="chip bb-status-${m.status || 'going'}" data-batch-status="${m.id}" title="Change status">${statusLabel(m.status)} ▾</button>`
-          : `<span class="chip bb-status-${m.status || 'going'}">${statusLabel(m.status)}</span>`}
-      </${draggable ? 'div' : 'a'}>`;
+        <button type="button" class="chip bb-status-${m.status || 'going'}" data-batch-status="${m.id}" title="Change status">${statusLabel(m.status)} ▾</button>
+        ${fromList ? '' : `<button type="button" class="chip danger" data-batch-delete="${m.id}" title="Delete this batch">Delete</button>`}
+      </div></li>`;
     }
 
     function paperHtml() {
@@ -210,7 +211,7 @@ export default {
         </div>
         <div class="bb-body">
         ${!data.recipes.length && !shared.length && !invites ? `<div class="empty"><h2>No recipes yet.</h2><p class="muted">Add a recipe: ingredients, steps and photos. Each time you make it, start a batch: its own copy to change, what you have in and what to buy, readings, a diary and tasting notes.</p><button type="button" data-act="examples">Add some example recipes</button></div>`
-        : state.batches ? (batches.length ? `<ul class="bb-batches bb-batch-list">${batches.map(m => `<li data-id="${m.id}" data-depth="0"><button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button>${batchRow(m, true)}</li>`).join('')}</ul>` : `<div class="empty"><h2>No ${state.status ? `${STATUSES.find(s => s[0] === state.status)[1].toLowerCase()} ` : ''}batches here.</h2><p class="muted">Open a recipe and press Make this.</p></div>`)
+        : state.batches ? (batches.length ? `<ul class="bb-batches bb-batch-list">${batches.map(m => batchRow(m, true)).join('')}</ul>` : `<div class="empty"><h2>No ${state.status ? `${STATUSES.find(s => s[0] === state.status)[1].toLowerCase()} ` : ''}batches here.</h2><p class="muted">Open a recipe and press Make this.</p></div>`)
         : `${list.length ? `<ul class="bb-grid bb-cards">${groups.map(name => { const mine = list.filter(r => (r.type || '') === name); return chapter(name, mine.length) + mine.map(r => card(r)).join(''); }).join('')}</ul>`
           : `<div class="empty"><h2>Nothing here yet.</h2>${pinnedTab() ? '<p class="muted">Press ☆ on a recipe to pin it here.</p>' : state.section && !state.q ? '<p class="muted">Press + New recipe to add one to this book.</p>' : ''}</div>`}
           ${theirs.length || invites ? `<h3 class="bb-chapter-title bb-shared-title" style="--bb:#7a6a55"><span>👥</span> Shared with me</h3>${invites}<ul class="bb-grid bb-shared">${theirs.map(x => card(x.r, x)).join('')}</ul>` : ''}`}
@@ -241,7 +242,7 @@ export default {
       const hasQty = ings.some(i => i.qty != null);
       const scale = hasQty ? (isRecipe
         ? `<span class="segmented bb-scale" aria-label="Scale">${SCALES.map(s => `<button type="button" data-scale="${s}" aria-pressed="${state.times === s}">×${qtyText(s)}</button>`).join('')}</span>`
-        : `<span class="segmented bb-scale" aria-label="Scale this batch"><button type="button" data-rescale="${1 / 3}" title="A third of every amount">×⅓</button><button type="button" data-rescale="0.5" title="Halve every amount">×½</button><button type="button" data-rescale="2" title="Double every amount">×2</button><button type="button" data-rescale="ask" title="Scale every amount">×…</button></span>`) : '';
+        : `<span class="segmented bb-scale" aria-label="Scale this batch"><button type="button" data-rescale="${1 / 3}" title="A third of every amount">×⅓</button><button type="button" data-rescale="0.5" title="Halve every amount">×½</button><button type="button" data-rescale="2" title="Double every amount">×2</button><button type="button" data-rescale="4" title="Four times every amount">×4</button><button type="button" data-rescale="ask" title="Scale every amount">×…</button></span>`) : '';
       const head = `<h2 class="bb-h"><span>🧺 Ingredients</span>${scale}</h2>`;
       // Written straight on the lines: the amount in the margin, the ingredient (", note") beside it.
       const times = isRecipe ? state.times : 1;
@@ -329,7 +330,7 @@ export default {
           <div class="bb-tasting bb-note"></div>` : ''}
           ${photosHtml(r.id, 'the recipe\'s')}
           <h2 class="bb-h"><span>🧪 Batches</span></h2>
-          ${made.length ? `<div class="bb-batches">${made.map(batchRow).join('')}</div>` : '<p class="muted bb-none">Not made yet. Make this (at the top) starts a batch with its own copy of the recipe, to change as you like, and to tick off what you have in.</p>'}
+          ${made.length ? `<ul class="bb-batches bb-batch-list">${sortBatches(made).map(m => batchRow(m)).join('')}</ul>` : '<p class="muted bb-none">Not made yet. Make this (at the top) starts a batch with its own copy of the recipe, to change as you like, and to tick off what you have in.</p>'}
         </article>
         <div class="detail-actions bb-foot">
           <span class="spacer"></span>
@@ -752,6 +753,8 @@ export default {
         const m = makeOf(pill.dataset.batchStatus);
         return pillMenu(pill, STATUSES.map(([v, l]) => ({ value: v, label: statusLabel(v), current: v === (m.status || 'going') })), v => changeBatches([m.id], { status: v }, `Marked ${STATUSES.find(x => x[0] === v)[1].toLowerCase()}`), { className: 'word-menu' });
       }
+      const del = ev.target.closest('[data-batch-delete]');
+      if (del) return deleteBatches([del.dataset.batchDelete]);
       const row = ev.target.closest('.bb-batch-row[data-href]');
       if (row) return openRow(row, ev);
       if (att.onClick(ev, attParent, () => render())) return;
@@ -1257,8 +1260,9 @@ export default {
     const batchKit = this.batchKit = createListKit({
       reorder: true, holdAnywhere: true, noun: 'batch', onReorder: batchOrder, // press and hold anywhere on a row drags it, as in Tasks
       actions: STATUSES.map(([v, l, e]) => ({ id: `status-${v}`, label: `${e} ${l}`, group: 'Status', run: ids => changeBatches(ids, { status: v }, `Marked ${l.toLowerCase()}`) }))
-        .concat([{ id: 'delete', label: 'Delete', key: 'D', danger: true, run: ids => changeBatches(ids, { deleted_at: now() }, `Deleted ${ids.length} batch${ids.length === 1 ? '' : 'es'}`) }]),
+        .concat([{ id: 'delete', label: 'Delete', key: 'D', danger: true, run: ids => deleteBatches(ids) }]),
     });
+    function deleteBatches(ids) { return changeBatches(ids, { deleted_at: now() }, ids.length === 1 ? `Deleted ${batchName(makeOf(ids[0]), recipeOf(makeOf(ids[0])?.recipe_id)?.title)}` : `Deleted ${ids.length} batches`); }
 
     async function moveRecipes(ids, patch, label) {
       const before = ids.map(id => [id, Object.fromEntries(Object.keys(patch).map(k => [k, recipeOf(id)?.[k] ?? (k === 'type' ? '' : null)]))]);
