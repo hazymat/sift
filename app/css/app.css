@@ -4332,26 +4332,27 @@ body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none
 #main[data-area="recipes"][data-density="tight"] :is(.bb-pin, .bb-card-menu > summary) { width: 28px; height: 28px; }
 @media (max-width: 640px) { #main[data-area="recipes"][data-density="tight"] .bb-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .bb-batches { display: grid; gap: 6px; }
-.bb-batch-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 8px 14px; border-radius: 14px; background: var(--glass); border: 1px solid var(--glass-border); border-left: 5px solid var(--bb); color: var(--text); }
-.bb-batch-row:hover { background: var(--glass-hover); }
-.bb-batch-emoji { font-size: 1.3rem; }
-.bb-batch-pic { width: 34px; height: 34px; border-radius: 8px; object-fit: cover; }
-.bb-batch-no { font-family: var(--hand); font-weight: 700; font-size: 1.1rem; }
-.bb-batch-name { flex: 1 1 10em; min-width: 0; }
-.bb-status-planned { opacity: .7; }
-/* The batches list: rows like Tasks' (see-through until hovered), keeping each batch's colour. */
+/* A batch's row (the Batches list, a recipe's batches): the li is the glass box, as a task's in Tasks, with its ⠿ inside on the left and
+   the batch's colour down its edge. One line: the name wraps in its own space, the status and Delete pills stay at the right. */
 .bb-batch-list { margin: 0; padding: 0; list-style: none; gap: var(--row-gap, 6px); }
-.bb-batch-list > li { display: flex; align-items: center; gap: 2px; border-radius: 14px; }
-.bb-batch-list > li > .bb-batch-row { flex: 1; min-width: 0; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.bb-batch-list > li { display: flex; align-items: center; gap: 0; padding-left: 2px; border-radius: 14px; background: color-mix(in srgb, var(--glass) 55%, transparent); border: 1px solid color-mix(in srgb, var(--glass-border) 60%, transparent); border-left: 4px solid var(--bb); }
+.bb-batch-list > li:hover, .bb-batch-list > li.kb-cur, .bb-batch-list > li:has(> .bb-batch-row.kb-cur) { background: var(--glass); border-color: var(--glass-border); border-left-color: var(--bb); }
+.bb-batch-list > li.selected { box-shadow: 0 0 0 2px var(--accent); }
+.bb-batch-row { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; min-height: 42px; padding: 4px 10px 4px 2px; color: var(--text); cursor: pointer; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.bb-batch-emoji { flex: none; font-size: 1.3rem; }
+.bb-batch-pic { flex: none; width: 34px; height: 34px; border-radius: 8px; object-fit: cover; }
+.bb-batch-no { flex: 0 1 auto; min-width: 0; overflow-wrap: anywhere; font-family: var(--hand); font-weight: 700; font-size: 1.1rem; }
+.bb-batch-name { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bb-batch-row > :is(.muted, .chip, button) { flex: none; }
+.bb-batch-row button.chip { cursor: pointer; font: inherit; font-size: .8rem; padding: 1px 9px; }
+/* Delete: solid red with white words, as the Delete a row shows when swiped on a phone. */
+.bb-batch-row button.bb-batch-del, .bb-paper .bb-batch-row button.bb-batch-del { background: #d64545; border-color: transparent; color: #fff; font-weight: 600; }
+.bb-batch-row button.bb-batch-del:hover { background: #c23a3a; }
+.bb-status-planned { opacity: .7; }
 .bb-status-row { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
 .bb-status-row .bb-status { margin: 0; }
-.bb-batch-list .bb-batch-row button.chip { cursor: pointer; font: inherit; font-size: .8rem; padding: 1px 9px; }
 .bb-sort { flex: none; width: auto; max-width: 9em; padding: 4px 8px; font-size: .85rem; }
-.bb-batch-list .bb-batch-row { min-height: 42px; padding: 4px 12px; background: color-mix(in srgb, var(--glass) 55%, transparent); border-color: color-mix(in srgb, var(--glass-border) 60%, transparent); border-left: 4px solid var(--bb); }
-.bb-batch-list .bb-batch-row:hover, .bb-batch-list .bb-batch-row.kb-cur { background: var(--glass); border-color: var(--glass-border); border-left-color: var(--bb); }
-/* A recipe's batches, on its paper: a chosen one gets the accent ring; Delete stays red on the paper. */
-.bb-paper .bb-batch-list > li.selected > .bb-batch-row { box-shadow: 0 0 0 2px var(--accent); }
-.bb-paper .bb-batch-row button.chip.danger { color: #c62828; }
+@media (max-width: 640px) { .bb-batch-name { display: none; } .bb-batch-no { flex: 1 1 auto; font-size: 1rem; } .bb-batch-row { gap: 8px; padding-right: 8px; } }
 /* The browser's own Print on a recipe page (Ctrl+P outside Sift's Print screen, printrecipe.js): just the page. */
 @media print {
   .appbar, #tabbar, #topnav, .bb-top, .bb-foot, .theirs-note, .toast, .select-bar, .bb-tools, .bb-edit, .bb-scale, .bb-ref-picks, .bb-ref-hint, .bb-add-field, .bb-step-new, .att-row button { display: none !important; }
