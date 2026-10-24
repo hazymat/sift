@@ -123,7 +123,7 @@ const AREAS = {
     open: el => click(el.querySelector('a.c-main, a.bb-card') || el),
   },
   scans: { search: '.scan-search', bars: ['.scan-kinds [data-kind]'], items: '#main .scan-card', open: el => click(el) },
-  recipes: { search: '.bb-search', bars: ['#main .bb-sections [data-section]'], items: '#main .bb-cards > li[data-id], #main .bb-shared > li, #main .bb-batch-list > li[data-id], #main div.bb-batches > .bb-batch-row', open: el => click(el.querySelector('.bb-card, .bb-batch-row') || el) },
+  recipes: { search: '.bb-search', bars: ['#main .bb-sections [data-section]'], items: '#main .bb-cards > li[data-id], #main .bb-shared > li, #main .bb-batch-list > li[data-id]', open: el => click(el.querySelector('.bb-card, .bb-batch-row') || el) },
   contracts: { search: '.contract-search', bars: ['.scan-kinds [data-view]'], items: '#main tr[data-id], #main .contract-card', open: el => click(el.querySelector('a') || el) },
   // Archive and Bin: no Enter (each row's Restore and Delete are its buttons); Shift+arrows choose rows for the selection bar.
   bin: { search: '#bin-q', bars: ['#bin-tabs [data-tab]', '#bin-areas [data-area]', '#bin-filters [data-filter]'], items: '#bin-body li[data-key]' },

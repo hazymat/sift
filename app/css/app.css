@@ -4349,6 +4349,9 @@ body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none
 .bb-sort { flex: none; width: auto; max-width: 9em; padding: 4px 8px; font-size: .85rem; }
 .bb-batch-list .bb-batch-row { min-height: 42px; padding: 4px 12px; background: color-mix(in srgb, var(--glass) 55%, transparent); border-color: color-mix(in srgb, var(--glass-border) 60%, transparent); border-left: 4px solid var(--bb); }
 .bb-batch-list .bb-batch-row:hover, .bb-batch-list .bb-batch-row.kb-cur { background: var(--glass); border-color: var(--glass-border); border-left-color: var(--bb); }
+/* A recipe's batches, on its paper: a chosen one gets the accent ring; Delete stays red on the paper. */
+.bb-paper .bb-batch-list > li.selected > .bb-batch-row { box-shadow: 0 0 0 2px var(--accent); }
+.bb-paper .bb-batch-row button.chip.danger { color: #c62828; }
 /* The browser's own Print on a recipe page (Ctrl+P outside Sift's Print screen, printrecipe.js): just the page. */
 @media print {
   .appbar, #tabbar, #topnav, .bb-top, .bb-foot, .theirs-note, .toast, .select-bar, .bb-tools, .bb-edit, .bb-scale, .bb-ref-picks, .bb-ref-hint, .bb-add-field, .bb-step-new, .att-row button { display: none !important; }
