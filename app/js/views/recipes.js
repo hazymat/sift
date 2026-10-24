@@ -200,12 +200,13 @@ export default {
               <button type="button" data-section="" aria-pressed="${!state.section}">All</button>
               ${sections.map(x => `<button type="button" data-section="${esc(x.name)}" aria-pressed="${state.section === x.name}" style="--bb:${x.colour}">${x.emoji} ${esc(x.name || 'No book')}</button>`).join('')}
               <button type="button" data-section="${PINNED}" aria-pressed="${pinnedTab()}">★ Pinned</button>
+              <button type="button" class="bb-sections-edit filter-more" data-act="sections" title="Add, rename, reorder or remove books" aria-label="Edit books">⋯</button>
             </div>
-            <button type="button" class="bb-sections-edit filter-more" data-act="sections" title="Add, rename, reorder or remove books" aria-label="Edit books">⋯</button>
+            ${!state.batches && tags.length ? tagPick(tags) : ''}
           </div>
           ${state.batches ? `<div class="bb-status-row"><div class="bb-status" role="group" aria-label="Status">${[['', 'All']].concat(STATUSES).map(([v, l, e]) => `<button type="button" data-status="${v}" aria-pressed="${state.status === v}">${e ? `${e} ` : ''}${l}</button>`).join('')}</div>
             <select class="bb-sort" data-batch-sort aria-label="Sort batches">${SORTS.map(([v, l]) => `<option value="${v}"${batchSort() === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div>`
-            : tags.length ? tagsRow(tags) : ''}
+            : ''}
         </div>
         <div class="bb-body">
         ${!data.recipes.length && !shared.length && !invites ? `<div class="empty"><h2>No recipes yet.</h2><p class="muted">Add a recipe: ingredients, steps and photos. Each time you make it, start a batch: its own copy to change, what you have in and what to buy, readings, a diary and tasting notes.</p><button type="button" data-act="examples">Add some example recipes</button></div>`
@@ -216,44 +217,8 @@ export default {
         </div>`;
     }
 
-    // The tags: one line that scrolls sideways (the chosen one first), so a long list doesn't
-    // fill the top of the page. All ▾ (only when they don't fit) drops them all down over the
-    // recipes, without moving them or growing the bar that sticks at the top; picking one,
-    // Fewer ▴, Esc or a tap elsewhere folds them again.
-    function tagsRow(tags) {
-      const shown = state.tag ? [state.tag].concat(tags.filter(tag => tag !== state.tag)) : tags;
-      return `<div class="bb-tags"><div class="bb-tags-list">${shown.map(tag => `<button type="button" class="chip" data-tag="${esc(tag)}" aria-pressed="${state.tag === tag}">${esc(tag)}</button>`).join('')}</div>`
-        + `<button type="button" class="bb-tags-more" data-act="tags-more" aria-expanded="false">All ${tags.length} ▾</button></div>`;
-    }
-    let tagsWatch = null; // fits them again when the page changes width
-    function fitTags() {
-      tagsWatch?.disconnect();
-      const box = el.querySelector('.bb-tags');
-      if (!box) return;
-      const list = box.querySelector('.bb-tags-list'), more = box.querySelector('.bb-tags-more');
-      const fade = () => box.classList.toggle('at-end', list.scrollLeft + list.clientWidth >= list.scrollWidth - 1);
-      const fit = () => { more.hidden = !state.tagsOpen && list.scrollWidth <= list.clientWidth + 1; box.style.setProperty('--bb-more-w', `${more.offsetWidth}px`); fade(); };
-      list.onscroll = fade;
-      tagsWatch = new ResizeObserver(fit);
-      tagsWatch.observe(list);
-      fit();
-    }
-    // (a tap anywhere else only folds them)
-    const tapOutsideTags = this.tapOutsideTags = ev => { if (ev.target.closest?.('.bb-tags')) return; ev.preventDefault(); ev.stopPropagation(); showAllTags(false); };
-    function showAllTags(open) {
-      state.tagsOpen = open;
-      removeEventListener('click', tapOutsideTags, true);
-      if (open) addEventListener('click', tapOutsideTags, true);
-      const box = el.querySelector('.bb-tags');
-      if (!box) return;
-      const more = box.querySelector('.bb-tags-more');
-      box.style.minHeight = open ? `${box.getBoundingClientRect().height}px` : ''; // the row keeps its height with its tags out of it
-      box.classList.toggle('open', open);
-      more.setAttribute('aria-expanded', open);
-      more.textContent = open ? 'Fewer ▴' : `All ${box.querySelectorAll('[data-tag]').length} ▾`;
-      box.querySelector('.bb-tags-list').scrollTop = 0;
-      fitTags();
-    }
+    // The tags: a dropdown at the right of the books bar (the app's own list on a computer, the phone's picker on a phone).
+    const tagPick = tags => `<label class="entry-chip bb-tag-pick${state.tag ? ' set' : ''}" title="Show only recipes with this tag">🏷 <span class="chip-text">${esc(state.tag || 'Tags')}</span> ▾<select data-tag-pick aria-label="Tag"><option value="">All tags</option>${tags.map(tag => `<option value="${esc(tag)}"${state.tag === tag ? ' selected' : ''}>${esc(tag)}</option>`).join('')}</select></label>`;
 
     // ---------- pieces used on both pages ----------
 
@@ -515,8 +480,6 @@ export default {
       kitFor().attach(el.querySelector('.bb-cards'));
       batchKit.attach(el.querySelector('.bb-batch-list'));
       watchSticky();
-      fitTags();
-      if (state.tagsOpen) showAllTags(true); // still open after a redraw
       // Tasting notes: a batch's (or a recipe's older ones, until they move to a batch).
       const box = el.querySelector('.bb-tasting');
       const owner = state.make ? { collection: 'recipe_makes', rec: makeOf(state.make) } : state.recipe ? { collection: 'recipes', rec: recipeOf(state.recipe) } : null;
@@ -744,6 +707,7 @@ export default {
         return later();
       }
       if (t.matches('[data-batch-list]')) return moveToList(t.value || null);
+      if (t.matches('[data-tag-pick]')) { state.tag = t.value; return render(); }
       if (t.matches('[data-batch-sort]')) { settings.batch_sort = t.value; await store.updateSettings({ batch_sort: t.value }); return render(); }
       if (t.dataset.make) {
         await store.update('recipe_makes', state.make, { [t.dataset.make]: t.type === 'checkbox' ? t.checked : t.value.trim() });
@@ -809,7 +773,6 @@ export default {
       if (b.dataset.section !== undefined) { state.section = b.dataset.section; state.tag = ''; return render(); }
       if (b.dataset.status !== undefined) { state.status = b.dataset.status; return render(); }
       if (b.dataset.card || b.dataset.cardBook !== undefined) return cardAction(b);
-      if (b.dataset.tag !== undefined) { state.tag = state.tag === b.dataset.tag ? '' : b.dataset.tag; showAllTags(false); return render(); }
       if (b.dataset.mode) { state.batches = b.dataset.mode === 'batches'; return render(); }
       if (b.dataset.scale) { state.times = +b.dataset.scale; return render(); }
       if (b.dataset.rescale) return rescale(b.dataset.rescale);
@@ -854,7 +817,6 @@ export default {
       if (act === 'new') return newRecipe();
 
       if (act === 'sections') return editSections();
-      if (act === 'tags-more') return showAllTags(!state.tagsOpen);
       if (act === 'import') return importRecipes();
       if (act === 'to-recipe') return go(`#/recipes/${makeOf(state.make)?.recipe_id || ''}${ownerPath()}`);
       if (act === 'add-field') {
@@ -1326,7 +1288,6 @@ export default {
 
     // Esc with recipes chosen: the choosing ends first (before keyboard browsing's own Esc).
     this.onEsc = ev => {
-      if (ev.key === 'Escape' && state.tagsOpen && !document.querySelector('dialog[open]')) { ev.preventDefault(); ev.stopPropagation(); return showAllTags(false); }
       if (ev.key === 'Escape' && (kit?.size || batchKit.size) && !document.querySelector('dialog[open]') && !writing()) { ev.preventDefault(); ev.stopPropagation(); kit?.escape(); batchKit.escape(); }
     };
     addEventListener('keydown', this.onEsc, true);
@@ -1357,7 +1318,6 @@ export default {
   unmount() {
     removeEventListener('keydown', this.onKey);
     removeEventListener('keydown', this.onEsc, true);
-    removeEventListener('click', this.tapOutsideTags, true);
     this.kit?.destroy();
     this.batchKit?.destroy();
     this.stickWatch?.disconnect();
