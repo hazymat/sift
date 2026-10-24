@@ -50,6 +50,8 @@ const screenCss = `
 .print-hint { color: var(--muted); font-size: .8rem; margin: 4px 0 0; }
 .print-actions { display: flex; gap: 8px; margin-top: 16px; align-items: center; }
 .print-actions .spacer { flex: 1; }
+.print-share { display: flex; gap: 8px; margin-top: 16px; align-items: center; flex-wrap: wrap; color: var(--muted); font-size: .88rem; }
+.print-share span { margin-right: auto; }
 .print-view { min-height: 0; display: flex; flex-direction: column; background: rgba(0, 0, 0, .28); border: 1px solid var(--glass-border); border-radius: 18px; overflow: hidden; }
 .print-view-head { display: flex; justify-content: space-between; gap: 10px; color: var(--muted); font-size: .8rem; padding: 8px 14px 0; }
 .print-frame { flex: 1; width: 100%; border: 0; background: transparent; }
@@ -89,13 +91,14 @@ export async function openPrint(opts) {
   };
   el.innerHTML = `<div class="print-top"><button type="button" class="back" data-print="close">‹ ${esc(opts.back || 'Back')}${keys('Esc')}</button><h1>Print: ${esc(opts.title)}</h1></div>
     <div class="print-grid"><div class="print-opts">${options.map(control).join('')}
+      <div class="print-share"><span>Share as</span><button type="button" data-print="png" title="A picture of the printout, to send in WhatsApp or anywhere">🖼 Picture</button><button type="button" data-print="pdf" title="A PDF of the printout, pages and all">📄 PDF</button></div>
       <div class="print-actions"><button type="button" data-print="close">Cancel</button><span class="spacer"></span><button type="button" class="primary" data-print="go">🖨 Print${keys(MAC ? '⌘+P' : 'Ctrl+P')}</button></div></div>
     <div class="print-view"><div class="print-view-head"><span class="print-count"></span><span class="print-note"></span></div><iframe class="print-frame" title="Print preview"></iframe></div></div>`;
   document.body.append(el);
   document.body.classList.add('printing-open');
   const frame = el.querySelector('.print-frame');
   const urls = [];
-  let drawn = 0;
+  let drawn = 0, lastDoc = '';
   const fit = () => {
     const doc = frame.contentDocument;
     if (!doc?.body) return;
@@ -108,7 +111,7 @@ export async function openPrint(opts) {
     if (mine !== drawn) return;
     const [pw, ph] = PAPERS[choices.paper] || PAPERS.A4;
     const page = out.page || { size: `${pw}mm ${ph}mm`, margin: out.flow ? '12mm 13mm' : '0' };
-    frame.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><style>:root { --pw: ${pw}; --ph: ${ph}; } @page { size: ${page.size}; margin: ${page.margin}; }${BASE_CSS}${out.css || ''}</style></head>
+    frame.srcdoc = lastDoc = `<!doctype html><html><head><meta charset="utf-8"><style>:root { --pw: ${pw}; --ph: ${ph}; } @page { size: ${page.size}; margin: ${page.margin}; }${BASE_CSS}${out.css || ''}</style></head>
       <body class="${choices.look === 'bw' ? 'bw' : 'colour'}">${out.html}</body></html>`;
     el.querySelector('.print-count').textContent = `Preview · ${choices.paper}${out.count ? ` · ${out.count}` : ''}`;
     el.querySelector('.print-note').textContent = out.note || 'Your choices are kept for next time';
@@ -138,6 +141,11 @@ export async function openPrint(opts) {
     if (!b) return;
     if (b.dataset.print === 'close') return close();
     if (b.dataset.print === 'go') return go();
+    if (b.dataset.print === 'png' || b.dataset.print === 'pdf') {
+      const [pw, ph] = PAPERS[choices.paper] || PAPERS.A4;
+      b.disabled = true;
+      return import('./printshare.js').then(({ shareAs }) => shareAs(b.dataset.print, lastDoc, { pw, ph, title: opts.title })).finally(() => { b.disabled = false; });
+    }
     const seg = b.closest('[data-seg]');
     if (seg) {
       const k = seg.dataset.seg, v = b.dataset.v;
