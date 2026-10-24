@@ -180,6 +180,21 @@ export function stepHtml(text, ingredients, times, esc) {
     return `<span class="bb-ref" title="${esc(part === 1 ? full : `${qtyText(part)} of ${full}`)}">${shown}</span>`;
   }).replace(/\n/g, '<br>');
 }
+// The ingredients a step puts in (by id), for Follow along's highlighting.
+export function stepRefs(text, ingredients) {
+  const ids = new Set();
+  for (const [, body] of (text || '').matchAll(REF)) { const ing = findIngredient(ingredients, refParts(body)[1]); if (ing) ids.add(ing.id); }
+  return ids;
+}
+// The first wait a step mentions, in seconds ("simmer for 15 minutes", "1 hour", "30 secs", "1½ hours"), for a one-tap timer.
+export function stepWait(text) {
+  const plain = (text || '').replace(REF, (w, body, own) => own ?? body).replace(/½/g, '.5').replace(/¼/g, '.25').replace(/¾/g, '.75');
+  const hit = plain.match(/(\d+(?:\.\d+)?)(?:\s*(?:-|to|–)\s*(\d+(?:\.\d+)?))?\s*(hours?|hrs?|h\b|minutes?|mins?|m\b|seconds?|secs?|s\b)/i);
+  if (!hit) return 0;
+  const n = parseFloat(hit[2] || hit[1]), unit = hit[3][0].toLowerCase();
+  const secs = Math.round(n * (unit === 'h' ? 3600 : unit === 'm' ? 60 : 1));
+  return secs > 0 && secs <= 48 * 3600 ? secs : 0;
+}
 // An ingredient renamed: its references follow.
 export function renameRefs(text, from, to) {
   if (!from || !to || from === to) return text;

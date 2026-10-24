@@ -14,6 +14,8 @@ const SHELL = [
   'js/printday.js',
   'js/printrecipe.js',
   'js/printshare.js',
+  'js/followalong.js',
+  'js/timers.js',
   'js/stats.js',
   'js/views/stats.js',
   'js/store.js',
