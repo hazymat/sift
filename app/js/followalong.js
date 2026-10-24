@@ -15,6 +15,7 @@ import * as store from './store.js';
 import * as att from './attachments.js';
 import { stepsOf, amountText, stepHtml, stepRefs, stepWait, qtyText, batchName } from './batchbook.js';
 import * as timers from './timers.js';
+import { toast } from './toast.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const KEPT = 'sift_follow_tabs';
@@ -95,7 +96,7 @@ export async function openFollow(open) {
     const wait = stepWait(st.text);
     return `<section class="fa-step" data-n="${n}"><div class="fa-num">Step ${n + 1}<span class="fa-of"> of ${p.steps.length}</span></div>
       <div class="fa-text">${stepHtml(st.text, p.ings, p.tab.times, esc) || '<span class="muted">Empty step</span>'}</div>
-      ${photo(p, st) || wait ? `<div class="fa-extra">${photo(p, st)}${wait ? `<button type="button" class="fa-wait" data-wait="${wait}" data-name="${esc(waitName(st.text, n + 1))}">⏲ Start ${timers.lengthText(wait)} timer</button>` : ''}</div>` : ''}</section>`;
+      ${photo(p, st) || wait ? `<div class="fa-extra">${photo(p, st)}${wait ? `<button type="button" class="fa-wait" data-wait="${wait}" data-name="${esc(waitName(st.text, n + 1))}">⏰ Start ${timers.lengthText(wait)} timer</button>` : ''}</div>` : ''}</section>`;
   };
   // One pot: its ingredients (folded unless it's the only one on a wide screen) and its drum of steps.
   const potHtml = (p, n, { alone }) => `<div class="fa-pot${alone ? ' fa-alone' : ''}" data-pot="${n}">
@@ -172,7 +173,7 @@ export async function openFollow(open) {
     // Side by side: the chosen one and the ones after it (round the end).
     const which = Array.from({ length: cols }, (_, n) => (k.at + n) % pots.length);
     el.innerHTML = `<div class="fa-top"><button type="button" class="back" data-fa="close">‹ Back${keys('Esc')}</button>
-        <h1>${pots.length > 1 ? 'Follow along' : esc(pots[k.at].title)}</h1>        <div class="fa-timers" aria-label="Timers"></div><button type="button" class="fa-add" data-fa="timer" title="A countdown or a stopwatch" aria-label="New timer">⏲ +<span class="fa-word"> Timer</span></button>
+        <h1>${pots.length > 1 ? 'Follow along' : esc(pots[k.at].title)}</h1>        <div class="fa-timers" aria-label="Timers"></div><button type="button" class="fa-add" data-fa="timer" title="A countdown or a stopwatch" aria-label="New timer">⏰ +<span class="fa-word"> Timer</span></button>
         <button type="button" class="fa-finish" data-fa="finish" title="Clear ${pots.length > 1 ? 'these recipes' : 'this recipe'} from Follow along" aria-label="Finished cooking">✓<span class="fa-word"> Finished cooking</span></button></div>
       <div class="fa-timers fa-phone-timers" aria-label="Timers"></div>
       ${tabsHtml()}
@@ -290,7 +291,13 @@ export async function openFollow(open) {
     if (b.dataset.tab) return switchTo(+b.dataset.tab);
     if (b.dataset.tabX) { pots.splice(+b.dataset.tabX, 1); if (k.at >= pots.length || +b.dataset.tabX < k.at) k.at = Math.max(0, k.at - 1); save(); return draw(); }
     if (b.dataset.scale) { ev.preventDefault(); const p = s?.pot || pots[k.at]; p.tab.times = +b.dataset.scale; save(); (shown.find(x => x.pot === p) || s)?.rescale(); return; }
-    if (b.dataset.wait) return timers.start(Object.assign({}, s.pot.where, { name: b.dataset.name, secs: +b.dataset.wait }));
+    if (b.dataset.wait) {
+      // One timer per step: a second tap shows the one already going instead of starting another.
+      const where = s.pot.where, going = timers.list().find(t => t.name === b.dataset.name && t.recipe_id === where.recipe_id && (t.make_id || null) === (where.make_id || null));
+      if (!going) return timers.start(Object.assign({}, where, { name: b.dataset.name, secs: +b.dataset.wait }));
+      el.querySelectorAll(`[data-timer="${going.id}"]`).forEach(pill => { pill.classList.remove('tm-flash'); void pill.offsetWidth; pill.classList.add('tm-flash'); });
+      return toast(`${going.name} is already going: tap its time for more`);
+    }
     if (b.dataset.photo) { const list = s.pot.atts.get(s.pot.steps[+b.closest('.fa-step').dataset.n].id) || []; return att.view(list, Math.max(0, list.findIndex(a => a.id === b.dataset.photo))); }
     if (b.matches('.fa-step') && !b.classList.contains('fa-cur')) s?.goTo(+b.dataset.n);
   });
@@ -304,7 +311,7 @@ body.follow-open { overflow: hidden; }
 .fa-top .back { padding: 6px 14px 6px 10px; flex: none; }
 .fa-top h1 { font-size: 1.3rem; margin: 0; font-weight: 600; flex: 1; min-width: 6em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fa-fold-scale { display: none; }
-.fa-timers { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.fa-timers { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; max-height: 132px; overflow-y: auto; padding: 4px; scrollbar-width: thin; }
 .fa-phone-timers { display: none; }
 .fa-add, .fa-finish { flex: none; }
 .fa-tabs { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; overflow-x: auto; scrollbar-width: none; flex: none; }

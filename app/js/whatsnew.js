@@ -25,6 +25,8 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.13': [{ text: "Timers: tapping a timer's time opens a proper list (+5, +1, −1, −5 min, Rename, Remove) that stays open while you add time. Remove has Undo instead of doing nothing, and a step's Start timer button no longer starts a second copy.", go: '#/recipes', open: ['#main .bb-card', '#main .bb-follow'], at: '.fa-add' },
+    { text: "Timers: press and hold a timer (or ☑ Choose several in its list) to choose several, then use the bar at the bottom to add or take off time, pause, carry on or remove them all at once.", go: '#/recipes', open: ['#main .bb-card', '#main .bb-follow'], at: '.fa-add' }],
   '1.61.12': [{ text: "Batch Book: ▶ Follow along, by the Steps heading of a recipe or batch, opens it to cook from: one step at a time in big writing with its photo, the steps before and after smaller either side, and the ingredients with the scale (on a phone, folded at the top). Read only, and it keeps the screen on.", go: '#/recipes', open: ['#main .bb-card'], at: '#main .bb-follow' },
     { text: "Batch Book, Follow along: cook several at once. + Recipe adds another as a tab (tap a tab, or swipe on a phone, to switch), ◫ Side by side shows two or three at once on an iPad or computer, and 🍳 Cooking on Batch Book's main page gets you back in. ✓ Finished cooking clears them all.", go: '#/recipes', open: ['#main .bb-card'], at: '#main .bb-follow' },
     { text: "Batch Book, Follow along: ⏲ + Timer starts countdowns and stopwatches, as many as you like. A step that says \"15 minutes\" has a one-tap timer. They're synced, so they keep going if Sift is closed or on another device, and show at the bottom right of every page. A finished one turns red and beeps until you press ✕.", go: '#/recipes', open: ['#main .bb-card'], at: '#main .bb-follow' }],
@@ -172,6 +174,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.13': '2026-10-24T22:45:21Z',
   '1.61.12': '2026-10-24T22:26:19Z',
   '1.61.11': '2026-10-24T22:15:34Z',
   '1.61.10': '2026-10-24T22:12:50Z',
