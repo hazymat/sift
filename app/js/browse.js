@@ -24,11 +24,18 @@
 //   Shift+← / → / ↑ / ↓  select: every item from where it began to the one
 //            moved to (the area's selection bar, listkit.js: 'browse-select')
 // A click anywhere, or changing page, stops browsing too.
-// Areas with a filter bar (Brain Dump's All / Thought / Idea…) have it as a
+// Rows edited in place (Tasks, the Day Planner, an open list, a box's things):
+// Esc out of a row's name leaves that row highlighted, as in Brain Dump, so ↑ / ↓
+// carry on from there, Enter edits it again, Shift+↑ / ↓ choose rows, and Esc
+// once more stops. ← / → there are the area's own (tabs, days), not the rows.
+// Areas with a filter bar (Brain Dump's All / Thought / Idea…, Scans' kinds,
+// Contracts' Current / Ended…, the Lists page's Lists / Templates) have it as a
 // layer between the search box and the items: ↓ from the search box (or ← / →
 // at the top level) highlights the filter showing; ← / → switch filter there
 // and then (at either end: a flash, nothing changes); ↓ goes on to the items,
 // and ↑ from their top row comes back to the bar, ↑ again to the search box.
+// Two rows of them (Contacts' Recent / Directory / Cases, then Open / Closed /
+// All) are two layers, top to bottom.
 // Esc in the search box goes back to the top level, keeping the search; Esc
 // again there clears it.
 // Tab / Shift+Tab still walk the page's buttons, links and filters (the
@@ -63,7 +70,7 @@ const fullNow = () => {
 const AREAS = {
   dump: {
     search: '#dump-q',
-    bar: '#dump-filter [data-filter]',
+    bars: ['#dump-filter [data-filter]'],
     aboveSearch: () => focusEnd($('.dump-capture .rich-edit')),
     items: '#thoughts > li[data-id]',
     enter: () => focusEnd($('.dump-capture .rich-edit')),
@@ -74,18 +81,25 @@ const AREAS = {
     },
   },
   tasks: {
+    rows: '#task-body .task-list > li[data-id]',
+    rowEdit: '.task-title',
     // The New task line is at the top: ↓ starts typing there too.
     down: () => focusEnd($('#task-new')),
     enter: () => focusEnd($('#task-new')),
   },
   planner: {
+    rows: '#main .line.has-item[data-item]',
+    rowEdit: '.item-title',
     down: () => focusEnd(all('#lines .line.has-item .item-title')[0] || all('#main .line.has-item .item-title')[0]) || focusEnd($('#dump')),
     enter: () => focusEnd($('#dump')),
   },
   // An open list, like Tasks: ↓ starts editing (the new item line at the top), and ↑ / ↓ then
   // walk the items as while editing (Shift+↑ / ↓ there selects). The lists page browses its cards.
   lists: {
+    bars: ['#list-tabs [data-list-tab]'],
     items: '#main .project-grid .list-card',
+    rows: '#main .list-page .task-list > li[data-id]',
+    rowEdit: '.task-title',
     down: () => focusEnd($('#list-new')) || false,
     enter: () => focusEnd($('#list-new')),
     open: el => click(el),
@@ -93,32 +107,39 @@ const AREAS = {
   // A box's page, the same: ↓ into its first thing's name (or Add items). The grid browses boxes.
   places: {
     search: '#find-q, #box-q',
-    bar: '#editions [data-edition]',
+    bars: ['#editions [data-edition]'],
     items: '#main .box-card',
+    rows: '#box-page .item-list > li[data-id]',
+    rowEdit: 'input[name="name"]',
     down: () => focusEnd($('#new-items')) || focusEnd(all('#main .item-list > li[data-item] > input[name="name"]')[0]) || false,
     enter: () => focusEnd($('#new-items')),
     open: el => click(el),
   },
   contacts: {
     search: '#c-q',
-    items: '#main .c-card, #main .case-card, #main tr[data-case-row]',
+    bars: ['#c-tabs [data-tab]', '.case-show-row [data-case-show]'],
+    items: '#main .c-card, #main .case-card, #main tr[data-case-row], #c-body .project-grid a.project-card',
     enter: () => focusEnd($('#c-new')),
     open: el => click(el.querySelector('a.c-main, a.bb-card') || el),
   },
-  scans: { search: '.scan-search', items: '#main .scan-card', open: el => click(el) },
-  recipes: { search: '.bb-search', bar: '#main .bb-sections [data-section]', items: '#main .bb-cards > li[data-id], #main .bb-shared > li, #main .bb-batch-list > li[data-id], #main div.bb-batches > .bb-batch-row', open: el => click(el.querySelector('.bb-card, .bb-batch-row') || el) },
-  contracts: { search: '.contract-search', items: '#main tr[data-id], #main .contract-card', open: el => click(el.querySelector('a') || el) },
+  scans: { search: '.scan-search', bars: ['.scan-kinds [data-kind]'], items: '#main .scan-card', open: el => click(el) },
+  recipes: { search: '.bb-search', bars: ['#main .bb-sections [data-section]'], items: '#main .bb-cards > li[data-id], #main .bb-shared > li, #main .bb-batch-list > li[data-id], #main div.bb-batches > .bb-batch-row', open: el => click(el.querySelector('.bb-card, .bb-batch-row') || el) },
+  contracts: { search: '.contract-search', bars: ['.scan-kinds [data-view]'], items: '#main tr[data-id], #main .contract-card', open: el => click(el.querySelector('a') || el) },
+  // Archive and Bin: no Enter (each row's Restore and Delete are its buttons); Shift+arrows choose rows for the selection bar.
+  bin: { search: '#bin-q', bars: ['#bin-tabs [data-tab]', '#bin-areas [data-area]', '#bin-filters [data-filter]'], items: '#bin-body li[data-key]' },
 };
 
 let on = false;
 let goTo = null;
 // Outline this item (e.g. the next note, after the outlined one was archived).
 export const browseTo = el => { if (el) goTo?.(el); };
-let inBar = false; // browsing the filter bar, not the items
+let inBar = -1; // the filter bar being browsed (its place in the area's bars), -1 for the items
 let barPick = null; // the filter just switched to (the page marks it a moment later)
+let keepOnHash = false; // a filter that changes the address (Contacts' tabs) keeps browsing
 let key = null;
 let selFrom = null; // the item Shift+arrows began selecting from
-const keyOf = el => el.dataset.id || el.dataset.box || el.getAttribute('href') || '';
+const keyOf = el => el.dataset.id || el.dataset.item || el.dataset.box || el.getAttribute('href') || '';
+let escAt = 0; // when Esc was last pressed (only Esc out of a row highlights it; not a click away or a phone's keyboard closing)
 
 // The item above / below: one overlapping the same place across if there is
 // one (a grid's column, a masonry column), the nearest such; else the closest
@@ -151,15 +172,18 @@ function clearSticky(el) {
 
 export function installBrowse({ busy, area }) {
   const cfg = () => AREAS[area()];
-  const items = c => (c?.items ? all(c.items) : []);
+  const items = c => { const sel = [c?.items, c?.rows].filter(Boolean).join(', '); return sel ? all(sel) : []; };
+  const isRow = (c, el) => !!(c?.rows && el?.matches(c.rows));
+  const openIt = (c, el) => (isRow(c, el) ? focusEnd(el.querySelector(c.rowEdit)) : c.open?.(el));
   const current = c => items(c).find(e => keyOf(e) === key) || null;
-  const bar = c => (c?.bar ? all(c.bar) : []);
-  const barId = b => b.dataset.filter || b.textContent;
-  const pressed = c => (barPick && bar(c).find(b => barId(b) === barPick))
-    || bar(c).find(b => b.getAttribute('aria-pressed') === 'true') || bar(c)[0] || null;
+  const bar = (c, at) => (c?.bars?.[at] ? all(c.bars[at]) : []);
+  const layers = c => (c?.bars || []).map((sel, at) => at).filter(at => bar(c, at).length); // the bars showing, top to bottom
+  const barId = b => Object.values(b.dataset)[0] || b.textContent;
+  const pressed = (c, at) => (barPick && bar(c, at).find(b => barId(b) === barPick))
+    || bar(c, at).find(b => b.getAttribute('aria-pressed') === 'true' || b.getAttribute('aria-selected') === 'true') || bar(c, at)[0] || null;
   const paint = () => {
     const c = cfg();
-    const cur = on && !busy() ? (inBar ? pressed(c) : current(c)) : null;
+    const cur = on && !busy() ? (inBar >= 0 ? pressed(c, inBar) : current(c)) : null;
     for (const e of document.querySelectorAll('.kb-cur')) if (e !== cur) e.classList.remove('kb-cur');
     cur?.classList.add('kb-cur');
   };
@@ -168,14 +192,26 @@ export function installBrowse({ busy, area }) {
   const go = el => {
     key = keyOf(el);
     on = true;
-    inBar = false;
+    inBar = -1;
     paint();
     el.scrollIntoView({ block: 'nearest' });
     clearSticky(el);
   };
   goTo = go;
-  const stop = () => { on = false; inBar = false; key = null; barPick = null; selFrom = null; paint(); };
-  const goBar = () => { on = true; inBar = true; paint(); pressed(cfg())?.scrollIntoView({ block: 'nearest', inline: 'nearest' }); };
+  const stop = () => { on = false; inBar = -1; key = null; barPick = null; selFrom = null; paint(); };
+  const goBar = at => { if (at !== inBar) barPick = null; on = true; inBar = at; paint(); const b = pressed(cfg(), at); b?.scrollIntoView({ block: 'nearest', inline: 'nearest' }); if (b) clearSticky(b); };
+  const firstBar = c => layers(c)[0] ?? -1;
+  // The stops above the items, top to bottom as on screen: the search box ('search') and each bar showing (its place).
+  const searchBox = c => (c?.search ? all(c.search)[0] : null);
+  const stops = c => {
+    const out = layers(c).map(at => ({ stop: at, top: bar(c, at)[0].getBoundingClientRect().top }));
+    const box = searchBox(c);
+    if (box) out.push({ stop: 'search', top: box.getBoundingClientRect().top });
+    return out.sort((a, b) => a.top - b.top).map(x => x.stop);
+  };
+  // The stop above or below this one (null: none; undefined from: the last, coming up from the items).
+  const stopBy = (c, from, dir) => { const list = stops(c); return from === undefined ? list.at(-1) ?? null : list[list.indexOf(from) + dir] ?? null; };
+  const goStop = (c, to) => { if (to === 'search') { stop(); searchBox(c).focus(); } else goBar(to); };
   const flash = el => {
     if (!el) return;
     el.classList.remove('kb-flash');
@@ -184,12 +220,12 @@ export function installBrowse({ busy, area }) {
     setTimeout(() => el.classList.remove('kb-flash'), 600);
   };
   // ← / → on the bar: the next filter, switched to at once; at an end, a flash.
-  const moveBar = (c, dir) => {
-    const btns = bar(c);
-    const at = btns.indexOf(pressed(c));
+  const moveBar = (c, dir, layer = inBar) => {
+    const btns = bar(c, layer);
+    const at = btns.indexOf(pressed(c, layer));
     const to = btns[at + dir];
-    goBar();
-    if (to) { barPick = barId(to); to.click(); paint(); } else flash(btns[at]);
+    goBar(layer);
+    if (to) { barPick = barId(to); keepOnHash = true; to.click(); setTimeout(() => { keepOnHash = false; }, 300); paint(); } else flash(btns[at]);
   };
   const take = ev => { ev.preventDefault(); ev.stopPropagation(); };
 
@@ -201,7 +237,7 @@ export function installBrowse({ busy, area }) {
     const t = ev.target;
     if (t !== document.body && t !== document.documentElement && t.closest?.('a, button, summary, [role="button"], [tabindex], input, textarea, select')) return;
     const c = cfg(), list = items(c);
-    if (!list.length || inBar) return;
+    if (!list.length || inBar >= 0) return;
     take(ev);
     let cur = on ? current(c) : null;
     if (!cur) { // not browsing yet: from the first item chosen, or the first item
@@ -235,10 +271,12 @@ export function installBrowse({ busy, area }) {
     // In the search box: ↓ goes on to browse what it found.
     if (c.search && t.matches?.(c.search)) {
       const first = items(c)[0];
+      const below = stopBy(c, 'search', 1), above = stopBy(c, 'search', -1);
       if (ev.key === 'Escape') { take(ev); t.blur(); stop(); }
-      else if (ev.key === 'ArrowDown' && bar(c).length) { take(ev); t.blur(); goBar(); }
+      else if (ev.key === 'ArrowDown' && below !== null) { take(ev); t.blur(); goStop(c, below); }
       else if (ev.key === 'ArrowDown' && first) { take(ev); t.blur(); go(first); }
       else if (ev.key === 'ArrowDown' && c.enter?.()) take(ev);
+      else if (ev.key === 'ArrowUp' && above !== null) { take(ev); t.blur(); goStop(c, above); }
       else if (ev.key === 'ArrowUp' && c.aboveSearch?.()) take(ev);
       return;
     }
@@ -246,15 +284,17 @@ export function installBrowse({ busy, area }) {
     const list = items(c);
     if (on) {
       if (ev.key === 'Escape') { const chosen = document.querySelector('.select-bar:not([hidden])'); stop(); if (!chosen) take(ev); return; } // with a selection, the view's Esc clears it too
-      if (inBar) {
+      if (inBar >= 0) {
         take(ev);
+        if (!bar(c, inBar).length) { const to = firstBar(c); if (to >= 0) goBar(to); else if (list[0]) go(list[0]); else stop(); return; } // that bar went with the page it was on
         if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') moveBar(c, ev.key === 'ArrowLeft' ? -1 : 1);
-        else if (ev.key === 'ArrowDown' || ev.key === 'Enter') { if (list[0]) go(list[0]); }
-        else if (ev.key === 'ArrowUp') { const s = c.search && all(c.search)[0]; stop(); s?.focus(); }
+        else if (ev.key === 'ArrowDown' || ev.key === 'Enter') { const below = stopBy(c, inBar, 1); if (below !== null) goStop(c, below); else if (list[0]) go(list[0]); else flash(pressed(c, inBar)); }
+        else if (ev.key === 'ArrowUp') { const above = stopBy(c, inBar, -1); if (above !== null) goStop(c, above); else flash(pressed(c, inBar)); }
         return;
       }
       const cur = current(c);
-      if (ev.key === 'Enter') { if (cur) { take(ev); Promise.resolve(c.open?.(cur)).then(() => { if (deeper) setTimeout(fullNow, 50); }); } return; }
+      if (ev.key === 'Enter') { if (cur) { take(ev); Promise.resolve(openIt(c, cur)).then(() => { if (deeper) setTimeout(fullNow, 50); }); } return; }
+      if ((ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') && isRow(c, cur)) { stop(); return; } // the area's tabs or days (app.js)
       take(ev);
       selFrom = null;
       if (!cur) { if (list[0]) go(list[0]); return; }
@@ -265,8 +305,7 @@ export function installBrowse({ busy, area }) {
       }
       const to = step(list, cur, ev.key);
       if (to) go(to);
-      else if (ev.key === 'ArrowUp' && bar(c).length) goBar();
-      else if (ev.key === 'ArrowUp' && c.search) { const s = all(c.search)[0]; if (s) { stop(); s.focus(); } }
+      else if (ev.key === 'ArrowUp' && stopBy(c, undefined) !== null) goStop(c, stopBy(c, undefined));
       return;
     }
     // The top level: only when nothing in particular has the keyboard (a
@@ -278,18 +317,34 @@ export function installBrowse({ busy, area }) {
       if (s) { take(ev); s.value = ''; s.dispatchEvent(new Event('input', { bubbles: true })); }
       return;
     }
-    if ((ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') && bar(c).length) { take(ev); moveBar(c, ev.key === 'ArrowLeft' ? -1 : 1); return; }
+    if ((ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') && firstBar(c) >= 0) { take(ev); moveBar(c, ev.key === 'ArrowLeft' ? -1 : 1, firstBar(c)); return; }
     if (ev.key === 'ArrowDown') {
       let done = !!c.down?.(); // (false when there's nothing of its kind on this page: then as elsewhere)
-      if (done) { /* taken */ } else if (c.search && all(c.search)[0]) { all(c.search)[0].focus(); done = true; }
+      if (done) { /* taken */ } else if (stops(c).length) { goStop(c, stops(c)[0]); done = true; }
       else if (list[0]) { go(list[0]); done = true; }
       else done = !!c.enter?.();
       if (done) take(ev);
     } else if (ev.key === 'Enter' && c.enter?.()) { take(ev); if (deeper) fullNow(); }
   }, true);
 
-  addEventListener('pointerdown', () => { if (on) stop(); }, true);
-  addEventListener('hashchange', () => { barPick = null; if (on) stop(); });
+  addEventListener('pointerdown', () => { escAt = 0; if (on) stop(); }, true);
+  addEventListener('keydown', ev => { if (ev.key === 'Escape') escAt = Date.now(); }, true);
+  // Esc out of a row's name (the focus left to the page, not clicked or tabbed away): that row highlighted.
+  addEventListener('focusout', ev => {
+    const c = cfg();
+    const row = c?.rows && !ev.relatedTarget && Date.now() - escAt < 300 && ev.target.closest?.(c.rows);
+    if (!row) return;
+    const rowKey = keyOf(row);
+    let tries = 8; // the row's pills take a moment to fold away
+    const settle = () => {
+      const a = document.activeElement;
+      if ((a && a !== document.body) || on || !escAt) return;
+      if (busy()) { if (--tries) setTimeout(settle, 40); return; }
+      if (items(c).some(e => keyOf(e) === rowKey && isRow(c, e))) { key = rowKey; on = true; inBar = -1; selFrom = null; paint(); }
+    };
+    setTimeout(settle, 0);
+  }, true);
+  addEventListener('hashchange', () => { if (keepOnHash) return; barPick = null; if (on) stop(); });
   // Editing hides the highlight; leaving the editing (or a redraw) brings it back.
   addEventListener('focusin', later);
   addEventListener('focusout', later);
