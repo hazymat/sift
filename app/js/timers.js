@@ -7,7 +7,6 @@
 // The ring here only works while Sift is open; alerts with Sift closed come from the server (push.js).
 
 import * as store from './store.js';
-import { pillMenu } from './pillmenu.js';
 import { askText } from './ask.js';
 import { toast } from './toast.js';
 
@@ -33,7 +32,7 @@ export const lengthText = secs => (secs % 3600 === 0 ? `${secs / 3600} h` : secs
 const shown = (t, now) => (t.kind === 'down' ? clock(Math.max(0, Math.ceil(leftOf(t, now) / 1000))) : clock(Math.floor(elapsed(t, now) / 1000)));
 export const list = () => timers;
 export const watch = fn => { watchers.add(fn); return () => watchers.delete(fn); };
-const changed = () => { for (const fn of watchers) fn(timers); drawDock(); run(); };
+const changed = () => { if (bar) drawBar(); for (const fn of watchers) fn(timers); drawDock(); run(); };
 
 async function load() {
   const all = await store.local.list('timers');
@@ -64,6 +63,12 @@ export function addTime(t, secs) {
   return put(t, { length_ms: Math.max(used + 1000, base + secs * 1000) });
 }
 export const dismiss = async t => { await store.local.remove('timers', t.id); await load(); };
+// Remove timers, with Undo in the message (no asking first).
+export async function removeAll(list) {
+  for (const t of list) { await store.local.remove('timers', t.id); chosen.delete(t.id); }
+  await load();
+  toast(list.length === 1 ? `${list[0].name} removed` : `${list.length} timers removed`, { action: 'Undo', onAction: async () => { for (const t of list) await store.local.restore('timers', t.id); await load(); } });
+}
 export async function rename(t) {
   const name = await askText('Timer name', { value: t.name || '', ok: 'Save' });
   if (name != null) await put(t, { name: name.trim() || t.name });
@@ -71,18 +76,19 @@ export async function rename(t) {
 
 // ---------- the pills ----------
 
-// One timer as a pill: its time and name, ⏸ / ▶, and ✕ once it has rung. Tap the name for +1, +5, −1 min, rename, remove.
+// One timer as a pill: its time and name, ⏸ / ▶, and ✕ once it has rung. Tap the time for its menu; press and hold to choose several.
 // recipe: also say which recipe it's for (Follow along with more than one open).
 export function pillHtml(t, now = Date.now(), { recipe = false } = {}) {
   const ring = ringing(t, now);
-  return `<span class="tm-pill${ring ? ' tm-ring' : ''}${t.paused != null ? ' tm-paused' : ''}" data-timer="${t.id}">
-    <button type="button" class="tm-main" data-tm="menu" title="More for this timer"><b class="tm-time" data-tm-time>${t.kind === 'up' ? '⏱ ' : ''}${shown(t, now)}</b><span class="tm-name">${ring ? `${esc(t.name)} · done` : esc(t.name)}${recipe && t.title ? ` · ${esc(t.title)}` : ''}</span></button>
+  return `<span class="tm-pill${ring ? ' tm-ring' : ''}${t.paused != null ? ' tm-paused' : ''}${chosen.has(t.id) ? ' tm-chosen' : ''}" data-timer="${t.id}">
+    <button type="button" class="tm-main" data-tm="menu" title="More for this timer (press and hold to choose several)"><b class="tm-time" data-tm-time>${t.kind === 'up' ? '⏱ ' : ''}${shown(t, now)}</b><span class="tm-name">${ring ? `${esc(t.name)} · done` : esc(t.name)}${recipe && t.title ? ` · ${esc(t.title)}` : ''}</span></button>
     ${ring ? '<button type="button" class="tm-btn" data-tm="dismiss" title="Stop the alarm and remove this timer" aria-label="Stop">✕</button>'
       : `<button type="button" class="tm-btn" data-tm="${t.paused != null ? 'resume' : 'pause'}" aria-label="${t.paused != null ? 'Carry on' : 'Pause'}" title="${t.paused != null ? 'Carry on' : 'Pause'}">${t.paused != null ? '▶' : '⏸'}</button>`}
   </span>`;
 }
+const STEPS = [[300, '+5 min'], [60, '+1 min'], [-60, '−1 min'], [-300, '−5 min']];
 
-// Clicks on any timer pill (the dock, Follow along).
+// Clicks on any timer pill (the dock, Follow along). While some are chosen, a tap chooses or unchooses.
 export function onClick(ev, { open } = {}) {
   const b = ev.target.closest('[data-tm]');
   const pill = ev.target.closest('[data-timer]');
@@ -90,24 +96,127 @@ export function onClick(ev, { open } = {}) {
   const t = timers.find(x => x.id === pill.dataset.timer);
   if (!t) return true;
   unlockSound();
+  if (held) { held = false; return true; } // the click that ends a press and hold
+  if (chosen.size) { choose(t.id); return true; }
   const act = b.dataset.tm;
   if (act === 'pause') pause(t);
   else if (act === 'resume') resume(t);
   else if (act === 'dismiss') dismiss(t);
-  else if (act === 'menu') {
-    const down = t.kind === 'down';
-    pillMenu(b, [
-      ...(open && t.recipe_id ? [{ value: 'open', label: '🥄 Open its recipe' }] : []),
-      ...(down ? [{ value: 60, label: '+1 min' }, { value: 300, label: '+5 min' }, { value: -60, label: '−1 min' }] : []),
-      { value: 'rename', label: '✎ Rename' }, { value: 'remove', label: '✕ Remove' },
-    ], v => {
-      if (v === 'open') open(t);
-      else if (v === 'rename') rename(t);
-      else if (v === 'remove') dismiss(t).then(() => toast(`${t.name} removed`));
-      else addTime(t, v);
-    });
-  }
+  else if (act === 'menu') timerMenu(pill, t, open);
   return true;
+}
+
+// ---------- one timer's menu (a column under its pill) ----------
+
+let menu = null;
+const closeMenu = () => { menu?.close(); menu = null; };
+function timerMenu(pill, t, open) {
+  closeMenu();
+  const box = document.createElement('div');
+  box.className = 'tm-menu';
+  box.setAttribute('role', 'menu');
+  box.dataset.timerMenu = t.id;
+  box.innerHTML = `<div class="tm-menu-head"><b data-tm-time>${shown(t, Date.now())}</b><span>${esc(t.name)}</span></div>
+    ${open && t.recipe_id ? '<button type="button" role="menuitem" data-m="open">🥄 Open its recipe</button>' : ''}
+    ${t.kind === 'down' ? `<div class="tm-menu-steps">${STEPS.map(([secs, label]) => `<button type="button" role="menuitem" data-m="${secs}">${label}</button>`).join('')}</div>` : ''}
+    <button type="button" role="menuitem" data-m="choose">☑ Choose several</button>
+    <button type="button" role="menuitem" data-m="rename">✎ Rename</button>
+    <button type="button" role="menuitem" data-m="remove" class="danger">✕ Remove</button>`;
+  document.body.append(box);
+  const place = () => {
+    const anchor = [...document.querySelectorAll(`[data-timer="${t.id}"]`)].find(el => el.getClientRects().length) || pill; // the one showing (Follow along has a phone row too)
+    const r = anchor.getBoundingClientRect(), room = visualViewport?.height ?? innerHeight;
+    box.style.left = `${Math.max(8, Math.min(r.right - box.offsetWidth, document.documentElement.clientWidth - box.offsetWidth - 8))}px`;
+    box.style.top = `${r.bottom + 6 + box.offsetHeight <= room - 8 ? r.bottom + 6 : Math.max(8, r.top - 6 - box.offsetHeight)}px`;
+  };
+  place();
+  // Closes on a tap elsewhere or Esc only (not on scrolling: a tap on iPad can scroll the page under it).
+  const outside = ev => { if (!box.contains(ev.target) && !ev.target.closest?.(`[data-timer="${t.id}"]`)) closeMenu(); };
+  const keys = ev => {
+    if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); closeMenu(); return; }
+    if ((ev.key === 'ArrowDown' || ev.key === 'ArrowUp') && box.contains(document.activeElement)) {
+      const all = [...box.querySelectorAll('button')];
+      all[all.indexOf(document.activeElement) + (ev.key === 'ArrowUp' ? -1 : 1)]?.focus();
+      ev.preventDefault(); ev.stopPropagation();
+    }
+  };
+  addEventListener('pointerdown', outside, true);
+  addEventListener('keydown', keys, true);
+  const unwatch = watch(() => { if (!timers.some(x => x.id === t.id)) closeMenu(); else place(); });
+  box.addEventListener('click', ev => {
+    const b = ev.target.closest('[data-m]');
+    if (!b) return;
+    const now = timers.find(x => x.id === t.id) || t, what = b.dataset.m;
+    if (/^-?\d+$/.test(what)) { addTime(now, +what); return; } // stays open, so +1 can be tapped again
+    closeMenu();
+    if (what === 'open') open(now);
+    else if (what === 'rename') rename(now);
+    else if (what === 'remove') removeAll([now]);
+    else if (what === 'choose') choose(now.id);
+  });
+  menu = { close: () => { box.remove(); unwatch(); removeEventListener('pointerdown', outside, true); removeEventListener('keydown', keys, true); } };
+  if (matchMedia('(hover: hover)').matches) box.querySelector('button')?.focus({ preventScroll: true });
+}
+
+// ---------- choosing several (press and hold a pill, or ☑ Choose several) ----------
+
+const chosen = new Set();
+let held = false;
+let bar = null;
+function choose(id) {
+  if (chosen.has(id)) chosen.delete(id); else chosen.add(id);
+  changed();
+}
+const clearChosen = () => { if (chosen.size) { chosen.clear(); changed(); } };
+function drawBar() {
+  for (const id of chosen) if (!timers.some(t => t.id === id)) chosen.delete(id);
+  bar.hidden = !chosen.size;
+  document.body.classList.toggle('has-timer-bar', !!chosen.size);
+  if (!chosen.size) return;
+  const sel = timers.filter(t => chosen.has(t.id)), downs = sel.filter(t => t.kind === 'down');
+  bar.querySelector('.select-count').textContent = `${chosen.size} chosen`;
+  bar.querySelector('[data-bar="all"]').hidden = chosen.size === timers.length;
+  bar.querySelectorAll('[data-bar^="+"], [data-bar^="-"]').forEach(b => { b.hidden = !downs.length; });
+  bar.querySelector('[data-bar="pause"]').hidden = !sel.some(t => t.paused == null && !ringing(t));
+  bar.querySelector('[data-bar="resume"]').hidden = !sel.some(t => t.paused != null);
+}
+function installBar() {
+  bar = document.createElement('div');
+  bar.className = 'select-bar tm-bar';
+  bar.setAttribute('role', 'toolbar');
+  bar.setAttribute('aria-label', 'Chosen timers');
+  bar.hidden = true;
+  bar.innerHTML = `<button type="button" data-bar="clear" aria-label="Clear the choice (Esc)">✕</button><span class="select-count"></span>
+    <button type="button" data-bar="all">All</button>${STEPS.map(([secs, label]) => `<button type="button" data-bar="${secs > 0 ? '+' : ''}${secs}">${label}</button>`).join('')}
+    <button type="button" data-bar="pause">⏸ Pause</button><button type="button" data-bar="resume">▶ Carry on</button><button type="button" data-bar="remove" class="danger">Remove</button>`;
+  document.body.append(bar);
+  bar.addEventListener('click', async ev => {
+    const b = ev.target.closest('[data-bar]');
+    if (!b) return;
+    const what = b.dataset.bar, sel = timers.filter(t => chosen.has(t.id));
+    if (what === 'clear') clearChosen();
+    else if (what === 'all') { for (const t of timers) chosen.add(t.id); changed(); }
+    else if (what === 'remove') removeAll(sel);
+    else if (what === 'pause') for (const t of sel) await pause(t);
+    else if (what === 'resume') for (const t of sel) await resume(t);
+    else { for (const t of sel) await addTime(t, +what); toast(`${b.textContent} on ${sel.filter(t => t.kind === 'down').length === 1 ? '1 timer' : `${sel.filter(t => t.kind === 'down').length} timers`}`); }
+  });
+  addEventListener('keydown', ev => { if (ev.key === 'Escape' && chosen.size && !document.querySelector('dialog[open]') && !menu) { ev.preventDefault(); ev.stopImmediatePropagation(); clearChosen(); } }, true);
+  // Press and hold a pill to choose it (as cards everywhere).
+  let hold = null;
+  const cancel = () => { clearTimeout(hold); hold = null; };
+  addEventListener('pointerdown', ev => {
+    const pill = ev.target.closest?.('[data-timer]');
+    if (!pill || ev.button > 0) return;
+    held = false;
+    const x = ev.clientX, y = ev.clientY;
+    hold = setTimeout(() => { hold = null; held = true; closeMenu(); if (!chosen.has(pill.dataset.timer)) choose(pill.dataset.timer); navigator.vibrate?.(15); }, 480);
+    const moved = e => { if (Math.hypot(e.clientX - x, e.clientY - y) > 10) cancel(); };
+    addEventListener('pointermove', moved, { passive: true });
+    addEventListener('pointerup', () => { cancel(); removeEventListener('pointermove', moved); }, { once: true });
+  }, true);
+  addEventListener('pointercancel', cancel, true);
+  addEventListener('contextmenu', ev => { if (ev.target.closest?.('[data-timer]')) ev.preventDefault(); }, true);
 }
 
 // ---------- ticking and ringing ----------
@@ -123,6 +232,8 @@ function tick() {
     const time = el.querySelector('[data-tm-time]');
     if (time) time.textContent = `${t.kind === 'up' ? '⏱ ' : ''}${shown(t, now)}`;
   }
+  const head = document.querySelector('.tm-menu [data-tm-time]'), open = head && timers.find(x => x.id === head.closest('[data-timer-menu]').dataset.timerMenu);
+  if (open) head.textContent = shown(open, now);
   for (const t of timers) if (ringing(t, now) && now - (t.started + (t.paused_ms || 0) + t.length_ms) < RING_FRESH) ring = true;
   if (ring && now - lastBeep > 2400) { lastBeep = now; beep(); navigator.vibrate?.([200, 100, 200]); }
   const done = timers.filter(t => ringing(t, now));
@@ -171,6 +282,7 @@ export function installTimers() {
   dock.hidden = true;
   dock.setAttribute('aria-label', 'Timers');
   document.body.append(dock);
+  installBar();
   dock.addEventListener('click', ev => onClick(ev, { open: openTimerOf }));
   addEventListener('pointerdown', () => { if (timers.length) unlockSound(); }, { capture: true, passive: true });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
@@ -194,7 +306,7 @@ export async function newTimerSheet(where = {}, { secs = 600, name = '' } = {}) 
   const wheel = ([k, unit, count, step]) => `<div class="tm-wheel"><div class="tm-col" data-wheel="${k}" data-step="${step}" tabindex="0" aria-label="${unit}"><div class="tm-roll">${Array.from({ length: count }, (_, n) => `<div class="tm-n">${k === 'h' ? n : String(n * step).padStart(2, '0')}</div>`).join('')}</div></div><span class="tm-unit">${unit}</span></div>`;
   dlg.innerHTML = `<div class="sheet-handle"></div>
     <form method="dialog">
-      <div class="tm-sheet-head"><h2>New timer</h2><span class="segmented"><button type="button" data-kind="down" aria-pressed="true">⏲ Count down</button><button type="button" data-kind="up" aria-pressed="false">⏱ Stopwatch</button></span></div>
+      <div class="tm-sheet-head"><h2>New timer</h2><span class="segmented"><button type="button" data-kind="down" aria-pressed="true">⏰ Count down</button><button type="button" data-kind="up" aria-pressed="false">⏱ Stopwatch</button></span></div>
       <div class="tm-down"><div class="tm-picker"><div class="tm-band"></div>${WHEELS.map(wheel).join('')}</div>
       <div class="tm-quick">${QUICK.map(s => `<button type="button" data-quick="${s}">${lengthText(s)}</button>`).join('')}</div></div>
       <label class="ask-field"><span>Name</span><input name="name" value="${esc(name || nextName())}" autocomplete="off" autocapitalize="sentences"></label>
@@ -270,12 +382,27 @@ export const TIMER_CSS = `
 #timer-dock[hidden], body.follow-open #timer-dock { display: none; }
 @media (min-width: 768px) { #timer-dock { bottom: calc(20px + var(--sel-lift) + var(--upd-lift)); } }
 body.has-timers .toast { margin-bottom: 52px; }
-.tm-pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 3px; border-radius: 18px; background: var(--glass-strong); border: 1px solid var(--glass-border); box-shadow: var(--glass-highlight), var(--shadow-sm); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); font-variant-numeric: tabular-nums; max-width: 100%; }
+.tm-pill { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 3px; border-radius: 18px; background: var(--glass-strong); border: 1px solid var(--glass-border); box-shadow: var(--glass-highlight), var(--shadow-sm); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); font-variant-numeric: tabular-nums; max-width: 100%; }
 .tm-pill .tm-main { display: flex; flex-direction: column; align-items: flex-start; gap: 0; padding: 3px 10px; background: none; box-shadow: none; line-height: 1.15; min-width: 0; text-align: left; }
 .tm-time { font-size: 1.15rem; font-weight: 700; }
 .tm-name { font-size: .74rem; color: var(--muted); max-width: 16em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tm-btn { width: 34px; height: 34px; padding: 0; border-radius: 50%; display: grid; place-items: center; flex: none; font-size: .9rem; }
 .tm-paused .tm-time { opacity: .55; }
+@keyframes tm-flash { 30% { box-shadow: 0 0 0 5px var(--accent); transform: scale(1.06); } }
+.tm-flash { animation: tm-flash .9s ease-in-out 2; }
+.tm-chosen { box-shadow: 0 0 0 3px var(--accent), var(--shadow-sm); }
+.tm-menu { position: fixed; z-index: 960; display: flex; flex-direction: column; gap: 4px; width: 230px; max-width: calc(100vw - 16px); padding: 8px; border-radius: 18px; background: color-mix(in srgb, var(--bg) 92%, transparent); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); border: 1px solid var(--glass-border); box-shadow: var(--shadow); }
+.tm-menu-head { display: flex; align-items: baseline; gap: 8px; padding: 2px 8px 6px; min-width: 0; }
+.tm-menu-head b { font-size: 1.3rem; font-variant-numeric: tabular-nums; }
+.tm-menu-head span { color: var(--muted); font-size: .85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tm-menu button { display: flex; align-items: center; justify-content: flex-start; width: 100%; min-height: 44px; padding: 0 14px; font-size: 1rem; letter-spacing: normal; word-spacing: normal; text-align: left; box-shadow: none; }
+.tm-menu-steps { display: flex; flex-direction: column; gap: 4px; padding: 4px 0; border-block: 1px solid var(--glass-border); margin: 2px 0; }
+.tm-menu-steps button { font-variant-numeric: tabular-nums; font-weight: 600; }
+.tm-bar { z-index: 955; }
+.tm-bar[hidden] { display: none; }
+body.follow-open .tm-bar { bottom: calc(14px + var(--safe-bottom)); }
+body.has-timer-bar #timer-dock { bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 72px + var(--upd-lift)); }
+@media (min-width: 768px) { body.has-timer-bar #timer-dock { bottom: calc(78px + var(--upd-lift)); } }
 .tm-ring { background: rgba(230, 80, 55, .5); border-color: rgba(255, 140, 110, .9); animation: tm-pulse 1s ease-in-out infinite; }
 .tm-ring .tm-name { color: inherit; }
 @keyframes tm-pulse { 50% { box-shadow: 0 0 0 6px rgba(255, 110, 80, .3); } }
