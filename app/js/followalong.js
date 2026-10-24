@@ -336,6 +336,7 @@ export async function openFollow(open) {
 const CSS = `
 body.follow-open { overflow: hidden; }
 .fa-screen { position: fixed; inset: 0; z-index: 900; background: var(--bg); background-image: var(--bg-image, none); color: var(--text); display: flex; flex-direction: column; padding: calc(10px + var(--safe-top)) clamp(10px, 2vw, 22px) calc(10px + var(--safe-bottom)); }
+.fa-top, .fa-tabs, .fa-phone-timers { position: relative; z-index: 3; } /* above the steps: iPad Safari can let a rolled step (scaled, on its own layer) take taps outside the drum until the window is resized */
 .fa-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; min-width: 0; flex-wrap: wrap; }
 .fa-top .back { padding: 6px 14px 6px 10px; flex: none; }
 .fa-top h1 { font-size: 1.3rem; margin: 0; font-weight: 600; flex: 1; min-width: 6em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -354,7 +355,7 @@ body.follow-open { overflow: hidden; }
 .fa-side[aria-pressed="true"] { background: var(--active-bg); border-color: var(--active-border); }
 .fa-tabs:has(.fa-tab:only-of-type) .fa-tab { display: none; }
 .fa-tabs:has(.fa-tab:only-of-type) { justify-content: flex-end; margin: -6px 0 4px; }
-.fa-grid { flex: 1; min-height: 0; display: flex; }
+.fa-grid { flex: 1; min-height: 0; display: flex; position: relative; z-index: 1; }
 .fa-pot { flex: 1; min-width: 0; min-height: 0; display: grid; grid-template-columns: minmax(240px, 1fr) 2fr; gap: 18px; position: relative; }
 .fa-side-by-side { display: grid; grid-template-columns: repeat(var(--cols), 1fr); gap: 14px; }
 .fa-side-by-side .fa-pot { display: flex; flex-direction: column; gap: 8px; background: color-mix(in srgb, var(--text) 3%, transparent); border: 1px solid var(--glass-border); border-radius: 22px; padding: 10px; }
@@ -371,7 +372,7 @@ body.follow-open { overflow: hidden; }
 .fa-ing-list li { display: flex; gap: 10px; padding: 8px 10px; margin: 0 -10px; border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent); border-radius: 10px; transition: background .25s; }
 .fa-ing-list b { color: #f6c46f; font-weight: 650; white-space: nowrap; }
 .fa-ing-list li.fa-used { background: rgba(246, 196, 111, .2); border-color: transparent; }
-.fa-drum { position: relative; min-height: 0; overflow-y: auto; scroll-snap-type: y mandatory; scrollbar-width: none; overscroll-behavior: contain; padding: 0 30px 0 4px; outline: none;
+.fa-drum { position: relative; contain: paint; min-height: 0; overflow-y: auto; scroll-snap-type: y mandatory; scrollbar-width: none; overscroll-behavior: contain; padding: 0 30px 0 4px; outline: none;
   -webkit-mask-image: linear-gradient(transparent, #000 9%, #000 91%, transparent); mask-image: linear-gradient(transparent, #000 9%, #000 91%, transparent); }
 .fa-drum::-webkit-scrollbar { display: none; }
 .fa-drum::before, .fa-drum::after { content: ""; display: block; height: 42%; }
