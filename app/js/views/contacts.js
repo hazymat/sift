@@ -113,7 +113,7 @@ export default {
     // The top stays while the page scrolls; glass once it's stuck (as Find Things' and Batch Book's).
     const stickyTop = el.querySelector('.sticky-top');
     this.topWatch?.disconnect();
-    this.topWatch = new IntersectionObserver(([e]) => stickyTop.classList.toggle('stuck', !e.isIntersecting && e.boundingClientRect.top < 200), { rootMargin: `-${parseFloat(getComputedStyle(stickyTop).top) || 0}px 0px 0px 0px` });
+    this.topWatch = new IntersectionObserver(([e]) => stickyTop.classList.toggle('stuck', !e.isIntersecting && e.boundingClientRect.top < 200), { rootMargin: `-${(parseFloat(getComputedStyle(stickyTop).top) || 0) + (parseFloat(getComputedStyle(stickyTop).paddingTop) || 0)}px 0px 0px 0px` });
     this.topWatch.observe(el.querySelector('.sticky-top-mark'));
     // View choices arriving from another device redraw the Cases list.
     this.gone = new AbortController();

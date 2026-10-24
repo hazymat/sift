@@ -109,7 +109,7 @@ export default {
     const cubeWith = name => { const [first, rest] = String(name).split(/ (.*)/s); return `<span class="nowrap">${cube}${esc(first)}</span>${rest ? ' ' + esc(rest) : ''}`; };
     // Stuck at the top, the top gets a glass background and a shadow (as Brain Dump's and Batch Book's).
     const stickyTop = el.querySelector('.find-sticky');
-    this.topWatch = new IntersectionObserver(([e]) => stickyTop.classList.toggle('stuck', !e.isIntersecting && e.boundingClientRect.top < 200), { rootMargin: `-${parseFloat(getComputedStyle(stickyTop).top) || 0}px 0px 0px 0px` });
+    this.topWatch = new IntersectionObserver(([e]) => stickyTop.classList.toggle('stuck', !e.isIntersecting && e.boundingClientRect.top < 200), { rootMargin: `-${(parseFloat(getComputedStyle(stickyTop).top) || 0) + (parseFloat(getComputedStyle(stickyTop).paddingTop) || 0)}px 0px 0px 0px` });
     this.topWatch.observe(el.querySelector('.find-sticky-mark'));
     // Spacing changes the boxes' size, so the "+ n more" counts are worked out again.
     this.densityWatch = new MutationObserver(() => { if (!openId) requestAnimationFrame(() => fitPills()); });
