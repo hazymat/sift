@@ -38,6 +38,8 @@ const shortDate = iso => (iso ? dateText(new Date(`${iso.slice(0, 10)}T12:00`), 
 const STATUSES = [['planned', 'Planned', '📝'], ['going', 'On the go', '🫧'], ['done', 'Done', '✅']];
 const statusLabel = v => { const st = STATUSES.find(x => x[0] === (v || 'going')); return `${st[2]} ${st[1]}`; };
 const GOALS = ['ABV goal', 'Sweetness goal', 'Final sweetness'];
+// Anything typed on an open recipe's page (other than the starting name), saved or not.
+const typedOnPage = () => Array.from(document.querySelectorAll('#main .bb-paper :is(textarea, input:not([type="checkbox"]):not([type="file"]))')).some(i => i.value.trim() && i.value.trim() !== 'New recipe');
 const SCALES = [1 / 3, 0.5, 1, 2, 3, 4];
 const now = () => new Date().toISOString();
 // Recipes never dragged sort by when they were made.
@@ -153,14 +155,14 @@ export default {
       const abv = abvOf(entriesOf(m.id, 'reading'));
       const photo = photoOf(m.id);
       const href = `#/recipes/${m.recipe_id}/make/${m.id}${fromList ? '/list' : ''}${ownerPath()}`;
-      return `<li data-id="${m.id}" data-depth="0"><button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button><div role="link" tabindex="0" data-href="${href}" class="bb-batch-row" style="--bb:${colourOf(r)}">
+      return `<li data-id="${m.id}" data-depth="0" style="--bb:${colourOf(r)}"><button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button><div role="link" tabindex="0" data-href="${href}" class="bb-batch-row">
         ${photo ? `<img class="bb-batch-pic" src="${photo.thumb}" alt="">` : `<span class="bb-batch-emoji">${sec.emoji}</span>`}
         <span class="bb-batch-no">${esc(batchName(m, r?.title))}</span>
         <span class="bb-batch-name">${m.name && !m.name.includes(r?.title || '') ? `<span class="muted">${esc(r?.title || 'Untitled')}</span>` : ''}${m.description && m.description !== r?.description ? ` <span class="muted">· ${esc(m.description)}</span>` : ''}</span>
         ${batchName(m, r?.title).includes(batchDay(m.date)) ? '' : `<span class="muted">${shortDate(m.date)}</span>`}
         ${abv ? `<span class="chip">${abv.abv.toFixed(2)}%</span>` : ''}
         <button type="button" class="chip bb-status-${m.status || 'going'}" data-batch-status="${m.id}" title="Change status">${statusLabel(m.status)} ▾</button>
-        ${fromList ? '' : `<button type="button" class="chip danger" data-batch-delete="${m.id}" title="Delete this batch">Delete</button>`}
+        ${fromList ? '' : `<button type="button" class="chip bb-batch-del" data-batch-delete="${m.id}" title="Delete this batch">Delete</button>`}
       </div></li>`;
     }
 
@@ -899,9 +901,23 @@ export default {
       const fields = Object.fromEntries(sectionOf(sections, section).fields.map(k => [k, '']));
       const r = await store.create('recipes', { title: 'New recipe', type: section, tags: [], description: '', ingredients: [], steps: [], fields });
       focusNext = '.bb-title';
+      state.fresh = r.id;
       go(`#/recipes/${r.id}`);
       undoable('New recipe', async () => { await store.remove('recipes', r.id); go('#/recipes'); });
     }
+
+    // A new recipe left with nothing filled in (still "New recipe", no photos, no batches) isn't kept: it's deleted for good.
+    // typed: something typed on its page that hadn't saved yet when it was left.
+    this.dropIfEmpty = async (id, typed) => {
+      if (typed) return;
+      await store.idle();
+      const r = await store.get('recipes', id);
+      if (!r || r.deleted_at) return;
+      const blank = v => v == null || (Array.isArray(v) ? !v.length : typeof v === 'string' ? !v.trim() : false);
+      const empty = (!r.title?.trim() || r.title === 'New recipe') && ['description', 'ingredients', 'steps', 'tags', 'tasting'].every(k => blank(r[k])) && Object.values(r.fields || {}).every(blank);
+      if (!empty || (await att.byParent()).get(id)?.length || (await store.list('recipe_makes')).some(m => m.recipe_id === id)) return;
+      await store.purgeMany('recipes', [id]);
+    };
 
     // A batch starts as a copy of the recipe (at the scale shown), with its step photos, to change freely.
     async function makeThis(r, owner = state.owner, times = state.times) {
@@ -1312,6 +1328,8 @@ export default {
     const [id, sub, makeId] = at >= 0 ? parts.slice(0, at) : parts;
     const recipe = id || null;
     if (recipe !== this.state.recipe) { this.state.times = 1; this.state.edit = {}; }
+    const fresh = this.state.fresh;
+    if (fresh && recipe !== fresh) { this.state.fresh = null; return this.dropIfEmpty(fresh, typedOnPage()).then(() => this.route(parts)); }
     this.state.recipe = recipe;
     this.state.make = sub === 'make' ? makeId || null : null;
     this.state.fromList = (at >= 0 ? parts.slice(0, at) : parts)[3] === 'list';
@@ -1320,6 +1338,7 @@ export default {
   },
 
   unmount() {
+    if (this.state.fresh) { this.dropIfEmpty(this.state.fresh, typedOnPage()); this.state.fresh = null; }
     removeEventListener('keydown', this.onKey);
     removeEventListener('keydown', this.onEsc, true);
     this.kit?.destroy();

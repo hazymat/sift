@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.10': [{ text: "Batch Book: batch rows are tidier. The ⠿ for choosing sits inside each row, as in Tasks, and Delete is a red pill that always sits at the right end of the row. A new recipe you leave without filling anything in isn't kept.", go: '#/recipes', open: ['#main .bb-card'], at: '#main .bb-paper .bb-batch-list' }],
   '1.61.09': [{ text: "Batch Book: on an open recipe, each batch at the bottom has a Delete pill. Tap a batch's ⠿ (or press and hold it) to choose several, then Delete on the bar. The scale buttons have ×4 too, on recipes and batches.", go: '#/recipes', open: ['#main .bb-card'], at: '#main .bb-paper .bb-batch-list', more: 'A batch\'s scale buttons (×⅓, ×½, ×2, ×4, ×…) change its own amounts, as before.' }],
   '1.61.08': [{ text: "Sharing: every Share menu now has 🖼 Share as picture… and 📄 Share as PDF… under Print…. They open the same screen as Print, so you choose what goes in, then press Share. Printouts with photos (recipes, cases, notes) have a Photo size choice: Small, Medium, Large or Extra large.", go: '#/recipes', open: ['#main .bb-card', '#main .bb-top .share-menu summary'], at: '#main .bb-top [data-page-print="png"]' }],
   '1.61.07': [{ text: "Printing: the Print screen has Share as 🖼 Picture or 📄 PDF. The printout, colour, photos and layout, goes to your phone's share sheet as a file, ready for WhatsApp. On a computer it's saved (a picture is copied too, to paste into WhatsApp Web).", go: '#/recipes', open: ['#main .bb-card', '#main .bb-top .share-menu summary', '#main .bb-top [data-page-print]'], at: '.print-share', more: 'Works for every printout: recipes, labels, day sheets, lists, cases, scans and notes.' }],
@@ -167,6 +168,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.10': '2026-10-24T22:12:50Z',
   '1.61.09': '2026-10-24T21:54:53Z',
   '1.61.08': '2026-10-24T21:22:15Z',
   '1.61.07': '2026-10-24T20:45:20Z',
