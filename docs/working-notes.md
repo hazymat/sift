@@ -101,4 +101,6 @@ After an update, Sift shows a What's new sheet (Settings, Show update info; on u
 - **Ctrl+.** in a note makes the line a bullet, or plain text again (#23).
 - **Ctrl+Enter** saves and leaves. **Shift+Enter** is a new line. **Alt+Enter** goes one level in (a note full screen; browsing: the outlined note straight into full screen).
 - **Brain Dump, browsing** (a note outlined): C colour, T task, P Plan it, A archive, D delete, * pin; Ctrl+V attaches a picture or file from the clipboard, Ctrl+C copies the note with formatting (#46).
-- **At an area's top level** (nothing being edited): ← / → change the area's tabs (the Day Planner: its days; Brain Dump: its filter bar), Ctrl+← / → change area, ↓ and Enter start work (see `browse.js` for each area). Alt+← / → are left to the browser.
+- **At an area's top level** (nothing being edited): ← / → change the area's tabs (the Day Planner: its days; Brain Dump: its filter bar), Ctrl+← / → change area, ↓ and Enter start work (see `browse.js` for each area).
+- **Filter rows are a stop** in every area that has one (`bars` in `browse.js`'s table, top to bottom): ↓ and ↑ go through the search box and the filter rows in the order they sit on screen, then the items; ← / → switch filter there (1.61.04).
+- **Rows edited in place** (Tasks, the Day Planner, an open list, a box's things: `rows` in `browse.js`): Esc out of a row's name leaves the row highlighted; ↑ / ↓ move on, Enter edits it, Shift+↑ / ↓ choose rows, ← / → are the area's tabs or days (1.61.04). Alt+← / → are left to the browser.
