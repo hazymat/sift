@@ -12,7 +12,8 @@
 import { keys } from './keys.js';
 import * as store from './store.js';
 import * as att from './attachments.js';
-import { stepsOf, amountText, stepHtml, stepRefs, stepWaits, qtyText, batchName } from './batchbook.js';
+import { stepsOf, amountText, stepHtml, stepRefs, stepWaits, qtyText, batchName, sectionsOf, sectionOf } from './batchbook.js';
+import { TINTS } from './colours.js';
 import * as timers from './timers.js';
 import { toast } from './toast.js';
 
@@ -31,7 +32,8 @@ const keep = k => { k.touched = Date.now(); try { localStorage.setItem(KEPT, JSO
 // How many are being cooked (Batch Book's 🍳 Cooking pill).
 export const cooking = () => kept().tabs.length;
 const wide = () => matchMedia('(min-width: 761px)').matches;
-const columns = () => (matchMedia('(min-width: 1400px)').matches ? 3 : matchMedia('(min-width: 900px)').matches ? 2 : 1);
+// Side by side: 2 on an iPad, 3 on an iPad Pro in landscape, 4 on a big screen (any narrower and the writing is too small to read from the stove).
+const columns = () => (matchMedia('(min-width: 1800px)').matches ? 4 : matchMedia('(min-width: 1200px)').matches ? 3 : matchMedia('(min-width: 900px)').matches ? 2 : 1);
 export const isOpen = () => !!document.querySelector('.fa-screen');
 let closeOpen = null;
 
@@ -56,7 +58,8 @@ async function loadTab(tab) {
   const atts = new Map();
   for (const a of files) { if (!atts.has(a.parent_id)) atts.set(a.parent_id, []); atts.get(a.parent_id).push(a); }
   const title = tab.c === 'recipe_makes' ? batchName(rec, recipe?.title) : rec.title || 'Untitled';
-  return { tab, rec, atts, title, steps: stepsOf(rec), ings: rec.ingredients || [], where: { recipe_id: recipe?.id || null, make_id: tab.c === 'recipe_makes' ? rec.id : null, owner: tab.owner || null, title } };
+  const colour = TINTS.find(c => c.id === recipe?.colour)?.hex || sectionOf(sectionsOf(await store.getSettings(), []), recipe?.type).colour; // its book's colour, as on its card
+  return { tab, rec, atts, title, colour, steps: stepsOf(rec), ings: rec.ingredients || [], where: { recipe_id: recipe?.id || null, make_id: tab.c === 'recipe_makes' ? rec.id : null, owner: tab.owner || null, title } };
 }
 
 // openFollow({ c: 'recipes' | 'recipe_makes', id, owner, times }): opens Follow along on that one (added as a tab).
@@ -81,7 +84,10 @@ export async function openFollow(open) {
   el.setAttribute('role', 'dialog');
   el.setAttribute('aria-label', 'Follow along');
   document.body.append(el);
+  // Its own page: everything else is hidden while it's open (nothing underneath to scroll or to catch taps), and the page comes back where it was.
+  const backTo = scrollY;
   document.body.classList.add('follow-open');
+  scrollTo(0, 0);
   const urls = [];
   let shown = []; // the drawn pots: { pot, box, roll, goTo, cur }
   const save = () => { k.tabs = pots.map(p => p.tab); keep(k); };
@@ -93,17 +99,22 @@ export async function openFollow(open) {
     return `<ul class="fa-ing-list">${p.ings.map(i => `<li${used.has(i.id) ? ' class="fa-used"' : ''}><b>${esc(amountText(i, p.tab.times))}</b><span>${esc(i.item)}${i.note ? ` <span class="muted">(${esc(i.note)})</span>` : ''}</span></li>`).join('')}</ul>`;
   };
   const photo = (p, st) => { const a = (p.atts.get(st.id) || []).find(x => x.thumb); return a ? `<button type="button" class="fa-photo" data-photo="${a.id}" aria-label="Look at the photo"><img src="${a.thumb}" alt="" data-full="${a.id}"></button>` : ''; };
+  // A step ticked off: a big green ✓ on its left; its pill (bottom right, on the step in the middle) ticks it and moves on.
+  const isDone = (p, st) => (p.tab.done || []).includes(st.id);
+  const doneBtn = (p, n, done) => (done ? '<button type="button" class="fa-done-btn fa-undone" data-done="0">↺ Not done</button>'
+    : `<button type="button" class="fa-done-btn" data-done="1">✓ Done${n < p.steps.length - 1 ? ', next' : ''}${keys('Enter')}</button>`);
   const stepOf = (p, st, n) => {
     // A Start button for each different time the step mentions; with more than one, each timer's name says its time.
     const waits = stepWaits(st.text), name = waitName(st.text, n + 1);
     const starts = waits.map(secs => `<button type="button" class="fa-wait" data-wait="${secs}" data-name="${esc(waits.length > 1 ? `${name}, ${timers.lengthText(secs)}` : name)}">⏰ Start ${timers.lengthText(secs)} timer</button>`).join('');
-    return `<section class="fa-step" data-n="${n}"><div class="fa-num">Step ${n + 1}<span class="fa-of"> of ${p.steps.length}</span></div>
+    const done = isDone(p, st);
+    return `<section class="fa-step${done ? ' fa-done' : ''}" data-n="${n}">${done ? '<span class="fa-tick" aria-label="Done">✓</span>' : ''}<div class="fa-num">Step ${n + 1}<span class="fa-of"> of ${p.steps.length}</span></div>
       <div class="fa-text">${stepHtml(st.text, p.ings, p.tab.times, esc) || '<span class="muted">Empty step</span>'}</div>
-      ${photo(p, st) || starts ? `<div class="fa-extra">${photo(p, st)}${starts}</div>` : ''}</section>`;
+      <div class="fa-extra">${photo(p, st)}${starts}${doneBtn(p, n, done)}</div></section>`;
   };
   // One pot: its ingredients (folded unless it's the only one on a wide screen) and its drum of steps.
-  const potHtml = (p, n, { alone }) => `<div class="fa-pot${alone ? ' fa-alone' : ''}" data-pot="${n}">
-      ${alone ? '' : `<div class="fa-pot-head"><b>${esc(p.title)}</b>${scaleHtml(p)}</div>`}
+  const potHtml = (p, n, { alone }) => `<div class="fa-pot${alone ? ' fa-alone' : ''}" data-pot="${n}" style="--pot:${p.colour}">
+      ${alone && pots.length < 2 ? '' : `<div class="fa-pot-head"><b>${esc(p.title)}</b>${alone ? '' : scaleHtml(p)}</div>`}
       <aside class="fa-ings"><details class="fa-fold"${alone && wide() ? ' open' : ''}><summary><span>🧺 Ingredients</span><span class="muted fa-count">${p.ings.length}</span>${alone ? scaleHtml(p) : ''}</summary>${alone ? `<div class="fa-fold-scale">${scaleHtml(p)}</div>` : ''}<div class="fa-ing-body"></div></details></aside>
       <div class="fa-drum" tabindex="-1">${p.steps.length ? p.steps.map((st, s) => stepOf(p, st, s)).join('') : '<p class="muted fa-none">No steps yet.</p>'}</div>
       ${alone ? `<div class="fa-dots" aria-hidden="true">${p.steps.map((_, s) => `<i data-dot="${s}"></i>`).join('')}</div>` : ''}
@@ -143,9 +154,23 @@ export async function openFollow(open) {
         s.classList.toggle('fa-cur', n === near);
       });
       if (near !== me.cur || !box.querySelector('.fa-ing-list')) { me.cur = near; p.tab.at = near; save(); box.querySelector('.fa-ing-body').innerHTML = ingsHtml(p, near); }
-      box.querySelectorAll('[data-dot]').forEach(x => x.classList.toggle('on', +x.dataset.dot === me.cur));
+      box.querySelectorAll('[data-dot]').forEach(x => { x.classList.toggle('on', +x.dataset.dot === me.cur); x.classList.toggle('done', isDone(p, p.steps[+x.dataset.dot])); });
     };
     me.later = () => { if (!frame) frame = requestAnimationFrame(me.roll); };
+    // Tick a step off (and move on to the next), or untick it.
+    me.mark = (n, done) => {
+      const st = p.steps[n];
+      if (!st) return;
+      p.tab.done = (p.tab.done || []).filter(id => id !== st.id).concat(done ? [st.id] : []);
+      save();
+      const old = items()[n], fresh = document.createElement('div');
+      fresh.innerHTML = stepOf(p, st, n);
+      const step = fresh.firstElementChild;
+      step.className = old.className.replace(/\s*fa-done/, '') + (done ? ' fa-done' : '');
+      step.style.cssText = old.style.cssText;
+      old.replaceWith(step);
+      if (done && n < p.steps.length - 1) me.goTo(n + 1); else me.roll();
+    };
     me.goTo = (n, smooth = true) => {
       const s = items()[Math.max(0, Math.min(p.steps.length - 1, n))];
       if (s) d.scrollTo({ top: s.offsetTop + s.offsetHeight / 2 - d.clientHeight / 2, behavior: smooth ? 'smooth' : 'auto' });
@@ -176,7 +201,7 @@ export async function openFollow(open) {
     // Side by side: the chosen one and the ones after it (round the end).
     const which = Array.from({ length: cols }, (_, n) => (k.at + n) % pots.length);
     el.innerHTML = `<div class="fa-top"><button type="button" class="back" data-fa="close">‹ Back${keys('Esc')}</button>
-        <h1>${pots.length > 1 ? 'Follow along' : esc(pots[k.at].title)}</h1>        <div class="fa-timers" aria-label="Timers"></div><button type="button" class="fa-add" data-fa="timer" title="A countdown or a stopwatch" aria-label="New timer">⏰ +<span class="fa-word"> Timer</span></button>
+        <h1${pots.length > 1 ? '' : ` class="fa-title" style="--pot:${pots[k.at].colour}"`}>${pots.length > 1 ? 'Follow along' : esc(pots[k.at].title)}</h1>        <div class="fa-timers" aria-label="Timers"></div><button type="button" class="fa-add" data-fa="timer" title="A countdown or a stopwatch" aria-label="New timer">⏰ +<span class="fa-word"> Timer</span></button>
         <button type="button" class="fa-finish" data-fa="finish" title="Clear ${pots.length > 1 ? 'these recipes' : 'this recipe'} from Follow along" aria-label="Finished cooking">✓<span class="fa-word"> Finished cooking</span></button></div>
       <div class="fa-timers fa-phone-timers" aria-label="Timers"></div>
       ${tabsHtml()}
@@ -200,17 +225,27 @@ export async function openFollow(open) {
 
   // + Recipe: another recipe, or a batch on the go, to cook alongside.
   async function addPot() {
-    const [recipes, makes] = await Promise.all([store.local.list('recipes', { filter: r => !r.archived_at }), store.local.list('recipe_makes', { filter: m => !m.archived_at && m.status !== 'done' })]);
+    const [recipes, makes] = await Promise.all([store.local.list('recipes', { filter: r => !r.archived_at }), store.local.list('recipe_makes', { filter: m => !m.archived_at })]);
     const titleOf = id => recipes.find(r => r.id === id)?.title;
     const open = new Set(pots.map(p => p.tab.id));
-    const rows = [...makes.filter(m => !open.has(m.id)).map(m => ({ c: 'recipe_makes', id: m.id, label: `🧪 ${batchName(m, titleOf(m.recipe_id))}` })), ...recipes.filter(r => !open.has(r.id)).sort((a, b) => (a.title || '').localeCompare(b.title || '')).map(r => ({ c: 'recipes', id: r.id, label: r.title || 'Untitled' }))];
+    // Recipes first; batches (there can be hundreds) folded in their own panel, newest first, opened by a search that finds one.
+    const recipeRows = recipes.filter(r => !open.has(r.id)).sort((a, b) => (a.title || '').localeCompare(b.title || '')).map(r => ({ c: 'recipes', id: r.id, label: r.title || 'Untitled' }));
+    const batchRows = makes.filter(m => !open.has(m.id)).sort((a, b) => (b.date || b.created_at || '').localeCompare(a.date || a.created_at || '')).map(m => ({ c: 'recipe_makes', id: m.id, label: `🧪 ${batchName(m, titleOf(m.recipe_id))}` }));
+    const rows = recipeRows.concat(batchRows);
+    const pick = (r, n) => `<button type="button" data-pick="${n}">${esc(r.label)}</button>`;
     const dlg = document.createElement('dialog');
     dlg.className = 'sheet fa-pick';
-    dlg.innerHTML = `<div class="sheet-handle"></div><h2>Cook another at the same time</h2><input type="search" class="fa-pick-q" placeholder="Search recipes…" aria-label="Search recipes">
-      <div class="fa-pick-list">${rows.map((r, n) => `<button type="button" data-pick="${n}">${esc(r.label)}</button>`).join('') || '<p class="muted">Nothing else to add.</p>'}</div>`;
+    dlg.innerHTML = `<div class="sheet-handle"></div><h2>Cook another at the same time</h2><input type="search" class="fa-pick-q" placeholder="Search recipes and batches…" aria-label="Search recipes and batches">
+      <div class="fa-pick-list">${recipeRows.map(pick).join('')}
+        ${batchRows.length ? `<details class="fa-pick-batches"><summary>🧪 Batches <span class="muted">${batchRows.length}</span></summary><div class="fa-pick-list">${batchRows.map((r, n) => pick(r, recipeRows.length + n)).join('')}</div></details>` : ''}
+        ${rows.length ? '' : '<p class="muted">Nothing else to add.</p>'}</div>`;
     document.body.append(dlg);
-    const q = dlg.querySelector('.fa-pick-q');
-    q.addEventListener('input', () => { const w = q.value.trim().toLowerCase(); dlg.querySelectorAll('[data-pick]').forEach(b => { b.hidden = !!w && !b.textContent.toLowerCase().includes(w); }); });
+    const q = dlg.querySelector('.fa-pick-q'), fold = dlg.querySelector('.fa-pick-batches');
+    q.addEventListener('input', () => {
+      const w = q.value.trim().toLowerCase();
+      dlg.querySelectorAll('[data-pick]').forEach(b => { b.hidden = !!w && !b.textContent.toLowerCase().includes(w); });
+      if (fold) { const hits = [...fold.querySelectorAll('[data-pick]')].filter(b => !b.hidden).length; fold.hidden = !!w && !hits; if (w) fold.open = hits > 0; }
+    });
     let chosen = null;
     dlg.addEventListener('click', ev => { const b = ev.target.closest('[data-pick]'); if (b) { chosen = rows[+b.dataset.pick]; dlg.close(); } });
     dlg.addEventListener('keydown', ev => { if (ev.key === 'Enter' && ev.target === q) { const b = [...dlg.querySelectorAll('[data-pick]')].find(x => !x.hidden); if (b) { ev.preventDefault(); b.click(); } } });
@@ -224,7 +259,6 @@ export async function openFollow(open) {
     draw();
   }
 
-  // ✓ Finished cooking: every tab put away (and, if asked, the timers that belong to them stopped).
   // Finished cooking: these recipes and their timers go, with Undo in the message (no asking first).
   async function finish() {
     const ids = new Set(pots.map(p => p.tab.id));
@@ -270,6 +304,7 @@ export async function openFollow(open) {
     urls.forEach(u => URL.revokeObjectURL(u));
     el.remove();
     document.body.classList.remove('follow-open');
+    scrollTo(0, backTo);
     dispatchEvent(new CustomEvent('sift-follow-closed'));
   }
   function onKey(ev) {
@@ -279,6 +314,7 @@ export async function openFollow(open) {
     if (ev.key === 'Escape') { if (document.querySelector('.pill-menu')) return; ev.preventDefault(); ev.stopPropagation(); close(); }
     else if (move && !ev.ctrlKey && !ev.metaKey && !ev.altKey) { ev.preventDefault(); ev.stopPropagation(); f?.goTo(f.cur + move); }
     else if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') { ev.preventDefault(); ev.stopPropagation(); if (pots.length > 1) switchTo(k.at + (ev.key === 'ArrowRight' ? 1 : -1)); } // the tabs, not the area's behind
+    else if (ev.key === 'Enter' && f && !ev.target.closest?.('button, summary, a')) { ev.preventDefault(); f.mark(f.cur, !f.pot.steps[f.cur] || !isDone(f.pot, f.pot.steps[f.cur])); }
     else if (ev.key === 'Home' || ev.key === 'End') { ev.preventDefault(); f?.goTo(ev.key === 'Home' ? 0 : f.pot.steps.length - 1); }
   }
   addEventListener('keydown', onKey, true);
@@ -306,6 +342,7 @@ export async function openFollow(open) {
       el.querySelectorAll(`[data-timer="${going.id}"]`).forEach(pill => { pill.classList.remove('tm-flash'); void pill.offsetWidth; pill.classList.add('tm-flash'); });
       return toast(`${going.name} is already going: tap its time for more`);
     }
+    if (b.dataset.done) { const n = +b.closest('.fa-step').dataset.n; return s?.mark(n, b.dataset.done === '1'); }
     if (b.dataset.photo) { const list = s.pot.atts.get(s.pot.steps[+b.closest('.fa-step').dataset.n].id) || []; return att.view(list, Math.max(0, list.findIndex(a => a.id === b.dataset.photo))); }
     if (b.matches('.fa-step') && !b.classList.contains('fa-cur')) s?.goTo(+b.dataset.n);
   });
@@ -313,8 +350,10 @@ export async function openFollow(open) {
 }
 
 const CSS = `
-body.follow-open { overflow: hidden; }
-.fa-screen { position: fixed; inset: 0; z-index: 900; background: var(--bg); background-image: var(--bg-image, none); color: var(--text); display: flex; flex-direction: column; padding: calc(10px + var(--safe-top)) clamp(10px, 2vw, 22px) calc(10px + var(--safe-bottom)); }
+html:has(body.follow-open), body.follow-open { overflow: hidden; }
+body.follow-open > :is(.appbar, #main, #tabbar, #update-banner, #timer-dock, .select-bar:not(.tm-bar)) { display: none !important; }
+.fa-screen { position: relative; height: 100dvh; z-index: 900; background: var(--bg); background-image: var(--bg-image, none); color: var(--text); display: flex; flex-direction: column; padding: calc(10px + var(--safe-top)) clamp(10px, 2vw, 22px) calc(10px + var(--safe-bottom)); }
+.fa-top, .fa-tabs, .fa-phone-timers { position: relative; z-index: 3; } /* above the steps: iPad Safari can let a rolled step (scaled, on its own layer) take taps outside the drum until the window is resized */
 .fa-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; min-width: 0; flex-wrap: wrap; }
 .fa-top .back { padding: 6px 14px 6px 10px; flex: none; }
 .fa-top h1 { font-size: 1.3rem; margin: 0; font-weight: 600; flex: 1; min-width: 6em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -333,12 +372,15 @@ body.follow-open { overflow: hidden; }
 .fa-side[aria-pressed="true"] { background: var(--active-bg); border-color: var(--active-border); }
 .fa-tabs:has(.fa-tab:only-of-type) .fa-tab { display: none; }
 .fa-tabs:has(.fa-tab:only-of-type) { justify-content: flex-end; margin: -6px 0 4px; }
-.fa-grid { flex: 1; min-height: 0; display: flex; }
+.fa-grid { flex: 1; min-height: 0; display: flex; position: relative; z-index: 1; }
 .fa-pot { flex: 1; min-width: 0; min-height: 0; display: grid; grid-template-columns: minmax(240px, 1fr) 2fr; gap: 18px; position: relative; }
 .fa-side-by-side { display: grid; grid-template-columns: repeat(var(--cols), 1fr); gap: 14px; }
 .fa-side-by-side .fa-pot { display: flex; flex-direction: column; gap: 8px; background: color-mix(in srgb, var(--text) 3%, transparent); border: 1px solid var(--glass-border); border-radius: 22px; padding: 10px; }
-.fa-pot-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 2px 6px; }
-.fa-pot-head b { font-size: 1.05rem; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fa-pot-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 2px 6px 8px; margin-bottom: 8px; border-bottom: 3px solid var(--pot, var(--accent)); }
+.fa-pot-head b { font-size: clamp(1.3rem, 2vw, 1.75rem); font-weight: 650; flex: 1 1 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fa-alone > .fa-pot-head { grid-column: 1 / -1; }
+.fa-alone:has(> .fa-pot-head) { grid-template-rows: auto minmax(0, 1fr); }
+.fa-top h1.fa-title { font-size: clamp(1.4rem, 2.4vw, 1.9rem); padding-bottom: 4px; border-bottom: 3px solid var(--pot, var(--accent)); flex: 0 1 auto; margin-right: auto; }
 .fa-ings { min-height: 0; overflow: auto; background: var(--glass); border: 1px solid var(--glass-border); border-radius: 22px; padding: 14px 18px; }
 .fa-fold summary { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; list-style: none; font-weight: 600; margin-bottom: 8px; cursor: default; }
 .fa-fold summary::-webkit-details-marker { display: none; }
@@ -350,7 +392,7 @@ body.follow-open { overflow: hidden; }
 .fa-ing-list li { display: flex; gap: 10px; padding: 8px 10px; margin: 0 -10px; border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent); border-radius: 10px; transition: background .25s; }
 .fa-ing-list b { color: #f6c46f; font-weight: 650; white-space: nowrap; }
 .fa-ing-list li.fa-used { background: rgba(246, 196, 111, .2); border-color: transparent; }
-.fa-drum { position: relative; min-height: 0; overflow-y: auto; scroll-snap-type: y mandatory; scrollbar-width: none; overscroll-behavior: contain; padding: 0 30px 0 4px; outline: none;
+.fa-drum { position: relative; contain: paint; min-height: 0; overflow-y: auto; scroll-snap-type: y mandatory; scrollbar-width: none; overscroll-behavior: contain; padding: 0 30px 0 4px; outline: none;
   -webkit-mask-image: linear-gradient(transparent, #000 9%, #000 91%, transparent); mask-image: linear-gradient(transparent, #000 9%, #000 91%, transparent); }
 .fa-drum::-webkit-scrollbar { display: none; }
 .fa-drum::before, .fa-drum::after { content: ""; display: block; height: 42%; }
@@ -367,6 +409,16 @@ body.follow-open { overflow: hidden; }
 .fa-photo { padding: 0; border-radius: 18px; overflow: hidden; background: none; flex: none; max-width: 100%; }
 .fa-photo img { display: block; width: min(380px, 100%); max-height: 34vh; object-fit: cover; }
 .fa-wait { font-size: 1rem; }
+.fa-step { position: relative; }
+.fa-done-btn { margin-left: auto; font-size: 1rem; font-weight: 600; padding: 8px 18px; background: rgba(52, 168, 83, .9); border-color: rgba(120, 220, 140, .9); color: #fff; }
+.fa-done-btn.fa-undone { background: var(--glass); border-color: var(--glass-border); color: var(--muted); font-weight: 500; }
+.fa-done-btn kbd { opacity: .7; }
+.fa-step:not(.fa-cur) .fa-done-btn { visibility: hidden; }
+.fa-step.fa-done { padding-left: 84px; }
+.fa-tick { position: absolute; left: 18px; top: 18px; width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center; background: rgb(52, 168, 83); color: #fff; font-size: 1.9rem; font-weight: 800; box-shadow: 0 4px 14px rgba(52, 168, 83, .45); animation: fa-tick .35s cubic-bezier(.2, 1.6, .4, 1); }
+.fa-done .fa-text { opacity: .62; }
+@keyframes fa-tick { from { transform: scale(.3); opacity: 0; } }
+.fa-dots i.done { background: rgb(52, 168, 83); }
 .fa-dots { position: absolute; right: 2px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 7px; pointer-events: none; }
 .fa-dots i { width: 7px; height: 7px; border-radius: 4px; background: color-mix(in srgb, var(--text) 30%, transparent); transition: height .2s, background .2s; }
 .fa-dots i.on { height: 20px; background: var(--accent); }
@@ -380,6 +432,9 @@ body.follow-open { overflow: hidden; }
 .fa-pick-q { width: 100%; margin: 6px 0 10px; }
 .fa-pick-list { display: flex; flex-direction: column; gap: 6px; max-height: 55vh; overflow: auto; }
 .fa-pick-list button { text-align: left; padding: 10px 14px; }
+.fa-pick-batches > summary { padding: 10px 14px; font-weight: 600; cursor: pointer; border-radius: 14px; background: var(--glass); }
+.fa-pick-batches > .fa-pick-list { max-height: none; overflow: visible; margin-top: 6px; }
+.fa-pick-batches[hidden] { display: none; }
 @media (max-width: 760px) {
   .fa-fold-scale { display: block; margin-bottom: 6px; }
   .fa-top { flex-wrap: nowrap; gap: 6px; }
@@ -398,6 +453,8 @@ body.follow-open { overflow: hidden; }
   .fa-fold[open] summary::after { content: "▴"; }
   .fa-drum { flex: 1; padding: 0 2px; }
   .fa-step { padding: 14px 16px; }
+  .fa-step.fa-done { padding-left: 62px; }
+  .fa-tick { left: 12px; top: 14px; width: 40px; height: 40px; font-size: 1.5rem; }
   .fa-text { font-size: 1.75rem; }
   .fa-photo img { width: 100%; max-height: 28vh; }
   .fa-dots { display: none; }
