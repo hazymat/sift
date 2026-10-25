@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.37': [{ text: "Print and Share screens on a phone: the preview at the top showed only a blank white page, scrolled off its top. It now shows the whole page, with the choices underneath. Day Planner's Share as picture and Share as PDF open straight in sharing." }],
   '1.61.36': [{ text: "Timers: tap a timer's time, then ⏲ Set to… to pick exactly how long is left on the wheel. ↺ Revert now has Undo too.", at: '#timer-dock' }],
   '1.61.35': [{ text: "Timers: a finished timer beeps on the device that started it, and on any that had Follow along open since. Other devices just show it red. With Sift in the background it beeps for a minute, then stops.", at: '#timer-dock' }],
   '1.61.34': [{ text: "Timers: tap a timer's time. Under it, \"Step 3 · Borscht\" has a Go to step 3 link that opens Follow along on that step. −5 to +5, ↺ Revert and the new ↻ Restart are now one box.", at: '#timer-dock' }],
@@ -208,6 +209,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.37': '2026-10-25T12:55:17Z',
   '1.61.36': '2026-10-25T12:52:27Z',
   '1.61.35': '2026-10-25T12:20:28Z',
   '1.61.34': '2026-10-25T12:09:36Z',

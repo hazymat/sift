@@ -55,7 +55,7 @@ const screenCss = `
 .print-frame { flex: 1; width: 100%; border: 0; background: transparent; }
 @media (max-width: 760px) {
   .print-screen { overflow: auto; }
-  .print-grid { display: flex; flex-direction: column-reverse; }
+  .print-grid { display: flex; flex-direction: column-reverse; flex: none; } /* its full height, so the screen scrolls and the preview isn't pushed off the top */
   .print-view { min-height: 62vh; flex: none; }
   .print-opts { overflow: visible; }
 }`;
@@ -171,7 +171,7 @@ export async function openPrint(opts) {
     changed();
   });
   await draw();
-  el.querySelector('.print-actions .primary').focus();
+  el.querySelector('.print-actions .primary').focus({ preventScroll: true }); // a phone keeps the preview in view, not scrolled down to the button
   return { close, redraw: draw };
 }
 

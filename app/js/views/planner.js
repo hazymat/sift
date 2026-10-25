@@ -2387,8 +2387,8 @@ const dayPlanner = {
       const printDay = ev.target.closest('[data-print-day]');
       if (printDay) {
         printDay.closest('details')?.removeAttribute('open');
-        if (printDay.dataset.printDay) import('../print.js').then(m => m.shareNext(printDay.dataset.printDay)); // the day sheet as a picture or PDF
-        return void import('../printday.js').then(m => m.printDay(date));
+        const as = printDay.dataset.printDay; // Share as picture / PDF: told to print.js before the day sheet opens
+        return void import('../print.js').then(m => as && m.shareNext(as)).then(() => import('../printday.js')).then(m => m.printDay(date));
       }
       const b = ev.target.closest('[data-share]');
       if (!b) return;
