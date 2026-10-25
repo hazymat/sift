@@ -9,6 +9,7 @@
 import * as store from './store.js';
 import { askText } from './ask.js';
 import { toast } from './toast.js';
+import { feature } from './stats.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const RING_FRESH = 15 * 60e3; // a timer that finished longer ago than this shows as done but no longer sounds
@@ -41,9 +42,10 @@ export const list = () => timers;
 export const watch = fn => { watchers.add(fn); return () => watchers.delete(fn); };
 const changed = () => { if (bar) drawBar(); for (const fn of watchers) fn(timers); drawDock(); run(); };
 
-async function load() {
-  const all = await store.local.list('timers');
+async function load(remote = false) {
+  const all = await store.local.list('timers'), before = timers.length;
   timers = all.filter(t => !t.deleted_at && t.started).sort((a, b) => a.started - b.started);
+  if (remote && timers.length < before) feature('timers_gone_remote'); // for finding timers that vanish
   changed();
 }
 
@@ -373,7 +375,7 @@ export function installTimers() {
   // Any tap gets sound ready while a countdown is going here (before it runs out); with none, taps leave the sound alone.
   for (const kind of ['touchend', 'click', 'keydown']) addEventListener(kind, () => { if (timers.some(t => t.kind === 'down' && t.paused == null && ringsHere(t))) unlockSound(); }, { capture: true, passive: true });
   document.addEventListener('visibilitychange', () => tick()); // hidden: lets go of the sound once nothing can ring
-  store.subscribe(ev => { if (!ev.collection || ev.collection === 'timers') load(); });
+  store.subscribe(ev => { if (!ev.collection || ev.collection === 'timers') load(!!ev.remote); });
   load();
 }
 

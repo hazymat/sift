@@ -173,9 +173,12 @@ export function start(fresh) {
   // Something in Sift broke: the message and where, never what was on screen.
   // Anything quoted in a message (it can be text from the page) is left out, and long numbers too.
   const plain = message => String(message || '').replace(/(["'`‘“]).*?(["'`’”])/g, '$1…$2').replace(/\d{5,}/g, '…').slice(0, 200);
+  // At most 3 of the same message each time Sift opens, so one repeating error can't use up the day's 60.
+  const seen = new Map();
   const broke = (message, where) => {
-    const d = day();
-    if (d.errors++ < 20) track('error', { message: plain(message), where: String(where || '').replace(location.origin, '').slice(0, 200), area: area() });
+    const d = day(), same = plain(message).slice(0, 80);
+    seen.set(same, (seen.get(same) || 0) + 1);
+    if (seen.get(same) <= 3 && d.errors++ < 60) track('error', { message: plain(message), where: String(where || '').replace(location.origin, '').slice(0, 200), area: area() });
   };
   addEventListener('error', ev => broke(ev.message, ev.filename && `${ev.filename}:${ev.lineno}:${ev.colno}`));
   // A tap that something else caught over a button (an invisible layer): which thing, and over which button. For finding such bugs.
