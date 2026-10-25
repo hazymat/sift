@@ -1,6 +1,6 @@
 // Kitchen timers (Batch Book's Follow along): count down or stopwatch, as many as you like, each a synced record
 // in `timers` (your own space always), so closing Sift, a flat battery or another device loses nothing:
-//   { name, kind: 'down' | 'up', length_ms, started, paused (ms or null), paused_ms, recipe_id, make_id, owner, title, step_id, step_no (the step that set it) }
+//   { name, kind: 'down' | 'up', length_ms, started, paused (ms or null), paused_ms, recipe_id, make_id, owner, title, step_id, step_no (the step that set it), device (the one that started it) }
 // The time is always worked out from the clock (started, paused, paused_ms), never counted, so it survives anything.
 // A countdown at 0 rings (sound, red pill) until it's dismissed (✕), which removes it everywhere.
 // installTimers() adds the dock: the timers as pills at the bottom right of every page (Follow along shows its own).
@@ -12,6 +12,12 @@ import { toast } from './toast.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const RING_FRESH = 15 * 60e3; // a timer that finished longer ago than this shows as done but no longer sounds
+const BACK_RING = 60e3; // with Sift in the background, it beeps this long
+// Which devices beep: the one that started it, and any that had Follow along open since it started (the rest just show it red).
+let followSeen = 0;
+try { followSeen = +localStorage.getItem('sift_follow_seen') || 0; } catch {}
+const seenFollow = now => { if (now - followSeen < 10e3) return; followSeen = now; try { localStorage.setItem('sift_follow_seen', String(now)); } catch {} };
+const ringsHere = t => !t.device || t.device === store.getDeviceId() || followSeen > t.started;
 const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 let timers = [];
 const watchers = new Set();
@@ -49,7 +55,7 @@ export function nextName() {
 
 export async function start({ name, kind = 'down', secs = 600, recipe_id = null, make_id = null, owner = null, title = '', step_id = null, step_no = null }) {
   unlockSound();
-  const t = await store.local.create('timers', { name: name || nextName(), kind, length_ms: kind === 'down' ? secs * 1000 : 0, started: Date.now(), paused: null, paused_ms: 0, recipe_id, make_id, owner, title, step_id, step_no });
+  const t = await store.local.create('timers', { name: name || nextName(), kind, length_ms: kind === 'down' ? secs * 1000 : 0, started: Date.now(), paused: null, paused_ms: 0, recipe_id, make_id, owner, title, step_id, step_no, device: store.getDeviceId() });
   await load();
   return t;
 }
@@ -274,7 +280,11 @@ function tick() {
   }
   const head = document.querySelector('.tm-menu [data-tm-time]'), open = head && timers.find(x => x.id === head.closest('[data-timer-menu]').dataset.timerMenu);
   if (open) { head.innerHTML = shown(open, now); const back = document.querySelector('.tm-menu [data-tm-revert]'); if (back && open.base_ms != null) back.textContent = revertText(open, now); }
-  for (const t of timers) if (ringing(t, now) && !t.muted && now - (t.started + (t.paused_ms || 0) + t.length_ms) < RING_FRESH) ring = true;
+  if (document.body.classList.contains('follow-open') && !document.hidden) seenFollow(now);
+  // In the background (another app, or the screen off) a finished timer beeps for a minute, then Sift lets go of the sound so it can't go on unseen.
+  const fresh = document.hidden ? BACK_RING : RING_FRESH;
+  for (const t of timers) if (ringing(t, now) && !t.muted && ringsHere(t) && now - (t.started + (t.paused_ms || 0) + t.length_ms) < fresh) ring = true;
+  if (document.hidden && !ring && audio?.state === 'running' && !timers.some(t => t.paused == null && ringsHere(t) && !ringing(t, now))) audio.suspend().catch(() => {});
   if (ring && now - lastBeep > 2400) { lastBeep = now; beep(); navigator.vibrate?.([200, 100, 200]); }
   const done = timers.filter(t => ringing(t, now));
   if (done.length && !document.title.startsWith('⏰')) { baseTitle = document.title; document.title = `⏰ ${done[0].name} done`; }
@@ -334,7 +344,7 @@ export function installTimers() {
   installBar();
   dock.addEventListener('click', ev => onClick(ev, { open: openTimerOf }));
   for (const kind of ['touchend', 'click', 'keydown']) addEventListener(kind, () => unlockSound(), { capture: true, passive: true }); // any tap gets sound ready, before a timer runs out
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+  document.addEventListener('visibilitychange', () => tick()); // hidden: lets go of the sound once nothing can ring
   store.subscribe(ev => { if (!ev.collection || ev.collection === 'timers') load(); });
   load();
 }
