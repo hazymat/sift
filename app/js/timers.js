@@ -65,6 +65,8 @@ export function addTime(t, secs) {
   return put(t, { length_ms: Math.max(used + 1000, base + secs * 1000), base_ms: t.base_ms ?? t.length_ms, added_ms: (t.added_ms || 0) + secs * 1000, muted: false });
 }
 export const undoTime = t => (t.base_ms != null ? put(t, { length_ms: t.base_ms, base_ms: null, added_ms: 0 }) : null);
+// What a changed countdown would show had it not been changed (counting down live in its menu's ↺ Revert to).
+const revertText = (t, now) => clock(Math.max(0, Math.ceil((t.base_ms - elapsed(t, now)) / 1000)));
 const signed = ms => `${ms < 0 ? '−' : '+'}${lengthText(Math.round(Math.abs(ms) / 1000))}`;
 // A rung countdown: silenced, it stays (with ✕ to remove it) and stops beeping.
 export const mute = t => put(t, { muted: true });
@@ -128,7 +130,7 @@ function timerMenu(pill, t, open, places = []) {
   // Changed by the tiles: what it was set for and the change, with ↺ Revert to go back to it.
   // A summary: the time, its name and recipe, what it was set for and when; then any change, with ↺ Revert.
   const at = ms => new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-  const changes = x => (x.added_ms ? `<span>Changed <b>${signed(x.added_ms)}</b></span><button type="button" role="menuitem" data-m="undo" class="tm-revert">↺ Revert</button>` : '');
+  const changes = x => (x.added_ms ? `<button type="button" role="menuitem" data-m="undo" class="tm-revert">↺ Revert to <b data-tm-revert>${revertText(x, Date.now())}</b></button>` : '');
   box.innerHTML = `<div class="tm-menu-head"><b data-tm-time>${shown(t, Date.now())}</b>
       <span class="tm-sum-name">${esc(t.name)}${t.title ? ` · ${esc(t.title)}` : ''}</span>
       <span class="tm-sum-set">${t.kind === 'down' ? `Set for ${lengthText(Math.round((t.base_ms ?? t.length_ms) / 1000))} at ${at(t.started)}` : `Started at ${at(t.started)}`}</span></div>
@@ -263,7 +265,7 @@ function tick() {
     if (time) time.innerHTML = `${t.kind === 'up' ? '⏱ ' : ''}${shown(t, now)}`;
   }
   const head = document.querySelector('.tm-menu [data-tm-time]'), open = head && timers.find(x => x.id === head.closest('[data-timer-menu]').dataset.timerMenu);
-  if (open) head.innerHTML = shown(open, now);
+  if (open) { head.innerHTML = shown(open, now); const back = document.querySelector('.tm-menu [data-tm-revert]'); if (back && open.base_ms != null) back.textContent = revertText(open, now); }
   for (const t of timers) if (ringing(t, now) && !t.muted && now - (t.started + (t.paused_ms || 0) + t.length_ms) < RING_FRESH) ring = true;
   if (ring && now - lastBeep > 2400) { lastBeep = now; beep(); navigator.vibrate?.([200, 100, 200]); }
   const done = timers.filter(t => ringing(t, now));
@@ -446,9 +448,9 @@ body.has-timers .toast { margin-bottom: 52px; }
 .tm-tile i { font-style: normal; font-size: .8rem; }
 .tm-tile b { font-size: 1.2rem; font-weight: 800; }
 .tm-tile small { font-size: .7rem; color: var(--muted); }
-.tm-changed { display: flex; align-items: center; gap: 8px; padding: 0 8px 6px; font-size: .85rem; color: var(--muted); }
-.tm-changed span { flex: 1; min-width: 0; font-variant-numeric: tabular-nums; }
-.tm-menu .tm-revert { width: auto; min-height: 34px; padding: 0 12px; font-size: .88rem; font-weight: 600; }
+.tm-changed { padding: 0 0 4px; }
+.tm-menu .tm-revert { min-height: 44px; font-weight: 600; }
+.tm-revert b { margin-left: 6px; font-variant-numeric: tabular-nums; }
 .tm-move { display: flex; flex-direction: column; gap: 4px; padding-left: 14px; }
 .tm-menu hr { width: 100%; margin: 2px 0; border: 0; border-top: 1px solid var(--glass-border); }
 .tm-menu [hidden] { display: none !important; }
