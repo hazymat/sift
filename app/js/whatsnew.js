@@ -25,6 +25,10 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.16': [{ text: "Batch Book, Follow along: drag a recipe's tab by its ⠿ (or, side by side, its title) to choose which recipes show side by side and in what order: the first tabs show. Tapping a tab that isn't showing swaps it in.", go: '#/recipes', open: ['#main .bb-card', '#main .bb-follow'], at: '.fa-tabs' },
+    { text: "Batch Book, Follow along: a step you've ticked off has a small green ✓ beside its Step number, and ✕ on a recipe's tab has Undo.", go: '#/recipes', open: ['#main .bb-card', '#main .bb-follow'], at: '.fa-cur .fa-num' },
+    { text: "Batch Book, Follow along: a recipe or batch changed while it's open (here or on another device) updates straight away, at the same step." },
+    { text: "Batch Book: a recipe's top buttons each have their own colour: ▶ Follow along green, 🧪 Make this light blue, Share plain.", go: '#/recipes', open: ['#main .bb-card'], at: '#main .bb-follow' }],
   '1.61.15': [{ text: "Batch Book, Follow along: the green ✓ Done, next pill at the bottom right of the step you're on ticks it off (a big green tick on its left) and rolls on to the next step. ↺ Not done takes it back; on a computer, Enter does it too.", go: '#/recipes', open: ['#main .bb-card', '#main .bb-follow'], at: '.fa-cur .fa-done-btn' },
     { text: "Batch Book, Follow along: it's now a page of its own, so nothing underneath can be scrolled into view or catch taps (the iPad's top right buttons stopped working). Closing it brings you back where you were.", go: '#/recipes', open: ['#main .bb-card', '#main .bb-follow'], at: '.fa-top' },
     { text: "Batch Book, Follow along: ◫ Side by side shows three recipes on an iPad Pro in landscape and four on a big screen. Each has its name big, underlined in its book's colour.", go: '#/recipes', open: ['#main .bb-card', '#main .bb-follow'], at: '.fa-top h1' },
@@ -182,6 +186,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.16': '2026-10-25T00:00:02Z',
   '1.61.15': '2026-10-24T23:01:33Z',
   '1.61.14': '2026-10-24T22:55:26Z',
   '1.61.13': '2026-10-24T22:45:21Z',

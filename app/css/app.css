@@ -4298,6 +4298,10 @@ body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none
 .bb-shared-title { position: static; margin-top: 22px !important; }
 .bb-shared { margin: 10px 0 0; padding: 0; list-style: none; }
 .bb-make-btn, .bb-follow { white-space: nowrap; }
+/* The recipe's three actions in three colours: ▶ Follow along green (as Done in it), 🧪 Make this light blue, Share plain glass. */
+.bb-top .bb-follow { background: rgba(52, 168, 83, .85); border-color: rgba(120, 220, 140, .9); color: #fff; font-weight: 600; }
+.bb-top .bb-make-btn { background: color-mix(in srgb, #5aa9ff 32%, transparent); border-color: color-mix(in srgb, #5aa9ff 70%, transparent); }
+[data-theme="light"] .bb-top .bb-make-btn { background: color-mix(in srgb, #5aa9ff 22%, white); color: #0b3a66; }
 @media (max-width: 560px) { .bb-follow-word { display: none; } }
 .bb-listline { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 2px 0 8px; font-size: .92rem; }
 .bb-listline select { width: auto; max-width: 100%; flex: 0 1 auto; }
