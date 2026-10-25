@@ -8,19 +8,17 @@ import { word } from './words.js';
 
 const CSS = `
 .day { padding: 7% 7.5% 6%; display: flex; flex-direction: column; }
-.dh { display: flex; align-items: baseline; gap: .9em; border-bottom: .16em solid var(--ink); padding-bottom: .3em; }
-.dh .wd { font-size: 3.1em; font-weight: 700; line-height: 1; }
-.dh .dt { font-size: 1.9em; font-weight: 600; color: var(--accent); }
-.dh .tag { margin-left: auto; font-size: .7em; letter-spacing: .14em; color: var(--soft); }
+.dh { display: flex; align-items: baseline; gap: .7em; white-space: nowrap; border-bottom: .16em solid var(--ink); padding-bottom: .3em; }
+.dh .wd { font-size: 2.5em; font-weight: 700; line-height: 1; }
+.dh .dt { font-size: 1.5em; font-weight: 600; color: var(--accent); }
+.dh .tag { margin-left: auto; font-size: .62em; letter-spacing: .12em; color: var(--soft); }
 .fe { display: flex; gap: 2em; margin: 1.1em 0 1.3em; font-size: 1.05em; }
 .fe > div { border-bottom: 1px solid var(--rule); padding-bottom: .3em; min-height: 1.9em; }
-.fe .focus { flex: 1.5; } .fe .energy { flex: 1; display: flex; gap: .9em; align-items: baseline; }
+.fe .focus { flex: 1.5; } .fe .energy { flex: 1; display: flex; align-items: baseline; }
 .fe .lab { font-family: Georgia, serif; letter-spacing: .08em; font-size: .85em; margin-right: .6em; }
 .focus .lab { color: #c4615f; } .energy .lab { color: #3f8f5f; }
 .bw .focus .lab, .bw .energy .lab { color: var(--ink); }
-.bolt { padding: .05em .35em; border-radius: 1em; border: .1em solid transparent; }
-.bolt.on { border-color: var(--ink); }
-.bw .bolt { filter: grayscale(1); }
+.bw .bolts { filter: grayscale(1); }
 h2 { font: 700 1.55em Georgia, serif; color: #a07d1c; margin: 0 0 .35em; }
 .bw h2 { color: var(--ink); }
 .main { flex: 1 1 0; min-height: 0; display: flex; gap: 2.2em; }
@@ -84,11 +82,11 @@ export async function printDay(date, back = 'Day Planner') {
         const tasks = ch.tasks ? items.filter(i => !i.time && (ch.ticked || !i.done_at)) : [];
         const rows = tasks.map(i => `<div class="tr${i.done_at ? ' done' : ''}"><span class="box">${i.done_at ? '✓' : ''}</span><span>${esc(i.title)}</span></div>`).join('')
           + '<div class="tr blank"><span class="box"></span></div>'.repeat(ch.blank);
-        const energy = ENERGY.map(e => `<span class="bolt${day.energy === e.id ? ' on' : ''}">${e.bolts}</span>`).join('');
+        const energy = ENERGY.find(e => e.id === day.energy); // the day's energy, if chosen: its bolts right after the word, the rest of the line to write on
         const p = parseDate(d);
         pages.push(`<section class="sheet day${ch.half ? '' : ' nohalf'}">
           <header class="dh"><span class="wd serif">${esc(dateText(p, { weekday: 'long' }))}</span><span class="dt">${esc(dateText(p, { day: 'numeric', month: 'long', year: 'numeric' }))}</span><span class="tag">SIFT · DAY SHEET</span></header>
-          ${ch.top ? `<div class="fe"><div class="focus"><span class="lab">${esc(word('day_focus').toUpperCase())}</span>${esc(day.focus || '')}</div><div class="energy"><span class="lab">ENERGY</span>${energy}</div></div>` : '<div style="height:1em"></div>'}
+          ${ch.top ? `<div class="fe"><div class="focus"><span class="lab">${esc(word('day_focus').toUpperCase())}</span>${esc(day.focus || '')}</div><div class="energy"><span class="lab">ENERGY</span>${energy ? `<span class="bolts">${energy.bolts}</span>` : ''}</div></div>` : '<div style="height:1em"></div>'}
           <div class="main"><div class="sched"><h2>Schedule</h2><div class="hours">${hours}${events.join('')}${timed.join('')}</div></div>
             <div class="tasks"><h2>Tasks</h2><div class="tl">${rows}</div></div></div>
           ${ch.notes || (ch.old_notes && day.notes) ? `<div class="notes"><h2>Notes</h2><div class="space">${ch.old_notes ? esc(plain(day.notes)) : ''}</div></div>` : ''}
