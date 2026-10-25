@@ -251,7 +251,7 @@ export default {
 
     // ---------- pieces used on both pages ----------
 
-    const line = (margin, content, tools = '', attrs = '') => `<div class="bb-line" ${attrs}><span class="bb-margin">${margin}</span><span class="bb-content">${content}</span>${tools ? `<span class="bb-tools">${tools}</span>` : ''}</div>`;
+    const line = (margin, content, tools = '', attrs = '', tag = 'div') => `<${tag} class="bb-line" ${attrs}><span class="bb-margin">${margin}</span><span class="bb-content">${content}</span>${tools ? `<span class="bb-tools">${tools}</span>` : ''}</${tag}>`;
 
     // Its photos: small across the top, just to look at (none, nothing there), and added or removed in Photos at the bottom.
     // The first is its picture on the cards.
@@ -291,7 +291,7 @@ export default {
         ${list ? `<a href="#/lists/${list.id}">Open the shopping list</a><button type="button" class="link-btn" data-act="share-list">Share</button>` : ''}</div>`;
     }
 
-    // Steps are written straight on the lines: press one to change it; Enter starts the next.
+    // Steps are written straight on the lines: press one to change it; Enter starts the next. Each is a listkit row (⠿ in the margin) to drag or Shift+Alt+↑ / ↓.
     function stepsHtml(rec, o) {
       const steps = stepsOf(rec);
       const times = o.collection === 'recipes' ? state.times : 1;
@@ -299,12 +299,12 @@ export default {
       return `<div class="bb-method" data-owner="${o.collection}:${o.id}">
         <h2 class="bb-h"><span>🥄 Steps</span></h2>
         ${ings.length ? `<div class="bb-ref-picks"><span class="muted">Put in:</span>${ings.map(i => `<button type="button" class="chip" data-ref="${esc(i.item)}">${esc(i.item)}</button>`).join('')}</div>` : ''}
-        <div class="bb-lines bb-steps">
-          ${steps.map((x, n) => line(`${n + 1}`, `
+        <div class="bb-lines bb-steps"><ul class="bb-step-list">
+          ${steps.map((x, n) => line(`<button type="button" class="drag-handle kit-grip bb-step-grip" aria-label="Select step ${n + 1}">${icon('i-grip')}</button>${n + 1}`, `
             <div class="bb-step-view" data-step-view tabindex="0" role="button" title="Press to change">${linkUrls(stepHtml(x.text, ings, times, esc)) || '<span class="muted">Empty step</span>'}</div>
             <textarea class="bb-step-edit no-inline" data-step-text rows="1" hidden aria-label="Step ${n + 1}">${esc(x.text)}</textarea>
             ${(atts.get(x.id) || []).length ? att.rowHtml(atts.get(x.id), { parent: x.id, addButton: false }) : ''}`,
-            `<button type="button" class="icon-btn" data-step-photo title="Add a photo to this step" aria-label="Add a photo">${camera}</button>`, `data-step="${x.id}"`)).join('')}
+            `<button type="button" class="icon-btn" data-step-photo title="Add a photo to this step" aria-label="Add a photo">${camera}</button>`, `data-step="${x.id}" data-id="${x.id}" data-depth="0"`, 'li')).join('')}</ul>
           ${line('+', `<textarea class="bb-step-new no-inline" rows="1" placeholder="${steps.length ? 'Next step' : 'First step'}" aria-label="New step"></textarea>`)}
         </div>
         <p class="muted hint bb-ref-hint">{salt} shows the salt with its amount. {1/2 salt} or {25% salt} shows part of it; {stock|hot stock} shows the amount with your own words ("200ml hot stock"), and {salt|a pinch} shows just your words. Enter starts the next step.</p>
@@ -509,6 +509,7 @@ export default {
       el.innerHTML = `<div class="bb">${state.make ? makePage() : state.recipe ? recipePage() : overview()}</div>`;
       kitFor().attach(el.querySelector('.bb-cards'));
       batchKit.attach(el.querySelector('.bb-batch-list'));
+      stepKit.attach(el.querySelector('.bb-step-list'));
       watchSticky();
       // Tasting notes: a batch's (or a recipe's older ones, until they move to a batch).
       const box = el.querySelector('.bb-tasting');
@@ -606,9 +607,12 @@ export default {
       return made;
     }
 
+    // Shift+Alt+↑ / ↓ moves the step being written in the page: the focus it loses for a moment isn't leaving it.
+    let stepMoving = false;
+    el.addEventListener('keydown', ev => { if (ev.shiftKey && ev.altKey && /^Arrow(Up|Down)$/.test(ev.key) && ev.target.matches?.('[data-step-text]')) { stepMoving = true; setTimeout(() => { stepMoving = false; }); } }, true);
     el.addEventListener('focusout', ev => {
       const t = ev.target;
-      if (t.matches?.('[data-step-text]')) closeStep(t);
+      if (t.matches?.('[data-step-text]') && !stepMoving) closeStep(t);
       // Something written in "Next step" and left: it's a step.
       if (t.matches?.('.bb-step-new') && t.value.trim()) { const text = t.value.trim(); t.value = ''; dirty = true; adding = addStep(ownerOf(t), text); }
       if (t.matches?.('.bb-ing-add') && t.value.trim()) { const text = t.value; t.value = ''; addIngredientLines(ownerOf(t), text, false); }
@@ -1352,6 +1356,21 @@ ${IMPORT_EXAMPLE}`;
       actions: STATUSES.map(([v, l, e]) => ({ id: `status-${v}`, label: `${e} ${l}`, group: 'Status', run: ids => changeBatches(ids, { status: v }, `Marked ${l.toLowerCase()}`) }))
         .concat([{ id: 'delete', label: 'Delete', key: 'D', danger: true, run: ids => deleteBatches(ids) }]),
     });
+    // A recipe's or batch's steps drag like Tasks (hold anywhere, or the ⠿), and Shift+Alt+↑ / ↓ while writing one.
+    // A step still being written keeps what's typed in it.
+    const stepOwner = () => ownerOf(el.querySelector('.bb-step-list') || el);
+    const typedSteps = () => new Map(Array.from(el.querySelectorAll('.bb-step-list [data-step-text]:not([hidden])')).filter(ta => ta.value.trim()).map(ta => [ta.closest('[data-step]').dataset.step, ta.value.trim()]));
+    const stepKit = this.stepKit = createListKit({
+      reorder: true, holdAnywhere: true, noun: 'step', textSelect: false,
+      onReorder: async (rows, label) => {
+        const o = stepOwner(), typed = typedSteps(), steps = stepsOf(recOf(o));
+        const next = rows.map(r => steps.find(x => x.id === r.id)).filter(Boolean).map(x => (typed.has(x.id) ? Object.assign({}, x, { text: typed.get(x.id) }) : x));
+        await saveSteps(o, next.concat(steps.filter(x => !rows.some(r => r.id === x.id))), label === 'Moved' ? 'Moved a step' : label);
+        await render();
+      },
+      refocus: (id, part, caret) => { const view = el.querySelector(`[data-step="${CSS.escape(id)}"] [data-step-view]`); if (!view) return; openStep(view); const ta = view.parentElement.querySelector('[data-step-text]'); ta.setSelectionRange(caret, caret); },
+      actions: [{ id: 'delete', label: 'Delete', key: 'D', danger: true, run: async ids => { const o = stepOwner(); await saveSteps(o, stepsOf(recOf(o)).filter(x => !ids.includes(x.id)), ids.length === 1 ? 'Step deleted' : `${ids.length} steps deleted`); await render(); } }],
+    });
     function deleteBatches(ids) { return changeBatches(ids, { deleted_at: now() }, ids.length === 1 ? `Deleted ${batchName(makeOf(ids[0]), recipeOf(makeOf(ids[0])?.recipe_id)?.title)}` : `Deleted ${ids.length} batches`); }
 
     async function moveRecipes(ids, patch, label) {
@@ -1391,7 +1410,7 @@ ${IMPORT_EXAMPLE}`;
 
     // Esc with recipes chosen: the choosing ends first (before keyboard browsing's own Esc).
     this.onEsc = ev => {
-      if (ev.key === 'Escape' && (kit?.size || batchKit.size) && !document.querySelector('dialog[open]') && !writing()) { ev.preventDefault(); ev.stopPropagation(); kit?.escape(); batchKit.escape(); }
+      if (ev.key === 'Escape' && (kit?.size || batchKit.size || stepKit.size) && !document.querySelector('dialog[open]') && !writing()) { ev.preventDefault(); ev.stopPropagation(); kit?.escape(); batchKit.escape(); stepKit.escape(); }
     };
     addEventListener('keydown', this.onEsc, true);
     this.onKey = ev => {
@@ -1430,6 +1449,7 @@ ${IMPORT_EXAMPLE}`;
     removeEventListener('keydown', this.onEsc, true);
     this.kit?.destroy();
     this.batchKit?.destroy();
+    this.stepKit?.destroy();
     this.stickWatch?.disconnect();
     store.useSpace(null);
   },

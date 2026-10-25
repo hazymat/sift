@@ -4361,7 +4361,7 @@ body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none
 @media (max-width: 640px) { .bb-batch-name { display: none; } .bb-batch-no { flex: 1 1 auto; font-size: 1rem; } .bb-batch-row { gap: 8px; padding-right: 8px; } }
 /* The browser's own Print on a recipe page (Ctrl+P outside Sift's Print screen, printrecipe.js): just the page. */
 @media print {
-  .appbar, #tabbar, #topnav, .bb-top, .bb-foot, .theirs-note, .toast, .select-bar, .bb-tools, .bb-edit, .bb-scale, .bb-ref-picks, .bb-ref-hint, .bb-add-field, .bb-step-new, .att-row button { display: none !important; }
+  .appbar, #tabbar, #topnav, .bb-top, .bb-foot, .theirs-note, .toast, .select-bar, .bb-tools, .bb-step-grip, .bb-edit, .bb-scale, .bb-ref-picks, .bb-ref-hint, .bb-add-field, .bb-step-new, .att-row button { display: none !important; }
   body, #main { background: #fff !important; }
   .bb-paper { box-shadow: none !important; }
 }
@@ -4434,6 +4434,9 @@ textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
 .bb-ings .bb-content input { width: 100%; font: inherit; color: var(--text); }
 .bb-ings .bb-content { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 0 6px; font-size: 1.02rem; }
 .bb-steps .bb-margin { font-size: 1.2rem; font-weight: 700; color: var(--bb-ink); }
+/* Steps are listkit rows: the ⠿ sits at the margin's left, the number at its right. */
+.bb-step-list { margin: 0; padding: 0; list-style: none; }
+.bb-step-grip { width: 22px; margin-right: auto; }
 .bb-step-view { padding: 6px 4px; line-height: 1.55; font-size: 1.02rem; cursor: text; border-radius: 6px; }
 .bb-step-view:hover { background: var(--glass); }
 .bb-step-edit, .bb-step-new { resize: none; field-sizing: content; min-height: 2.2em; line-height: 1.5; font-size: 1.02rem; }
