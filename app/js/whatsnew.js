@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.36': [{ text: "Timers: tap a timer's time, then ⏲ Set to… to pick exactly how long is left on the wheel. ↺ Revert now has Undo too.", at: '#timer-dock' }],
   '1.61.35': [{ text: "Timers: a finished timer beeps on the device that started it, and on any that had Follow along open since. Other devices just show it red. With Sift in the background it beeps for a minute, then stops.", at: '#timer-dock' }],
   '1.61.34': [{ text: "Timers: tap a timer's time. Under it, \"Step 3 · Borscht\" has a Go to step 3 link that opens Follow along on that step. −5 to +5, ↺ Revert and the new ↻ Restart are now one box.", at: '#timer-dock' }],
   '1.61.33': [{ text: "Day Planner printout: Energy shows just the day's ⚡ right after the word (nothing when it isn't set), leaving the line to write on. The day and date, and Sift · Day sheet, stay on one line on every paper size.", go: '#/planner', open: ['#main .share-menu summary'], at: '#main [data-print-day]' }],
@@ -207,6 +208,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.36': '2026-10-25T12:52:27Z',
   '1.61.35': '2026-10-25T12:20:28Z',
   '1.61.34': '2026-10-25T12:09:36Z',
   '1.61.33': '2026-10-25T12:02:00Z',
