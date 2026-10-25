@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.45': [{ text: "Batch Book, ⋯, Import recipes: Copy instructions for an AI chat now lists your own books, so the AI puts each recipe in the one it fits best.", go: '#/recipes', open: ['#main [data-act="import"]'], at: '.bb-import-sheet [data-imp="prompt"]' }],
   '1.61.44': [{ text: "Batch Book, ⋯, Import recipes: Copy instructions for an AI chat asks for one box you can copy in one go, a Time detail (signed by the AI when it's a guess, like Time (estimated by Claude)), a Source, buying tips in the description rather than Tasting notes, and [?] for words it can't read in photos.", go: '#/recipes', open: ['#main [data-act="import"]'], at: '.bb-import-sheet [data-imp="prompt"]' }],
   '1.61.43': [{ text: "Batch Book: the scale buttons have ×⅔ too, between ×½ and ×1, on recipes, batches and in Follow along.", go: '#/recipes', open: ['#main .bb-card'], at: '#main .bb-scale' }],
   '1.61.42': [{ text: "Music from other apps keeps playing when you tap around Sift, with or without a timer going. Only a timer's beep stops it.", at: '#timer-dock' }],
@@ -216,6 +217,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.45': '2026-10-25T14:37:13Z',
   '1.61.44': '2026-10-25T13:46:38Z',
   '1.61.43': '2026-10-25T13:39:43Z',
   '1.61.42': '2026-10-25T13:23:15Z',
