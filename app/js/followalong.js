@@ -85,6 +85,9 @@ async function loadTab(tab) {
   return { tab, rec, recipe, space, atts, title, colour, steps: stepsOf(rec), ings: rec.ingredients || [], where: { recipe_id: recipe?.id || null, make_id: tab.c === 'recipe_makes' ? rec.id : null, owner: tab.owner || null, title } };
 }
 
+// A timer's step (Go to step N): by its id, or its number if the steps were changed since.
+const atStep = (p, t) => { let n = p.steps.findIndex(x => x.id && x.id === t.step_id); if (n < 0) n = (t.step_no || 1) - 1; p.tab.at = Math.max(0, Math.min(n, p.steps.length - 1)); };
+
 // openFollow({ c: 'recipes' | 'recipe_makes', id, owner, times }): opens Follow along on that one (added as a tab).
 export async function openFollow(open) {
   if (!document.getElementById('fa-css')) document.head.append(Object.assign(document.createElement('style'), { id: 'fa-css', textContent: CSS }));
@@ -98,6 +101,8 @@ export async function openFollow(open) {
   const pots = (await Promise.all(k.tabs.map(loadTab))).filter(Boolean);
   k.tabs = pots.map(p => p.tab);
   k.at = Math.max(0, Math.min(k.at, pots.length - 1));
+  let wantStep = null; try { wantStep = JSON.parse(sessionStorage.getItem('sift_follow_step') || 'null'); sessionStorage.removeItem('sift_follow_step'); } catch {}
+  if (wantStep && open && pots[k.at]) atStep(pots[k.at], { step_id: wantStep.id, step_no: wantStep.no });
   keep(k);
   if (!pots.length) return;
   closeOpen?.(); // one open at a time, and the one before lets go of everything it was listening to
@@ -541,7 +546,7 @@ export async function openFollow(open) {
   addEventListener('keydown', onKey, true);
   closeOpen = close;
   el.addEventListener('click', ev => {
-    if (timers.onClick(ev, { open: t => { const n = pots.findIndex(p => p.tab.id === (t.make_id || t.recipe_id)); if (n >= 0) switchTo(n); }, places: pots.map(p => p.where) })) return;
+    if (timers.onClick(ev, { open: (t, { step } = {}) => { const n = pots.findIndex(p => p.tab.id === (t.make_id || t.recipe_id)); if (n < 0) return; if (step) atStep(pots[n], t); switchTo(n); }, places: pots.map(p => p.where) })) return;
     const b = ev.target.closest('button, .fa-step, summary, .fa-tab');
     if (!b) return;
     const box = b.closest('[data-pot]');
@@ -566,7 +571,8 @@ export async function openFollow(open) {
     if (b.dataset.wait) {
       // One timer per step: a second tap shows the one already going instead of starting another.
       const where = s.pot.where, going = timers.list().find(t => t.name === b.dataset.name && t.recipe_id === where.recipe_id && (t.make_id || null) === (where.make_id || null));
-      if (!going) return timers.start(Object.assign({}, where, { name: b.dataset.name, secs: +b.dataset.wait }));
+      const n = +b.closest('.fa-step').dataset.n;
+      if (!going) return timers.start(Object.assign({}, where, { name: b.dataset.name, secs: +b.dataset.wait, step_id: s.pot.steps[n]?.id || null, step_no: n + 1 }));
       el.querySelectorAll(`[data-timer="${going.id}"]`).forEach(pill => { pill.classList.remove('tm-flash'); void pill.offsetWidth; pill.classList.add('tm-flash'); });
       return toast(`${going.name} is already going: tap its time for more`);
     }

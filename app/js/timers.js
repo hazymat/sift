@@ -1,6 +1,6 @@
 // Kitchen timers (Batch Book's Follow along): count down or stopwatch, as many as you like, each a synced record
 // in `timers` (your own space always), so closing Sift, a flat battery or another device loses nothing:
-//   { name, kind: 'down' | 'up', length_ms, started, paused (ms or null), paused_ms, recipe_id, make_id, owner, title }
+//   { name, kind: 'down' | 'up', length_ms, started, paused (ms or null), paused_ms, recipe_id, make_id, owner, title, step_id, step_no (the step that set it) }
 // The time is always worked out from the clock (started, paused, paused_ms), never counted, so it survives anything.
 // A countdown at 0 rings (sound, red pill) until it's dismissed (✕), which removes it everywhere.
 // installTimers() adds the dock: the timers as pills at the bottom right of every page (Follow along shows its own).
@@ -47,9 +47,9 @@ export function nextName() {
   return `Timer ${Math.max(0, ...used) + 1}`;
 }
 
-export async function start({ name, kind = 'down', secs = 600, recipe_id = null, make_id = null, owner = null, title = '' }) {
+export async function start({ name, kind = 'down', secs = 600, recipe_id = null, make_id = null, owner = null, title = '', step_id = null, step_no = null }) {
   unlockSound();
-  const t = await store.local.create('timers', { name: name || nextName(), kind, length_ms: kind === 'down' ? secs * 1000 : 0, started: Date.now(), paused: null, paused_ms: 0, recipe_id, make_id, owner, title });
+  const t = await store.local.create('timers', { name: name || nextName(), kind, length_ms: kind === 'down' ? secs * 1000 : 0, started: Date.now(), paused: null, paused_ms: 0, recipe_id, make_id, owner, title, step_id, step_no });
   await load();
   return t;
 }
@@ -66,6 +66,12 @@ export function addTime(t, secs) {
 }
 export const undoTime = t => (t.base_ms != null ? put(t, { length_ms: t.base_ms, base_ms: null, added_ms: 0 }) : null);
 // What a changed countdown would show had it not been changed (counting down live in its menu's ↺ Revert to).
+// Restart: back to its first length (before any change), from now, with Undo in the message.
+export async function restart(t) {
+  const was = { length_ms: t.length_ms, started: t.started, paused: t.paused, paused_ms: t.paused_ms || 0, base_ms: t.base_ms ?? null, added_ms: t.added_ms || 0, muted: !!t.muted };
+  await put(t, { length_ms: t.base_ms ?? t.length_ms, started: Date.now(), paused: null, paused_ms: 0, base_ms: null, added_ms: 0, muted: false });
+  toast(`${t.name} restarted`, { action: 'Undo', onAction: () => put(t, was) });
+}
 const revertText = (t, now) => clock(Math.max(0, Math.ceil((t.base_ms - elapsed(t, now)) / 1000)));
 const signed = ms => `${ms < 0 ? '−' : '+'}${lengthText(Math.round(Math.abs(ms) / 1000))}`;
 // A rung countdown: silenced, it stays (with ✕ to remove it) and stops beeping.
@@ -132,11 +138,11 @@ function timerMenu(pill, t, open, places = []) {
   const at = ms => new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
   const changes = x => (x.added_ms ? `<button type="button" role="menuitem" data-m="undo" class="tm-revert">↺ Revert to <b data-tm-revert>${revertText(x, Date.now())}</b></button>` : '');
   box.innerHTML = `<div class="tm-menu-head"><b data-tm-time>${shown(t, Date.now())}</b>
-      <span class="tm-sum-name">${esc(t.name)}${t.title ? ` · ${esc(t.title)}` : ''}</span>
+      <span class="tm-sum-line"><span class="tm-sum-name">${t.step_no ? `Step ${t.step_no}` : esc(t.name)}${t.title ? ` · ${esc(t.title)}` : ''}</span>${open && t.recipe_id && t.step_no ? `<button type="button" role="menuitem" data-m="step" class="tm-go">Go to step ${t.step_no} ›</button>` : ''}</span>
       <span class="tm-sum-set">${t.kind === 'down' ? `Set for ${lengthText(Math.round((t.base_ms ?? t.length_ms) / 1000))} at ${at(t.started)}` : `Started at ${at(t.started)}`}</span></div>
-    <div class="tm-changed"${t.added_ms ? '' : ' hidden'}>${changes(t)}</div>
-    ${t.kind === 'down' ? `<div class="tm-menu-steps">${STEPS.map(([secs, label]) => `<button type="button" role="menuitem" class="tm-tile${secs < 0 ? ' tm-less' : ''}" data-m="${secs}" aria-label="${label} min"><i>⏰</i><b>${label}</b><small>min</small></button>`).join('')}</div>
-<hr>` : ''}
+    <div class="tm-adjust">${t.kind === 'down' ? `<div class="tm-adjust-head">Change time <b class="tm-adjust-by">${t.added_ms ? signed(t.added_ms) : ''}</b></div><div class="tm-menu-steps">${STEPS.map(([secs, label]) => `<button type="button" role="menuitem" class="tm-tile${secs < 0 ? ' tm-less' : ''}" data-m="${secs}" aria-label="${label} min"><i>⏰</i><b>${label}</b><small>min</small></button>`).join('')}</div>` : ''}
+    <div class="tm-adjust-foot"><span class="tm-changed"${t.added_ms ? '' : ' hidden'}>${changes(t)}</span><button type="button" role="menuitem" data-m="restart" class="tm-restart">↻ Restart${t.kind === 'down' ? ` <b>${lengthText(Math.round((t.base_ms ?? t.length_ms) / 1000))}</b>` : ''}</button></div></div>
+<hr>
     ${open && t.recipe_id ? '<button type="button" role="menuitem" data-m="open">▶ Follow recipe</button>' : ''}
     ${others.length ? `<button type="button" role="menuitem" data-m="move" aria-expanded="false">➜ Move to another recipe</button><div class="tm-move" hidden>${others.map((x, n) => `<button type="button" role="menuitem" data-move="${n}">${esc(x.title || 'Untitled')}</button>`).join('')}</div>` : ''}
     <button type="button" role="menuitem" data-m="choose">☑ Choose several</button>
@@ -166,7 +172,7 @@ function timerMenu(pill, t, open, places = []) {
     const now = timers.find(x => x.id === t.id);
     if (!now) return closeMenu();
     const line = box.querySelector('.tm-changed');
-    if (line.dataset.same !== `${now.added_ms || 0}`) { line.dataset.same = `${now.added_ms || 0}`; line.hidden = !now.added_ms; line.innerHTML = changes(now); }
+    if (line && line.dataset.same !== `${now.added_ms || 0}`) { line.dataset.same = `${now.added_ms || 0}`; line.hidden = !now.added_ms; line.innerHTML = changes(now); const by = box.querySelector('.tm-adjust-by'); if (by) by.textContent = now.added_ms ? signed(now.added_ms) : ''; }
     document.querySelectorAll(`[data-timer="${t.id}"]`).forEach(x => x.classList.add('tm-open'));
     place();
   });
@@ -179,8 +185,10 @@ function timerMenu(pill, t, open, places = []) {
     const now = timers.find(x => x.id === t.id) || t, what = b.dataset.m;
     if (/^-?\d+$/.test(what)) { addTime(now, +what); return; } // stays open, so +1 can be tapped again
     if (what === 'undo') { undoTime(now); return; }
+    if (what === 'restart') { restart(now); return; } // stays open
     closeMenu();
     if (what === 'open') open(now);
+    else if (what === 'step') open(now, { step: true });
     else if (what === 'rename') rename(now);
     else if (what === 'remove') removeAll([now]);
     else if (what === 'choose') choose(now.id);
@@ -305,9 +313,9 @@ function beep() {
 // ---------- the dock (every page) ----------
 
 let dock = null;
-export function openTimerOf(t) {
+export function openTimerOf(t, { step = false } = {}) {
   const path = `#/recipes/${t.recipe_id}${t.make_id ? `/make/${t.make_id}` : ''}${t.owner ? `/from/${t.owner}` : ''}`;
-  try { sessionStorage.setItem('sift_follow', t.make_id || t.recipe_id); } catch {}
+  try { sessionStorage.setItem('sift_follow', t.make_id || t.recipe_id); if (step) sessionStorage.setItem('sift_follow_step', JSON.stringify({ id: t.step_id, no: t.step_no })); } catch {}
   if (location.hash === path) dispatchEvent(new CustomEvent('sift-follow')); else location.hash = path;
 }
 function drawDock() {
@@ -440,7 +448,14 @@ body.has-timers .toast { margin-bottom: 52px; }
 .tm-menu-head .tm-sum-name { color: var(--text); font-weight: 600; }
 .tm-menu-head b { font-size: 1.6rem; line-height: 1.1; }
 .tm-menu button { display: flex; align-items: center; justify-content: flex-start; width: 100%; min-height: 44px; padding: 0 14px; font-size: 1rem; letter-spacing: normal; word-spacing: normal; text-align: left; box-shadow: none; }
-.tm-menu-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 2px 0 4px; }
+.tm-menu-head .tm-sum-line { display: flex; align-items: baseline; gap: 8px; min-width: 0; overflow: visible; }
+.tm-sum-line .tm-sum-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); font-weight: 600; }
+.tm-menu .tm-go { flex: none; width: auto; min-height: 0; padding: 0; border: 0; background: none; color: var(--accent); font-size: .85rem; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+/* The tiles and ↺ Revert are one box: Revert takes back what the tiles changed. */
+.tm-adjust { display: flex; flex-direction: column; padding: 6px; border-radius: 14px; background: color-mix(in srgb, var(--text) 5%, transparent); border: 1px solid var(--glass-border); }
+.tm-adjust-head { display: flex; justify-content: space-between; padding: 0 4px 4px; font-size: .8rem; color: var(--muted); }
+.tm-adjust-by { font-variant-numeric: tabular-nums; color: var(--text); }
+.tm-menu-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 0; }
 .tm-menu .tm-tile { flex-direction: column; justify-content: center; gap: 0; min-height: 62px; padding: 4px 0; border-radius: 14px; text-align: center; line-height: 1.05; font-variant-numeric: tabular-nums; background: color-mix(in srgb, rgb(52, 168, 83) 22%, var(--glass)); border: 1px solid color-mix(in srgb, rgb(52, 168, 83) 45%, transparent); }
 .tm-menu .tm-tile.tm-less { background: color-mix(in srgb, rgb(230, 150, 40) 22%, var(--glass)); border-color: color-mix(in srgb, rgb(230, 150, 40) 45%, transparent); }
 .tm-menu .tm-tile:hover:not(:disabled), .tm-menu .tm-tile:focus-visible { background: color-mix(in srgb, rgb(52, 168, 83) 38%, var(--glass)); }
@@ -448,7 +463,12 @@ body.has-timers .toast { margin-bottom: 52px; }
 .tm-tile i { font-style: normal; font-size: .8rem; }
 .tm-tile b { font-size: 1.2rem; font-weight: 800; }
 .tm-tile small { font-size: .7rem; color: var(--muted); }
-.tm-changed { padding: 0 0 4px; }
+.tm-adjust-foot { display: flex; flex-direction: column; gap: 6px; }
+.tm-menu-steps + .tm-adjust-foot { margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--glass-border); }
+.tm-changed { display: flex; }
+.tm-changed[hidden] { display: none; }
+.tm-adjust-foot .tm-revert, .tm-adjust-foot .tm-restart { flex: 1 1 auto; justify-content: center; min-height: 44px; font-weight: 600; white-space: nowrap; }
+.tm-restart b { margin-left: 4px; font-variant-numeric: tabular-nums; }
 .tm-menu .tm-revert { min-height: 44px; font-weight: 600; }
 .tm-revert b { margin-left: 6px; font-variant-numeric: tabular-nums; }
 .tm-move { display: flex; flex-direction: column; gap: 4px; padding-left: 14px; }
