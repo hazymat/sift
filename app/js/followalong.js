@@ -430,6 +430,8 @@ body.follow-open > :is(.appbar, #main, #tabbar, #timer-dock, .select-bar:not(.tm
 .fa-tab-go { font-weight: 600; max-width: 16em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fa-tab-x { padding: 6px 10px 6px 2px; color: var(--muted); }
 .fa-tab-add, .fa-side { flex: none; }
+.fa-side[aria-pressed="true"], .fa-side[aria-pressed="true"]:hover { background: var(--active-bg); border-color: var(--active-border); } /* on at once, even under a finger (a touch screen keeps :hover on what was tapped) */
+@media (hover: none) { .fa-side[aria-pressed="false"]:hover { background: var(--glass); } }
 .fa-side[aria-pressed="true"] { background: var(--active-bg); border-color: var(--active-border); }
 .fa-tabs:has(.fa-tab:only-of-type) .fa-tab { display: none; }
 .fa-tabs:has(.fa-tab:only-of-type) { justify-content: flex-end; margin: -6px 0 4px; }

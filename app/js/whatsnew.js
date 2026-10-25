@@ -25,7 +25,8 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
-  '1.61.17': [{ text: "Batch Book, Follow along: \"A new version of Sift is ready\" shows while cooking too, and Reload brings you straight back to Follow along." }],
+  '1.61.17': [{ text: "Batch Book, Follow along: \"A new version of Sift is ready\" shows while cooking too, and Reload brings you straight back to Follow along." },
+    { text: "Batch Book, Follow along: ◫ Side by side shows it's on as soon as you tap it on a touch screen." }],
   '1.61.16': [{ text: "Batch Book, Follow along: drag a recipe's tab by its ⠿ (or, side by side, its title) to choose which recipes show side by side and in what order: the first tabs show. Tapping a tab that isn't showing swaps it in.", go: '#/recipes', open: ['#main .bb-card', '#main .bb-follow'], at: '.fa-tabs' },
     { text: "Batch Book, Follow along: a step you've ticked off has a small green ✓ beside its Step number, and ✕ on a recipe's tab has Undo.", go: '#/recipes', open: ['#main .bb-card', '#main .bb-follow'], at: '.fa-cur .fa-num' },
     { text: "Batch Book, Follow along: a recipe or batch changed while it's open (here or on another device) updates straight away, at the same step." },
