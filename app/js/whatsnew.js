@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.27': [{ text: "Timers: the top of a timer's menu is a summary: the time, its name and recipe, what it was set for and at what time, and any change with ↺ Revert.", at: '#timer-dock' }],
   '1.61.26': [{ text: "Batch Book, Follow along: ⏱ Start the clock, above the first step, notes when you began. Then the recipe's title shows when it started and how long it's been, and All done uses it for the time taken.", go: '#/recipes', open: ['#main .bb-card', '#main .bb-follow'], at: '.fa-start-clock' }],
   '1.61.25': [{ text: "Timers: the menu's tiles go −5, −1, +1, +5. Once you've changed a timer, under its time it says what it was and the change, with ↺ Revert. A finished timer stays red while its menu is open, and tapping the timer again closes the menu.", at: '#timer-dock' },
     { text: "Timers: the alarm sound is made ready by any tap, so it plays on iPhone and iPad (even with the silent switch on, where supported)." }],
@@ -198,6 +199,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.27': '2026-10-25T01:35:11Z',
   '1.61.26': '2026-10-25T01:32:09Z',
   '1.61.25': '2026-10-25T01:25:42Z',
   '1.61.24': '2026-10-25T01:22:39Z',

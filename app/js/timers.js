@@ -126,8 +126,12 @@ function timerMenu(pill, t, open, places = []) {
   box.setAttribute('role', 'menu');
   box.dataset.timerMenu = t.id;
   // Changed by the tiles: what it was set for and the change, with ↺ Revert to go back to it.
-  const changes = x => (x.added_ms ? `<span>Was ${lengthText(Math.round(x.base_ms / 1000))} · ${signed(x.added_ms)}</span><button type="button" role="menuitem" data-m="undo" class="tm-revert">↺ Revert</button>` : '');
-  box.innerHTML = `<div class="tm-menu-head"><b data-tm-time>${shown(t, Date.now())}</b><span>${esc(t.name)}</span></div>
+  // A summary: the time, its name and recipe, what it was set for and when; then any change, with ↺ Revert.
+  const at = ms => new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  const changes = x => (x.added_ms ? `<span>Changed <b>${signed(x.added_ms)}</b></span><button type="button" role="menuitem" data-m="undo" class="tm-revert">↺ Revert</button>` : '');
+  box.innerHTML = `<div class="tm-menu-head"><b data-tm-time>${shown(t, Date.now())}</b>
+      <span class="tm-sum-name">${esc(t.name)}${t.title ? ` · ${esc(t.title)}` : ''}</span>
+      <span class="tm-sum-set">${t.kind === 'down' ? `Set for ${lengthText(Math.round((t.base_ms ?? t.length_ms) / 1000))} at ${at(t.started)}` : `Started at ${at(t.started)}`}</span></div>
     <div class="tm-changed"${t.added_ms ? '' : ' hidden'}>${changes(t)}</div>
     ${t.kind === 'down' ? `<div class="tm-menu-steps">${STEPS.map(([secs, label]) => `<button type="button" role="menuitem" class="tm-tile${secs < 0 ? ' tm-less' : ''}" data-m="${secs}" aria-label="${label} min"><i>⏰</i><b>${label}</b><small>min</small></button>`).join('')}</div>
 <hr>` : ''}
@@ -428,9 +432,11 @@ body.has-timers .toast { margin-bottom: 52px; }
 .tm-flash { animation: tm-flash .9s ease-in-out 2; }
 .tm-chosen { box-shadow: 0 0 0 3px var(--accent), var(--shadow-sm); }
 .tm-menu { position: fixed; z-index: 960; display: flex; flex-direction: column; gap: 4px; width: 250px; max-width: calc(100vw - 16px); padding: 8px; border-radius: 18px; background: color-mix(in srgb, var(--bg) 92%, transparent); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); border: 1px solid var(--glass-border); box-shadow: var(--shadow); }
-.tm-menu-head { display: flex; align-items: baseline; gap: 8px; padding: 2px 8px 6px; min-width: 0; }
+.tm-menu-head { display: flex; flex-direction: column; gap: 1px; padding: 2px 8px 6px; min-width: 0; }
 .tm-menu-head b { font-size: 1.3rem; font-variant-numeric: tabular-nums; }
 .tm-menu-head span { color: var(--muted); font-size: .85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tm-menu-head .tm-sum-name { color: var(--text); font-weight: 600; }
+.tm-menu-head b { font-size: 1.6rem; line-height: 1.1; }
 .tm-menu button { display: flex; align-items: center; justify-content: flex-start; width: 100%; min-height: 44px; padding: 0 14px; font-size: 1rem; letter-spacing: normal; word-spacing: normal; text-align: left; box-shadow: none; }
 .tm-menu-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 2px 0 4px; }
 .tm-menu .tm-tile { flex-direction: column; justify-content: center; gap: 0; min-height: 62px; padding: 4px 0; border-radius: 14px; text-align: center; line-height: 1.05; font-variant-numeric: tabular-nums; background: color-mix(in srgb, rgb(52, 168, 83) 22%, var(--glass)); border: 1px solid color-mix(in srgb, rgb(52, 168, 83) 45%, transparent); }
@@ -441,7 +447,7 @@ body.has-timers .toast { margin-bottom: 52px; }
 .tm-tile b { font-size: 1.2rem; font-weight: 800; }
 .tm-tile small { font-size: .7rem; color: var(--muted); }
 .tm-changed { display: flex; align-items: center; gap: 8px; padding: 0 8px 6px; font-size: .85rem; color: var(--muted); }
-.tm-changed span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.tm-changed span { flex: 1; min-width: 0; font-variant-numeric: tabular-nums; }
 .tm-menu .tm-revert { width: auto; min-height: 34px; padding: 0 12px; font-size: .88rem; font-weight: 600; }
 .tm-move { display: flex; flex-direction: column; gap: 4px; padding-left: 14px; }
 .tm-menu hr { width: 100%; margin: 2px 0; border: 0; border-top: 1px solid var(--glass-border); }
