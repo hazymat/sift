@@ -988,7 +988,7 @@ export default {
     // ---------- importing ----------
     // Recipes as text, pasted or from a file (format in batchbook.js). The AI prompt lets anyone turn notes, photos
     // of cards or web pages into that text with any AI chat. Books not set up yet are added.
-    const AI_PROMPT = `Turn the recipes I give you (typed, pasted, from a web page, or photos of cards, books or handwriting) into text for my recipe app.
+    const aiPrompt = (books = sections.map(x => x.name).filter(Boolean)) => `Turn the recipes I give you (typed, pasted, from a web page, or photos of cards, books or handwriting) into text for my recipe app.
 
 HOW TO REPLY
 - Put all the recipes together in ONE Markdown code block (three backticks on the line before and after), so I can copy it in one go and paste it straight into the app. Inside the block use only the format below: no bold, no extra headings, no chat.
@@ -997,7 +997,7 @@ HOW TO REPLY
 THE FORMAT (an example is at the end)
 - "# " and the recipe's name starts each recipe.
 - Straight under the name, one detail per line as "Name: value":
-  - Book: a sensible one, for example Cooking, Soups, Baking or Cocktails.
+  - Book: ${books.length ? `the one it fits best out of my books: ${books.join(', ')}. Only if none fits, a new one named like those.` : 'a sensible one, for example Cooking, Soups, Baking or Cocktails.'}
   - Tags: a few words to find it by, with commas between.
   - Serves: and any other details the recipe gives (Makes, Oven, Tin size and so on).
   - Source: where it came from: the book, the website address, or for example "Granny's handwritten card".
@@ -1039,7 +1039,7 @@ ${IMPORT_EXAMPLE}`;
         const b = ev.target.closest('[data-imp]');
         if (!b) return;
         if (b.dataset.imp === 'cancel') return dlg.close();
-        if (b.dataset.imp === 'prompt') { try { await navigator.clipboard.writeText(AI_PROMPT); toast('Copied: paste it into an AI chat with your recipes'); } catch { toast('Couldn\'t copy here'); } return; }
+        if (b.dataset.imp === 'prompt') { try { await navigator.clipboard.writeText(aiPrompt()); toast('Copied: paste it into an AI chat with your recipes'); } catch { toast('Couldn\'t copy here'); } return; }
         go.disabled = true;
         const known = settings.batch_sections || sections.filter(x => !x.auto).map(x => ({ name: x.name, emoji: x.emoji, colour: x.colour, fields: x.fields, readings: !!x.readings, reading_types: x.reading_types || [] }));
         const added = Array.from(new Set(got.map(r => r.type).filter(t => t && !known.some(x => x.name === t)))).map(name => { const x = sectionOf(sections, name); return { name, emoji: x.emoji, colour: x.colour, fields: [], readings: x.readings }; });
