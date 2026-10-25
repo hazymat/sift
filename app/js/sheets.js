@@ -2,6 +2,8 @@
 // dragging its handle down, tapping outside it, or Esc (no ✕, by request).
 // Views that need to know listen for the dialog's `close` event.
 
+import { SAFARI_BAR, SAFARI_BAR_H } from './fullnote.js';
+
 const DRAG_CLOSE = 110; // px pulled down that closes it (or a quick flick)
 
 function drag(ev) {
@@ -35,11 +37,30 @@ function drag(ev) {
   handle.addEventListener('pointercancel', up);
 }
 
+// Phones with the keyboard up: an open sheet sits just above the keyboard (and Safari's ↑ ↓ ✓ bar), in
+// the part of the screen still visible. Otherwise iPhone leaves it at the bottom of the page, under the
+// keyboard, and scrolls the page about trying to show the box you're typing in (the sheet then jumps or vanishes).
+function aboveKeyboard() {
+  const vv = window.visualViewport;
+  for (const dlg of document.querySelectorAll('dialog.sheet[open]')) {
+    const kb_up = innerHeight - vv.height > 120 && Math.abs(vv.scale - 1) < .01; // (not just zoomed in)
+    const lift = kb_up ? Math.max(0, Math.round(innerHeight - vv.offsetTop - vv.height)) + (SAFARI_BAR ? SAFARI_BAR_H : 0) : 0;
+    dlg.style.marginBottom = lift ? `${lift}px` : '';
+    dlg.style.maxHeight = lift ? `${Math.round(vv.height - (SAFARI_BAR ? SAFARI_BAR_H : 0) - 8)}px` : '';
+  }
+}
+
 let installed = false;
 export function installSheets() {
   if (installed) return;
   installed = true;
   document.addEventListener('pointerdown', drag);
+  const vv = window.visualViewport;
+  if (vv && matchMedia('(pointer: coarse)').matches) {
+    vv.addEventListener('resize', aboveKeyboard);
+    vv.addEventListener('scroll', aboveKeyboard);
+    document.addEventListener('focusin', ev => { if (ev.target.closest?.('dialog.sheet')) aboveKeyboard(); });
+  }
   document.addEventListener('click', ev => {
     const dlg = ev.target;
     if (!(dlg instanceof HTMLDialogElement) || !dlg.matches('.sheet[open]')) return;

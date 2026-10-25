@@ -21,8 +21,8 @@ export const PHONE = matchMedia('(pointer: coarse) and (max-width: 760px)');
 // keyboard is up (earlier it sat on the keyboard, out of the page). Safari 26 is the
 // first with CSS anchor positioning, which tells it apart; its version is in the name too.
 const IPHONE = /iPhone|iPod/.test(navigator.userAgent);
-const SAFARI_BAR = IPHONE && (CSS.supports?.('anchor-name', '--x') || Number(navigator.userAgent.match(/Version\/(\d+)/)?.[1]) >= 26);
-const SAFARI_BAR_H = 54; // its height, and a little room
+export const SAFARI_BAR = IPHONE && (CSS.supports?.('anchor-name', '--x') || Number(navigator.userAgent.match(/Version\/(\d+)/)?.[1]) >= 26);
+export const SAFARI_BAR_H = 54; // its height, and a little room
 
 let current = null; // { box, backdrop, left: element the cursor left, or null }
 

@@ -42,7 +42,7 @@ export function ask({ title, text = '', fields = [], ok = 'OK', cancel = 'Cancel
     dlg.querySelector('[data-ask="skip"]')?.addEventListener('click', () => { answer = 'skip'; dlg.close(); });
     dlg.addEventListener('close', () => { dlg.remove(); resolve(answer); });
     dlg.showModal();
-    (dlg.querySelector('input, select') || dlg.querySelector(safe ? '[data-ask="cancel"]' : '[type="submit"]')).focus(); // safe: Enter cancels
+    (dlg.querySelector('input, select') || dlg.querySelector(safe ? '[data-ask="cancel"]' : '[type="submit"]')).focus({ preventScroll: true }); // safe: Enter cancels; the page isn't scrolled about (sheets.js keeps the sheet above the keyboard)
   });
 }
 
