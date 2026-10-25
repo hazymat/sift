@@ -324,12 +324,14 @@ function letGo(now = Date.now()) {
   session('ambient');
   audio?.suspend().catch(() => {});
 }
+// Once unlocked by a tap it's put to sleep again (suspended) until a beep, so it never holds the sound in between.
 function unlockSound() {
+  if (primed && !holding) return;
   try {
+    if (!holding) session('ambient'); // before the sound starts, or iPhone takes it over
     audio ??= new (window.AudioContext || window.webkitAudioContext)();
-    session('ambient');
     if (audio.state !== 'running') audio.resume().catch(() => {});
-    if (!primed) { const src = audio.createBufferSource(); src.buffer = audio.createBuffer(1, 1, 22050); src.connect(audio.destination); src.start(0); primed = true; }
+    if (!primed) { const src = audio.createBufferSource(); src.buffer = audio.createBuffer(1, 1, 22050); src.connect(audio.destination); src.start(0); primed = true; if (!holding) setTimeout(() => { if (!holding) audio?.suspend().catch(() => {}); }, 300); }
   } catch { audio = null; }
 }
 function beep() {
@@ -368,7 +370,8 @@ export function installTimers() {
   document.body.append(dock);
   installBar();
   dock.addEventListener('click', ev => onClick(ev, { open: openTimerOf }));
-  for (const kind of ['touchend', 'click', 'keydown']) addEventListener(kind, () => unlockSound(), { capture: true, passive: true }); // any tap gets sound ready, before a timer runs out
+  // Any tap gets sound ready while a countdown is going here (before it runs out); with none, taps leave the sound alone.
+  for (const kind of ['touchend', 'click', 'keydown']) addEventListener(kind, () => { if (timers.some(t => t.kind === 'down' && t.paused == null && ringsHere(t))) unlockSound(); }, { capture: true, passive: true });
   document.addEventListener('visibilitychange', () => tick()); // hidden: lets go of the sound once nothing can ring
   store.subscribe(ev => { if (!ev.collection || ev.collection === 'timers') load(); });
   load();
