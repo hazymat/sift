@@ -1,6 +1,6 @@
 // Kitchen timers (Batch Book's Follow along): count down or stopwatch, as many as you like, each a synced record
 // in `timers` (your own space always), so closing Sift, a flat battery or another device loses nothing:
-//   { name, kind: 'down' | 'up', length_ms, started, paused (ms or null), paused_ms, recipe_id, make_id, owner, title }
+//   { name, kind: 'down' | 'up', length_ms, started, paused (ms or null), paused_ms, recipe_id, make_id, owner, title, step_id, step_no (the step that set it) }
 // The time is always worked out from the clock (started, paused, paused_ms), never counted, so it survives anything.
 // A countdown at 0 rings (sound, red pill) until it's dismissed (✕), which removes it everywhere.
 // installTimers() adds the dock: the timers as pills at the bottom right of every page (Follow along shows its own).
@@ -47,9 +47,9 @@ export function nextName() {
   return `Timer ${Math.max(0, ...used) + 1}`;
 }
 
-export async function start({ name, kind = 'down', secs = 600, recipe_id = null, make_id = null, owner = null, title = '' }) {
+export async function start({ name, kind = 'down', secs = 600, recipe_id = null, make_id = null, owner = null, title = '', step_id = null, step_no = null }) {
   unlockSound();
-  const t = await store.local.create('timers', { name: name || nextName(), kind, length_ms: kind === 'down' ? secs * 1000 : 0, started: Date.now(), paused: null, paused_ms: 0, recipe_id, make_id, owner, title });
+  const t = await store.local.create('timers', { name: name || nextName(), kind, length_ms: kind === 'down' ? secs * 1000 : 0, started: Date.now(), paused: null, paused_ms: 0, recipe_id, make_id, owner, title, step_id, step_no });
   await load();
   return t;
 }
@@ -138,6 +138,7 @@ function timerMenu(pill, t, open, places = []) {
     ${t.kind === 'down' ? `<div class="tm-menu-steps">${STEPS.map(([secs, label]) => `<button type="button" role="menuitem" class="tm-tile${secs < 0 ? ' tm-less' : ''}" data-m="${secs}" aria-label="${label} min"><i>⏰</i><b>${label}</b><small>min</small></button>`).join('')}</div>
 <hr>` : ''}
     ${open && t.recipe_id ? '<button type="button" role="menuitem" data-m="open">▶ Follow recipe</button>' : ''}
+    ${open && t.recipe_id && t.step_no ? `<button type="button" role="menuitem" data-m="step">↪ Go to step ${t.step_no}</button>` : ''}
     ${others.length ? `<button type="button" role="menuitem" data-m="move" aria-expanded="false">➜ Move to another recipe</button><div class="tm-move" hidden>${others.map((x, n) => `<button type="button" role="menuitem" data-move="${n}">${esc(x.title || 'Untitled')}</button>`).join('')}</div>` : ''}
     <button type="button" role="menuitem" data-m="choose">☑ Choose several</button>
     <button type="button" role="menuitem" data-m="rename">✎ Rename timer</button>
@@ -181,6 +182,7 @@ function timerMenu(pill, t, open, places = []) {
     if (what === 'undo') { undoTime(now); return; }
     closeMenu();
     if (what === 'open') open(now);
+    else if (what === 'step') open(now, { step: true });
     else if (what === 'rename') rename(now);
     else if (what === 'remove') removeAll([now]);
     else if (what === 'choose') choose(now.id);
@@ -305,9 +307,9 @@ function beep() {
 // ---------- the dock (every page) ----------
 
 let dock = null;
-export function openTimerOf(t) {
+export function openTimerOf(t, { step = false } = {}) {
   const path = `#/recipes/${t.recipe_id}${t.make_id ? `/make/${t.make_id}` : ''}${t.owner ? `/from/${t.owner}` : ''}`;
-  try { sessionStorage.setItem('sift_follow', t.make_id || t.recipe_id); } catch {}
+  try { sessionStorage.setItem('sift_follow', t.make_id || t.recipe_id); if (step) sessionStorage.setItem('sift_follow_step', JSON.stringify({ id: t.step_id, no: t.step_no })); } catch {}
   if (location.hash === path) dispatchEvent(new CustomEvent('sift-follow')); else location.hash = path;
 }
 function drawDock() {
