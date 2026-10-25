@@ -466,7 +466,7 @@ export async function openFollow(open) {
   addEventListener('keydown', onKey, true);
   closeOpen = close;
   el.addEventListener('click', ev => {
-    if (timers.onClick(ev, { open: t => { const n = pots.findIndex(p => p.tab.id === (t.make_id || t.recipe_id)); if (n >= 0) switchTo(n); } })) return;
+    if (timers.onClick(ev, { open: t => { const n = pots.findIndex(p => p.tab.id === (t.make_id || t.recipe_id)); if (n >= 0) switchTo(n); }, places: pots.map(p => p.where) })) return;
     const b = ev.target.closest('button, .fa-step, summary, .fa-tab');
     if (!b) return;
     const box = b.closest('[data-pot]');
