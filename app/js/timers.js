@@ -95,7 +95,8 @@ export function pillHtml(t, now = Date.now(), { recipe = false } = {}) {
 const STEPS = [[300, '+5'], [60, '+1'], [-60, '−1'], [-300, '−5']];
 
 // Clicks on any timer pill (the dock, Follow along). While some are chosen, a tap chooses or unchooses.
-export function onClick(ev, { open } = {}) {
+// places: other recipes it could be moved to ([{ recipe_id, make_id, owner, title }], Follow along's open ones).
+export function onClick(ev, { open, places = [] } = {}) {
   const b = ev.target.closest('[data-tm]');
   const pill = ev.target.closest('[data-timer]');
   if (!b || !pill) return false;
@@ -109,7 +110,7 @@ export function onClick(ev, { open } = {}) {
   else if (act === 'resume') resume(t);
   else if (act === 'dismiss') removeAll([t]);
   else if (act === 'mute') mute(t);
-  else if (act === 'menu') timerMenu(pill, t, open);
+  else if (act === 'menu') timerMenu(pill, t, open, places);
   return true;
 }
 
@@ -117,7 +118,8 @@ export function onClick(ev, { open } = {}) {
 
 let menu = null;
 const closeMenu = () => { menu?.close(); menu = null; document.querySelectorAll('.tm-open').forEach(x => x.classList.remove('tm-open')); };
-function timerMenu(pill, t, open) {
+function timerMenu(pill, t, open, places = []) {
+  const others = places.filter(x => (x.make_id || x.recipe_id) !== (t.make_id || t.recipe_id));
   closeMenu();
   const box = document.createElement('div');
   box.className = 'tm-menu';
@@ -127,6 +129,7 @@ function timerMenu(pill, t, open) {
     ${t.kind === 'down' ? `<div class="tm-menu-steps">${STEPS.map(([secs, label]) => `<button type="button" role="menuitem" class="tm-tile${secs < 0 ? ' tm-less' : ''}" data-m="${secs}" aria-label="${label} min"><i>⏰</i><b>${label}</b><small>min</small></button>`).join('')}</div>
       <button type="button" role="menuitem" data-m="undo" class="tm-undo"${t.added_ms ? '' : ' hidden'}>↺ Take back ${t.added_ms ? signed(t.added_ms) : ''}</button><hr>` : ''}
     ${open && t.recipe_id ? '<button type="button" role="menuitem" data-m="open">🥄 Open its recipe</button>' : ''}
+    ${others.length ? `<button type="button" role="menuitem" data-m="move" aria-expanded="false">➜ Move to another recipe</button><div class="tm-move" hidden>${others.map((x, n) => `<button type="button" role="menuitem" data-move="${n}">${esc(x.title || 'Untitled')}</button>`).join('')}</div>` : ''}
     <button type="button" role="menuitem" data-m="choose">☑ Choose several</button>
     <button type="button" role="menuitem" data-m="rename">✎ Rename</button>
     <button type="button" role="menuitem" data-m="remove" class="danger">✕ Remove</button>`;
@@ -159,8 +162,11 @@ function timerMenu(pill, t, open) {
     place();
   });
   box.addEventListener('click', ev => {
+    const mv = ev.target.closest('[data-move]');
+    if (mv) { const x = others[+mv.dataset.move], now = timers.find(y => y.id === t.id) || t; closeMenu(); put(now, { recipe_id: x.recipe_id || null, make_id: x.make_id || null, owner: x.owner || null, title: x.title || '' }); return toast(`${now.name} moved to ${x.title || 'Untitled'}`); }
     const b = ev.target.closest('[data-m]');
     if (!b) return;
+    if (b.dataset.m === 'move') { const list = box.querySelector('.tm-move'); list.hidden = !list.hidden; b.setAttribute('aria-expanded', String(!list.hidden)); place(); return; }
     const now = timers.find(x => x.id === t.id) || t, what = b.dataset.m;
     if (/^-?\d+$/.test(what)) { addTime(now, +what); return; } // stays open, so +1 can be tapped again
     if (what === 'undo') { undoTime(now); return; }
@@ -423,6 +429,7 @@ body.has-timers .toast { margin-bottom: 52px; }
 .tm-tile b { font-size: 1.2rem; font-weight: 800; }
 .tm-tile small { font-size: .7rem; color: var(--muted); }
 .tm-menu .tm-undo { font-weight: 600; }
+.tm-move { display: flex; flex-direction: column; gap: 4px; padding-left: 14px; }
 .tm-menu hr { width: 100%; margin: 2px 0; border: 0; border-top: 1px solid var(--glass-border); }
 .tm-menu [hidden] { display: none !important; }
 .tm-pill .tm-main:hover:not(:disabled), .tm-pill .tm-main:active { background: none; }
