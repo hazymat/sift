@@ -61,8 +61,13 @@ export function addTime(t, secs) {
   if (t.kind !== 'down') return null;
   const used = elapsed(t);
   const base = ringing(t) ? used : t.length_ms;
-  return put(t, { length_ms: Math.max(used + 1000, base + secs * 1000) });
+  // What was added or taken off is kept, so it can be taken back (base_ms: its length before the first change).
+  return put(t, { length_ms: Math.max(used + 1000, base + secs * 1000), base_ms: t.base_ms ?? t.length_ms, added_ms: (t.added_ms || 0) + secs * 1000, muted: false });
 }
+export const undoTime = t => (t.base_ms != null ? put(t, { length_ms: t.base_ms, base_ms: null, added_ms: 0 }) : null);
+const signed = ms => `${ms < 0 ? '−' : '+'}${lengthText(Math.round(Math.abs(ms) / 1000))}`;
+// A rung countdown: silenced, it stays (with ✕ to remove it) and stops beeping.
+export const mute = t => put(t, { muted: true });
 export const dismiss = async t => { await store.local.remove('timers', t.id); await load(); };
 // Remove timers, with Undo in the message (no asking first).
 export async function removeAll(list) {
@@ -81,13 +86,13 @@ export async function rename(t) {
 // recipe: also say which recipe it's for (Follow along with more than one open).
 export function pillHtml(t, now = Date.now(), { recipe = false } = {}) {
   const ring = ringing(t, now);
-  return `<span class="tm-pill${ring ? ' tm-ring' : ''}${t.paused != null ? ' tm-paused' : ''}${chosen.has(t.id) ? ' tm-chosen' : ''}" data-timer="${t.id}">
+  return `<span class="tm-pill${ring ? ' tm-ring' : ''}${ring && t.muted ? ' tm-muted' : ''}${menu?.id === t.id ? ' tm-open' : ''}${t.paused != null ? ' tm-paused' : ''}${chosen.has(t.id) ? ' tm-chosen' : ''}" data-timer="${t.id}">
     <button type="button" class="tm-main" data-tm="menu" title="More for this timer (press and hold to choose several)"><b class="tm-time" data-tm-time>${t.kind === 'up' ? '⏱ ' : ''}${shown(t, now)}</b><span class="tm-name">${ring ? `${esc(t.name)} · done` : esc(t.name)}${recipe && t.title ? ` · ${esc(t.title)}` : ''}</span></button>
-    ${ring ? '<button type="button" class="tm-btn" data-tm="dismiss" title="Stop the alarm and remove this timer" aria-label="Stop">✕</button>'
+    ${ring ? (t.muted ? '<button type="button" class="tm-btn" data-tm="dismiss" title="Remove this timer (Undo in the message)" aria-label="Remove">✕</button>' : '<button type="button" class="tm-btn" data-tm="mute" title="Silence it (it stays here, still counting)" aria-label="Silence">🔕</button>')
       : `<button type="button" class="tm-btn" data-tm="${t.paused != null ? 'resume' : 'pause'}" aria-label="${t.paused != null ? 'Carry on' : 'Pause'}" title="${t.paused != null ? 'Carry on' : 'Pause'}">${t.paused != null ? '▶' : '⏸'}</button>`}
   </span>`;
 }
-const STEPS = [[300, '+5 min'], [60, '+1 min'], [-60, '−1 min'], [-300, '−5 min']];
+const STEPS = [[300, '+5'], [60, '+1'], [-60, '−1'], [-300, '−5']];
 
 // Clicks on any timer pill (the dock, Follow along). While some are chosen, a tap chooses or unchooses.
 export function onClick(ev, { open } = {}) {
@@ -102,7 +107,8 @@ export function onClick(ev, { open } = {}) {
   const act = b.dataset.tm;
   if (act === 'pause') pause(t);
   else if (act === 'resume') resume(t);
-  else if (act === 'dismiss') dismiss(t);
+  else if (act === 'dismiss') removeAll([t]);
+  else if (act === 'mute') mute(t);
   else if (act === 'menu') timerMenu(pill, t, open);
   return true;
 }
@@ -110,7 +116,7 @@ export function onClick(ev, { open } = {}) {
 // ---------- one timer's menu (a column under its pill) ----------
 
 let menu = null;
-const closeMenu = () => { menu?.close(); menu = null; };
+const closeMenu = () => { menu?.close(); menu = null; document.querySelectorAll('.tm-open').forEach(x => x.classList.remove('tm-open')); };
 function timerMenu(pill, t, open) {
   closeMenu();
   const box = document.createElement('div');
@@ -118,8 +124,9 @@ function timerMenu(pill, t, open) {
   box.setAttribute('role', 'menu');
   box.dataset.timerMenu = t.id;
   box.innerHTML = `<div class="tm-menu-head"><b data-tm-time>${shown(t, Date.now())}</b><span>${esc(t.name)}</span></div>
+    ${t.kind === 'down' ? `<div class="tm-menu-steps">${STEPS.map(([secs, label]) => `<button type="button" role="menuitem" class="tm-tile${secs < 0 ? ' tm-less' : ''}" data-m="${secs}" aria-label="${label} min"><i>⏰</i><b>${label}</b><small>min</small></button>`).join('')}</div>
+      <button type="button" role="menuitem" data-m="undo" class="tm-undo"${t.added_ms ? '' : ' hidden'}>↺ Take back ${t.added_ms ? signed(t.added_ms) : ''}</button><hr>` : ''}
     ${open && t.recipe_id ? '<button type="button" role="menuitem" data-m="open">🥄 Open its recipe</button>' : ''}
-    ${t.kind === 'down' ? `<div class="tm-menu-steps">${STEPS.map(([secs, label]) => `<button type="button" role="menuitem" data-m="${secs}">${label}</button>`).join('')}</div>` : ''}
     <button type="button" role="menuitem" data-m="choose">☑ Choose several</button>
     <button type="button" role="menuitem" data-m="rename">✎ Rename</button>
     <button type="button" role="menuitem" data-m="remove" class="danger">✕ Remove</button>`;
@@ -143,19 +150,28 @@ function timerMenu(pill, t, open) {
   };
   addEventListener('pointerdown', outside, true);
   addEventListener('keydown', keys, true);
-  const unwatch = watch(() => { if (!timers.some(x => x.id === t.id)) closeMenu(); else place(); });
+  const unwatch = watch(() => {
+    const now = timers.find(x => x.id === t.id);
+    if (!now) return closeMenu();
+    const undo = box.querySelector('[data-m="undo"]');
+    if (undo) { undo.hidden = !now.added_ms; undo.textContent = now.added_ms ? `↺ Take back ${signed(now.added_ms)}` : ''; }
+    document.querySelectorAll(`[data-timer="${t.id}"]`).forEach(x => x.classList.add('tm-open'));
+    place();
+  });
   box.addEventListener('click', ev => {
     const b = ev.target.closest('[data-m]');
     if (!b) return;
     const now = timers.find(x => x.id === t.id) || t, what = b.dataset.m;
     if (/^-?\d+$/.test(what)) { addTime(now, +what); return; } // stays open, so +1 can be tapped again
+    if (what === 'undo') { undoTime(now); return; }
     closeMenu();
     if (what === 'open') open(now);
     else if (what === 'rename') rename(now);
     else if (what === 'remove') removeAll([now]);
     else if (what === 'choose') choose(now.id);
   });
-  menu = { close: () => { box.remove(); unwatch(); removeEventListener('pointerdown', outside, true); removeEventListener('keydown', keys, true); } };
+  document.querySelectorAll(`[data-timer="${t.id}"]`).forEach(x => x.classList.add('tm-open')); // the whole pill shows it's the one
+  menu = { id: t.id, close: () => { box.remove(); unwatch(); removeEventListener('pointerdown', outside, true); removeEventListener('keydown', keys, true); } };
   if (matchMedia('(hover: hover)').matches) box.querySelector('button')?.focus({ preventScroll: true });
 }
 
@@ -235,7 +251,7 @@ function tick() {
   }
   const head = document.querySelector('.tm-menu [data-tm-time]'), open = head && timers.find(x => x.id === head.closest('[data-timer-menu]').dataset.timerMenu);
   if (open) head.innerHTML = shown(open, now);
-  for (const t of timers) if (ringing(t, now) && now - (t.started + (t.paused_ms || 0) + t.length_ms) < RING_FRESH) ring = true;
+  for (const t of timers) if (ringing(t, now) && !t.muted && now - (t.started + (t.paused_ms || 0) + t.length_ms) < RING_FRESH) ring = true;
   if (ring && now - lastBeep > 2400) { lastBeep = now; beep(); navigator.vibrate?.([200, 100, 200]); }
   const done = timers.filter(t => ringing(t, now));
   if (done.length && !document.title.startsWith('⏰')) { baseTitle = document.title; document.title = `⏰ ${done[0].name} done`; }
@@ -393,13 +409,26 @@ body.has-timers .toast { margin-bottom: 52px; }
 @keyframes tm-flash { 30% { box-shadow: 0 0 0 5px var(--accent); transform: scale(1.06); } }
 .tm-flash { animation: tm-flash .9s ease-in-out 2; }
 .tm-chosen { box-shadow: 0 0 0 3px var(--accent), var(--shadow-sm); }
-.tm-menu { position: fixed; z-index: 960; display: flex; flex-direction: column; gap: 4px; width: 230px; max-width: calc(100vw - 16px); padding: 8px; border-radius: 18px; background: color-mix(in srgb, var(--bg) 92%, transparent); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); border: 1px solid var(--glass-border); box-shadow: var(--shadow); }
+.tm-menu { position: fixed; z-index: 960; display: flex; flex-direction: column; gap: 4px; width: 250px; max-width: calc(100vw - 16px); padding: 8px; border-radius: 18px; background: color-mix(in srgb, var(--bg) 92%, transparent); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); border: 1px solid var(--glass-border); box-shadow: var(--shadow); }
 .tm-menu-head { display: flex; align-items: baseline; gap: 8px; padding: 2px 8px 6px; min-width: 0; }
 .tm-menu-head b { font-size: 1.3rem; font-variant-numeric: tabular-nums; }
 .tm-menu-head span { color: var(--muted); font-size: .85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tm-menu button { display: flex; align-items: center; justify-content: flex-start; width: 100%; min-height: 44px; padding: 0 14px; font-size: 1rem; letter-spacing: normal; word-spacing: normal; text-align: left; box-shadow: none; }
-.tm-menu-steps { display: flex; flex-direction: column; gap: 4px; padding: 4px 0; border-block: 1px solid var(--glass-border); margin: 2px 0; }
-.tm-menu-steps button { font-variant-numeric: tabular-nums; font-weight: 600; }
+.tm-menu-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 2px 0 4px; }
+.tm-menu .tm-tile { flex-direction: column; justify-content: center; gap: 0; min-height: 62px; padding: 4px 0; border-radius: 14px; text-align: center; line-height: 1.05; font-variant-numeric: tabular-nums; background: color-mix(in srgb, rgb(52, 168, 83) 22%, var(--glass)); border: 1px solid color-mix(in srgb, rgb(52, 168, 83) 45%, transparent); }
+.tm-menu .tm-tile.tm-less { background: color-mix(in srgb, rgb(230, 150, 40) 22%, var(--glass)); border-color: color-mix(in srgb, rgb(230, 150, 40) 45%, transparent); }
+.tm-menu .tm-tile:hover:not(:disabled), .tm-menu .tm-tile:focus-visible { background: color-mix(in srgb, rgb(52, 168, 83) 38%, var(--glass)); }
+.tm-menu .tm-tile.tm-less:hover:not(:disabled), .tm-menu .tm-tile.tm-less:focus-visible { background: color-mix(in srgb, rgb(230, 150, 40) 38%, var(--glass)); }
+.tm-tile i { font-style: normal; font-size: .8rem; }
+.tm-tile b { font-size: 1.2rem; font-weight: 800; }
+.tm-tile small { font-size: .7rem; color: var(--muted); }
+.tm-menu .tm-undo { font-weight: 600; }
+.tm-menu hr { width: 100%; margin: 2px 0; border: 0; border-top: 1px solid var(--glass-border); }
+.tm-menu [hidden] { display: none !important; }
+.tm-pill .tm-main:hover:not(:disabled), .tm-pill .tm-main:active { background: none; }
+@media (hover: hover) { .tm-pill:hover { background: color-mix(in srgb, var(--text) 10%, var(--glass-strong)); } }
+.tm-pill.tm-open { background: var(--active-bg); border-color: var(--active-border); }
+.tm-ring.tm-muted { animation: none; background: rgba(230, 80, 55, .32); }
 .tm-bar { z-index: 955; }
 .tm-bar[hidden] { display: none; }
 body.follow-open .tm-bar { bottom: calc(14px + var(--safe-bottom)); }
