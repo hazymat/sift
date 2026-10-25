@@ -20,7 +20,7 @@ import { toast } from './toast.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const KEPT = 'sift_follow_tabs';
-const SCALES = [1 / 3, 0.5, 1, 2, 3, 4];
+const SCALES = [1 / 3, 0.5, 2 / 3, 1, 2, 3, 4];
 const FORGET = 3 * 24 * 3600e3; // tabs nobody has opened for 3 days are put away by themselves (a broth can start the day before)
 const kept = () => {
   let k = null;

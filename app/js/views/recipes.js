@@ -41,7 +41,7 @@ const statusLabel = v => { const st = STATUSES.find(x => x[0] === (v || 'going')
 const GOALS = ['ABV goal', 'Sweetness goal', 'Final sweetness'];
 // Anything typed on an open recipe's page (other than the starting name), saved or not.
 const typedOnPage = () => Array.from(document.querySelectorAll('#main .bb-paper :is(textarea, input:not([type="checkbox"]):not([type="file"]))')).some(i => i.value.trim() && i.value.trim() !== 'New recipe');
-const SCALES = [1 / 3, 0.5, 1, 2, 3, 4];
+const SCALES = [1 / 3, 0.5, 2 / 3, 1, 2, 3, 4];
 const now = () => new Date().toISOString();
 // Recipes never dragged sort by when they were made.
 const madeAt = r => Date.parse(r.created_at) / 1e4 || 0;
@@ -270,7 +270,7 @@ export default {
       const hasQty = ings.some(i => i.qty != null);
       const scale = hasQty ? (isRecipe
         ? `<span class="segmented bb-scale" aria-label="Scale">${SCALES.map(s => `<button type="button" data-scale="${s}" aria-pressed="${state.times === s}">×${qtyText(s)}</button>`).join('')}</span>`
-        : `<span class="segmented bb-scale" aria-label="Scale this batch"><button type="button" data-rescale="${1 / 3}" title="A third of every amount">×⅓</button><button type="button" data-rescale="0.5" title="Halve every amount">×½</button><button type="button" data-rescale="2" title="Double every amount">×2</button><button type="button" data-rescale="4" title="Four times every amount">×4</button><button type="button" data-rescale="ask" title="Scale every amount">×…</button></span>`) : '';
+        : `<span class="segmented bb-scale" aria-label="Scale this batch"><button type="button" data-rescale="${1 / 3}" title="A third of every amount">×⅓</button><button type="button" data-rescale="0.5" title="Halve every amount">×½</button><button type="button" data-rescale="${2 / 3}" title="Two thirds of every amount">×⅔</button><button type="button" data-rescale="2" title="Double every amount">×2</button><button type="button" data-rescale="4" title="Four times every amount">×4</button><button type="button" data-rescale="ask" title="Scale every amount">×…</button></span>`) : '';
       const head = `<h2 class="bb-h"><span>🧺 Ingredients</span>${scale}</h2>`;
       // Written straight on the lines: the amount in the margin, the ingredient (", note") beside it.
       const times = isRecipe ? state.times : 1;
