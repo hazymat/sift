@@ -70,13 +70,25 @@ export function addTime(t, secs) {
   // What was added or taken off is kept, so it can be taken back (base_ms: its length before the first change).
   return put(t, { length_ms: Math.max(used + 1000, base + secs * 1000), base_ms: t.base_ms ?? t.length_ms, added_ms: (t.added_ms || 0) + secs * 1000, muted: false });
 }
-export const undoTime = t => (t.base_ms != null ? put(t, { length_ms: t.base_ms, base_ms: null, added_ms: 0 }) : null);
+// ↺ Revert, with Undo in the message (a tap by mistake gets the change back).
+export async function undoTime(t) {
+  if (t.base_ms == null) return;
+  const was = { length_ms: t.length_ms, base_ms: t.base_ms, added_ms: t.added_ms || 0, muted: !!t.muted };
+  await put(t, { length_ms: t.base_ms, base_ms: null, added_ms: 0 });
+  toast(`${t.name} reverted`, { action: 'Undo', onAction: () => put(t, was) });
+}
 // What a changed countdown would show had it not been changed (counting down live in its menu's ↺ Revert to).
 // Restart: back to its first length (before any change), from now, with Undo in the message.
 export async function restart(t) {
   const was = { length_ms: t.length_ms, started: t.started, paused: t.paused, paused_ms: t.paused_ms || 0, base_ms: t.base_ms ?? null, added_ms: t.added_ms || 0, muted: !!t.muted };
   await put(t, { length_ms: t.base_ms ?? t.length_ms, started: Date.now(), paused: null, paused_ms: 0, base_ms: null, added_ms: 0, muted: false });
   toast(`${t.name} restarted`, { action: 'Undo', onAction: () => put(t, was) });
+}
+// Set to: the countdown shows exactly this much left (kept as a change, so ↺ Revert still goes back).
+export function setTo(t, secs) {
+  if (t.kind !== 'down') return null;
+  const length_ms = elapsed(t) + secs * 1000;
+  return put(t, { length_ms, base_ms: t.base_ms ?? t.length_ms, added_ms: (t.added_ms || 0) + length_ms - t.length_ms, muted: false });
 }
 const revertText = (t, now) => clock(Math.max(0, Math.ceil((t.base_ms - elapsed(t, now)) / 1000)));
 const signed = ms => `${ms < 0 ? '−' : '+'}${lengthText(Math.round(Math.abs(ms) / 1000))}`;
@@ -147,7 +159,7 @@ function timerMenu(pill, t, open, places = []) {
       <span class="tm-sum-line"><span class="tm-sum-name">${t.step_no ? `Step ${t.step_no}` : esc(t.name)}${t.title ? ` · ${esc(t.title)}` : ''}</span>${open && t.recipe_id && t.step_no ? `<button type="button" role="menuitem" data-m="step" class="tm-go">Go to step ${t.step_no} ›</button>` : ''}</span>
       <span class="tm-sum-set">${t.kind === 'down' ? `Set for ${lengthText(Math.round((t.base_ms ?? t.length_ms) / 1000))} at ${at(t.started)}` : `Started at ${at(t.started)}`}</span></div>
     <div class="tm-adjust">${t.kind === 'down' ? `<div class="tm-adjust-head">Change time <b class="tm-adjust-by">${t.added_ms ? signed(t.added_ms) : ''}</b></div><div class="tm-menu-steps">${STEPS.map(([secs, label]) => `<button type="button" role="menuitem" class="tm-tile${secs < 0 ? ' tm-less' : ''}" data-m="${secs}" aria-label="${label} min"><i>⏰</i><b>${label}</b><small>min</small></button>`).join('')}</div>` : ''}
-    <div class="tm-adjust-foot"><span class="tm-changed"${t.added_ms ? '' : ' hidden'}>${changes(t)}</span><button type="button" role="menuitem" data-m="restart" class="tm-restart">↻ Restart${t.kind === 'down' ? ` <b>${lengthText(Math.round((t.base_ms ?? t.length_ms) / 1000))}</b>` : ''}</button></div></div>
+    <div class="tm-adjust-foot"><span class="tm-changed"${t.added_ms ? '' : ' hidden'}>${changes(t)}</span><span class="tm-foot-row"><button type="button" role="menuitem" data-m="restart" class="tm-restart">↻ Restart</button>${t.kind === 'down' ? '<button type="button" role="menuitem" data-m="setto" class="tm-restart">⏲ Set to…</button>' : ''}</span></div></div>
 <hr>
     ${open && t.recipe_id ? '<button type="button" role="menuitem" data-m="open">▶ Follow recipe</button>' : ''}
     ${others.length ? `<button type="button" role="menuitem" data-m="move" aria-expanded="false">➜ Move to another recipe</button><div class="tm-move" hidden>${others.map((x, n) => `<button type="button" role="menuitem" data-move="${n}">${esc(x.title || 'Untitled')}</button>`).join('')}</div>` : ''}
@@ -192,6 +204,7 @@ function timerMenu(pill, t, open, places = []) {
     if (/^-?\d+$/.test(what)) { addTime(now, +what); return; } // stays open, so +1 can be tapped again
     if (what === 'undo') { undoTime(now); return; }
     if (what === 'restart') { restart(now); return; } // stays open
+    if (what === 'setto') { closeMenu(); newTimerSheet({}, { setFor: now }).then(secs => { if (secs) setTo(timers.find(x => x.id === now.id) || now, secs); }); return; }
     closeMenu();
     if (what === 'open') open(now);
     else if (what === 'step') open(now, { step: true });
@@ -356,7 +369,9 @@ const ROW = 44;
 const QUICK = [120, 300, 600, 900, 1800];
 
 // { name, secs, ...where } → starts a timer, or nothing when the sheet is closed.
-export async function newTimerSheet(where = {}, { secs = 600, name = '' } = {}) {
+// setFor (a timer): the same wheel as Set to, giving back the seconds picked instead of starting one.
+export async function newTimerSheet(where = {}, { secs = 600, name = '', setFor = null } = {}) {
+  if (setFor) secs = Math.max(5, Math.round(Math.max(0, leftOf(setFor)) / 5000) * 5) || 300;
   unlockSound();
   const dev = await store.getDeviceSettings();
   let kind = 'down';
@@ -365,11 +380,11 @@ export async function newTimerSheet(where = {}, { secs = 600, name = '' } = {}) 
   const wheel = ([k, unit, count, step]) => `<div class="tm-wheel"><div class="tm-col" data-wheel="${k}" data-step="${step}" tabindex="0" aria-label="${unit}"><div class="tm-roll">${Array.from({ length: count }, (_, n) => `<div class="tm-n">${k === 'h' ? n : String(n * step).padStart(2, '0')}</div>`).join('')}</div></div><span class="tm-unit">${unit}</span></div>`;
   dlg.innerHTML = `<div class="sheet-handle"></div>
     <form method="dialog">
-      <div class="tm-sheet-head"><h2>New timer</h2><span class="segmented"><button type="button" data-kind="down" aria-pressed="true">⏰ Count down</button><button type="button" data-kind="up" aria-pressed="false">⏱ Stopwatch</button></span></div>
+      <div class="tm-sheet-head">${setFor ? `<h2>Set ${esc(setFor.name)} to</h2>` : '<h2>New timer</h2><span class="segmented"><button type="button" data-kind="down" aria-pressed="true">⏰ Count down</button><button type="button" data-kind="up" aria-pressed="false">⏱ Stopwatch</button></span>'}</div>
       <div class="tm-down"><div class="tm-picker"><div class="tm-band"></div>${WHEELS.map(wheel).join('')}</div>
       <div class="tm-quick">${QUICK.map(s => `<button type="button" data-quick="${s}">${lengthText(s)}</button>`).join('')}</div></div>
-      <label class="ask-field"><span>Name</span><input name="name" value="${esc(name || nextName())}" autocomplete="off" autocapitalize="sentences"></label>
-      ${IOS ? `<label class="tm-clock tm-down"><input type="checkbox" name="clock"${dev.timer_clock ? ' checked' : ''}> Also set it on this ${/iPad/.test(navigator.userAgent) ? 'iPad' : 'iPhone'}'s Clock app <button type="button" class="link-btn" data-act="clock-help">How to set this up</button></label>` : ''}
+      ${setFor ? '' : `<label class="ask-field"><span>Name</span><input name="name" value="${esc(name || nextName())}" autocomplete="off" autocapitalize="sentences"></label>`}
+      ${IOS && !setFor ? `<label class="tm-clock tm-down"><input type="checkbox" name="clock"${dev.timer_clock ? ' checked' : ''}> Also set it on this ${/iPad/.test(navigator.userAgent) ? 'iPad' : 'iPhone'}'s Clock app <button type="button" class="link-btn" data-act="clock-help">How to set this up</button></label>` : ''}
       <div class="sheet-actions"><button type="button" data-act="cancel">Cancel</button><span class="spacer"></span><button type="submit" class="primary tm-go">Start</button></div>
     </form>`;
   document.body.append(dlg);
@@ -384,7 +399,7 @@ export async function newTimerSheet(where = {}, { secs = 600, name = '' } = {}) 
       [...c.querySelectorAll('.tm-n')].forEach((n, i) => { const d = Math.min(3, Math.abs(i - mid)); n.style.fontSize = `${1.75 - d * 0.28}rem`; n.style.opacity = String(1 - d * 0.3); });
     }
     const s = total();
-    go.textContent = kind === 'up' ? 'Start stopwatch' : `Start ${clock(s)}`;
+    go.textContent = setFor ? `Set to ${clock(s)}` : kind === 'up' ? 'Start stopwatch' : `Start ${clock(s)}`;
     go.disabled = kind === 'down' && !s;
     for (const q of dlg.querySelectorAll('[data-quick]')) q.setAttribute('aria-pressed', String(+q.dataset.quick === s));
   }
@@ -405,7 +420,7 @@ export async function newTimerSheet(where = {}, { secs = 600, name = '' } = {}) 
   dlg.querySelector('form').addEventListener('submit', ev => {
     ev.preventDefault();
     const f = ev.target.elements;
-    answer = { kind, secs: total(), name: f.name.value.trim(), clock: !!f.clock?.checked };
+    answer = { kind, secs: total(), name: f.name?.value.trim() || '', clock: !!f.clock?.checked };
     dlg.close();
   });
   const closed = new Promise(resolve => dlg.addEventListener('close', () => { dlg.remove(); resolve(); }));
@@ -414,6 +429,7 @@ export async function newTimerSheet(where = {}, { secs = 600, name = '' } = {}) 
   dlg.querySelector('[data-wheel="m"]').focus();
   await closed;
   if (!answer || (answer.kind === 'down' && !answer.secs)) return null;
+  if (setFor) return answer.secs;
   if (IOS && answer.kind === 'down' && !!dev.timer_clock !== answer.clock) store.updateDeviceSettings({ timer_clock: answer.clock });
   const t = await start(Object.assign({}, where, { name: answer.name, kind: answer.kind, secs: answer.secs }));
   if (answer.clock && answer.kind === 'down') toClock(answer.secs);
@@ -478,7 +494,8 @@ body.has-timers .toast { margin-bottom: 52px; }
 .tm-changed { display: flex; }
 .tm-changed[hidden] { display: none; }
 .tm-adjust-foot .tm-revert, .tm-adjust-foot .tm-restart { flex: 1 1 auto; justify-content: center; min-height: 44px; font-weight: 600; white-space: nowrap; }
-.tm-restart b { margin-left: 4px; font-variant-numeric: tabular-nums; }
+.tm-foot-row { display: flex; gap: 6px; }
+.tm-foot-row .tm-restart { flex: 1 1 0; padding: 0 8px; }
 .tm-menu .tm-revert { min-height: 44px; font-weight: 600; }
 .tm-revert b { margin-left: 6px; font-variant-numeric: tabular-nums; }
 .tm-move { display: flex; flex-direction: column; gap: 4px; padding-left: 14px; }
