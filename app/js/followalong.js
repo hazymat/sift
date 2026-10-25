@@ -115,7 +115,7 @@ export async function openFollow(open) {
   };
   // One pot: its ingredients (folded unless it's the only one on a wide screen) and its drum of steps.
   const potHtml = (p, n, { alone }) => `<div class="fa-pot${alone ? ' fa-alone' : ''}" data-pot="${n}" data-slot="${n}" style="--pot:${p.colour}">
-      ${alone && pots.length < 2 ? '' : `<div class="fa-pot-head">${alone ? '' : `<span class="fa-grip" data-drag="${n}" title="Drag to another place" aria-hidden="true">⠿</span>`}<b>${esc(p.title)}</b>${alone ? '' : scaleHtml(p)}</div>`}
+      ${alone && pots.length < 2 ? '' : `<div class="fa-pot-head"><b${alone ? '' : ` data-drag="${n}" title="Drag sideways to another place"`}>${esc(p.title)}</b>${alone ? '' : scaleHtml(p)}</div>`}
       <aside class="fa-ings"><details class="fa-fold"${alone && wide() ? ' open' : ''}><summary><span>🧺 Ingredients</span><span class="muted fa-count">${p.ings.length}</span>${alone ? scaleHtml(p) : ''}</summary>${alone ? `<div class="fa-fold-scale">${scaleHtml(p)}</div>` : ''}<div class="fa-ing-body"></div></details></aside>
       <div class="fa-drum" tabindex="-1">${p.steps.length ? p.steps.map((st, s) => stepOf(p, st, s)).join('') : '<p class="muted fa-none">No steps yet.</p>'}</div>
       ${alone ? `<div class="fa-dots" aria-hidden="true">${p.steps.map((_, s) => `<i data-dot="${s}"></i>`).join('')}</div>` : ''}
@@ -191,9 +191,9 @@ export async function openFollow(open) {
     if (blob) { const url = URL.createObjectURL(blob); urls.push(url); img.src = url; }
   });
 
-  const tabsHtml = () => `<div class="fa-tabs" role="tablist">${pots.map((p, n) => `<span class="fa-tab${n === k.at ? ' on' : ''}${sideBySide() && n < showing() ? ' fa-shown' : ''}" role="tab" aria-selected="${n === k.at}" data-slot="${n}">${pots.length > 1 ? `<span class="fa-grip" data-drag="${n}" title="Drag to change the order" aria-hidden="true">⠿</span>` : ''}<button type="button" class="fa-tab-go" data-tab="${n}">${esc(p.title)}</button>${pots.length > 1 ? `<button type="button" class="fa-tab-x" data-tab-x="${n}" title="Put this one away" aria-label="Put ${esc(p.title)} away">✕</button>` : ''}</span>`).join('')}
+  const tabsHtml = () => `<div class="fa-tabs" role="tablist">${pots.map((p, n) => `<span class="fa-tab${n === k.at ? ' on' : ''}${sideBySide() && n < showing() ? ' fa-shown' : ''}" role="tab" aria-selected="${n === k.at}" data-slot="${n}" data-tab="${n}"${pots.length > 1 ? ` data-drag="${n}"` : ''}><button type="button" class="fa-tab-go" data-tab="${n}">${esc(p.title)}</button>${pots.length > 1 ? `<button type="button" class="fa-tab-x" data-tab-x="${n}" title="Put this one away" aria-label="Put ${esc(p.title)} away">✕</button>` : ''}</span>`).join('')}
     <button type="button" class="fa-tab-add" data-fa="add" title="Cook another recipe at the same time">+ Recipe</button>
-    ${pots.length > 1 && columns() > 1 ? `<button type="button" class="fa-side" data-fa="side" aria-pressed="${!!k.side}" title="Show several at once: the first tabs, in their order (drag a tab's ⠿ to change it)">◫ Side by side</button>` : ''}</div>`;
+    ${pots.length > 1 && columns() > 1 ? `<button type="button" class="fa-side" data-fa="side" aria-pressed="${!!k.side}" title="Show several at once: the first tabs, in their order (drag a tab sideways to change it)">◫ Side by side</button>` : ''}</div>`;
   let ro = null;
   function draw() {
     ro?.disconnect();
@@ -201,7 +201,7 @@ export async function openFollow(open) {
     const cols = side ? Math.min(columns(), pots.length) : 1;
     // Side by side: the first tabs, in their order (the one being cooked from is always among them).
     if (side && k.at >= cols) { move(k.at, cols - 1); k.at = cols - 1; save(); }
-    const which = Array.from({ length: cols }, (_, n) => n);
+    const which = side ? Array.from({ length: cols }, (_, n) => n) : [k.at];
     el.innerHTML = `<div class="fa-top"><button type="button" class="back" data-fa="close">‹ Back${keys('Esc')}</button>
         <h1${pots.length > 1 ? '' : ` class="fa-title" style="--pot:${pots[k.at].colour}"`}>${pots.length > 1 ? 'Follow along' : esc(pots[k.at].title)}</h1>        <div class="fa-timers" aria-label="Timers"></div><button type="button" class="fa-add" data-fa="timer" title="A countdown or a stopwatch" aria-label="New timer">⏰ +<span class="fa-word"> Timer</span></button>
         <button type="button" class="fa-finish" data-fa="finish" title="Clear ${pots.length > 1 ? 'these recipes' : 'this recipe'} from Follow along" aria-label="Finished cooking">✓<span class="fa-word"> Finished cooking</span></button></div>
@@ -224,29 +224,48 @@ export async function openFollow(open) {
     k.at = n; save(); draw();
   };
   const move = (from, to) => { const p = pots.splice(from, 1)[0]; pots.splice(to, 0, p); };
-  // Dragging a tab (or, side by side, a recipe's title) by its ⠿ to another place changes the order.
+  // Dragging a whole tab (or, side by side, a recipe's title) sideways changes the order: the others make way round a dotted gap.
+  // Mouse: after a few pixels. Touch: after holding still a moment, so a quick swipe still scrolls the tabs.
+  let lift = null, dragged = 0;
   el.addEventListener('pointerdown', ev => {
-    const grip = ev.target.closest('[data-drag]');
-    if (!grip || ev.button > 0) return;
-    ev.preventDefault();
-    const item = grip.closest('[data-slot]'), kind = item.classList.contains('fa-tab') ? '.fa-tab' : '.fa-pot', from = +grip.dataset.drag, x0 = ev.clientX, y0 = ev.clientY;
-    let over = null;
-    item.classList.add('fa-lifted');
+    const item0 = ev.target.closest('[data-drag]');
+    if (!item0 || ev.button > 0 || ev.target.closest('.fa-tab-x')) return;
+    const item = item0.closest('[data-slot]'), kind = item.classList.contains('fa-tab') ? '.fa-tab' : '.fa-pot', from = +item0.dataset.drag, x0 = ev.clientX, y0 = ev.clientY, touchy = ev.pointerType === 'touch';
+    let gap = null, grabX = 0, hold = touchy ? setTimeout(() => start(x0), 300) : 0;
+    const start = x => {
+      const box = item.getBoundingClientRect();
+      gap = document.createElement(kind === '.fa-tab' ? 'span' : 'div');
+      gap.className = 'fa-gap'; gap.style.cssText = `width:${box.width}px;height:${box.height}px`;
+      item.before(gap);
+      grabX = x - box.left;
+      Object.assign(item.style, { position: 'fixed', left: `${box.left}px`, top: `${box.top}px`, width: `${box.width}px`, height: `${box.height}px`, margin: '0' });
+      item.classList.add('fa-lifted'); lift = item;
+    };
     const moved = e => {
-      item.style.transform = `translate(${e.clientX - x0}px, ${e.clientY - y0}px)`;
-      const under = document.elementsFromPoint(e.clientX, e.clientY).map(x => x.closest(`${kind}[data-slot]`)).find(x => x && x !== item) || null;
-      if (under !== over) { over?.classList.remove('fa-drop'); over = under; over?.classList.add('fa-drop'); }
+      if (!gap) {
+        if (touchy) { if (Math.hypot(e.clientX - x0, e.clientY - y0) > 8) { clearTimeout(hold); done(); } return; }
+        if (Math.abs(e.clientX - x0) < 6) return;
+        start(x0);
+      }
+      item.style.left = `${e.clientX - grabX}px`; // side to side only
+      const others = [...el.querySelectorAll(`${kind}[data-slot]`)].filter(x => x !== item);
+      const next = others.find(x => { const r = x.getBoundingClientRect(); return e.clientX < r.left + r.width / 2; });
+      if (next) { if (gap.nextElementSibling !== next) next.before(gap); } else if (others.length && others.at(-1).nextElementSibling !== gap) others.at(-1).after(gap);
     };
-    const up = () => {
-      removeEventListener('pointermove', moved); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
-      item.classList.remove('fa-lifted'); item.style.transform = ''; over?.classList.remove('fa-drop');
-      if (!over) return;
-      const to = +over.dataset.slot;
-      move(from, to);
-      k.at = to; save(); draw();
+    const done = () => {
+      clearTimeout(hold);
+      removeEventListener('pointermove', moved); removeEventListener('pointerup', up); removeEventListener('pointercancel', done);
+      if (!gap) return;
+      const to = [...el.querySelectorAll(`${kind}[data-slot], .fa-gap`)].filter(x => x !== item).indexOf(gap);
+      gap.remove(); item.removeAttribute('style'); item.classList.remove('fa-lifted'); lift = null; dragged = Date.now();
+      return to;
     };
-    addEventListener('pointermove', moved); addEventListener('pointerup', up); addEventListener('pointercancel', up);
+    const up = () => { const to = done(); if (to == null || to < 0 || to === from) return; move(from, to); k.at = to; save(); draw(); };
+    addEventListener('pointermove', moved); addEventListener('pointerup', up); addEventListener('pointercancel', done);
   });
+  el.addEventListener('touchmove', ev => { if (lift) ev.preventDefault(); }, { passive: false }); // a held tab drags instead of scrolling
+  el.addEventListener('click', ev => { if (Date.now() - dragged < 400) { ev.stopPropagation(); ev.preventDefault(); } }, true); // the drop isn't a tap
+  el.addEventListener('contextmenu', ev => { if (ev.target.closest('[data-drag]')) ev.preventDefault(); });
 
   const drawTimers = list => el.querySelectorAll('.fa-timers').forEach(box => { box.innerHTML = list.map(t => timers.pillHtml(t, Date.now(), { recipe: pots.length > 1 })).join(''); });
   const unwatch = timers.watch(drawTimers);
@@ -369,7 +388,7 @@ export async function openFollow(open) {
   closeOpen = close;
   el.addEventListener('click', ev => {
     if (timers.onClick(ev, { open: t => { const n = pots.findIndex(p => p.tab.id === (t.make_id || t.recipe_id)); if (n >= 0) switchTo(n); } })) return;
-    const b = ev.target.closest('button, .fa-step, summary');
+    const b = ev.target.closest('button, .fa-step, summary, .fa-tab');
     if (!b) return;
     const box = b.closest('[data-pot]');
     const s = box ? shown.find(x => x.box === box) : focused();
@@ -421,13 +440,13 @@ body.follow-open > :is(.appbar, #main, #tabbar, #timer-dock, .select-bar:not(.tm
 .fa-tab { display: inline-flex; align-items: center; flex: none; border-radius: 18px; background: var(--glass); border: 1px solid var(--glass-border); }
 .fa-tab.on { background: var(--active-bg); border-color: var(--active-border); }
 .fa-tab.fa-shown:not(.on) { border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
-.fa-grip { touch-action: none; cursor: grab; padding: 6px 2px 6px 10px; color: var(--muted); -webkit-user-select: none; user-select: none; font-size: 1rem; line-height: 1; }
-.fa-pot-head .fa-grip { padding: 6px 4px; font-size: 1.2rem; }
-.fa-pot-head .fa-grip + b { flex-basis: calc(100% - 40px); }
-.fa-lifted { position: relative; z-index: 20; opacity: .85; box-shadow: var(--shadow); cursor: grabbing; transition: none !important; }
-.fa-drop { outline: 3px solid var(--accent); outline-offset: 2px; }
-.fa-tab button { background: none; box-shadow: none; border: 0; }
-.fa-tab-go { font-weight: 600; max-width: 16em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fa-tab, .fa-pot-head b[data-drag] { cursor: pointer; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+.fa-pot-head b[data-drag] { cursor: grab; }
+@media (hover: hover) { .fa-tab:not(.on):hover { background: var(--glass-hover); } }
+.fa-lifted { z-index: 20; background: var(--bg) !important; backdrop-filter: blur(12px); outline: 2px solid var(--active-border); box-shadow: var(--shadow); cursor: grabbing; transition: none !important; }
+.fa-gap { flex: none; box-sizing: border-box; border: 2px dashed var(--active-border); border-radius: 18px; opacity: .8; }
+.fa-tab button, .fa-tab button:hover:not(:disabled), .fa-tab button:active { background: none; box-shadow: none; border: 0; -webkit-tap-highlight-color: transparent; }
+.fa-tab-go { padding-left: 14px; font-weight: 600; max-width: 16em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fa-tab-x { padding: 6px 10px 6px 2px; color: var(--muted); }
 .fa-tab-add, .fa-side { flex: none; }
 .fa-side[aria-pressed="true"], .fa-side[aria-pressed="true"]:hover { background: var(--active-bg); border-color: var(--active-border); } /* on at once, even under a finger (a touch screen keeps :hover on what was tapped) */
@@ -461,10 +480,10 @@ body.follow-open > :is(.appbar, #main, #tabbar, #timer-dock, .select-bar:not(.tm
 .fa-drum::before, .fa-drum::after { content: ""; display: block; height: 42%; }
 .fa-step { scroll-snap-align: center; margin: 0 auto 14px; padding: 18px 24px; border-radius: 26px; border: 1px solid transparent; transition: background .25s, border-color .25s; will-change: transform; cursor: pointer; }
 .fa-step.fa-cur { background: color-mix(in srgb, var(--text) 7%, transparent); border-color: var(--glass-border); cursor: default; }
-.fa-num { font-size: .8rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.fa-num { display: flex; align-items: center; font-size: .8rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
 .fa-cur .fa-num { color: var(--accent); }
 .fa-of { display: none; }
-.fa-cur .fa-of { display: inline; }
+.fa-cur .fa-of { display: inline; margin-left: .4em; }
 .fa-text { font-size: clamp(1.5rem, 2.6vw, 2.1rem); line-height: 1.3; font-weight: 500; margin-top: 6px; overflow-wrap: anywhere; }
 .fa-side-by-side .fa-text { font-size: clamp(1.2rem, 1.9vw, 1.7rem); }
 .fa-text .bb-ref { color: #f6c46f; background: none; padding: 0; font-weight: 650; white-space: normal; }
@@ -477,7 +496,7 @@ body.follow-open > :is(.appbar, #main, #tabbar, #timer-dock, .select-bar:not(.tm
 .fa-done-btn.fa-undone { background: var(--glass); border-color: var(--glass-border); color: var(--muted); font-weight: 500; }
 .fa-done-btn kbd { opacity: .7; }
 .fa-step:not(.fa-cur) .fa-done-btn { visibility: hidden; }
-.fa-tick { display: inline-grid; place-items: center; width: 22px; height: 22px; margin-right: 8px; vertical-align: -6px; border-radius: 50%; background: rgb(52, 168, 83); color: #fff; font-size: .85rem; font-weight: 800; letter-spacing: 0; box-shadow: 0 2px 8px rgba(52, 168, 83, .45); animation: fa-tick .35s cubic-bezier(.2, 1.6, .4, 1); }
+.fa-tick { display: inline-grid; place-items: center; width: 22px; height: 22px; flex: none; margin-right: 8px; border-radius: 50%; background: rgb(52, 168, 83); color: #fff; font-size: .85rem; font-weight: 800; letter-spacing: 0; box-shadow: 0 2px 8px rgba(52, 168, 83, .45); animation: fa-tick .35s cubic-bezier(.2, 1.6, .4, 1); }
 .fa-done .fa-text { opacity: .62; }
 @keyframes fa-tick { from { transform: scale(.3); opacity: 0; } }
 .fa-dots i.done { background: rgb(52, 168, 83); }
