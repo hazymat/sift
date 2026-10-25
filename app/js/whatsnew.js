@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.26': [{ text: "Batch Book, Follow along: ⏱ Start the clock, above the first step, notes when you began. Then the recipe's title shows when it started and how long it's been, and All done uses it for the time taken.", go: '#/recipes', open: ['#main .bb-card', '#main .bb-follow'], at: '.fa-start-clock' }],
   '1.61.25': [{ text: "Timers: the menu's tiles go −5, −1, +1, +5. Once you've changed a timer, under its time it says what it was and the change, with ↺ Revert. A finished timer stays red while its menu is open, and tapping the timer again closes the menu.", at: '#timer-dock' },
     { text: "Timers: the alarm sound is made ready by any tap, so it plays on iPhone and iPad (even with the silent switch on, where supported)." }],
   '1.61.24': [{ text: "Batch Book, Follow along: the All done card is now its own card under the last step, set out like a report: the time taken (✎ to change it), switches for Save it on the recipe and Keep this cook as a batch, and photos with where they go. Nothing is saved until ✓ Finish, which says what it will do, and Undo takes it all back.", go: '#/recipes', open: ['#main .bb-card', '#main .bb-follow'], at: '.fa-drum' }],
@@ -197,6 +198,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.26': '2026-10-25T01:32:09Z',
   '1.61.25': '2026-10-25T01:25:42Z',
   '1.61.24': '2026-10-25T01:22:39Z',
   '1.61.23': '2026-10-25T01:15:35Z',

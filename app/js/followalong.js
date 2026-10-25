@@ -116,7 +116,10 @@ export async function openFollow(open) {
   };
   // The last step ticked: under it, how long it took (to save on the recipe), a photo (on the recipe or the batch),
   // Save as a batch (a recipe), then ✓ Finish (puts it away, with its timers).
-  const tookMin = p => Math.max(1, Math.round(((p.tab.finished || Date.now()) - (p.tab.started || Date.now())) / 60000));
+  const tookMin = p => Math.max(1, Math.round(((p.tab.finished || Date.now()) - (p.tab.clock || p.tab.started || Date.now())) / 60000));
+  // ⏱ Start the clock (above the first step) notes when the cook began; then its title shows "Started 18:42 · 25 min".
+  const clockText = p => `Started ${new Date(p.tab.clock).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })} · ${timeText(Math.max(0, Math.floor(((p.tab.finished || Date.now()) - p.tab.clock) / 60000)))}`;
+  const clockHtml = p => (p.tab.clock ? `<span class="fa-clock" data-clock="${p.tab.id}">⏱ ${clockText(p)}</span>` : '');
   const timeText = mins => [Math.floor(mins / 60) ? `${Math.floor(mins / 60)} h` : '', mins % 60 ? `${mins % 60} min` : ''].filter(Boolean).join(' ') || '0 min';
   // Nothing is saved until ✓ Finish: the card only gathers what to keep (time on the recipe, photos, a new batch).
   const saveTime = p => p.tab.save_time !== false && !!p.recipe;
@@ -149,9 +152,9 @@ export async function openFollow(open) {
   };
   // One pot: its ingredients (folded unless it's the only one on a wide screen) and its drum of steps.
   const potHtml = (p, n, { alone }) => `<div class="fa-pot${alone ? ' fa-alone' : ''}" data-pot="${n}" data-slot="${n}" style="--pot:${p.colour}">
-      ${alone && pots.length < 2 ? '' : `<div class="fa-pot-head"><b${alone ? '' : ` data-drag="${n}" title="Drag sideways to another place"`}>${esc(p.title)}</b>${alone ? '' : scaleHtml(p)}</div>`}
+      ${alone && pots.length < 2 ? '' : `<div class="fa-pot-head"><div class="fa-pot-line"><b${alone ? '' : ` data-drag="${n}" title="Drag sideways to another place"`}>${esc(p.title)}</b>${clockHtml(p)}</div>${alone ? '' : scaleHtml(p)}</div>`}
       <aside class="fa-ings"><details class="fa-fold"${alone && wide() ? ' open' : ''}><summary><span>🧺 Ingredients</span><span class="muted fa-count">${p.ings.length}</span>${alone ? scaleHtml(p) : ''}</summary>${alone ? `<div class="fa-fold-scale">${scaleHtml(p)}</div>` : ''}<div class="fa-ing-body"></div></details></aside>
-      <div class="fa-drum" tabindex="-1">${p.steps.length ? p.steps.map((st, s) => stepOf(p, st, s)).join('') + endHtml(p) : '<p class="muted fa-none">No steps yet.</p>'}</div>
+      <div class="fa-drum" tabindex="-1"><div class="fa-drum-top">${!p.steps.length ? '' : p.tab.clock ? clockHtml(p) : '<button type="button" class="fa-start-clock" data-fa="clock" title="Notes the time now, so you know how long it took">⏱ Start the clock</button>'}</div>${p.steps.length ? p.steps.map((st, s) => stepOf(p, st, s)).join('') + endHtml(p) : '<p class="muted fa-none">No steps yet.</p>'}</div>
       ${alone ? `<div class="fa-dots" aria-hidden="true">${p.steps.map((_, s) => `<i data-dot="${s}"></i>`).join('')}</div>` : ''}
     </div>`;
 
@@ -245,7 +248,7 @@ export async function openFollow(open) {
     if (side && k.at >= cols) { move(k.at, cols - 1); k.at = cols - 1; save(); }
     const which = side ? Array.from({ length: cols }, (_, n) => n) : [k.at];
     el.innerHTML = `<div class="fa-top"><button type="button" class="back" data-fa="close">‹ Back${keys('Esc')}</button>
-        <h1${pots.length > 1 ? '' : ` class="fa-title" style="--pot:${pots[k.at].colour}"`}>${pots.length > 1 ? 'Follow along' : esc(pots[k.at].title)}</h1>        <div class="fa-timers" aria-label="Timers"></div><button type="button" class="fa-add" data-fa="timer" title="A countdown or a stopwatch" aria-label="New timer">⏰ +<span class="fa-word"> Timer</span></button>
+        <h1${pots.length > 1 ? '' : ` class="fa-title" style="--pot:${pots[k.at].colour}"`}>${pots.length > 1 ? 'Follow along' : esc(pots[k.at].title)}</h1>${pots.length > 1 ? '' : clockHtml(pots[k.at])}        <div class="fa-timers" aria-label="Timers"></div><button type="button" class="fa-add" data-fa="timer" title="A countdown or a stopwatch" aria-label="New timer">⏰ +<span class="fa-word"> Timer</span></button>
         <button type="button" class="fa-finish" data-fa="finish" title="Clear ${pots.length > 1 ? 'these recipes' : 'this recipe'} from Follow along" aria-label="Finished cooking">✓<span class="fa-word"> Finished cooking</span></button></div>
       <div class="fa-timers fa-phone-timers" aria-label="Timers"></div>
       ${tabsHtml()}
@@ -309,6 +312,7 @@ export async function openFollow(open) {
   el.addEventListener('click', ev => { if (Date.now() - dragged < 400) { ev.stopPropagation(); ev.preventDefault(); } }, true); // the drop isn't a tap
   el.addEventListener('contextmenu', ev => { if (ev.target.closest('[data-drag]')) ev.preventDefault(); });
 
+  const clockTick = setInterval(() => el.querySelectorAll('[data-clock]').forEach(c => { const p = pots.find(x => x.tab.id === c.dataset.clock); if (p?.tab.clock) c.textContent = `⏱ ${clockText(p)}`; }), 15000);
   const drawTimers = list => el.querySelectorAll('.fa-timers').forEach(box => { box.innerHTML = list.map(t => timers.pillHtml(t, Date.now(), { recipe: pots.length > 1 })).join(''); });
   const unwatch = timers.watch(drawTimers);
   // A recipe or batch being cooked from that changes (here or on another device) is read again and drawn, at the same step.
@@ -473,6 +477,7 @@ export async function openFollow(open) {
     unwatch();
     unsub();
     clearTimeout(fresher);
+    clearInterval(clockTick);
     removeEventListener('keydown', onKey, true);
     removeEventListener('resize', onResize);
     document.removeEventListener('visibilitychange', onVis);
@@ -508,6 +513,7 @@ export async function openFollow(open) {
     if (b.dataset.fa === 'timer') return timers.newTimerSheet(focused()?.pot.where || {});
     if (b.dataset.fa === 'add') return addPot();
     if (b.dataset.fa === 'finish') return finish();
+    if (b.dataset.fa === 'clock') { const p = s?.pot || pots[k.at]; p.tab.clock = Date.now(); delete p.tab.took; save(); return draw(); }
     if (b.dataset.fa === 'side') { k.side = !k.side; save(); return draw(); }
     if (b.dataset.tab) return switchTo(+b.dataset.tab);
     if (b.dataset.tabX) {
@@ -588,7 +594,16 @@ body.follow-open > :is(.appbar, #main, #tabbar, #timer-dock, .select-bar:not(.tm
 .fa-drum { position: relative; contain: paint; min-height: 0; overflow-y: auto; scroll-snap-type: y mandatory; scrollbar-width: none; overscroll-behavior: contain; padding: 0 30px 0 4px; outline: none;
   -webkit-mask-image: linear-gradient(transparent, #000 9%, #000 91%, transparent); mask-image: linear-gradient(transparent, #000 9%, #000 91%, transparent); }
 .fa-drum::-webkit-scrollbar { display: none; }
-.fa-drum::before, .fa-drum::after { content: ""; display: block; height: 42%; }
+.fa-drum::after { content: ""; display: block; height: 42%; }
+.fa-drum-top { height: 42%; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 22px; box-sizing: border-box; }
+.fa-start-clock { min-height: 44px; padding: 0 20px; font-weight: 600; border-radius: 22px; }
+.fa-clock { flex: none; margin-left: auto; color: var(--muted); font-size: .9rem; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fa-drum-top .fa-clock { margin: 0; } /* the clock where the button was: phones, one recipe (the top bar has no room) */
+@media (min-width: 761px) { .fa-drum-top .fa-clock { display: none; } }
+@media (max-width: 760px) { .fa-top > .fa-clock { display: none; } }
+.fa-pot:has(.fa-pot-head .fa-clock) .fa-drum-top .fa-clock { display: none; }
+.fa-pot-line { flex: 1 1 100%; display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.fa-pot-line b { flex: 1 1 auto; }
 .fa-step { scroll-snap-align: center; margin: 0 auto 14px; padding: 18px 24px; border-radius: 26px; border: 1px solid transparent; transition: background .25s, border-color .25s; will-change: transform; cursor: pointer; }
 .fa-step.fa-cur { background: color-mix(in srgb, var(--text) 7%, transparent); border-color: var(--glass-border); cursor: default; }
 .fa-num { display: flex; align-items: center; font-size: .8rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
