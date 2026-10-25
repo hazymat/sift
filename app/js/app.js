@@ -615,6 +615,7 @@ async function boot() {
   installMenuFlip();
   installFileDrop();
   installTimers();
+  import('./followalong.js').then(m => m.installSync()); // what's being cooked, from the other devices
   // Reloaded (a new version) while cooking: Follow along comes back as it was.
   try { if (sessionStorage.getItem('sift_follow_open')) import('./followalong.js').then(m => m.openFollow(null)); } catch {}
   // Search everything: the laptop's top bar, and the top of the phone's More list.

@@ -541,6 +541,7 @@ export default {
     addEventListener('sift-follow', this.onFollow);
     this.onFollowClosed = () => { if (!state.recipe && !state.make) render(); }; // the ▶ Cooking pill's count
     addEventListener('sift-follow-closed', this.onFollowClosed);
+    addEventListener('sift-follow-synced', this.onFollowClosed); // cooking on another device
 
     // ---------- saving ----------
 
@@ -1400,6 +1401,7 @@ export default {
     removeEventListener('keydown', this.onKey);
     removeEventListener('sift-follow', this.onFollow);
     removeEventListener('sift-follow-closed', this.onFollowClosed);
+    removeEventListener('sift-follow-synced', this.onFollowClosed);
     document.querySelector('.fa-screen') && document.querySelector('.fa-screen .back')?.click();
     removeEventListener('keydown', this.onEsc, true);
     this.kit?.destroy();
