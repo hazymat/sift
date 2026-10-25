@@ -114,7 +114,11 @@ export async function openPrint(opts) {
   };
   async function draw() {
     const mine = ++drawn;
-    const out = await opts.build(choices, url => { urls.push(url); return url; });
+    let out;
+    try { out = await opts.build(choices, url => { urls.push(url); return url; }); } catch (err) {
+      console.error(err); // reported; the preview says so instead of staying a blank page
+      out = { html: `<div class="flow"><p>Sorry, this printout couldn't be made: ${String(err?.message || err).replace(/[<&]/g, '')}</p></div>`, flow: true };
+    }
     if (mine !== drawn) return;
     const [pw, ph] = PAPERS[choices.paper] || PAPERS.A4;
     const page = out.page || { size: `${pw}mm ${ph}mm`, margin: out.flow ? '12mm 13mm' : '0' };

@@ -74,7 +74,7 @@ export async function printDay(date, back = 'Day Planner') {
         };
         const timed = items.filter(i => i.time).map(i => box(minutes(i.time), i.end_time ? minutes(i.end_time) : minutes(i.time) + 30,
           `<b>${esc(i.title)}</b><small>${esc(showTime(i.time))}${i.end_time ? `–${esc(showTime(i.end_time))}` : ''}</small>`, i.done_at ? 'done' : ''));
-        const events = (gcal && ch.cal ? (await gcal.dayEvents(d)) || [] : []).filter(e => !e.allDay).map(e => {
+        const events = (gcal && ch.cal ? (await gcal.dayEvents(d))?.events || [] : []).filter(e => !e.allDay).map(e => {
           const local = iso => { const t = new Date(iso); return t.getHours() * 60 + t.getMinutes(); };
           return box(local(e.start) - from * 60, local(e.end) - from * 60, `${esc(e.title)}<small>${esc(showTime(`${new Date(e.start).getHours()}:${String(new Date(e.start).getMinutes()).padStart(2, '0')}`))}</small>`, 'cal');
         });
