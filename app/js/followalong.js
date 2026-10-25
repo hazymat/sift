@@ -87,6 +87,7 @@ export async function openFollow(open) {
   // Its own page: everything else is hidden while it's open (nothing underneath to scroll or to catch taps), and the page comes back where it was.
   const backTo = scrollY;
   document.body.classList.add('follow-open');
+  try { sessionStorage.setItem('sift_follow_open', '1'); } catch {}
   scrollTo(0, 0);
   const urls = [];
   let shown = []; // the drawn pots: { pot, box, roll, goTo, cur }
@@ -350,6 +351,7 @@ export async function openFollow(open) {
     urls.forEach(u => URL.revokeObjectURL(u));
     el.remove();
     document.body.classList.remove('follow-open');
+    try { sessionStorage.removeItem('sift_follow_open'); } catch {}
     scrollTo(0, backTo);
     dispatchEvent(new CustomEvent('sift-follow-closed'));
   }
@@ -403,7 +405,8 @@ export async function openFollow(open) {
 
 const CSS = `
 html:has(body.follow-open), body.follow-open { overflow: hidden; }
-body.follow-open > :is(.appbar, #main, #tabbar, #update-banner, #timer-dock, .select-bar:not(.tm-bar)) { display: none !important; }
+body.follow-open #update-banner { z-index: 950; bottom: calc(16px + var(--safe-bottom)); } /* a new version shows here too; Reload comes back to Follow along */
+body.follow-open > :is(.appbar, #main, #tabbar, #timer-dock, .select-bar:not(.tm-bar)) { display: none !important; }
 .fa-screen { position: relative; height: 100dvh; z-index: 900; background: var(--bg); background-image: var(--bg-image, none); color: var(--text); display: flex; flex-direction: column; padding: calc(10px + var(--safe-top)) clamp(10px, 2vw, 22px) calc(10px + var(--safe-bottom)); }
 .fa-top, .fa-tabs, .fa-phone-timers { position: relative; z-index: 3; } /* above the steps: iPad Safari can let a rolled step (scaled, on its own layer) take taps outside the drum until the window is resized */
 .fa-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; min-width: 0; flex-wrap: wrap; }
