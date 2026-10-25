@@ -615,6 +615,8 @@ async function boot() {
   installMenuFlip();
   installFileDrop();
   installTimers();
+  // Reloaded (a new version) while cooking: Follow along comes back as it was.
+  try { if (sessionStorage.getItem('sift_follow_open')) import('./followalong.js').then(m => m.openFollow(null)); } catch {}
   // Search everything: the laptop's top bar, and the top of the phone's More list.
   {
     const top = $('#top-search');
