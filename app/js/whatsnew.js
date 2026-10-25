@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.32': [{ text: "Photos: a tall (portrait) photo opened full screen, like a Batch Book recipe photo, now shows whole instead of the bottom being cut off." }],
   '1.61.31': [{ text: "Batch Book, Follow along: what you're cooking is the same on all your devices (signed in to sync): the recipes open, the step each is on, ticks, scale and the clock. Start on the iPad and the ▶ Cooking pill shows on your phone too.", go: '#/recipes', at: '#main .bb-cooking' }],
   '1.61.30': [{ text: "Phones: a tap at the very bottom of the bottom bar, just under a button, now opens that area instead of doing nothing." }],
   '1.61.29': [{ text: "Phones: a box that asks you to type something, like Batch Book's + Add a detail, now sits just above the keyboard instead of the page jumping about behind it and the box sometimes vanishing.", go: '#/recipes', open: ['#main .bb-card'], at: '#main .bb-add-field' }],
@@ -203,6 +204,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.32': '2026-10-25T11:54:06Z',
   '1.61.31': '2026-10-25T11:45:24Z',
   '1.61.30': '2026-10-25T07:01:01Z',
   '1.61.29': '2026-10-25T01:50:01Z',
