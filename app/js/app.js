@@ -335,6 +335,20 @@ function installKeyboard() {
   vv.addEventListener('scroll', follow);
 }
 
+// iPad: after a screenshot (or Split View, Stage Manager) the window can come back narrower, or full width with
+// the right-hand part not answering taps (WebKit keeps the old width). Setting the viewport again makes it measure afresh.
+function installViewportFix() {
+  const meta = document.querySelector('meta[name="viewport"]');
+  if (!meta || !matchMedia('(pointer: coarse)').matches) return;
+  const base = meta.getAttribute('content');
+  let soon = 0, flip = false;
+  const again = () => { clearTimeout(soon); soon = setTimeout(() => { flip = !flip; meta.setAttribute('content', flip ? `${base}, shrink-to-fit=no` : base); void document.documentElement.offsetWidth; scrollTo(scrollX, scrollY); }, 250); };
+  addEventListener('resize', again);
+  addEventListener('pageshow', again);
+  addEventListener('orientationchange', again);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) again(); });
+}
+
 function installSwipe() {
   if (!matchMedia('(pointer: coarse)').matches) return;
   const EDGE = 20;
@@ -653,6 +667,7 @@ async function boot() {
   installKeyNav();
   installSwipe();
   installKeyboard();
+  installViewportFix();
   installWheelRows();
   installRowKeep();
   // A dropdown menu opens inside the screen: flipped to the other side if
