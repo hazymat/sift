@@ -988,15 +988,39 @@ export default {
     // ---------- importing ----------
     // Recipes as text, pasted or from a file (format in batchbook.js). The AI prompt lets anyone turn notes, photos
     // of cards or web pages into that text with any AI chat. Books not set up yet are added.
-    const AI_PROMPT = `Turn the recipes I give you into plain text in exactly this format, one after another, keeping every recipe and all its details. Put each ingredient on its own line, amount and unit first, and make sure every ingredient the method uses is in the list. In the method, write each ingredient as its name from the list in curly brackets, without its amount: {flour} for all of it, {1/2 flour} for half (any fraction or percentage), or {flour|sifted flour} for your own words (the app puts the amount in front; own words that already say how much, like {flour|a little flour}, show as written); the app shows the amount and scales it. Put each recipe in a sensible book (for example Cooking, Soups, Baking or Cocktails). Reply with just the recipes.\n\n${IMPORT_EXAMPLE}`;
+    const AI_PROMPT = `Turn the recipes I give you (typed, pasted, from a web page, or photos of cards, books or handwriting) into text for my recipe app.
+
+HOW TO REPLY
+- Put all the recipes together in ONE Markdown code block (three backticks on the line before and after), so I can copy it in one go and paste it straight into the app. Inside the block use only the format below: no bold, no extra headings, no chat.
+- Outside the block, write nothing, or one short line about anything you couldn't read, had to guess or added.
+
+THE FORMAT (an example is at the end)
+- "# " and the recipe's name starts each recipe.
+- Straight under the name, one detail per line as "Name: value":
+  - Book: a sensible one, for example Cooking, Soups, Baking or Cocktails.
+  - Tags: a few words to find it by, with commas between.
+  - Serves: and any other details the recipe gives (Makes, Oven, Tin size and so on).
+  - Source: where it came from: the book, the website address, or for example "Granny's handwritten card".
+  - Time: how long it takes from starting to eating, waiting included (proving, marinating, chilling overnight), with the hands-on part in brackets when that's useful, like "Time: 1 hr 30 mins (25 mins hands-on)". If the recipe says, write "Time:". If it doesn't, work it out from the steps as a real home cook would take, not a TV chef, and sign it with your own name as an AI: "Time (estimated by Claude): 45 mins", "Time (estimated by ChatGPT): 45 mins" and so on. Sign any other detail you had to guess the same way, like "Serves (estimated by Gemini): 4".
+- A blank line, then the description: what it is in a line or two, then anything useful to know before cooking: which ingredients to buy and where, swaps, equipment, making ahead, keeping and freezing, the story behind it.
+- "## Ingredients": one per line, amount and unit first ("250 g plain flour", "2 tbsp olive oil", "1 pinch salt"), anything more after a comma ("2 onions, finely chopped", "500 g chicken thighs, skin on"). A line like "### For the sauce" groups the ones under it. Keep the recipe's own units and amounts. Make sure every ingredient the method uses is in the list.
+- "## Method": numbered steps. Write each ingredient as its name from the list in curly brackets, without its amount: {flour} for all of it, {1/2 flour} for half (any fraction or percentage), or {flour|sifted flour} for your own words (the app puts the amount in front; own words that already say how much, like {flour|a little flour}, show as written). The app shows the amounts and scales them. Keep times and temperatures in the steps ("Bake at 200°C (180°C fan) for 25 mins").
+- "## Tasting notes": only what the recipe or I say about how it tastes or turns out, or what it should taste like. Never shopping advice, tips or method: those go in the description. Leave this section out when there's nothing.
+
+GETTING IT RIGHT
+- Keep every recipe, and every amount and step, as written. Don't leave anything out, tidy it away or "improve" it.
+- From a photo or handwriting: copy what you can read, put [?] straight after any word or amount you're not sure of, and never make up a line you can't see.
+- Write the recipe in the same language as the source.
+
+${IMPORT_EXAMPLE}`;
     async function importRecipes() {
       const dlg = document.createElement('dialog');
       dlg.className = 'sheet bb-import-sheet';
       dlg.innerHTML = `<div class="sheet-handle"></div>
         <h2>Import recipes</h2>
-        <p class="muted">Paste recipes below or choose a text file. Each starts with <b># and its name</b>, then its ingredients and method. Recipes somewhere else, in notes, photos or on websites? Copy the instructions, paste them into any AI chat with your recipes, then paste its answer here.</p>
+        <p class="muted">Paste recipes below or choose a text file. Each starts with <b># and its name</b>, then its ingredients and method. Recipes somewhere else, in notes, photos or on websites? Copy the instructions, paste them into any AI chat with your recipes or photos of them, then copy its answer and paste it here. From a photo? Add it to the recipe afterwards with Add photos.</p>
         <div class="sheet-actions"><button type="button" data-imp="prompt">📋 Copy instructions for an AI chat</button><label class="file-btn">Choose a file…<input type="file" accept=".md,.txt,text/plain,text/markdown" hidden></label></div>
-        <textarea class="bb-import-text no-inline" rows="10" placeholder="${esc(IMPORT_EXAMPLE.split('\n').slice(0, 9).join('\n'))}\n…" aria-label="Recipes to import"></textarea>
+        <textarea class="bb-import-text no-inline" rows="10" placeholder="${esc(IMPORT_EXAMPLE.split('\n').slice(0, 8).join('\n'))}\n…" aria-label="Recipes to import"></textarea>
         <p class="muted bb-import-found"></p>
         <div class="sheet-actions"><button type="button" data-imp="cancel">Cancel</button><span class="spacer"></span><button type="button" class="primary" data-imp="go" disabled>Import</button></div>`;
       document.body.append(dlg);

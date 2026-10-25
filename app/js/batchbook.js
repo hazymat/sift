@@ -213,23 +213,26 @@ export function renameRefs(text, from, to) {
 
 // Recipes typed or pasted as plain text (Markdown works), any number in one go:
 //   # Title                      starts a recipe
-//   Book: Cooking / Tags: a, b   lines straight under the title; any other "Name: value" is a detail (Serves: 4)
+//   Book: Cooking / Tags: a, b   lines straight under the title; any other "Name: value" is a detail (Serves: 4, Time (estimated by Claude): 1 hr)
 //   other text                   the description
 //   ## Ingredients               one per line; a "### For the sauce" line notes the group on the lines under it
 //   ## Method                    numbered or bulleted steps; indented lines stay in their step, a ### line heads the next step;
 //                                {flour}, {1/2 flour} or {flour|a little flour} in a step is the ingredient with its amount
 //                                (as Put in makes); one not in the list is added to it, with no amount
-//   ## Notes                     the tasting notes
+//   ## Tasting notes             the tasting notes (any ## heading with "note" in it)
+// ``` lines are skipped, so an AI chat's code block pastes as it is.
 export const IMPORT_EXAMPLE = `# Quick flatbreads
 Book: Cooking
 Tags: bread, quick
 Serves: 4
+Time (estimated by Claude): 25 mins (15 mins hands-on)
+Source: Granny's recipe card
 
-Soft flatbreads in 20 minutes.
+Soft flatbreads, ready in no time. Full-fat Greek yoghurt makes the softest dough.
 
 ## Ingredients
 - 250 g self-raising flour
-- 250 g Greek yoghurt
+- 250 g Greek yoghurt, full fat
 - 1 pinch salt
 ### To serve
 - 2 tbsp butter, melted
@@ -240,14 +243,15 @@ Soft flatbreads in 20 minutes.
 3. Dry fry 2 mins each side, then brush with {1/2 butter}.
    - Keep them warm in a tea towel.
 
-## Notes
-Good with anything saucy.`;
+## Tasting notes
+Soft and a little tangy. Good with anything saucy.`;
 export function parseRecipes(text) {
   const recipes = [];
   let rec = null, part = 'head', group = '', head = '', step = null;
   const add = t => { step = { id: store.uuidv7(), text: head ? `${head}\n${t}` : t }; head = ''; rec.steps.push(step); };
   for (const raw of String(text || '').replace(/\r\n?/g, '\n').split('\n')) {
     const line = raw.replace(/\t/g, '  ').trimEnd(), trim = line.trim();
+    if (trim.startsWith('```')) continue;
     const h = trim.match(/^(#{1,3})\s+(.+)$/);
     if (h && h[1] === '#') { rec = { title: h[2].trim(), type: '', tags: [], description: '', ingredients: [], steps: [], tasting: '', fields: {} }; recipes.push(rec); part = 'head'; group = head = ''; step = null; continue; }
     if (!rec) continue;
@@ -255,7 +259,7 @@ export function parseRecipes(text) {
     if (h) { if (part === 'ing') group = h[2].trim(); else if (part === 'method') head = h[2].trim(), step = null; continue; }
     if (!trim) { if (part === 'head') part = 'desc'; if (part === 'desc' && rec.description) rec.description += '\n'; if (part === 'notes' && rec.tasting) rec.tasting += '\n'; continue; }
     if (part === 'head') {
-      const kv = trim.match(/^([A-Za-z][\w ]{0,30}):\s*(.+)$/);
+      const kv = trim.replace(/\*\*/g, '').match(/^([A-Za-z][\w ()'.-]{0,50}):\s*(.+)$/);
       if (kv) { const key = kv[1].trim(), low = key.toLowerCase();
         if (low === 'book') rec.type = kv[2].trim(); else if (low === 'tags') rec.tags = kv[2].split(',').map(t => t.trim().replace(/^#/, '')).filter(Boolean); else rec.fields[key] = kv[2].trim();
         continue; }
