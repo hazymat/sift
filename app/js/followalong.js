@@ -12,7 +12,8 @@
 import { keys } from './keys.js';
 import * as store from './store.js';
 import * as att from './attachments.js';
-import { stepsOf, amountText, stepHtml, stepRefs, stepWaits, qtyText, batchName, sectionsOf, sectionOf } from './batchbook.js';
+import { stepsOf, amountText, stepHtml, stepRefs, stepWaits, qtyText, batchName, newBatchName, nextBatchNo, sectionsOf, sectionOf } from './batchbook.js';
+import { isoDate } from './days.js';
 import { TINTS } from './colours.js';
 import * as timers from './timers.js';
 import { toast } from './toast.js';
@@ -54,12 +55,13 @@ async function loadTab(tab) {
   if (!rec || rec.deleted_at) return null;
   const recipe = tab.c === 'recipe_makes' ? await space.get('recipes', rec.recipe_id).catch(() => null) : rec;
   const ids = new Set(stepsOf(rec).map(st => st.id));
-  const files = (await space.list('attachments')).filter(a => ids.has(a.parent_id) && a.kind === 'image').sort((x, y) => x.created_at.localeCompare(y.created_at));
+  const all = await space.list('attachments'), files = all.filter(a => ids.has(a.parent_id) && a.kind === 'image').sort((x, y) => x.created_at.localeCompare(y.created_at));
   const atts = new Map();
   for (const a of files) { if (!atts.has(a.parent_id)) atts.set(a.parent_id, []); atts.get(a.parent_id).push(a); }
   const title = tab.c === 'recipe_makes' ? batchName(rec, recipe?.title) : rec.title || 'Untitled';
   const colour = TINTS.find(c => c.id === recipe?.colour)?.hex || sectionOf(sectionsOf(await store.getSettings(), []), recipe?.type).colour; // its book's colour, as on its card
-  return { tab, rec, atts, title, colour, steps: stepsOf(rec), ings: rec.ingredients || [], where: { recipe_id: recipe?.id || null, make_id: tab.c === 'recipe_makes' ? rec.id : null, owner: tab.owner || null, title } };
+  const added = all.filter(a => (tab.added || []).includes(a.id) && !a.deleted_at); // photos added when it was finished
+  return { tab, rec, recipe, space, added, atts, title, colour, steps: stepsOf(rec), ings: rec.ingredients || [], where: { recipe_id: recipe?.id || null, make_id: tab.c === 'recipe_makes' ? rec.id : null, owner: tab.owner || null, title } };
 }
 
 // openFollow({ c: 'recipes' | 'recipe_makes', id, owner, times }): opens Follow along on that one (added as a tab).
@@ -68,7 +70,7 @@ export async function openFollow(open) {
   const k = kept();
   if (open) {
     let n = k.tabs.findIndex(t => t.c === open.c && t.id === open.id);
-    if (n < 0) { k.tabs.push({ c: open.c, id: open.id, owner: open.owner || null, times: open.times || 1, at: 0 }); n = k.tabs.length - 1; }
+    if (n < 0) { k.tabs.push({ c: open.c, id: open.id, owner: open.owner || null, times: open.times || 1, at: 0, started: Date.now() }); n = k.tabs.length - 1; }
     else if (open.times && open.c === 'recipes') k.tabs[n].times = open.times;
     k.at = n;
   }
@@ -111,7 +113,24 @@ export async function openFollow(open) {
     const done = isDone(p, st);
     return `<section class="fa-step${done ? ' fa-done' : ''}" data-n="${n}"><div class="fa-num">${done ? '<span class="fa-tick" aria-label="Done">✓</span>' : ''}Step ${n + 1}<span class="fa-of"> of ${p.steps.length}</span></div>
       <div class="fa-text">${stepHtml(st.text, p.ings, p.tab.times, esc) || '<span class="muted">Empty step</span>'}</div>
-      <div class="fa-extra">${photo(p, st)}${starts}${doneBtn(p, n, done)}</div></section>`;
+      <div class="fa-extra">${photo(p, st)}${starts}${doneBtn(p, n, done)}</div>${done && n === p.steps.length - 1 ? endHtml(p) : ''}</section>`;
+  };
+  // The last step ticked: under it, how long it took (to save on the recipe), a photo (on the recipe or the batch),
+  // Save as a batch (a recipe), then ✓ Finish (puts it away, with its timers).
+  const tookMin = p => Math.max(1, Math.round(((p.tab.finished || Date.now()) - (p.tab.started || Date.now())) / 60000));
+  const timeText = mins => [Math.floor(mins / 60) ? `${Math.floor(mins / 60)} h` : '', mins % 60 ? `${mins % 60} min` : ''].filter(Boolean).join(' ') || '0 min';
+  const batchOf = p => (p.tab.c === 'recipe_makes' ? p.rec.id : p.tab.batch || null);
+  const endHtml = p => {
+    const mins = p.tab.took ?? tookMin(p), said = p.recipe?.fields?.Time, batch = batchOf(p), to = batch && p.tab.photo_to !== 'recipe' ? 'batch' : 'recipe';
+    return `<div class="fa-end">
+      <h3>🎉 All done</h3>
+      <div class="fa-end-row"><span class="fa-end-what">⏱ It took</span><span class="fa-end-time"><input type="number" inputmode="numeric" min="0" data-took="h" value="${Math.floor(mins / 60)}" aria-label="Hours"> h <input type="number" inputmode="numeric" min="0" max="59" data-took="m" value="${mins % 60}" aria-label="Minutes"> min</span>
+        <button type="button" data-end="time"${p.tab.time_saved ? ' class="fa-end-saved"' : ''}>${p.tab.time_saved ? '✓ Saved on the recipe' : 'Save on the recipe'}</button>${said && !p.tab.time_saved ? `<span class="muted fa-end-note">It says ${esc(said)} now</span>` : ''}</div>
+      <div class="fa-end-row"><span class="fa-end-what">📷 Photos</span>${p.added.filter(a => a.thumb).map(a => `<img class="fa-end-pic" src="${a.thumb}" alt="">`).join('')}<button type="button" data-end="photo">${p.added.length ? '+ Another' : 'Add a photo'}</button>
+        ${batch ? `<span class="segmented fa-end-to" aria-label="Photos go on">${[['recipe', '📖 Recipe'], ['batch', '🧪 Batch']].map(([v, l]) => `<button type="button" data-end-to="${v}" aria-pressed="${to === v}">${l}</button>`).join('')}</span>` : '<span class="muted fa-end-note">On the recipe</span>'}</div>
+      ${p.tab.c === 'recipes' ? `<div class="fa-end-row"><span class="fa-end-what">🧪 Batch</span>${p.tab.batch ? `<span>Saved as a batch</span><button type="button" data-end="open-batch">Open it</button>` : `<button type="button" data-end="batch">Save as a batch</button><span class="muted fa-end-note">A copy at ×${qtyText(p.tab.times || 1)} with the time it took, marked done</span>`}</div>` : ''}
+      <button type="button" class="fa-end-finish" data-end="finish">✓ Finish</button>
+    </div>`;
   };
   // One pot: its ingredients (folded unless it's the only one on a wide screen) and its drum of steps.
   const potHtml = (p, n, { alone }) => `<div class="fa-pot${alone ? ' fa-alone' : ''}" data-pot="${n}" data-slot="${n}" style="--pot:${p.colour}">
@@ -163,6 +182,8 @@ export async function openFollow(open) {
       const st = p.steps[n];
       if (!st) return;
       p.tab.done = (p.tab.done || []).filter(id => id !== st.id).concat(done ? [st.id] : []);
+      if (done && !p.tab.started) p.tab.started = Date.now(); // opened before cooks were timed
+      if (n === p.steps.length - 1) { if (done) p.tab.finished = Date.now(); else delete p.tab.finished; delete p.tab.took; }
       save();
       const old = items()[n], fresh = document.createElement('div');
       fresh.innerHTML = stepOf(p, st, n);
@@ -170,7 +191,9 @@ export async function openFollow(open) {
       step.className = old.className.replace(/\s*fa-done/, '') + (done ? ' fa-done' : '');
       step.style.cssText = old.style.cssText;
       old.replaceWith(step);
-      if (done && n < p.steps.length - 1) me.goTo(n + 1); else me.roll();
+      if (done && n < p.steps.length - 1) me.goTo(n + 1);
+      else if (done) requestAnimationFrame(() => { const end = step.querySelector('.fa-end'); if (end && end.getBoundingClientRect().bottom > d.getBoundingClientRect().bottom) d.scrollTo({ top: step.offsetTop + end.offsetTop + end.offsetHeight - d.clientHeight + 12, behavior: 'smooth' }); me.roll(); }); // the end in view
+      else me.roll();
     };
     me.goTo = (n, smooth = true) => {
       const s = items()[Math.max(0, Math.min(p.steps.length - 1, n))];
@@ -315,12 +338,68 @@ export async function openFollow(open) {
     dlg.addEventListener('keydown', ev => { if (ev.key === 'Enter' && ev.target === q) { const b = [...dlg.querySelectorAll('[data-pick]')].find(x => !x.hidden); if (b) { ev.preventDefault(); b.click(); } } });
     await new Promise(resolve => { dlg.addEventListener('close', () => { dlg.remove(); resolve(); }); dlg.showModal(); q.focus(); });
     if (!chosen) return;
-    const p = await loadTab({ c: chosen.c, id: chosen.id, owner: null, times: 1, at: 0 });
+    const p = await loadTab({ c: chosen.c, id: chosen.id, owner: null, times: 1, at: 0, started: Date.now() });
     if (!p) return;
     pots.push(p);
     k.at = pots.length - 1;
     save();
     draw();
+  }
+
+  // ---------- the end of one ----------
+  const endOf = p => shown.find(x => x.pot === p)?.box.querySelector('.fa-end');
+  const redrawEnd = p => { const box = endOf(p); if (box) box.outerHTML = endHtml(p); shown.find(x => x.pot === p)?.later(); };
+  const tookFrom = (p, box) => { const h = +box.querySelector('[data-took="h"]').value || 0, m = +box.querySelector('[data-took="m"]').value || 0; p.tab.took = Math.max(0, Math.round(h * 60 + m)); save(); return p.tab.took; };
+  async function endAction(p, b) {
+    const box = endOf(p), act = b.dataset.end;
+    store.useSpace(p.tab.owner ? p.space : null);
+    if (b.dataset.endTo) { p.tab.photo_to = b.dataset.endTo; save(); return redrawEnd(p); }
+    if (act === 'time') {
+      const text = timeText(tookFrom(p, box)), r = p.recipe;
+      if (!r) return toast("Its recipe isn't here any more");
+      await store.update('recipes', r.id, { fields: Object.assign({}, r.fields, { Time: text }) });
+      const batch = batchOf(p);
+      if (batch) { const m = await store.get('recipe_makes', batch).catch(() => null); if (m) await store.update('recipe_makes', m.id, { fields: Object.assign({}, m.fields, { Time: text }) }); }
+      p.tab.time_saved = true; save();
+      return toast(`Saved on ${r.title || 'the recipe'}: ${text}`);
+    }
+    if (act === 'photo') {
+      const pick = Object.assign(document.createElement('input'), { type: 'file', accept: 'image/*', multiple: true });
+      pick.addEventListener('change', async () => {
+        const batch = batchOf(p), onBatch = batch && p.tab.photo_to !== 'recipe';
+        if (!pick.files.length || (!onBatch && !p.recipe)) return;
+        store.useSpace(p.tab.owner ? p.space : null);
+        const made = await att.addFiles(onBatch ? { collection: 'recipe_makes', id: batch } : { collection: 'recipes', id: p.recipe.id }, [...pick.files]);
+        p.tab.added = (p.tab.added || []).concat(made.map(a => a.id)); p.added = p.added.concat(made); save(); redrawEnd(p);
+        if (made.length) toast(`${made.length === 1 ? 'Photo' : `${made.length} photos`} added to the ${onBatch ? 'batch' : 'recipe'}`);
+      });
+      return pick.click();
+    }
+    if (act === 'batch') {
+      // As Make this does, kept as a record of this cook: at its scale, with the time it took, marked done.
+      const r = p.rec, times = p.tab.times || 1, day = isoDate(new Date()), mins = tookFrom(p, box);
+      const [makes, recipes, files] = await Promise.all([store.list('recipe_makes'), store.list('recipes'), store.list('attachments')]);
+      const steps = stepsOf(r).map(x => ({ id: store.uuidv7(), text: x.text, from: x.id }));
+      const m = await store.create('recipe_makes', {
+        recipe_id: r.id, name: newBatchName(r.title, day), batch_no: nextBatchNo(makes, recipes, r.type), date: day, status: 'done',
+        description: r.description || '', state: '', back_sweetened: false, fields: Object.assign({}, r.fields, { Time: timeText(mins) }),
+        ingredients: (r.ingredients || []).map(i => Object.assign({}, i, { qty: i.qty == null ? null : i.qty * times })), steps, stock: {}, list_id: null,
+      });
+      for (const x of steps) for (const a of files.filter(f => f.parent_id === x.from && !f.deleted_at)) await store.create('attachments', { parent_collection: 'recipe_makes', parent_id: x.id, blob_id: a.blob_id, name: a.name, mime: a.mime, kind: a.kind, size: a.size, thumb: a.thumb });
+      p.tab.batch = m.id; p.tab.photo_to = 'batch'; save(); redrawEnd(p);
+      return toast(`Saved as ${m.name}`, { action: 'Undo', onAction: async () => { store.useSpace(p.tab.owner ? p.space : null); await store.remove('recipe_makes', m.id); delete p.tab.batch; delete p.tab.photo_to; save(); if (el.isConnected) redrawEnd(p); } });
+    }
+    if (act === 'open-batch') { const id = p.tab.batch; close(); location.hash = `#/recipes/${p.rec.id}/make/${id}${p.tab.owner ? `/from/${p.tab.owner}` : ''}`; return; }
+    if (act === 'finish') {
+      if (pots.length < 2) return finish();
+      // Just this one (and its timers) goes, with Undo.
+      const at = pots.indexOf(p), was = k.at, going = timers.list().filter(t => t.make_id === p.tab.id || (t.recipe_id === p.tab.id && !t.make_id));
+      for (const t of going) await store.local.remove('timers', t.id);
+      pots.splice(at, 1);
+      if (k.at >= pots.length || at < k.at) k.at = Math.max(0, k.at - 1);
+      save(); draw();
+      return toast(`Finished ${p.title}`, { action: 'Undo', onAction: async () => { for (const t of going) await store.local.restore('timers', t.id); if (!el.isConnected) return; pots.splice(Math.min(at, pots.length), 0, p); k.at = was; save(); draw(); } });
+    }
   }
 
   // Finished cooking: these recipes and their timers go, with Undo in the message (no asking first).
@@ -415,6 +494,7 @@ export async function openFollow(open) {
       el.querySelectorAll(`[data-timer="${going.id}"]`).forEach(pill => { pill.classList.remove('tm-flash'); void pill.offsetWidth; pill.classList.add('tm-flash'); });
       return toast(`${going.name} is already going: tap its time for more`);
     }
+    if (b.dataset.end || b.dataset.endTo) return endAction(s?.pot || pots[k.at], b);
     if (b.dataset.done) { const n = +b.closest('.fa-step').dataset.n; return s?.mark(n, b.dataset.done === '1'); }
     if (b.dataset.photo) { const list = s.pot.atts.get(s.pot.steps[+b.closest('.fa-step').dataset.n].id) || []; return att.view(list, Math.max(0, list.findIndex(a => a.id === b.dataset.photo))); }
     if (b.matches('.fa-step') && !b.classList.contains('fa-cur')) s?.goTo(+b.dataset.n);
@@ -498,6 +578,18 @@ body.follow-open > :is(.appbar, #main, #tabbar, #timer-dock, .select-bar:not(.tm
 .fa-step:not(.fa-cur) .fa-done-btn { visibility: hidden; }
 .fa-tick { display: inline-grid; place-items: center; width: 22px; height: 22px; flex: none; margin-right: 8px; border-radius: 50%; background: rgb(52, 168, 83); color: #fff; font-size: .85rem; font-weight: 800; letter-spacing: 0; box-shadow: 0 2px 8px rgba(52, 168, 83, .45); animation: fa-tick .35s cubic-bezier(.2, 1.6, .4, 1); }
 .fa-done .fa-text { opacity: .62; }
+.fa-end { margin-top: 16px; padding: 14px 16px 16px; border-radius: 18px; background: color-mix(in srgb, rgb(52, 168, 83) 12%, var(--glass)); border: 1px solid color-mix(in srgb, rgb(52, 168, 83) 45%, transparent); display: grid; gap: 10px; font-size: 1rem; text-align: left; animation: fa-end-in .3s ease-out; }
+.fa-end h3 { margin: 0; font-size: 1.25rem; color: var(--text); }
+.fa-end-row { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; min-height: 44px; }
+.fa-end-what { font-weight: 600; min-width: 6.5em; }
+.fa-end-time { display: inline-flex; align-items: center; gap: 6px; }
+.fa-end-time input { width: 3.6em; min-height: 40px; text-align: center; font-size: 1.05rem; padding: 4px; }
+.fa-end-note { font-size: .85rem; }
+.fa-end-saved { color: rgb(52, 168, 83); font-weight: 600; }
+.fa-end-pic { width: 44px; height: 44px; object-fit: cover; border-radius: 10px; }
+.fa-end-finish { justify-self: end; min-height: 44px; padding: 0 22px; font-weight: 700; background: rgba(52, 168, 83, .85); color: #fff; border-color: transparent; }
+.fa-end-finish:hover:not(:disabled) { background: rgb(52, 168, 83); }
+@keyframes fa-end-in { from { opacity: 0; transform: translateY(8px); } }
 @keyframes fa-tick { from { transform: scale(.3); opacity: 0; } }
 .fa-dots i.done { background: rgb(52, 168, 83); }
 .fa-dots { position: absolute; right: 2px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 7px; pointer-events: none; }
