@@ -108,13 +108,13 @@ export async function openFollow(open) {
     const waits = stepWaits(st.text), name = waitName(st.text, n + 1);
     const starts = waits.map(secs => `<button type="button" class="fa-wait" data-wait="${secs}" data-name="${esc(waits.length > 1 ? `${name}, ${timers.lengthText(secs)}` : name)}">⏰ Start ${timers.lengthText(secs)} timer</button>`).join('');
     const done = isDone(p, st);
-    return `<section class="fa-step${done ? ' fa-done' : ''}" data-n="${n}">${done ? '<span class="fa-tick" aria-label="Done">✓</span>' : ''}<div class="fa-num">Step ${n + 1}<span class="fa-of"> of ${p.steps.length}</span></div>
+    return `<section class="fa-step${done ? ' fa-done' : ''}" data-n="${n}"><div class="fa-num">${done ? '<span class="fa-tick" aria-label="Done">✓</span>' : ''}Step ${n + 1}<span class="fa-of"> of ${p.steps.length}</span></div>
       <div class="fa-text">${stepHtml(st.text, p.ings, p.tab.times, esc) || '<span class="muted">Empty step</span>'}</div>
       <div class="fa-extra">${photo(p, st)}${starts}${doneBtn(p, n, done)}</div></section>`;
   };
   // One pot: its ingredients (folded unless it's the only one on a wide screen) and its drum of steps.
-  const potHtml = (p, n, { alone }) => `<div class="fa-pot${alone ? ' fa-alone' : ''}" data-pot="${n}" style="--pot:${p.colour}">
-      ${alone && pots.length < 2 ? '' : `<div class="fa-pot-head"><b>${esc(p.title)}</b>${alone ? '' : scaleHtml(p)}</div>`}
+  const potHtml = (p, n, { alone }) => `<div class="fa-pot${alone ? ' fa-alone' : ''}" data-pot="${n}" data-slot="${n}" style="--pot:${p.colour}">
+      ${alone && pots.length < 2 ? '' : `<div class="fa-pot-head">${alone ? '' : `<span class="fa-grip" data-drag="${n}" title="Drag to another place" aria-hidden="true">⠿</span>`}<b>${esc(p.title)}</b>${alone ? '' : scaleHtml(p)}</div>`}
       <aside class="fa-ings"><details class="fa-fold"${alone && wide() ? ' open' : ''}><summary><span>🧺 Ingredients</span><span class="muted fa-count">${p.ings.length}</span>${alone ? scaleHtml(p) : ''}</summary>${alone ? `<div class="fa-fold-scale">${scaleHtml(p)}</div>` : ''}<div class="fa-ing-body"></div></details></aside>
       <div class="fa-drum" tabindex="-1">${p.steps.length ? p.steps.map((st, s) => stepOf(p, st, s)).join('') : '<p class="muted fa-none">No steps yet.</p>'}</div>
       ${alone ? `<div class="fa-dots" aria-hidden="true">${p.steps.map((_, s) => `<i data-dot="${s}"></i>`).join('')}</div>` : ''}
@@ -190,16 +190,17 @@ export async function openFollow(open) {
     if (blob) { const url = URL.createObjectURL(blob); urls.push(url); img.src = url; }
   });
 
-  const tabsHtml = () => `<div class="fa-tabs" role="tablist">${pots.map((p, n) => `<span class="fa-tab${n === k.at ? ' on' : ''}" role="tab" aria-selected="${n === k.at}"><button type="button" class="fa-tab-go" data-tab="${n}">${esc(p.title)}</button>${pots.length > 1 ? `<button type="button" class="fa-tab-x" data-tab-x="${n}" title="Put this one away" aria-label="Put ${esc(p.title)} away">✕</button>` : ''}</span>`).join('')}
+  const tabsHtml = () => `<div class="fa-tabs" role="tablist">${pots.map((p, n) => `<span class="fa-tab${n === k.at ? ' on' : ''}${sideBySide() && n < showing() ? ' fa-shown' : ''}" role="tab" aria-selected="${n === k.at}" data-slot="${n}">${pots.length > 1 ? `<span class="fa-grip" data-drag="${n}" title="Drag to change the order" aria-hidden="true">⠿</span>` : ''}<button type="button" class="fa-tab-go" data-tab="${n}">${esc(p.title)}</button>${pots.length > 1 ? `<button type="button" class="fa-tab-x" data-tab-x="${n}" title="Put this one away" aria-label="Put ${esc(p.title)} away">✕</button>` : ''}</span>`).join('')}
     <button type="button" class="fa-tab-add" data-fa="add" title="Cook another recipe at the same time">+ Recipe</button>
-    ${pots.length > 1 && columns() > 1 ? `<button type="button" class="fa-side" data-fa="side" aria-pressed="${!!k.side}" title="Show two or three at once">◫ Side by side</button>` : ''}</div>`;
+    ${pots.length > 1 && columns() > 1 ? `<button type="button" class="fa-side" data-fa="side" aria-pressed="${!!k.side}" title="Show several at once: the first tabs, in their order (drag a tab's ⠿ to change it)">◫ Side by side</button>` : ''}</div>`;
   let ro = null;
   function draw() {
     ro?.disconnect();
     const side = sideBySide();
     const cols = side ? Math.min(columns(), pots.length) : 1;
-    // Side by side: the chosen one and the ones after it (round the end).
-    const which = Array.from({ length: cols }, (_, n) => (k.at + n) % pots.length);
+    // Side by side: the first tabs, in their order (the one being cooked from is always among them).
+    if (side && k.at >= cols) { move(k.at, cols - 1); k.at = cols - 1; save(); }
+    const which = Array.from({ length: cols }, (_, n) => n);
     el.innerHTML = `<div class="fa-top"><button type="button" class="back" data-fa="close">‹ Back${keys('Esc')}</button>
         <h1${pots.length > 1 ? '' : ` class="fa-title" style="--pot:${pots[k.at].colour}"`}>${pots.length > 1 ? 'Follow along' : esc(pots[k.at].title)}</h1>        <div class="fa-timers" aria-label="Timers"></div><button type="button" class="fa-add" data-fa="timer" title="A countdown or a stopwatch" aria-label="New timer">⏰ +<span class="fa-word"> Timer</span></button>
         <button type="button" class="fa-finish" data-fa="finish" title="Clear ${pots.length > 1 ? 'these recipes' : 'this recipe'} from Follow along" aria-label="Finished cooking">✓<span class="fa-word"> Finished cooking</span></button></div>
@@ -214,10 +215,53 @@ export async function openFollow(open) {
     el.querySelector('.fa-tab.on')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
   const focused = () => shown.find(s => +s.box.dataset.pot === k.at) || shown[0];
-  const switchTo = n => { k.at = (n + pots.length) % pots.length; save(); draw(); };
+  const showing = () => Math.min(columns(), pots.length);
+  // A tab not showing, tapped side by side: it takes the place of the one being cooked from.
+  const switchTo = n => {
+    n = (n + pots.length) % pots.length;
+    if (sideBySide() && n >= showing()) { const into = Math.min(k.at, showing() - 1); [pots[into], pots[n]] = [pots[n], pots[into]]; n = into; }
+    k.at = n; save(); draw();
+  };
+  const move = (from, to) => { const p = pots.splice(from, 1)[0]; pots.splice(to, 0, p); };
+  // Dragging a tab (or, side by side, a recipe's title) by its ⠿ to another place changes the order.
+  el.addEventListener('pointerdown', ev => {
+    const grip = ev.target.closest('[data-drag]');
+    if (!grip || ev.button > 0) return;
+    ev.preventDefault();
+    const item = grip.closest('[data-slot]'), kind = item.classList.contains('fa-tab') ? '.fa-tab' : '.fa-pot', from = +grip.dataset.drag, x0 = ev.clientX, y0 = ev.clientY;
+    let over = null;
+    item.classList.add('fa-lifted');
+    const moved = e => {
+      item.style.transform = `translate(${e.clientX - x0}px, ${e.clientY - y0}px)`;
+      const under = document.elementsFromPoint(e.clientX, e.clientY).map(x => x.closest(`${kind}[data-slot]`)).find(x => x && x !== item) || null;
+      if (under !== over) { over?.classList.remove('fa-drop'); over = under; over?.classList.add('fa-drop'); }
+    };
+    const up = () => {
+      removeEventListener('pointermove', moved); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
+      item.classList.remove('fa-lifted'); item.style.transform = ''; over?.classList.remove('fa-drop');
+      if (!over) return;
+      const to = +over.dataset.slot;
+      move(from, to);
+      k.at = to; save(); draw();
+    };
+    addEventListener('pointermove', moved); addEventListener('pointerup', up); addEventListener('pointercancel', up);
+  });
 
   const drawTimers = list => el.querySelectorAll('.fa-timers').forEach(box => { box.innerHTML = list.map(t => timers.pillHtml(t, Date.now(), { recipe: pots.length > 1 })).join(''); });
   const unwatch = timers.watch(drawTimers);
+  // A recipe or batch being cooked from that changes (here or on another device) is read again and drawn, at the same step.
+  let fresher = 0;
+  const unsub = store.subscribe(ev => {
+    if (ev.collection && !['recipes', 'recipe_makes', 'attachments'].includes(ev.collection)) return;
+    clearTimeout(fresher);
+    fresher = setTimeout(async () => {
+      if (!el.isConnected || document.querySelector('dialog[open]')) return;
+      const again = await Promise.all(pots.map(p => loadTab(p.tab)));
+      if (!el.isConnected || again.some(x => !x)) return;
+      pots.splice(0, pots.length, again[0]); for (let n = 1; n < again.length; n++) pots.push(again[n]);
+      draw();
+    }, 500);
+  });
   let lastCols = columns();
   const onResize = () => { if (columns() !== lastCols) { lastCols = columns(); if (pots.length > 1) draw(); } };
   addEventListener('resize', onResize);
@@ -297,6 +341,8 @@ export async function openFollow(open) {
     if (closeOpen === close) closeOpen = null;
     ro?.disconnect();
     unwatch();
+    unsub();
+    clearTimeout(fresher);
     removeEventListener('keydown', onKey, true);
     removeEventListener('resize', onResize);
     document.removeEventListener('visibilitychange', onVis);
@@ -333,7 +379,13 @@ export async function openFollow(open) {
     if (b.dataset.fa === 'finish') return finish();
     if (b.dataset.fa === 'side') { k.side = !k.side; save(); return draw(); }
     if (b.dataset.tab) return switchTo(+b.dataset.tab);
-    if (b.dataset.tabX) { pots.splice(+b.dataset.tabX, 1); if (k.at >= pots.length || +b.dataset.tabX < k.at) k.at = Math.max(0, k.at - 1); save(); return draw(); }
+    if (b.dataset.tabX) {
+      // Put away, with Undo in the message: it comes back in the same place.
+      const at = +b.dataset.tabX, was = k.at, gone = pots.splice(at, 1)[0];
+      if (k.at >= pots.length || at < k.at) k.at = Math.max(0, k.at - 1);
+      save(); draw();
+      return toast(`${gone.title} put away`, { action: 'Undo', onAction: () => { if (!el.isConnected) return; pots.splice(Math.min(at, pots.length), 0, gone); k.at = was; save(); draw(); } });
+    }
     if (b.dataset.scale) { ev.preventDefault(); const p = s?.pot || pots[k.at]; p.tab.times = +b.dataset.scale; save(); (shown.find(x => x.pot === p) || s)?.rescale(); return; }
     if (b.dataset.wait) {
       // One timer per step: a second tap shows the one already going instead of starting another.
@@ -365,6 +417,12 @@ body.follow-open > :is(.appbar, #main, #tabbar, #update-banner, #timer-dock, .se
 .fa-tabs::-webkit-scrollbar { display: none; }
 .fa-tab { display: inline-flex; align-items: center; flex: none; border-radius: 18px; background: var(--glass); border: 1px solid var(--glass-border); }
 .fa-tab.on { background: var(--active-bg); border-color: var(--active-border); }
+.fa-tab.fa-shown:not(.on) { border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.fa-grip { touch-action: none; cursor: grab; padding: 6px 2px 6px 10px; color: var(--muted); -webkit-user-select: none; user-select: none; font-size: 1rem; line-height: 1; }
+.fa-pot-head .fa-grip { padding: 6px 4px; font-size: 1.2rem; }
+.fa-pot-head .fa-grip + b { flex-basis: calc(100% - 40px); }
+.fa-lifted { position: relative; z-index: 20; opacity: .85; box-shadow: var(--shadow); cursor: grabbing; transition: none !important; }
+.fa-drop { outline: 3px solid var(--accent); outline-offset: 2px; }
 .fa-tab button { background: none; box-shadow: none; border: 0; }
 .fa-tab-go { font-weight: 600; max-width: 16em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fa-tab-x { padding: 6px 10px 6px 2px; color: var(--muted); }
@@ -414,8 +472,7 @@ body.follow-open > :is(.appbar, #main, #tabbar, #update-banner, #timer-dock, .se
 .fa-done-btn.fa-undone { background: var(--glass); border-color: var(--glass-border); color: var(--muted); font-weight: 500; }
 .fa-done-btn kbd { opacity: .7; }
 .fa-step:not(.fa-cur) .fa-done-btn { visibility: hidden; }
-.fa-step.fa-done { padding-left: 84px; }
-.fa-tick { position: absolute; left: 18px; top: 18px; width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center; background: rgb(52, 168, 83); color: #fff; font-size: 1.9rem; font-weight: 800; box-shadow: 0 4px 14px rgba(52, 168, 83, .45); animation: fa-tick .35s cubic-bezier(.2, 1.6, .4, 1); }
+.fa-tick { display: inline-grid; place-items: center; width: 22px; height: 22px; margin-right: 8px; vertical-align: -6px; border-radius: 50%; background: rgb(52, 168, 83); color: #fff; font-size: .85rem; font-weight: 800; letter-spacing: 0; box-shadow: 0 2px 8px rgba(52, 168, 83, .45); animation: fa-tick .35s cubic-bezier(.2, 1.6, .4, 1); }
 .fa-done .fa-text { opacity: .62; }
 @keyframes fa-tick { from { transform: scale(.3); opacity: 0; } }
 .fa-dots i.done { background: rgb(52, 168, 83); }
@@ -453,8 +510,6 @@ body.follow-open > :is(.appbar, #main, #tabbar, #update-banner, #timer-dock, .se
   .fa-fold[open] summary::after { content: "▴"; }
   .fa-drum { flex: 1; padding: 0 2px; }
   .fa-step { padding: 14px 16px; }
-  .fa-step.fa-done { padding-left: 62px; }
-  .fa-tick { left: 12px; top: 14px; width: 40px; height: 40px; font-size: 1.5rem; }
   .fa-text { font-size: 1.75rem; }
   .fa-photo img { width: 100%; max-height: 28vh; }
   .fa-dots { display: none; }
