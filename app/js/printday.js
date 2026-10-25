@@ -3,8 +3,9 @@
 // top, then Notes across the whole width (blank, for writing and doodling, unless there are notes to print).
 // It prints on an empty day too: every line blank.
 import { openPrint, esc } from './print.js';
-import { getDay, itemsFor, addDays, parseDate, dateText, toMin, showTime, ENERGY } from './days.js';
+import { getDay, itemsFor, addDays, parseDate, dateText, toMin, showTime, ENERGY, isoDate } from './days.js';
 import { word } from './words.js';
+import { layoutOn } from './viewcog.js';
 
 const CSS = `
 .day { padding: 7% 7.5% 6%; display: flex; flex-direction: column; }
@@ -34,13 +35,13 @@ h2 { font: 700 1.55em Georgia, serif; color: #a07d1c; margin: 0 0 .35em; }
 .bw .ev { border: 1px solid var(--ink); border-left-width: .25em; }
 .ev small { color: var(--soft); font-size: .8em; margin-left: .3em; }
 .ev.cal { border-left-style: dashed; background: transparent; border-top: 1px dashed var(--rule); }
-.ev.done b { text-decoration: line-through; color: var(--soft); }
+.ev.done b, .tr.done span:last-child { color: var(--soft); }
+.ev.ticked { background: transparent; border-left-color: var(--soft); }
 .tasks { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
 .tl { flex: 1; display: flex; flex-direction: column; border-top: 1px solid var(--rule); min-height: 0; }
 .tr { display: flex; align-items: flex-end; gap: .7em; border-bottom: 1px solid var(--rule); padding-bottom: .45em; height: 2.4em; flex: none; font-size: 1.05em; }
 .tr.blank { height: auto; flex: 1 1 3em; min-height: 2.7em; max-height: 3.4em; }
 .box { width: 1em; height: 1em; border: .12em solid var(--ink); border-radius: .2em; flex: none; display: inline-flex; align-items: center; justify-content: center; font-size: .9em; line-height: 1; }
-.tr.done span:last-child { text-decoration: line-through; color: var(--soft); }
 .notes { flex: 0 0 24%; display: flex; flex-direction: column; margin-top: 1.3em; min-height: 0; }
 .notes .space { flex: 1; border: 1px solid var(--rule); border-radius: .5em; padding: .6em .8em; white-space: pre-wrap; font-size: 1em; overflow: hidden; }`;
 
@@ -55,11 +56,10 @@ export async function printDay(date, back = 'Day Planner') {
       ['Days'], { seg: 'days', items: [[1, 'This day'], [3, 'Next 3 days'], [7, 'This week']], hint: 'One page per day.' },
       ['Schedule'], { select: 'from', words: 'From', items: HOURS.slice(0, 24) }, { select: 'to', words: 'To', items: HOURS.slice(1) },
       { check: 'half', words: 'Half-hour lines' }, { check: 'cal', words: 'Google Calendar events' },
-      ['Tasks'], { check: 'tasks', words: "This day's tasks" }, { check: 'ticked', words: 'Ticked ones (crossed out)' }, { range: 'blank', words: 'Blank lines', min: 0, max: 25 },
+      ['Tasks'], { check: 'tasks', words: "This day's tasks" }, { check: 'ticked', words: 'Ticked ones (with a ✓)' }, { range: 'blank', words: 'Blank lines', min: 0, max: 25 },
       ['Also'], { check: 'top', words: `${word('day_focus')} and Energy` }, { check: 'notes', words: 'Notes space (blank, to write or doodle)' }, { check: 'old_notes', words: "What's already in this day's Notes" },
     ],
     build: async ch => {
-      const from = Math.min(ch.from, ch.to - 1), to = Math.max(ch.to, from + 1);
       let gcal = null;
       if (ch.cal) try { gcal = await import('./gcal.js'); } catch { /* offline */ }
       const pages = [];
@@ -67,13 +67,20 @@ export async function printDay(date, back = 'Day Planner') {
         const d = addDays(date, n);
         const day = await getDay(d);
         const items = (await itemsFor(d)).filter(i => !i.dropped_at);
+        // Tasks ticked off this day show on the schedule at the time they were ticked, as in the app (👁 "done-on-plan").
+        const tickedHere = layoutOn('planner', 'done-on-plan') ? items.filter(i => !i.time && i.done_at && isoDate(new Date(i.done_at)) === d) : [];
+        const tickMin = i => { const t = new Date(i.done_at); return t.getHours() * 60 + t.getMinutes(); };
+        // The schedule stretches to take in anything planned (or ticked) before or after the chosen hours.
+        const marks = items.filter(i => i.time).flatMap(i => [toMin(i.time), toMin(i.end_time || i.time) + 30]).concat(tickedHere.flatMap(i => [tickMin(i), tickMin(i) + 30]));
+        const from = Math.min(ch.from, ch.to - 1, ...marks.map(m => Math.floor(m / 60))), to = Math.min(24, Math.max(ch.to, from + 1, ...marks.map(m => Math.ceil(m / 60))));
         const minutes = t => toMin(t) - from * 60, span = (to - from) * 60;
         const box = (startMin, endMin, html, cls) => {
           const top = Math.max(0, startMin), bottom = Math.min(span, endMin);
           return bottom <= 0 || top >= span ? '' : `<div class="ev ${cls}" style="top:${(top / span * 100).toFixed(2)}%;height:${((Math.max(bottom, top + 20) - top) / span * 100).toFixed(2)}%">${html}</div>`;
         };
         const timed = items.filter(i => i.time).map(i => box(minutes(i.time), i.end_time ? minutes(i.end_time) : minutes(i.time) + 30,
-          `<b>${esc(i.title)}</b><small>${esc(showTime(i.time))}${i.end_time ? `–${esc(showTime(i.end_time))}` : ''}</small>`, i.done_at ? 'done' : ''));
+          `<b>${i.done_at ? '✓ ' : ''}${esc(i.title)}</b><small>${esc(showTime(i.time))}${i.end_time ? `–${esc(showTime(i.end_time))}` : ''}</small>`, i.done_at ? 'done' : ''));
+        const ticks = tickedHere.map(i => box(tickMin(i) - from * 60, tickMin(i) - from * 60 + 30, `<b>✓ ${esc(i.title)}</b><small>${esc(showTime(`${Math.floor(tickMin(i) / 60)}:${String(tickMin(i) % 60).padStart(2, '0')}`))}</small>`, 'done ticked'));
         const events = (gcal && ch.cal ? (await gcal.dayEvents(d))?.events || [] : []).filter(e => !e.allDay).map(e => {
           const local = iso => { const t = new Date(iso); return t.getHours() * 60 + t.getMinutes(); };
           return box(local(e.start) - from * 60, local(e.end) - from * 60, `${esc(e.title)}<small>${esc(showTime(`${new Date(e.start).getHours()}:${String(new Date(e.start).getMinutes()).padStart(2, '0')}`))}</small>`, 'cal');
@@ -87,7 +94,7 @@ export async function printDay(date, back = 'Day Planner') {
         pages.push(`<section class="sheet day${ch.half ? '' : ' nohalf'}">
           <header class="dh"><span class="wd serif">${esc(dateText(p, { weekday: 'long' }))}</span><span class="dt">${esc(dateText(p, { day: 'numeric', month: 'long', year: 'numeric' }))}</span><span class="tag">SIFT · DAY SHEET</span></header>
           ${ch.top ? `<div class="fe"><div class="focus"><span class="lab">${esc(word('day_focus').toUpperCase())}</span>${esc(day.focus || '')}</div><div class="energy"><span class="lab">ENERGY</span>${energy ? `<span class="bolts">${energy.bolts}</span>` : ''}</div></div>` : '<div style="height:1em"></div>'}
-          <div class="main"><div class="sched"><h2>Schedule</h2><div class="hours">${hours}${events.join('')}${timed.join('')}</div></div>
+          <div class="main"><div class="sched"><h2>Schedule</h2><div class="hours">${hours}${events.join('')}${timed.join('')}${ticks.join('')}</div></div>
             <div class="tasks"><h2>Tasks</h2><div class="tl">${rows}</div></div></div>
           ${ch.notes || (ch.old_notes && day.notes) ? `<div class="notes"><h2>Notes</h2><div class="space">${ch.old_notes ? esc(plain(day.notes)) : ''}</div></div>` : ''}
         </section>`);
