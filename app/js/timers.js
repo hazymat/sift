@@ -299,14 +299,14 @@ function tick() {
   for (const t of timers) if (ringing(t, now) && !t.muted && ringsHere(t) && now - (t.started + (t.paused_ms || 0) + t.length_ms) < fresh) ring = true;
   if (document.hidden && !ring && audio?.state === 'running' && !timers.some(t => t.paused == null && ringsHere(t) && !ringing(t, now))) audio.suspend().catch(() => {});
   if (ring && now - lastBeep > 2400) { lastBeep = now; beep(); navigator.vibrate?.([200, 100, 200]); }
-  else if (!ring && now - lastBeep > 1500) session('ambient'); // done beeping: other apps' music can carry on
+  else if (!ring) letGo(now);
   const done = timers.filter(t => ringing(t, now));
   if (done.length && !document.title.startsWith('⏰')) { baseTitle = document.title; document.title = `⏰ ${done[0].name} done`; }
   else if (!done.length && document.title.startsWith('⏰')) document.title = baseTitle || 'Sift';
 }
 function run() {
   if (timers.length && !ticker) ticker = setInterval(tick, 500);
-  else if (!timers.length && ticker) { clearInterval(ticker); ticker = null; }
+  else if (!timers.length && ticker) { clearInterval(ticker); ticker = null; setTimeout(letGo, 1300); }
   tick();
 }
 
@@ -316,6 +316,14 @@ function run() {
 // 'ambient' plays alongside other apps' music; only a beep switches to 'playback' (stops the music, plays past the silent switch).
 let primed = false;
 const session = type => { try { if (navigator.audioSession && navigator.audioSession.type !== type) navigator.audioSession.type = type; } catch {} };
+// Done beeping (run out, muted or removed): back to 'ambient' and the sound let go, so the music app can carry on.
+let holding = false;
+function letGo(now = Date.now()) {
+  if (!holding || now - lastBeep < 1200) return; // the last beep finishes first
+  holding = false;
+  session('ambient');
+  audio?.suspend().catch(() => {});
+}
 function unlockSound() {
   try {
     audio ??= new (window.AudioContext || window.webkitAudioContext)();
@@ -326,7 +334,7 @@ function unlockSound() {
 }
 function beep() {
   if (!audio) return;
-  session('playback');
+  session('playback'); holding = true;
   if (audio.state !== 'running') audio.resume().catch(() => {});
   const at = audio.currentTime;
   for (const [n, f] of [[0, 880], [0.22, 880], [0.44, 1175]]) {
