@@ -2680,6 +2680,9 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 /* iPhone: the bottom bar's buttons sit lower, into the home-bar area a little
    (iOS reserves ~34 px; the buttons stay clear of the home bar line itself). */
 .tabbar { padding-bottom: calc(6px + max(0px, var(--safe-bottom) - 18px)); }
+/* Each button's tap area reaches the bar's top and bottom edges, so a tap just under a button (in the home-bar area) still opens it. */
+.tabbar .tab { position: relative; }
+.tabbar .tab::after { content: ''; position: absolute; left: -2px; right: -2px; top: -7px; bottom: calc(-7px - max(0px, var(--safe-bottom) - 18px)); }
 
 /* Search everything (js/search.js): top bar on a laptop, More list on a phone. */
 .top-search { position: relative; flex: 0 1 260px; min-width: 150px; }
