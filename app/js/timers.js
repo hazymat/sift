@@ -92,7 +92,7 @@ export function pillHtml(t, now = Date.now(), { recipe = false } = {}) {
       : `<button type="button" class="tm-btn" data-tm="${t.paused != null ? 'resume' : 'pause'}" aria-label="${t.paused != null ? 'Carry on' : 'Pause'}" title="${t.paused != null ? 'Carry on' : 'Pause'}">${t.paused != null ? '▶' : '⏸'}</button>`}
   </span>`;
 }
-const STEPS = [[300, '+5'], [60, '+1'], [-60, '−1'], [-300, '−5']];
+const STEPS = [[-300, '−5'], [-60, '−1'], [60, '+1'], [300, '+5']];
 
 // Clicks on any timer pill (the dock, Follow along). While some are chosen, a tap chooses or unchooses.
 // places: other recipes it could be moved to ([{ recipe_id, make_id, owner, title }], Follow along's open ones).
@@ -110,7 +110,7 @@ export function onClick(ev, { open, places = [] } = {}) {
   else if (act === 'resume') resume(t);
   else if (act === 'dismiss') removeAll([t]);
   else if (act === 'mute') mute(t);
-  else if (act === 'menu') timerMenu(pill, t, open, places);
+  else if (act === 'menu') { if (menu?.id === t.id) closeMenu(); else timerMenu(pill, t, open, places); } // tapped again: it closes
   return true;
 }
 
@@ -125,14 +125,17 @@ function timerMenu(pill, t, open, places = []) {
   box.className = 'tm-menu';
   box.setAttribute('role', 'menu');
   box.dataset.timerMenu = t.id;
+  // Changed by the tiles: what it was set for and the change, with ↺ Revert to go back to it.
+  const changes = x => (x.added_ms ? `<span>Was ${lengthText(Math.round(x.base_ms / 1000))} · ${signed(x.added_ms)}</span><button type="button" role="menuitem" data-m="undo" class="tm-revert">↺ Revert</button>` : '');
   box.innerHTML = `<div class="tm-menu-head"><b data-tm-time>${shown(t, Date.now())}</b><span>${esc(t.name)}</span></div>
+    <div class="tm-changed"${t.added_ms ? '' : ' hidden'}>${changes(t)}</div>
     ${t.kind === 'down' ? `<div class="tm-menu-steps">${STEPS.map(([secs, label]) => `<button type="button" role="menuitem" class="tm-tile${secs < 0 ? ' tm-less' : ''}" data-m="${secs}" aria-label="${label} min"><i>⏰</i><b>${label}</b><small>min</small></button>`).join('')}</div>
-      <button type="button" role="menuitem" data-m="undo" class="tm-undo"${t.added_ms ? '' : ' hidden'}>↺ Take back ${t.added_ms ? signed(t.added_ms) : ''}</button><hr>` : ''}
-    ${open && t.recipe_id ? '<button type="button" role="menuitem" data-m="open">🥄 Open its recipe</button>' : ''}
+<hr>` : ''}
+    ${open && t.recipe_id ? '<button type="button" role="menuitem" data-m="open">▶ Follow recipe</button>' : ''}
     ${others.length ? `<button type="button" role="menuitem" data-m="move" aria-expanded="false">➜ Move to another recipe</button><div class="tm-move" hidden>${others.map((x, n) => `<button type="button" role="menuitem" data-move="${n}">${esc(x.title || 'Untitled')}</button>`).join('')}</div>` : ''}
     <button type="button" role="menuitem" data-m="choose">☑ Choose several</button>
-    <button type="button" role="menuitem" data-m="rename">✎ Rename</button>
-    <button type="button" role="menuitem" data-m="remove" class="danger">✕ Remove</button>`;
+    <button type="button" role="menuitem" data-m="rename">✎ Rename timer</button>
+    <button type="button" role="menuitem" data-m="remove" class="danger">✕ Remove timer</button>`;
   document.body.append(box);
   const place = () => {
     const anchor = [...document.querySelectorAll(`[data-timer="${t.id}"]`)].find(el => el.getClientRects().length) || pill; // the one showing (Follow along has a phone row too)
@@ -156,8 +159,8 @@ function timerMenu(pill, t, open, places = []) {
   const unwatch = watch(() => {
     const now = timers.find(x => x.id === t.id);
     if (!now) return closeMenu();
-    const undo = box.querySelector('[data-m="undo"]');
-    if (undo) { undo.hidden = !now.added_ms; undo.textContent = now.added_ms ? `↺ Take back ${signed(now.added_ms)}` : ''; }
+    const line = box.querySelector('.tm-changed');
+    if (line.dataset.same !== `${now.added_ms || 0}`) { line.dataset.same = `${now.added_ms || 0}`; line.hidden = !now.added_ms; line.innerHTML = changes(now); }
     document.querySelectorAll(`[data-timer="${t.id}"]`).forEach(x => x.classList.add('tm-open'));
     place();
   });
@@ -270,11 +273,20 @@ function run() {
 }
 
 // Sound has to be started from a tap once (iPhone), so any tap on a timer does that.
+// iPhone and iPad: only a touchend or click starts it, and it can be 'interrupted' (not just 'suspended') after the
+// screen locks or another app plays; a silent sound makes the start stick, and 'playback' plays past the silent switch.
+let primed = false;
 function unlockSound() {
-  try { audio ??= new (window.AudioContext || window.webkitAudioContext)(); if (audio.state === 'suspended') audio.resume(); } catch { audio = null; }
+  try {
+    audio ??= new (window.AudioContext || window.webkitAudioContext)();
+    if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback';
+    if (audio.state !== 'running') audio.resume().catch(() => {});
+    if (!primed) { const src = audio.createBufferSource(); src.buffer = audio.createBuffer(1, 1, 22050); src.connect(audio.destination); src.start(0); primed = true; }
+  } catch { audio = null; }
 }
 function beep() {
   if (!audio) return;
+  if (audio.state !== 'running') audio.resume().catch(() => {});
   const at = audio.currentTime;
   for (const [n, f] of [[0, 880], [0.22, 880], [0.44, 1175]]) {
     const o = audio.createOscillator(), g = audio.createGain();
@@ -307,7 +319,7 @@ export function installTimers() {
   document.body.append(dock);
   installBar();
   dock.addEventListener('click', ev => onClick(ev, { open: openTimerOf }));
-  addEventListener('pointerdown', () => { if (timers.length) unlockSound(); }, { capture: true, passive: true });
+  for (const kind of ['touchend', 'click', 'keydown']) addEventListener(kind, () => unlockSound(), { capture: true, passive: true }); // any tap gets sound ready, before a timer runs out
   document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
   store.subscribe(ev => { if (!ev.collection || ev.collection === 'timers') load(); });
   load();
@@ -428,13 +440,16 @@ body.has-timers .toast { margin-bottom: 52px; }
 .tm-tile i { font-style: normal; font-size: .8rem; }
 .tm-tile b { font-size: 1.2rem; font-weight: 800; }
 .tm-tile small { font-size: .7rem; color: var(--muted); }
-.tm-menu .tm-undo { font-weight: 600; }
+.tm-changed { display: flex; align-items: center; gap: 8px; padding: 0 8px 6px; font-size: .85rem; color: var(--muted); }
+.tm-changed span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.tm-menu .tm-revert { width: auto; min-height: 34px; padding: 0 12px; font-size: .88rem; font-weight: 600; }
 .tm-move { display: flex; flex-direction: column; gap: 4px; padding-left: 14px; }
 .tm-menu hr { width: 100%; margin: 2px 0; border: 0; border-top: 1px solid var(--glass-border); }
 .tm-menu [hidden] { display: none !important; }
 .tm-pill .tm-main:hover:not(:disabled), .tm-pill .tm-main:active { background: none; }
-@media (hover: hover) { .tm-pill:hover { background: color-mix(in srgb, var(--text) 10%, var(--glass-strong)); } }
-.tm-pill.tm-open { background: var(--active-bg); border-color: var(--active-border); }
+@media (hover: hover) { .tm-pill:not(.tm-ring):hover { background: color-mix(in srgb, var(--text) 10%, var(--glass-strong)); } }
+.tm-pill.tm-open:not(.tm-ring) { background: var(--active-bg); border-color: var(--active-border); }
+.tm-ring.tm-open { box-shadow: 0 0 0 3px rgba(255, 140, 110, .9), var(--shadow-sm); } /* a finished one stays red while its menu is open */
 .tm-ring.tm-muted { animation: none; background: rgba(230, 80, 55, .32); }
 .tm-bar { z-index: 955; }
 .tm-bar[hidden] { display: none; }
