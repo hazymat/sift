@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.47': [{ text: "Follow along: a recipe it can't find on this device for a moment (after an update, or before syncing) keeps its place instead of being dropped, so cooking carries on after Reload.", go: '#/recipes', at: '#main .bb-cooking' }],
   '1.61.46': [{ text: "Batch Book: a recipe's or batch's steps can be put in a new order. Hold a step (or its ⠿) and drag it, or press Shift+Alt+↑ / ↓ while writing one. Tap the ⠿ to choose steps, then D deletes them.", go: '#/recipes', open: ['#main .bb-card'], at: '#main .bb-step-list' }],
   '1.61.45': [{ text: "Batch Book, ⋯, Import recipes: Copy instructions for an AI chat now lists your own books, so the AI puts each recipe in the one it fits best.", go: '#/recipes', open: ['#main [data-act="import"]'], at: '.bb-import-sheet [data-imp="prompt"]' }],
   '1.61.44': [{ text: "Batch Book, ⋯, Import recipes: Copy instructions for an AI chat asks for one box you can copy in one go, a Time detail (signed by the AI when it's a guess, like Time (estimated by Claude)), a Source, buying tips in the description rather than Tasting notes, and [?] for words it can't read in photos.", go: '#/recipes', open: ['#main [data-act="import"]'], at: '.bb-import-sheet [data-imp="prompt"]' }],
@@ -218,6 +219,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.47': '2026-10-25T20:52:14Z',
   '1.61.46': '2026-10-25T19:52:27Z',
   '1.61.45': '2026-10-25T14:37:13Z',
   '1.61.44': '2026-10-25T13:46:38Z',

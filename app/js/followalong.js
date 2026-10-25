@@ -17,6 +17,7 @@ import { isoDate } from './days.js';
 import { TINTS } from './colours.js';
 import * as timers from './timers.js';
 import { toast } from './toast.js';
+import { feature } from './stats.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const KEPT = 'sift_follow_tabs';
@@ -71,10 +72,12 @@ function waitName(text, n) {
 }
 
 // A tab's recipe or batch, read from whoever's space it is in (someone else's shared recipe is in theirs).
+// null: deleted (its tab goes); undefined: not found here, so its tab is kept rather than lost.
 async function loadTab(tab) {
   const space = tab.owner ? store.spaceOf(tab.owner) : store.local;
   const rec = await space.get(tab.c, tab.id).catch(() => null);
-  if (!rec || rec.deleted_at) return null;
+  if (!rec) return undefined; // not on this device (yet): the tab is kept for when it is
+  if (rec.deleted_at) return null;
   const recipe = tab.c === 'recipe_makes' ? await space.get('recipes', rec.recipe_id).catch(() => null) : rec;
   const ids = new Set(stepsOf(rec).map(st => st.id));
   const all = await space.list('attachments'), files = all.filter(a => ids.has(a.parent_id) && a.kind === 'image').sort((x, y) => x.created_at.localeCompare(y.created_at));
@@ -98,8 +101,11 @@ export async function openFollow(open) {
     else if (open.times && open.c === 'recipes') k.tabs[n].times = open.times;
     k.at = n;
   }
-  const pots = (await Promise.all(k.tabs.map(loadTab))).filter(Boolean);
-  k.tabs = pots.map(p => p.tab);
+  const loaded = await Promise.all(k.tabs.map(loadTab));
+  const pots = loaded.filter(Boolean);
+  let away = k.tabs.filter((t, n) => loaded[n] === undefined); // kept in the saved tabs, not shown
+  if (away.length) feature('follow_tab_away');
+  k.tabs = pots.map(p => p.tab).concat(away);
   k.at = Math.max(0, Math.min(k.at, pots.length - 1));
   let wantStep = null; try { wantStep = JSON.parse(sessionStorage.getItem('sift_follow_step') || 'null'); sessionStorage.removeItem('sift_follow_step'); } catch {}
   if (wantStep && open && pots[k.at]) atStep(pots[k.at], { step_id: wantStep.id, step_no: wantStep.no });
@@ -119,7 +125,7 @@ export async function openFollow(open) {
   scrollTo(0, 0);
   const urls = [];
   let shown = []; // the drawn pots: { pot, box, roll, goTo, cur }
-  const save = () => { k.tabs = pots.map(p => p.tab); keep(k); };
+  const save = () => { k.tabs = pots.map(p => p.tab).concat(away); keep(k); };
   const sideBySide = () => k.side && pots.length > 1 && columns() > 1;
 
   const scaleHtml = p => (p.tab.c === 'recipes' && p.ings.some(i => i.qty != null) ? `<span class="segmented fa-scale" aria-label="Scale">${SCALES.map(s => `<button type="button" data-scale="${s}" aria-pressed="${p.tab.times === s}">×${qtyText(s)}</button>`).join('')}</span>` : '');
@@ -361,13 +367,14 @@ export async function openFollow(open) {
     const fresh = kept();
     if (!el.isConnected) return;
     if (!fresh.tabs.length) return close();
-    const again = (await Promise.all(fresh.tabs.map(loadTab))).filter(Boolean);
+    const read = await Promise.all(fresh.tabs.map(loadTab)), again = read.filter(Boolean);
     if (!el.isConnected || !again.length) return;
+    away = fresh.tabs.filter((t, n) => read[n] === undefined);
     const was = new Map(pots.map(p => [p.tab.id, p]));
     again.forEach(x => { const old = was.get(x.tab.id); if (old) { x.files = old.files; x.editTime = old.editTime; } });
     const front = pots[k.at]?.tab.id;
     pots.splice(0, pots.length, again[0]); for (let n = 1; n < again.length; n++) pots.push(again[n]);
-    k.tabs = pots.map(x => x.tab); k.touched = fresh.touched;
+    k.tabs = pots.map(x => x.tab).concat(away); k.touched = fresh.touched;
     k.at = Math.max(0, pots.findIndex(x => x.tab.id === front));
     draw();
   };
@@ -483,7 +490,9 @@ export async function openFollow(open) {
   async function finish({ said = '', takeBack = null } = {}) {
     const ids = new Set(pots.map(p => p.tab.id));
     const going = timers.list().filter(t => ids.has(t.make_id) || ids.has(t.recipe_id));
-    const was = JSON.parse(JSON.stringify(k));
+    const was = JSON.parse(JSON.stringify(k)), wasAway = away;
+    feature('follow_finished');
+    away = [];
     for (const t of going) await store.local.remove('timers', t.id);
     pots.length = 0;
     k.at = 0;
@@ -492,6 +501,7 @@ export async function openFollow(open) {
     toast(said || (going.length ? `Finished cooking: ${going.length === 1 ? '1 timer' : `${going.length} timers`} stopped` : 'Finished cooking'), { action: 'Undo', onAction: async () => {
       await takeBack?.();
       for (const t of going) await store.local.restore('timers', t.id);
+      away = wasAway;
       keep(was);
       openFollow(null);
     } });
