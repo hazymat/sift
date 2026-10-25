@@ -30,7 +30,7 @@ const kept = () => {
   return k;
 };
 const keep = k => { k.touched = Date.now(); try { localStorage.setItem(KEPT, JSON.stringify(k)); } catch {} };
-// How many are being cooked (Batch Book's 🍳 Cooking pill).
+// How many are being cooked (Batch Book's ▶ Cooking pill).
 export const cooking = () => kept().tabs.length;
 const wide = () => matchMedia('(min-width: 761px)').matches;
 // Side by side: 2 on an iPad, 3 on an iPad Pro in landscape, 4 on a big screen (any narrower and the writing is too small to read from the stove).
