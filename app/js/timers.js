@@ -29,7 +29,8 @@ export function clock(secs) {
   return h ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
 }
 export const lengthText = secs => (secs % 3600 === 0 ? `${secs / 3600} h` : secs % 60 === 0 && secs < 3600 ? `${secs / 60} min` : clock(secs));
-const shown = (t, now) => (t.kind === 'down' ? clock(Math.max(0, Math.ceil(leftOf(t, now) / 1000))) : clock(Math.floor(elapsed(t, now) / 1000)));
+// A countdown that has run out keeps counting how long it's been over: "0:00 (+2:35)".
+const shown = (t, now) => (t.kind === 'down' ? (leftOf(t, now) <= 0 ? `${clock(0)} <span class="tm-over">(+${clock(Math.floor(-leftOf(t, now) / 1000))})</span>` : clock(Math.ceil(leftOf(t, now) / 1000))) : clock(Math.floor(elapsed(t, now) / 1000)));
 export const list = () => timers;
 export const watch = fn => { watchers.add(fn); return () => watchers.delete(fn); };
 const changed = () => { if (bar) drawBar(); for (const fn of watchers) fn(timers); drawDock(); run(); };
@@ -230,10 +231,10 @@ function tick() {
     const r = ringing(t, now);
     if (r !== el.classList.contains('tm-ring')) { el.outerHTML = pillHtml(t, now, { recipe: el.querySelector('.tm-name')?.textContent.includes(' · ') }); continue; }
     const time = el.querySelector('[data-tm-time]');
-    if (time) time.textContent = `${t.kind === 'up' ? '⏱ ' : ''}${shown(t, now)}`;
+    if (time) time.innerHTML = `${t.kind === 'up' ? '⏱ ' : ''}${shown(t, now)}`;
   }
   const head = document.querySelector('.tm-menu [data-tm-time]'), open = head && timers.find(x => x.id === head.closest('[data-timer-menu]').dataset.timerMenu);
-  if (open) head.textContent = shown(open, now);
+  if (open) head.innerHTML = shown(open, now);
   for (const t of timers) if (ringing(t, now) && now - (t.started + (t.paused_ms || 0) + t.length_ms) < RING_FRESH) ring = true;
   if (ring && now - lastBeep > 2400) { lastBeep = now; beep(); navigator.vibrate?.([200, 100, 200]); }
   const done = timers.filter(t => ringing(t, now));
@@ -385,6 +386,7 @@ body.has-timers .toast { margin-bottom: 52px; }
 .tm-pill { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 3px; border-radius: 18px; background: var(--glass-strong); border: 1px solid var(--glass-border); box-shadow: var(--glass-highlight), var(--shadow-sm); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); font-variant-numeric: tabular-nums; max-width: 100%; }
 .tm-pill .tm-main { display: flex; flex-direction: column; align-items: flex-start; gap: 0; padding: 3px 10px; background: none; box-shadow: none; line-height: 1.15; min-width: 0; text-align: left; }
 .tm-time { font-size: 1.15rem; font-weight: 700; }
+.tm-over { font-size: .8em; font-weight: 700; } /* how long a countdown has been over */
 .tm-name { font-size: .74rem; color: var(--muted); max-width: 16em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tm-btn { width: 34px; height: 34px; padding: 0; border-radius: 50%; display: grid; place-items: center; flex: none; font-size: .9rem; }
 .tm-paused .tm-time { opacity: .55; }
