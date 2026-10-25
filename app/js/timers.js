@@ -299,6 +299,7 @@ function tick() {
   for (const t of timers) if (ringing(t, now) && !t.muted && ringsHere(t) && now - (t.started + (t.paused_ms || 0) + t.length_ms) < fresh) ring = true;
   if (document.hidden && !ring && audio?.state === 'running' && !timers.some(t => t.paused == null && ringsHere(t) && !ringing(t, now))) audio.suspend().catch(() => {});
   if (ring && now - lastBeep > 2400) { lastBeep = now; beep(); navigator.vibrate?.([200, 100, 200]); }
+  else if (!ring && now - lastBeep > 1500) session('ambient'); // done beeping: other apps' music can carry on
   const done = timers.filter(t => ringing(t, now));
   if (done.length && !document.title.startsWith('⏰')) { baseTitle = document.title; document.title = `⏰ ${done[0].name} done`; }
   else if (!done.length && document.title.startsWith('⏰')) document.title = baseTitle || 'Sift';
@@ -311,18 +312,21 @@ function run() {
 
 // Sound has to be started from a tap once (iPhone), so any tap on a timer does that.
 // iPhone and iPad: only a touchend or click starts it, and it can be 'interrupted' (not just 'suspended') after the
-// screen locks or another app plays; a silent sound makes the start stick, and 'playback' plays past the silent switch.
+// screen locks or another app plays; a silent sound makes the start stick.
+// 'ambient' plays alongside other apps' music; only a beep switches to 'playback' (stops the music, plays past the silent switch).
 let primed = false;
+const session = type => { try { if (navigator.audioSession && navigator.audioSession.type !== type) navigator.audioSession.type = type; } catch {} };
 function unlockSound() {
   try {
     audio ??= new (window.AudioContext || window.webkitAudioContext)();
-    if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback';
+    session('ambient');
     if (audio.state !== 'running') audio.resume().catch(() => {});
     if (!primed) { const src = audio.createBufferSource(); src.buffer = audio.createBuffer(1, 1, 22050); src.connect(audio.destination); src.start(0); primed = true; }
   } catch { audio = null; }
 }
 function beep() {
   if (!audio) return;
+  session('playback');
   if (audio.state !== 'running') audio.resume().catch(() => {});
   const at = audio.currentTime;
   for (const [n, f] of [[0, 880], [0.22, 880], [0.44, 1175]]) {

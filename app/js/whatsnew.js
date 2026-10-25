@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.39': [{ text: "Music from other apps (YouTube Music and so on) keeps playing while you use Sift, Follow along and timers included. Only a timer's beep stops it.", at: '#timer-dock' }],
   '1.61.38': [{ text: "Day Planner, Print and Share as picture or PDF: with Google Calendar connected, the preview was a blank white page. It now shows the day sheet, with your calendar events on the schedule.", go: '#/planner', open: ['#main .share-menu summary'], at: '[data-print-day]' }],
   '1.61.37': [{ text: "Print and Share screens on a phone: the preview at the top showed only a blank white page, scrolled off its top. It now shows the whole page, with the choices underneath. Day Planner's Share as picture and Share as PDF open straight in sharing." }],
   '1.61.36': [{ text: "Timers: tap a timer's time, then ⏲ Set to… to pick exactly how long is left on the wheel. ↺ Revert now has Undo too.", at: '#timer-dock' }],
@@ -210,6 +211,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.39': '2026-10-25T13:12:09Z',
   '1.61.38': '2026-10-25T13:10:29Z',
   '1.61.37': '2026-10-25T12:55:17Z',
   '1.61.36': '2026-10-25T12:52:27Z',
