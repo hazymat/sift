@@ -212,7 +212,7 @@ const pick = (obj, fields) => Object.fromEntries(fields.map(f => [f, obj?.[f] ??
 
 function noteChange(collection, before, after) {
   if (collection === 'timers') return; // a timer's pause or extra minute isn't something to undo
-  const fields = Object.keys(after).filter(f => !QUIET.has(f) && !same(before?.[f] ?? null, after[f] ?? null));
+  const fields = Object.keys(after).filter(f => !QUIET.has(f) && !(collection === 'settings' && f === 'follow') && !same(before?.[f] ?? null, after[f] ?? null)); // Follow along's place isn't something to undo
   if (!fields.length) return;
   pending ??= { changes: [], at: new Date().toISOString() };
   const prev = pending.changes.find(c => c.collection === collection && c.id === after.id);

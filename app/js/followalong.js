@@ -29,7 +29,29 @@ const kept = () => {
   if (Date.now() - k.touched > FORGET) k.tabs = [];
   return k;
 };
-const keep = k => { k.touched = Date.now(); try { localStorage.setItem(KEPT, JSON.stringify(k)); } catch {} };
+// The tabs (each one's step, ticks, scale and clock) are synced to every device through settings.follow; which tab is
+// in front and Side by side stay with this device.
+let sendSoon = 0, lastSent = '';
+const keep = k => {
+  k.touched = Date.now();
+  try { localStorage.setItem(KEPT, JSON.stringify(k)); } catch {}
+  clearTimeout(sendSoon);
+  sendSoon = setTimeout(() => { const v = JSON.stringify(k.tabs); if (v === lastSent) return; lastSent = v; store.updateSettings({ follow: { tabs: k.tabs, touched: k.touched } }).catch(() => {}); }, 1200);
+};
+// Another device's, when it's newer: taken, and 'sift-follow-synced' tells Follow along and Batch Book's ▶ Cooking pill.
+async function pull() {
+  const f = (await store.getSettings()).follow, k = kept();
+  if (!f || (f.touched || 0) <= (k.touched || 0)) return;
+  lastSent = JSON.stringify(f.tabs || []);
+  const changed = lastSent !== JSON.stringify(k.tabs);
+  k.tabs = f.tabs || []; k.touched = f.touched;
+  try { localStorage.setItem(KEPT, JSON.stringify(k)); } catch {}
+  if (changed) dispatchEvent(new CustomEvent('sift-follow-synced'));
+}
+export function installSync() {
+  store.subscribe(ev => { if (!ev.collection || ev.collection === 'settings') pull(); });
+  pull();
+}
 // How many are being cooked (Batch Book's ▶ Cooking pill).
 export const cooking = () => kept().tabs.length;
 const wide = () => matchMedia('(min-width: 761px)').matches;
@@ -329,6 +351,22 @@ export async function openFollow(open) {
       draw();
     }, 500);
   });
+  // Changed on another device (a step rolled on, a tick, a recipe added or put away): read again and drawn.
+  const onSynced = async () => {
+    const fresh = kept();
+    if (!el.isConnected) return;
+    if (!fresh.tabs.length) return close();
+    const again = (await Promise.all(fresh.tabs.map(loadTab))).filter(Boolean);
+    if (!el.isConnected || !again.length) return;
+    const was = new Map(pots.map(p => [p.tab.id, p]));
+    again.forEach(x => { const old = was.get(x.tab.id); if (old) { x.files = old.files; x.editTime = old.editTime; } });
+    const front = pots[k.at]?.tab.id;
+    pots.splice(0, pots.length, again[0]); for (let n = 1; n < again.length; n++) pots.push(again[n]);
+    k.tabs = pots.map(x => x.tab); k.touched = fresh.touched;
+    k.at = Math.max(0, pots.findIndex(x => x.tab.id === front));
+    draw();
+  };
+  addEventListener('sift-follow-synced', onSynced);
   let lastCols = columns();
   const onResize = () => { if (columns() !== lastCols) { lastCols = columns(); if (pots.length > 1) draw(); } };
   addEventListener('resize', onResize);
@@ -478,6 +516,7 @@ export async function openFollow(open) {
     unsub();
     clearTimeout(fresher);
     clearInterval(clockTick);
+    removeEventListener('sift-follow-synced', onSynced);
     removeEventListener('keydown', onKey, true);
     removeEventListener('resize', onResize);
     document.removeEventListener('visibilitychange', onVis);
