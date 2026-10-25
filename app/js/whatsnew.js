@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.23': [{ text: "Batch Book: while something's cooking, the ▶ Cooking pill on the list is green, like Follow along.", go: '#/recipes', at: '#main .bb-cooking' }],
   '1.61.22': [{ text: "Follow along: a timer on the wrong recipe? Tap it, then ➜ Move to another recipe and pick the right one.", go: '#/recipes', open: ['#main .bb-card', '#main .bb-follow'], at: '.fa-top' }],
   '1.61.21': [{ text: "Timers: when one runs out, 🔕 silences it and it stays, still counting how long it's been over; then ✕ removes it (with Undo). Its menu has big +5, +1, −1, −5 tiles, and ↺ Take back +10 min undoes what you added or took off.", at: '#timer-dock' }],
   '1.61.20': [{ text: "Batch Book, Follow along: tick the last step and an All done card shows under it: how long it took (timed for you, change it if you like) to save on the recipe, Add a photo (on the recipe or the batch), Save as a batch, and ✓ Finish.", go: '#/recipes', open: ['#main .bb-card', '#main .bb-follow'], at: '.fa-drum' }],
@@ -193,6 +194,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.23': '2026-10-25T01:15:35Z',
   '1.61.22': '2026-10-25T01:13:55Z',
   '1.61.21': '2026-10-25T01:09:33Z',
   '1.61.20': '2026-10-25T00:57:12Z',

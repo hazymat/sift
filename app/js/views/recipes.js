@@ -215,7 +215,7 @@ export default {
         <div class="bb-sticky">
           <div class="bb-head">
             <button type="button" class="primary" data-act="new">+ New recipe</button>
-            ${cooking() ? `<button type="button" class="bb-cooking" data-act="cooking" title="Back to Follow along">🍳 Cooking (${cooking()})</button>` : ''}
+            ${cooking() ? `<button type="button" class="bb-cooking" data-act="cooking" title="Back to Follow along">▶ Cooking (${cooking()})</button>` : ''}
             <input type="search" class="search bb-search" placeholder="Search recipes…" value="${esc(state.q)}" aria-label="Search recipes">
             <div class="bb-mode segmented" role="group" aria-label="Show"><button type="button" data-mode="recipes" aria-pressed="${!state.batches}">📖 Recipes</button><button type="button" data-mode="batches" aria-pressed="${state.batches}">🧪 Batches</button></div>
             ${cogHtml('recipes', `${state.batches ? '' : sortHtml()}${paperHtml()}`)}
@@ -539,7 +539,7 @@ export default {
     const followWanted = () => { let want = null; try { want = sessionStorage.getItem('sift_follow'); } catch {} if (want && want === (state.make || state.recipe)) { try { sessionStorage.removeItem('sift_follow'); } catch {} follow(); } };
     this.onFollow = () => followWanted();
     addEventListener('sift-follow', this.onFollow);
-    this.onFollowClosed = () => { if (!state.recipe && !state.make) render(); }; // the 🍳 Cooking pill's count
+    this.onFollowClosed = () => { if (!state.recipe && !state.make) render(); }; // the ▶ Cooking pill's count
     addEventListener('sift-follow-closed', this.onFollowClosed);
 
     // ---------- saving ----------

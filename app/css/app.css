@@ -4299,7 +4299,7 @@ body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none
 .bb-shared { margin: 10px 0 0; padding: 0; list-style: none; }
 .bb-make-btn, .bb-follow { white-space: nowrap; }
 /* The recipe's three actions in three colours: ▶ Follow along green (as Done in it), 🧪 Make this light blue, Share plain glass. */
-.bb-top .bb-follow { background: rgba(52, 168, 83, .85); border-color: rgba(120, 220, 140, .9); color: #fff; font-weight: 600; }
+.bb-top .bb-follow, .bb-cooking, .bb-cooking:hover:not(:disabled) { background: rgba(52, 168, 83, .85); border-color: rgba(120, 220, 140, .9); color: #fff; font-weight: 600; }
 .bb-top .bb-make-btn { background: color-mix(in srgb, #5aa9ff 32%, transparent); border-color: color-mix(in srgb, #5aa9ff 70%, transparent); }
 [data-theme="light"] .bb-top .bb-make-btn { background: color-mix(in srgb, #5aa9ff 22%, white); color: #0b3a66; }
 @media (max-width: 560px) { .bb-follow-word { display: none; } }
