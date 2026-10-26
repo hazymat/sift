@@ -5006,7 +5006,7 @@ html.case-open, html.case-open body { overflow: hidden; }
    33px rows, 14px text, ⠿ always showing. Built on Lined paper's flat rows (it sets data-layout-lined). */
 #main[data-skin="minimal"] {
   --row-pad: 3px;
-  .task-list { background: color-mix(in srgb, var(--text) 3.5%, transparent); border-radius: 6px; overflow: clip; }
+  .task-list { background: color-mix(in srgb, var(--text) 3.5%, transparent); border-radius: 6px; } /* no overflow clip: a row dragged past the ends must stay visible */
   /* Dividers are borders, not the ruled ::after lines: a border snaps to whole screen pixels, so each is the same 1px at any zoom. */
   .task-list > li[data-task] { border-width: 0 0 1px; border-style: solid; border-color: transparent transparent color-mix(in srgb, #000 28%, transparent); border-radius: 0; }
   .task-list > li[data-task]::after { display: none; }
