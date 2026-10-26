@@ -302,7 +302,10 @@ export default {
       atts = await att.byParent();
       const l = state.id && listOf(state.id);
       if (state.id) state.tab = state.owner ? 'shared' : l?.kind === 'template' ? 'templates' : 'lists'; // back to the tab it's on
+      const viewOpen = body.querySelector('details.view-menu[open]'); // 👁 stays open while its choices redraw the page
+      const menuTop = viewOpen?.querySelector('.menu')?.scrollTop;
       body.innerHTML = state.id ? page() : overview();
+      if (viewOpen) { const m = body.querySelector('details.view-menu'); if (m) { m.open = true; m.querySelector('.menu').scrollTop = menuTop || 0; } }
       kit = l?.kind === 'template' ? kitTemplate : kitChecklist;
       (l?.kind === 'template' ? kitChecklist : kitTemplate).attach(null);
       kit.attach(state.id ? body.querySelector('.checklist') : null);
