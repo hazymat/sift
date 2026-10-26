@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.56': [{ text: "Tasks, Minimal style: the tasks are full width again on a computer, and 👁 no longer has Width on a computer.", go: '#/tasks/now', at: '#main .task-list' }],
   '1.61.55': [{ text: "Tasks, Minimal style: on a computer the list of tasks is narrower, so the eye travels less. 👁 has Width on a computer under the Minimal tile: Full, Wide (the usual) or Narrow.", go: '#/tasks/now', open: ['#main details.view-menu > summary'], at: '#main .skin-choice' }],
   '1.61.54': [{ text: "Tasks, Minimal style: closer to Nirvana. In Compact spacing the rows are shorter (33 pixels) with smaller, lighter text, the lines between them are one even pixel, every row's ⠿ grab handle always shows, and the 📝 note mark and the other small marks (📅 📎 ⏱ 🔁 👤 📁) are line drawings instead of coloured emoji.", go: '#/tasks/now', at: '#main .task-list' }],
   '1.61.53': [{ text: "Lists: 👁 stays open when you pick a Style or tick one of its options, as in Tasks, so you can try each one in turn.", go: '#/lists', open: ['#main details.view-menu > summary'], at: '#main .skin-opts' }, { text: "Projects: on an open project, 👁 and ⋯ sit at the far right of the top bar again, not straight after Tasks | Projects.", go: '#/tasks/projects', open: ['#main .project-card'], at: '#main .tasks-head .page-cog' }],
@@ -229,6 +230,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.56': '2026-10-26T20:34:57Z',
   '1.61.55': '2026-10-26T19:42:57Z',
   '1.61.54': '2026-10-26T19:34:37Z',
   '1.61.53': '2026-10-26T19:27:03Z',
