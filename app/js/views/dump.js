@@ -26,7 +26,7 @@ import { createListKit, typingIn } from '../listkit.js';
 import { browseTo } from '../browse.js';
 import * as att from '../attachments.js';
 import { pointTo, flash } from '../flash.js';
-import { word, dumpTypes } from '../words.js';
+import { word, dumpTypes, sectionName } from '../words.js';
 import { shareSheet, sharedWithText, people, fromOthers, invitesHtml, theirIconHtml } from '../sharing.js';
 import { slide } from '../slide.js';
 import { keys } from '../keys.js';
@@ -681,7 +681,7 @@ export default {
       } else if (act === 'to-task') {
         const [first, ...rest] = t.body.split('\n');
         const task = await addTaskFirst({ title: first.trim().slice(0, 200), notes: rest.join('\n').trim(), source_thought_id: t.id });
-        await convert(t, { collection: 'tasks', id: task.id }, `Now a task in ${word('list_inbox')}: ${task.title}`);
+        await convert(t, { collection: 'tasks', id: task.id }, `Now a task in ${sectionName('inbox')}: ${task.title}`);
       } else if (act === 'plan' || act === 'store') {
         if (act === 'store') {
           boxes = [];

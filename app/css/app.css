@@ -2941,6 +2941,16 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 #task-views button:not(.flash) { box-shadow: none !important; } /* .flash: the pulse when it's chosen (slide.js) */
 #task-views button[aria-pressed="true"] { color: var(--text); border-bottom-color: currentColor !important; font-weight: 600; }
 #task-views button:hover { color: var(--text); }
+/* Tasks' sections (tasksections.js): an icon before the name; a coloured one looks like Batch Book's books (a faint
+   underline in its colour, chosen: a wash of it and the full colour). */
+#task-views button { display: inline-flex; align-items: center; gap: 6px; }
+#task-views button.sec-coloured { border-bottom-color: color-mix(in srgb, var(--sec) 35%, transparent) !important; }
+#task-views button.sec-coloured[aria-pressed="true"] { background: color-mix(in srgb, var(--sec) 16%, transparent) !important; border-radius: 8px 8px 0 0 !important; border-bottom-color: var(--sec) !important; }
+#task-views .task-sections-edit { letter-spacing: .1em; font-size: 1rem; }
+.sec-ico { flex: none; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.sec-shade { fill: currentColor; fill-opacity: .2; stroke: none; }
+.sec-emo { flex: none; font-size: .95em; line-height: 1; }
+[style*="--sec"] > .sec-ico { color: color-mix(in srgb, var(--sec) 75%, var(--text)); }
 .tasks-head { align-items: flex-end; }
 .tasks-head #task-views { flex: 1 1 auto !important; max-width: none; }
 
@@ -4538,6 +4548,34 @@ pre.hs-rules { white-space: pre-wrap; font: inherit; font-size: 0.9rem; margin: 
 .bb-sec-fields { grid-column: 2 / -1; }
 .bb-sec-types { grid-column: 2 / -1; }
 .bb-sec-readings { grid-column: 2 / -1; display: flex; align-items: center; gap: 8px; font-size: .9rem; color: var(--text); }
+.ts-row { grid-template-columns: 28px 3.4em minmax(0, 1fr) 44px 40px; }
+.ts-row .bb-sec-grip { grid-row: auto; height: 36px; }
+.ts-look { width: 100%; height: 38px; padding: 0; display: grid; place-items: center; border-radius: 10px; border: 1px solid var(--glass-border); background: none; box-shadow: none; color: var(--text); font-size: 1.2rem; }
+.ts-look .sec-ico { width: 22px; height: 22px; }
+.ts-look.none { color: var(--muted); font-size: .75rem; }
+.ts-swatch { width: 40px; height: 36px; padding: 0; border-radius: 10px; border: 1px solid var(--glass-border); background: var(--sec); box-shadow: none; position: relative; }
+.ts-swatch.none, .ts-colours .none { background: none; }
+.ts-swatch.none::after, .ts-colours .none::after { content: ''; position: absolute; left: 50%; top: 20%; height: 60%; border-left: 2px solid var(--muted); transform: rotate(45deg); }
+.ts-lock { text-align: center; font-size: .9rem; color: var(--muted); }
+.ts-note { grid-column: 2 / -1; font-size: .82rem; }
+.ts-fixed { padding: 8px 10px; }
+.ts-end .bb-sec-grip, .ts-end > span:first-child { visibility: hidden; }
+.ts-ends-head { margin: 16px 0 0; }
+.ts-warn { margin: 10px 0 0; padding: 8px 12px; border-radius: 12px; background: color-mix(in srgb, #ffc285 22%, transparent); font-size: .9rem; }
+.ts-picker { margin: -4px 0 4px 34px; padding: 12px 14px; border-radius: 16px; border: 1px solid var(--glass-border); background: var(--glass-track); display: grid; gap: 8px; }
+.ts-pick-head { display: flex; align-items: center; gap: 12px; }
+.ts-pick-label { font-size: .78rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.ts-shade button { padding: 4px 12px; font-size: .85rem; }
+.ts-icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 4px; }
+.ts-icons button { aspect-ratio: 1; width: auto; height: auto; padding: 0; display: grid; place-items: center; border: 0; border-radius: 9px; background: none; box-shadow: none; color: var(--text); }
+[style*="--sec"] > .ts-icons button { color: color-mix(in srgb, var(--sec) 75%, var(--text)); }
+.ts-icons .sec-ico { width: 22px; height: 22px; }
+.ts-icons button[aria-pressed="true"] { background: color-mix(in srgb, var(--sec, var(--text)) 20%, transparent); outline: 2px solid color-mix(in srgb, var(--sec, var(--text)) 75%, var(--text)); }
+.ts-colours { display: flex; flex-wrap: wrap; gap: 6px; }
+.ts-colours button { width: 26px; height: 26px; padding: 0; border-radius: 50%; border: 1px solid var(--glass-border); background: var(--sw); box-shadow: none; position: relative; }
+.ts-colours button[aria-pressed="true"] { outline: 2px solid var(--text); outline-offset: 2px; }
+.ts-emoji { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ts-emoji input { flex: 1 1 140px; min-width: 0; }
 .bb-ings .bb-content { justify-content: flex-start; }
 /* Placeholders, chips and faint words follow the paper's own ink (not the theme's, e.g. white placeholders of dark themes on yellow paper). */
 .bb-paper :is(input, textarea)::placeholder, .bb-paper .rich-edit.is-empty::before { color: color-mix(in srgb, var(--text) 52%, transparent) !important; opacity: 1; }

@@ -13,7 +13,8 @@ import { debounced } from '../autosave.js';
 import { toast, undoable } from '../toast.js';
 import { openPicker } from '../linkpicker.js';
 import { openRef } from '../refs.js';
-import { addTask } from '../tasks.js';
+import { addTask, reminderSection } from '../tasks.js';
+import { sectionName } from '../words.js';
 import { isoDate, dateText } from '../days.js';
 import { telHref } from '../contacts.js';
 
@@ -138,8 +139,8 @@ export default {
             </div>
             ${perYear(c) && c.cost_frequency !== 'annual' ? `<p class="muted contract-year">${money(perYear(c))} a year</p>` : ''}
             ${renews ? `<div class="scan-reminder">${c.reminder_task_id
-              ? '<span class="muted">A task reminds you before it renews.</span> <a class="linklike" href="#/tasks/list">Tasks</a>'
-              : `<button type="button" class="linklike" data-act="remind">+ Remind me ${Number(c.notice_days) || 30} days before it renews</button>`}</div>` : ''}
+              ? '<span class="muted">A task in Tasks reminds you before it renews.</span> <a class="linklike" href="#/tasks/list">Tasks</a>'
+              : `<button type="button" class="linklike" data-act="remind">+ Remind me ${Number(c.notice_days) || 30} days before it renews</button> <span class="muted">(a task in ${esc(sectionName(reminderSection()))})</span>`}</div>` : ''}
           </div>
           <div class="panel-sec"><span class="panel-h">Provider</span>
             <div class="detail-grid">
@@ -309,8 +310,8 @@ export default {
       }
       if (act === 'remind') {
         const aim = [daysBefore(c.renewal_date, Number(c.notice_days) || 30), isoDate()].sort().at(-1);
-        const task = await addTask({ title: `Before it renews: ${c.name || c.provider || 'contract'}`, horizon: 'later', aim_at: aim, source_contract_id: c.id, contact_ids: c.contact_id ? [c.contact_id] : [] });
-        return change(c.id, { reminder_task_id: task.id }, `Task added: Target end date ${niceDate(aim)}`);
+        const task = await addTask({ title: `Before it renews: ${c.name || c.provider || 'contract'}`, horizon: reminderSection(), aim_at: aim, source_contract_id: c.id, contact_ids: c.contact_id ? [c.contact_id] : [] });
+        return change(c.id, { reminder_task_id: task.id }, `Task added to ${sectionName(reminderSection())} in Tasks: target end date ${niceDate(aim)}`);
       }
       if (act === 'renew') {
         const made = await renew(c);

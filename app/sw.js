@@ -39,6 +39,7 @@ const SHELL = [
   'js/noteundo.js',
   'js/repeat.js',
   'js/taskpicker.js',
+  'js/tasksections.js',
   'js/order.js',
   'js/listentry.js',
   'js/toast.js',

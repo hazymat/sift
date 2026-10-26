@@ -1,22 +1,21 @@
 // Pick a task: a sheet with a search box at the top and the open tasks grouped
-// by list (Task Dump, Now, Next, Later), in the same order as on the Tasks
+// by section (Task Dump, Now, Next, Later and your own), in the same order as on the Tasks
 // page, sub-tasks under their task. Typing filters; ↑ ↓ and Enter pick; Cancel,
 // Esc or tapping outside closes it without picking.
 //
 //   const task = await pickTask({ title: 'Add as comment to…', hint })   → task | null
 
-import { loadAll, nest, HORIZONS, horizonOf, isDone } from './tasks.js';
+import { loadAll, nest, horizons, horizonOf, isDone } from './tasks.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-const ORDER = ['inbox', 'now', 'next', 'later'];
 
 export async function pickTask({ title = 'Pick a task', hint = '' } = {}) {
   const { tasks } = await loadAll();
   const open = tasks.filter(t => !isDone(t));
   const top = t => { let p = t; for (let n = 0; p?.parent_task_id && n < 10; n++) p = open.find(x => x.id === p.parent_task_id) || null; return p || t; };
-  const groups = ORDER.map(h => ({
+  const groups = horizons().map(({ id: h, label }) => ({
     h,
-    label: HORIZONS.find(x => x.id === h)?.label || h,
+    label,
     rows: nest(open.filter(t => horizonOf(top(t)) === h)),
   })).filter(g => g.rows.length);
 

@@ -9,7 +9,7 @@ import { shareHtml, printers, printPage } from '../share.js';
 import { flash, SOFT, WASH } from '../flash.js';
 import * as store from '../store.js';
 import { shareSheet, sharedWithText, invitesHtml, theirIconHtml } from '../sharing.js';
-import { sharedProjects, projectMembers, sharedValue, sharedFrom, moveIntoShared, loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES, HORIZONS, horizonOf, planDay, MAX_DEPTH, depthIn, levelsUnder, archiveOldDone } from '../tasks.js';
+import { sharedProjects, projectMembers, sharedValue, sharedFrom, moveIntoShared, loadAll, nest, progress, addTask, doneFields, aimDate, isDone, STATUSES, PRIORITIES, horizons, horizonOf, planDay, MAX_DEPTH, depthIn, levelsUnder, archiveOldDone } from '../tasks.js';
 import { deleteLinked, deleteAll } from '../link.js';
 import { ENERGY, isoDate, dateText, addDays, parseDate, addItem, durationChoices, durationLabel } from '../days.js';
 import { energyMenu, pillMenu } from '../pillmenu.js';
@@ -27,7 +27,8 @@ import { atEdge, caretTo } from '../walk.js';
 import { debounced } from '../autosave.js';
 import { editPills, selectPill, datePill, energyPill, fillDates, touch } from '../editpills.js';
 import { ask, askText, askYes, askEmptied } from '../ask.js';
-import { word } from '../words.js';
+import { word, sectionName, hasSection, taskSections, sectionEnds } from '../words.js';
+import { sectionTabHtml, editSections } from '../tasksections.js';
 import { commentsHtml, mountComments, closingComment } from '../comments.js';
 import { REPEAT_CHOICES, choiceOf, repeatLabel, firstDate } from '../repeat.js';
 import { keys } from '../keys.js';
@@ -36,9 +37,8 @@ import { treeHtml, groupOf, measureRows, slideRows } from '../rows.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
-const VIEWS = [...HORIZONS, { id: 'done', label: 'Done' }];
-const LISTS = ['inbox', 'now', 'next', 'later'];   // where a task lives
-const EMPTY = { get inbox() { return `${word('list_inbox')} is empty.`; }, now: 'Nothing for now.', next: 'Nothing lined up next.', later: 'Nothing for later.' };
+// Where a task lives: Task Dump, Now, Next, Later and your own sections (words.js), in your order.
+const isList = id => hasSection(id);
 // 👁 Layout switches (viewcog.js), all off by default.
 const lay = id => layoutOn('tasks', id);
 // A row's small marker: its emoji, and a line drawing of it that the Minimal style shows instead (CSS).
@@ -101,7 +101,8 @@ export default {
         <div class="segmented task-mode" role="group" aria-label="Show"><button type="button" data-mode="tasks">Tasks</button><button type="button" data-mode="projects">Projects</button></div>
         <button type="button" class="primary new-project-btn" data-act="new-project" hidden>+ New project</button>
         <div class="segmented" id="task-views" role="tablist" aria-label="Views">
-          ${VIEWS.map(v => `<button type="button" data-view="${v.id}">${v.label}</button>`).join('')}<button type="button" data-view="list">All</button>
+          ${taskSections().map(x => sectionTabHtml(x, `data-view="${esc(x.id)}"`)).join('')}${sectionTabHtml(sectionEnds().done, 'data-view="done"')}${sectionTabHtml(sectionEnds().all, 'data-view="list"')}
+          <button type="button" class="task-sections-edit filter-more" data-act="sections" title="Add, rename, reorder or remove sections, and give them an icon or colour" aria-label="Edit sections">⋯</button>
         </div>
         ${shareHtml({ cls: 'area-share' })}
           ${cogHtml('tasks', '<div class="project-view"></div>')}
@@ -247,7 +248,7 @@ export default {
           ${ENERGY.map(e => `<button type="button" class="bolts" data-energy="${e.id}" aria-pressed="${t.energy === e.id}" title="${esc(`${e.label}: ${e.hint}`)}" aria-label="${e.label}">${e.bolts}</button>`).join('')}
         </div>
         <div class="detail-grid">
-          <label>List<select name="horizon">${projectOf(t) ? '<option value="" selected>In its project</option>' : ''}${HORIZONS.map(x => `<option value="${x.id}" ${!projectOf(t) && horizonOf(t) === x.id ? 'selected' : ''}>${x.label}</option>`).join('')}</select></label>
+          <label>List<select name="horizon">${projectOf(t) ? '<option value="" selected>In its project</option>' : ''}${horizons().map(x => `<option value="${x.id}" ${!projectOf(t) && horizonOf(t) === x.id ? 'selected' : ''}>${x.label}</option>`).join('')}</select></label>
           <label>Estimated time<select name="estimate_min"><option value="">Not estimated</option>${durationChoices(480).map(m => `<option value="${m}" ${Number(t.estimate_min) === m ? 'selected' : ''}>${durationLabel(m)}</option>`).join('')}</select></label>
           <label><span class="label-row">Plan for day<span class="date-quick">${t.start_date !== isoDate() ? '<button type="button" class="linklike" data-act="plan-today" title="Plan it for today">Today</button>' : ''}${t.start_date ? '<button type="button" class="linklike date-clear" data-act="plan-clear" title="Remove the date">✕ Remove</button>' : ''}</span></span><input type="date" name="start_date" data-value="${t.start_date || ''}"></label>
           <label>Target end date<input type="date" name="aim_date" data-value="${aim}"></label>
@@ -303,8 +304,8 @@ export default {
                 <select data-entry="estimate_min" aria-label="Estimated time"><option value="">Not estimated</option>${durationChoices(480).map(m => opt(m, durationLabel(m))).join('')}</select></label>
               ${dateChip('start_date', 'Plan for day', '📅')}
               ${dateChip('aim_date', 'Target end date', '⚑')}
-              <label class="entry-chip" data-chip="horizon">📥 <span class="chip-text" data-empty="${esc(listName || word('list_inbox'))}">${esc(listName || word('list_inbox'))}</span>
-                <select data-entry="horizon" aria-label="Which list">${HORIZONS.map(x => opt(x.id, x.label, x.label === (listName || word('list_inbox')))).join('')}</select></label>
+              <label class="entry-chip" data-chip="horizon">📥 <span class="chip-text" data-empty="${esc(listName || sectionName('inbox'))}">${esc(listName || sectionName('inbox'))}</span>
+                <select data-entry="horizon" aria-label="Which list">${horizons().map(x => opt(x.id, x.label, x.label === (listName || sectionName('inbox')))).join('')}</select></label>
               <button type="button" class="entry-chip pill-more" data-act="entry-panel" title="Add it and open its full panel">More…</button>
             </div>
             <p class="muted hint">${esc(word('ph_tasks_entry'))}</p>
@@ -412,7 +413,7 @@ export default {
       if (project) html += assignNotice(project, scoped);
       html += '<!--list-->';
       const ph = project ? `New task in ${project.name}` : 'New task';
-      let entry = addBox(ph, false, word('list_inbox'));
+      let entry = addBox(ph, false, sectionName('inbox'));
       if (project) {
         const ms = data.milestones.filter(m => m.project_id === project.id);
         const groups = [{ id: null, name: ms.length ? 'No milestone' : '' }, ...ms];
@@ -448,7 +449,7 @@ export default {
       } else {
         const tasks = visible(scoped);
         html += listOf(rowsOf(tasks));
-        entry = addBox(ph, !tasks.length, word('list_inbox'));
+        entry = addBox(ph, !tasks.length, sectionName('inbox'));
       }
       // The New task line is at the top: before the list, after the project's heading.
       html = html.replace('<!--list-->', entry);
@@ -480,8 +481,8 @@ export default {
       const urgent = h === 'now' ? open.filter(t => (aimDate(t) && aimDate(t) <= today) || (t.start_date && t.start_date <= today)) : [];
       const rest = open.filter(t => !urgent.includes(t));
       const body = (urgent.length ? head('Due or planned') + flat(urgent) + (rest.length ? head('Everything else') : '') : '') + flat(rest);
-      const label = HORIZONS.find(x => x.id === h).label;
-      const entry = addBox(h === 'inbox' ? 'New task' : `New task for ${word(`list_${h}`)}`, !open.length, label);
+      const label = horizons().find(x => x.id === h).label;
+      const entry = addBox(h === 'inbox' ? 'New task' : `New task for ${sectionName(h)}`, !open.length, label);
       return entry + listOf(open.length ? body : '');
     }
 
@@ -583,7 +584,7 @@ export default {
       const t = ev.target;
       if (ev.key !== 'Enter' || ev.shiftKey || ev.ctrlKey || ev.metaKey || ev.isComposing) return;
       if (!t.classList?.contains('task-title') || !t.closest('.task-list > li[data-task]')) return;
-      if (!LISTS.includes(state.view) && state.view !== 'list') return;
+      if (!isList(state.view) && state.view !== 'list') return;
       const id = t.closest('li[data-task]').dataset.task;
       // More pressed (its note showing): Enter goes into the note instead.
       if (revealed === id && !lay('more-panel')) { ev.preventDefault(); ev.stopPropagation(); walkGo({ li: t.closest('li[data-task]'), key: id, title: t }, 'note', 0); return; }
@@ -724,14 +725,14 @@ export default {
       const fade = () => tabs.classList.toggle('overflows', tabs.scrollLeft + tabs.clientWidth < tabs.scrollWidth - 1);
       tabs.onscroll = fade;
       fade();
-      body.innerHTML = { list: viewList, inbox: () => viewHorizon('inbox'), now: () => viewHorizon('now'), next: () => viewHorizon('next'), later: () => viewHorizon('later'), projects: viewProjects, done: viewDone }[state.view]();
+      body.innerHTML = isList(state.view) ? viewHorizon(state.view) : { list: viewList, projects: viewProjects, done: viewDone }[state.view]();
       fillDates(body);
       markFilled(body);
       wireEntry();
       const ul = body.querySelector('.task-list');
       measureRows(body, ul, body.querySelector('#task-new'));
       const ordered = state.view === 'list';
-      const flatOrder = LISTS.includes(state.view); // Task Dump, Now, Next, Later: drag to reorder, no nesting
+      const flatOrder = isList(state.view); // Task Dump, Now, Next, Later: drag to reorder, no nesting
       kitOrdered.attach(ordered ? ul : null);
       kitFlat.attach(flatOrder ? ul : null);
       kitPlain.attach(ordered || flatOrder ? null : ul);
@@ -955,7 +956,7 @@ export default {
     async function addLines(lines, { parent: startParent = null, extras = {}, focus = true, pad = false } = {}) {
       const made = [];
       let parent = startParent;
-      const base = { project_id: state.project || null, horizon: LISTS.includes(state.view) ? state.view : 'inbox', ...extras.fields };
+      const base = { project_id: state.project || null, horizon: isList(state.view) ? state.view : 'inbox', ...extras.fields };
       let shortened = 0;
       // New tasks added at the top (👁 Layout): above every task, in the order typed.
       const top = lay('add-top') ? data.tasks.map(x => rankOf(x)).sort()[0] || null : undefined;
@@ -980,7 +981,7 @@ export default {
       if (focus && !pad) body.querySelector('#task-new')?.focus();
       showAdded(body, made); // after the focus, so its scroll to the new task wins
       if (spotted) { offerTaskTime(made[0], spotted, `Added task: ${lines[0].text}`); return made; }
-      undoable(`Added ${made.length} task${made.length === 1 ? '' : 's'} to ${HORIZONS.find(x => x.id === base.horizon)?.label || word('list_inbox')}${shortened ? ` (${shortened} long one${shortened === 1 ? '' : 's'} shortened, full text in the note)` : ''}`, async () => {
+      undoable(`Added ${made.length} task${made.length === 1 ? '' : 's'} to ${horizons().find(x => x.id === base.horizon)?.label || sectionName('inbox')}${shortened ? ` (${shortened} long one${shortened === 1 ? '' : 's'} shortened, full text in the note)` : ''}`, async () => {
         await store.updateMany('tasks', made.map(id => [id, { deleted_at: new Date().toISOString() }]));
         await render();
       });
@@ -1017,7 +1018,7 @@ export default {
         text.textContent = shown || text.dataset.empty;
         c.classList.toggle('set', !!shown);
       };
-      const defaultList = () => (LISTS.includes(state.view) ? state.view : 'inbox');
+      const defaultList = () => (isList(state.view) ? state.view : 'inbox');
       field('horizon').value = defaultList();
       // (A date picker may report its date as "input" rather than "change": both show it.)
       for (const type of ['change', 'input']) entry.addEventListener(type, ev => { const n = ev.target.dataset?.entry; if (n) paint(n); });
@@ -1169,7 +1170,7 @@ export default {
         if (parent !== (t.parent_task_id || null)) {
           fields.parent_task_id = parent;
           // Out of its task on Now / Next / Later: it joins the list it's on, so it stays in view.
-          if (!parent && LISTS.includes(state.view) && horizonOf(t) !== state.view) fields.horizon = state.view;
+          if (!parent && isList(state.view) && horizonOf(t) !== state.view) fields.horizon = state.view;
         }
         if (state.project && !parent && ul.querySelector('.list-head[data-milestone]')) {
           const m = milestoneOf.get(r.id) ?? null;
@@ -1208,7 +1209,7 @@ export default {
     // Onto a list: out of any project (a task is in one place or the other).
     const toList = h => ({ horizon: h, project_id: null, milestone_id: null });
     // One task onto a list; from a project, its sub-tasks come out with it.
-    const listOne = (t, h) => (projectOf(t) ? batchSet([t.id], toList(h), `Transferred to ${HORIZONS.find(x => x.id === h)?.label || h}:`, { subs: true }) : change(t.id, { horizon: h }, `Transferred to ${HORIZONS.find(x => x.id === h)?.label || h}`));
+    const listOne = (t, h) => (projectOf(t) ? batchSet([t.id], toList(h), `Transferred to ${horizons().find(x => x.id === h)?.label || h}:`, { subs: true }) : change(t.id, { horizon: h }, `Transferred to ${horizons().find(x => x.id === h)?.label || h}`));
     // Into a project (or out of one), sub-tasks with them; they start with no milestone.
     const moveToProject = (ids, p) => batchSet(ids, { project_id: p?.id || null, milestone_id: null }, p ? `Moved to ${p.name}:` : 'Taken out of the project:', { subs: true });
     // The projects to move tasks into (the finished ones and the one being looked at left out), as pills.
@@ -1260,16 +1261,14 @@ export default {
       { id: 'done', label: 'Done', key: 'Ctrl+Enter', run: ids => batchSet(ids, doneFields(true), 'Done:', { subs: true, fade: true }) },
       // Move ▸ opens sideways to the lists, less the one being looked at. Not inside a project: a task stays in its
       // project (a misfiled one moves from its panel's List or Project choice), and Assign to… takes Move's place.
-      { id: 'now', label: 'Now', group: 'Move', when: () => state.view !== 'now' && !state.owner && !state.project, run: ids => batchSet(ids, toList('now'), 'Transferred to Now:', { subs: true }) },
-      { id: 'next', label: 'Next', group: 'Move', when: () => state.view !== 'next' && !state.owner && !state.project, run: ids => batchSet(ids, toList('next'), 'Transferred to Next:', { subs: true }) },
-      { id: 'later', label: 'Later', group: 'Move', when: () => state.view !== 'later' && !state.owner && !state.project, run: ids => batchSet(ids, toList('later'), 'Transferred to Later:', { subs: true }) },
+    ].concat(taskSections().filter(x => x.id !== 'inbox').map(x => ({ id: `to-${x.id}`, label: esc(x.name), group: 'Move', when: () => state.view !== x.id && !state.owner && !state.project, run: ids => batchSet(ids, toList(x.id), `Transferred to ${x.name}:`, { subs: true }) })), [
       // Project…: the projects open as pills over the bar; the selection stays until one is picked.
       { id: 'project', label: 'Project…', group: 'Move', keepSelection: true, when: () => !state.owner && !state.project, run: ids => pickProject(ids) },
       // In a shared project: give the chosen tasks to someone sharing it (or nobody), as the 👤 Who pill does.
       { id: 'assign', label: 'Assign to…', keepSelection: true, when: () => !!state.project && projectMembers(state.project, state.owner).length > 0, run: ids => pickOwner(ids) },
       { id: 'archive', label: 'Archive', key: 'A', run: ids => batchSet(ids, { archived_at: new Date().toISOString() }, 'Archived', { subs: true }) },
       { id: 'delete', label: 'Delete', key: 'D', danger: true, run: ids => deleteTasks(withSubs(ids)) },
-    ];
+    ]);
 
     // Phones: swipe a task sideways (rowswipe.js): left for ✓ Done and ⋯ More, right for Delete.
     rowSwipe(body, {
@@ -1542,7 +1541,7 @@ export default {
         const fields = { [t.name]: value };
         if (t.name === 'status') Object.assign(fields, value === 'done' ? doneFields(true) : { done_at: null }, value !== 'waiting' && value !== 'done' && task.waiting_on ? { waiting_on: null } : {});
         if (t.name === 'project_id') fields.milestone_id = null;
-        await change(id, fields, t.name === 'start_date' && value ? `Planned for ${shortDate(value)}` : t.name === 'horizon' ? `Transferred to ${HORIZONS.find(x => x.id === value)?.label || value}` : 'Saved');
+        await change(id, fields, t.name === 'start_date' && value ? `Planned for ${shortDate(value)}` : t.name === 'horizon' ? `Transferred to ${horizons().find(x => x.id === value)?.label || value}` : 'Saved');
       }
     });
 
@@ -1578,6 +1577,7 @@ export default {
       if (b.dataset.mode) { go(b.dataset.mode === 'projects' ? 'projects' : lastTasksView, null); return; }
       if (b.dataset.view) { b.closest('details')?.removeAttribute('open'); state.project = null; go(b.dataset.view, null); return; }
       if (b.dataset.act === 'focus-entry') { focusEntry(); return; }
+      if (b.dataset.act === 'sections') { editSections(data.tasks); return; }
       // More… on the New task line (as a task's own More… opens its panel): it's added, and its panel opens.
       if (b.dataset.act === 'entry-panel' || (b.dataset.act === 'entry-reveal' && lay('more-panel'))) {
         const made = await body.querySelector('#task-entry')?.submitEntry?.({ focus: false });
@@ -1773,7 +1773,7 @@ export default {
           + selectPill('estimate_min', 'Estimated time', '⏱', [['', 'Not estimated'], ...hours], t.estimate_min)
           + datePill('start_date', 'Plan for day', '📅', t.start_date, shortDate)
           + datePill('aim_date', 'Target end date', '⚑', aim, shortDate)
-          + selectPill('horizon', 'List', '📥', HORIZONS.map(h => [h.id, h.label]), projectOf(t) ? '' : horizonOf(t))
+          + selectPill('horizon', 'List', '📥', horizons().map(h => [h.id, h.label]), projectOf(t) ? '' : horizonOf(t))
           + (state.owner || t.parent_task_id ? '' : `<button type="button" class="entry-chip${projectOf(t) ? ' set' : ''}" data-chip="project" data-pill-act="project" aria-haspopup="menu">📁 <span class="chip-text">${esc(projectOf(t)?.name || 'Project')}</span></button>`);
       },
       change: async (id, name, value) => {
@@ -1796,7 +1796,7 @@ export default {
         if (name === 'owner_id') return change(id, { owner_id: value || null, owner_by: myUserId() || null, owner_at: new Date().toISOString() }, ownerName(t, value) ? `Owner: ${ownerName(t, value)}` : 'No owner: anyone can do it');
         if (name === 'horizon') return value ? listOne(t, value) : undefined;
         const v = name === 'estimate_min' ? (value ? Number(value) : null) : value || null;
-        await change(id, { [name]: v }, name === 'start_date' && v ? `Planned for ${shortDate(v)}` : name === 'horizon' ? `Transferred to ${HORIZONS.find(x => x.id === v)?.label || v}` : 'Saved');
+        await change(id, { [name]: v }, name === 'start_date' && v ? `Planned for ${shortDate(v)}` : name === 'horizon' ? `Transferred to ${horizons().find(x => x.id === v)?.label || v}` : 'Saved');
       },
     });
 
@@ -1838,14 +1838,14 @@ export default {
 
     // Opens on the Inbox if anything is waiting there, otherwise Now.
     const first = await loadAll();
-    state.view = first.tasks.some(t => !isDone(t) && !t.parent_task_id && t.horizon === 'inbox') ? 'inbox' : 'now';
+    state.view = first.tasks.some(t => !isDone(t) && !t.parent_task_id && horizonOf(t) === 'inbox') || !hasSection('now') ? 'inbox' : 'now';
     await render();
   },
 
   async route([view, project, from, owner]) {
     // Old links to Today / Upcoming land on Now.
     const v = { today: 'now', upcoming: 'now' }[view] || view;
-    this.state.view = ['inbox', 'now', 'next', 'later', 'list', 'projects', 'done'].includes(v) ? v : 'now';
+    this.state.view = hasSection(v) || ['list', 'projects', 'done'].includes(v) ? v : hasSection('now') ? 'now' : 'inbox';
     this.state.project = view === 'list' ? project || null : null;
     this.state.owner = this.state.project && from === 'from' ? owner || null : null; // #/tasks/list/<project>/from/<owner>: shared with you
     this.closeDetails?.();
