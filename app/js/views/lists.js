@@ -521,7 +521,9 @@ export default {
       const template = l?.template_id && listOf(l.template_id);
       if (!template) { toast('This list isn\'t from a template'); return; }
       const have = itemsOf(template.id);
-      const lines = data.items.filter(i => ids.includes(i.id) && !have.some(t => t.text.trim().toLowerCase() === i.text.trim().toLowerCase())).map(i => ({ text: i.text, sub: false }));
+      // In list order; a chosen item's sub-items (chosen with it) stay under it.
+      const adding = ids.map(id => data.items.find(i => i.id === id)).filter(i => i && !have.some(t => t.text.trim().toLowerCase() === i.text.trim().toLowerCase()));
+      const lines = adding.map(i => ({ text: i.text, sub: adding.some(p => p.id === i.parent_id) }));
       if (!lines.length) { toast('Those are already in the template'); return; }
       const made = await addItems(template.id, lines, nestItems(have));
       await render();
@@ -580,8 +582,8 @@ export default {
     const kitChecklist = this.kitChecklist = createListKit({
       ...dragRules,
       actions: [
-        { id: 'tick', label: 'Tick', key: 'Ctrl+Enter', run: ids => batch(ids, { checked_at: new Date().toISOString() }, 'Ticked', { subs: false, wave: true }) },
-        { id: 'untick', label: 'Untick', run: ids => batch(ids, { checked_at: null }, 'Unticked', { subs: false }) },
+        { id: 'tick', label: 'Tick', key: 'Ctrl+Enter', run: ids => batch(ids, { checked_at: new Date().toISOString() }, 'Ticked', { wave: true }) },
+        { id: 'untick', label: 'Untick', run: ids => batch(ids, { checked_at: null }, 'Unticked') },
         { id: 'to-template', label: 'Add to template', run: addToTemplate },
         ...common,
       ],

@@ -14,6 +14,7 @@
 //   Esc                  clear the selection
 //   Delete / Backspace   the bar's Delete (not while typing; Undo in the message)
 //   an action's key      its button (e.g. Ctrl+Enter Done, A Archive, D Delete)
+// A chosen parent's sub-rows show chosen too (lighter, .carried) and every action gets them.
 // A bar appears while anything is selected: built-in Indent / Outdent (only
 // when some of the selection can go that way) / ↑ / ↓ (when enabled) plus the
 // caller's actions, each with its keys; actions sharing a group sit behind one
@@ -101,12 +102,17 @@ export function createListKit({
   const rows = () => (ul ? [...ul.querySelectorAll(rowSel)] : []);
   const depthOf = r => Number(r.dataset.depth || 0);
   const idsInOrder = () => rows().map(r => r.dataset.id).filter(id => selected.has(id));
+  // The sub-rows of chosen rows: everything done to a parent happens to them too, so they show chosen (lighter) and the actions get them.
+  const carriedIds = () => new Set(rows().filter(r => selected.has(r.dataset.id)).flatMap(r => withChildren(r).slice(1)).map(r => r.dataset.id).filter(id => !selected.has(id)));
+  const idsWithCarried = () => { const carried_set = carriedIds(); return rows().map(r => r.dataset.id).filter(id => selected.has(id) || carried_set.has(id)); };
 
   function paint() {
+    const carried_set = carriedIds();
     for (const r of rows()) {
-      const on = selected.has(r.dataset.id);
+      const on = selected.has(r.dataset.id), carried = carried_set.has(r.dataset.id);
       r.classList.toggle('selected', on);
-      r.querySelector('.drag-handle')?.setAttribute('aria-pressed', on);
+      r.classList.toggle('carried', carried);
+      r.querySelector('.drag-handle')?.setAttribute('aria-pressed', on || carried);
     }
     // Forget selections whose rows are gone (deleted, filtered out).
     const present = new Set(rows().map(r => r.dataset.id));
@@ -115,7 +121,7 @@ export function createListKit({
     bar.hidden = !selected.size;
     if (opening) bar.scrollLeft = 0; // a new selection: the bar starts from its left end (✕ first)
     document.body.classList.toggle('has-select-bar', !!selected.size);
-    bar.querySelector('.select-count').textContent = `${selected.size} selected`;
+    bar.querySelector('.select-count').textContent = `${selected.size + carried_set.size} selected`;
     if (!selected.size) closeGroups();
     // Only what can be done: Outdent if any of them is nested; Indent if any has a row above to go under.
     if (indent) {
@@ -258,7 +264,7 @@ export function createListKit({
     for (const r of group.slice(from, to)) {
       const copy = r.cloneNode(true);
       copy.removeAttribute('data-id'); copy.removeAttribute('id');
-      copy.classList.remove('dragging', 'selected', 'pills-open', 'nest-target', 'nest-preview', 'coming-out', 'heal-end', 'holding', 'hold-pending');
+      copy.classList.remove('dragging', 'selected', 'carried', 'pills-open', 'nest-target', 'nest-preview', 'coming-out', 'heal-end', 'holding', 'hold-pending');
       copy.style.transform = ''; copy.style.transition = '';
       for (const el of copy.querySelectorAll('[id]')) el.removeAttribute('id');
       for (const el of copy.querySelectorAll('.edit-pills, .task-details, .row-acts, .hold-ripple')) el.remove();
@@ -614,7 +620,7 @@ export function createListKit({
     }
     const action = actions.find(a => a.id === b.dataset.kitAction);
     if (action) {
-      const ids = idsInOrder();
+      const ids = idsWithCarried();
       if (!action.keepSelection) closeGroups(); // one that asks first (e.g. Move → Project…) keeps its group open while it asks
       await action.run(ids);
       if (action.keepSelection !== true) clear();

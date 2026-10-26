@@ -1449,6 +1449,9 @@ select.kc-btn { width: auto; padding: 0 14px; }
 /* ---------- Shared list behaviour (listkit.js) in every list ---------- */
 li[data-id].selected { background: var(--active-bg) !important; box-shadow: inset 0 0 0 1px var(--active-border); }
 li[data-id].selected .drag-handle { opacity: 1; color: var(--accent); }
+/* A chosen parent's sub-rows: chosen with it, a lighter shade (listkit.js). */
+li[data-id].carried { background: color-mix(in srgb, var(--accent) 13%, transparent) !important; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent); }
+li[data-id].carried .drag-handle { opacity: .8; color: var(--accent); }
 /* A selected card (Brain Dump, Contacts, Find Things boxes, recipes): the same clear accent ring everywhere, as Batch Book. */
 :is(.thought, .c-card, .box-card, .bb-card-li, .list-card-li)[data-id].selected { box-shadow: 0 0 0 3px var(--accent); }
 /* Phones: holding a card selects it, so no text selection or Copy / Look Up menu (text being edited still selects). */

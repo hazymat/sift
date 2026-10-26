@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.51': [{ text: "Tasks and lists: choosing a task or item with sub-items (its ⠿) now shows its sub-items chosen too, in a lighter shade, because whatever you do to it happens to them as well. Done (or Tick and Untick in a list) now does its sub-items too, as Archive, Delete and Move already did.", go: '#/tasks', at: '#main .task-list', more: "The same wherever rows have sub-rows: an open list, a box's things in Find Things, and the managers for categories and groups." }],
   '1.61.50': [{ text: "Batch Book: on a batch, Add to list puts things on a list you already have under one item named after the batch, with the ingredients as its sub-items, rather than loose among your other items.", go: '#/recipes', open: ['#main .bb-card', '#main .bb-batch-row'], at: '#main .bb-listline' },
     { text: "Batch Book: choosing another list for a batch's shopping removes the list that was made for the batch, once nothing else is on it.", go: '#/recipes', open: ['#main .bb-card', '#main .bb-batch-row'], at: '#main .bb-listline' }],
   '1.61.49': [{ text: "Lists: choose items by their ⠿ and press Cut (X or Ctrl+X) on the bar, then open another list and press 📋 Paste (Ctrl+V). The items move over with their sub-items, ticks, notes and files. They're copied as text too, so they paste into Add items or another app.", go: '#/lists', open: ['#main .list-card'], at: '#main .checklist' },
@@ -224,6 +225,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.51': '2026-10-26T18:31:10Z',
   '1.61.50': '2026-10-26T18:27:16Z',
   '1.61.49': '2026-10-26T18:24:20Z',
   '1.61.48': '2026-10-26T16:56:21Z',
