@@ -102,6 +102,36 @@ export function amountText(ing, times = 1) {
 }
 export const ingredientText = (ing, times = 1) => [amountText(ing, times), ing.item].filter(Boolean).join(' ');
 
+// Measures that differ between the UK and the US (weight ounces and pounds don't): the choices for one, or null.
+const SIDES = [[['cup', 'Metric'], ['cup_uk', 'UK'], ['cup_us', 'US']], [['floz_uk', 'UK'], ['floz_us', 'US']], [['pint_uk', 'UK'], ['pint_us', 'US']], [['quart_uk', 'UK'], ['quart_us', 'US']], [['gal_uk', 'UK'], ['gal_us', 'US']]];
+export const unitSides = id => SIDES.find(set => set.some(side => side[0] === id)) || null;
+// The same amount in other measures (Follow along's ingredient sheet), the most useful first: metric, then the rest
+// that come out at a sensible size. Weight and volume never cross (that needs to know what it is); temperatures add °F and gas mark.
+export function conversions(qty, unit) {
+  if (qty == null || !qty) return [];
+  const [, , group, size] = unitOf(unit), base = qty * size, out = [];
+  const add = (id, within = [0.1, 9999]) => { const value = base / unitOf(id)[3]; if (id !== unit && value >= within[0] && value <= within[1]) out.push(amountText({ qty: value, unit: id }) + (id === 'cup' ? ' (metric)' : '')); };
+  if (group === 'Weight') {
+    add(base >= 1000 ? 'kg' : 'g', [0, Infinity]);
+    add('oz', [0.1, 999]); add('lb', [0.25, 999]);
+    const pounds = Math.floor(base / 453.592), ounces = Math.round((base - pounds * 453.592) / 28.3495);
+    if (pounds >= 1 && ounces > 0 && ounces < 16) out.push(`${pounds} lb ${ounces} oz`);
+  } else if (group === 'Volume') {
+    add(base >= 1000 ? 'l' : 'ml', [0, Infinity]);
+    if (base <= 60) { add('tsp', [0.25, 12]); add('tbsp', [0.25, 4]); }
+    for (const id of ['cup', 'cup_uk', 'cup_us']) add(id, [0.25, 24]);
+    for (const id of ['floz_uk', 'floz_us']) add(id, [0.5, 80]);
+    for (const id of ['pint_uk', 'pint_us']) add(id, [0.25, 16]);
+    for (const id of ['quart_uk', 'quart_us']) add(id, [0.5, 8]);
+    for (const id of ['gal_uk', 'gal_us']) add(id, [0.5, 999]);
+  } else if (unit === 'c') {
+    out.push(`${Math.round(qty * 9 / 5 + 32)} °F`);
+    const gas = [[140, 1], [150, 2], [170, 3], [180, 4], [190, 5], [200, 6], [220, 7], [230, 8], [240, 9]].find(([at]) => Math.abs(at - qty) <= 5);
+    if (gas) out.push(`Gas mark ${gas[1]}`);
+  }
+  return out;
+}
+
 // One typed line → an ingredient: "3268g honey, Asda Orange Blossom", "½ onion", "Honey 3268 g", "2 UK cup flour (strong)"
 // Once (1.49.12, Mat: "3 cloves" had become 3 of the unit clove with no ingredient): an ingredient with a count unit
 // and no name gets the unit's word as its name, and a nameless copy added for a step's {cloves} goes.
@@ -177,7 +207,7 @@ export function stepHtml(text, ingredients, times, esc) {
     // own words get the amount too ("the stock" → "the 200ml stock"), unless they already say how much ("3 cloves", "a bit of salt", "the rest")
     const [, the = '', words = own] = (own || '').match(/^(\s*the\s+)(.*)$/is) || [];
     const shown = own == null ? esc(ingredientText(ing, times * part)) : amount && !OWN_AMOUNT.test(words) ? `${the}${esc(amount)} ${words}` : own;
-    return `<span class="bb-ref" title="${esc(part === 1 ? full : `${qtyText(part)} of ${full}`)}">${shown}</span>`;
+    return `<span class="bb-ref" data-ing="${ing.id}" data-part="${part}" title="${esc(part === 1 ? full : `${qtyText(part)} of ${full}`)}">${shown}</span>`;
   }).replace(/\n/g, '<br>');
 }
 // The ingredients a step puts in (by id), for Follow along's highlighting.
