@@ -25,6 +25,8 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.49': [{ text: "Lists: choose items by their ⠿ and press Cut (X or Ctrl+X) on the bar, then open another list and press 📋 Paste (Ctrl+V). The items move over with their sub-items, ticks, notes and files. They're copied as text too, so they paste into Add items or another app.", go: '#/lists', open: ['#main .list-card'], at: '#main .checklist' },
+    { text: "Lists: press and hold two or more lists to choose them, then Combine lists on the bar puts all their items into the first one chosen. The others go to the Bin, and Undo puts them back.", go: '#/lists', at: '#main .list-grid' }],
   '1.61.48': [{ text: "Follow along: tap an ingredient (in the list, or the amber words in a step) to see it in full with its amount in other measures: grams or kilos first, then ounces, pounds, cups, fl oz, pints and so on. Pints, fl oz, quarts, gallons and cups have UK and US buttons to say which the recipe means.", go: '#/recipes', open: ['#main .bb-card', '#main .bb-follow'], at: '.fa-ing-list' }],
   '1.61.47': [{ text: "Follow along: a recipe it can't find on this device for a moment (after an update, or before syncing) keeps its place instead of being dropped, so cooking carries on after Reload.", go: '#/recipes', at: '#main .bb-cooking' }],
   '1.61.46': [{ text: "Batch Book: a recipe's or batch's steps can be put in a new order. Hold a step (or its ⠿) and drag it, or press Shift+Alt+↑ / ↓ while writing one. Tap the ⠿ to choose steps, then D deletes them.", go: '#/recipes', open: ['#main .bb-card'], at: '#main .bb-step-list' }],

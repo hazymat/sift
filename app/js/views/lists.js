@@ -36,6 +36,11 @@ const lay = id => layoutOn('lists', id);
 // Lists in use show newest first until dragged into an order of their own (order.js: a list made later sorts above).
 const newestFirst = l => 1.9e9 - (Number(l.sort_order) || 0) / 1e3;
 const rankFor = l => rankOf(l, l.kind === 'template' ? undefined : newestFirst);
+// Cut items wait on this device (Cut on the selection bar, then Paste in any list); they're also copied as plain lines, "- " for sub-items, which Add items reads back.
+const CLIP = 'sift_list_clip';
+const readClip = () => { try { const clip = JSON.parse(localStorage.getItem(CLIP)); return clip?.items?.length ? clip : null; } catch { return null; } };
+const writeClip = clip => { try { if (clip) localStorage.setItem(CLIP, JSON.stringify(clip)); else localStorage.removeItem(CLIP); } catch {} };
+const itemsWord = n => `${n} item${n === 1 ? '' : 's'}`;
 
 export default {
   async mount(el) {
@@ -194,6 +199,8 @@ export default {
 
     // ---------- one list ----------
 
+    const pasteBtn = () => { const clip = readClip(); return clip ? `<button type="button" class="primary list-paste" data-act="paste" title="Put the items you cut here">📋 Paste ${itemsWord(clip.items.length)}${keys('Ctrl+V')}</button>` : ''; };
+
     function page() {
       const l = listOf(state.id);
       if (!l) return '<div class="empty"><h2>That list has gone.</h2></div>';
@@ -243,6 +250,7 @@ export default {
         ${isTemplate ? `
           <div class="list-actions">
             ${from ? '' : '<button type="button" class="primary" data-act="use">Use this template</button>'}
+            ${pasteBtn()}
             ${copies.length ? `<span class="muted">Copies: ${copies.map(c => `<a href="#/lists/${c.id}">${esc(c.name)}</a>`).join(', ')}</span>` : ''}
           </div>` : `
           <div class="list-actions">
@@ -252,6 +260,7 @@ export default {
             <button type="button" data-act="hide" aria-pressed="${state.hideTicked}">${state.hideTicked ? 'Show ticked' : 'Hide ticked'}</button>
             ${template ? `<span class="muted">from <a href="#/lists/${template.id}">${esc(template.name)}</a></span>` : ''}
             ${missing.length ? `<button type="button" data-act="add-missing">Add ${missing.length} missing from template</button>` : ''}
+            ${pasteBtn()}
           </div>`}
         </div>
         <div class="task-entry list-entry-box" id="list-entry">
@@ -522,7 +531,46 @@ export default {
       });
     }
 
+    // Cut: the items (and their sub-items) go to the Bin and wait to be pasted; pasting moves them back out into this
+    // list, ticks, notes and files kept. In another person's space (a shared list) they're pasted as copies.
+    async function cutItems(ids) {
+      const cut = nestItems(itemsOf(state.id)).filter(i => ids.includes(i.id) || ids.includes(i.parent_id));
+      const clip = { owner: state.owner || null, items: cut.map(i => ({ id: i.id, text: i.text, notes: i.notes || '', parent_id: cut.some(p => p.id === i.parent_id) ? i.parent_id : null, checked_at: i.checked_at || null })) };
+      navigator.clipboard?.writeText(clip.items.map(i => `${i.parent_id ? '- ' : ''}${i.text}`).join('\n')).catch(() => {});
+      const old = readClip();
+      writeClip(clip);
+      await store.updateMany('list_items', cut.map(i => [i.id, { deleted_at: new Date().toISOString() }]));
+      await render();
+      undoable(`Cut ${itemsWord(cut.length)}: open a list and Paste`, async () => { writeClip(old); await store.updateMany('list_items', cut.map(i => [i.id, { deleted_at: null }])); render(); });
+    }
+    async function pasteItems() {
+      const clip = readClip(), l = listOf(state.id);
+      if (!clip || !l) return;
+      const mine = clip.items.map(c => c.id);
+      const found = (clip.owner || null) === (state.owner || null) ? await store.list('list_items', { includeDeleted: true, filter: i => mine.includes(i.id) && !i.purged_at }) : [];
+      const newId = new Map(), moves = [], before = [], made = [];
+      let rank = itemsOf(l.id).map(i => rankOf(i)).sort().at(-1) || null;
+      for (const c of clip.items) {
+        rank = keyBetween(rank, null);
+        const fields = { list_id: l.id, parent_id: c.parent_id ? newId.get(c.parent_id) || null : null, rank, deleted_at: null, archived_at: null, checked_at: l.kind === 'template' ? null : c.checked_at };
+        const had = found.find(i => i.id === c.id);
+        if (had) { moves.push([c.id, fields]); before.push([c.id, Object.fromEntries(Object.keys(fields).map(k => [k, had[k] ?? null]))]); newId.set(c.id, c.id); continue; }
+        const copy = await store.create('list_items', Object.assign({ text: c.text, notes: c.notes, sort_order: 0 }, fields));
+        made.push(copy.id); newId.set(c.id, copy.id);
+      }
+      await store.updateMany('list_items', moves);
+      writeClip(null);
+      await render();
+      showAdded([...newId.values()]);
+      undoable(`Pasted ${itemsWord(newId.size)} into "${l.name || 'Untitled'}"`, async () => {
+        await store.updateMany('list_items', before.concat(made.map(id => [id, { deleted_at: new Date().toISOString() }])));
+        writeClip(clip);
+        render();
+      });
+    }
+
     const common = [
+      { id: 'cut', label: 'Cut', key: 'X', title: 'Cut, to paste into another list (Ctrl+X)', run: cutItems },
       { id: 'archive', label: 'Archive', key: 'A', run: ids => batch(ids, { archived_at: new Date().toISOString() }, 'Archived') },
       { id: 'delete', label: 'Delete', key: 'D', danger: true, run: ids => batch(ids, { deleted_at: new Date().toISOString() }, 'Removed') },
     ];
@@ -561,6 +609,24 @@ export default {
         render();
       });
     }
+    // Combine: the other lists' items move into the first one chosen (the top left), after its own, and the emptied
+    // lists go to the Bin.
+    async function combineLists(ids) {
+      const [into, ...rest] = ids.map(listOf).filter(Boolean);
+      if (!into || !rest.length) return;
+      let rank = itemsOf(into.id).map(i => rankOf(i)).sort().at(-1) || null;
+      const moving = rest.flatMap(l => nestItems(itemsOf(l.id)));
+      const before = moving.map(i => [i.id, { list_id: i.list_id, rank: i.rank ?? null, checked_at: i.checked_at ?? null }]);
+      await store.updateMany('list_items', moving.map(i => { rank = keyBetween(rank, null); return [i.id, { list_id: into.id, rank, checked_at: into.kind === 'template' ? null : i.checked_at ?? null }]; }));
+      await store.updateMany('lists', rest.map(l => [l.id, { deleted_at: new Date().toISOString() }]));
+      await render();
+      flash(cardFor(into.id)?.querySelector('.list-card'), SOFT);
+      undoable(`Combined ${listsWord(ids)} into "${into.name || 'Untitled'}"`, async () => {
+        await store.updateMany('lists', rest.map(l => [l.id, { deleted_at: null }]));
+        await store.updateMany('list_items', before);
+        render();
+      });
+    }
     async function cardOrder(rows, label, ul, moved) {
       const writes = reorderWrites(rows, r => rankFor(listOf(r.id)), moved);
       const before = writes.map(([r]) => [r.id, { rank: listOf(r.id)?.rank ?? null }]);
@@ -571,6 +637,7 @@ export default {
     const gridKit = this.gridKit = createListKit({
       reorder: true, grid: true, holdSelect: true, noun: 'list', onReorder: cardOrder,
       actions: [
+        { id: 'combine', label: 'Combine lists', title: 'Put their items into the first one chosen', when: () => gridKit.size > 1, run: combineLists },
         { id: 'colour', label: 'Colour…', run: ids => { colourMenu(document.querySelector('[data-kit-action="colour"]'), null, v => colourLists(ids, v)); } },
         { id: 'archive', label: 'Archive', key: 'A', run: ids => putAway(ids, 'archived_at', 'Archived') },
         { id: 'delete', label: 'Delete', key: 'D', danger: true, run: ids => putAway(ids, 'deleted_at', 'Deleted') },
@@ -680,6 +747,7 @@ export default {
       if (!l) return;
       if (act === 'share-people') return shareSheet({ kind: 'list', id: l.id, name: l.name || 'Untitled' }, `"${l.name || 'Untitled'}"`);
       if (act === 'add') return addEntry();
+      if (act === 'paste') return pasteItems();
       if (act === 'use') {
         const name = `${l.name} – ${shortDate(new Date().toISOString())}`;
         const inst = await useTemplate(l, itemsOf(l.id), name);
@@ -754,6 +822,10 @@ export default {
     this.onKey = ev => {
       if (ev.key === 'Escape' && openItem && !ev.defaultPrevented && !document.querySelector('.ref-picker')) { ev.preventDefault(); toggleItem(openItem); return; }
       if (ev.key === 'Escape' && !ev.target.closest('input, textarea, select, [contenteditable]') && (state.id ? kit : gridKit).escape()) ev.preventDefault();
+      // Ctrl+X cuts the chosen items, Ctrl+V pastes cut ones (not while typing: there they're the usual text keys).
+      if (!state.id || !(ev.ctrlKey || ev.metaKey) || ev.altKey || ev.shiftKey || ev.defaultPrevented || ev.target.closest('input:not([type="checkbox"]), textarea, select, [contenteditable]')) return;
+      if (ev.key.toLowerCase() === 'x' && kit.size) { ev.preventDefault(); kit.bar.querySelector('[data-kit-action="cut"]')?.click(); }
+      else if (ev.key.toLowerCase() === 'v' && readClip()) { ev.preventDefault(); pasteItems(); }
     };
     addEventListener('keydown', this.onKey);
     await render();
