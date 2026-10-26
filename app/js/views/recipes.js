@@ -1273,40 +1273,72 @@ ${IMPORT_EXAMPLE}`;
     // ---------- what's in stock ----------
     // Each ingredient of a batch: In stock, or Add to list (onto the batch's list; the first one
     // makes a new list, unless you picked one you have). Pressing either again takes it back off.
+    // On a list you have, the batch's things go under one item named after the batch (list_parent_id).
     const itemText = i => ingredientText(i) + (i.note ? ` (${i.note})` : '');
-    async function addToList(listId, ings) {
-      const have = (await store.list('list_items', { filter: x => x.list_id === listId && !x.archived_at })).sort((x, y) => (x.sort_order ?? 0) - (y.sort_order ?? 0));
-      return addItems(listId, ings.map(i => ({ text: itemText(i), sub: false })), nestItems(have));
+    const liveItems = listId => store.list('list_items', { filter: x => x.list_id === listId && !x.archived_at });
+    // The list was made for this batch (own_list_id; batches from before that: the list is named after the batch).
+    const ownList = (m, listId) => !!listId && (m.own_list_id !== undefined ? m.own_list_id === listId : lists.find(l => l.id === listId)?.name === batchListName(m));
+    // Returns [items made, changes for the batch].
+    async function addToList(m, listId, ings) {
+      const have = (await liveItems(listId)).sort((x, y) => (x.sort_order ?? 0) - (y.sort_order ?? 0));
+      if (ownList(m, listId)) return [await addItems(listId, ings.map(i => ({ text: itemText(i), sub: false })), nestItems(have)), {}];
+      const patch = {};
+      let parent = m.list_parent_id && have.find(x => x.id === m.list_parent_id && !x.parent_id);
+      if (!parent) { [parent] = await addItems(listId, [{ text: batchListName(m), sub: false }], nestItems(have)); patch.list_parent_id = parent.id; }
+      let n = have.reduce((top, x) => Math.max(top, x.sort_order ?? 0), parent.sort_order ?? 0) + 1;
+      const made = [];
+      for (const i of ings) made.push(await store.create('list_items', { list_id: listId, text: itemText(i), parent_id: parent.id, sort_order: n++, checked_at: null }));
+      return [made, patch];
+    }
+    // Takes the batch's things off its list; the item they sat under goes too once it has nothing left under it.
+    async function takeOff(m, listId, ids) {
+      for (const id of ids) await store.remove('list_items', id);
+      const parent = m.list_parent_id;
+      if (!parent || !listId) return {};
+      const left = await liveItems(listId);
+      if (left.some(x => x.parent_id === parent)) return {};
+      if (left.some(x => x.id === parent)) await store.remove('list_items', parent);
+      return { list_parent_id: null };
     }
     async function setStock(ingId, how) {
       const m = await store.get('recipe_makes', state.make);
       const stock = Object.assign({}, m.stock), items = Object.assign({}, m.stock_items);
       const was = stock[ingId];
       const patch = {};
-      if (items[ingId]) { await inMine(() => store.remove('list_items', items[ingId])); delete items[ingId]; }
+      if (items[ingId]) { Object.assign(patch, await inMine(() => takeOff(m, m.list_id, [items[ingId]]))); delete items[ingId]; }
       if (was === how) delete stock[ingId]; else stock[ingId] = how;
+      let created = null;
       if (stock[ingId] === 'need') {
         let list = m.list_id && lists.find(l => l.id === m.list_id);
-        if (!list) { list = await inMine(() => createList({ name: batchListName(m), kind: 'list' })); patch.list_id = list.id; }
-        const made = await inMine(() => addToList(list.id, [m.ingredients.find(i => i.id === ingId)]));
+        if (!list) { list = created = await inMine(() => createList({ name: batchListName(m), kind: 'list' })); patch.list_id = patch.own_list_id = list.id; patch.list_parent_id = null; }
+        const [made, more] = await inMine(() => addToList(Object.assign({}, m, patch), list.id, [m.ingredients.find(i => i.id === ingId)]));
         items[ingId] = made[0].id;
-        if (patch.list_id) toast(`Created the shopping list "${list.name}" in Lists`, { action: 'Open it', onAction: () => { location.hash = `#/lists/${list.id}`; } });
+        Object.assign(patch, more);
+        if (created) toast(`Created the shopping list "${list.name}" in Lists`, { action: 'Open it', onAction: () => { location.hash = `#/lists/${list.id}`; } });
       }
       await store.update('recipe_makes', m.id, Object.assign(patch, { stock, stock_items: items }));
-      if (patch.list_id) lists = await inMine(async () => (await loadLists()).lists);
+      if (created) lists = await inMine(async () => (await loadLists()).lists);
       await later();
     }
-    // Another list chosen: what's already been added moves over to it.
+    // Another list chosen: what's already been added moves over to it, and a list made for the batch goes once it's empty.
     async function moveToList(listId) {
       const m = await store.get('recipe_makes', state.make);
       const items = Object.assign({}, m.stock_items);
       const ings = (m.ingredients || []).filter(i => items[i.id] && (m.stock || {})[i.id] === 'need');
-      await inMine(async () => { for (const i of ings) await store.remove('list_items', items[i.id]); });
-      let target = listId;
-      if (!target && ings.length) target = (await inMine(() => createList({ name: batchListName(m), kind: 'list' }))).id;
-      if (target && ings.length) { const made = await inMine(() => addToList(target, ings)); ings.forEach((i, n) => { items[i.id] = made[n].id; }); }
-      await store.update('recipe_makes', m.id, { list_id: target || null, stock_items: items });
+      const old = m.list_id && lists.find(l => l.id === m.list_id);
+      const patch = await inMine(() => takeOff(m, old?.id, ings.map(i => items[i.id])));
+      const dropOld = old && ownList(m, old.id) && !(await inMine(() => liveItems(old.id))).length;
+      if (dropOld) await inMine(() => store.remove('lists', old.id));
+      Object.assign(patch, { list_id: listId || null, own_list_id: null, list_parent_id: null });
+      if (!listId && ings.length) patch.list_id = patch.own_list_id = (await inMine(() => createList({ name: batchListName(m), kind: 'list' }))).id;
+      if (patch.list_id && ings.length) {
+        const [made, more] = await inMine(() => addToList(Object.assign({}, m, patch), patch.list_id, ings));
+        ings.forEach((i, n) => { items[i.id] = made[n].id; });
+        Object.assign(patch, more);
+      }
+      await store.update('recipe_makes', m.id, Object.assign(patch, { stock_items: items }));
       lists = await inMine(async () => (await loadLists()).lists);
+      if (dropOld) toast(`Removed the list "${old.name || 'Untitled'}", made for this batch`);
       await render();
     }
 

@@ -25,6 +25,8 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.50': [{ text: "Batch Book: on a batch, Add to list puts things on a list you already have under one item named after the batch, with the ingredients as its sub-items, rather than loose among your other items.", go: '#/recipes', open: ['#main .bb-card', '#main .bb-batch-row'], at: '#main .bb-listline' },
+    { text: "Batch Book: choosing another list for a batch's shopping removes the list that was made for the batch, once nothing else is on it.", go: '#/recipes', open: ['#main .bb-card', '#main .bb-batch-row'], at: '#main .bb-listline' }],
   '1.61.49': [{ text: "Lists: choose items by their ⠿ and press Cut (X or Ctrl+X) on the bar, then open another list and press 📋 Paste (Ctrl+V). The items move over with their sub-items, ticks, notes and files. They're copied as text too, so they paste into Add items or another app.", go: '#/lists', open: ['#main .list-card'], at: '#main .checklist' },
     { text: "Lists: press and hold two or more lists to choose them, then Combine lists on the bar puts all their items into the first one chosen. The others go to the Bin, and Undo puts them back.", go: '#/lists', at: '#main .list-grid' }],
   '1.61.48': [{ text: "Follow along: tap an ingredient (in the list, or the amber words in a step) to see it in full with its amount in other measures: grams or kilos first, then ounces, pounds, cups, fl oz, pints and so on. Pints, fl oz, quarts, gallons and cups have UK and US buttons to say which the recipe means.", go: '#/recipes', open: ['#main .bb-card', '#main .bb-follow'], at: '.fa-ing-list' }],
@@ -222,6 +224,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.50': '2026-10-26T18:27:16Z',
   '1.61.49': '2026-10-26T18:24:20Z',
   '1.61.48': '2026-10-26T16:56:21Z',
   '1.61.47': '2026-10-25T20:52:14Z',
