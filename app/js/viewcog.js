@@ -118,6 +118,8 @@ const LAYOUTS = {
 const layoutKey = (area, id) => `sift-layout:${area}:${id}`;
 export function layoutOn(area, id) {
   if (id === 'lined' && SKIN_AREAS.includes(area)) return !!skinDef(area).lined;
+  const forced = forcedBy(area, id);
+  if (forced !== undefined) return forced;
   const opt = LAYOUTS[area]?.find(o => o.id === id);
   if (opt?.skin && skinOf(area) !== opt.skin) return false;
   if (opt?.needs && !layoutOn(area, opt.needs)) return false;
@@ -129,7 +131,7 @@ function setOn(area, id) {
   try { const v = localStorage.getItem(layoutKey(area, id)); return v === null ? def : v === '1'; } catch { return def; }
 }
 const optHtml = (area, opts, label) => `<div class="layout-opts" role="group" aria-label="${label}">
-      ${opts.map(o => `<label class="layout-opt${o.needs ? ' layout-sub' : ''}"${o.needs && !setOn(area, o.needs) ? ' hidden' : ''}><input type="checkbox" data-layout-set="${o.id}"${o.needs ? ` data-layout-needs="${o.needs}"` : ''}${setOn(area, o.id) ? ' checked' : ''}> ${o.label}</label>`).join('')}
+      ${opts.map(o => `<label class="layout-opt${o.needs ? ' layout-sub' : ''}"${optHidden(area, o) ? ' hidden' : ''}><input type="checkbox" data-layout-set="${o.id}"${o.needs ? ` data-layout-needs="${o.needs}"` : ''}${setOn(area, o.id) ? ' checked' : ''}> ${o.label}</label>`).join('')}
     </div>`;
 export function layoutHtml(area, heading = true) {
   const opts = LAYOUTS[area]?.filter(o => !o.skin);
@@ -140,17 +142,23 @@ export function layoutHtml(area, heading = true) {
 // Styles (skins) for pages of rows: Tasks (its projects too) and Lists. One is picked in 👁 Style,
 // put on <main data-skin>; lined: true styles also set data-layout-lined (the paper CSS). A style's
 // own options are LAYOUTS entries with skin: <its id>, shown under the picker only while it's picked.
+// forces: Layout switches the style sets itself (hidden from Layout while it's picked); areas: where
+// it's offered (all SKIN_AREAS when left out).
 // A new style: add it here (sample: the pill's own look) and its CSS under #main[data-skin="<id>"].
 export const SKINS = [
   { id: 'cards', label: 'Cards' },
   { id: 'lined', label: 'Lined paper', lined: true },
+  { id: 'minimal', label: 'Minimal', lined: true, areas: ['tasks'], forces: { 'add-top': true, pad: false } },
 ];
 const SKIN_AREAS = ['tasks', 'lists'];
+const skinsFor = area => SKINS.filter(x => !x.areas || x.areas.includes(area));
+const forcedBy = (area, id) => (SKIN_AREAS.includes(area) ? skinDef(area).forces?.[id] : undefined);
+const optHidden = (area, o) => forcedBy(area, o.id) !== undefined || (o.needs && !setOn(area, o.needs));
 const skinKey = area => `sift-view:${area}:skin`;
 export function skinOf(area) {
   try {
     const v = localStorage.getItem(skinKey(area));
-    if (SKINS.some(x => x.id === v)) return v;
+    if (skinsFor(area).some(x => x.id === v)) return v;
     return localStorage.getItem(`sift-layout:${area}:lined`) === '1' ? 'lined' : 'cards'; // the old Lined Paper tick box
   } catch { return 'cards'; }
 }
@@ -160,9 +168,9 @@ function styleHtml(area) {
   const on = skinOf(area);
   return `<h4>Style</h4>
     <div class="view-opts skin-opts" role="group" aria-label="Style">
-      ${SKINS.map(x => `<button type="button" class="skin-pill" data-skin="${x.id}" data-skin-set="${x.id}" aria-pressed="${x.id === on}"><span class="skin-sample" aria-hidden="true"><i></i><i></i><i></i></span>${x.label}</button>`).join('')}
+      ${skinsFor(area).map(x => `<button type="button" class="skin-pill" data-skin="${x.id}" data-skin-set="${x.id}" aria-pressed="${x.id === on}"><span class="skin-sample" aria-hidden="true"><i></i><i></i><i></i></span>${x.label}</button>`).join('')}
     </div>
-    ${SKINS.map(x => { const opts = (LAYOUTS[area] || []).filter(o => o.skin === x.id); return opts.length ? `<div class="skin-own" data-skin-own="${x.id}"${x.id === on ? '' : ' hidden'}>${optHtml(area, opts, x.label)}</div>` : ''; }).join('')}`;
+    ${skinsFor(area).map(x => { const opts = (LAYOUTS[area] || []).filter(o => o.skin === x.id); return opts.length ? `<div class="skin-own" data-skin-own="${x.id}"${x.id === on ? '' : ' hidden'}>${optHtml(area, opts, x.label)}</div>` : ''; }).join('')}`;
 }
 
 const key = area => `sift-density:${area}`;
@@ -197,6 +205,16 @@ export function cogHtml(area, extra = '') {
     </details>`;
 }
 
+// A 👁 menu brought in line with the stored choices (another device's, or a new style's).
+function syncMenu(m, area) {
+  if (!m) return;
+  for (const b of m.querySelectorAll('[data-layout-set]')) { b.checked = setOn(area, b.dataset.layoutSet); b.closest('.layout-opt').hidden = optHidden(area, LAYOUTS[area]?.find(o => o.id === b.dataset.layoutSet) || {}); }
+  for (const b of m.querySelectorAll('[data-skin-set]')) b.setAttribute('aria-pressed', String(b.dataset.skinSet === skinOf(area)));
+  for (const b of m.querySelectorAll('[data-skin-own]')) b.hidden = b.dataset.skinOwn !== skinOf(area);
+  for (const b of m.querySelectorAll('[data-shade-set]')) b.setAttribute('aria-pressed', String(b.dataset.shadeSet === shadeOf(area)));
+  for (const b of m.querySelectorAll('[data-density-set]')) b.setAttribute('aria-pressed', String(b.dataset.densitySet === densityOf(area)));
+}
+
 export function installViewCog(getArea) {
   const apply = () => {
     const main = document.querySelector('#main');
@@ -211,14 +229,7 @@ export function installViewCog(getArea) {
   const follow = async () => {
     if (!(await pullViews())) return;
     apply();
-    for (const m of document.querySelectorAll('.view-settings')) {
-      for (const b of m.querySelectorAll('[data-layout-set]')) b.checked = setOn(getArea(), b.dataset.layoutSet);
-      for (const b of m.querySelectorAll('[data-layout-needs]')) b.closest('.layout-opt').hidden = !setOn(getArea(), b.dataset.layoutNeeds);
-      for (const b of m.querySelectorAll('[data-skin-set]')) b.setAttribute('aria-pressed', String(b.dataset.skinSet === skinOf(getArea())));
-      for (const b of m.querySelectorAll('[data-skin-own]')) b.hidden = b.dataset.skinOwn !== skinOf(getArea());
-      for (const b of m.querySelectorAll('[data-shade-set]')) b.setAttribute('aria-pressed', String(b.dataset.shadeSet === shadeOf(getArea())));
-      for (const b of m.querySelectorAll('[data-density-set]')) b.setAttribute('aria-pressed', String(b.dataset.densitySet === densityOf(getArea())));
-    }
+    for (const m of document.querySelectorAll('.view-settings')) syncMenu(m, getArea());
     document.dispatchEvent(new CustomEvent('sift-layout', { detail: { area: getArea(), id: null } }));
   };
   store.subscribe(change => { if (change?.collection === 'settings') follow(); });
@@ -234,7 +245,7 @@ export function installViewCog(getArea) {
     const box = ev.target.closest?.('[data-layout-set]');
     if (!box) return;
     saveView(layoutKey(getArea(), box.dataset.layoutSet), box.checked ? '1' : '0');
-    for (const sub of box.closest('.layout-opts').querySelectorAll(`[data-layout-needs="${box.dataset.layoutSet}"]`)) sub.closest('.layout-opt').hidden = !box.checked;
+    syncMenu(box.closest('.view-settings'), getArea());
     apply();
     document.dispatchEvent(new CustomEvent('sift-layout', { detail: { area: getArea(), id: box.dataset.layoutSet } }));
   });
@@ -242,9 +253,7 @@ export function installViewCog(getArea) {
     const sk = ev.target.closest?.('[data-skin-set]');
     if (sk) {
       saveView(skinKey(getArea()), sk.dataset.skinSet);
-      const menu = sk.closest('.view-settings');
-      for (const x of menu.querySelectorAll('[data-skin-set]')) x.setAttribute('aria-pressed', String(x === sk));
-      for (const x of menu.querySelectorAll('[data-skin-own]')) x.hidden = x.dataset.skinOwn !== sk.dataset.skinSet;
+      syncMenu(sk.closest('.view-settings'), getArea());
       apply();
       document.dispatchEvent(new CustomEvent('sift-layout', { detail: { area: getArea(), id: 'skin' } }));
       return;
