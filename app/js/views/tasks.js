@@ -1255,7 +1255,7 @@ export default {
       }, { className: 'list-menu' });
     }
     const taskActions = [
-      { id: 'done', label: 'Done', key: 'Ctrl+Enter', run: ids => batchSet(ids, doneFields(true), 'Done:', { fade: true }) },
+      { id: 'done', label: 'Done', key: 'Ctrl+Enter', run: ids => batchSet(ids, doneFields(true), 'Done:', { subs: true, fade: true }) },
       // Move ▸ opens sideways to the lists, less the one being looked at. Not inside a project: a task stays in its
       // project (a misfiled one moves from its panel's List or Project choice), and Assign to… takes Move's place.
       { id: 'now', label: 'Now', group: 'Move', when: () => state.view !== 'now' && !state.owner && !state.project, run: ids => batchSet(ids, toList('now'), 'Transferred to Now:', { subs: true }) },
