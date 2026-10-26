@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.48': [{ text: "Follow along: tap an ingredient (in the list, or the amber words in a step) to see it in full with its amount in other measures: grams or kilos first, then ounces, pounds, cups, fl oz, pints and so on. Pints, fl oz, quarts, gallons and cups have UK and US buttons to say which the recipe means.", go: '#/recipes', open: ['#main .bb-card', '#main .bb-follow'], at: '.fa-ing-list' }],
   '1.61.47': [{ text: "Follow along: a recipe it can't find on this device for a moment (after an update, or before syncing) keeps its place instead of being dropped, so cooking carries on after Reload.", go: '#/recipes', at: '#main .bb-cooking' }],
   '1.61.46': [{ text: "Batch Book: a recipe's or batch's steps can be put in a new order. Hold a step (or its ⠿) and drag it, or press Shift+Alt+↑ / ↓ while writing one. Tap the ⠿ to choose steps, then D deletes them.", go: '#/recipes', open: ['#main .bb-card'], at: '#main .bb-step-list' }],
   '1.61.45': [{ text: "Batch Book, ⋯, Import recipes: Copy instructions for an AI chat now lists your own books, so the AI puts each recipe in the one it fits best.", go: '#/recipes', open: ['#main [data-act="import"]'], at: '.bb-import-sheet [data-imp="prompt"]' }],
@@ -219,6 +220,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.48': '2026-10-26T16:56:21Z',
   '1.61.47': '2026-10-25T20:52:14Z',
   '1.61.46': '2026-10-25T19:52:27Z',
   '1.61.45': '2026-10-25T14:37:13Z',

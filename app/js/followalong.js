@@ -12,7 +12,7 @@
 import { keys } from './keys.js';
 import * as store from './store.js';
 import * as att from './attachments.js';
-import { stepsOf, amountText, stepHtml, stepRefs, stepWaits, qtyText, batchName, newBatchName, nextBatchNo, sectionsOf, sectionOf } from './batchbook.js';
+import { stepsOf, amountText, ingredientText, conversions, unitSides, unitGroup, stepHtml, stepRefs, stepWaits, qtyText, batchName, newBatchName, nextBatchNo, sectionsOf, sectionOf } from './batchbook.js';
 import { isoDate } from './days.js';
 import { TINTS } from './colours.js';
 import * as timers from './timers.js';
@@ -131,7 +131,7 @@ export async function openFollow(open) {
   const scaleHtml = p => (p.tab.c === 'recipes' && p.ings.some(i => i.qty != null) ? `<span class="segmented fa-scale" aria-label="Scale">${SCALES.map(s => `<button type="button" data-scale="${s}" aria-pressed="${p.tab.times === s}">×${qtyText(s)}</button>`).join('')}</span>` : '');
   const ingsHtml = (p, cur) => {
     const used = p.steps[cur] ? stepRefs(p.steps[cur].text, p.ings) : new Set();
-    return `<ul class="fa-ing-list">${p.ings.map(i => `<li${used.has(i.id) ? ' class="fa-used"' : ''}><b>${esc(amountText(i, p.tab.times))}</b><span>${esc(i.item)}${i.note ? ` <span class="muted">(${esc(i.note)})</span>` : ''}</span></li>`).join('')}</ul>`;
+    return `<ul class="fa-ing-list">${p.ings.map(i => `<li data-ing="${i.id}"${used.has(i.id) ? ' class="fa-used"' : ''}><b>${esc(amountText(i, p.tab.times))}</b><span>${esc(i.item)}${i.note ? ` <span class="muted">(${esc(i.note)})</span>` : ''}</span></li>`).join('')}</ul>`;
   };
   const photo = (p, st) => { const a = (p.atts.get(st.id) || []).find(x => x.thumb); return a ? `<button type="button" class="fa-photo" data-photo="${a.id}" aria-label="Look at the photo"><img src="${a.thumb}" alt="" data-full="${a.id}"></button>` : ''; };
   // A step ticked off: a big green ✓ on its left; its pill (bottom right, on the step in the middle) ticks it and moves on.
@@ -183,6 +183,36 @@ export async function openFollow(open) {
       <footer><small>${willDo(p)}</small><button type="button" class="fa-end-finish" data-end="finish">✓ Finish</button></footer>
     </section>`;
   };
+  // An ingredient tapped (in the list, or in a step): its full line, the amount (scaled, and only the step's part of it),
+  // UK or US where the measure differs (saved on the recipe or batch) and the amount in other measures.
+  function ingredientSheet(p, id, part = 1) {
+    const dlg = document.createElement('dialog');
+    dlg.className = 'sheet fa-conv';
+    const fill = () => {
+      const ing = p.ings.find(i => i.id === id);
+      if (!ing) return dlg.close();
+      const times = p.tab.times * part, qty = ing.qty == null ? null : ing.qty * times, sides = unitSides(ing.unit), list = conversions(qty, ing.unit);
+      dlg.innerHTML = `<div class="sheet-handle"></div><h2>${esc(ingredientText(ing, p.tab.times))}</h2>${ing.note ? `<p class="muted fa-conv-note">${esc(ing.note)}</p>` : ''}
+        ${part !== 1 ? `<p class="muted">This step uses ${esc(qtyText(part))} of it.</p>` : ''}
+        <div class="fa-conv-amount"><b>${esc(amountText(ing, times)) || '<span class="muted">No amount</span>'}</b>${sides ? `<span class="segmented" aria-label="Which measure the recipe means">${sides.map(([u, label]) => `<button type="button" data-side="${u}" aria-pressed="${u === ing.unit}">${label}</button>`).join('')}</span>` : ''}</div>
+        ${sides ? '<p class="muted fa-conv-hint">UK and US measures differ: pick the one the recipe means.</p>' : ''}
+        ${list.length ? `<ul class="fa-conv-list">${list.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : `<p class="muted">${qty == null ? 'No amount to convert.' : unitGroup(ing.unit) === 'Count' ? 'Counted, so nothing to convert.' : 'Nothing to convert to.'}</p>`}
+        <div class="sheet-actions"><span class="spacer"></span><button type="button" class="primary" data-conv="done">Done</button></div>`;
+    };
+    fill();
+    dlg.addEventListener('click', async ev => {
+      const b = ev.target.closest('button');
+      if (b?.dataset.conv) return dlg.close();
+      if (!b?.dataset.side) return;
+      const ings = p.ings.map(i => (i.id === id ? Object.assign({}, i, { unit: b.dataset.side }) : i));
+      p.ings = ings; p.rec.ingredients = ings; fill();
+      await p.space.update(p.tab.c, p.rec.id, { ingredients: ings }).catch(() => toast('Couldn\'t save that'));
+    });
+    document.body.append(dlg);
+    dlg.addEventListener('close', () => { dlg.remove(); shown.filter(x => x.pot === p).forEach(x => x.rescale()); });
+    dlg.showModal();
+    dlg.querySelector('[data-conv]').focus({ preventScroll: true });
+  }
   // One pot: its ingredients (folded unless it's the only one on a wide screen) and its drum of steps.
   const potHtml = (p, n, { alone }) => `<div class="fa-pot${alone ? ' fa-alone' : ''}" data-pot="${n}" data-slot="${n}" style="--pot:${p.colour}">
       ${alone && pots.length < 2 ? '' : `<div class="fa-pot-head"><div class="fa-pot-line"><b${alone ? '' : ` data-drag="${n}" title="Drag sideways to another place"`}>${esc(p.title)}</b>${clockHtml(p)}</div>${alone ? '' : scaleHtml(p)}</div>`}
@@ -557,6 +587,8 @@ export async function openFollow(open) {
   closeOpen = close;
   el.addEventListener('click', ev => {
     if (timers.onClick(ev, { open: (t, { step } = {}) => { const n = pots.findIndex(p => p.tab.id === (t.make_id || t.recipe_id)); if (n < 0) return; if (step) atStep(pots[n], t); switchTo(n); }, places: pots.map(p => p.where) })) return;
+    const ing = ev.target.closest('[data-ing]');
+    if (ing) { const s = shown.find(x => x.box === ing.closest('[data-pot]')); if (s) return ingredientSheet(s.pot, ing.dataset.ing, +ing.dataset.part || 1); }
     const b = ev.target.closest('button, .fa-step, summary, .fa-tab');
     if (!b) return;
     const box = b.closest('[data-pot]');
@@ -667,7 +699,16 @@ body.follow-open > :is(.appbar, #main, #tabbar, #timer-dock, .select-bar:not(.tm
 .fa-cur .fa-of { display: inline; margin-left: .4em; }
 .fa-text { font-size: clamp(1.5rem, 2.6vw, 2.1rem); line-height: 1.3; font-weight: 500; margin-top: 6px; overflow-wrap: anywhere; }
 .fa-side-by-side .fa-text { font-size: clamp(1.2rem, 1.9vw, 1.7rem); }
-.fa-text .bb-ref { color: #f6c46f; background: none; padding: 0; font-weight: 650; white-space: normal; }
+.fa-text .bb-ref { color: #f6c46f; background: none; padding: 0; font-weight: 650; white-space: normal; cursor: pointer; text-decoration: underline dotted color-mix(in srgb, #f6c46f 55%, transparent); text-underline-offset: 3px; }
+.fa-ing-list li { cursor: pointer; }
+.fa-conv h2 { margin-bottom: 2px; }
+.fa-conv-note { margin: 0 0 6px; }
+.fa-conv-amount { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; margin: 14px 0 4px; }
+.fa-conv-amount b { font-size: 2rem; font-weight: 650; color: #f6c46f; }
+.fa-conv-hint { margin: 2px 0 0; font-size: .9rem; }
+.fa-conv-list { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 6px; font-size: 1.15rem; }
+.fa-conv-list li { padding: 9px 14px; border-radius: 12px; background: var(--glass); border: 1px solid var(--glass-border); }
+.fa-conv-list li:first-child { font-weight: 650; }
 .fa-extra { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
 .fa-photo { padding: 0; border-radius: 18px; overflow: hidden; background: none; flex: none; max-width: 100%; }
 .fa-photo img { display: block; width: min(380px, 100%); max-height: 34vh; object-fit: cover; }
