@@ -69,8 +69,7 @@ export default {
       const copies = from ? 0 : data.lists.filter(x => x.template_id === l.id).length;
       const who = from ? '' : sharedWithText({ kind: 'list', id: l.id });
       return `<li class="list-card-li" ${from ? `data-list="${l.id}"` : `data-id="${l.id}" data-list="${l.id}" data-depth="0"`}>
-        ${from ? '' : `<button type="button" class="drag-handle kit-grip" aria-label="Select" title="Select (or press and hold the card)">${icon('i-grip')}</button>`}
-        <a class="project-card list-card" href="#/lists/${l.id}${from ? `/from/${from.owner_id}` : ''}" style="--tint: ${tintHex(l)}; --c: ${tintHex(l)}">
+        <a class="project-card list-card" draggable="false" href="#/lists/${l.id}${from ? `/from/${from.owner_id}` : ''}" style="--tint: ${tintHex(l)}; --c: ${tintHex(l)}">
           <span class="project-title">${esc(l.name || 'Untitled')}</span>
           ${from ? `<span class="muted">👥 from ${esc(from.name)}</span>` : who ? `<span class="muted">👥 shared with ${esc(who)}</span>` : ''}
           ${l.kind === 'template'
@@ -640,7 +639,7 @@ export default {
       undoable(label, async () => { await store.updateMany('lists', before); render(); });
     }
     const gridKit = this.gridKit = createListKit({
-      reorder: true, grid: true, holdSelect: true, noun: 'list', onReorder: cardOrder,
+      reorder: true, grid: true, holdSelect: true, tiles: true, noun: 'list', onReorder: cardOrder,
       actions: [
         { id: 'combine', label: 'Combine lists', title: 'Put their items into the first one chosen', when: () => gridKit.size > 1, run: combineLists },
         { id: 'colour', label: 'Colour…', run: ids => { colourMenu(document.querySelector('[data-kit-action="colour"]'), null, v => colourLists(ids, v)); } },

@@ -35,6 +35,10 @@
 // gap it would drop into has the same dashed outline (.drop-slot), so there's
 // always one outline saying where it lands.
 //
+// With `pressDrag(event)` (tiles with no ⠿): it returns the card a press there may drag (or null); the
+// card lifts as soon as the pointer moves (no hold, no swipe-select), and a release without moving is left
+// to the page's own click. `arm(item, x, y)` (returned) does the same for a press already down (a hold that chose it).
+//
 // With `section` (a selector, e.g. a milestone's heading): such a row can be lifted
 // (other headings can't) and lands only at a section boundary: before another
 // section's heading, or after the last row. The view carries its rows along.
@@ -48,7 +52,7 @@ const wobble = (from, to, kick) => Array.from({ length: 41 }, (_, n) => {
   return { rotate: `${(to + (from - to) * fade * Math.cos(turn) + kick * fade * Math.sin(turn)).toFixed(3)}deg` };
 });
 
-export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere = 0, keyboard = true, grid = false, onMove, onEnd, onCancel, onTap, onPaint, onLift, onDrag, onOnto, section = null } = {}) {
+export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere = 0, keyboard = true, grid = false, onMove, onEnd, onCancel, onTap, onPaint, onLift, onDrag, onOnto, section = null, pressDrag = null } = {}) {
   let origin = null; // where the dragged row was picked up: { parent, next }
   let onto = null; // the row the dragged one is over the middle of (onOnto)
   let leftOnto = null; // the row it was last onto, and when it came off: { el, at }
@@ -82,6 +86,7 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
   let startY = 0;
   let lastX = 0;
   let lastY = 0;
+  let quietUntil = 0; // the click a mouse's drag ends with isn't a click on the card
 
   // Hidden rows (e.g. the rest of a group being dragged) don't take part.
   const siblings = () => [...list.children].filter(el => el !== dragging && !el.hidden);
@@ -238,7 +243,11 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
   }
   const escKey = e => { if (e.key === 'Escape' && dragging) { e.preventDefault(); e.stopImmediatePropagation(); putBack(); } }; // only the drag: not also the selection or the editing
 
+  list.addEventListener('click', e => { if (Date.now() < quietUntil) { quietUntil = 0; e.preventDefault(); e.stopImmediatePropagation(); } }, true);
+  const arm = (item, x, y) => { if (dragging) return; lastX = x; lastY = y; pending = { item, x, y, moveDrags: true }; };
   list.addEventListener('pointerdown', e => {
+    const card = pressDrag && !dragging && e.button <= 0 && !e.target.closest(handle) ? pressDrag(e) : null;
+    if (card) { if (e.pointerType === 'mouse') e.preventDefault(); return arm(card, e.clientX, e.clientY); } // (a mouse: no text choosing or picture dragging)
     const grip = e.target.closest(handle);
     if (!grip || !list.contains(grip) || e.button > 0) return;
     e.preventDefault();
@@ -266,8 +275,10 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     if (pending) {
       if (Math.hypot(e.clientX - pending.x, e.clientY - pending.y) < 6) return;
       clearTimeout(pending.timer);
-      painting = pending.item;
+      const p = pending;
       pending = null;
+      if (p.moveDrags) { lift(p.item, p.x, p.y); quietUntil = Infinity; }
+      else painting = p.item;
     }
     if (painting) {
       onPaint?.(painting, rowAt(e.clientY));
@@ -294,7 +305,7 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
       clearTimeout(pending.timer);
       const { item, event } = pending;
       pending = null;
-      if (e.type === 'pointerup') onTap?.(item, event);
+      if (e.type === 'pointerup' && event) onTap?.(item, event);
       return;
     }
     if (painting) {
@@ -306,6 +317,7 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     removeEventListener('pointerup', strayEnd);
     removeEventListener('pointercancel', strayEnd);
     removeEventListener('keydown', escKey, true);
+    if (quietUntil === Infinity) quietUntil = Date.now() + 400;
     const item = dragging;
     slot?.remove();
     slot = null;
@@ -361,4 +373,5 @@ export function sortable(list, { handle = '.drag-handle', holdMs = 0, anywhere =
     grip.focus();
     onEnd?.({ item, dx: 0 });
   });
+  return { arm };
 }

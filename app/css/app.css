@@ -490,13 +490,9 @@ button.danger { color: #ff8a80; }
    top left, over the card's corner; on desktop only on hover, on touch screens always. A click selects the card.
    The card's first line moves right to make room for it. */
 :is(.box-card, .c-card, .bb-card-li, .list-card-li)[data-id] { position: relative; }
-:is(.box-card, .c-card, .bb-card-li, .list-card-li) > .kit-grip { position: absolute; top: 6px; left: 6px; z-index: 1; width: 30px; height: 30px; padding: 0; border-radius: 10px; background: var(--glass-strong); opacity: 0; transition: opacity .12s; }
-:is(.box-card, .c-card, .bb-card-li, .list-card-li):is(:hover, :focus-within, .selected) > .kit-grip { opacity: .9; }
-:is(.box-card, .c-card, .bb-card-li, .list-card-li).selected > .kit-grip { color: var(--accent); }
-@media (hover: none) { :is(.box-card, .c-card, .bb-card-li, .list-card-li) > .kit-grip { opacity: .75 !important; } }
-.box-card > .kit-grip + * { padding-left: 32px; min-height: 26px; }
-.c-card > .kit-grip + .c-main .c-name { display: block; padding-left: 32px; min-height: 26px; }
-.list-card-li > .kit-grip + .list-card .project-title { padding-left: 32px; min-height: 26px; }
+/* Cards have no ⠿ (listkit `tiles`): hold to choose, then drag from anywhere; never the browser's own drag of a card's link or picture (iPad), nor its press-and-hold menu. */
+:is(.box-card, .c-card, .bb-card-li, .list-card-li), :is(.box-card, .c-card, .bb-card-li, .list-card-li) :is(a, img) { -webkit-user-drag: none; -webkit-touch-callout: none; }
+:is(.c-card, .bb-card-li, .list-card-li).selected { touch-action: none; } /* a chosen card drags with the finger rather than scrolling the page */
 .tool-menu { position: relative; }
 .tool-menu summary { list-style: none; cursor: pointer; }
 .tool-menu summary::-webkit-details-marker { display: none; }
