@@ -41,6 +41,8 @@ const LISTS = ['inbox', 'now', 'next', 'later'];   // where a task lives
 const EMPTY = { get inbox() { return `${word('list_inbox')} is empty.`; }, now: 'Nothing for now.', next: 'Nothing lined up next.', later: 'Nothing for later.' };
 // 👁 Layout switches (viewcog.js), all off by default.
 const lay = id => layoutOn('tasks', id);
+// A row's small marker: its emoji, and a line drawing of it that the Minimal style shows instead (CSS).
+const mark = (emoji, id) => `<span class="emo">${emoji}</span><svg class="icon line-ico" aria-hidden="true"><use href="#${id}"/></svg>`;
 // Highlight item when added (👁 Layout): the new tasks pulse once, soft blue (flash.js), and
 // the list scrolls to them if they're out of view.
 const showAdded = (root, ids) => { ids.forEach((id, n) => flash(root.querySelector(`.task-list > li[data-task="${id}"]`), Object.assign({ scroll: n ? false : 'nearest' }, SOFT))); };
@@ -156,11 +158,11 @@ export default {
       const p = projectOf(t);
       if (p && !state.project) out.push(`<span class="chip" style="--c:${projectHex(p)}">${esc(p.name)}</span>`);
       // Values only, in every spacing: the icons say what they are (hover for the words).
-      if (t.start_date) out.push(`<span class="chip" title="Planned for ${shortDate(t.start_date)}">📅 ${shortDate(t.start_date)}</span>`);
+      if (t.start_date) out.push(`<span class="chip" title="Planned for ${shortDate(t.start_date)}">${mark('📅', 'i-calendar')} ${shortDate(t.start_date)}</span>`);
       const aim = aimDate(t);
       if (aim) out.push(`<span class="chip${!isDone(t) && aim < isoDate() ? ' late' : ''}" title="Target end date">⚑ ${shortDate(aim)}${t.aim_at.length > 10 ? ` ${t.aim_at.slice(11, 16)}` : ''}</span>`);
-      if (t.repeat) out.push(`<span class="chip" title="Repeats">🔁 ${repeatLabel(t.repeat)}</span>`);
-      if (t.estimate_min) out.push(`<span class="chip" title="Estimated time">⏱ ${durationLabel(t.estimate_min)}</span>`);
+      if (t.repeat) out.push(`<span class="chip" title="Repeats">${mark('🔁', 'i-reset')} ${repeatLabel(t.repeat)}</span>`);
+      if (t.estimate_min) out.push(`<span class="chip" title="Estimated time">${mark('⏱', 'i-history')} ${durationLabel(t.estimate_min)}</span>`);
       if (t.priority && t.priority < 3) out.push(`<span class="chip pri-${t.priority}">${PRIORITIES.find(p => p.id === t.priority)?.label}</span>`);
       if (t.status === 'doing' || (t.status === 'waiting' && !t.waiting_on)) out.push(`<span class="chip">${STATUSES.find(s => s.id === t.status)?.label}</span>`);
       const kids = kidsOf(t);
@@ -169,13 +171,13 @@ export default {
         out.push(`<button type="button" class="chip kids" data-act="collapse" aria-expanded="${!collapsed.has(t.id)}">${collapsed.has(t.id) ? '▸' : '▾'} ${pr.done}/${pr.total}</button>`);
       }
       const files = atts.get(t.id)?.length;
-      if (files) out.push(`<button type="button" class="chip" data-att-view="${t.id}" title="Attached files: press to look">📎 ${files}</button>`);
+      if (files) out.push(`<button type="button" class="chip" data-att-view="${t.id}" title="Attached files: press to look">${mark('📎', 'i-clip')} ${files}</button>`);
       for (const cid of t.contact_ids || []) {
         const c = people.contacts.find(x => x.id === cid);
-        if (c) out.push(`<a class="chip" href="#/contacts/c/${c.id}" title="Contact">👤 ${esc(c.name || '?')}</a>`);
+        if (c) out.push(`<a class="chip" href="#/contacts/c/${c.id}" title="Contact">${mark('👤', 'i-contacts')} ${esc(c.name || '?')}</a>`);
       }
       const kase = t.case_id && people.cases.find(k => k.id === t.case_id);
-      if (kase) out.push(`<a class="chip" href="#/contacts/cases/${kase.id}" title="Case">📁 ${esc(kase.title)}</a>`);
+      if (kase) out.push(`<a class="chip" href="#/contacts/cases/${kase.id}" title="Case">${mark('📁', 'i-archive')} ${esc(kase.title)}</a>`);
       return out.join('');
     }
 
@@ -222,7 +224,7 @@ export default {
       // ("… more" if longer). Medium and loose start on their own line under the pills.
       const long = t.notes.split('\n').length > 8 || t.notes.length > 480;
       return `<span class="item-note task-note${long ? ' is-long' : ''}" data-act="toggle-note" role="button" tabindex="0" aria-expanded="${open === t.id}" title="${open === t.id ? 'Close' : 'Open to read or edit'}">`
-        + `<span class="note-icon" title="${esc(plainLines(t.notes)[0]?.slice(0, 120) || 'Note')}">📝</span>`
+        + `<span class="note-icon" title="${esc(plainLines(t.notes)[0]?.slice(0, 120) || 'Note')}">${mark('📝', 'i-note')}</span>`
         + `<span class="note-medium">${inlineAll(t.notes)}</span>`
         + `<span class="note-loose">${toHtml(t.notes)}</span>${long ? '<span class="note-more">… more</span>' : ''}</span>`;
     }
