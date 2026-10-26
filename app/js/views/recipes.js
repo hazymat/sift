@@ -160,6 +160,7 @@ export default {
               <button type="button" data-card="copy">📋 Copy to clipboard</button>
               ${from ? '<button type="button" data-card="dup">⧉ Make a copy of my own</button>' : '<button type="button" data-card="share">👥 Share…</button><button type="button" data-card="dup">⧉ Duplicate</button>'}
               <button type="button" data-card="print">🖨 Print…</button>
+              <button type="button" data-card="export">⬇ Export recipe</button>
               ${from ? `<button type="button" data-share-leave="${fromOthers(['recipe']).find(sh => sh.owner_id === from.owner_id && sh.info.id === r.id)?.id || ''}">Leave this shared recipe</button>` : `
               <button type="button" data-card="colour">🎨 Colour…</button>
               <span class="menu-label muted">Move to</span>
@@ -328,7 +329,7 @@ export default {
       return who ? `<button type="button" class="share-btn-people" data-act="share-recipe" data-recipe="${r.id}" title="Shared with ${esc(who)}">👥<span class="share-words"> Shared with ${esc(who)}</span></button>` : '';
     };
     // Share on an open recipe or batch: 👥 Share with someone… (your own recipe), the copies, 🖨 Print… and 🏷 Print labels… (printrecipe.js).
-    const sharePill = r => shareHtml({ top: r && !state.owner ? `<button type="button" data-act="share-recipe" data-recipe="${r.id}">👥 Share with someone…</button>` : '', bottom: '<button type="button" data-act="print-labels">🏷 Print labels…</button>' });
+    const sharePill = r => shareHtml({ top: r && !state.owner ? `<button type="button" data-act="share-recipe" data-recipe="${r.id}">👥 Share with someone…</button>` : '', bottom: `<button type="button" data-act="print-labels">🏷 Print labels…</button>${r && !state.make ? `<button type="button" data-act="export-recipe" data-recipe="${r.id}">⬇ Export recipe</button>` : ''}` });
     const followBtn = rec => (stepsOf(rec || {}).length ? '<button type="button" class="bb-follow" data-act="follow" title="Cook from it: one step at a time, big, with timers">▶<span class="bb-follow-word"> Follow along</span></button>' : '');
     const top = (act, label, extra = '', r = null) => `<div class="bb-top"><button type="button" class="back" data-act="${act}">‹ ${esc(label)}${keys('Esc')}</button><span class="spacer"></span>${extra}${sharePill(r)}${cogHtml('recipes', paperHtml())}</div>`;
 
@@ -869,6 +870,7 @@ export default {
       const act = b.dataset.act;
       if (act === 'home') return go('#/recipes');
       if (act === 'print-labels') { b.closest('details')?.removeAttribute('open'); return printLabelsHere(); }
+      if (act === 'export-recipe') { b.closest('details')?.removeAttribute('open'); const r = recipeOf(b.dataset.recipe) || (state.owner && shared.find(x => x.owner_id === state.owner && x.r.id === b.dataset.recipe)?.r); return r && exportRecipes([r]); }
       if (act === 'share-recipe') { b.closest('details')?.removeAttribute('open'); const r = recipeOf(b.dataset.recipe); if (r) shareSheet({ kind: 'recipe', id: r.id, name: r.title }, `"${r.title || 'Untitled'}"`); return; }
       if (act === 'share-list') { const list = lists.find(l => l.id === makeOf(state.make)?.list_id); if (list) shareSheet({ kind: 'list', id: list.id, name: list.name || 'Untitled' }, `"${list.name || 'Untitled'}"`); return; }
       if (act === 'new') return newRecipe();
@@ -994,11 +996,13 @@ export default {
     // ---------- importing ----------
     // Recipes as text, pasted or from a file (format in batchbook.js). The AI prompt lets anyone turn notes, photos
     // of cards or web pages into that text with any AI chat. Books not set up yet are added.
-    // Every recipe (not batches or photos) as one Markdown file in the import format, to keep or to import elsewhere.
-    async function exportRecipes() {
-      const list = data.recipes.slice().sort((a, b) => (a.type || '').localeCompare(b.type || '') || byPlace(a, b));
+    // Every recipe (or one, from its card or Share) as one Markdown file in the import format (no batches or photos),
+    // to keep or to import elsewhere.
+    async function exportRecipes(only = null) {
+      const list = only || data.recipes.slice().sort((a, b) => (a.type || '').localeCompare(b.type || '') || byPlace(a, b));
       if (!list.length) return toast('No recipes to export yet');
-      const file = new File([list.map(recipeMarkdown).join('\n\n')], `Sift recipes ${isoDate(new Date())}.md`, { type: 'text/markdown' });
+      const fileName = only?.length === 1 ? `${(only[0].title || 'Untitled').replace(/[\\/:*?"<>|]+/g, ' ').trim()}.md` : `Sift recipes ${isoDate(new Date())}.md`;
+      const file = new File([list.map(recipeMarkdown).join('\n\n')], fileName, { type: 'text/markdown' });
       if (navigator.canShare?.({ files: [file] }) && matchMedia('(pointer: coarse)').matches) { try { await navigator.share({ files: [file], title: file.name }); return; } catch (err) { if (err.name === 'AbortError') return; } }
       const link = Object.assign(document.createElement('a'), { href: URL.createObjectURL(file), download: file.name });
       link.click(); setTimeout(() => URL.revokeObjectURL(link.href), 2000);
@@ -1195,6 +1199,7 @@ export default {
         toast(owner ? `"${copy.title}" is now in your own recipes too` : 'Duplicated', { action: 'Open', onAction: () => go(`#/recipes/${made.id}`) });
         return render();
       }
+      if (act === 'export') return exportRecipes([r]);
       if (act === 'print') { const { printRecipes } = await import('../printrecipe.js'); return printRecipes({ items: [printItem(r)], title: r.title || 'Untitled', back: 'Recipes', book: owner ? null : bookItems(r) }); }
       if (act === 'colour') {
         const book = sectionFor(r).colour;
