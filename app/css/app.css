@@ -5006,7 +5006,8 @@ html.case-open, html.case-open body { overflow: hidden; }
    33px rows, 14px text, ⠿ always showing. Built on Lined paper's flat rows (it sets data-layout-lined). */
 #main[data-skin="minimal"] {
   --row-pad: 3px;
-  .task-list { background: color-mix(in srgb, var(--text) 3.5%, transparent); border-radius: 6px; } /* no overflow clip: a row dragged past the ends must stay visible */
+  .task-list { background: color-mix(in srgb, var(--text) 3.5%, transparent); border-radius: 0; }
+  .task-list > li[data-task]:has(+ li.task-details)::before { border-radius: 0; } /* the open task's frame: square, as everything in Minimal */ /* no overflow clip: a row dragged past the ends must stay visible */
   /* Dividers are borders, not the ruled ::after lines: a border snaps to whole screen pixels, so each is the same 1px at any zoom. */
   .task-list > li[data-task] { border-width: 0 0 1px; border-style: solid; border-color: transparent transparent color-mix(in srgb, #000 28%, transparent); border-radius: 0; }
   .task-list > li[data-task]::after { display: none; }
@@ -5055,9 +5056,9 @@ html.case-open, html.case-open body { overflow: hidden; }
   .task-list > li.task-details { margin: 0; padding: 8px 12px 10px; border: 0; border-radius: 0; border-bottom: 1px solid color-mix(in srgb, #000 28%, transparent); background: color-mix(in srgb, var(--text) 2.5%, transparent); font-size: 13px; }
   .task-details .task-notes { margin-bottom: 6px; }
   .task-details .task-notes .rich-edit, .task-details .task-notes .rich-raw { min-height: 3.2em; padding: 6px 9px; font-size: 14px; line-height: 1.45; }
-  .task-details .task-notes.rich:not(.is-full) > .md-bar { padding: 1px; border-radius: 5px 5px 0 0; }
+  .task-details .task-notes.rich:not(.is-full) > .md-bar { padding: 1px; border-radius: 0; }
   .task-details .task-notes.rich:not(.is-full) > .md-bar button { padding: 2px 7px; font-size: 12px; border-radius: 3px; }
-  .task-details .task-notes.rich:not(.is-full) > :is(.rich-edit, .rich-raw) { border-radius: 0 0 5px 5px; }
+  .task-details .task-notes.rich:not(.is-full) > :is(.rich-edit, .rich-raw) { border-radius: 0; }
   .task-details .att-row { margin: 0 0 6px; }
   .task-details .att-add { padding: 2px 8px; font-size: 12px; border-radius: 5px; }
   .task-details :is(.panel-sec, .comments) { margin: 0; padding: 7px 0; border: 0; border-top: 1px solid var(--glass-border); border-radius: 0; background: none; }
