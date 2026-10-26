@@ -3980,6 +3980,7 @@ kbd + kbd, .pill-reveal kbd + kbd, .pill-done kbd + kbd { margin-left: 3px; }
 .share-error { color: #e0573a; margin: 0 0 8px; }
 /* An open project has its own Share (with 👥 people) in its head, so the area's Share steps aside. */
 #main:has(.project-head .page-share) .area-share { display: none; }
+#main:has(.project-head .page-share) .area-share + .page-cog { margin-left: auto; } /* 👁 and ⋯ stay at the far right without it */
 .project-head .share-btn-people { padding: 4px 12px; font-size: .85rem; white-space: nowrap; }
 .share-chip { cursor: pointer; }
 .day-people { display: contents; }
