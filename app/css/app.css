@@ -3893,6 +3893,18 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
 .layout-opt.layout-sub { position: relative; padding-left: 30px; }
 .layout-opt.layout-sub::before { content: ''; position: absolute; left: 9px; top: -6px; width: 12px; height: calc(50% + 6px); border-left: 1px solid var(--vm-line); border-bottom: 1px solid var(--vm-line); }
 .layout-opt.layout-sub:has(+ .layout-sub:not([hidden]))::after { content: ''; position: absolute; left: 9px; top: 50%; bottom: -3px; border-left: 1px solid var(--vm-line); }
+/* 👁 Style: a tile per style (skins in viewcog.js), each with a small sample drawn in its own look; the picked style's own options under it. */
+.view-settings .skin-opts { gap: 6px; }
+.view-settings .skin-opts .skin-pill { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 8px 5px; min-width: 84px; }
+.skin-sample { display: flex; flex-direction: column; justify-content: center; gap: 4px; width: 66px; height: 40px; padding: 0 6px; box-sizing: border-box; border-radius: 6px; border: 1px solid var(--vm-line); position: relative; }
+.skin-sample i { display: block; height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--vm-text) 22%, transparent); }
+.skin-sample i:nth-child(2) { width: 75%; } .skin-sample i:nth-child(3) { width: 55%; }
+.skin-pill[data-skin="lined"] .skin-sample { gap: 0; padding: 0 6px 0 16px; background: repeating-linear-gradient(to bottom, transparent 0 9px, color-mix(in srgb, #6fa8ff 55%, transparent) 9px 10px); background-position: 0 4px; }
+.skin-pill[data-skin="lined"] .skin-sample::before { content: ''; position: absolute; top: 0; bottom: 0; left: 11px; width: 1.5px; background: rgba(230, 90, 100, .7); }
+.skin-pill[data-skin="lined"] .skin-sample i { height: 2px; margin: 3.5px 0 4px; border-radius: 1px; background: color-mix(in srgb, var(--vm-text) 55%, transparent); }
+.skin-own .layout-opts { position: relative; margin: 4px 0 2px; padding-left: 14px; }
+.skin-own .layout-opts::before { content: ''; position: absolute; left: 6px; top: -2px; bottom: 12px; width: 6px; border-left: 1px solid var(--vm-line); border-bottom: 1px solid var(--vm-line); }
+.skin-own[hidden] { display: none; }
 /* Lined paper layout (👁 Layout, on unless unticked). Unticked, Tasks look as in
    earlier versions: New task a rounded box at the top with Add, and each task a
    shaded rounded card, its sub-tasks inside the same card. */

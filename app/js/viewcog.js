@@ -29,8 +29,8 @@ const LOOKS = {
   dump: ['plain', 'colour', 'alt'],
   places: ['plain', 'colour', 'alt'],
   contacts: ['plain', 'colour', 'alt'],
-  lists: ['plain', 'colour', 'alt'],
-  tasks: ['plain', 'alt'],
+  lists: ['plain', 'colour'], // Alternate shading is Lined paper's own (SKINS)
+  tasks: ['plain'],
   planner: ['plain', 'alt'],
 };
 import * as store from './store.js';
@@ -66,11 +66,12 @@ const shadeKey = area => `sift-shade:${area}`;
 export function shadeOf(area) {
   const opts = LOOKS[area];
   if (!opts) return 'plain';
+  if (SKIN_AREAS.includes(area) && layoutOn(area, 'alt')) return 'alt';
   try { const v = localStorage.getItem(shadeKey(area)); return opts.includes(v) ? v : opts[0]; } catch { return opts[0]; }
 }
 export function lookHtml(area) {
   const opts = LOOKS[area];
-  if (!opts) return '';
+  if (!(opts?.length > 1)) return '';
   const on = shadeOf(area);
   return `<h4>Look</h4>
     <div class="view-opts shade-opts" role="group" aria-label="Look">
@@ -83,16 +84,16 @@ export function lookHtml(area) {
 // line) only while that one is ticked. def: true for one that starts on.
 const LAYOUTS = {
   tasks: [
-    { id: 'lined', label: 'Lined Paper' },
-    { id: 'margin', label: 'Show margin', needs: 'lined' },
+    { id: 'margin', label: 'Show margin', skin: 'lined' },
+    { id: 'alt', label: 'Alternate shading', skin: 'lined', def: area => localStorage.getItem(shadeKey(area)) === 'alt' }, // was a Look
     { id: 'add-top', label: 'New tasks appear at top', def: true },
     { id: 'pad', label: 'Write like a pad: after Enter, the next line opens under the task just added (Tab for a sub-task; Advanced too)', def: true, needs: 'add-top' },
     { id: 'pills-hide', label: 'Hide pills behind More (editing / new)', def: true },
     { id: 'more-panel', label: 'More goes straight to the full panel', needs: 'pills-hide' },
   ],
   lists: [
-    { id: 'lined', label: 'Lined Paper' },
-    { id: 'margin', label: 'Show margin', needs: 'lined' },
+    { id: 'margin', label: 'Show margin', skin: 'lined' },
+    { id: 'alt', label: 'Alternate shading', skin: 'lined', def: area => localStorage.getItem(shadeKey(area)) === 'alt' }, // was a Look
     { id: 'added-flash', label: 'Highlight item when added', def: true },
   ],
   recipes: [
@@ -116,21 +117,52 @@ const LAYOUTS = {
 };
 const layoutKey = (area, id) => `sift-layout:${area}:${id}`;
 export function layoutOn(area, id) {
-  const needs = LAYOUTS[area]?.find(o => o.id === id)?.needs;
-  if (needs && !layoutOn(area, needs)) return false;
+  if (id === 'lined' && SKIN_AREAS.includes(area)) return !!skinDef(area).lined;
+  const opt = LAYOUTS[area]?.find(o => o.id === id);
+  if (opt?.skin && skinOf(area) !== opt.skin) return false;
+  if (opt?.needs && !layoutOn(area, opt.needs)) return false;
   return setOn(area, id);
 }
 function setOn(area, id) {
-  const def = !!LAYOUTS[area]?.find(o => o.id === id)?.def;
+  let def = LAYOUTS[area]?.find(o => o.id === id)?.def;
+  try { def = typeof def === 'function' ? def(area) : !!def; } catch { def = false; }
   try { const v = localStorage.getItem(layoutKey(area, id)); return v === null ? def : v === '1'; } catch { return def; }
 }
-export function layoutHtml(area, heading = true) {
-  const opts = LAYOUTS[area];
-  if (!opts) return '';
-  return `${heading ? '<h4>Layout</h4>' : ''}
-    <div class="layout-opts" role="group" aria-label="Layout">
+const optHtml = (area, opts, label) => `<div class="layout-opts" role="group" aria-label="${label}">
       ${opts.map(o => `<label class="layout-opt${o.needs ? ' layout-sub' : ''}"${o.needs && !setOn(area, o.needs) ? ' hidden' : ''}><input type="checkbox" data-layout-set="${o.id}"${o.needs ? ` data-layout-needs="${o.needs}"` : ''}${setOn(area, o.id) ? ' checked' : ''}> ${o.label}</label>`).join('')}
     </div>`;
+export function layoutHtml(area, heading = true) {
+  const opts = LAYOUTS[area]?.filter(o => !o.skin);
+  if (!opts?.length) return '';
+  return `${heading ? '<h4>Layout</h4>' : ''}${optHtml(area, opts, 'Layout')}`;
+}
+
+// Styles (skins) for pages of rows: Tasks (its projects too) and Lists. One is picked in 👁 Style,
+// put on <main data-skin>; lined: true styles also set data-layout-lined (the paper CSS). A style's
+// own options are LAYOUTS entries with skin: <its id>, shown under the picker only while it's picked.
+// A new style: add it here (sample: the pill's own look) and its CSS under #main[data-skin="<id>"].
+export const SKINS = [
+  { id: 'cards', label: 'Cards' },
+  { id: 'lined', label: 'Lined paper', lined: true },
+];
+const SKIN_AREAS = ['tasks', 'lists'];
+const skinKey = area => `sift-view:${area}:skin`;
+export function skinOf(area) {
+  try {
+    const v = localStorage.getItem(skinKey(area));
+    if (SKINS.some(x => x.id === v)) return v;
+    return localStorage.getItem(`sift-layout:${area}:lined`) === '1' ? 'lined' : 'cards'; // the old Lined Paper tick box
+  } catch { return 'cards'; }
+}
+const skinDef = area => SKINS.find(x => x.id === skinOf(area));
+function styleHtml(area) {
+  if (!SKIN_AREAS.includes(area)) return '';
+  const on = skinOf(area);
+  return `<h4>Style</h4>
+    <div class="view-opts skin-opts" role="group" aria-label="Style">
+      ${SKINS.map(x => `<button type="button" class="skin-pill" data-skin="${x.id}" data-skin-set="${x.id}" aria-pressed="${x.id === on}"><span class="skin-sample" aria-hidden="true"><i></i><i></i><i></i></span>${x.label}</button>`).join('')}
+    </div>
+    ${SKINS.map(x => { const opts = (LAYOUTS[area] || []).filter(o => o.skin === x.id); return opts.length ? `<div class="skin-own" data-skin-own="${x.id}"${x.id === on ? '' : ' hidden'}>${optHtml(area, opts, x.label)}</div>` : ''; }).join('')}`;
 }
 
 const key = area => `sift-density:${area}`;
@@ -157,7 +189,7 @@ export function choiceOf(area, id, def = '') {
 export const setChoice = (area, id, value) => saveView(choiceKey(area, id), value);
 
 // The menu's usual contents (a page that changes them by tab puts them back with this).
-export const menuHtml = (area, extra = '') => `${extra}${layoutHtml(area)}${lookHtml(area)}${spacingHtml(area)}${separateHtml()}`;
+export const menuHtml = (area, extra = '') => `${extra}${styleHtml(area)}${layoutHtml(area)}${lookHtml(area)}${spacingHtml(area)}${separateHtml()}`;
 export function cogHtml(area, extra = '') {
   return `<details class="tool-menu view-menu page-cog">
       <summary class="icon-btn" aria-label="View settings" title="View settings"><svg class="icon" aria-hidden="true"><use href="#i-view"/></svg></summary>
@@ -171,6 +203,8 @@ export function installViewCog(getArea) {
     if (!main) return;
     main.dataset.density = densityOf(getArea());
     main.dataset.shade = shadeOf(getArea());
+    if (SKIN_AREAS.includes(getArea())) main.dataset.skin = skinOf(getArea()); else delete main.dataset.skin;
+    main.toggleAttribute('data-layout-lined', layoutOn(getArea(), 'lined'));
     for (const o of LAYOUTS[getArea()] || []) main.toggleAttribute(`data-layout-${o.id}`, layoutOn(getArea(), o.id));
   };
   // Another device's (or tab's) view choices arrived: the page follows them.
@@ -180,6 +214,8 @@ export function installViewCog(getArea) {
     for (const m of document.querySelectorAll('.view-settings')) {
       for (const b of m.querySelectorAll('[data-layout-set]')) b.checked = setOn(getArea(), b.dataset.layoutSet);
       for (const b of m.querySelectorAll('[data-layout-needs]')) b.closest('.layout-opt').hidden = !setOn(getArea(), b.dataset.layoutNeeds);
+      for (const b of m.querySelectorAll('[data-skin-set]')) b.setAttribute('aria-pressed', String(b.dataset.skinSet === skinOf(getArea())));
+      for (const b of m.querySelectorAll('[data-skin-own]')) b.hidden = b.dataset.skinOwn !== skinOf(getArea());
       for (const b of m.querySelectorAll('[data-shade-set]')) b.setAttribute('aria-pressed', String(b.dataset.shadeSet === shadeOf(getArea())));
       for (const b of m.querySelectorAll('[data-density-set]')) b.setAttribute('aria-pressed', String(b.dataset.densitySet === densityOf(getArea())));
     }
@@ -203,6 +239,16 @@ export function installViewCog(getArea) {
     document.dispatchEvent(new CustomEvent('sift-layout', { detail: { area: getArea(), id: box.dataset.layoutSet } }));
   });
   document.addEventListener('click', ev => {
+    const sk = ev.target.closest?.('[data-skin-set]');
+    if (sk) {
+      saveView(skinKey(getArea()), sk.dataset.skinSet);
+      const menu = sk.closest('.view-settings');
+      for (const x of menu.querySelectorAll('[data-skin-set]')) x.setAttribute('aria-pressed', String(x === sk));
+      for (const x of menu.querySelectorAll('[data-skin-own]')) x.hidden = x.dataset.skinOwn !== sk.dataset.skinSet;
+      apply();
+      document.dispatchEvent(new CustomEvent('sift-layout', { detail: { area: getArea(), id: 'skin' } }));
+      return;
+    }
     const sh = ev.target.closest?.('[data-shade-set]');
     if (sh) {
       saveView(shadeKey(getArea()), sh.dataset.shadeSet);
