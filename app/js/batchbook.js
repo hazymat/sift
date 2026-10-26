@@ -218,11 +218,13 @@ export function stepRefs(text, ingredients) {
 }
 // The first wait a step mentions, in seconds ("simmer for 15 minutes", "1 hour", "30 secs", "1½ hours"), for a one-tap timer.
 export const stepWait = text => stepWaits(text)[0] || 0;
-// Every different wait a step mentions ("+5 mins … +10 more mins … a timer for 10 mins" → 300, 600), in order.
+// Every different wait a step mentions ("+5 mins … +10 more mins … a timer for 10 mins" → 300, 600), in order. Not one at the start
+// of a line beginning After, When or Once (house style One thing at a time, housestyles.js): that wait's timer is on the step before.
 export function stepWaits(text) {
   const plain = (text || '').replace(REF, (w, body, own) => own ?? body).replace(/½/g, '.5').replace(/¼/g, '.25').replace(/¾/g, '.75');
   const found = [];
   for (const hit of plain.matchAll(/(\d+(?:\.\d+)?)(?:\s*(?:-|to|–)\s*(\d+(?:\.\d+)?))?\s*(?:more\s+)?(hours?|hrs?|h\b|minutes?|mins?|m\b|seconds?|secs?|s\b)/gi)) {
+    if (/^\s*(?:[-*•]\s*)?(?:after|when|once)\b[^.!?,:;]*$/i.test(plain.slice(plain.lastIndexOf('\n', hit.index) + 1, hit.index))) continue;   // "After 2 hours of simmering, ..." is the timer set a step earlier
     const n = parseFloat(hit[2] || hit[1]), unit = hit[3][0].toLowerCase();
     const secs = Math.round(n * (unit === 'h' ? 3600 : unit === 'm' ? 60 : 1));
     if (secs > 0 && secs <= 48 * 3600 && !found.includes(secs)) found.push(secs);
@@ -275,6 +277,20 @@ Soft flatbreads, ready in no time. Full-fat Greek yoghurt makes the softest doug
 
 ## Tasting notes
 Soft and a little tangy. Good with anything saucy.`;
+// A recipe in the import format, so an export reads back in (here or in another Sift) as the same recipe. Batches,
+// photos and colours stay behind.
+export function recipeMarkdown(rec) {
+  const lines = [`# ${rec.title || 'Untitled'}`];
+  if (rec.type) lines.push(`Book: ${rec.type}`);
+  if (rec.tags?.length) lines.push(`Tags: ${rec.tags.join(', ')}`);
+  for (const [key, value] of Object.entries(rec.fields || {})) if (String(value ?? '').trim()) lines.push(`${key}: ${String(value).trim()}`);
+  if (rec.description?.trim()) lines.push('', rec.description.trim());
+  if (rec.ingredients?.length) lines.push('', '## Ingredients', ...rec.ingredients.map(ing => `- ${ingredientText(ing)}${!ing.note ? '' : /[()]/.test(ing.note) ? `, ${ing.note}` : ` (${ing.note})`}`));
+  const steps = stepsOf(rec).filter(step => step.text?.trim());
+  if (steps.length) lines.push('', '## Method', ...steps.map((step, n) => step.text.trim().split('\n').map((line, k) => k ? `   ${line.trim()}` : `${n + 1}. ${line.trim()}`).join('\n')));
+  if (rec.tasting?.trim()) lines.push('', '## Tasting notes', rec.tasting.trim());
+  return lines.join('\n');
+}
 export function parseRecipes(text) {
   const recipes = [];
   let rec = null, part = 'head', group = '', head = '', step = null;

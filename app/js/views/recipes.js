@@ -10,7 +10,7 @@
 import { keys } from '../keys.js';
 import * as store from '../store.js';
 import * as att from '../attachments.js';
-import { sectionsOf, sectionOf, stepsOf, fixBareUnits, parseRecipes, IMPORT_EXAMPLE, UNITS, parseLine, parseQty, qtyText, amountText, ingredientText, stepHtml, renameRefs, abvOf, readingTypesOf, isGravity, nextBatchNo, loadBook, batchName, newBatchName, batchDay } from '../batchbook.js';
+import { sectionsOf, sectionOf, stepsOf, fixBareUnits, parseRecipes, recipeMarkdown, IMPORT_EXAMPLE, UNITS, parseLine, parseQty, qtyText, amountText, ingredientText, stepHtml, renameRefs, abvOf, readingTypesOf, isGravity, nextBatchNo, loadBook, batchName, newBatchName, batchDay } from '../batchbook.js';
 import { loadLists, nestItems, createList, addItems } from '../lists.js';
 import { richText } from '../richtext.js';
 import { atEdge, caretTo } from '../walk.js';
@@ -27,6 +27,7 @@ import { pillMenu } from '../pillmenu.js';
 import { sortable } from '../sortable.js';
 import { signedIn, status as syncStatus } from '../sync.js';
 import { linkUrls } from '../weburl.js';
+import { stylesOf, styleOf, importPrompt, BUILT_IN } from '../housestyles.js';
 import { addExamples, addNewPhotos, isBrandNew, needsWipe, photosBehind, setUpBooks, wipeBook } from '../examples.js';
 import { feature } from '../stats.js';
 import { shareHtml, printers, sharers } from '../share.js';
@@ -221,7 +222,7 @@ export default {
             ${cogHtml('recipes', `${state.batches ? '' : sortHtml()}${paperHtml()}`)}
             <details class="tool-menu page-more">
               <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
-              <div class="menu"><a href="#" data-act="sections">Edit books</a><a href="#" data-act="import">Import recipes</a><a href="#" data-act="examples">Add example recipes</a><a href="#/bin/archive/recipes">Show Archive</a><a href="#/bin/bin/recipes">Show Bin</a></div>
+              <div class="menu"><a href="#" data-act="sections">Edit books</a><a href="#" data-act="import">Import recipes</a><a href="#" data-act="export">Export recipes</a><a href="#" data-act="examples">Add example recipes</a><a href="#/bin/archive/recipes">Show Archive</a><a href="#/bin/bin/recipes">Show Bin</a></div>
             </details>
           </div>
           <div class="bb-sections-bar">
@@ -874,6 +875,7 @@ export default {
 
       if (act === 'sections') return editSections();
       if (act === 'import') return importRecipes();
+      if (act === 'export') return exportRecipes();
       if (act === 'to-recipe') return go(`#/recipes/${makeOf(state.make)?.recipe_id || ''}${ownerPath()}`);
       if (act === 'add-field') {
         const name = (await askText('Add a detail', { placeholder: 'e.g. Oven temperature, Yeast, Serves', ok: 'Add' }))?.trim();
@@ -992,37 +994,24 @@ export default {
     // ---------- importing ----------
     // Recipes as text, pasted or from a file (format in batchbook.js). The AI prompt lets anyone turn notes, photos
     // of cards or web pages into that text with any AI chat. Books not set up yet are added.
-    const aiPrompt = (books = sections.map(x => x.name).filter(Boolean)) => `Turn the recipes I give you (typed, pasted, from a web page, or photos of cards, books or handwriting) into text for my recipe app.
-
-HOW TO REPLY
-- Put all the recipes together in ONE Markdown code block (three backticks on the line before and after), so I can copy it in one go and paste it straight into the app. Inside the block use only the format below: no bold, no extra headings, no chat.
-- Outside the block, write nothing, or one short line about anything you couldn't read, had to guess or added.
-
-THE FORMAT (an example is at the end)
-- "# " and the recipe's name starts each recipe.
-- Straight under the name, one detail per line as "Name: value":
-  - Book: ${books.length ? `the one it fits best out of my books: ${books.join(', ')}. Only if none fits, a new one named like those.` : 'a sensible one, for example Cooking, Soups, Baking or Cocktails.'}
-  - Tags: a few words to find it by, with commas between.
-  - Serves: and any other details the recipe gives (Makes, Oven, Tin size and so on).
-  - Source: where it came from: the book, the website address, or for example "Granny's handwritten card".
-  - Time: how long it takes from starting to eating, waiting included (proving, marinating, chilling overnight), with the hands-on part in brackets when that's useful, like "Time: 1 hr 30 mins (25 mins hands-on)". If the recipe says, write "Time:". If it doesn't, work it out from the steps as a real home cook would take, not a TV chef, and sign it with your own name as an AI: "Time (estimated by Claude): 45 mins", "Time (estimated by ChatGPT): 45 mins" and so on. Sign any other detail you had to guess the same way, like "Serves (estimated by Gemini): 4".
-- A blank line, then the description: what it is in a line or two, then anything useful to know before cooking: which ingredients to buy and where, swaps, equipment, making ahead, keeping and freezing, the story behind it.
-- "## Ingredients": one per line, amount and unit first ("250 g plain flour", "2 tbsp olive oil", "1 pinch salt"), anything more after a comma ("2 onions, finely chopped", "500 g chicken thighs, skin on"). A line like "### For the sauce" groups the ones under it. Keep the recipe's own units and amounts. Make sure every ingredient the method uses is in the list.
-- "## Method": numbered steps. Write each ingredient as its name from the list in curly brackets, without its amount: {flour} for all of it, {1/2 flour} for half (any fraction or percentage), or {flour|sifted flour} for your own words (the app puts the amount in front; own words that already say how much, like {flour|a little flour}, show as written). The app shows the amounts and scales them. Keep times and temperatures in the steps ("Bake at 200°C (180°C fan) for 25 mins").
-- "## Tasting notes": only what the recipe or I say about how it tastes or turns out, or what it should taste like. Never shopping advice, tips or method: those go in the description. Leave this section out when there's nothing.
-
-GETTING IT RIGHT
-- Keep every recipe, and every amount and step, as written. Don't leave anything out, tidy it away or "improve" it.
-- From a photo or handwriting: copy what you can read, put [?] straight after any word or amount you're not sure of, and never make up a line you can't see.
-- Write the recipe in the same language as the source.
-
-${IMPORT_EXAMPLE}`;
+    // Every recipe (not batches or photos) as one Markdown file in the import format, to keep or to import elsewhere.
+    async function exportRecipes() {
+      const list = data.recipes.slice().sort((a, b) => (a.type || '').localeCompare(b.type || '') || byPlace(a, b));
+      if (!list.length) return toast('No recipes to export yet');
+      const file = new File([list.map(recipeMarkdown).join('\n\n')], `Sift recipes ${isoDate(new Date())}.md`, { type: 'text/markdown' });
+      if (navigator.canShare?.({ files: [file] }) && matchMedia('(pointer: coarse)').matches) { try { await navigator.share({ files: [file], title: file.name }); return; } catch (err) { if (err.name === 'AbortError') return; } }
+      const link = Object.assign(document.createElement('a'), { href: URL.createObjectURL(file), download: file.name });
+      link.click(); setTimeout(() => URL.revokeObjectURL(link.href), 2000);
+      toast(`Exported ${list.length} recipe${list.length === 1 ? '' : 's'}: Import recipes reads the file back in`);
+    }
     async function importRecipes() {
       const dlg = document.createElement('dialog');
       dlg.className = 'sheet bb-import-sheet';
       dlg.innerHTML = `<div class="sheet-handle"></div>
         <h2>Import recipes</h2>
         <p class="muted">Paste recipes below or choose a text file. Each starts with <b># and its name</b>, then its ingredients and method. Recipes somewhere else, in notes, photos or on websites? Copy the instructions, paste them into any AI chat with your recipes or photos of them, then copy its answer and paste it here. From a photo? Add it to the recipe afterwards with Add photos.</p>
+        <div class="sheet-actions bb-import-style"><label>House style <select data-imp-style aria-label="House style">${stylesOf(settings).map(x => `<option value="${esc(x.id)}"${x.id === styleOf(settings, settings.import_style).id ? ' selected' : ''}>${esc(x.name || 'Untitled style')}</option>`).join('')}</select></label></div>
+        <details class="bb-style-help"><summary>What's this?</summary>${BUILT_IN.map(x => `<p><b>${esc(x.name)}</b>: ${esc(x.about)}</p>`).join('')}<p>Make your own, or change a copy of these, in <a href="#/settings" data-imp="settings">Settings, Batch Book</a>.</p></details>
         <div class="sheet-actions"><button type="button" data-imp="prompt">📋 Copy instructions for an AI chat</button><label class="file-btn">Choose a file…<input type="file" accept=".md,.txt,text/plain,text/markdown" hidden></label></div>
         <textarea class="bb-import-text no-inline" rows="10" placeholder="${esc(IMPORT_EXAMPLE.split('\n').slice(0, 8).join('\n'))}\n…" aria-label="Recipes to import"></textarea>
         <p class="muted bb-import-found"></p>
@@ -1038,12 +1027,14 @@ ${IMPORT_EXAMPLE}`;
         go.disabled = !got.length;
       };
       box.addEventListener('input', read);
+      dlg.querySelector('[data-imp-style]').addEventListener('change', ev => store.updateSettings({ import_style: ev.target.value }));
       dlg.querySelector('input[type=file]').addEventListener('change', async ev => { const f = ev.target.files[0]; if (f) { box.value = await f.text(); read(); } });
       dlg.addEventListener('click', async ev => {
         const b = ev.target.closest('[data-imp]');
         if (!b) return;
         if (b.dataset.imp === 'cancel') return dlg.close();
-        if (b.dataset.imp === 'prompt') { try { await navigator.clipboard.writeText(aiPrompt()); toast('Copied: paste it into an AI chat with your recipes'); } catch { toast('Couldn\'t copy here'); } return; }
+        if (b.dataset.imp === 'settings') { dlg.close(); return; }
+        if (b.dataset.imp === 'prompt') { const style = styleOf(settings, dlg.querySelector('[data-imp-style]').value); try { await navigator.clipboard.writeText(importPrompt(sections.map(x => x.name).filter(Boolean), style)); toast(`Copied, in ${style.name}: paste it into an AI chat with your recipes`); } catch { toast('Couldn\'t copy here'); } return; }
         go.disabled = true;
         const known = settings.batch_sections || sections.filter(x => !x.auto).map(x => ({ name: x.name, emoji: x.emoji, colour: x.colour, fields: x.fields, readings: !!x.readings, reading_types: x.reading_types || [] }));
         const added = Array.from(new Set(got.map(r => r.type).filter(t => t && !known.some(x => x.name === t)))).map(name => { const x = sectionOf(sections, name); return { name, emoji: x.emoji, colour: x.colour, fields: [], readings: x.readings }; });

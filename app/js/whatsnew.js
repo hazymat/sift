@@ -25,6 +25,8 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.58': [{ text: "Batch Book, ⋯, Import recipes: pick a house style before copying the instructions for an AI chat. Exactly as written keeps a recipe word for word; One thing at a time rewrites the method so you can do each step and move on (prep from the ingredients becomes steps, a timer is set where a wait starts and the next step says After 2 hours…), and the AI lists what it changed. What's this? explains them.", go: '#/recipes', open: ['#main [data-act="import"]'], at: '.bb-import-style',
+    more: "Settings, Batch Book, House styles: make your own, or change a copy of a built in one. Batch Book, ⋯, Export recipes saves every recipe as one file that Import recipes reads back in. The example recipes are written in One thing at a time (only ones added from now on). A step starting \"After 2 hours…\" no longer offers a timer: it's on the step before." }],
   '1.61.57': [{ text: "Tasks, Minimal style: the line-drawn 📝 note mark after a task's name sits level with the name instead of a little low, whatever the font." }],
   '1.61.56': [{ text: "Tasks, Minimal style: the tasks are full width again on a computer, and 👁 no longer has Width on a computer.", go: '#/tasks/now', at: '#main .task-list' }],
   '1.61.55': [{ text: "Tasks, Minimal style: on a computer the list of tasks is narrower, so the eye travels less. 👁 has Width on a computer under the Minimal tile: Full, Wide (the usual) or Narrow.", go: '#/tasks/now', open: ['#main details.view-menu > summary'], at: '#main .skin-choice' }],
@@ -231,6 +233,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.58': '2026-10-26T20:53:02Z',
   '1.61.57': '2026-10-26T20:49:22Z',
   '1.61.56': '2026-10-26T20:34:57Z',
   '1.61.55': '2026-10-26T19:42:57Z',
