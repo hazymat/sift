@@ -4970,6 +4970,13 @@ html.case-open, html.case-open body { overflow: hidden; }
   #task-entry .task-add-line > .add-mark { display: none; }
   #task-entry .task-add-line .new-task-line { margin-left: 0; }
 }
+/* Minimal's Width on a computer (👁, under its tiles): the New task line and the tasks narrower, on the left. */
+.skin-choice { display: grid; gap: 4px; margin: 6px 0 2px 14px; font-size: .85rem; color: var(--vm-text); }
+@media (min-width: 900px) {
+  #main[data-skin="minimal"][data-skin-width="wide"] { --min-w: 960px; }
+  #main[data-skin="minimal"][data-skin-width="narrow"] { --min-w: 720px; }
+  #main[data-skin="minimal"][data-skin-width]:not([data-skin-width="full"]) .task-list { max-width: min(100%, var(--min-w)); }
+}
 #main[data-skin="minimal"][data-density="tight"] {
   .task-list > li[data-task] { min-height: 33px; font-size: 14px; padding-top: 1px; padding-bottom: 1px; }
   .task-list > li[data-task] > .tick { width: 14px; height: 14px; }

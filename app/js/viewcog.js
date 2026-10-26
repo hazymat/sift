@@ -142,13 +142,15 @@ export function layoutHtml(area, heading = true) {
 // Styles (skins) for pages of rows: Tasks (its projects too) and Lists. One is picked in 👁 Style,
 // put on <main data-skin>; lined: true styles also set data-layout-lined (the paper CSS). A style's
 // own options are LAYOUTS entries with skin: <its id>, shown under the picker only while it's picked.
+// choices: a style's own pick-one options (buttons under its tiles), put on <main data-skin-<id>>.
 // forces: Layout switches the style sets itself (hidden from Layout while it's picked); areas: where
 // it's offered (all SKIN_AREAS when left out).
 // A new style: add it here (sample: the pill's own look) and its CSS under #main[data-skin="<id>"].
 export const SKINS = [
   { id: 'cards', label: 'Cards' },
   { id: 'lined', label: 'Lined paper', lined: true },
-  { id: 'minimal', label: 'Minimal', lined: true, areas: ['tasks'], forces: { 'add-top': true, pad: false } },
+  { id: 'minimal', label: 'Minimal', lined: true, areas: ['tasks'], forces: { 'add-top': true, pad: false },
+    choices: [{ id: 'width', label: 'Width on a computer', opts: [['full', 'Full'], ['wide', 'Wide'], ['narrow', 'Narrow']], def: 'wide' }] },
 ];
 const SKIN_AREAS = ['tasks', 'lists'];
 const skinsFor = area => SKINS.filter(x => !x.areas || x.areas.includes(area));
@@ -170,7 +172,15 @@ function styleHtml(area) {
     <div class="view-opts skin-opts" role="group" aria-label="Style">
       ${skinsFor(area).map(x => `<button type="button" class="skin-pill" data-skin="${x.id}" data-skin-set="${x.id}" aria-pressed="${x.id === on}"><span class="skin-sample" aria-hidden="true"><i></i><i></i><i></i></span>${x.label}</button>`).join('')}
     </div>
-    ${skinsFor(area).map(x => { const opts = (LAYOUTS[area] || []).filter(o => o.skin === x.id); return opts.length ? `<div class="skin-own" data-skin-own="${x.id}"${x.id === on ? '' : ' hidden'}>${optHtml(area, opts, x.label)}</div>` : ''; }).join('')}`;
+    ${skinsFor(area).map(x => { const opts = (LAYOUTS[area] || []).filter(o => o.skin === x.id); return opts.length || x.choices ? `<div class="skin-own" data-skin-own="${x.id}"${x.id === on ? '' : ' hidden'}>${opts.length ? optHtml(area, opts, x.label) : ''}${(x.choices || []).map(c => skinChoiceHtml(area, x, c)).join('')}</div>` : ''; }).join('')}`;
+}
+const skinChoiceKey = (area, skin, id) => `sift-view:${area}:${skin}-${id}`;
+function skinChoice(area, skin, c) {
+  try { const v = localStorage.getItem(skinChoiceKey(area, skin.id, c.id)); return c.opts.some(o => o[0] === v) ? v : c.def; } catch { return c.def; }
+}
+function skinChoiceHtml(area, skin, c) {
+  const on = skinChoice(area, skin, c);
+  return `<div class="skin-choice"><span>${c.label}</span><div class="view-opts" role="group" aria-label="${c.label}">${c.opts.map(([v, label]) => `<button type="button" data-skin-choice="${c.id}" data-value="${v}" aria-pressed="${v === on}">${label}</button>`).join('')}</div></div>`;
 }
 
 const key = area => `sift-density:${area}`;
@@ -210,6 +220,7 @@ function syncMenu(m, area) {
   if (!m) return;
   for (const b of m.querySelectorAll('[data-layout-set]')) { b.checked = setOn(area, b.dataset.layoutSet); b.closest('.layout-opt').hidden = optHidden(area, LAYOUTS[area]?.find(o => o.id === b.dataset.layoutSet) || {}); }
   for (const b of m.querySelectorAll('[data-skin-set]')) b.setAttribute('aria-pressed', String(b.dataset.skinSet === skinOf(area)));
+  for (const b of m.querySelectorAll('[data-skin-choice]')) { const x = SKINS.find(k => k.id === b.closest('[data-skin-own]').dataset.skinOwn), c = x.choices.find(k => k.id === b.dataset.skinChoice); b.setAttribute('aria-pressed', String(b.dataset.value === skinChoice(area, x, c))); }
   for (const b of m.querySelectorAll('[data-skin-own]')) b.hidden = b.dataset.skinOwn !== skinOf(area);
   for (const b of m.querySelectorAll('[data-shade-set]')) b.setAttribute('aria-pressed', String(b.dataset.shadeSet === shadeOf(area)));
   for (const b of m.querySelectorAll('[data-density-set]')) b.setAttribute('aria-pressed', String(b.dataset.densitySet === densityOf(area)));
@@ -223,6 +234,9 @@ export function installViewCog(getArea) {
     main.dataset.shade = shadeOf(getArea());
     if (SKIN_AREAS.includes(getArea())) main.dataset.skin = skinOf(getArea()); else delete main.dataset.skin;
     main.toggleAttribute('data-layout-lined', layoutOn(getArea(), 'lined'));
+    const skin = SKIN_AREAS.includes(getArea()) && skinDef(getArea());
+    for (const x of SKINS) for (const c of x.choices || []) main.removeAttribute(`data-skin-${c.id}`);
+    for (const c of (skin && skin.choices) || []) main.setAttribute(`data-skin-${c.id}`, skinChoice(getArea(), skin, c));
     for (const o of LAYOUTS[getArea()] || []) main.toggleAttribute(`data-layout-${o.id}`, layoutOn(getArea(), o.id));
   };
   // Another device's (or tab's) view choices arrived: the page follows them.
@@ -250,6 +264,13 @@ export function installViewCog(getArea) {
     document.dispatchEvent(new CustomEvent('sift-layout', { detail: { area: getArea(), id: box.dataset.layoutSet } }));
   });
   document.addEventListener('click', ev => {
+    const ch = ev.target.closest?.('[data-skin-choice]');
+    if (ch) {
+      saveView(skinChoiceKey(getArea(), skinOf(getArea()), ch.dataset.skinChoice), ch.dataset.value);
+      for (const x of ch.parentElement.querySelectorAll('[data-skin-choice]')) x.setAttribute('aria-pressed', String(x === ch));
+      apply();
+      return;
+    }
     const sk = ev.target.closest?.('[data-skin-set]');
     if (sk) {
       saveView(skinKey(getArea()), sk.dataset.skinSet);
