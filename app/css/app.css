@@ -4519,6 +4519,16 @@ textarea.bb-title { resize: none; overflow: hidden; field-sizing: content; }
 
 .bb-sections-sheet { max-width: 560px; }
 .bb-import-sheet { max-width: 640px; }
+.bb-import-style select { margin-left: 6px; }
+.bb-style-help { margin: 4px 0 8px; font-size: 0.9rem; }
+.bb-style-help summary { cursor: pointer; color: var(--muted, inherit); }
+.bb-style-help p { margin: 6px 0; }
+.hs-box { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.hs-style { width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid var(--line, rgba(127,127,127,.3)); border-radius: 10px; }
+.hs-style summary { cursor: pointer; }
+.hs-style label { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.hs-style input, .hs-style textarea { width: 100%; box-sizing: border-box; font: inherit; }
+pre.hs-rules { white-space: pre-wrap; font: inherit; font-size: 0.9rem; margin: 8px 0; }
 .bb-import-text { width: 100%; box-sizing: border-box; margin-top: 12px; font: inherit; font-size: 0.9rem; resize: vertical; }
 .bb-sec-list { display: grid; gap: 10px; margin: 8px 0 12px; padding: 0; list-style: none; }
 .bb-sec-row { display: grid; grid-template-columns: 28px 3.4em minmax(0, 1fr) 44px 34px; gap: 6px; align-items: center; padding: 8px; border-radius: 14px; background: var(--glass-track); }

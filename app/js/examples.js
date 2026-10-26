@@ -52,24 +52,30 @@ Based on an online recipe (cravingtasty.com/borsch-recipe) and a chat with Irena
 - cheesecloth, for filtering
 
 ## Method
-### Broth (the day before, give it time)
-1. Heat {water|3.5 to 4.2 L of water} in a pan (make the pan full), and add {3/4 whole peppercorns}, {bay leaves} and {pork butt or pork ribs|3 lb pork meat and bones}.
-2. Peel {3/4 carrots}, cut in half, add. Peel {3/4 medium onions}, cut in half, add. LOW HEAT.
-3. After 2 to 3 hours: remove the meat, shred it and keep in the fridge. Filter the broth through the {cheesecloth|cloth} and fridge it.
-### Make the borscht
-4. Bring the broth to the boil, add {sea salt|salt} and {freshly ground pepper|pepper} to taste.
-5. Prep the veg:
-   - {medium beets|3 to 4 medium beets}: peel and julienne (optional: 2 more beets in large chunks)
-   - {3/4 small onions}: halve through the root, then cut into half moons for a fine slice
-   - julienne {medium carrots|3 carrots}
-6. Cook the {medium beets|beets} in {1/8 vegetable oil} (or spray) and the juice of {lemon|1 lemon}.
-   - +5 mins: add the {small onions|onions} and {medium carrots|carrots}
-   - +10 more mins: add {3/4 tomato paste}, {3/4 vinegar} (apple, white wine, pickle juice or lemon), {2/3 sugar} and 1.5 cups of hot broth. Set a timer for 10 mins and keep stirring.
-7. Peel and dice {medium potatoes|3 small potatoes or more} (1 inch pieces) and add them to the broth.
-8. When the beet timer finishes: beets and veg into the broth, meat into the broth, boil for 5 mins more.
-   - Meanwhile: shred {cabbage|half a cabbage}, mince {garlic}, add them.
-9. Cook for another 2 to 5 mins. Taste: more {sea salt|salt} or {freshly ground pepper|pepper}?
-10. Let sit for 20 mins (or don't). Meanwhile prep the garnishes onto a plate: finely chopped {fresh dill|dill}, {fresh parsley|parsley}, {spring onions}, and {sour cream}.
+### The broth (the day before, give it time)
+1. Fill a big pan with {water|3.5 to 4.2 L of water} (make the pan full) and put it on a high heat.
+2. While it heats: peel {3/4 carrots} and cut them in half. Peel {3/4 medium onions} and cut them in half.
+3. Put the carrots, onions, {pork butt or pork ribs|3 lb pork meat and bones}, {3/4 whole peppercorns} and {bay leaves} into the pan. When it bubbles, turn the heat right down so it only just bubbles, lid half on. Look now and then that it isn't boiling over. Set a timer for 2 hours.
+4. After the broth has simmered 2 hours (up to 3 is fine): lift out the meat, shred it and keep it in the fridge. Pour the broth through the {cheesecloth|cloth} into a big bowl and put that in the fridge too.
+### The borscht (next day)
+5. Prep all the veg first, taking your time (it takes a while):
+   - {medium beets|3 to 4 medium beets}: peel and cut into thin matchsticks (optional: 2 more beets in large chunks)
+   - {3/4 small onions}: peel, halve through the root, then slice into thin half moons
+   - {medium carrots|3 carrots}: peel and cut into thin matchsticks
+   - {parsley root}: peel and grate (if using)
+   - {medium potatoes|3 small potatoes or more}: peel, cut into 2 to 3 cm pieces and keep them in a bowl of cold water
+   - {cabbage|half a cabbage}: shred thinly
+   - {garlic}: peel and finely chop
+   - {lemon|1 lemon}: cut in half and squeeze out the juice
+6. Put the broth on a high heat, lid on, to come to the boil.
+7. Meanwhile, in a large frying pan on a medium heat: {1/8 vegetable oil} (or spray), the beets and the lemon juice. Fry, stirring now and then, for 5 mins.
+8. Add the onions, carrots and parsley root to the frying pan. Fry, stirring now and then, for 10 mins. When the broth boils, add {sea salt|salt} and {freshly ground pepper|pepper} to taste, drain the potatoes and add them, and turn it down to a gentle bubble.
+9. Add {3/4 tomato paste}, {3/4 vinegar} (apple, white wine, pickle juice or lemon), {2/3 sugar} and 1.5 cups of hot broth from the big pan to the frying pan. Keep stirring for 10 mins.
+10. Tip everything in the frying pan into the broth, with the shredded meat. Boil. Set a timer for 5 mins.
+11. After 5 mins of boiling, add the cabbage and garlic. Cook for another 2 to 5 mins, until the cabbage is just soft.
+12. Taste: more {sea salt|salt} or {freshly ground pepper|pepper}? Turn off the heat and leave it to sit. Set a timer for 20 mins (or don't wait).
+13. While it sits, make the garnish plate: finely chop the {fresh dill|dill}, {fresh parsley|parsley} and {spring onions}, and add a big spoon of {sour cream}.
+14. After it has sat 20 mins, serve with the garnishes.
 
 # Hot Toddy
 Book: Cocktails
@@ -89,10 +95,11 @@ Is it a cocktail? Is it medicine? Who knows, but it tastes like winter in the Hi
 - 200 ml hot water, to top up
 
 ## Method
-1. Push the {cloves} into the skin of the {lemon wedge}.
-2. Into a mug: the juice of the {lemon}, the {whisky} and the {honey}. Stir until the honey melts in.
-3. Add the {lemon wedge|clove-studded lemon wedge} and the {cinnamon stick}.
-4. Top up with {hot water}, just off the boil, and stir.
+1. Boil the kettle.
+2. While it boils: squeeze the juice from the {lemon}, and push the {cloves} into the skin of the {lemon wedge}.
+3. Into a mug: the lemon juice, the {whisky} and the {honey}. Stir until the honey melts in.
+4. Add the clove-studded lemon wedge and the {cinnamon stick}.
+5. When the kettle has boiled, top up with {hot water} and stir.
 
 # Chicken Green Curry
 Book: Cooking
@@ -114,15 +121,15 @@ From Hot Thai Kitchen. Fish sauce: check the ingredients are anchovies, water, s
 - jasmine rice
 
 ## Method
-1. Pound {green curry paste|the paste} with {Thai basil|a few basil leaves}. Prep {chicken stock|the stock}.
-2. Reduce {3/7 full-fat coconut milk|¾ cup coconut milk} until thick and a bit brown round the edges, lining the bottom of the pan and separating (if not, don't worry).
-3. Add the {green curry paste|curry paste} and mix, mix, mix until the oil bubbles round the edges.
-4. Add the {chicken thighs|chicken}; once fully mixed, add {4/7 full-fat coconut milk|1 cup coconut milk} AND {chicken stock}.
-5. Add {palm sugar}, {fish sauce} and the {kaffir lime leaves|lime leaves}, torn a bit and bruised.
-6. {jasmine rice|RICE} ON!
-7. Simmer 10 mins until the chicken is fork-tender.
-8. Add {bamboo shoots} and bring back to the boil.
-9. Add the {large red chilli|chilli} (big angled cuts, about ½ cm) and {Thai basil|1 cup Thai basil}, and stop the heat. More {fish sauce|fish sauce} if flat.
+1. Prep first: cut the {chicken thighs|chicken} into bite-size pieces (if they aren't already). Grate the {palm sugar}. Tear the {kaffir lime leaves|lime leaves} a bit and scrunch them to bruise. Cut the {large red chilli|chilli} into big angled pieces, about ½ cm. Drain the {bamboo shoots}. Measure out the {chicken stock|stock}.
+2. Pound the {green curry paste|curry paste} with {Thai basil|a few basil leaves}.
+3. In a wok or deep pan on a medium heat, stir {3/7 full-fat coconut milk|¾ cup coconut milk} until it's thick and a bit brown round the edges, lining the bottom of the pan and separating (if not, don't worry).
+4. Add the curry paste and mix, mix, mix until the oil bubbles round the edges.
+5. Add the chicken. Once it's all mixed in, add {4/7 full-fat coconut milk|1 cup coconut milk} and the stock.
+6. Add the palm sugar, {fish sauce} and lime leaves.
+7. Put the {jasmine rice|rice} on now (it takes about as long as the curry). Turn the curry down so it gently bubbles, lid off. Set a timer for 10 mins.
+8. After the curry has simmered 10 mins, check the chicken is fork-tender (if not, a few more mins). Add the bamboo shoots and bring back to the boil.
+9. Add the chilli and {Thai basil|1 cup Thai basil}, then turn off the heat. Taste: a little more {fish sauce} if it's flat.
 
 # Pampushki
 Book: Baking
@@ -153,16 +160,17 @@ Ukrainian garlic bread rolls, the ones to have with borscht. Mat's own recipe.
 - 2 tbsp chopped herbs (parsley, coriander)
 
 ## Method
-1. Warm the {warm water|water} to 40 °C. Into a mixing bowl with the {dried yeast|yeast} and {honey}. Wait 10 mins.
-2. Add the {vegetable oil}, {salt}, {lemon juice} and {plain flour|flour}. Mix, then leave 20 mins.
-3. Knead in the bowl for 2 mins. Too dry? A splash more water. Too sticky? Leave another 10 mins, then knead again.
-4. Cover with a damp cloth or cling film and leave 1 to 1.5 hours somewhere warm.
-5. Split into 9 equal pieces and shape into balls, with a little {flour} if too sticky. Grease a round tin with {oil} and spread the balls out in it. Cover and leave somewhere warm for 40 mins.
-6. Meanwhile, oven on to 180 °C.
-7. Whisk the {egg} and brush it on. The whole egg: yolk alone burns!
-8. Bake at 180 °C for 25 to 30 mins. After 15 mins, put a bowl of water in the bottom of the oven so the crust doesn't go hard.
-9. Meanwhile the garlic sauce: mince the {garlic} into a bowl, then add the {kosher salt|salt}, {more vegetable oil|vegetable oil}, {cold water|water} and {chopped herbs|chopped parsley}.
-10. When the bread is ready, drizzle the sauce over it in the tin and leave a few mins to soak in. Serve.
+1. Warm the {warm water|water} to 40 °C (warm to the touch, not hot). Pour it into a mixing bowl with the {dried yeast|yeast} and {honey} and stir. Set a timer for 10 mins.
+2. After 10 mins (it should be a bit frothy), add the {vegetable oil}, {salt}, {lemon juice} and {plain flour|flour}. Mix into a dough. Set a timer for 20 mins.
+3. After the dough has rested 20 mins, knead it in the bowl for 2 mins. Too dry? A splash more water. Too sticky? Leave it another 10 mins, then knead again.
+4. Cover the bowl with a damp cloth or cling film and put it somewhere warm. Set a timer for 1 hour (longer, up to an hour and a half, is fine).
+5. After the dough has risen 1 hour: grease a round tin with {oil}. Split the dough into 9 equal pieces and roll them into balls, with a little {flour} if too sticky. Spread them out in the tin, cover and put somewhere warm. Set a timer for 40 mins.
+6. Now turn the oven on to 180 °C.
+7. While the rolls rise, make the garlic sauce: peel and press the {garlic} into a small bowl. Finely chop the {chopped herbs|herbs}. Add the herbs, {kosher salt|salt}, {more vegetable oil|vegetable oil} and {cold water|water}, and stir.
+8. After the rolls have risen 40 mins, whisk the {egg} and brush it all over them. Use the whole egg: yolk alone burns!
+9. Put the tin in the oven. Set a timer for 15 mins.
+10. After 15 mins of baking, put a bowl of water in the bottom of the oven so the crust doesn't go hard. Set a timer for 10 mins more (15 if they're still pale).
+11. After 25 to 30 mins of baking in all, take the bread out when it's golden. Drizzle the garlic sauce over it in the tin and leave a few mins to soak in. Serve.
 
 # Christmas Cake
 Book: Baking
@@ -204,17 +212,23 @@ Anna's recipe. A very moist, dense cake, gooey from the low flour and high fruit
 - icing sugar, for dusting
 
 ## Method
-1. The night before: soak the {glacé cherries}, {jumbo raisins}, {dried cranberries}, {sultanas}, {dried apricots} and the zest of the {orange} and {lemon} in the {cherry brandy}. Quicker: heat it all gently in a large pan instead. It makes the kitchen smell delicious!
-2. Double line an 8 inch loose-bottomed tin with baking parchment. Wrap several layers of brown paper or parchment round the outside and tie with string.
-3. Oven on to 140 °C fan.
-4. In a large bowl, beat the {salted butter|butter} and {brown sugar|sugar}. Beat in the {molasses}, then the {salt}, {allspice}, {cinnamon}, {nutmeg} and {baking powder}.
-5. Beat in the {eggs} one at a time.
-6. Stir in the {plain flour|flour}, then the boozy fruit, then the {whole almonds|almonds}.
-7. Spoon into the tin, then drop the tin onto the worktop from about 10 cm so the mix fills the air pockets.
-8. Bake 3 hours. Check at 2.5 hours and cover with foil if it's getting too brown (Anna never has to).
-9. When cool, cover with a layer of {white marzipan}, then {golden marzipan}, then the {white ready-to-roll icing|white icing}.
-10. Score the sides in diamonds like a quilt (slightly uneven is fine), with {silver balls|a silver ball} where the lines cross.
-11. Pile {fresh cherries} on top and dust with {icing sugar}.
+### The night before
+1. Cut the {glacé cherries} in half (3 punnets: this takes a while). Grate the zest from the {orange} and {lemon}.
+2. Put the cherries, {jumbo raisins}, {dried cranberries}, {sultanas}, {dried apricots} and the zest into a large bowl. Pour over the {cherry brandy}, stir, cover and leave overnight. Quicker: heat it all gently in a large pan instead. It makes the kitchen smell delicious!
+### Baking day
+3. Turn the oven on to 140 °C fan.
+4. While it heats, double line an 8 inch loose-bottomed tin with baking parchment. Wrap several layers of brown paper or parchment round the outside and tie with string.
+5. In a large bowl, beat the {salted butter|butter} and {brown sugar|sugar} together. Beat in the {molasses}, then the {salt}, {allspice}, {cinnamon}, {nutmeg} and {baking powder}.
+6. Beat in the {eggs} one at a time.
+7. Stir in the {plain flour|flour}, then the boozy fruit, then the {whole almonds|almonds}.
+8. Spoon into the tin, then drop the tin onto the worktop from about 10 cm so the mix fills the air pockets.
+9. Put it in the oven. Set a timer for 2.5 hours.
+10. After 2.5 hours of baking, look at the top: if it's getting too brown, cover it with foil (Anna never has to). Set a timer for 30 mins more.
+11. After 3 hours of baking in all, take it out and leave it in the tin until completely cool.
+### Decorating (once cool)
+12. Cover with a layer of {white marzipan}, then {golden marzipan}, then the {white ready-to-roll icing|white icing}.
+13. Score the sides in diamonds like a quilt (slightly uneven is fine), with {silver balls|a silver ball} where the lines cross.
+14. Pile {fresh cherries} on top and dust with {icing sugar}.
 
 ## Notes
 Anna's Simnel cake is the same cake with a 2 mm layer of golden marzipan in the middle, a thick marzipan top with wavy edges, and 11 marzipan balls (about 20 g each) brushed with egg yolk and browned with a blowtorch or under a low grill.
@@ -235,10 +249,10 @@ Serve it hot, the flavours are brighter.
 - 1 orange (a couple of long strips of zest)
 
 ## Method
-1. Put the {fresh cranberries|cranberries}, {white wine}, {port} and {caster sugar} into a pan and bring to the boil.
-2. Cut a couple of long strips of zest from the {orange}, slice them into thin shreds and stir them in.
-3. Simmer gently for 10 mins, until the berries start to burst.
-4. Take off the heat and beat lightly with a spoon, so some of the berries break up. Serve hot.
+1. Cut a couple of long strips of zest from the {orange} and slice them into thin shreds.
+2. Put the {fresh cranberries|cranberries}, {white wine}, {port} and {caster sugar} into a pan on a high heat.
+3. When it boils, stir in the orange shreds and turn it down so it gently bubbles. Set a timer for 10 mins.
+4. After 10 mins of simmering (the berries start to burst), take it off the heat and beat lightly with a spoon, so some of the berries break up. Serve hot.
 
 `;
 const PHOTOS = { 'Borscht': ['borscht-1.jpg', 'borscht-2.jpg'], 'Chicken Green Curry': ['green-curry-2.jpg'], 'Hot Toddy': ['hot-toddy-1.jpg', 'hot-toddy-2.jpg'], 'Pampushki': ['pampushki-1.jpg', 'pampushki-2.jpg', 'pampushki-3.jpg'], 'Christmas Cake': ['christmas-cake-1.jpg'], 'Cranberry Sauce': ['cranberry-sauce-1.jpg'] };
