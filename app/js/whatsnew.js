@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.60': [{ text: "Tasks, Minimal style: a task's pills and its full panel (More (full), Shift+Enter) are flat and compact to match: small square-ish pills, smaller fields and buttons, and thin lines between the panel's parts instead of boxes. In every style, the notes toolbar is now one square bar joined to the top of the notes box, its buttons side by side.", go: '#/tasks/now', at: '#main .task-list' }],
   '1.61.59': [{ text: "Tasks: the sections are yours now. ⋯ at the end of Task Dump, Now, Next, Later, Done, All opens Task sections: rename, reorder, add or remove sections, and give any of them an icon (line drawings, plain or shaded, or an emoji) and a colour. Removing one moves its tasks to Task Dump. The names moved here from Settings, Dictionary. Contracts' and Scans' reminders go to Later (Task Dump if you remove Later), and they now say so.", go: '#/tasks/now', at: '#main .task-sections-edit' }],
   '1.61.58': [{ text: "Batch Book, ⋯, Import recipes: pick a house style before copying the instructions for an AI chat. Exactly as written keeps a recipe word for word; One thing at a time rewrites the method so you can do each step and move on (prep from the ingredients becomes steps, a timer is set where a wait starts and the next step says After 2 hours…), and the AI lists what it changed. What's this? explains them.", go: '#/recipes', open: ['#main [data-act="import"]'], at: '.bb-import-style',
     more: "Settings, Batch Book, House styles: make your own, or change a copy of a built in one. Batch Book, ⋯, Export recipes saves every recipe as one file that Import recipes reads back in. The example recipes are written in One thing at a time (only ones added from now on). A step starting \"After 2 hours…\" no longer offers a timer: it's on the step before." }],
@@ -234,6 +235,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.60': '2026-10-26T20:57:14Z',
   '1.61.59': '2026-10-26T20:54:46Z',
   '1.61.58': '2026-10-26T20:53:02Z',
   '1.61.57': '2026-10-26T20:49:22Z',
