@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.54': [{ text: "Tasks, Minimal style: closer to Nirvana. In Compact spacing the rows are shorter (33 pixels) with smaller, lighter text, the lines between them are one even pixel, every row's ⠿ grab handle always shows, and the 📝 note mark and the other small marks (📅 📎 ⏱ 🔁 👤 📁) are line drawings instead of coloured emoji.", go: '#/tasks/now', at: '#main .task-list' }],
   '1.61.53': [{ text: "Lists: 👁 stays open when you pick a Style or tick one of its options, as in Tasks, so you can try each one in turn.", go: '#/lists', open: ['#main details.view-menu > summary'], at: '#main .skin-opts' }, { text: "Projects: on an open project, 👁 and ⋯ sit at the far right of the top bar again, not straight after Tasks | Projects.", go: '#/tasks/projects', open: ['#main .project-card'], at: '#main .tasks-head .page-cog' }],
   '1.61.52': [{ text: "Tasks and Lists: 👁 has a Style choice at the top in place of the Lined Paper tick box: Cards (each task in its own box, as before) or Lined paper, which has its own Show margin and Alternate shading. Tasks also has Minimal, flat rows close together like a plain to-do app, with New task a line set apart above them and new tasks always going at the top. Spacing works with every style.", go: '#/tasks/now', open: ['#main details.view-menu > summary'], at: '#main .skin-opts', more: 'Lists: the same Style choice (Cards or Lined paper).' }],
   '1.61.51': [{ text: "Tasks and lists: choosing a task or item with sub-items (its ⠿) now shows its sub-items chosen too, in a lighter shade, because whatever you do to it happens to them as well. Done (or Tick and Untick in a list) now does its sub-items too, as Archive, Delete and Move already did.", go: '#/tasks', at: '#main .task-list', more: "The same wherever rows have sub-rows: an open list, a box's things in Find Things, and the managers for categories and groups." }],
@@ -227,6 +228,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.54': '2026-10-26T19:34:37Z',
   '1.61.53': '2026-10-26T19:27:03Z',
   '1.61.52': '2026-10-26T19:20:52Z',
   '1.61.51': '2026-10-26T18:31:10Z',

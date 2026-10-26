@@ -4955,13 +4955,15 @@ html.case-open, html.case-open body { overflow: hidden; }
 
 /* Minimal style (👁 Style, Tasks): flat rows like a plain to-do app, set close together on one faint
    panel with thin dividers; New task a plain underlined line set apart above them. Compact spacing:
-   38px rows, 15px text. Built on Lined paper's flat rows (it sets data-layout-lined). */
+   33px rows, 14px text, ⠿ always showing. Built on Lined paper's flat rows (it sets data-layout-lined). */
 #main[data-skin="minimal"] {
   --row-pad: 3px;
   .task-list { background: color-mix(in srgb, var(--text) 3.5%, transparent); border-radius: 6px; overflow: clip; }
-  .task-list > li[data-task]::after { background: color-mix(in srgb, #000 28%, transparent); }
-  .task-list > li[data-task]:last-of-type::after { display: none; }
-  .task-list > li[data-task] > .task-title { font-weight: 500; }
+  /* Dividers are borders, not the ruled ::after lines: a border snaps to whole screen pixels, so each is the same 1px at any zoom. */
+  .task-list > li[data-task] { border-width: 0 0 1px; border-style: solid; border-color: transparent transparent color-mix(in srgb, #000 28%, transparent); border-radius: 0; }
+  .task-list > li[data-task]::after { display: none; }
+  .task-list > li[data-task]:last-of-type { border-bottom-color: transparent; }
+  .task-list > li[data-task] > .task-title { font-weight: 400; }
   #task-entry { max-width: 700px; margin-bottom: 26px; }
   #task-entry .task-add-line { border: 0; border-radius: 0; background: transparent; padding-left: 2px; }
   #task-entry .task-add-line::after { left: 0 !important; background: var(--glass-border); }
@@ -4969,7 +4971,15 @@ html.case-open, html.case-open body { overflow: hidden; }
   #task-entry .task-add-line .new-task-line { margin-left: 0; }
 }
 #main[data-skin="minimal"][data-density="tight"] {
-  .task-list > li[data-task] { min-height: 38px; font-size: 15px; }
-  .task-list > li[data-task] > .tick { width: 15px; height: 15px; }
-  .task-list > li[data-task] > .task-title { font-size: 15px; line-height: 22px; padding-top: 3px; padding-bottom: 3px; }
+  .task-list > li[data-task] { min-height: 33px; font-size: 14px; padding-top: 1px; padding-bottom: 1px; }
+  .task-list > li[data-task] > .tick { width: 14px; height: 14px; }
+  .task-list > li[data-task] > .drag-handle { height: 24px; }
+  .task-list > li[data-task] > .task-title { font-size: 14px; line-height: 20px; padding-top: 3px; padding-bottom: 3px; }
 }
+/* A row's markers (📝 📅 📎 ...) as line drawings in Minimal, emoji elsewhere (mark() in views/tasks.js). */
+.line-ico { display: none; }
+#main[data-skin="minimal"] .task-list :is(.emo) { display: none; }
+#main[data-skin="minimal"] .task-list .line-ico { display: inline-block; width: 13px; height: 13px; vertical-align: -2px; stroke-width: 1.8; opacity: .75; }
+#main[data-skin="minimal"] .task-list .note-icon { font-family: inherit; }
+/* Minimal: every row's ⠿ shows (faint) all the time, not only under the pointer. */
+@media (hover: hover) { #main[data-skin="minimal"] .task-list > li[data-task]:not(:hover, .selected, .dragging) > .drag-handle { opacity: .35 !important; } }
