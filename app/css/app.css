@@ -4979,7 +4979,10 @@ html.case-open, html.case-open body { overflow: hidden; }
 /* A row's markers (📝 📅 📎 ...) as line drawings in Minimal, emoji elsewhere (mark() in views/tasks.js). */
 .line-ico { display: none; }
 #main[data-skin="minimal"] .task-list :is(.emo) { display: none; }
-#main[data-skin="minimal"] .task-list .line-ico { display: inline-block; width: 13px; height: 13px; vertical-align: -2px; stroke-width: 1.8; opacity: .75; }
-#main[data-skin="minimal"] .task-list .note-icon { font-family: inherit; }
+#main[data-skin="minimal"] .task-list .line-ico { display: inline-block; width: 13px; height: 13px; vertical-align: middle; stroke-width: 1.8; opacity: .75; }
+/* Centred on the row whatever the font's baseline (a baseline offset sat low with Windows fonts). */
+#main[data-skin="minimal"][data-density="tight"] .task-list .task-note { display: flex; align-items: center; align-self: stretch; }
+#main[data-skin="minimal"][data-density="tight"] .task-list .note-icon { display: flex; font-family: inherit; }
+#main[data-skin="minimal"] .task-list .chip:has(> .line-ico) { display: inline-flex; align-items: center; gap: 4px; }
 /* Minimal: every row's ⠿ shows (faint) all the time, not only under the pointer. */
 @media (hover: hover) { #main[data-skin="minimal"] .task-list > li[data-task]:not(:hover, .selected, .dragging) > .drag-handle { opacity: .35 !important; } }
