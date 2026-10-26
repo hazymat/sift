@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.57': [{ text: "Tasks, Minimal style: the line-drawn 📝 note mark after a task's name sits level with the name instead of a little low, whatever the font." }],
   '1.61.56': [{ text: "Tasks, Minimal style: the tasks are full width again on a computer, and 👁 no longer has Width on a computer.", go: '#/tasks/now', at: '#main .task-list' }],
   '1.61.55': [{ text: "Tasks, Minimal style: on a computer the list of tasks is narrower, so the eye travels less. 👁 has Width on a computer under the Minimal tile: Full, Wide (the usual) or Narrow.", go: '#/tasks/now', open: ['#main details.view-menu > summary'], at: '#main .skin-choice' }],
   '1.61.54': [{ text: "Tasks, Minimal style: closer to Nirvana. In Compact spacing the rows are shorter (33 pixels) with smaller, lighter text, the lines between them are one even pixel, every row's ⠿ grab handle always shows, and the 📝 note mark and the other small marks (📅 📎 ⏱ 🔁 👤 📁) are line drawings instead of coloured emoji.", go: '#/tasks/now', at: '#main .task-list' }],
@@ -230,6 +231,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.57': '2026-10-26T20:49:22Z',
   '1.61.56': '2026-10-26T20:34:57Z',
   '1.61.55': '2026-10-26T19:42:57Z',
   '1.61.54': '2026-10-26T19:34:37Z',
