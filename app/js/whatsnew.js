@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.63': [{ text: "Batch Book: export a single recipe. A recipe card's ⋯ and an open recipe's Share have ⬇ Export recipe, which saves it as a file that Import recipes reads back in.", go: '#/recipes', open: ['#main .bb-card-menu > summary'], at: '#main .bb-card-menu[open] [data-card="export"]' }],
   '1.61.62': [{ text: "Tasks, Minimal style: square corners throughout: an open task's frame, the list and the notes box with its toolbar are no longer rounded.", go: '#/tasks/now', at: '#main .task-list' }],
   '1.61.61': [{ text: "Tasks, Minimal style: dragging a task below the last one (or above the first) no longer cuts it off or makes it vanish; it stays in view and drops back where you want it." }],
   '1.61.60': [{ text: "Tasks, Minimal style: a task's pills and its full panel (More (full), Shift+Enter) are flat and compact to match: small square-ish pills, smaller fields and buttons, and thin lines between the panel's parts instead of boxes. In every style, the notes toolbar is now one square bar joined to the top of the notes box, its buttons side by side.", go: '#/tasks/now', at: '#main .task-list' }],
@@ -237,6 +238,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.63': '2026-10-26T23:47:32Z',
   '1.61.62': '2026-10-26T23:41:18Z',
   '1.61.61': '2026-10-26T23:34:01Z',
   '1.61.60': '2026-10-26T20:57:14Z',
