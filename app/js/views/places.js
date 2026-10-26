@@ -120,7 +120,6 @@ export default {
     function card(box, { path, highlight } = {}) {
       const items = highlight ?? box.items;
       return `<div class="box-card${box.label_code ? '' : ' no-code'}" data-box="${box.id}" data-id="${box.id}" style="--tint: ${tintHex(box)}" role="button" tabindex="0" aria-label="${esc(box.label_code ? `${box.label_code} ${box.name}` : box.name)}">
-        <button type="button" class="kit-grip" data-act="pick-box" aria-label="Select" title="Select (or press and hold the box)">${icon('i-grip')}</button>
         ${path ? `<span class="box-path">${esc(path)}</span>` : ''}
         <span class="box-head">
           ${box.label_code ? `<span class="box-code">${esc(box.label_code)}</span>` : ''}
@@ -563,7 +562,7 @@ export default {
       if (r?.to) await boxesDo(ids, { parent_place_id: r.to }, 'Moved');
     }
     const gridKit = this.gridKit = createListKit({
-      reorder: false, holdSelect: true, rowSel: '.box-card[data-id]', noun: 'box',
+      reorder: false, holdSelect: true, tiles: true, rowSel: '.box-card[data-id]', noun: 'box',
       actions: [
         { id: 'move', label: 'Move to…', run: ids => moveBoxes(ids) },
         { id: 'colour', label: 'Colour…', run: ids => { colourMenu(document.querySelector('[data-kit-action="colour"]'), null, v => setColour('places', ids, v)); } },

@@ -145,8 +145,7 @@ export default {
     function contactCard(c) {
       return `
         <li class="c-card${c.pinned ? ' pinned' : ''}" data-contact-card="${c.id}" data-id="${c.id}" style="--tint: ${tintHex(c)}">
-          <button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button>
-          <a class="c-main" href="#/contacts/c/${c.id}">
+          <a class="c-main" draggable="false" href="#/contacts/c/${c.id}">
             <span class="c-name">${esc(label(c))}</span>
             ${c.about ? `<span class="muted c-about">${esc(c.about)}</span>` : needsLabel(c) ? '<span class="what-was-this">What was this?</span>' : ''}
             ${c.category_ids?.length ? `<span class="muted c-about">${c.category_ids.map(catName).filter(Boolean).map(esc).join(' · ')}</span>` : ''}
@@ -419,8 +418,7 @@ export default {
       const photo = facts.files.find(file => file.kind === 'image' && file.thumb);
       const chips = peopleOf(kase).map(name => `<span class="chip">👤 ${esc(name)}</span>`).concat(refOf(kase) ? [`<span class="chip"># ${esc(refOf(kase))}</span>`] : []);
       return `<li class="bb-card-li case-card" data-id="${kase.id}" data-depth="0" style="--bb:${STATUS_COLOUR[statusOf(kase).id]}">
-        <button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button>
-        <a class="bb-card" href="#/contacts/cases/${kase.id}">
+        <a class="bb-card" draggable="false" href="#/contacts/cases/${kase.id}">
           <span class="bb-card-pic">${photo ? `<img src="${photo.thumb}" alt="" loading="lazy">` : `<span class="bb-card-emoji">${STATUS_EMOJI[statusOf(kase).id]}</span>`}${badge(kase)}</span>
           <span class="bb-card-body">
             <span class="bb-card-title">${esc(kase.title || 'Untitled')}</span>
@@ -708,12 +706,12 @@ export default {
       await render();
       undoable('Moved a contact', async () => { await store.updateMany('contacts', before); await render(); });
     }
-    const kit = this.kit = createListKit({ reorder: true, grid: true, holdSelect: true, noun: 'contact', onReorder: contactOrder, actions: contactActions }); // hold to choose, drag by the ⠿
+    const kit = this.kit = createListKit({ reorder: true, grid: true, holdSelect: true, tiles: true, noun: 'contact', onReorder: contactOrder, actions: contactActions }); // hold to choose (and drag on)
     // A Directory category lists research buttons under each card, so its cards are chosen but not dragged.
-    const dirKit = this.dirKit = createListKit({ reorder: false, holdSelect: true, noun: 'contact', actions: contactActions });
+    const dirKit = this.dirKit = createListKit({ reorder: false, holdSelect: true, tiles: true, noun: 'contact', actions: contactActions });
     const now = () => new Date().toISOString();
     const caseKit = this.caseKit = createListKit({
-      reorder: true, grid: true, holdSelect: true, noun: 'case', onReorder: persistCaseOrder, // as Batch Book's cards: hold to choose, drag by the ⠿
+      reorder: true, grid: true, holdSelect: true, tiles: true, noun: 'case', onReorder: persistCaseOrder, // as Batch Book's cards: hold to choose (and drag on)
       actions: CASE_STATUS.map(option => ({ id: `status-${option.id}`, label: `${STATUS_EMOJI[option.id]} ${option.label}`, group: 'Status', run: ids => changeCases(ids, kase => statusPatch(kase, option.id), `Marked ${option.label.toLowerCase()}`) }))
         .concat([
           { id: 'archive', label: 'Archive', key: 'A', run: ids => changeCases(ids, () => ({ archived_at: now() }), 'Archived') },

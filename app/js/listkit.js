@@ -40,6 +40,9 @@
 //     when(): false hides it (e.g. Now, while looking at Now)
 //   onNest(ids, targetId): rows dropped onto the middle of another row (e.g. to
 //     make them its sub-tasks); while dragging, the row shows indented with ↳
+//   tiles: cards with no ⠿ (nothing typed in them): a chosen card drags from anywhere on it, the hold that chooses
+//     one drags it if the finger moves on, and a mouse drags any card straight away (a click still opens it;
+//     Ctrl/⌘+click chooses). Needs holdSelect; drags only with reorder.
 //   holdSelect: press and hold a row (a card) selects it, with the hold's ripple (hold.js); while
 //     anything is selected, a tap on another row adds it or takes it out (Shift: the run from the last one)
 //   onSection(id, beforeId): a section's heading (li.list-head[data-section]) was dragged, with its
@@ -60,10 +63,13 @@ export const typingIn = el => !!el?.closest?.('input:not([type="checkbox"]):not(
 
 const TYPING = 'input:not([type="checkbox"]):not([type="radio"]):not([type="button"]), textarea, [contenteditable]:not([contenteditable="false"])';
 
+// Where a press on a card is the card's own (its buttons, menus, fields), not a drag.
+const TILE_SKIP = 'button, a[href]:not(.bb-card, .list-card, .c-main), summary, details[open], select, label, input, textarea, [contenteditable="true"], .edit-pills, .row-acts';
+
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 export function createListKit({
-  reorder = true, indent = false, maxDepth = 1, actions = [], onReorder, noun = 'item', grid = false, families = false, onNest = null, holdAnywhere = false, sideways = true, holdSelect = false, rowSel = ':scope > li[data-id]', onSection = null, textSelect = true, refocus = null,
+  reorder = true, indent = false, maxDepth = 1, actions = [], onReorder, noun = 'item', grid = false, families = false, onNest = null, holdAnywhere = false, sideways = true, holdSelect = false, rowSel = ':scope > li[data-id]', onSection = null, textSelect = true, refocus = null, tiles = false,
 } = {}) {
   const selected = new Set();
   let anchor = null;
@@ -298,8 +304,12 @@ export function createListKit({
     if (holdAnywhere && reorder) ul.dataset.holdDrag = '';
     // A stray text selection left on the page (iPhone) steals the next hold, so a drag never starts: let it go first.
     ul.addEventListener('touchstart', () => { const sel = getSelection(); if (sel?.rangeCount && !sel.isCollapsed && !typingIn(document.activeElement)) sel.removeAllRanges(); }, { passive: true });
-    sortable(ul, {
+    const tileDrag = tiles && reorder;
+    const cardAt = t => rows().find(r => r.contains(t)) || null;
+    const drag = sortable(ul, {
       handle: '.drag-handle',
+      // (tiles) a chosen card, or any card under a mouse, drags from anywhere on it
+      pressDrag: tileDrag ? e => { const card = !e.target.closest(TILE_SKIP) && cardAt(e.target); return card && (e.pointerType === 'mouse' || selected.has(card.dataset.id)) ? card : null; } : null,
       anywhere: holdAnywhere && reorder ? 300 : 0,
       holdMs: reorder ? 260 : 100000, // without reordering, a hold does nothing
       keyboard: reorder,
@@ -446,13 +456,19 @@ export function createListKit({
     // Press and hold a card: it's selected; then while choosing, a tap adds or takes out.
     if (holdSelect) {
       const skip = 'button, summary, details[open], select, label, input, textarea, [contenteditable="true"], .drag-handle, .kit-grip, .edit-pills, .row-acts';
-      const rowAt = t => rows().find(r => r.contains(t)) || null;
+      // (tiles) a chosen card's hold is its drag (sortable), not choosing it again
+      const rowAt = t => { const r = cardAt(t); return r && !(tileDrag && selected.has(r.dataset.id)) ? r : null; };
       let justHeld = false; // the hold's own release isn't a tap
-      const hold = holdToLift(ul, { rowAt, skip, ms: 450, onLift: row => { hold.letGo(); justHeld = true; getSelection()?.removeAllRanges(); pick(row.dataset.id); leaveTyping(); paint(); } });
+      const hold = holdToLift(ul, { rowAt, skip, ms: 450, onLift: (row, x, y) => {
+        justHeld = true; getSelection()?.removeAllRanges(); pick(row.dataset.id); leaveTyping(); paint();
+        if (tileDrag) { drag.arm(row, x, y); addEventListener('pointerup', () => hold.letGo(), { once: true, capture: true }); addEventListener('pointercancel', () => hold.letGo(), { once: true, capture: true }); } // still down: moving on drags it (the page stays still till let go)
+        else hold.letGo();
+      } });
       ul.addEventListener('pointerdown', () => { justHeld = false; }, true);
+      if (tiles) ul.addEventListener('dragstart', ev => { if (cardAt(ev.target)) ev.preventDefault(); }); // never the browser's own drag of its picture or link (iPad)
       ul.addEventListener('click', ev => {
         if (justHeld) { justHeld = false; return; }
-        const r = selected.size && !ev.target.closest(skip) ? rowAt(ev.target) : null;
+        const r = (selected.size || (tiles && (ev.ctrlKey || ev.metaKey))) && !ev.target.closest(skip) ? cardAt(ev.target) : null;
         if (!r) return;
         ev.preventDefault(); ev.stopPropagation();
         pick(r.dataset.id, ev.shiftKey); leaveTyping(); paint();

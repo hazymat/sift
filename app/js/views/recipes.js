@@ -138,8 +138,7 @@ export default {
       const photo = from ? null : photoOf(r.id);
       const withWho = from ? from.name : sharedWithText({ kind: 'recipe', id: r.id });
       return `<li class="bb-card-li" ${from ? `data-from="${from.owner_id}" data-rid="${r.id}"` : `data-id="${r.id}" data-depth="0"`} style="--bb:${colourOf(r)}">
-        ${from ? '' : `<button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button>`}
-        <a class="bb-card" href="#/recipes/${r.id}${from ? `/from/${from.owner_id}` : ''}">
+        <a class="bb-card" draggable="false" href="#/recipes/${r.id}${from ? `/from/${from.owner_id}` : ''}">
         <span class="bb-card-pic">${photo ? `<img src="${photo.thumb}" alt="" loading="lazy">` : `<span class="bb-card-emoji">${sec.emoji}</span>`}</span>
         <span class="bb-card-body">
           <span class="bb-card-title">${esc(r.title || 'Untitled')}</span>
@@ -1348,7 +1347,7 @@ export default {
       kit?.destroy();
       kitBooks = names;
       kit = this.kit = createListKit({
-        reorder: true, grid: true, holdSelect: true, noun: 'recipe', onReorder: persistOrder, // press and hold a card selects it; then a tap adds or takes out
+        reorder: true, grid: true, holdSelect: true, tiles: true, noun: 'recipe', onReorder: persistOrder, // press and hold a card selects it (and drags it on); then a tap adds or takes out
         actions: sections.map((x, n) => ({ id: `book${n}`, label: `${x.emoji} ${x.name || 'No book'}`, group: 'Move to', run: ids => moveRecipes(ids, { type: x.name }, `Moved to ${x.name || 'No book'}`) }))
           .concat([
             { id: 'pin', label: 'Pin', run: ids => moveRecipes(ids, { pinned: true }, 'Pinned') },
