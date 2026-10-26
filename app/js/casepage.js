@@ -18,7 +18,7 @@ import { undoable, toast } from './toast.js';
 import * as att from './attachments.js';
 import { attachAsComment } from './comments.js';
 import { ENERGY, dateText, dateTimeText, parseDate, durationLabel, showTime, isoDate } from './days.js';
-import { STATUSES, PRIORITIES, HORIZONS, doneFields, projectMembers } from './tasks.js';
+import { STATUSES, PRIORITIES, horizons, doneFields, projectMembers } from './tasks.js';
 import { repeatLabel } from './repeat.js';
 import { keys } from './keys.js';
 
@@ -103,7 +103,7 @@ export async function openCase(owner, { closed, back } = {}) {
     if (field === 'estimate_min') return durationLabel(Number(value));
     if (field === 'priority') return PRIORITIES.find(p => p.id === Number(value))?.label || value;
     if (field === 'status') return STATUSES.find(s => s.id === value)?.label || value;
-    if (field === 'horizon') return HORIZONS.find(h => h.id === value)?.label || value;
+    if (field === 'horizon') return horizons().find(h => h.id === value)?.label || value;
     if (field === 'start_date' || field === 'date') return dayText(value);
     if (field === 'aim_at') return value.length > 10 ? `${dayText(value.slice(0, 10))}, ${value.slice(11, 16)}` : dayText(value);
     if (field === 'time' || field === 'end_time') return showTime(value);

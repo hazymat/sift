@@ -11,7 +11,7 @@
 // steps, its own place kept, and its own task; finishing one goes back to the choice.
 import * as store from './store.js';
 import { addTaskFirst, doneFields } from './tasks.js';
-import { word } from './words.js';
+import { word, sectionName } from './words.js';
 import { toast, undoable } from './toast.js';
 import { closeFull } from './fullnote.js';
 import { flash } from './flash.js';
@@ -92,21 +92,21 @@ const openView = where => `${Tap()} the <b>View</b> button at the top${where ? `
 const tasksSteps = () => [
   { id: 'add', hash: '#/tasks/inbox', at: '#task-entry, #task-body', also: nav('tasks'), focus: '#task-new', title: 'Add a task', done: { made: ['tasks'] },
     body: `<p class="tour-try">${KEYS ? 'Try typing' : 'Tap the <b>New task</b> box and type'} something you need to do, like <b>Buy milk</b>, then ${enterKey()}.</p>` },
-  { id: 'tabs', hash: '#/tasks/inbox', at: '#task-entry, #task-body', also: '#task-views [data-view="inbox"]', focus: '#task-new', title: `You just used the ${word('list_inbox')}`, done: { made: ['tasks'] }, doneText: "✓ That's the idea: no buttons, just type.",
-    body: `<p>The <b>${word('list_inbox')}</b> is for whatever pops into your head. It's built to have you typing within seconds of opening Sift: type, ${KEYS ? key('Enter') : '✓'}, type the next one. Nothing to decide; just get your thoughts down.</p>
+  { id: 'tabs', hash: '#/tasks/inbox', at: '#task-entry, #task-body', also: '#task-views [data-view="inbox"]', focus: '#task-new', title: `You just used the ${sectionName('inbox')}`, done: { made: ['tasks'] }, doneText: "✓ That's the idea: no buttons, just type.",
+    body: `<p>The <b>${sectionName('inbox')}</b> is for whatever pops into your head. It's built to have you typing within seconds of opening Sift: type, ${KEYS ? key('Enter') : '✓'}, type the next one. Nothing to decide; just get your thoughts down.</p>
       ${try_('add another one, straight away, like <b>Call Mum</b>.')}` },
   { id: 'capture', hash: '#/tasks/inbox', at: '#main .task-list, #task-body', title: 'Empty your head first, sort it later',
     body: `<blockquote class="tour-quote"><span class="tour-quote-icon" aria-hidden="true">📘</span><span><span class="tour-quote-text">"Your mind is for having ideas, not holding them."</span><span class="tour-quote-who">David Allen, <i>Getting Things Done</i></span></span></blockquote>
       <p><b>1. Get it all down.</b> Everything goes in here as it comes, without deciding anything.</p>
       <p><b>2. Now and again, sort the pile,</b> one task at a time:</p>
-      <ul class="tour-list"><li>⚡ <b>Two minutes or less?</b> Do it there and then.</li><li>🗑️ <b>Doesn't matter?</b> Bin it.</li><li>📥 <b>Otherwise</b> move it to ${w('list_now')}, ${w('list_next')} or ${w('list_later')}, by how soon it matters.</li></ul>` },
+      <ul class="tour-list"><li>⚡ <b>Two minutes or less?</b> Do it there and then.</li><li>🗑️ <b>Doesn't matter?</b> Bin it.</li><li>📥 <b>Otherwise</b> move it to ${`<b>${sectionName('now')}</b>`}, ${`<b>${sectionName('next')}</b>`} or ${`<b>${sectionName('later')}</b>`}, by how soon it matters.</li></ul>` },
   { id: 'process', hash: '#/tasks/inbox', at: '#main .task-list, #task-body', title: 'Sort a couple', done: { moved: 2 }, cardLow: true, liftBar: true, stage: sortStage, doneText: '✓ Two sorted. A little and often keeps the pile small.',
     body: `<p>Choose two, press <b>Move ▸</b>, then say where they go.</p>${staged(
       KEYS ? `Hover your mouse over the left side of a task, then click its grab handle ${handle}.` : `Tap the grab handle ${handle} on the left of a task.`,
       'Do it again on another task, to choose two.',
       `${tap().replace(/^./, c => c.toUpperCase())} <b>Move ▸</b> in the <b>Selections bar</b> at the bottom.${KEYS ? '' : ' (It scrolls sideways: drag it to the left if Move is out of sight.)'}`,
-      KEYS ? `${w('list_now')}, ${w('list_next')} and ${w('list_later')} appear beside it (if they don't all fit, scroll the bar sideways with your mouse wheel): click <b>${word('list_now')}</b>.`
-        : `${w('list_now')}, ${w('list_next')} and ${w('list_later')} slide out beside it. The bar scrolls sideways: drag it left or right to see them all, then tap <b>${word('list_now')}</b>.`)}` },
+      KEYS ? `${`<b>${sectionName('now')}</b>`}, ${`<b>${sectionName('next')}</b>`} and ${`<b>${sectionName('later')}</b>`} appear beside it (if they don't all fit, scroll the bar sideways with your mouse wheel): click <b>${sectionName('now')}</b>.`
+        : `${`<b>${sectionName('now')}</b>`}, ${`<b>${sectionName('next')}</b>`} and ${`<b>${sectionName('later')}</b>`} slide out beside it. The bar scrolls sideways: drag it left or right to see them all, then tap <b>${sectionName('now')}</b>.`)}` },
   { id: 'tidy', hash: '#/tasks/inbox', at: '#main .task-list, #task-body', title: 'Tidy up your practice tasks', done: { check: tidied }, cardLow: true, liftBar: true, doneText: "✓ Gone. That's the Task Dump: in fast, out when it's dealt with.",
     body: `<p>The tasks you just typed were practice: clear them away so your list starts clean. (Something real? Add it again after the tour.)</p>${try_(`tick them off, or choose them with <b>⠿</b>, then ${KEYS ? "press <b>Delete</b> at the end of the <b>Selections bar</b> at the bottom (scroll the bar sideways with your mouse wheel if you can't see it)" : '<b>drag the Selections bar</b> at the bottom <b>to the left</b> and tap <b>Delete</b> at its end'}.`)}` },
   Object.assign(menuAt('#main .view-menu', '.density-opts'), { id: 'spacing', hash: '#/tasks/now', title: 'View settings: spacing', doneText: '✓ Medium shows dates, energy, repeats and durations under each task.',
@@ -276,7 +276,7 @@ export async function saveTourForLater(which) {
   await tourTask(which);
   const tab = document.querySelector('#task-views [data-view="next"]');
   if (tab) flash(tab, { pulses: 3 });
-  toast(`📌 Saved to your ${word('list_next')} list (its tab is flashing). Feel free to move it to ${word('list_now')} or ${word('list_later')} if you prefer :)`, { ms: 8000 });
+  toast(`📌 Saved to your ${sectionName('next')} list (its tab is flashing). Feel free to move it to ${sectionName('now')} or ${sectionName('later')} if you prefer :)`, { ms: 8000 });
 }
 // The tour's task, shown on Tasks → Next with its outline pulsing so it can be found.
 export async function showTourTask(which = 'new') {
@@ -288,7 +288,7 @@ export async function showTourTask(which = 'new') {
     if (el) { flash(el); break; }
     await new Promise(ok => setTimeout(ok, 100));
   }
-  toast(`📌 The tour's on your ${word('list_next')} list (flashing): ▶ Start the tour carries on where you left it. Feel free to move it to ${word('list_now')} or ${word('list_later')} if you prefer :)`, { ms: 9000 });
+  toast(`📌 The tour's on your ${sectionName('next')} list (flashing): ▶ Start the tour carries on where you left it. Feel free to move it to ${sectionName('now')} or ${sectionName('later')} if you prefer :)`, { ms: 9000 });
 }
 
 let tour = null; // the tour running: { n, end }
@@ -461,7 +461,7 @@ export async function startTour({ which = 'new', fromStart = false } = {}) {
     else if (what === 'later') { track('tour', { tour: which, step: 'ended early', at: step?.id }); t.end().then(() => showTourTask(which)); }
     else if (what === 'save') {
       saveTourForLater(step.offer);
-      card.querySelector('.tour-foot').innerHTML = `<span class="tour-nice">📌 Saved to your ${word('list_next')} list (flashing up there). Move it to ${word('list_now')} or ${word('list_later')} any time.</span>`;
+      card.querySelector('.tour-foot').innerHTML = `<span class="tour-nice">📌 Saved to your ${sectionName('next')} list (flashing up there). Move it to ${sectionName('now')} or ${sectionName('later')} any time.</span>`;
       const at = t.n;
       setTimeout(() => { if (current(at)) (at === all.length - 1 ? finish() : show(at + 1)); }, 3200);
     }

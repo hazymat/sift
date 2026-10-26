@@ -15,7 +15,7 @@ import { richText, toHtml, previewLine, inlineAll, plainLines } from '../richtex
 import { keepDraft, draftCleared } from '../drafts.js';
 import { autosizeAll } from '../inline.js';
 import { summarise, offerTime, spotWhen } from '../summary.js';
-import { loadAll as loadTasks, forDay, suggestions, doneFields, aimDate, addTask, horizonOf, planDay } from '../tasks.js';
+import { loadAll as loadTasks, forDay, suggestions, doneFields, aimDate, addTask, horizonOf, horizons, planDay } from '../tasks.js';
 import * as att from '../attachments.js';
 import { typingIn } from '../listkit.js';
 import { rowSwipe } from '../rowswipe.js';
@@ -906,10 +906,7 @@ const dayPlanner = {
         ${skippedHtml(open.filter(t => skip.has(t.id) && !onDay.has(t.id)), (t, aside) => card(t, '', aside))}
         ${section(`For ${dayCalled()}`, top, aimNote)}
         ${energy ? section(`Ideas for ${energy.bolts} energy`, ideas) : ''}
-        ${section(esc(word('list_inbox')), by('inbox'))}
-        ${section('Now', by('now'))}
-        ${section('Next', by('next'))}
-        ${section('Later', by('later'))}
+        ${horizons().map(h => section(esc(h.label), by(h.id))).join('')}
         ${projectSections()}
         ${open.length ? '' : '<p class="muted">' + esc(word('ph_day_bring_empty')) + '</p>'}`;
     }

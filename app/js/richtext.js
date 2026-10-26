@@ -47,7 +47,7 @@ import * as store from './store.js';
 import { toast } from './toast.js';
 import { openFull, closeFull, isFull, setFullLabel, PHONE } from './fullnote.js';
 import { titleFrom } from './summary.js';
-import { word } from './words.js';
+import { sectionName } from './words.js';
 import { noteUndo, showVersions } from './noteundo.js';
 import { flushAll } from './autosave.js';
 import { keys } from './keys.js';
@@ -900,7 +900,7 @@ export function richText(container, { value = '', onChange, placeholder = '', or
     m.className = 'md-make-menu';
     m.setAttribute('role', 'menu');
     m.innerHTML = '<span class="muted">This line (or the selected lines) →</span>'
-      + `<button type="button" role="menuitem" data-make="tasks">☐ Tasks in ${esc(word('list_inbox'))}</button>`
+      + `<button type="button" role="menuitem" data-make="tasks">☐ Tasks in ${esc(sectionName('inbox'))}</button>`
       + '<button type="button" role="menuitem" data-make="contact">👤 A contact</button>';
     btn.closest('.md-bar').after(m);
   }

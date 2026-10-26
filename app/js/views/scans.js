@@ -20,7 +20,8 @@ import { debounced } from '../autosave.js';
 import { toast, undoable } from '../toast.js';
 import { openPicker } from '../linkpicker.js';
 import { KINDS as REF_KINDS, openRef } from '../refs.js';
-import { addTask } from '../tasks.js';
+import { addTask, reminderSection } from '../tasks.js';
+import { sectionName } from '../words.js';
 import { isoDate, dateText } from '../days.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -191,8 +192,8 @@ export default {
                 : '<button type="button" class="linklike" data-act="file-with">File with a contact, case, task…</button>'}
             </div>
             ${s.expiry_date ? `<div class="scan-reminder">${reminder
-              ? `<span class="muted">A task reminds you before it expires.</span> <a class="linklike" href="#/tasks/list">Tasks</a>`
-              : '<button type="button" class="linklike" data-act="remind">+ Remind me 3 months before it expires</button>'}</div>` : ''}
+              ? `<span class="muted">A task in Tasks reminds you before it expires.</span> <a class="linklike" href="#/tasks/list">Tasks</a>`
+              : `<button type="button" class="linklike" data-act="remind">+ Remind me 3 months before it expires</button> <span class="muted">(a task in ${esc(sectionName(reminderSection()))})</span>`}</div>` : ''}
           </div>
           <div class="panel-sec"><span class="panel-h">Note</span><div class="scan-note"></div></div>
           <div class="detail-actions scan-actions">
@@ -445,8 +446,8 @@ export default {
       }
       if (act === 'remind') {
         const aim = [monthsBefore(s.expiry_date, 3), isoDate()].sort().at(-1);
-        const task = await addTask({ title: `Before it expires: ${s.title}`, horizon: 'later', aim_at: aim, source_scan_id: s.id });
-        await change(s.id, { reminder_task_id: task.id }, `Task added: Target end date ${niceDate(aim)}`);
+        const task = await addTask({ title: `Before it expires: ${s.title}`, horizon: reminderSection(), aim_at: aim, source_scan_id: s.id });
+        await change(s.id, { reminder_task_id: task.id }, `Task added to ${sectionName(reminderSection())} in Tasks: target end date ${niceDate(aim)}`);
         return;
       }
       if (act === 'archive' || act === 'delete') {

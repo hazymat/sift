@@ -3,9 +3,10 @@
 // word you've changed is kept in the synced settings under its key (empty =
 // the default), so it follows you to your other devices.
 //
-//   word('list_inbox')  → "Task Dump", or what you called it
+//   word('area_tasks')  → "Tasks", or what you called it
 //   dumpTypes()         → [{ id, label }] in your order
-//   applyWords()        → reload both from the settings (start-up, and when they change)
+//   taskSections()      → Tasks' sections in your order (below)
+//   applyWords()        → reload all three from the settings (start-up, and when they change)
 
 import * as store from './store.js';
 
@@ -20,11 +21,6 @@ export const WORDS = [
   { group: 'Areas', key: 'area_contracts', default: 'Contracts', hint: 'Insurance, utilities, subscriptions: "Bills", "Policies"…' },
   { group: 'Areas', key: 'area_recipes', default: 'Batch Book', hint: 'Recipes and batches: "Recipes", "Brewing"…' },
   { group: 'Areas', key: 'area_bin', default: 'Tidied', hint: 'Archived and deleted things, together: "Put away", "Archive", "Stowed"…' },
-
-  { group: 'Task lists', key: 'list_inbox', default: 'Task Dump', hint: "Where new tasks land before you've decided when to do them: \"Inbox\", \"To sort\"…" },
-  { group: 'Task lists', key: 'list_now', default: 'Now', hint: 'What you are working on these days: "This week", "Doing"…' },
-  { group: 'Task lists', key: 'list_next', default: 'Next', hint: 'What comes after: "Soon", "Next week"…' },
-  { group: 'Task lists', key: 'list_later', default: 'Later', hint: 'One day: "Someday", "Maybe"…' },
 
   { group: 'Energy levels', key: 'energy_low', default: 'Desk work, small tasks, admin', hint: 'What a ⚡ low-energy day, or a task that needs little energy, means for you. Shown when you hover over or hold the ⚡.' },
   { group: 'Energy levels', key: 'energy_medium', default: 'Meetings, some project work', hint: 'What ⚡⚡ medium energy means for you.' },
@@ -90,7 +86,7 @@ export const WORDS = [
   { group: "Phrases: Settings", key: 'ph_set_size', default: "For this device only. Smaller fits more on the page.", hint: "Under Text size." },
   { group: "Phrases: Settings", key: 'ph_set_down', default: "Days to go easy. The planner nudges you to do less.", hint: "Under Down days." },
   { group: "Phrases: Settings", key: 'ph_set_evening', default: "Evening plans", hint: "The default name of the section after the day ends." },
-  { group: "Phrases: Settings", key: 'ph_set_words', default: "Call things what you call them: the names of the areas, the task lists and headings, and what each energy level means for you. (Energy helps you fit the day to how you feel: pick a level for the day, mark tasks with the level they need, and Sift can suggest tasks that match. The meanings show when you hover over or hold the ⚡.)", hint: "The text on the Your words card." },
+  { group: "Phrases: Settings", key: 'ph_set_words', default: "Call things what you call them: the names of the areas, the headings, and what each energy level means for you. (Energy helps you fit the day to how you feel: pick a level for the day, mark tasks with the level they need, and Sift can suggest tasks that match. The meanings show when you hover over or hold the ⚡.)", hint: "The text on the Your words card." },
   { group: "Phrases: Settings", key: 'ph_set_notes', default: "In any note, 📞 links a contact, 📝 links anything, ⚠️ links something important. Or just keep the emoji.", hint: "The text on the Notes card." },
   { group: "Phrases: Settings", key: 'ph_set_backup', default: "Backups are a single .sift file. On iPhone, save it to Files or iCloud Drive. Restoring merges: nothing on this device is lost, and the newest edit of each field wins.", hint: "The hint on the Backup card." },
   { group: "Phrases: Settings", key: 'ph_set_history', default: "Every change on this device, newest first. Undo any of them individually, in any order.", hint: "The text on the History card." },
@@ -120,6 +116,8 @@ export const DEFAULT_TYPES = [
 const defaults = Object.fromEntries(WORDS.map(w => [w.key, w.default]));
 let custom = {};
 let types = DEFAULT_TYPES;
+let sections = [];
+let ends = {};
 // The tours' example categories (demo.js): shown while a tour runs, never saved.
 let demoTypes = [];
 export function setDemoTypes(list) { demoTypes = list; return applyWords(); }
@@ -137,7 +135,9 @@ export async function applyWords() {
   }
   types = Array.isArray(s.dump_types) && s.dump_types.length ? s.dump_types.filter(t => t?.id && t.label) : DEFAULT_TYPES;
   types = types.filter(t => !demoTypes.some(d => d.id === t.id)).concat(demoTypes);
-  return { custom, types };
+  sections = sectionsFrom(s);
+  ends = Object.fromEntries(['done', 'all'].map(id => [id, Object.assign({ id, name: id === 'done' ? 'Done' : 'All', icon: '', colour: '', shaded: false }, s.task_section_ends?.[id], { id })]));
+  return { custom, types, sections, ends };
 }
 
 // Save one word (empty or the default = back to the default).
@@ -153,3 +153,21 @@ export async function setDumpTypes(list) {
   await store.updateSettings({ dump_types: same ? null : list });
   await applyWords();
 }
+
+// ---------- Tasks' sections ----------
+// Task Dump, Now, Next, Later and any of your own, in your order (⋯ at the end of Tasks' bar):
+// settings.task_sections [{ id, name, icon, colour, shaded }]. A task's `horizon` is its section's id.
+// icon: a line drawing's id (tasksections.js) or an emoji; colour: a list colour id (colours.js) or ''.
+// Done and All always come last: only their icon and colour change (settings.task_section_ends).
+// Task Dump can't be removed: tasks made elsewhere (Brain Dump, notes, the tour) land there.
+export const BUILT_IN = [['inbox', 'Task Dump'], ['now', 'Now'], ['next', 'Next'], ['later', 'Later']];
+function sectionsFrom(s) {
+  // Before sections, the four names were in Settings → Dictionary (list_inbox…): they carry over.
+  const own = Array.isArray(s.task_sections) && s.task_sections.length ? s.task_sections.filter(x => x?.id) : BUILT_IN.map(([id, name]) => ({ id, name: String(s[`list_${id}`] ?? '').trim() || name }));
+  if (!own.some(x => x.id === 'inbox')) own.unshift({ id: 'inbox', name: 'Task Dump' });
+  return own.map(x => Object.assign({ icon: '', colour: '', shaded: false }, x, { name: String(x.name || '').trim() || (BUILT_IN.find(b => b[0] === x.id)?.[1] ?? 'Untitled') }));
+}
+export const taskSections = () => sections;
+export const sectionEnds = () => ends;
+export const sectionName = id => (sections.find(x => x.id === id) || sections.find(x => x.id === 'inbox'))?.name || 'Task Dump';
+export const hasSection = id => sections.some(x => x.id === id);

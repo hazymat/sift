@@ -4,7 +4,7 @@
 
 import * as store from './store.js';
 import { byRank, firstKey } from './order.js';
-import { word } from './words.js';
+import { taskSections, hasSection } from './words.js';
 import { people as sharers, fromOthers, myShare, personName } from './sharing.js';
 import { myUserId } from './sync.js';
 
@@ -153,10 +153,12 @@ export function forDay(tasks, date) {
   return { planned, aimed, ongoing };
 }
 
-// When a task is for: now (the default), next, or later.
-// The names are yours (Settings → Dictionary).
-export const HORIZONS = ['inbox', 'now', 'next', 'later'].map(id => ({ id, get label() { return word(`list_${id}`); } }));
-export const horizonOf = t => t.horizon || 'now';
+// Which of Tasks' sections a task is in: Task Dump, Now (the default), Next, Later or one of your own (words.js).
+// A task whose section was removed shows in Task Dump.
+export const horizons = () => taskSections().map(x => ({ id: x.id, label: x.name }));
+// Where Contracts' and Scans' reminders go: Later, or Task Dump once Later is removed (the Task sections sheet says so).
+export const reminderSection = () => (hasSection('later') ? 'later' : 'inbox');
+export const horizonOf = t => { const h = t.horizon || 'now'; return hasSection(h) ? h : 'inbox'; };
 
 // Unplanned, unfinished tasks matching an energy level (for "adopt").
 export function suggestions(tasks, energy, limit = 5) {
