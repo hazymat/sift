@@ -277,12 +277,28 @@ export async function openFollow(open) {
       // The last one: the All done card comes (or goes) under the steps, and is rolled to.
       if (n === p.steps.length - 1) {
         d.querySelector('.fa-end')?.remove();
-        if (done) { delete p.editTime; d.insertAdjacentHTML('beforeend', endHtml(p)); requestAnimationFrame(() => { const end = d.querySelector('.fa-end'); if (end) d.scrollTo({ top: end.offsetTop + end.offsetHeight / 2 - d.clientHeight / 2, behavior: 'smooth' }); }); }
+        if (done) { delete p.editTime; d.insertAdjacentHTML('beforeend', endHtml(p)); requestAnimationFrame(() => { const end = d.querySelector('.fa-end'); if (end) glide(end.offsetTop + end.offsetHeight / 2 - d.clientHeight / 2); }); }
       }
     };
+    // Rolled to a step the same way the wheel rolls it: the drum's own scroll is eased frame by frame (snapping held off until
+    // it lands), so every scroll event redraws the cylinder. Browsers' own smooth scroll is skipped by some (and by snapping).
+    let gliding = 0;
+    const stopGlide = () => { if (!gliding) return; cancelAnimationFrame(gliding); gliding = 0; d.style.scrollSnapType = ''; };
+    const glide = (top, smooth = true) => {
+      stopGlide();
+      top = Math.max(0, Math.min(top, d.scrollHeight - d.clientHeight));
+      const from = d.scrollTop, dist = top - from;
+      if (!smooth || Math.abs(dist) < 2 || matchMedia('(prefers-reduced-motion: reduce)').matches) { d.scrollTop = top; return; }
+      const took = Math.min(700, 260 + Math.abs(dist) * 0.45), began = performance.now();
+      const ease = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+      d.style.scrollSnapType = 'none';
+      const step = now => { const x = Math.min(1, (now - began) / took); d.scrollTop = from + dist * ease(x); if (x < 1) gliding = requestAnimationFrame(step); else { gliding = 0; d.style.scrollSnapType = ''; } };
+      gliding = requestAnimationFrame(step);
+    };
+    for (const ev of ['wheel', 'touchstart', 'pointerdown']) d.addEventListener(ev, stopGlide, { passive: true }); // a hand on the drum takes over
     me.goTo = (n, smooth = true) => {
       const s = items()[Math.max(0, Math.min(p.steps.length - 1, n))];
-      if (s) d.scrollTo({ top: s.offsetTop + s.offsetHeight / 2 - d.clientHeight / 2, behavior: smooth ? 'smooth' : 'auto' });
+      if (s) glide(s.offsetTop + s.offsetHeight / 2 - d.clientHeight / 2, smooth);
     };
     me.rescale = () => { items().forEach((s, n) => { s.querySelector('.fa-text').innerHTML = stepHtml(p.steps[n].text, p.ings, p.tab.times, esc) || ''; }); box.querySelector('.fa-ing-body').innerHTML = ingsHtml(p, me.cur); box.querySelectorAll('[data-scale]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.scale === p.tab.times))); me.later(); };
     d.addEventListener('scroll', me.later, { passive: true });
