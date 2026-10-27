@@ -5089,12 +5089,11 @@ html.case-open, html.case-open body { overflow: hidden; }
   .task-list > li[data-task] :is(.pill-reveal, .pill-done, .more, .close-details) { padding: 1px 8px; font-size: 12px; border-radius: 5px; box-shadow: none; }
 }
 
-/* Minimal in Brain Dump (👁 Style): the notes as one column of flat, square rows on a faint panel with thin
-   dividers, like Minimal tasks; small square controls. Compact: one line per note (its words run on after the head). */
+/* Minimal in Brain Dump (👁 Style): the notes as one column of flat, square-edged rectangles, each its own note
+   with a clear gap between; small square controls. Compact: one line per note (its words run on after the head). */
 #main[data-skin="minimal"] {
-  .thought-list { grid-template-columns: 1fr; gap: 0; background: color-mix(in srgb, var(--text) 3.5%, transparent); }
-  .thought, .thought.size-m, .thought.size-l { grid-column: 1 / -1; aspect-ratio: auto; border-radius: 0; border-width: 0 0 1px; border-color: color-mix(in srgb, #000 28%, transparent); background: transparent; box-shadow: none; padding: 7px 10px; }
-  .thought:last-child { border-bottom-color: transparent; }
+  .thought-list { grid-template-columns: 1fr; gap: 6px; }
+  .thought, .thought.size-m, .thought.size-l { grid-column: 1 / -1; aspect-ratio: auto; border-radius: 0; border: 1px solid var(--glass-border); background: color-mix(in srgb, var(--text) 4.5%, transparent); box-shadow: none; padding: 7px 10px; }
   .thought.pinned { box-shadow: inset 2px 0 0 var(--active-border); }
   .thought .thought-body { font-size: 14px; line-height: 1.45; margin: 3px 2px 2px; }
   .thought .thought-title { font-size: 14px; font-weight: 600; }
@@ -5111,8 +5110,8 @@ html.case-open, html.case-open body { overflow: hidden; }
   .thought:has(> .thought-body):not(.zoomed) > .thought-body { grid-column: 1; }
   .thought:has(> .thought-body):not(.zoomed) > .thought-actions { grid-column: 2; grid-row: 2; align-self: end; }
 }
-#main[data-skin="minimal"][data-shade="colour"] .thought[style*="--tint"] { background: linear-gradient(90deg, color-mix(in srgb, var(--tint) 14%, transparent), transparent 80%); box-shadow: inset 3px 0 0 var(--tint); }
-#main[data-skin="minimal"][data-shade="alt"] .thought-list > .thought:nth-child(even) { background: color-mix(in srgb, var(--text) 5%, transparent); }
+#main[data-skin="minimal"][data-shade="colour"] .thought[style*="--tint"] { background: linear-gradient(90deg, color-mix(in srgb, var(--tint) 14%, transparent), color-mix(in srgb, var(--text) 4.5%, transparent) 80%); box-shadow: inset 3px 0 0 var(--tint); }
+#main[data-skin="minimal"][data-shade="alt"] .thought-list > .thought:nth-child(even) { background: color-mix(in srgb, var(--text) 9%, transparent); }
 #main[data-skin="minimal"][data-density="tight"]:not([data-zoom]) {
   .thought { display: flex; flex-direction: row; align-items: center; gap: 8px; min-height: 35px; padding: 2px 30px 2px 8px; box-sizing: border-box; overflow: hidden; }
   .thought-head { flex: none; flex-wrap: nowrap; padding-right: 0; }
