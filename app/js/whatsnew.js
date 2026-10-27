@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.65': [{ text: "Batch Book, ⋯, Import recipes: a recipe with the same name as one you have now overwrites it, keeping its photos (Already here, under what was found, can leave them as they are instead). Its ingredients, method, notes and details all come from the import; photos on its old steps don't carry over. Undo puts it back.", go: '#/recipes', open: ['#main [data-act="import"]'], at: '.bb-import-sheet textarea' }],
   '1.61.64': [{ text: "Batch Book: recipe cards have no ⠿ handle any more. Press and hold a card to choose it, then keep your finger down and move to drag it; a chosen card drags from anywhere on it. With a mouse, just drag a card (a click still opens it, Ctrl+click chooses). Holding a card on an iPad no longer picks up its picture or link.", go: '#/recipes', at: '#main .bb-card-li', more: "The same on the Lists page's cards, Contacts and Cases, and Find Things' boxes." }],
   '1.61.63': [{ text: "Batch Book: export a single recipe. A recipe card's ⋯ and an open recipe's Share have ⬇ Export recipe, which saves it as a file that Import recipes reads back in.", go: '#/recipes', open: ['#main .bb-card-menu > summary'], at: '#main .bb-card-menu[open] [data-card="export"]' }],
   '1.61.62': [{ text: "Tasks, Minimal style: square corners throughout: an open task's frame, the list and the notes box with its toolbar are no longer rounded.", go: '#/tasks/now', at: '#main .task-list' }],

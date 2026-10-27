@@ -1018,12 +1018,15 @@ export default {
         <div class="sheet-actions"><button type="button" data-imp="prompt">📋 Copy instructions for an AI chat</button><label class="file-btn">Choose a file…<input type="file" accept=".md,.txt,text/plain,text/markdown" hidden></label></div>
         <textarea class="bb-import-text no-inline" rows="10" placeholder="${esc(IMPORT_EXAMPLE.split('\n').slice(0, 8).join('\n'))}\n…" aria-label="Recipes to import"></textarea>
         <p class="muted bb-import-found"></p>
+        <div class="sheet-actions bb-import-same" hidden><label>Already here <select data-imp-same aria-label="Recipes already here"><option value="over">Overwrite them, keeping their photos</option><option value="keep">Leave them as they are</option></select></label></div>
         <div class="sheet-actions"><button type="button" data-imp="cancel">Cancel</button><span class="spacer"></span><button type="button" class="primary" data-imp="go" disabled>Import</button></div>`;
       document.body.append(dlg);
       const box = dlg.querySelector('textarea'), found = dlg.querySelector('.bb-import-found'), go = dlg.querySelector('[data-imp="go"]');
       let got = [];
+      const sameOf = r => data.recipes.find(x => (x.title || '').toLowerCase() === r.title.toLowerCase());
       const read = () => {
         got = parseRecipes(box.value);
+        dlg.querySelector('.bb-import-same').hidden = !got.some(sameOf);
         feature('import_recipes');
         const books = Array.from(new Set(got.map(r => r.type || 'No book')));
         found.textContent = got.length ? `${got.length} recipe${got.length === 1 ? '' : 's'} found, in ${books.join(', ')}` : box.value.trim() ? 'No recipes found: each needs a line starting with # and its name.' : '';
@@ -1042,11 +1045,22 @@ export default {
         const known = settings.batch_sections || sections.filter(x => !x.auto).map(x => ({ name: x.name, emoji: x.emoji, colour: x.colour, fields: x.fields, readings: !!x.readings, reading_types: x.reading_types || [] }));
         const added = Array.from(new Set(got.map(r => r.type).filter(t => t && !known.some(x => x.name === t)))).map(name => { const x = sectionOf(sections, name); return { name, emoji: x.emoji, colour: x.colour, fields: [], readings: x.readings }; });
         if (added.length) await store.updateSettings({ batch_sections: known.concat(added) });
-        const made = [];
-        const have = new Set(data.recipes.map(r => r.title.toLowerCase()));
-        for (const r of got) if (!have.has(r.title.toLowerCase())) made.push(await store.create('recipes', Object.assign(r, { fields: Object.assign(Object.fromEntries(sectionOf(sections, r.type).fields.map(k => [k, ''])), r.fields) })));
+        // A recipe already here (same name) is overwritten unless asked not to: everything but its photos, its colour and
+        // where it sits. Its steps are new, so step photos stay behind with the old steps (Undo brings both back).
+        const overwrite = dlg.querySelector('[data-imp-same]').value === 'over';
+        const made = [], replaced = [];
+        for (const r of got) {
+          Object.assign(r, { fields: Object.assign(Object.fromEntries(sectionOf(sections, r.type).fields.map(k => [k, ''])), r.fields) });
+          const old = sameOf(r);
+          if (!old) { made.push(await store.create('recipes', r)); continue; }
+          if (!overwrite) continue;
+          const keys = ['title', 'type', 'tags', 'description', 'ingredients', 'steps', 'method', 'tasting', 'fields'];
+          replaced.push([old.id, Object.fromEntries(keys.map(k => [k, old[k] ?? null]))]);
+          await store.update('recipes', old.id, Object.assign(r, { method: null }));
+        }
         dlg.close();
-        undoable(`Imported ${made.length} recipe${made.length === 1 ? '' : 's'}${got.length > made.length ? ` (${got.length - made.length} already here, left as they were)` : ''}`, async () => { for (const r of made) await store.remove('recipes', r.id); if (added.length) await store.updateSettings({ batch_sections: known }); render(); });
+        const skipped = got.length - made.length - replaced.length;
+        undoable(`Imported ${made.length} recipe${made.length === 1 ? '' : 's'}${replaced.length ? `, overwrote ${replaced.length}` : ''}${skipped ? ` (${skipped} already here, left as they were)` : ''}`, async () => { for (const r of made) await store.remove('recipes', r.id); if (replaced.length) await store.updateMany('recipes', replaced); if (added.length) await store.updateSettings({ batch_sections: known }); render(); });
       });
       dlg.addEventListener('close', () => { dlg.remove(); render(); });
       dlg.showModal();
