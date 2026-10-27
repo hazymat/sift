@@ -436,6 +436,10 @@ main {
 input:focus, select:focus, textarea:focus { border-color: var(--active-border); }
 textarea { resize: vertical; }
 textarea { min-width: 0; } /* one sized to its words (field-sizing) in a row still wraps a long link, not grows past its box */
+/* Fields drawn without a box of their own (the line inside a rounded box, a row's name) have square
+   corners: a field clips its text cursor to its own corners, so a rounded one cut the cursor's ends off
+   when the text starts near its edge. */
+:is(.task-add-line .new-task-line, .adv-title, .entry-note, .line .item-title, .pile-new .new-task, .focus input, .bb-paper :is(input, textarea)) { border-radius: 0; }
 label { display: grid; gap: 4px; font-size: .8rem; color: var(--muted); }
 label > input, label > select { font-size: 1rem; color: var(--text); }
 button.primary { background: var(--active-bg); border-color: var(--active-border); }

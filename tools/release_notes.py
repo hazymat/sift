@@ -1171,3 +1171,4 @@ NOTES['1.61.71'] = [F("Lists: the Minimal style (👁, Style). A list item's not
 NOTES['1.61.72'] = [F("Tasks: ↑ from New task goes up to the section tabs, which flash so you see where the cursor went; ↓ from there goes back into New task.")]
 NOTES['1.61.67'] = [F("Settings, This device: a Screen line with the window's measurements, to track down iPad buttons not answering taps after Split View (#499).")]
 NOTES['1.61.73'] = [F("Batch Book: coming back from another area opens the same book, Recipes or Batches, the recipe or batch that was open and the same scroll point (kept per device).")]
+NOTES['1.61.74'] = [B("The text cursor in New task and other lines inside rounded boxes had its top and bottom cut off.")]
