@@ -66,7 +66,7 @@ export function setFullLabel(box, label) {
   if (el && el.textContent !== label) el.textContent = label;
 }
 
-export function openFull(box, { label = 'Note' } = {}) {
+export function openFull(box, { label = 'Note', clickAway = false } = {}) {
   feature('full_screen_note');
   if (current?.box === box) return;
   if (current) closeFull({ animate: false });
@@ -82,6 +82,7 @@ export function openFull(box, { label = 'Note' } = {}) {
   const backdrop = document.createElement('div');
   backdrop.className = 'note-full-backdrop';
   backdrop.addEventListener('pointerdown', ev => ev.preventDefault());
+  if (clickAway) backdrop.addEventListener('click', () => closeFull()); // a click beside the note is Done
   document.body.append(backdrop);
   box.classList.add('is-full');
   document.documentElement.classList.add('note-full');
