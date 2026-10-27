@@ -19,7 +19,7 @@ const NATIVE_FIT = CSS.supports?.('field-sizing', 'content');
 export function autosize(el) {
   if (NATIVE_FIT) return;
   el.style.height = 'auto';
-  el.style.height = `${el.scrollHeight}px`;
+  el.style.height = `${el.scrollHeight + el.offsetHeight - el.clientHeight}px`; // plus its borders: scrollHeight leaves them out, so a bordered name lost its bottom (Safari)
 }
 export function autosizeAll(root = document) {
   if (!NATIVE_FIT) for (const el of root.querySelectorAll('textarea.one-line')) autosize(el);
