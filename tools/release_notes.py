@@ -1173,4 +1173,5 @@ NOTES['1.61.67'] = [F("Settings, This device: a Screen line with the window's me
 NOTES['1.61.73'] = [F("Batch Book: coming back from another area opens the same book, Recipes or Batches, the recipe or batch that was open and the same scroll point (kept per device).")]
 NOTES['1.61.74'] = [B("The text cursor in New task and other lines inside rounded boxes had its top and bottom cut off.")]
 NOTES['1.61.75'] = [F("New task and Add items are as tall as the rows under them in every style and spacing; a task's note mark is a line drawing everywhere, Day Planner too.")]
+NOTES['1.61.79'] = [F("Sharing: the share sheet suggests people you've shared with before, by name (first and last name, or with their email, when two have the same first name): one or two as buttons under the email box, more as a list under it that narrows as you type, with ↑ ↓ and Enter.")]
 NOTES['1.61.78'] = [F("Brain Dump has a Style choice in 👁: Cards (as before) or Minimal, flat square-edged rows with thin dividers like Minimal in Tasks; one line per note in Compact spacing.")]
