@@ -1178,3 +1178,4 @@ NOTES['1.61.78'] = [F("Brain Dump has a Style choice in 👁: Cards (as before) 
 NOTES['1.61.80'] = [F("Brain Dump, Minimal style: each note is its own square-edged box with a gap between, not joined rows.")]
 NOTES['1.61.81'] = [F("Brain Dump, Minimal style: notes are a grid of equal square-edged boxes, 4 across on a computer, 3 on an iPad, 2 on a phone (Compact one more, Loose one fewer).")]
 NOTES['1.61.82'] = [F("Brain Dump, Minimal style: notes look like square sheets of paper on the page (soft shadow, quiet controls); Multicolour makes each a coloured sheet.")]
+NOTES['1.61.83'] = [B("Brain Dump, Minimal style: lines near the bottom of a long note were drawn on top of each other.")]
