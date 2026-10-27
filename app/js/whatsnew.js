@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.72': [{ text: "Tasks, with a keyboard: ↑ from New task now goes up to the section tabs (Task Dump, Now, Next…), which flash yellow so you can see where you are. ← / → switch section there, and ↓ goes back into New task.", go: '#/tasks', at: '#task-views' }],
   '1.61.71': [{ text: "Lists: the Minimal style is here too. Open a list, press 👁 and pick Minimal under Style for flat rows with thin lines between them, like Tasks. An item's notes toolbar is now one bar joined to its notes box, in every style.", go: '#/lists', open: ['#main details.view-menu > summary'], at: '#main details.view-menu[open] .skin-pill' }],
   '1.61.70': [{ text: "iPad: the window's measurements show at the bottom left for 20 seconds when Sift opens or comes back from another app, to help track down buttons not answering taps after Split View. Taps go straight through them." }],
   '1.61.69': [{ text: "Tasks, Compact spacing on iPhone and iPad: opening a task (often a sub-task) no longer drops its name onto a line of its own under the tick box. It stays beside the tick.", go: '#/tasks/now', at: '#main .task-list > li[data-task]' }],
@@ -246,6 +247,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.72': '2026-10-27T10:24:00Z',
   '1.61.71': '2026-10-27T00:47:26Z',
   '1.61.70': '2026-10-27T00:28:27Z',
   '1.61.69': '2026-10-27T00:25:18Z',
