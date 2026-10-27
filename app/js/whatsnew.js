@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.76': [{ text: "Contacts, Directory: the category tiles can be put in your own order. Press and hold one, then keep your finger down and move it (with a mouse, just drag it).", go: '#/contacts/directory', at: '#main .cat-cards' }],
   '1.61.75': [{ text: "New task is now exactly as tall as the tasks under it, in every style and spacing (Lists' Add items too). A task's note mark is the line drawing from Minimal in every style, and in the Day Planner.", go: '#/tasks/now', at: '#main .task-add-line' }],
   '1.61.74': [{ text: "The text cursor in New task and other lines inside a rounded box no longer has its top and bottom cut off.", go: '#/tasks/now', at: '#main .new-task-line' }],
   '1.61.73': [{ text: "Batch Book: going to another area and coming back lands where you left it: the same book, Recipes or Batches, the recipe or batch you had open, and the same scroll point. Remembered on each device.", go: '#/recipes', at: '#main .bb-mode' }],
@@ -250,6 +251,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.76': '2026-10-27T11:35:37Z',
   '1.61.75': '2026-10-27T11:19:49Z',
   '1.61.74': '2026-10-27T10:26:29Z',
   '1.61.73': '2026-10-27T10:24:59Z',
