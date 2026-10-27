@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.91': [{ text: "Follow along: clicking an earlier or later step, pressing Done, or using the arrow keys now rolls the steps round smoothly like a wheel, the same as scrolling with the mouse wheel.", go: '#/recipes', open: ['#main .bb-card', '#main .bb-follow'], at: '.fa-drum' }],
   '1.61.90': [{ text: "Brain Dump: a note's ⋯ menu shows in full and wide enough to read, instead of being cut off by the note.", go: '#/dump', open: ['#thoughts .thought .note-more > summary'], at: '#thoughts .note-more .menu' }],
   '1.61.89': [{ text: "Brain Dump, Minimal style: with a note open full screen, clicking anywhere beside it saves it and closes it, the same as Done." }],
   '1.61.88': [{ text: "Brain Dump, Cards style: the notes in each row are now all as tall as the tallest one, with Archive and ⋯ lined up along the bottom, so the page looks tidier.", go: '#/dump', at: '#thoughts' }],
@@ -264,6 +265,8 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.91': '2026-10-27T22:54:58Z',
+  '1.61.90': '2026-10-27T22:54:58Z',
   '1.61.89': '2026-10-27T17:14:04Z',
   '1.61.88': '2026-10-27T17:11:53Z',
   '1.61.86': '2026-10-27T16:51:57Z',
