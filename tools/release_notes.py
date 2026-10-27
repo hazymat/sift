@@ -1172,3 +1172,4 @@ NOTES['1.61.72'] = [F("Tasks: ↑ from New task goes up to the section tabs, whi
 NOTES['1.61.67'] = [F("Settings, This device: a Screen line with the window's measurements, to track down iPad buttons not answering taps after Split View (#499).")]
 NOTES['1.61.73'] = [F("Batch Book: coming back from another area opens the same book, Recipes or Batches, the recipe or batch that was open and the same scroll point (kept per device).")]
 NOTES['1.61.74'] = [B("The text cursor in New task and other lines inside rounded boxes had its top and bottom cut off.")]
+NOTES['1.61.75'] = [F("New task and Add items are as tall as the rows under them in every style and spacing; a task's note mark is a line drawing everywhere, Day Planner too.")]
