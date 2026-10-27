@@ -2222,6 +2222,10 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
    small, long notes wide), text cut after a few lines. Loose: everything
    shown; long notes full width, short ones narrower. */
 #main .thought-list { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); grid-auto-flow: dense; align-items: start; }
+/* Cards: the notes in a row are as tall as the tallest, Archive and ⋯ at the bottom of each. */
+#main:not([data-skin="minimal"]) .thought-list { align-items: stretch; }
+#main:not([data-skin="minimal"]):not([data-zoom]) .thought { display: flex; flex-direction: column; }
+#main:not([data-skin="minimal"]) .thought > .thought-actions { margin-top: auto; }
 #main .thought { min-width: 0; }
 #main .thought.size-m { grid-column: span 2; }
 #main .thought.size-l { grid-column: 1 / -1; }
