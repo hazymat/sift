@@ -5133,9 +5133,9 @@ html.case-open, html.case-open body { overflow: hidden; }
 #main[data-skin="minimal"][data-zoom] .thought-list { grid-template-columns: 1fr; }
 /* Not Medium's 6-line clamp: in a box it drew the hidden lines on top of each other (the fade cuts the note off instead). */
 #main[data-skin="minimal"]:not([data-density="loose"]):not([data-density="tight"]) .thought .thought-body { display: block; -webkit-line-clamp: none; line-clamp: none; }
-/* Look Multicolour: each note a light wash of its own colour (its tab strip and bottom bar a touch less), and its tab underlined in it. */
-#main[data-skin="minimal"][data-shade="colour"] .thought[style*="--tint"] { --np-mark: var(--tint); --np-sheet: color-mix(in srgb, var(--tint) 12%, color-mix(in srgb, var(--text) 6%, var(--bg))); --np-strip: color-mix(in srgb, var(--tint) 7%, color-mix(in srgb, var(--text) 2.5%, var(--bg))); --np-line: color-mix(in srgb, var(--tint) 22%, color-mix(in srgb, var(--text) 14%, transparent)); background: var(--np-sheet); border-color: var(--np-line); }
-:root[data-theme="light"] #main[data-skin="minimal"][data-shade="colour"] .thought[style*="--tint"] { --np-sheet: color-mix(in srgb, var(--tint) 14%, #fff); --np-strip: color-mix(in srgb, var(--tint) 9%, #f3f4f6); }
+/* Look Multicolour: the writing area a light wash of the note's own colour and its tab underlined in it; the tab strip and bottom bar stay as they are. */
+#main[data-skin="minimal"][data-shade="colour"] .thought[style*="--tint"] { --np-mark: var(--tint); background: color-mix(in srgb, var(--tint) 12%, var(--np-sheet)); border-color: var(--np-line); }
+:root[data-theme="light"] #main[data-skin="minimal"][data-shade="colour"] .thought[style*="--tint"] { background: color-mix(in srgb, var(--tint) 14%, var(--np-sheet)); }
 #main[data-skin="minimal"][data-shade="alt"] .thought-list > .thought:nth-child(even) { --np-sheet: color-mix(in srgb, var(--text) 9%, var(--bg)); background: var(--np-sheet); }
 :root[data-theme="light"] #main[data-skin="minimal"] { --np-sheet: #fff; --np-strip: #f3f4f6; }
 @media (hover: hover) { #main[data-skin="minimal"] .thought:not(:hover, :focus-within, .selected) .thought-head .pin:not([aria-pressed="true"]) { opacity: 0; } }
