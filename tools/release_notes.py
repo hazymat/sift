@@ -1181,3 +1181,4 @@ NOTES['1.61.82'] = [F("Brain Dump, Minimal style: notes look like square sheets 
 NOTES['1.61.83'] = [B("Brain Dump, Minimal style: lines near the bottom of a long note were drawn on top of each other.")]
 NOTES['1.61.84'] = [F("Brain Dump, Minimal style: a note opens straight to full screen to edit; Done or Esc goes back to the notes where you were.")]
 NOTES['1.61.85'] = [F("Brain Dump, Minimal style: notes look like small Notepad windows: kind as a tab (underlined in the note's colour with Multicolour), clean text, Archive and ⋯ in a bottom bar.")]
+NOTES['1.61.86'] = [F("Brain Dump, Minimal style: with Multicolour each note is lightly tinted with its own colour.")]
