@@ -1163,3 +1163,4 @@ NOTES['1.61.61'] = [B("Tasks, Minimal style: a task dragged past the end of the 
 NOTES['1.61.62'] = [F("Tasks, Minimal style: square corners throughout; an open task's frame, the list's panel and the notes box with its toolbar were still rounded.")]
 NOTES['1.61.63'] = [F("Batch Book: export a single recipe from its card's ⋯ or an open recipe's Share (⬇ Export recipe), as a file Import recipes reads back in.")]
 NOTES['1.61.65'] = [F("Batch Book import: a recipe with the same name as one already there overwrites it (ingredients, method, notes, details), keeping its photos; Already here can leave them as they are instead. Undo restores them.")]
+NOTES['1.61.66'] = [B("Task names on iPhone and iPad sat low with their bottoms cut off (a grown name's borders weren't counted)."), F("Minimal, Compact spacing: rows a little taller, a bit more on iPad.")]

@@ -4999,7 +4999,7 @@ html.case-open, html.case-open body { overflow: hidden; }
 
 /* Minimal style (👁 Style, Tasks): flat rows like a plain to-do app, set close together on one faint
    panel with thin dividers; New task a plain underlined line set apart above them. Compact spacing:
-   33px rows, 14px text, ⠿ always showing. Built on Lined paper's flat rows (it sets data-layout-lined). */
+   35px rows (37px on iPad), 14px text, ⠿ always showing. Built on Lined paper's flat rows (it sets data-layout-lined). */
 #main[data-skin="minimal"] {
   --row-pad: 3px;
   .task-list { background: color-mix(in srgb, var(--text) 3.5%, transparent); border-radius: 0; }
@@ -5016,11 +5016,12 @@ html.case-open, html.case-open body { overflow: hidden; }
   #task-entry .task-add-line .new-task-line { margin-left: 0; }
 }
 #main[data-skin="minimal"][data-density="tight"] {
-  .task-list > li[data-task] { min-height: 33px; font-size: 14px; padding-top: 1px; padding-bottom: 1px; }
+  .task-list > li[data-task] { min-height: 35px; font-size: 14px; padding-top: 1px; padding-bottom: 1px; }
   .task-list > li[data-task] > .tick { width: 14px; height: 14px; }
   .task-list > li[data-task] > .drag-handle { height: 24px; }
   .task-list > li[data-task] > .task-title { font-size: 14px; line-height: 20px; padding-top: 3px; padding-bottom: 3px; }
 }
+@media (pointer: coarse) and (min-width: 700px) { #main[data-skin="minimal"][data-density="tight"] .task-list > li[data-task] { min-height: 37px; } } /* iPad: a touch more room for fingers */
 /* A row's markers (📝 📅 📎 ...) as line drawings in Minimal, emoji elsewhere (mark() in views/tasks.js). */
 .line-ico { display: none; }
 #main[data-skin="minimal"] .task-list :is(.emo) { display: none; }
