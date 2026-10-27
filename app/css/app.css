@@ -3079,8 +3079,8 @@ select.dd-open, .dd-open > select { outline: none; }
 .thought-head > .muted { white-space: nowrap; }
 .thought-actions { align-items: center; }
 .note-more > summary { padding: 1px 10px; font-size: 1rem; line-height: 1.3; letter-spacing: .05em; }
-.note-more .menu { left: auto; right: 0; min-width: 220px; }
-.note-more .menu button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 12px; border: 0; background: transparent; font-size: .85rem; }
+.note-more .menu { left: auto; right: 0; min-width: 220px; width: max-content; max-width: calc(100vw - 16px); }
+.note-more .menu button { display: flex; align-items: center; justify-content: flex-start; text-align: left; white-space: nowrap; gap: 8px; width: 100%; padding: 7px 12px; border: 0; background: transparent; font-size: .85rem; }
 .note-more .menu button:hover { background: var(--glass-hover); }
 /* The ☆ sits in the card's top-right corner, so the head row has room. */
 .thought { position: relative; }
@@ -5115,8 +5115,8 @@ html.case-open, html.case-open body { overflow: hidden; }
   .thought .thought-title { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
   .thought > .att-row { flex: none; margin: 0; padding: 4px 12px; }
   .thought-actions { flex: none; margin: 0; padding: 3px 6px 3px 12px; border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent); background: var(--np-strip); }
-  .thought-actions button, .thought-actions .note-more > summary { padding: 1px 8px; font-size: 11px; border-radius: 0; border-color: transparent; background: transparent; box-shadow: none; color: color-mix(in srgb, var(--text) 70%, transparent); }
-  .thought-actions button:hover, .thought-actions .note-more > summary:hover { background: var(--glass-hover); color: var(--text); }
+  .thought-actions .note-end > button, .thought-actions .note-more > summary { padding: 1px 8px; font-size: 11px; border-radius: 0; border-color: transparent; background: transparent; box-shadow: none; color: color-mix(in srgb, var(--text) 70%, transparent); }
+  .thought-actions .note-end > button:hover, .thought-actions .note-more > summary:hover { background: var(--glass-hover); color: var(--text); }
   .thought.pinned .thought-head { box-shadow: inset 0 2px 0 var(--active-border); }
   .thought-edit :is(.rich-edit, .rich-raw) { border-radius: 0; }
   .thought-edit .md-bar button { border-radius: 0; box-shadow: none; }
@@ -5135,6 +5135,8 @@ html.case-open, html.case-open body { overflow: hidden; }
   #main[data-skin="minimal"][data-density="loose"] { --bd-cols: 3; }
 }
 #main[data-skin="minimal"][data-zoom] .thought-list { grid-template-columns: 1fr; }
+/* A note's open ⋯ menu reaches out of the note (it clips its own words, not its menus) and over its neighbours. */
+#main[data-skin="minimal"] .thought:has(details[open]) { overflow: visible; z-index: 30; }
 /* Not Medium's 6-line clamp: in a box it drew the hidden lines on top of each other (the fade cuts the note off instead). */
 #main[data-skin="minimal"]:not([data-density="loose"]):not([data-density="tight"]) .thought .thought-body { display: block; -webkit-line-clamp: none; line-clamp: none; }
 /* Look Multicolour: the writing area a light wash of the note's own colour and its tab underlined in it; the tab strip and bottom bar stay as they are. */
