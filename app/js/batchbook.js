@@ -270,9 +270,10 @@ Soft flatbreads, ready in no time. Full-fat Greek yoghurt makes the softest doug
 - 2 tbsp butter, melted
 
 ## Method
-1. Mix the {self-raising flour}, {Greek yoghurt} and {salt} into a soft dough.
-2. Split into 4 and roll out thin.
-3. Dry fry 2 mins each side, then brush with {1/2 butter}.
+1. In a bowl, mix the {self-raising flour}, {Greek yoghurt} and {salt} into a soft dough.
+2. Split it into 4 and roll each one out thin.
+3. Put a dry frying pan on a medium-high heat. While it heats, melt the {butter} in a small pan or the microwave.
+4. Fry each flatbread for 2 mins a side, then brush with {1/2 butter|half the melted butter}.
    - Keep them warm in a tea towel.
 
 ## Tasting notes
