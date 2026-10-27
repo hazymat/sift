@@ -287,8 +287,9 @@ export default {
       return 'l';
     }
 
-    // Compact spacing: the note being edited fills the page.
-    const zoomId = () => (el.dataset.density === 'tight' ? editing : null);
+    // Compact spacing: the note being edited fills the page. Minimal's grid opens it full screen instead (fullScreen).
+    const fullScreen = () => el.dataset.skin === 'minimal';
+    const zoomId = () => (el.dataset.density === 'tight' && !fullScreen() ? editing : null);
 
     // Each note has its own colour (colours.js), shown when the Look is Multicolour.
     function card(t) {
@@ -667,6 +668,7 @@ export default {
             origin: () => ({ collection: 'thoughts', id: t.id, title: t.body.split('\n')[0].slice(0, 60), field: 'body' }),
             onChange: () => { showSaved(line, 'saving'); auto.trigger(); },
             colour: { get: () => tintId(t), set: v => setColour([t.id], v) },
+            full: fullScreen(),
           });
           box._editor.focus();
         }
