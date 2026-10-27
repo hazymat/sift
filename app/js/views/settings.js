@@ -185,11 +185,10 @@ export default {
     // Screen measurements, for an iPad whose taps land off to one side after Split View (#499): they show
     // whether the page sees a different width or zoom from what's on screen. Kept up to date while shown.
     {
-      const out = el.querySelector('#screen-measure'), vv = window.visualViewport;
+      const out = el.querySelector('#screen-measure'), vv = window.visualViewport, { screenFacts } = await import('../app.js');
       const measure = () => {
         if (!out.isConnected) { removeEventListener('resize', measure); vv?.removeEventListener('resize', measure); vv?.removeEventListener('scroll', measure); return; }
-        const round = num => Math.round(num * 100) / 100;
-        out.textContent = `window ${innerWidth}×${innerHeight}, page ${document.documentElement.clientWidth}, visible ${vv ? `${round(vv.width)}×${round(vv.height)} at ${round(vv.offsetLeft)},${round(vv.offsetTop)} zoom ${round(vv.scale)}` : 'n/a'}, screen ${screen.width}×${screen.height}, dpr ${devicePixelRatio}, scroll ${scrollX},${scrollY}`;
+        out.textContent = screenFacts();
       };
       addEventListener('resize', measure); vv?.addEventListener('resize', measure); vv?.addEventListener('scroll', measure);
       measure();

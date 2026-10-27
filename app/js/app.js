@@ -1,4 +1,5 @@
 import * as store from './store.js';
+import { versionText } from './version.js';
 import { slide, drawnAfter, nudge } from './slide.js';
 import { installInlineEditing } from './inline.js';
 import { installRefLinks } from './refs.js';
@@ -337,16 +338,35 @@ function installKeyboard() {
 
 // iPad: after a screenshot (or Split View, Stage Manager) the window can come back narrower, or full width with
 // the right-hand part not answering taps (WebKit keeps the old width). Setting the viewport again makes it measure afresh.
+// The window's measurements in one line (Settings, This device, and the iPad readout below; #499).
+export function screenFacts() {
+  const vv = window.visualViewport, round = num => Math.round(num * 100) / 100;
+  return `window ${innerWidth}×${innerHeight}, page ${document.documentElement.clientWidth}, visible ${vv ? `${round(vv.width)}×${round(vv.height)} at ${round(vv.offsetLeft)},${round(vv.offsetTop)} zoom ${round(vv.scale)}` : 'n/a'}, screen ${screen.width}×${screen.height}, dpr ${devicePixelRatio}, scroll ${scrollX},${scrollY}`;
+}
+
+// iPad, for now (#499): taps can land off to one side after Split View, even on the menu that reaches Settings,
+// so the measurements also show at the bottom left for 20 seconds on opening and on coming back. Taps go through it.
+function showScreenFacts() {
+  if (!matchMedia('(pointer: coarse) and (min-width: 700px)').matches) return;
+  let box = document.getElementById('screen-facts');
+  if (!box) { box = document.createElement('div'); box.id = 'screen-facts'; box.style.cssText = 'position:fixed;left:8px;bottom:calc(8px + env(safe-area-inset-bottom));z-index:99999;max-width:calc(100vw - 16px);padding:6px 10px;border-radius:8px;background:rgba(0,0,0,.78);color:#fff;font:12px/1.4 ui-monospace,monospace;pointer-events:none'; document.body.append(box); }
+  box.textContent = `${versionText()} · ${screenFacts()}`;
+  box.hidden = false;
+  clearTimeout(showScreenFacts.hide); showScreenFacts.hide = setTimeout(() => { box.hidden = true; }, 20000);
+}
+
 function installViewportFix() {
   const meta = document.querySelector('meta[name="viewport"]');
   if (!meta || !matchMedia('(pointer: coarse)').matches) return;
   const base = meta.getAttribute('content');
   let soon = 0, flip = false;
   const again = () => { clearTimeout(soon); soon = setTimeout(() => { flip = !flip; meta.setAttribute('content', flip ? `${base}, shrink-to-fit=no` : base); void document.documentElement.offsetWidth; scrollTo(scrollX, scrollY); }, 250); };
-  addEventListener('resize', again);
-  addEventListener('pageshow', again);
-  addEventListener('orientationchange', again);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) again(); });
+  const shown = () => { again(); setTimeout(showScreenFacts, 600); };
+  showScreenFacts();
+  addEventListener('resize', shown);
+  addEventListener('pageshow', shown);
+  addEventListener('orientationchange', shown);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) shown(); });
 }
 
 function installSwipe() {
