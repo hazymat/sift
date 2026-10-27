@@ -282,13 +282,14 @@ export async function openFollow(open) {
     };
     // Rolled to a step the same way the wheel rolls it: the drum's own scroll is eased frame by frame (snapping held off until
     // it lands), so every scroll event redraws the cylinder. Browsers' own smooth scroll is skipped by some (and by snapping).
+    // Rolled even with reduce motion on: Windows turns that on with its Animation effects switch, and the roll is what shows where you went.
     let gliding = 0;
     const stopGlide = () => { if (!gliding) return; cancelAnimationFrame(gliding); gliding = 0; d.style.scrollSnapType = ''; };
     const glide = (top, smooth = true) => {
       stopGlide();
       top = Math.max(0, Math.min(top, d.scrollHeight - d.clientHeight));
       const from = d.scrollTop, dist = top - from;
-      if (!smooth || Math.abs(dist) < 2 || matchMedia('(prefers-reduced-motion: reduce)').matches) { d.scrollTop = top; return; }
+      if (!smooth || Math.abs(dist) < 2) { d.scrollTop = top; return; }
       const took = Math.min(700, 260 + Math.abs(dist) * 0.45), began = performance.now();
       const ease = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
       d.style.scrollSnapType = 'none';
