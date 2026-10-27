@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.90': [{ text: "Brain Dump: a note's ⋯ menu shows in full and wide enough to read, instead of being cut off by the note.", go: '#/dump', open: ['#thoughts .thought .note-more > summary'], at: '#thoughts .note-more .menu' }],
   '1.61.89': [{ text: "Brain Dump, Minimal style: with a note open full screen, clicking anywhere beside it saves it and closes it, the same as Done." }],
   '1.61.88': [{ text: "Brain Dump, Cards style: the notes in each row are now all as tall as the tallest one, with Archive and ⋯ lined up along the bottom, so the page looks tidier.", go: '#/dump', at: '#thoughts' }],
   '1.61.86': [{ text: "Brain Dump, Minimal style: with Look Multicolour, each note's writing area is now lightly tinted with its own colour; its tab strip and bottom bar stay plain.", go: '#/dump', at: '#thoughts' }],
