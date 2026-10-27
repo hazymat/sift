@@ -3923,12 +3923,12 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
    shaded rounded card, its sub-tasks inside the same card. */
 .entry-add { display: none; }
 #main:is([data-area="tasks"], [data-area="lists"]):not([data-layout-lined]) {
-  .task-add-line, .task-add-line:focus-within { margin: 0 0 var(--row-gap, 6px); padding: 4px 4px 4px 14px; min-height: 44px; border: 1px solid var(--glass-border); border-radius: 14px; background: var(--glass-track); }
+  .task-add-line, .task-add-line:focus-within { margin: 0 0 var(--row-gap, 6px); padding: 2px 3px 2px 14px; min-height: var(--task-row-h, 44px); border: 1px solid var(--glass-border); border-radius: 14px; background: var(--glass-track); }
   .task-add-line:focus-within { border-color: var(--active-border); }
   .task-add-line::after { display: none; }
   .task-add-line > .add-mark { display: none; }
   .task-add-line .new-task-line { margin-left: 0; padding-left: 0; }
-  .entry-add { display: inline-flex; align-items: center; flex: none; padding: 7px 14px; }
+  .entry-add { display: inline-flex; align-items: center; flex: none; padding: 3px 12px; } /* slim, so New task is no taller than a task (rows.js --task-row-h) */
   #task-entry + .task-list { margin-top: 0; }
   #task-entry .task-add-line { margin-bottom: 15px; } /* room between New task and the tasks */
   .task-list { gap: var(--row-gap, 6px); }
@@ -5024,15 +5024,20 @@ html.case-open, html.case-open body { overflow: hidden; }
   .task-list > li[data-task] > .tick { width: 14px; height: 14px; }
   .task-list > li[data-task] > .drag-handle { height: 24px; }
   .task-list > li[data-task] > .task-title { font-size: 14px; line-height: 20px; padding-top: 3px; padding-bottom: 3px; }
+  .task-add-line { min-height: 35px; box-sizing: border-box; }
+  .task-add-line .new-task-line { font-size: 14px; line-height: 20px; padding-top: 2px; padding-bottom: 2px; } /* New task as tall as a row, its words as big */
 }
-@media (pointer: coarse) and (min-width: 700px) { #main[data-skin="minimal"][data-density="tight"] .task-list > li[data-task] { min-height: 37px; } } /* iPad: a touch more room for fingers */
-/* A row's markers (📝 📅 📎 ...) as line drawings in Minimal, emoji elsewhere (mark() in views/tasks.js). */
+@media (pointer: coarse) and (min-width: 700px) { #main[data-skin="minimal"][data-density="tight"] :is(.task-list > li[data-task], .task-add-line) { min-height: 37px; } } /* iPad: a touch more room for fingers */
+/* A row's markers (📅 📎 ...) as line drawings in Minimal, emoji elsewhere (mark() in views/tasks.js); 📝 a line drawing everywhere (below). */
 .line-ico { display: none; }
 #main[data-skin="minimal"] .task-list :is(.emo) { display: none; }
 #main[data-skin="minimal"] .task-list .line-ico { display: inline-block; width: 13px; height: 13px; vertical-align: middle; stroke-width: 1.8; opacity: .75; }
 /* Centred on the row whatever the font's baseline (a baseline offset sat low with Windows fonts). */
-#main[data-skin="minimal"][data-density="tight"] .task-list .task-note { display: flex; align-items: center; align-self: stretch; }
-#main[data-skin="minimal"][data-density="tight"] .task-list .note-icon { display: flex; font-family: inherit; }
+#main[data-density="tight"] .task-list .task-note { display: flex; align-items: center; align-self: stretch; }
+#main[data-density="tight"] .task-list .note-icon { display: flex; font-family: inherit; }
+/* A note's mark is the line drawing in every style (1.61.75): rows' 📝 and the Day Planner's. */
+:is(.task-list .note-icon, .planner .note-tag) .emo { display: none; }
+:is(.task-list .note-icon, .planner .note-tag) .line-ico { display: inline-block; width: 13px; height: 13px; vertical-align: middle; stroke-width: 1.8; opacity: .75; }
 #main[data-skin="minimal"] .task-list .chip:has(> .line-ico) { display: inline-flex; align-items: center; gap: 4px; }
 /* Minimal: every row's ⠿ shows (faint) all the time, not only under the pointer. */
 @media (hover: hover) { #main[data-skin="minimal"] .task-list > li[data-task]:not(:hover, .selected, .dragging) > .drag-handle { opacity: .35 !important; } }

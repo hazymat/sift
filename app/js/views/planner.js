@@ -504,7 +504,7 @@ const dayPlanner = {
       return `<div class="item-note plan-note" data-act="toggle-note" role="button" tabindex="0" aria-expanded="${editing === i.id}" title="Click to edit">${inlineAll(i.notes)}</div>`;
     }
     const noteTag = i => ((i.notes || '').trim() && editing !== i.id
-      ? `<button type="button" class="span-tag note-tag" data-act="toggle-note" title="${esc(plainLines(i.notes)[0]?.slice(0, 120) || 'Note')}">📝</button>` : '');
+      ? `<button type="button" class="span-tag note-tag" data-act="toggle-note" title="${esc(plainLines(i.notes)[0]?.slice(0, 120) || 'Note')}"><span class="emo">📝</span><svg class="icon line-ico" aria-hidden="true"><use href="#i-note"/></svg></button>` : '');
 
     // Mount the notes editor wherever a row or details panel asked for one.
     function mountNoteEditors() {
