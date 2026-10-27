@@ -3988,6 +3988,9 @@ kbd + kbd, .pill-reveal kbd + kbd, .pill-done kbd + kbd { margin-left: 3px; }
 .share-people { list-style: none; margin: 0 0 12px; padding: 0; }
 .share-people li { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--glass-border); }
 .share-people li > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.share-to .share-suggest { position: static; margin-top: -5px; max-width: none; max-height: 220px; box-shadow: none; } /* in the sheet's flow, so it's never cut off */
+.share-suggest .dd-opt { padding-left: 12px; white-space: normal; overflow-wrap: anywhere; }
+.share-past { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0 0; font-size: .85rem; }
 .share-error { color: #e0573a; margin: 0 0 8px; }
 /* An open project has its own Share (with 👥 people) in its head, so the area's Share steps aside. */
 #main:has(.project-head .page-share) .area-share { display: none; }

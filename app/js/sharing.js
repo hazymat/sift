@@ -106,17 +106,30 @@ export function aboutShare(id) {
   dlg.showModal();
 }
 
+// People you've shared things with before, or who share with you (not you, not
+// already on this one), for the email box: [{ email, name }] by name.
+function pastPeople(info) {
+  const me = sync.myUserId(), already = new Set((myShare(info)?.members || []).map(m => m.user_id)), found = new Map();
+  for (const sh of sync.sharesNow()) for (const m of sh.members || []) if (m.email && m.user_id !== me && !already.has(m.user_id)) found.set(m.user_id, m.email);
+  return [...found.values()].map(email => ({ email, name: personName(email) })).sort((a, b) => a.name.localeCompare(b.name));
+}
+// One or two: chips under the email box. More: a list under it while it's in use, narrowed as you type.
+const FEW = 2;
+const pastLabel = (p, all) => (all.some(o => o !== p && o.name === p.name) ? `${p.name} (${p.email})` : p.name);
+
 // Share something: who has it, add someone by their sign-in email, take
 // someone out, or stop sharing. `info` is { kind, id, name } or { kind: 'days', from, to }.
 export function shareSheet(info, what) {
   const dlg = document.createElement('dialog');
   dlg.className = 'sheet ask-sheet share-sheet';
   document.body.append(dlg);
-  let error = '';
+  let error = '', past = [], menu = null, active = -1, escTaken = false;
   const draw = () => {
+    menu = null;
     const sh = myShare(info);
     const others = (sh?.members || []).filter(m => m.user_id !== sync.myUserId());
     const on = !!sync.signedIn();
+    past = pastPeople(info);
     dlg.innerHTML = `
       <div class="sheet-handle"></div>
       <form method="dialog">
@@ -124,7 +137,8 @@ export function shareSheet(info, what) {
         ${on ? `<p class="muted">With someone who has an account on your sync server. They get an invitation; once they accept, you both see and change the same ${info.kind === 'days' ? 'days' : info.kind}.</p>`
           : '<p class="muted">Sharing goes through your sync server: sign in under Settings → Sync first.</p>'}
         ${others.length ? `<ul class="share-people">${others.map(m => `<li><span><b>${esc(personName(m.email))}</b> <span class="muted">${esc(m.email)} · ${m.accepted ? 'sharing' : 'invited'}</span></span><button type="button" data-remove="${esc(m.user_id)}">Remove</button></li>`).join('')}</ul>` : ''}
-        ${on ? `<label class="ask-field"><span>Their sign-in email</span><input name="email" type="email" autocomplete="off" autocapitalize="off" placeholder="name@example.com"></label>` : ''}
+        ${on ? `<label class="ask-field share-to"><span>Their sign-in email</span><input name="email" type="email" autocomplete="off" autocapitalize="off" placeholder="name@example.com"${past.length > FEW ? ' role="combobox" aria-autocomplete="list" aria-expanded="false"' : ''}></label>` : ''}
+        ${on && past.length && past.length <= FEW ? `<div class="share-past"><span class="muted">Shared with before:</span>${past.map(p => `<button type="button" class="chip" data-past="${esc(p.email)}" title="${esc(p.email)}">👤 ${esc(pastLabel(p, past))}</button>`).join('')}</div>` : ''}
         ${error ? `<p class="share-error">${esc(error)}</p>` : ''}
         <div class="sheet-actions">
           ${sh ? '<button type="button" class="danger" data-stop>Stop sharing</button>' : ''}
@@ -142,6 +156,42 @@ export function shareSheet(info, what) {
     draw();
     dlg.querySelector('input[name="email"]')?.focus();
   };
+  // The list of past people under the email box (more than FEW): ↑ ↓ move, Enter picks, Esc closes it.
+  const box = () => dlg.querySelector('input[name="email"]');
+  const closeMenu = () => { menu?.remove(); menu = null; active = -1; box()?.setAttribute('aria-expanded', 'false'); };
+  const openMenu = () => {
+    const input = box();
+    if (!input || past.length <= FEW) return;
+    const typed = input.value.trim().toLowerCase();
+    const matches = past.filter(p => !typed || (p.name.toLowerCase().includes(typed) || p.email.toLowerCase().includes(typed)) && p.email.toLowerCase() !== typed);
+    if (!matches.length) return closeMenu();
+    if (!menu) { menu = document.createElement('div'); menu.className = 'dd-menu share-suggest'; menu.setAttribute('role', 'listbox'); input.closest('label').append(menu); }
+    active = Math.min(active, matches.length - 1);
+    menu.innerHTML = matches.map((p, i) => `<div class="dd-opt${i === active ? ' active' : ''}" role="option" data-past="${esc(p.email)}"><b>${esc(p.name)}</b> <span class="muted">${esc(p.email)}</span></div>`).join('');
+    input.setAttribute('aria-expanded', 'true');
+  };
+  const pick = email => {
+    box().value = email;
+    closeMenu();
+    dlg.querySelector('button[type="submit"]')?.focus();
+  };
+  dlg.addEventListener('focusin', ev => { if (ev.target.name === 'email') openMenu(); });
+  dlg.addEventListener('focusout', ev => { if (ev.target.name === 'email') setTimeout(() => { if (document.activeElement !== box()) closeMenu(); }, 0); });
+  dlg.addEventListener('input', ev => { if (ev.target.name === 'email') { active = -1; openMenu(); } });
+  dlg.addEventListener('mousedown', ev => { if (ev.target.closest('.share-suggest')) ev.preventDefault(); }); // keep the box focused
+  dlg.addEventListener('keydown', ev => {
+    if (ev.target.name !== 'email') return;
+    if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+      if (!menu) { openMenu(); if (!menu) return; }
+      const rows = menu.querySelectorAll('.dd-opt');
+      active = ev.key === 'ArrowDown' ? (active + 1) % rows.length : (active <= 0 ? rows.length : active) - 1;
+      rows.forEach((row, i) => row.classList.toggle('active', i === active));
+      rows[active].scrollIntoView({ block: 'nearest' });
+      ev.preventDefault();
+    } else if (ev.key === 'Enter' && menu && active >= 0) { ev.preventDefault(); pick(menu.querySelectorAll('.dd-opt')[active].dataset.past); }
+    else if (ev.key === 'Escape' && menu) { ev.preventDefault(); ev.stopPropagation(); closeMenu(); escTaken = true; }
+  });
+  dlg.addEventListener('cancel', ev => { if (escTaken) ev.preventDefault(); escTaken = false; });
   dlg.addEventListener('submit', ev => {
     ev.preventDefault();
     const email = dlg.querySelector('input[name="email"]').value.trim();
@@ -151,6 +201,8 @@ export function shareSheet(info, what) {
   dlg.addEventListener('click', async ev => {
     if (ev.target === dlg) return dlg.close();
     if (ev.target.closest('[data-close]')) return dlg.close();
+    const person = ev.target.closest('[data-past]');
+    if (person) return pick(person.dataset.past);
     const rm = ev.target.closest('[data-remove]');
     if (rm) return busy(() => sync.leaveShare(myShare(info).id, rm.dataset.remove));
     if (ev.target.closest('[data-stop]')) {

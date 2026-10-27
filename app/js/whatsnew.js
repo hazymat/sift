@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.79': [{ text: "Sharing: when you share a list, note, recipe, project or days, the people you've shared with before show under the email box, by name. One or two show as buttons to tap; with more, a list opens under the box and narrows as you type (↑ ↓ and Enter work too). Pick someone, then Share.", go: '#/lists', open: ['#main .list-card', '#main .project-head .share-menu > summary', '#main [data-act="share-people"]'], at: '.share-sheet .share-to' }],
   '1.61.78': [{ text: "Brain Dump: 👁 now has a Style choice, as in Tasks and Lists. Cards is the look you had; Minimal shows your notes as flat, square-edged rows with thin lines between them, like Minimal in Tasks. In Compact spacing each note is one line.", go: '#/dump', open: ['#main details.view-menu > summary'], at: '#main details.view-menu[open] .skin-opts' }],
   '1.61.77': [{ text: "Brain Dump: notes have no ⠿ handle any more, and the kind pill sits in its place at the top left. Press and hold a note to choose it, then keep your finger down and move to drag it; chosen notes drag from anywhere on them, several at once. With a mouse, just drag a note (a click still edits it).", go: '#/dump', at: '#thoughts > li[data-id]' }],
   '1.61.76': [{ text: "Contacts, Directory: the category tiles can be put in your own order. Press and hold one, then keep your finger down and move it (with a mouse, just drag it).", go: '#/contacts/directory', at: '#main .cat-cards' }],
@@ -253,6 +254,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.79': '2026-10-27T14:46:05Z',
   '1.61.78': '2026-10-27T12:34:57Z',
   '1.61.77': '2026-10-27T12:30:22Z',
   '1.61.76': '2026-10-27T11:35:37Z',
