@@ -48,6 +48,9 @@ const now = () => new Date().toISOString();
 const madeAt = r => Date.parse(r.created_at) / 1e4 || 0;
 const rankOfRecipe = r => rankOf(r, madeAt);
 const byPlace = byRank(madeAt);
+// Where Batch Book was left on this device (page, book, tag, Recipes or Batches, scroll), so coming back from another area lands there.
+const PLACE_KEY = 'sift_batch_place';
+const loadPlace = () => { try { return JSON.parse(localStorage.getItem(PLACE_KEY)) || null; } catch { return null; } };
 const camera = '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
 
 export default {
@@ -1461,7 +1464,14 @@ export default {
       }
     };
     addEventListener('keydown', this.onKey);
-    await render();
+    // Back from another area to plain #/recipes: the same book, mode and page as before, scrolled to where it was.
+    const place = loadPlace();
+    if (place) Object.assign(state, { section: place.section || '', tag: place.tag || '', batches: !!place.batches, status: place.status || '' });
+    const bare = !location.hash.replace(/^#\/?/, '').split('/')[1];
+    const parts = bare && place?.page ? place.page.replace(/^#\/recipes\/?/, '').split('/').filter(Boolean) : [];
+    const still = parts.length && (parts.includes('from') || await store.get(parts[1] === 'make' ? 'recipe_makes' : 'recipes', parts[1] === 'make' ? parts[2] : parts[0]));
+    if (still) { history.replaceState(null, '', place.page); await this.route(parts); } else await render();
+    if (bare && place?.y) requestAnimationFrame(() => scrollTo(0, place.y));
   },
 
   route(parts) {
@@ -1481,6 +1491,9 @@ export default {
   },
 
   unmount() {
+    const st = this.state;
+    const page = st.recipe && st.recipe !== st.fresh ? `#/recipes/${st.recipe}${st.make ? `/make/${st.make}` : ''}${st.fromList ? '/list' : ''}${st.owner ? `/from/${st.owner}` : ''}` : '';
+    try { localStorage.setItem(PLACE_KEY, JSON.stringify({ page, section: st.section, tag: st.tag, batches: st.batches, status: st.status, y: scrollY })); } catch {}
     if (this.state.fresh) { this.dropIfEmpty(this.state.fresh, typedOnPage()); this.state.fresh = null; }
     removeEventListener('keydown', this.onKey);
     removeEventListener('sift-follow', this.onFollow);
