@@ -298,9 +298,8 @@ export default {
         <li class="thought size-${sizeOf(t)}${t.converted_to ? ' converted' : ''}${t.pinned ? ' pinned' : ''}${zoomId() === t.id ? ' zoomed' : ''}" data-id="${t.id}" style="--tint: ${tintHex(t)}">
           ${zoomId() === t.id ? '<div class="zoom-back">‹ Back to notes <span class="muted">(click anywhere outside the note, or Esc)</span></div>' : ''}
           <div class="thought-head">
-            <button type="button" class="drag-handle kit-grip" aria-label="Select">${icon('i-grip')}</button>
-            <button type="button" class="note-dot" data-act="colour" title="Note colour" aria-label="Note colour"><span class="swatch" style="--sw:${tintHex(t)}"></span></button>
             <select class="kind-select" aria-label="Kind">${[...dumpTypes(), ...(dumpTypes().some(k => k.id === t.kind) || !t.kind ? [] : [{ id: t.kind, label: kindLabel(t.kind) }])].map(k => `<option value="${esc(k.id)}" ${k.id === t.kind ? 'selected' : ''}>${esc(k.label)}</option>`).join('')}</select>
+            <button type="button" class="note-dot" data-act="colour" title="Note colour" aria-label="Note colour"><span class="swatch" style="--sw:${tintHex(t)}"></span></button>
             <span class="muted" title="Edited ${esc(new Date(editedAt(t)).toLocaleString())} · made ${esc(new Date(t.created_at).toLocaleString())}">${ago(editedAt(t))}</span>
             ${conv ? `<a class="chip" href="${href}" data-focus="${t.converted_to.collection}:${t.converted_to.id}">→ ${conv[0]}</a>` : ''}
             ${att.countChip(atts.get(t.id))}
@@ -460,7 +459,8 @@ export default {
     const kit = this.kit = createListKit({
       reorder: true,
       grid: true,
-      holdSelect: true, // press and hold a note selects it; then a tap adds or takes out
+      holdSelect: true, // press and hold a note selects it (and drags it on); then a tap adds or takes out
+      tiles: true, // no ⠿: a chosen note drags from anywhere on it, a mouse drags any note
       onReorder: persistOrder,
       noun: 'thought',
       actions: [

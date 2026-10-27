@@ -495,8 +495,8 @@ button.danger { color: #ff8a80; }
    The card's first line moves right to make room for it. */
 :is(.box-card, .c-card, .bb-card-li, .list-card-li)[data-id] { position: relative; }
 /* Cards have no ⠿ (listkit `tiles`): hold to choose, then drag from anywhere; never the browser's own drag of a card's link or picture (iPad), nor its press-and-hold menu. */
-:is(.box-card, .c-card, .bb-card-li, .list-card-li), :is(.box-card, .c-card, .bb-card-li, .list-card-li) :is(a, img) { -webkit-user-drag: none; -webkit-touch-callout: none; }
-:is(.c-card, .bb-card-li, .list-card-li).selected { touch-action: none; } /* a chosen card drags with the finger rather than scrolling the page */
+:is(.box-card, .c-card, .bb-card-li, .list-card-li, .thought), :is(.box-card, .c-card, .bb-card-li, .list-card-li, .thought) :is(a, img) { -webkit-user-drag: none; -webkit-touch-callout: none; }
+:is(.c-card, .bb-card-li, .list-card-li, .thought).selected { touch-action: none; } /* a chosen card drags with the finger rather than scrolling the page */
 .tool-menu { position: relative; }
 .tool-menu summary { list-style: none; cursor: pointer; }
 .tool-menu summary::-webkit-details-marker { display: none; }
