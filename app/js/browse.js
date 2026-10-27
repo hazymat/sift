@@ -34,6 +34,8 @@
 // at the top level) highlights the filter showing; ← / → switch filter there
 // and then (at either end: a flash, nothing changes); ↓ goes on to the items,
 // and ↑ from their top row comes back to the bar, ↑ again to the search box.
+// Tasks' section tabs are its bar: ↑ from New task (its first line) goes up to
+// them with a yellow flash, and ↓ from them back into New task.
 // Two rows of them (Contacts' Recent / Directory / Cases, then Open / Closed /
 // All) are two layers, top to bottom.
 // Esc in the search box goes back to the top level, keeping the search; Esc
@@ -42,7 +44,8 @@
 // browser's own ring shows where): Esc takes the cursor off them, back to
 // the page, where the keys above work again (in every area).
 
-import { caretTo } from './walk.js';
+import { caretTo, atEdge } from './walk.js';
+import { flash as pulse, WASH } from './flash.js';
 
 const $ = s => document.querySelector(s);
 const vis = el => !!el && el.getClientRects().length > 0;
@@ -81,6 +84,10 @@ const AREAS = {
     },
   },
   tasks: {
+    // ↑ from New task: the section tabs, pulsing so you see where the cursor went; ↓ from there back into New task.
+    bars: ['#task-views [data-view]'],
+    newLine: '#task-new',
+    belowBars: () => focusEnd($('#task-new')),
     rows: '#task-body .task-list > li[data-id]',
     rowEdit: '.task-title',
     // The New task line is at the top: ↓ starts typing there too.
@@ -268,6 +275,14 @@ export function installBrowse({ busy, area }) {
     }
     const c = cfg();
     if (!c) return;
+    // In the new line at the top (New task): ↑ from its first line goes up to the bar above it.
+    if (c.newLine && ev.key === 'ArrowUp' && t.matches?.(c.newLine) && atEdge(t, 'up') && !document.querySelector('.ref-picker, .pill-menu')) {
+      const above = stopBy(c, undefined);
+      if (above === null) return;
+      take(ev); t.blur(); goStop(c, above);
+      if (above !== 'search') pulse(pressed(c, above), Object.assign({}, WASH, { scroll: false }));
+      return;
+    }
     // In the search box: ↓ goes on to browse what it found.
     if (c.search && t.matches?.(c.search)) {
       const first = items(c)[0];
@@ -288,7 +303,7 @@ export function installBrowse({ busy, area }) {
         take(ev);
         if (!bar(c, inBar).length) { const to = firstBar(c); if (to >= 0) goBar(to); else if (list[0]) go(list[0]); else stop(); return; } // that bar went with the page it was on
         if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') moveBar(c, ev.key === 'ArrowLeft' ? -1 : 1);
-        else if (ev.key === 'ArrowDown' || ev.key === 'Enter') { const below = stopBy(c, inBar, 1); if (below !== null) goStop(c, below); else if (list[0]) go(list[0]); else flash(pressed(c, inBar)); }
+        else if (ev.key === 'ArrowDown' || ev.key === 'Enter') { const below = stopBy(c, inBar, 1); if (below !== null) goStop(c, below); else if (c.belowBars) { stop(); c.belowBars(); } else if (list[0]) go(list[0]); else flash(pressed(c, inBar)); }
         else if (ev.key === 'ArrowUp') { const above = stopBy(c, inBar, -1); if (above !== null) goStop(c, above); else flash(pressed(c, inBar)); }
         return;
       }
