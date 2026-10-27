@@ -139,7 +139,7 @@ export function layoutHtml(area, heading = true) {
   return `${heading ? '<h4>Layout</h4>' : ''}${optHtml(area, opts, 'Layout')}`;
 }
 
-// Styles (skins) for pages of rows: Tasks (its projects too) and Lists. One is picked in 👁 Style,
+// Styles (skins) for pages of rows: Tasks (its projects too), Lists and Brain Dump (Cards and Minimal). One is picked in 👁 Style,
 // put on <main data-skin>; lined: true styles also set data-layout-lined (the paper CSS). A style's
 // own options are LAYOUTS entries with skin: <its id>, shown under the picker only while it's picked.
 // forces: Layout switches the style sets itself (hidden from Layout while it's picked); areas: where
@@ -147,10 +147,10 @@ export function layoutHtml(area, heading = true) {
 // A new style: add it here (sample: the pill's own look) and its CSS under #main[data-skin="<id>"].
 export const SKINS = [
   { id: 'cards', label: 'Cards' },
-  { id: 'lined', label: 'Lined paper', lined: true },
+  { id: 'lined', label: 'Lined paper', lined: true, areas: ['tasks', 'lists'] },
   { id: 'minimal', label: 'Minimal', lined: true, forces: { 'add-top': true, pad: false } },
 ];
-const SKIN_AREAS = ['tasks', 'lists'];
+const SKIN_AREAS = ['tasks', 'lists', 'dump'];
 const skinsFor = area => SKINS.filter(x => !x.areas || x.areas.includes(area));
 const forcedBy = (area, id) => (SKIN_AREAS.includes(area) ? skinDef(area).forces?.[id] : undefined);
 const optHidden = (area, o) => forcedBy(area, o.id) !== undefined || (o.needs && !setOn(area, o.needs));
