@@ -5089,35 +5089,36 @@ html.case-open, html.case-open body { overflow: hidden; }
   .task-list > li[data-task] :is(.pill-reveal, .pill-done, .more, .close-details) { padding: 1px 8px; font-size: 12px; border-radius: 5px; box-shadow: none; }
 }
 
-/* Minimal in Brain Dump (👁 Style): the notes as a grid of equal, square-edged paper notes lying on the page
-   (a solid sheet, a soft shadow, the words first and the controls quiet until the pointer is over a note): 4 across on a computer, 3 on an iPad, 2 on a phone (Compact one more, Loose one fewer).
-   A note's words fill its box and fade out at the bottom; the note being edited spans the row and grows. */
+/* Minimal in Brain Dump (👁 Style): a grid of equal, square-edged notes drawn like a small Notepad window: the
+   note's kind as the open tab at the top (underlined in its colour with Look Multicolour), clean text in the app's
+   font, and a quiet bar along the bottom with Archive and ⋯. 4 across on a computer, 3 on an iPad, 2 on a phone
+   (Compact one more, Loose one fewer). A long note fades out at the bottom; clicking one opens it full screen. */
 #main[data-skin="minimal"] {
   --bd-cols: 2;
-  --bd-paper: color-mix(in srgb, var(--text) 9%, var(--bg));
-  .thought-list { grid-template-columns: repeat(var(--bd-cols), minmax(0, 1fr)); gap: 14px; grid-auto-flow: row; align-items: stretch; }
-  .thought, .thought.size-m, .thought.size-l { grid-column: auto !important; aspect-ratio: 4 / 3; display: flex; flex-direction: column; overflow: hidden; border-radius: 0; border: 0; background: var(--bd-paper); box-shadow: 0 1px 2px rgba(0, 0, 0, .28), 0 6px 14px -4px rgba(0, 0, 0, .3); padding: 10px 14px 8px; box-sizing: border-box; transition: box-shadow .15s, transform .15s; }
-  .thought:hover:not(:has(> .thought-edit), .zoomed) { box-shadow: 0 2px 4px rgba(0, 0, 0, .3), 0 10px 22px -6px rgba(0, 0, 0, .38); transform: translateY(-1px); }
-  .thought-head .kind-select { border-color: transparent; background-color: transparent; color: var(--muted); padding-left: 0; }
-  .thought-head > .muted { font-size: 11px; }
-  .thought .thought-body { color: var(--text); }
+  --np-sheet: color-mix(in srgb, var(--text) 6%, var(--bg));
+  --np-strip: color-mix(in srgb, var(--text) 2.5%, var(--bg));
+  --np-line: color-mix(in srgb, var(--text) 14%, transparent);
+  --np-mark: color-mix(in srgb, var(--text) 45%, transparent);
+  .thought-list { grid-template-columns: repeat(var(--bd-cols), minmax(0, 1fr)); gap: 12px; grid-auto-flow: row; align-items: stretch; }
+  .thought, .thought.size-m, .thought.size-l { grid-column: auto !important; aspect-ratio: 4 / 3; display: flex; flex-direction: column; overflow: hidden; border-radius: 0; border: 1px solid var(--np-line); background: var(--np-sheet); box-shadow: 0 8px 20px -10px rgba(0, 0, 0, .55); padding: 0; box-sizing: border-box; }
   .thought.zoomed { grid-column: 1 / -1 !important; aspect-ratio: auto; display: block; overflow: visible; }
-  .thought.pinned { border-top: 3px solid var(--active-border); }
-  .thought .thought-body { flex: 1; min-height: 0; display: block; overflow: hidden; font-size: 14px; line-height: 1.45; margin: 4px 2px 2px; -webkit-mask-image: linear-gradient(to bottom, #000 75%, transparent); mask-image: linear-gradient(to bottom, #000 75%, transparent); }
-  .thought .thought-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
-  .thought-head { flex: none; font-size: 12px; }
-  .thought-head .kind-select { border-radius: 4px; box-shadow: none; padding-top: 1px; padding-bottom: 1px; font-size: 11px; }
-  .thought-actions button, .thought-actions .note-more > summary { border-color: transparent; background: transparent; }
-  .thought-head .chip { border-radius: 4px; }
-  .thought > .att-row { flex: none; }
-  .thought-actions { flex: none; }
-  .thought-actions button, .thought-actions .note-more > summary { padding: 1px 8px; font-size: 12px; border-radius: 4px; box-shadow: none; }
-  .thought-head .pin { top: 6px; }
-  .thought-edit :is(.rich-edit, .rich-raw) { border-radius: 4px; }
-  .thought-edit .md-bar button { border-radius: 4px; box-shadow: none; }
+  .thought-head { flex: none; align-items: flex-end; gap: 4px; padding: 6px 30px 0 6px; background: var(--np-strip); font-size: 12px; }
+  .thought-head .kind-select { position: relative; font-size: 12px; color: var(--text); background-color: var(--np-sheet); border: 1px solid var(--np-line); border-bottom: 0; border-radius: 0 !important; margin-bottom: -1px; padding: 5px 24px 6px 12px !important; box-shadow: inset 0 -2px 0 var(--np-mark); } /* !important: over .kind-select's pill */
+  .thought-head > .muted { font-size: 11px; padding-bottom: 6px; margin-left: 6px; }
+  .thought-head .chip { border-radius: 0; margin-bottom: 4px; font-size: 11px; }
+  .thought-head .pin { top: 8px; }
+  .thought .thought-body { flex: 1; min-height: 0; display: block; overflow: hidden; margin: 0; padding: 10px 14px 0; border-top: 1px solid var(--np-line); color: var(--text); font-size: 14px; line-height: 1.5; -webkit-mask-image: linear-gradient(to bottom, #000 75%, transparent); mask-image: linear-gradient(to bottom, #000 75%, transparent); }
+  .thought .thought-title { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+  .thought > .att-row { flex: none; margin: 0; padding: 4px 12px; }
+  .thought-actions { flex: none; margin: 0; padding: 3px 6px 3px 12px; border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent); background: var(--np-strip); }
+  .thought-actions button, .thought-actions .note-more > summary { padding: 1px 8px; font-size: 11px; border-radius: 0; border-color: transparent; background: transparent; box-shadow: none; color: color-mix(in srgb, var(--text) 70%, transparent); }
+  .thought-actions button:hover, .thought-actions .note-more > summary:hover { background: var(--glass-hover); color: var(--text); }
+  .thought.pinned .thought-head { box-shadow: inset 0 2px 0 var(--active-border); }
+  .thought-edit :is(.rich-edit, .rich-raw) { border-radius: 0; }
+  .thought-edit .md-bar button { border-radius: 0; box-shadow: none; }
 }
 #main[data-skin="minimal"][data-density="tight"] { --bd-cols: 3; }
-@media (max-width: 699px) { #main[data-skin="minimal"]:not([data-density="loose"]) .thought:not(.zoomed, :has(> .thought-edit)) { aspect-ratio: 1; } } /* phones: square, room for the words under the head */
+@media (max-width: 699px) { #main[data-skin="minimal"]:not([data-density="loose"]) .thought:not(.zoomed, :has(> .thought-edit)) { aspect-ratio: 1; } } /* phones: square, room for the words under the tab */
 #main[data-skin="minimal"][data-density="loose"] { --bd-cols: 1; }
 @media (min-width: 700px) {
   #main[data-skin="minimal"] { --bd-cols: 3; }
@@ -5132,9 +5133,12 @@ html.case-open, html.case-open body { overflow: hidden; }
 #main[data-skin="minimal"][data-zoom] .thought-list { grid-template-columns: 1fr; }
 /* Not Medium's 6-line clamp: in a box it drew the hidden lines on top of each other (the fade cuts the note off instead). */
 #main[data-skin="minimal"]:not([data-density="loose"]):not([data-density="tight"]) .thought .thought-body { display: block; -webkit-line-clamp: none; line-clamp: none; }
-#main[data-skin="minimal"][data-shade="colour"] .thought[style*="--tint"] { background: color-mix(in srgb, var(--tint) 22%, var(--bd-paper)); } /* a coloured sheet, like a sticky note */
-:root[data-theme="light"] #main[data-skin="minimal"] { --bd-paper: #fffdf8; }
-@media (hover: hover) { #main[data-skin="minimal"] .thought:not(:hover, :focus-within, .selected) :is(.thought-actions, .thought-head .pin:not([aria-pressed="true"])) { opacity: 0; } }
-#main[data-skin="minimal"][data-shade="alt"] .thought-list > .thought:nth-child(even) { background: color-mix(in srgb, var(--text) 5%, var(--bd-paper)); }
-#main[data-skin="minimal"][data-density="tight"] .thought:not(.zoomed, :has(> .thought-edit)) { aspect-ratio: 1; padding: 6px 8px; }
-#main[data-skin="minimal"][data-density="tight"] .thought .thought-body { margin-top: 2px; }
+#main[data-skin="minimal"][data-shade="colour"] .thought[style*="--tint"] { --np-mark: var(--tint); background: var(--np-sheet); border-color: var(--np-line); }
+#main[data-skin="minimal"][data-shade="alt"] .thought-list > .thought:nth-child(even) { --np-sheet: color-mix(in srgb, var(--text) 9%, var(--bg)); background: var(--np-sheet); }
+:root[data-theme="light"] #main[data-skin="minimal"] { --np-sheet: #fff; --np-strip: #f3f4f6; }
+@media (hover: hover) { #main[data-skin="minimal"] .thought:not(:hover, :focus-within, .selected) .thought-head .pin:not([aria-pressed="true"]) { opacity: 0; } }
+#main[data-skin="minimal"][data-density="tight"] .thought:not(.zoomed, :has(> .thought-edit)) { aspect-ratio: 1; }
+#main[data-skin="minimal"][data-density="tight"] .thought .thought-body { padding: 6px 10px 0; }
+#main[data-skin="minimal"][data-density="tight"] .thought .kind-select { display: inline-block; }
+@media (max-width: 699px) { #main[data-skin="minimal"] .thought-head > .muted { display: none; } } /* phones: the tab only, on one line */
+#main[data-skin="minimal"][data-density="tight"] .thought-head > .muted { display: none; }

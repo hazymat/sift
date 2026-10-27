@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.85': [{ text: "Brain Dump, Minimal style: each note now looks like a small Notepad window. Its kind is a tab at the top (underlined in the note's colour with Look Multicolour), the words sit in a clean writing area, and Archive and ⋯ are in a quiet bar along the bottom.", go: '#/dump', at: '#thoughts' }],
   '1.61.84': [{ text: "Brain Dump, Minimal style: clicking a note opens it straight to full screen to read and edit, in place of opening under the row. Done or Esc saves it and takes you back to your notes where you were.", go: '#/dump', at: '#thoughts' }],
   '1.61.83': [{ text: "Brain Dump, Minimal style: in a long note, the lines near the bottom of its box were drawn on top of each other. Fixed: the note now simply fades out." }],
   '1.61.82': [{ text: "Brain Dump, Minimal style: notes look like square sheets of paper lying on the page, with a soft shadow, your words first and Archive and ⋯ showing when the pointer is over a note. With Look Multicolour each note is a coloured sheet, like a sticky note.", go: '#/dump', at: '#thoughts' }],
@@ -259,6 +260,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.85': '2026-10-27T16:41:29Z',
   '1.61.84': '2026-10-27T16:27:57Z',
   '1.61.83': '2026-10-27T16:18:22Z',
   '1.61.82': '2026-10-27T15:59:11Z',
