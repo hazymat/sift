@@ -61,12 +61,12 @@ export const MOCKS = {
     <section class="dump-find"><div class="dump-h-row"><h2 class="dump-h"${E('dump.handfont', 'dump.text')}>Your notes</h2></div></section>
     <ul class="thought-list">
       <li class="thought size-m" style="--tint:#e3c9a8"${E('dump.panel')}>
-        <div class="thought-head"><button type="button" class="drag-handle kit-grip">${GRIP}</button><button type="button" class="note-dot"><span class="swatch" style="--sw:#e3c9a8"></span></button><span class="muted"${E('dump.muted')}>just now</span><span class="spacer"></span><button type="button" class="pin">☆</button></div>
+        <div class="thought-head"><button type="button" class="note-dot"><span class="swatch" style="--sw:#e3c9a8"></span></button><span class="muted"${E('dump.muted')}>just now</span><span class="spacer"></span><button type="button" class="pin">☆</button></div>
         <div class="thought-body hand"${E('dump.note', 'dump.notefont')}><div class="thought-title">Call the plumber</div><div>About the <b>boiler</b> noise.</div><ul><li>ask about Tuesday</li><li>get a quote first</li></ul></div>
         <div class="thought-actions"><button type="button"${E('dump.text', 'dump.font')}>→ Task</button><button type="button">Plan it</button><span class="spacer"></span><span class="note-end"><button type="button" class="archive-pill">Archive</button></span></div>
       </li>
       <li class="thought size-m" style="--tint:#a8d0e3"${E('dump.panel')}>
-        <div class="thought-head"><button type="button" class="drag-handle kit-grip">${GRIP}</button><button type="button" class="note-dot"><span class="swatch" style="--sw:#a8d0e3"></span></button><span class="muted"${E('dump.muted')}>yesterday</span><span class="spacer"></span><button type="button" class="pin" aria-pressed="true">★</button></div>
+        <div class="thought-head"><button type="button" class="note-dot"><span class="swatch" style="--sw:#a8d0e3"></span></button><span class="muted"${E('dump.muted')}>yesterday</span><span class="spacer"></span><button type="button" class="pin" aria-pressed="true">★</button></div>
         <div class="thought-body hand"${E('dump.note', 'dump.notefont')}><div class="thought-title">Holiday ideas</div><div>Cornwall in May? <a href="#"${E('dump.accent')}>the cottage</a></div></div>
       </li>
     </ul>`,
