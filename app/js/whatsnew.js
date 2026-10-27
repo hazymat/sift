@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.74': [{ text: "The text cursor in New task and other lines inside a rounded box no longer has its top and bottom cut off.", go: '#/tasks/now', at: '#main .new-task-line' }],
   '1.61.73': [{ text: "Batch Book: going to another area and coming back lands where you left it: the same book, Recipes or Batches, the recipe or batch you had open, and the same scroll point. Remembered on each device.", go: '#/recipes', at: '#main .bb-mode' }],
   '1.61.72': [{ text: "Tasks, with a keyboard: ↑ from New task now goes up to the section tabs (Task Dump, Now, Next…), which flash yellow so you can see where you are. ← / → switch section there, and ↓ goes back into New task.", go: '#/tasks', at: '#task-views' }],
   '1.61.71': [{ text: "Lists: the Minimal style is here too. Open a list, press 👁 and pick Minimal under Style for flat rows with thin lines between them, like Tasks. An item's notes toolbar is now one bar joined to its notes box, in every style.", go: '#/lists', open: ['#main details.view-menu > summary'], at: '#main details.view-menu[open] .skin-pill' }],
@@ -248,6 +249,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.74': '2026-10-27T10:26:29Z',
   '1.61.73': '2026-10-27T10:24:59Z',
   '1.61.72': '2026-10-27T10:24:00Z',
   '1.61.71': '2026-10-27T00:47:26Z',
