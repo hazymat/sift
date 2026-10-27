@@ -5089,34 +5089,42 @@ html.case-open, html.case-open body { overflow: hidden; }
   .task-list > li[data-task] :is(.pill-reveal, .pill-done, .more, .close-details) { padding: 1px 8px; font-size: 12px; border-radius: 5px; box-shadow: none; }
 }
 
-/* Minimal in Brain Dump (👁 Style): the notes as one column of flat, square-edged rectangles, each its own note
-   with a clear gap between; small square controls. Compact: one line per note (its words run on after the head). */
+/* Minimal in Brain Dump (👁 Style): the notes as a grid of equal, square-edged boxes, each its own note with a
+   clear gap between: 4 across on a computer, 3 on an iPad, 2 on a phone (Compact one more, Loose one fewer).
+   A note's words fill its box and fade out at the bottom; the note being edited spans the row and grows. */
 #main[data-skin="minimal"] {
-  .thought-list { grid-template-columns: 1fr; gap: 6px; }
-  .thought, .thought.size-m, .thought.size-l { grid-column: 1 / -1; aspect-ratio: auto; border-radius: 0; border: 1px solid var(--glass-border); background: color-mix(in srgb, var(--text) 4.5%, transparent); box-shadow: none; padding: 7px 10px; }
+  --bd-cols: 2;
+  .thought-list { grid-template-columns: repeat(var(--bd-cols), minmax(0, 1fr)); gap: 8px; grid-auto-flow: row; align-items: stretch; }
+  .thought, .thought.size-m, .thought.size-l { grid-column: auto !important; aspect-ratio: 4 / 3; display: flex; flex-direction: column; overflow: hidden; border-radius: 0; border: 1px solid var(--glass-border); background: color-mix(in srgb, var(--text) 4.5%, transparent); box-shadow: none; padding: 7px 10px; box-sizing: border-box; }
+  .thought:has(> .thought-edit), .thought.zoomed { grid-column: 1 / -1 !important; aspect-ratio: auto; display: block; overflow: visible; }
   .thought.pinned { box-shadow: inset 2px 0 0 var(--active-border); }
-  .thought .thought-body { font-size: 14px; line-height: 1.45; margin: 3px 2px 2px; }
+  .thought .thought-body { flex: 1; min-height: 0; display: block; overflow: hidden; font-size: 14px; line-height: 1.45; margin: 4px 2px 2px; -webkit-mask-image: linear-gradient(to bottom, #000 75%, transparent); mask-image: linear-gradient(to bottom, #000 75%, transparent); }
   .thought .thought-title { font-size: 14px; font-weight: 600; }
-  .thought-head { font-size: 12px; }
+  .thought-head { flex: none; font-size: 12px; }
   .thought-head .kind-select { border-radius: 4px; box-shadow: none; padding-top: 1px; padding-bottom: 1px; font-size: 12px; }
   .thought-head .chip { border-radius: 4px; }
+  .thought > .att-row { flex: none; }
+  .thought-actions { flex: none; }
   .thought-actions button, .thought-actions .note-more > summary { padding: 1px 8px; font-size: 12px; border-radius: 4px; box-shadow: none; }
   .thought-head .pin { top: 6px; }
   .thought-edit :is(.rich-edit, .rich-raw) { border-radius: 4px; }
   .thought-edit .md-bar button { border-radius: 4px; box-shadow: none; }
-  /* Archive and ⋯ sit at the right of the note's last line, not on a line of their own. */
-  .thought:has(> .thought-body):not(.zoomed) { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 10px; }
-  .thought:has(> .thought-body):not(.zoomed) > * { grid-column: 1 / -1; }
-  .thought:has(> .thought-body):not(.zoomed) > .thought-body { grid-column: 1; }
-  .thought:has(> .thought-body):not(.zoomed) > .thought-actions { grid-column: 2; grid-row: 2; align-self: end; }
 }
-#main[data-skin="minimal"][data-shade="colour"] .thought[style*="--tint"] { background: linear-gradient(90deg, color-mix(in srgb, var(--tint) 14%, transparent), color-mix(in srgb, var(--text) 4.5%, transparent) 80%); box-shadow: inset 3px 0 0 var(--tint); }
+#main[data-skin="minimal"][data-density="tight"] { --bd-cols: 3; }
+@media (max-width: 699px) { #main[data-skin="minimal"]:not([data-density="loose"]) .thought:not(.zoomed, :has(> .thought-edit)) { aspect-ratio: 1; } } /* phones: square, room for the words under the head */
+#main[data-skin="minimal"][data-density="loose"] { --bd-cols: 1; }
+@media (min-width: 700px) {
+  #main[data-skin="minimal"] { --bd-cols: 3; }
+  #main[data-skin="minimal"][data-density="tight"] { --bd-cols: 4; }
+  #main[data-skin="minimal"][data-density="loose"] { --bd-cols: 2; }
+}
+@media (min-width: 1100px) {
+  #main[data-skin="minimal"] { --bd-cols: 4; }
+  #main[data-skin="minimal"][data-density="tight"] { --bd-cols: 5; }
+  #main[data-skin="minimal"][data-density="loose"] { --bd-cols: 3; }
+}
+#main[data-skin="minimal"][data-zoom] .thought-list { grid-template-columns: 1fr; }
+#main[data-skin="minimal"][data-shade="colour"] .thought[style*="--tint"] { background: linear-gradient(135deg, color-mix(in srgb, var(--tint) 16%, transparent), color-mix(in srgb, var(--text) 4.5%, transparent) 80%); box-shadow: inset 3px 0 0 var(--tint); }
 #main[data-skin="minimal"][data-shade="alt"] .thought-list > .thought:nth-child(even) { background: color-mix(in srgb, var(--text) 9%, transparent); }
-#main[data-skin="minimal"][data-density="tight"]:not([data-zoom]) {
-  .thought { display: flex; flex-direction: row; align-items: center; gap: 8px; min-height: 35px; padding: 2px 30px 2px 8px; box-sizing: border-box; overflow: hidden; }
-  .thought-head { flex: none; flex-wrap: nowrap; padding-right: 0; }
-  .thought .thought-body { flex: 1; min-width: 0; height: auto; margin: 0; }
-  .thought .thought-body > .thought-flat { height: auto; font-size: 14px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; -webkit-mask-image: none; mask-image: none; }
-  .thought .thought-body > .thought-flat :is(br, p, ul, ol, li, div) { display: inline; }
-  .thought-head .pin { top: 50%; transform: translateY(-50%); }
-}
+#main[data-skin="minimal"][data-density="tight"] .thought:not(.zoomed, :has(> .thought-edit)) { aspect-ratio: 1; padding: 6px 8px; }
+#main[data-skin="minimal"][data-density="tight"] .thought .thought-body { margin-top: 2px; }
