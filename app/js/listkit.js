@@ -64,7 +64,7 @@ export const typingIn = el => !!el?.closest?.('input:not([type="checkbox"]):not(
 const TYPING = 'input:not([type="checkbox"]):not([type="radio"]):not([type="button"]), textarea, [contenteditable]:not([contenteditable="false"])';
 
 // Where a press on a card is the card's own (its buttons, menus, fields), not a drag.
-const TILE_SKIP = 'button, a[href]:not(.bb-card, .list-card, .c-main), summary, details[open], select, label, input, textarea, [contenteditable="true"], .edit-pills, .row-acts';
+const TILE_SKIP = 'button, a[href]:not(.bb-card, .project-card, .c-main), summary, details[open], select, label, input, textarea, [contenteditable="true"], .edit-pills, .row-acts';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 

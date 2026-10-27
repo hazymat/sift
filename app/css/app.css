@@ -1268,6 +1268,7 @@ a.chip { color: var(--text); text-decoration: none; }
 .c-when { font-size: .75rem; margin-left: auto; }
 .older summary { cursor: pointer; color: var(--muted); margin: 10px 4px; }
 .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+.cat-grid > .cat-cards { display: contents; } /* its category cards sit in the grid beside + New category */
 .research { margin: 0 0 12px; padding: 10px 14px; border-radius: 16px; background: var(--glass-track); }
 .research summary { cursor: pointer; font-weight: 500; }
 .research textarea { margin-top: 6px; }

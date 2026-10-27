@@ -206,10 +206,10 @@ export default {
       const uncategorised = stored.filter(c => !c.category_ids?.length);
       return `
         <div class="cat-grid">
-          ${data.categories.map(k => {
+          <ul class="cat-cards">${data.categories.map(k => {
             const n = stored.filter(c => c.category_ids?.includes(k.id)).length;
-            return `<a class="project-card" href="#/contacts/directory/${k.id}"><span class="project-title">${esc(k.name)}</span><span class="muted">${n} contact${n === 1 ? '' : 's'}</span></a>`;
-          }).join('')}
+            return `<li class="list-card-li" data-id="${k.id}" data-depth="0"><a class="project-card" draggable="false" href="#/contacts/directory/${k.id}"><span class="project-title">${esc(k.name)}</span><span class="muted">${n} contact${n === 1 ? '' : 's'}</span></a></li>`;
+          }).join('')}</ul>
           <button type="button" class="project-card add-card" data-act="new-category">+ New category</button>
         </div>
         <p class="muted hint">${esc(word('ph_categories'))}</p>
@@ -666,6 +666,7 @@ export default {
       if (cap) cap.addEventListener('keydown', ev => { if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); capture(); } });
       kit.attach(body.querySelector('.recent-list'));
       dirKit.attach(body.querySelector('.research-list'));
+      catKit.attach(body.querySelector('.cat-cards'));
       caseKit.attach(body.querySelector('.case-cards'));
       const research = body.querySelector('#research-new');
       if (research) listEntry(research, addCandidates, { draft: `contacts:research:${state.id}` });
@@ -709,6 +710,14 @@ export default {
     const kit = this.kit = createListKit({ reorder: true, grid: true, holdSelect: true, tiles: true, noun: 'contact', onReorder: contactOrder, actions: contactActions }); // hold to choose (and drag on)
     // A Directory category lists research buttons under each card, so its cards are chosen but not dragged.
     const dirKit = this.dirKit = createListKit({ reorder: false, holdSelect: true, tiles: true, noun: 'contact', actions: contactActions });
+    // Directory's categories: hold to choose, then drag into your own order (sort_order).
+    async function categoryOrder(rows) {
+      const before = data.categories.map(k => [k.id, { sort_order: k.sort_order ?? 0 }]);
+      await store.updateMany('contact_categories', rows.map((row, n) => [row.id, { sort_order: n }]));
+      await render();
+      undoable('Moved a category', async () => { await store.updateMany('contact_categories', before); await render(); });
+    }
+    const catKit = this.catKit = createListKit({ reorder: true, grid: true, holdSelect: true, tiles: true, noun: 'category', onReorder: categoryOrder });
     const now = () => new Date().toISOString();
     const caseKit = this.caseKit = createListKit({
       reorder: true, grid: true, holdSelect: true, tiles: true, noun: 'case', onReorder: persistCaseOrder, // as Batch Book's cards: hold to choose (and drag on)
@@ -719,7 +728,7 @@ export default {
         ]),
     });
     this.onKey = ev => {
-      if (ev.key === 'Escape' && !ev.target.closest('input, textarea, select, [contenteditable]') && (kit.escape() || dirKit.escape() || caseKit.escape())) ev.preventDefault();
+      if (ev.key === 'Escape' && !ev.target.closest('input, textarea, select, [contenteditable]') && (kit.escape() || dirKit.escape() || catKit.escape() || caseKit.escape())) ev.preventDefault();
       // A row of the Cases table opens with Enter, as a click.
       const row = ev.key === 'Enter' && ev.target.closest?.('tr[data-case-row]');
       if (row) { ev.preventDefault(); go(`#/contacts/cases/${row.dataset.caseRow}`); }
@@ -1082,6 +1091,7 @@ export default {
     clearInterval(this.clock);
     this.kit?.destroy();
     this.dirKit?.destroy();
+    this.catKit?.destroy();
     this.caseKit?.destroy();
     this.caseTable?.close();
     this.gone?.abort();
