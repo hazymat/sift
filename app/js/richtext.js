@@ -309,7 +309,7 @@ const SIZE_OF = b => (b.tagName === 'H3' ? 2 : { s: -1, m: 1, xl: 3 }[b.dataset?
 
 // bare: no toolbar, no dimming and no full screen on a phone tap; the keys
 // (Ctrl+B, Ctrl+I, "- " bullets, Alt+Enter full screen) still work.
-export function richText(container, { value = '', onChange, placeholder = '', origin = null, spot = true, colour = null, bare = false } = {}) {
+export function richText(container, { value = '', onChange, placeholder = '', origin = null, spot = true, colour = null, bare = false, full = false } = {}) {
   container.classList.add('rich');
   container.classList.toggle('bare', bare);
   container.innerHTML = `
@@ -536,10 +536,10 @@ export function richText(container, { value = '', onChange, placeholder = '', or
 
   // Leaving the note: anything finished gets spotted; the page un-dims.
   // On a phone the note opens full screen as soon as you tap into it
-  // (fullnote.js); a full-screen note needs no dimming.
+  // (fullnote.js); a full-screen note needs no dimming. full: always full screen, Esc finishes it.
   container.addEventListener('focusin', () => {
     if (bare) return;
-    if (PHONE.matches && !isFull(container)) openFull(container, { label: fullLabel() });
+    if ((PHONE.matches || full) && !isFull(container)) openFull(container, { label: fullLabel() });
     if (!isFull(container)) spotlight(container);
   });
   container.addEventListener('focusout', ev => {
@@ -563,7 +563,7 @@ export function richText(container, { value = '', onChange, placeholder = '', or
     if (ev.target.closest('.note-full-done')) closeFull();
   });
   edit.addEventListener('keydown', ev => {
-    if (ev.key === 'Escape' && isFull(container) && !document.querySelector('.ref-picker')) { ev.preventDefault(); ev.stopPropagation(); closeFull({ blur: false }); edit.focus(); }
+    if (ev.key === 'Escape' && isFull(container) && !document.querySelector('.ref-picker')) { ev.preventDefault(); ev.stopPropagation(); if (full) return closeFull(); closeFull({ blur: false }); edit.focus(); }
     // Ctrl+Enter (⌘+Enter on a Mac or iPad keyboard) is the same as Done.
     if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey) && isFull(container) && !document.querySelector('.ref-picker')) { ev.preventDefault(); ev.stopPropagation(); closeFull(); }
   }, true);

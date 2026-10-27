@@ -5101,7 +5101,7 @@ html.case-open, html.case-open body { overflow: hidden; }
   .thought-head .kind-select { border-color: transparent; background-color: transparent; color: var(--muted); padding-left: 0; }
   .thought-head > .muted { font-size: 11px; }
   .thought .thought-body { color: var(--text); }
-  .thought:has(> .thought-edit), .thought.zoomed { grid-column: 1 / -1 !important; aspect-ratio: auto; display: block; overflow: visible; }
+  .thought.zoomed { grid-column: 1 / -1 !important; aspect-ratio: auto; display: block; overflow: visible; }
   .thought.pinned { border-top: 3px solid var(--active-border); }
   .thought .thought-body { flex: 1; min-height: 0; display: block; overflow: hidden; font-size: 14px; line-height: 1.45; margin: 4px 2px 2px; -webkit-mask-image: linear-gradient(to bottom, #000 75%, transparent); mask-image: linear-gradient(to bottom, #000 75%, transparent); }
   .thought .thought-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
