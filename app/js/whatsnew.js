@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.83': [{ text: "Brain Dump, Minimal style: in a long note, the lines near the bottom of its box were drawn on top of each other. Fixed: the note now simply fades out." }],
   '1.61.82': [{ text: "Brain Dump, Minimal style: notes look like square sheets of paper lying on the page, with a soft shadow, your words first and Archive and ⋯ showing when the pointer is over a note. With Look Multicolour each note is a coloured sheet, like a sticky note.", go: '#/dump', at: '#thoughts' }],
   '1.61.81': [{ text: "Brain Dump, Minimal style: your notes are now a grid of equal square-edged boxes, 4 across on a computer, 3 on an iPad and 2 on a phone. Compact spacing fits one more across, Loose one fewer. A long note fades out at the bottom of its box; click it to read or edit all of it.", go: '#/dump', at: '#thoughts' }],
   '1.61.80': [{ text: "Brain Dump, Minimal style: each note is now its own square-edged box with a gap between them, so you can see clearly where one note ends and the next begins.", go: '#/dump', at: '#thoughts > li[data-id]' }],
@@ -257,6 +258,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.83': '2026-10-27T16:18:22Z',
   '1.61.82': '2026-10-27T15:59:11Z',
   '1.61.81': '2026-10-27T15:42:39Z',
   '1.61.80': '2026-10-27T15:28:43Z',
