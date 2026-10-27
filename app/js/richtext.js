@@ -536,10 +536,10 @@ export function richText(container, { value = '', onChange, placeholder = '', or
 
   // Leaving the note: anything finished gets spotted; the page un-dims.
   // On a phone the note opens full screen as soon as you tap into it
-  // (fullnote.js); a full-screen note needs no dimming. full: always full screen, Esc finishes it.
+  // (fullnote.js); a full-screen note needs no dimming. full: always full screen, Esc or a click beside it finishes it.
   container.addEventListener('focusin', () => {
     if (bare) return;
-    if ((PHONE.matches || full) && !isFull(container)) openFull(container, { label: fullLabel() });
+    if ((PHONE.matches || full) && !isFull(container)) openFull(container, { label: fullLabel(), clickAway: full });
     if (!isFull(container)) spotlight(container);
   });
   container.addEventListener('focusout', ev => {
