@@ -1177,3 +1177,4 @@ NOTES['1.61.79'] = [F("Sharing: the share sheet suggests people you've shared wi
 NOTES['1.61.78'] = [F("Brain Dump has a Style choice in 👁: Cards (as before) or Minimal, flat square-edged rows with thin dividers like Minimal in Tasks; one line per note in Compact spacing.")]
 NOTES['1.61.80'] = [F("Brain Dump, Minimal style: each note is its own square-edged box with a gap between, not joined rows.")]
 NOTES['1.61.81'] = [F("Brain Dump, Minimal style: notes are a grid of equal square-edged boxes, 4 across on a computer, 3 on an iPad, 2 on a phone (Compact one more, Loose one fewer).")]
+NOTES['1.61.82'] = [F("Brain Dump, Minimal style: notes look like square sheets of paper on the page (soft shadow, quiet controls); Multicolour makes each a coloured sheet.")]

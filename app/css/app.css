@@ -5089,19 +5089,25 @@ html.case-open, html.case-open body { overflow: hidden; }
   .task-list > li[data-task] :is(.pill-reveal, .pill-done, .more, .close-details) { padding: 1px 8px; font-size: 12px; border-radius: 5px; box-shadow: none; }
 }
 
-/* Minimal in Brain Dump (👁 Style): the notes as a grid of equal, square-edged boxes, each its own note with a
-   clear gap between: 4 across on a computer, 3 on an iPad, 2 on a phone (Compact one more, Loose one fewer).
+/* Minimal in Brain Dump (👁 Style): the notes as a grid of equal, square-edged paper notes lying on the page
+   (a solid sheet, a soft shadow, the words first and the controls quiet until the pointer is over a note): 4 across on a computer, 3 on an iPad, 2 on a phone (Compact one more, Loose one fewer).
    A note's words fill its box and fade out at the bottom; the note being edited spans the row and grows. */
 #main[data-skin="minimal"] {
   --bd-cols: 2;
-  .thought-list { grid-template-columns: repeat(var(--bd-cols), minmax(0, 1fr)); gap: 8px; grid-auto-flow: row; align-items: stretch; }
-  .thought, .thought.size-m, .thought.size-l { grid-column: auto !important; aspect-ratio: 4 / 3; display: flex; flex-direction: column; overflow: hidden; border-radius: 0; border: 1px solid var(--glass-border); background: color-mix(in srgb, var(--text) 4.5%, transparent); box-shadow: none; padding: 7px 10px; box-sizing: border-box; }
+  --bd-paper: color-mix(in srgb, var(--text) 9%, var(--bg));
+  .thought-list { grid-template-columns: repeat(var(--bd-cols), minmax(0, 1fr)); gap: 14px; grid-auto-flow: row; align-items: stretch; }
+  .thought, .thought.size-m, .thought.size-l { grid-column: auto !important; aspect-ratio: 4 / 3; display: flex; flex-direction: column; overflow: hidden; border-radius: 0; border: 0; background: var(--bd-paper); box-shadow: 0 1px 2px rgba(0, 0, 0, .28), 0 6px 14px -4px rgba(0, 0, 0, .3); padding: 10px 14px 8px; box-sizing: border-box; transition: box-shadow .15s, transform .15s; }
+  .thought:hover:not(:has(> .thought-edit), .zoomed) { box-shadow: 0 2px 4px rgba(0, 0, 0, .3), 0 10px 22px -6px rgba(0, 0, 0, .38); transform: translateY(-1px); }
+  .thought-head .kind-select { border-color: transparent; background-color: transparent; color: var(--muted); padding-left: 0; }
+  .thought-head > .muted { font-size: 11px; }
+  .thought .thought-body { color: var(--text); }
   .thought:has(> .thought-edit), .thought.zoomed { grid-column: 1 / -1 !important; aspect-ratio: auto; display: block; overflow: visible; }
-  .thought.pinned { box-shadow: inset 2px 0 0 var(--active-border); }
+  .thought.pinned { border-top: 3px solid var(--active-border); }
   .thought .thought-body { flex: 1; min-height: 0; display: block; overflow: hidden; font-size: 14px; line-height: 1.45; margin: 4px 2px 2px; -webkit-mask-image: linear-gradient(to bottom, #000 75%, transparent); mask-image: linear-gradient(to bottom, #000 75%, transparent); }
-  .thought .thought-title { font-size: 14px; font-weight: 600; }
+  .thought .thought-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
   .thought-head { flex: none; font-size: 12px; }
-  .thought-head .kind-select { border-radius: 4px; box-shadow: none; padding-top: 1px; padding-bottom: 1px; font-size: 12px; }
+  .thought-head .kind-select { border-radius: 4px; box-shadow: none; padding-top: 1px; padding-bottom: 1px; font-size: 11px; }
+  .thought-actions button, .thought-actions .note-more > summary { border-color: transparent; background: transparent; }
   .thought-head .chip { border-radius: 4px; }
   .thought > .att-row { flex: none; }
   .thought-actions { flex: none; }
@@ -5124,7 +5130,9 @@ html.case-open, html.case-open body { overflow: hidden; }
   #main[data-skin="minimal"][data-density="loose"] { --bd-cols: 3; }
 }
 #main[data-skin="minimal"][data-zoom] .thought-list { grid-template-columns: 1fr; }
-#main[data-skin="minimal"][data-shade="colour"] .thought[style*="--tint"] { background: linear-gradient(135deg, color-mix(in srgb, var(--tint) 16%, transparent), color-mix(in srgb, var(--text) 4.5%, transparent) 80%); box-shadow: inset 3px 0 0 var(--tint); }
-#main[data-skin="minimal"][data-shade="alt"] .thought-list > .thought:nth-child(even) { background: color-mix(in srgb, var(--text) 9%, transparent); }
+#main[data-skin="minimal"][data-shade="colour"] .thought[style*="--tint"] { background: color-mix(in srgb, var(--tint) 22%, var(--bd-paper)); } /* a coloured sheet, like a sticky note */
+:root[data-theme="light"] #main[data-skin="minimal"] { --bd-paper: #fffdf8; }
+@media (hover: hover) { #main[data-skin="minimal"] .thought:not(:hover, :focus-within, .selected) :is(.thought-actions, .thought-head .pin:not([aria-pressed="true"])) { opacity: 0; } }
+#main[data-skin="minimal"][data-shade="alt"] .thought-list > .thought:nth-child(even) { background: color-mix(in srgb, var(--text) 5%, var(--bd-paper)); }
 #main[data-skin="minimal"][data-density="tight"] .thought:not(.zoomed, :has(> .thought-edit)) { aspect-ratio: 1; padding: 6px 8px; }
 #main[data-skin="minimal"][data-density="tight"] .thought .thought-body { margin-top: 2px; }
