@@ -148,7 +148,7 @@ export function layoutHtml(area, heading = true) {
 export const SKINS = [
   { id: 'cards', label: 'Cards' },
   { id: 'lined', label: 'Lined paper', lined: true },
-  { id: 'minimal', label: 'Minimal', lined: true, areas: ['tasks'], forces: { 'add-top': true, pad: false } },
+  { id: 'minimal', label: 'Minimal', lined: true, forces: { 'add-top': true, pad: false } },
 ];
 const SKIN_AREAS = ['tasks', 'lists'];
 const skinsFor = area => SKINS.filter(x => !x.areas || x.areas.includes(area));
