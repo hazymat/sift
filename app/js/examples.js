@@ -257,7 +257,7 @@ Serve it hot, the flavours are brighter.
 `;
 const PHOTOS = { 'Borscht': ['borscht-1.jpg', 'borscht-2.jpg'], 'Chicken Green Curry': ['green-curry-2.jpg'], 'Hot Toddy': ['hot-toddy-1.jpg', 'hot-toddy-2.jpg'], 'Pampushki': ['pampushki-1.jpg', 'pampushki-2.jpg', 'pampushki-3.jpg'], 'Christmas Cake': ['christmas-cake-1.jpg'], 'Cranberry Sauce': ['cranberry-sauce-1.jpg'] };
 // Goes up when photos or recipes are added to the showcase, so books that already have it get the new ones.
-const PHOTOS_VERSION = 10;
+const PHOTOS_VERSION = 11;   // 11 (1.61.68): methods rewritten in One thing at a time (housestyles.js), see addShowcase
 // Taken out of the showcase later: a book that got one and hasn't changed it or made a batch of it loses it once.
 const DROPPED = ['Coloured Sticky Rice with Mango'];   // 1.49.14, Mat asked
 
@@ -292,6 +292,13 @@ async function addShowcase(fresh = false) {
   const have = (await store.list('recipes')).map(r => r.title.toLowerCase());
   const ever = (await store.list('recipes', { includeDeleted: true })).filter(r => r.deleted_at).map(r => r.id);   // one deleted since it was added stays deleted
   for (const r of parseRecipes(SHOWCASE)) { const id = await fixedId(`recipe|${r.title}`); if (!have.includes(r.title.toLowerCase()) && (fresh || !ever.includes(id))) await store.create('recipes', Object.assign(r, { id, colour: null })); }
+  // A showcase recipe whose method was never changed here gets the method as it is now (1.61.68: One thing at a time).
+  // Not one with a photo on a step, as new steps would lose it.
+  for (const r of parseRecipes(SHOWCASE)) {
+    const mine = await store.get('recipes', await fixedId(`recipe|${r.title}`)), clocks = mine?._field_clocks || {};
+    if (!mine || mine.deleted_at || clocks.steps !== clocks.created_at || (mine.steps || []).some(step => atts.has(step.id))) continue;
+    if ((mine.steps || []).map(step => step.text).join('\n') !== r.steps.map(step => step.text).join('\n')) await store.update('recipes', mine.id, { steps: r.steps });
+  }
   const photos = await att.byParent();
   for (const r of await store.list('recipes')) if (PHOTOS[r.title]) { const names = (photos.get(r.id) || []).map(a => a.name); await addPhotos(r, PHOTOS[r.title].filter(n => !names.includes(n))); }
   await store.updateSettings({ batch_examples: true, batch_wipe: 1, batch_showcase_photos: PHOTOS_VERSION });

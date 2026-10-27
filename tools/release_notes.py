@@ -1164,4 +1164,5 @@ NOTES['1.61.62'] = [F("Tasks, Minimal style: square corners throughout; an open 
 NOTES['1.61.63'] = [F("Batch Book: export a single recipe from its card's ⋯ or an open recipe's Share (⬇ Export recipe), as a file Import recipes reads back in.")]
 NOTES['1.61.65'] = [F("Batch Book import: a recipe with the same name as one already there overwrites it (ingredients, method, notes, details), keeping its photos; Already here can leave them as they are instead. Undo restores them.")]
 NOTES['1.61.66'] = [B("Task names on iPhone and iPad sat low with their bottoms cut off (a grown name's borders weren't counted)."), F("Minimal, Compact spacing: rows a little taller, a bit more on iPad.")]
+NOTES['1.61.68'] = [F("Batch Book: example recipes already in a book get the One thing at a time method, unless their method was changed there; the AI instructions' example (Quick flatbreads) is in that style too.")]
 NOTES['1.61.67'] = [F("Settings, This device: a Screen line with the window's measurements, to track down iPad buttons not answering taps after Split View (#499).")]
