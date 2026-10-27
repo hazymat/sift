@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.67': [{ text: "Settings, This device: a Screen line shows the window's measurements, to help track down iPad buttons not answering taps after Split View.", go: '#/settings', at: '#screen-measure' }],
   '1.61.66': [{ text: "Tasks: task names on iPhone and iPad no longer sit low with their bottoms cut off (the tails of g, p and y showed). In Minimal with Compact spacing, rows are a little taller, a bit more on iPad.", go: '#/tasks/now', at: '#main .task-list > li[data-task]' }],
   '1.61.65': [{ text: "Batch Book, ⋯, Import recipes: a recipe with the same name as one you have now overwrites it, keeping its photos (Already here, under what was found, can leave them as they are instead). Its ingredients, method, notes and details all come from the import; photos on its old steps don't carry over. Undo puts it back.", go: '#/recipes', open: ['#main [data-act="import"]'], at: '.bb-import-sheet textarea' }],
   '1.61.64': [{ text: "Batch Book: recipe cards have no ⠿ handle any more. Press and hold a card to choose it, then keep your finger down and move to drag it; a chosen card drags from anywhere on it. With a mouse, just drag a card (a click still opens it, Ctrl+click chooses). Holding a card on an iPad no longer picks up its picture or link.", go: '#/recipes', at: '#main .bb-card-li', more: "The same on the Lists page's cards, Contacts and Cases, and Find Things' boxes." }],
@@ -241,6 +242,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.67': '2026-10-27T00:13:02Z',
   '1.61.66': '2026-10-27T00:10:21Z',
   '1.61.65': '2026-10-27T00:06:21Z',
   '1.61.64': '2026-10-26T23:59:11Z',

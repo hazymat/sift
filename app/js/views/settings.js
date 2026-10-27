@@ -162,6 +162,7 @@ export default {
         <dl class="facts">
           <dt>Device id</dt><dd><code>${store.getDeviceId()}</code></dd>
           <dt>Installed</dt><dd>${matchMedia('(display-mode: standalone)').matches || navigator.standalone ? 'Yes' : 'No, running in the browser'}</dd>
+          <dt>Screen</dt><dd><code id="screen-measure"></code></dd>
         </dl>
         <label class="check-row"><input type="checkbox" id="usage-stats"> Send anonymous usage data <span class="muted">(never anything you put into Sift; see <a href="privacy.html" target="_blank" rel="noopener">Privacy</a>)</span></label>
         <a class="seg-link" href="#/stats" id="stats-link" hidden>Usage stats</a>
@@ -180,6 +181,19 @@ export default {
         <p class="muted hint">${esc(word('ph_set_erase'))} Only ${esc(webAddress())} in this browser: Sift at any other web address, in another browser or on another device keeps its data.</p>
       </section>
     `;
+
+    // Screen measurements, for an iPad whose taps land off to one side after Split View (#499): they show
+    // whether the page sees a different width or zoom from what's on screen. Kept up to date while shown.
+    {
+      const out = el.querySelector('#screen-measure'), vv = window.visualViewport;
+      const measure = () => {
+        if (!out.isConnected) { removeEventListener('resize', measure); vv?.removeEventListener('resize', measure); vv?.removeEventListener('scroll', measure); return; }
+        const round = num => Math.round(num * 100) / 100;
+        out.textContent = `window ${innerWidth}×${innerHeight}, page ${document.documentElement.clientWidth}, visible ${vv ? `${round(vv.width)}×${round(vv.height)} at ${round(vv.offsetLeft)},${round(vv.offsetTop)} zoom ${round(vv.scale)}` : 'n/a'}, screen ${screen.width}×${screen.height}, dpr ${devicePixelRatio}, scroll ${scrollX},${scrollY}`;
+      };
+      addEventListener('resize', measure); vv?.addEventListener('resize', measure); vv?.addEventListener('scroll', measure);
+      measure();
+    }
 
     // Home Screen: on an iPhone, an app not on the Home Screen can lose its data after 7 days.
     {
