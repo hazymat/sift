@@ -1167,4 +1167,5 @@ NOTES['1.61.66'] = [B("Task names on iPhone and iPad sat low with their bottoms 
 NOTES['1.61.68'] = [F("Batch Book: example recipes already in a book get the One thing at a time method, unless their method was changed there; the AI instructions' example (Quick flatbreads) is in that style too.")]
 NOTES['1.61.69'] = [B("Compact spacing on iPhone and iPad: an opened task's name dropped onto its own line below the tick box.")]
 NOTES['1.61.70'] = [F("iPad: the window's measurements show at the bottom left for 20 seconds on opening and on coming back from another app, for #499.")]
+NOTES['1.61.71'] = [F("Lists: the Minimal style (👁, Style). A list item's notes toolbar is joined to its notes box in every style, as on Tasks.")]
 NOTES['1.61.67'] = [F("Settings, This device: a Screen line with the window's measurements, to track down iPad buttons not answering taps after Split View (#499).")]

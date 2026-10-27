@@ -4997,7 +4997,7 @@ html.case-open, html.case-open body { overflow: hidden; }
   .case-card .bb-card-acts { padding: 0 6px 8px 10px; }
 }
 
-/* Minimal style (👁 Style, Tasks): flat rows like a plain to-do app, set close together on one faint
+/* Minimal style (👁 Style, Tasks and Lists): flat rows like a plain to-do app, set close together on one faint
    panel with thin dividers; New task a plain underlined line set apart above them. Compact spacing:
    35px rows (37px on iPad), 14px text, ⠿ always showing. Built on Lined paper's flat rows (it sets data-layout-lined). */
 #main[data-skin="minimal"] {
@@ -5009,11 +5009,11 @@ html.case-open, html.case-open body { overflow: hidden; }
   .task-list > li[data-task]::after { display: none; }
   .task-list > li[data-task]:last-of-type { border-bottom-color: transparent; }
   .task-list > li[data-task] > .task-title { font-weight: 400; }
-  #task-entry { max-width: 700px; margin-bottom: 26px; }
-  #task-entry .task-add-line { border: 0; border-radius: 0; background: transparent; padding-left: 2px; }
-  #task-entry .task-add-line::after { left: 0 !important; background: var(--glass-border); }
-  #task-entry .task-add-line > .add-mark { display: none; }
-  #task-entry .task-add-line .new-task-line { margin-left: 0; }
+  :is(#task-entry, #list-entry) { max-width: 700px; margin-bottom: 26px; }
+  :is(#task-entry, #list-entry) .task-add-line { border: 0; border-radius: 0; background: transparent; padding-left: 2px; }
+  :is(#task-entry, #list-entry) .task-add-line::after { left: 0 !important; background: var(--glass-border); }
+  :is(#task-entry, #list-entry) .task-add-line > .add-mark { display: none; }
+  :is(#task-entry, #list-entry) .task-add-line .new-task-line { margin-left: 0; }
 }
 #main[data-skin="minimal"][data-density="tight"] {
   .task-list > li[data-task] { min-height: 35px; font-size: 14px; padding-top: 1px; padding-bottom: 1px; }
@@ -5033,14 +5033,14 @@ html.case-open, html.case-open body { overflow: hidden; }
 /* Minimal: every row's ⠿ shows (faint) all the time, not only under the pointer. */
 @media (hover: hover) { #main[data-skin="minimal"] .task-list > li[data-task]:not(:hover, .selected, .dragging) > .drag-handle { opacity: .35 !important; } }
 
-/* A task's notes toolbar (every style): one square bar joined to the top of the notes box, its
+/* A task's or list item's notes toolbar (every style): one square bar joined to the top of the notes box, its
    buttons side by side in it rather than each in its own bubble. Full screen keeps its own bar. */
-.task-details .task-notes.rich:not(.is-full) > .md-bar { margin: 0; gap: 0; padding: 2px; border: 1px solid var(--glass-border); border-bottom: 0; border-radius: 8px 8px 0 0; background: color-mix(in srgb, var(--text) 4%, transparent); }
-.task-details .task-notes.rich:not(.is-full) > .md-bar button { border-radius: 5px; border-color: transparent; background: transparent; box-shadow: none; padding: 3px 8px; }
-.task-details .task-notes.rich:not(.is-full) > .md-bar button:hover:not(:disabled) { background: var(--glass-hover); }
-.task-details .task-notes.rich:not(.is-full) > .md-bar :is(button[aria-pressed="true"], [data-cmd][aria-pressed="true"]) { background: var(--active-bg); border-color: transparent; }
-.task-details .task-notes.rich:not(.is-full) > .md-bar .md-sep { margin: 4px 3px; }
-.task-details .task-notes.rich:not(.is-full) > :is(.rich-edit, .rich-raw) { border-radius: 0 0 8px 8px; }
+.task-details :is(.task-notes, .list-notes).rich:not(.is-full) > .md-bar { margin: 0; gap: 0; padding: 2px; border: 1px solid var(--glass-border); border-bottom: 0; border-radius: 8px 8px 0 0; background: color-mix(in srgb, var(--text) 4%, transparent); }
+.task-details :is(.task-notes, .list-notes).rich:not(.is-full) > .md-bar button { border-radius: 5px; border-color: transparent; background: transparent; box-shadow: none; padding: 3px 8px; }
+.task-details :is(.task-notes, .list-notes).rich:not(.is-full) > .md-bar button:hover:not(:disabled) { background: var(--glass-hover); }
+.task-details :is(.task-notes, .list-notes).rich:not(.is-full) > .md-bar :is(button[aria-pressed="true"], [data-cmd][aria-pressed="true"]) { background: var(--active-bg); border-color: transparent; }
+.task-details :is(.task-notes, .list-notes).rich:not(.is-full) > .md-bar .md-sep { margin: 4px 3px; }
+.task-details :is(.task-notes, .list-notes).rich:not(.is-full) > :is(.rich-edit, .rich-raw) { border-radius: 0 0 8px 8px; }
 
 /* Minimal (👁 Style): a task's quick-edit pills and full panel flat and compact, like its rows:
    small square-ish controls, no boxed sections (thin lines between them instead), smaller fields. */
@@ -5051,11 +5051,11 @@ html.case-open, html.case-open body { overflow: hidden; }
   .task-list .edit-pills .pill-row { gap: 4px; }
   .task-list .entry-chip kbd { font-size: .62rem; padding: 0 3px; }
   .task-list > li.task-details { margin: 0; padding: 8px 12px 10px; border: 0; border-radius: 0; border-bottom: 1px solid color-mix(in srgb, #000 28%, transparent); background: color-mix(in srgb, var(--text) 2.5%, transparent); font-size: 13px; }
-  .task-details .task-notes { margin-bottom: 6px; }
-  .task-details .task-notes .rich-edit, .task-details .task-notes .rich-raw { min-height: 3.2em; padding: 6px 9px; font-size: 14px; line-height: 1.45; }
-  .task-details .task-notes.rich:not(.is-full) > .md-bar { padding: 1px; border-radius: 0; }
-  .task-details .task-notes.rich:not(.is-full) > .md-bar button { padding: 2px 7px; font-size: 12px; border-radius: 3px; }
-  .task-details .task-notes.rich:not(.is-full) > :is(.rich-edit, .rich-raw) { border-radius: 0; }
+  .task-details :is(.task-notes, .list-notes) { margin-bottom: 6px; }
+  .task-details :is(.task-notes, .list-notes) .rich-edit, .task-details :is(.task-notes, .list-notes) .rich-raw { min-height: 3.2em; padding: 6px 9px; font-size: 14px; line-height: 1.45; }
+  .task-details :is(.task-notes, .list-notes).rich:not(.is-full) > .md-bar { padding: 1px; border-radius: 0; }
+  .task-details :is(.task-notes, .list-notes).rich:not(.is-full) > .md-bar button { padding: 2px 7px; font-size: 12px; border-radius: 3px; }
+  .task-details :is(.task-notes, .list-notes).rich:not(.is-full) > :is(.rich-edit, .rich-raw) { border-radius: 0; }
   .task-details .att-row { margin: 0 0 6px; }
   .task-details .att-add { padding: 2px 8px; font-size: 12px; border-radius: 5px; }
   .task-details :is(.panel-sec, .comments) { margin: 0; padding: 7px 0; border: 0; border-top: 1px solid var(--glass-border); border-radius: 0; background: none; }
