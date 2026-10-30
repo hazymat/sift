@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.93': [{ text: "Notes on iPhone: with a note open full screen and the keyboard up, the note now fills the screen down to the keyboard, with the formatting buttons just above Safari's ↑ ↓ ✓ bar, instead of floating with a gap and the page showing underneath. Panels that sit above the keyboard lost the same gap." }],
   '1.61.92': [{ text: "Follow along: the steps now roll round on a click, Done or the arrow keys on computers set to show fewer animations too (Windows' Animation effects switch turned this off).", go: '#/recipes', open: ['#main .bb-card', '#main .bb-follow'], at: '.fa-drum' }],
   '1.61.91': [{ text: "Follow along: clicking an earlier or later step, pressing Done, or using the arrow keys now rolls the steps round smoothly like a wheel, the same as scrolling with the mouse wheel.", go: '#/recipes', open: ['#main .bb-card', '#main .bb-follow'], at: '.fa-drum' }],
   '1.61.90': [{ text: "Brain Dump: a note's ⋯ menu shows in full and wide enough to read, instead of being cut off by the note.", go: '#/dump', open: ['#thoughts .thought .note-more > summary'], at: '#thoughts .note-more .menu' }],
@@ -266,6 +267,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.93': '2026-10-30T19:06:05Z',
   '1.61.92': '2026-10-27T23:05:14Z',
   '1.61.91': '2026-10-27T22:54:58Z',
   '1.61.90': '2026-10-27T22:54:58Z',

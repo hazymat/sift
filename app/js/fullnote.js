@@ -2,7 +2,7 @@
 //
 // On a phone, tapping into any note opens it like this: the note fills the
 // screen and nothing scrolls behind it, "Done" is at the top, and the
-// formatting toolbar sits just above the keyboard (on iOS 26 on, above the
+// formatting toolbar sits just above the keyboard (on iOS 26 on, just above the
 // ↑ ↓ ✓ bar Safari floats there, which a page can't hide). Only Done (or Esc) closes
 // it: taps outside it and putting the keyboard away don't. On a laptop the ⤢
 // button on the toolbar does the same, for when you want to focus on one note.
@@ -17,13 +17,6 @@ import { feature } from './stats.js';
 
 export const PHONE = matchMedia('(pointer: coarse) and (max-width: 760px)');
 
-// iPhone Safari 26 on floats its own ↑ ↓ ✓ bar over the bottom of the page while the
-// keyboard is up (earlier it sat on the keyboard, out of the page). Safari 26 is the
-// first with CSS anchor positioning, which tells it apart; its version is in the name too.
-const IPHONE = /iPhone|iPod/.test(navigator.userAgent);
-export const SAFARI_BAR = IPHONE && (CSS.supports?.('anchor-name', '--x') || Number(navigator.userAgent.match(/Version\/(\d+)/)?.[1]) >= 26);
-export const SAFARI_BAR_H = 54; // its height, and a little room
-
 let current = null; // { box, backdrop, left: element the cursor left, or null }
 
 function follow() {
@@ -32,9 +25,7 @@ function follow() {
   const s = current.box.style;
   if (vv) {
     s.top = `${vv.offsetTop}px`;
-    s.height = `${vv.height}px`;
-    // The keyboard is up (the visible part is well short of the screen): clear of Safari's bar.
-    s.setProperty('--safari-bar', SAFARI_BAR && vv.height < Math.max(innerHeight, document.documentElement.clientHeight) - 150 ? `${SAFARI_BAR_H}px` : '0px');
+    s.height = `${vv.height}px`; // iPhone's visible part already stops above Safari's ↑ ↓ ✓ bar
   } else {
     s.top = '0px';
     s.height = `${innerHeight}px`;
