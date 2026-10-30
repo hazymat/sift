@@ -2472,10 +2472,6 @@ body.pills-only :is(.task-list, .item-list, .checklist, .planner) .more:not([ari
 .rich.is-full > .rich-edit, .rich.is-full > .rich-raw { flex: 1; min-height: 0 !important; max-height: none !important; overflow-y: auto; border-color: transparent; background: transparent; font-size: 1.1rem; }
 .rich.is-full > .md-bar { order: 9; flex: none; margin: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
 .rich.is-full > .md-bar::-webkit-scrollbar { display: none; }
-/* iPhone, iOS 26 on, keyboard up: Safari floats its own ↑ ↓ ✓ bar over the bottom of the
-   page (it can't be hidden), so the toolbar sits just above it (fullnote.js: --safari-bar). */
-.rich.is-full > .md-bar { margin-bottom: var(--safari-bar, 0px); }
-}
 .rich.is-full .md-full { border-color: color-mix(in srgb, var(--energy-ink, #4caf7a) 65%, transparent); background: color-mix(in srgb, var(--energy-ink, #4caf7a) 24%, transparent); }
 @media (min-width: 761px) { .rich.is-full { right: auto; width: min(900px, 100vw); left: max(0px, calc(50vw - 450px)); } }
 /* Nothing on the page behind it scrolls, and nothing on the way up can trap the fixed note. */
@@ -2527,6 +2523,8 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
 /* Phones always edit notes full screen, so no ⤢. */
 @media (pointer: coarse) and (max-width: 760px) { .md-full { display: none !important; } }
 .note-full-backdrop { position: fixed; inset: 0; z-index: 999; background: rgba(0, 0, 0, .55); }
+/* Phones: solid behind it, so no page shows round Safari's ↑ ↓ ✓ bar under the note. */
+@media (pointer: coarse) and (max-width: 760px) { .note-full-backdrop { background: var(--bg); } }
 
 /* Link chips carry their icon: it is part of the chip, so they go together. */
 .ref::before { margin-right: .25em; font-style: normal; text-decoration: none; display: inline-block; font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif; }
