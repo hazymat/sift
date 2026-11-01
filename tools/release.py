@@ -11,6 +11,7 @@ GitHub often times out: run again; "already exists" means that one is done.
 import datetime
 import os
 import subprocess
+import tempfile
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -28,7 +29,9 @@ for n, (v, h) in enumerate(pairs):
     if since: notes = [line for ver in sorted((ver for ver in NOTES if key(since) < key(ver) <= key(v)), key=key, reverse=True) for line in [f'### {ver}'] + NOTES[ver] + ['']]
     else: notes = NOTES[v]
     body = f'Released {d.day} {d:%B %Y}.\n\n' + '\n'.join(notes) + '\n'
-    r = subprocess.run(['gh', 'release', 'create', f'v{v}', '--target', h, '--title', v, '--notes', body,
+    with tempfile.NamedTemporaryFile('w', suffix='.md', delete=False, encoding='utf-8') as notes_file: notes_file.write(body)  # long notes overflow the Windows command line
+    r = subprocess.run(['gh', 'release', 'create', f'v{v}', '--target', h, '--title', v, '--notes-file', notes_file.name,
                         f'--latest={"true" if n == len(pairs) - 1 else "false"}'],
                        capture_output=True, text=True, encoding='utf-8', timeout=60)
+    os.remove(notes_file.name)
     print(v, 'ok' if not r.returncode else r.stderr.strip()[:200])
