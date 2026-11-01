@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.62.01': [{ text: "Day Planner, ↓ Bring items in: the headings, project panels, Done and the space between groups have their room back; only the items themselves stay compact.", go: '#/planner', open: ['#main [data-act="bring-in"]'], at: '#bring .review-all' }],
   '1.62.00': [{ text: "Day Planner Notes: the lines are evenly spaced all the way down. The fifth line shows again, and the wider line that sat further below them has gone.", go: '#/planner', at: '.day-notes' }],
   '1.61.99': [{ text: "Day Planner, ↓ Bring items in: much more compact. Each item is one row with short buttons on the right (Claim, ✓, Archive, Skip), its energy and notes on the same line, no start or aim dates, and the day in the sheet's heading. In From Tasks, each project is a panel that opens with a tap, showing how many tasks it has.", go: '#/planner', open: ['#main [data-act="bring-in"]'], at: '#bring .review-list li', more: 'Earlier days and Google Calendar too: Bring, ✓, Let it go, Skip and 🗑 there; Schedule, Task and Skip for calendar events. A long name takes two lines at most; tap it to see it all.' }],
   '1.61.98': [{ text: 'Batch Book: a step that mentions an ingredient whose name starts with a number, such as {00 flour}, shows its amount (500g 00 flour) rather than 0g.' }],
@@ -274,6 +275,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.62.01': '2026-11-01T19:56:08Z',
   '1.62.00': '2026-11-01T19:38:43Z',
   '1.61.99': '2026-11-01T19:22:08Z',
   '1.61.98': '2026-11-01T15:14:54Z',
