@@ -3893,7 +3893,9 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
   /* (📝 is a .span-tag too, shown only with Tight spacing: then it is the last one.) */
   :is(.pile-paper, #lines) .line.has-item > .content > .span-tag:not(.note-tag):not(:has(~ .span-tag:not(.note-tag))) { margin-right: var(--more-room); }
   #main[data-density="tight"] :is(.pile-paper, #lines) .line.has-item > .content:has(> .note-tag) > .span-tag:not(.note-tag) { margin-right: 0; }
-  #main[data-density="tight"] :is(.pile-paper, #lines) .line.has-item > .content > .note-tag { margin-right: var(--more-room); }
+  #main[data-density="tight"] :is(.pile-paper, #lines) .line.has-item > .content > .note-tag:not(:has(~ .note-tag)) { margin-right: var(--more-room); } /* the last of 📝 📎 */
+  :is(.pile-paper, #lines) .line.has-item > .content:has(> .att-tag) > .span-tag:not(.att-tag) { margin-right: 0; }
+  :is(.pile-paper, #lines) .line.has-item > .content > .att-tag { margin-right: var(--more-room); } /* 📎 shows in every spacing, last */
 }
 @media (hover: none) { #main .line.has-item > .content:has(> .close-top, > .edit-pills.pill-top) > textarea.item-title { max-width: calc(100% - 104px); } } /* phones: beside the name */
 /* A schedule item being edited: its time and note pills go (the pills under it say the same), as a task's chips do. */
@@ -4210,7 +4212,7 @@ html[data-slide="back"]::view-transition-new(sift-page) { animation-name: sift-i
 
 /* Tasks, compact spacing: beside a task's name only its note (📝; and a tour's ▶ pill), no other pills,
    so the name has room; and none at all while its editing pills are open (they show the same things). */
-#main[data-density="tight"] .task-list > li[data-task] > .item-sub > :not(.item-note, .tour-pill) { display: none; }
+#main[data-density="tight"] .task-list > li[data-task] > .item-sub > :not(.item-note, .tour-pill, .att-mark) { display: none; }
 #main[data-density="tight"] .task-list > li[data-task].pills-open > .item-sub { display: none; }
 /* …except, on a wide screen, its 📝: it stays just after the words while the name is written in (moving
    as you type), and pressing it goes into the note, as Shift+Enter does (views/tasks.js). */
@@ -5048,6 +5050,12 @@ html.case-open, html.case-open body { overflow: hidden; }
 /* A note's mark is the line drawing in every style (1.61.75): rows' 📝 and the Day Planner's. */
 :is(.task-list .note-icon, .planner .note-tag) .emo { display: none; }
 :is(.task-list .note-icon, .planner .note-tag) .line-ico { display: inline-block; width: 13px; height: 13px; vertical-align: middle; stroke-width: 1.8; opacity: .75; }
+/* Files attached: 📎 as the same line drawing. Tasks: compact only (the other spacings have the 📎 n chip); the Day Planner: every spacing. */
+.task-list .att-mark { display: none; }
+#main[data-density="tight"] .task-list .att-mark { display: flex; align-items: center; align-self: stretch; flex: none; padding: 0 2px; margin: 0; border: 0; background: none; box-shadow: none; color: inherit; cursor: pointer; }
+.task-list .att-mark .emo { display: none; }
+.task-list .att-mark .line-ico { display: inline-block; width: 13px; height: 13px; vertical-align: middle; stroke-width: 1.8; opacity: .75; }
+.planner .att-tag { display: inline-block; }
 #main[data-skin="minimal"] .task-list .chip:has(> .line-ico) { display: inline-flex; align-items: center; gap: 4px; }
 /* Minimal: every row's ⠿ shows (faint) all the time, not only under the pointer. */
 @media (hover: hover) { #main[data-skin="minimal"] .task-list > li[data-task]:not(:hover, .selected, .dragging) > .drag-handle { opacity: .35 !important; } }

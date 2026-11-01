@@ -211,7 +211,10 @@ export default {
       const photos = open !== t.id ? (atts.get(t.id) || []).filter(a => a.kind === 'image' && a.thumb) : [];
       const pics = photos.length ? `<span class="loose-only task-pics">${photos.slice(0, 4).map(a => `<button type="button" data-att-open="${a.id}" title="${esc(a.name)}" aria-label="Look at ${esc(a.name)}"><img src="${a.thumb}" alt="" loading="lazy"></button>`).join('')}</span>` : '';
       const c = chips(t);
-      return pills || c || note || pics ? `<div class="item-sub">${pills}${c ? `<span class="chips">${c}</span>` : ''}${note}${pics}</div>` : '';
+      // Compact spacing hides the chips, so files attached show as a 📎 line drawing beside the 📝 (CSS: .att-mark).
+      const files = atts.get(t.id)?.length;
+      const clip = files ? `<button type="button" class="att-mark" data-att-view="${t.id}" title="${files} attached: press to look" aria-label="Open ${files} attached ${files === 1 ? 'file' : 'files'}">${mark('📎', 'i-clip')}</button>` : '';
+      return pills || c || note || pics || clip ? `<div class="item-sub">${pills}${c ? `<span class="chips">${c}</span>` : ''}${note}${clip}${pics}</div>` : '';
     }
 
     // Notes under tasks: the first line; clicking it opens (or closes) the
