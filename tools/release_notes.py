@@ -1195,3 +1195,4 @@ NOTES['1.61.99'] = [F('Day Planner, Bring items in: one compact row per item in 
 NOTES['1.62.00'] = [B('Day Planner Notes: the fifth ruled line was missing and a wider line sat further below the others; the lines are now evenly spaced.')]
 NOTES['1.62.01'] = [F('Day Planner, Bring items in: headings, project panels, Done and the gaps between groups have their usual room again; only the item rows stay compact.')]
 NOTES['1.62.02'] = [F('Contacts and Cases: Edit references and people is gone from an open case\'s menu; the Edit chip beside the references and people does the same job.')]
+NOTES['1.62.03'] = [B('Tasks: after opening a contact or a case, going to Tasks could show only New task, with no Tasks | Projects, section tabs or menus until the page was reloaded. Fixed.')]
