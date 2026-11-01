@@ -113,7 +113,7 @@ export default {
           ${latest ? `<ol class="adv-latest" data-act="all" title="All comments">${latest}</ol>` : ''}
           <div class="adv-quick">
             <input class="adv-quick-add no-inline" data-no-move placeholder="Add a comment…" aria-label="Add a comment" autocomplete="off">
-            <button type="button" class="adv-attach" data-act="attach" title="Attach photos, PDFs or text files, as a comment with its time (or drop them on the row)">${icon('i-clip')}</button>
+            <button type="button" class="adv-attach" data-act="attach" title="Attach photos, PDFs, text or Word files, as a comment with its time (or drop them on the row)">${icon('i-clip')}</button>
             ${own.length ? att.countChip(own) : ''}
             ${list.length > LATEST ? `<button type="button" class="adv-all" data-act="all" title="All comments: add, edit, remove">All ${list.length}</button>` : ''}
           </div>

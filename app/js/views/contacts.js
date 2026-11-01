@@ -238,7 +238,7 @@ export default {
           ${openTasks.length ? `<select name="task_id" aria-label="Also a comment on a task"><option value="">Not about a task</option>${openTasks.map(t => `<option value="${t.id}">💬 ${esc(t.title)}</option>`).join('')}</select>` : ''}
           <div class="log-pending">${pendingHtml()}</div>
           <div class="log-row log-foot">${whenField(null, true)}
-            <button type="button" class="att-add" data-act="log-attach" title="Attach photos, PDFs or text files to this entry (or drop them here)">${icon('i-clip')}<span>Attach</span></button>
+            <button type="button" class="att-add" data-act="log-attach" title="Attach photos, PDFs, text or Word files to this entry (or drop them here)">${icon('i-clip')}<span>Attach</span></button>
             <button type="button" class="primary" data-act="log-${prefix}">Log it</button></div>
         </div>`;
     }
@@ -272,7 +272,7 @@ export default {
           <label class="kc-btn kc-when"><input type="datetime-local" name="at" value="${localValue(now)}" data-live="1" aria-label="When"><span class="kc-ico" aria-hidden="true">🕘</span><span class="kc-when-t"><b>Now</b><small>${esc(when(now.toISOString()))}</small></span></label>
           <button type="button" class="kc-btn round" data-act="log-now" title="Back to the time now" aria-label="Back to now" hidden>↺</button>
           <button type="button" class="kc-btn round" data-act="log-camera" title="Take a photo" aria-label="Take a photo">📷</button>
-          <button type="button" class="kc-btn round" data-act="log-attach" title="Attach photos, PDFs or text files" aria-label="Attach files">📎</button>
+          <button type="button" class="kc-btn round" data-act="log-attach" title="Attach photos, PDFs, text or Word files" aria-label="Attach files">📎</button>
           <button type="button" class="kc-btn primary" data-act="log-case">Log it</button>
         </div></div>`;
     }

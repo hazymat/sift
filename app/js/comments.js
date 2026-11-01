@@ -341,7 +341,7 @@ function wire(box) {
     const roomBelow = owner.task_id && depthIn(all.find(t => t.id === owner.task_id), all) < MAX_DEPTH;
     if (owner.task_id && !c.sub_task_id && roomBelow) options.push({ value: 'sub', label: '→ Sub-task', title: 'Make this a sub-task of the task' });
     if (!c.plan_item_id) options.push({ value: 'plan', label: "→ Today's plan", title: "Put this on today's plan" });
-    options.push({ value: 'attach', label: '📎 Attach…', title: 'Attach photos, PDFs or text files (or drop them on the comment)' });
+    options.push({ value: 'attach', label: '📎 Attach…', title: 'Attach photos, PDFs, text or Word files (or drop them on the comment)' });
     options.push({ value: 'back', label: c.check_back ? '⏰ Change check-back' : '⏰ Check back…', title: 'Bring the task back on a day, e.g. when waiting on someone' });
     if (c.check_back) options.push({ value: 'noback', label: 'No check-back' });
     options.push({ value: 'delete', label: 'Delete' });
