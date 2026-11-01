@@ -608,7 +608,7 @@ export default {
           <span class="spacer"></span>${shareHtml()}
           <details class="tool-menu page-more">
             <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
-            <div class="menu"><button type="button" data-act="facts-edit">Edit references and people</button><button type="button" data-act="case-task">Add a task for this case</button><hr>
+            <div class="menu"><button type="button" data-act="case-task">Add a task for this case</button><hr>
               <button type="button" data-act="archive-case">Archive case</button><button type="button" class="danger" data-act="delete-case">Delete case</button></div>
           </details></div>
         <div class="c-page kase" data-case-page="${k.id}">
