@@ -106,7 +106,7 @@ export default {
           </div>
         </div>
         <div class="dump-foot">
-          <button type="button" class="att-add" data-att-add title="Attach photos, PDFs or text files (or drop them onto the box)">${icon('i-clip')}<span>Attach</span></button>
+          <button type="button" class="att-add" data-att-add title="Attach photos, PDFs, text or Word files (or drop them onto the box)">${icon('i-clip')}<span>Attach</span></button>
           <span class="spacer"></span>
           <button type="button" class="primary" data-act="save">Save ${keys(SHORTCUT)}</button>
         </div>
@@ -327,7 +327,7 @@ export default {
                 <button type="button" data-act="colour"><span class="swatch" style="--sw:${tintHex(t)}"></span> Colour…</button>
                 <button type="button" data-act="comment" title="Add this note to a task, as a dated comment">💬 Add as comment to task…</button>
                 <button type="button" data-act="append" title="Add this note to the end of a task's note">📝 Append to task note…</button>
-                <button type="button" data-att-add title="Attach photos, PDFs or text files (or drop them onto the note)">${icon('i-clip')} Attach…</button>
+                <button type="button" data-att-add title="Attach photos, PDFs, text or Word files (or drop them onto the note)">${icon('i-clip')} Attach…</button>
                 <hr>
                 ${theirsOwner() ? '' : '<button type="button" data-act="share-people">👥 Share with someone…</button>'}
                 ${navigator.share ? `<button type="button" data-act="share-sheet">${icon('i-share')} Share…</button>` : ''}

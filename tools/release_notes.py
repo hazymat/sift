@@ -1186,3 +1186,4 @@ NOTES['1.61.88'] = [F("Brain Dump, Cards style: notes in a row are the same heig
 NOTES['1.61.89'] = [F("Brain Dump, Minimal style: a click beside a full-screen note saves and closes it, as Done does.")]
 NOTES['1.61.90'] = [B("Brain Dump: a note's ⋯ menu was cut off by the note.")]
 NOTES['1.61.93'] = [B("iPhone: a full-screen note and panels above the keyboard left a gap above Safari's ↑ ↓ ✓ bar, with the page showing through.")]
+NOTES['1.61.94'] = [F('Attach takes Word documents (.docx, .doc), Excel, OpenDocument and RTF files. They show as a file chip; Open saves the file for its own app.')]

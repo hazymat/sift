@@ -247,7 +247,7 @@ export async function openCase(owner, { closed, back } = {}) {
         ${(main.notes || '').trim() ? `<div class="adv-card-h"><h2 class="adv-h">Description</h2></div><div class="case-notes">${toHtml(unlink(main.notes))}</div>` : ''}
         <div class="case-add">
           <input class="case-add-box no-inline" placeholder="Add a comment…" aria-label="Add a comment" autocomplete="off" enterkeyhint="send">
-          <button type="button" class="case-attach" data-case="attach" title="Attach photos, PDFs or text files, as a comment with its time (or drop them here)">${icon('i-clip')}</button>
+          <button type="button" class="case-attach" data-case="attach" title="Attach photos, PDFs, text or Word files, as a comment with its time (or drop them here)">${icon('i-clip')}</button>
         </div>
       </section>
       <section class="adv-card case-sec"><div class="adv-card-h"><h2 class="adv-h">History</h2></div>

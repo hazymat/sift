@@ -24,7 +24,10 @@ const MAX_BYTES = 25 * 1024 * 1024;
 // What files can be attached to (a pasted screenshot in any other note is refused).
 export const ATTACHABLE = ['thoughts', 'tasks', 'day_items', 'list_items', 'items', 'comments', 'scans', 'contracts', 'recipes', 'recipe_makes', 'recipe_entries', 'places', 'cases', 'interactions', 'case_notes'];
 const THUMB = 240;
-export const ACCEPT = 'image/*,application/pdf,text/plain,text/markdown,text/csv,.txt,.md,.csv,.pdf';
+// Office documents (Word, Excel, OpenDocument, RTF) have no preview: Open saves them for the app that opens them.
+const DOC_EXT = /\.(docx?|xlsx?|odt|ods|rtf)$/i;
+const DOC_LABELS = { doc: 'Word document', docx: 'Word document', xls: 'Excel spreadsheet', xlsx: 'Excel spreadsheet', odt: 'Document', ods: 'Spreadsheet', rtf: 'Document' };
+export const ACCEPT = 'image/*,application/pdf,text/plain,text/markdown,text/csv,.txt,.md,.csv,.pdf,.doc,.docx,.xls,.xlsx,.odt,.ods,.rtf';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -32,6 +35,7 @@ const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></s
 export function kindOf(mime, name = '') {
   if (/^image\//.test(mime)) return 'image';
   if (mime === 'application/pdf' || /\.pdf$/i.test(name)) return 'pdf';
+  if (DOC_EXT.test(name) || /msword|officedocument|ms-excel|opendocument|rtf/.test(mime)) return 'doc';
   if (/^text\//.test(mime) || /\.(txt|md|csv)$/i.test(name)) return 'text';
   return null;
 }
@@ -64,14 +68,14 @@ export async function addFiles(parent, files, ids = []) {
   const skipped = [];
   for (const [index, file] of files.entries()) {
     const kind = kindOf(file.type, file.name);
-    if (!kind) { skipped.push(`${file.name} (only photos, PDFs and text files)`); continue; }
+    if (!kind) { skipped.push(`${file.name} (only photos, PDFs, text files and Word or Excel documents)`); continue; }
     if (file.size > MAX_BYTES) { skipped.push(`${file.name} (over ${sizeLabel(MAX_BYTES)})`); continue; }
     const id = ids[index] || store.uuidv7();   // fixed ids: examples.js
     const preview = kind === 'pdf' ? await (await import('./pdfthumb.js')).pdfPreview(file, THUMB) : null;
     await store.putBlob(id, file);
     made.push(await store.create('attachments', {
       id, parent_collection: parent.collection, parent_id: parent.id, blob_id: id,
-      name: file.name || 'file', mime: file.type || (kind === 'pdf' ? 'application/pdf' : 'text/plain'), kind, size: file.size,
+      name: file.name || 'file', mime: file.type || (kind === 'pdf' ? 'application/pdf' : kind === 'doc' ? 'application/octet-stream' : 'text/plain'), kind, size: file.size,
       thumb: kind === 'image' ? await thumbnail(file) : preview?.thumb || null,
       pages: preview?.pages || null,
     }));
@@ -107,7 +111,7 @@ export function rowHtml(atts = [], { addButton = true, parent = atts[0]?.parent_
       <button type="button" class="att-x" data-att-remove="${a.id}" title="Remove" aria-label="Remove ${esc(a.name)}">×</button>
     </span>`;
   }).join('');
-  const add = addButton ? `<button type="button" class="att-add" data-att-add title="Attach photos, PDFs or text files (or drop them here)">${icon('i-clip')}<span>${typeof addButton === 'string' ? esc(addButton) : 'Attach'}</span></button>` : ''; // addButton: true, or its own words
+  const add = addButton ? `<button type="button" class="att-add" data-att-add title="Attach photos, PDFs, text or Word files (or drop them here)">${icon('i-clip')}<span>${typeof addButton === 'string' ? esc(addButton) : 'Attach'}</span></button>` : ''; // addButton: true, or its own words
   return `<div class="att-row" data-att-parent="${esc(parent)}">${items}${add}</div>`;
 }
 
@@ -236,7 +240,7 @@ export function view(atts, start = 0) {
       slide.innerHTML = a.thumb ? `<img alt="" src="${a.thumb}">` : '<img alt="">';
       slide.querySelector('img').alt = a.name;
     } else {
-      slide.innerHTML = `<div class="av-doc">${a.thumb ? `<img class="av-doc-thumb" alt="" src="${a.thumb}">` : DOC_ICON}<div class="av-doc-name"></div><div class="av-doc-size">${a.kind === 'pdf' ? `PDF${a.pages > 1 ? ` · ${a.pages} pages` : ''}` : 'Text file'} · ${sizeLabel(a.size)}</div><button type="button" class="av-open">Open</button></div>`;
+      slide.innerHTML = `<div class="av-doc">${a.thumb ? `<img class="av-doc-thumb" alt="" src="${a.thumb}">` : DOC_ICON}<div class="av-doc-name"></div><div class="av-doc-size">${a.kind === 'pdf' ? `PDF${a.pages > 1 ? ` · ${a.pages} pages` : ''}` : a.kind === 'doc' ? DOC_LABELS[a.name.split('.').pop().toLowerCase()] || 'Document' : 'Text file'} · ${sizeLabel(a.size)}</div><button type="button" class="av-open">Open</button></div>`;
       slide.querySelector('.av-doc-name').textContent = a.name;
     }
     const old = [...stage.children];
@@ -275,7 +279,11 @@ export function view(atts, start = 0) {
       // PDFs and text open in a new page; anything the browser can't show, it
       // downloads (or, on an iPhone, offers to open in another app).
       const url = await urlOf(atts[at]);
-      if (url) window.open(url, '_blank', 'noopener');
+      if (!url) return;
+      if (atts[at].kind !== 'doc') return window.open(url, '_blank', 'noopener');
+      // A Word file can't show in a page: save it under its own name, so Word opens it.
+      const link = Object.assign(document.createElement('a'), { href: url, download: atts[at].name });
+      document.body.append(link); link.click(); link.remove();
       return;
     }
     // The dark background (anything but the picture, the card or a button) closes.
