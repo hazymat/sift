@@ -42,6 +42,8 @@ Sync carries everything, history included: undo a change on the laptop that you 
 
 I've paid for a lot of task apps over the years, and every one of them let me down in the same places. The simple ones are lovely for a week, then you need sub-tasks or a project with a deadline and there's nowhere to put them. The powerful ones bury you in buttons and settings before you've written anything down. Most of them only really work on one kind of device, or charge extra for sync, or sync badly. I wanted something quiet enough that it stays out of the way, with the power there when I reach for it, on every device I own. I couldn't find it, so I built it.
 
+![The Tasks list, with sub-tasks and two rows chosen](docs/screenshots/tasks-list.jpg)
+
 ![A project in Tasks](docs/screenshots/tasks-project.jpg)
 
 What that means in practice:
@@ -53,7 +55,7 @@ What that means in practice:
 - **A record of what happened.** Any task collects dated comments, photos and files ("rang them, waiting for a reference number"), and can open as a case with its whole history on one page.
 - **Joined up with the rest.** Give a task a day and it's on that day's plan. A Brain Dump note can become a task without losing the note. A task can belong to a contact or a case.
 - **Shared projects.** Share a project with someone on your server, give tasks an owner, mark them as waiting on someone else, and see who has what.
-- **Fast with the keyboard** and fast with a thumb: swipe a row on a phone, press and hold to drag.
+- **Fast with the keyboard** and fast with a thumb: choose several rows and the bar at the bottom indents, moves, ticks, archives or deletes them all at once, each with its key shown. Swipe a row on a phone, press and hold to drag.
 
 ## Batch Book
 
