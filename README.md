@@ -6,9 +6,17 @@ A personal, local-first "life app" for people who like to get things out of thei
 
 **Try it:** https://hazymat.github.io/sift/ (everything stays in your browser until you turn sync on).
 
-## What it does
+## A look round
 
-![The Day Planner on a laptop](docs/screenshots/day-planner.jpg)
+<table>
+<tr><td width="50%"><img src="docs/screenshots/tasks.jpg" alt="Tasks: sub-tasks, and several rows chosen at once"><br><sub>Tasks: sub-tasks, and several rows chosen at once</sub></td><td width="50%"><img src="docs/screenshots/shared-project.jpg" alt="A project shared with two people, with milestones and owners"><br><sub>A project shared with two people, with milestones and owners</sub></td></tr>
+<tr><td width="50%"><img src="docs/screenshots/day-planner.jpg" alt="The Day Planner"><br><sub>The Day Planner</sub></td><td width="50%"><img src="docs/screenshots/google-calendar.jpg" alt="Bringing in what's on Google Calendar"><br><sub>Bringing in what's on Google Calendar</sub></td></tr>
+<tr><td width="50%"><img src="docs/screenshots/share-menu.jpg" alt="Share: with people, copy, print, picture or PDF"><br><sub>Share: with people, copy, print, picture or PDF</sub></td><td width="50%"><img src="docs/screenshots/print-preview.jpg" alt="Print preview for a day, calendar events included"><br><sub>Print preview for a day, calendar events included</sub></td></tr>
+<tr><td width="50%"><img src="docs/screenshots/batch-book.jpg" alt="Batch Book: a recipe"><br><sub>Batch Book: a recipe</sub></td><td width="50%"><img src="docs/screenshots/follow-along.jpg" alt="Batch Book: Follow along while you cook"><br><sub>Batch Book: Follow along while you cook</sub></td></tr>
+<tr><td width="50%"><img src="docs/screenshots/lists.jpg" alt="Lists"><br><sub>Lists</sub></td><td width="50%"><img src="docs/screenshots/scans.jpg" alt="Scans"><br><sub>Scans</sub></td></tr>
+</table>
+
+## What it does
 
 - **Tasks:** Now, Next and Later, projects with milestones, sub-tasks, energy levels, time estimates, repeats, comments and undo for everything. More on this below.
 - **Day Planner:** a lined page for today: give tasks times and lengths, carry unfinished things over, bring in what's on your Google Calendar, pick a paper style, share or print the plan.
@@ -36,15 +44,9 @@ I plan at the laptop and do things with my phone in my hand, so Sift has to be t
 
 Sync carries everything, history included: undo a change on the laptop that you made on your phone this morning. Lists, notes, recipes, projects and Day Planner days can also be shared with other people on the same server.
 
-<img src="docs/screenshots/day-planner-phone.jpg" alt="The Day Planner on a phone" width="300">
-
 ## Tasks
 
 I've paid for a lot of task apps over the years, and every one of them let me down in the same places. The simple ones are lovely for a week, then you need sub-tasks or a project with a deadline and there's nowhere to put them. The powerful ones bury you in buttons and settings before you've written anything down. Most of them only really work on one kind of device, or charge extra for sync, or sync badly. I wanted something quiet enough that it stays out of the way, with the power there when I reach for it, on every device I own. I couldn't find it, so I built it.
-
-![The Tasks list, with sub-tasks and two rows chosen](docs/screenshots/tasks-list.jpg)
-
-![A project in Tasks](docs/screenshots/tasks-project.jpg)
 
 What that means in practice:
 
@@ -61,17 +63,11 @@ What that means in practice:
 
 A place for the things you make more than once: recipes, home brew, ferments, cocktails. I wanted one place for a recipe and every time I've made it, with what I changed and how it came out.
 
-![A recipe in Batch Book](docs/screenshots/batch-book-recipe.jpg)
-
 - **Recipes** with ingredients, steps, photos and whatever details suit them (glass, serves, batch volume), sorted into books of your own.
 - **Scale it** (×⅓ up to ×4) and switch between UK and US measures.
 - **Make a batch.** A batch starts as a copy of the recipe, so you can scale it, swap ingredients and change steps without touching the original, then keep a diary of readings, tasting notes and photos as it goes.
 - **Shopping.** Mark what's in stock, and the rest goes onto a list in Lists.
 - **Follow along** while you cook: full screen, one step at a time, the ingredients for that step lit up, a one-tap timer for any wait a step mentions, and several recipes side by side. What you're cooking follows you between devices.
-
-![Follow along in Batch Book](docs/screenshots/batch-book-follow-along.jpg)
-
-<img src="docs/screenshots/batch-book-phone.jpg" alt="Batch Book on a phone" width="300">
 
 Also: **works offline**, installs to the Home Screen, keeps a full history so you can undo anything, and can print or share most pages as text, a picture or a PDF.
 
