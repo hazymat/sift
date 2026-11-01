@@ -194,7 +194,7 @@ Rows and cards inside an area. "Top right" means on the row's own first line, at
 - The whole top of the page stays in view while scrolling on Find Things (1.58.01), Tasks, Projects and Contacts (1.58.03).
 - A box's things can be moved to another box from the selection bar (1.56.01), and are held and moved as tasks are (1.58.04).
 - The update banner and toasts stack above the selection bar instead of under it (1.58.12).
-- Day Planner: a task's pills go under a long name together, no lone 📝 on its own line (1.58.15).
+- Day Planner: a task's pills go under a long name together, no lone 📝 on its own line (1.58.15). A task whose only pills are its markers (📝 in Compact, 📎 in every spacing) keeps them at the far end of its line, the name wrapping before them; More and ✓ Close float just before them, never on them, so 📎 always opens the files (1.62.04).
 - What's new after an update lists each version's changes with Show me (1.59.00); every version adds a line.
 - Key labels sit in the middle of every button that shows a key, Windows included (1.60.02).
 - Day Planner: Esc closes a task's full panel however it was opened (1.60.04).

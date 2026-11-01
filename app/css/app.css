@@ -3894,9 +3894,9 @@ body:has(#main[data-area="dump"]:not([data-shade="colour"])) .select-bar [data-k
   /* (📝 is a .span-tag too, shown only with Tight spacing: then it is the last one.) */
   :is(.pile-paper, #lines) .line.has-item > .content > .span-tag:not(.note-tag):not(:has(~ .span-tag:not(.note-tag))) { margin-right: var(--more-room); }
   #main[data-density="tight"] :is(.pile-paper, #lines) .line.has-item > .content:has(> .note-tag) > .span-tag:not(.note-tag) { margin-right: 0; }
-  #main[data-density="tight"] :is(.pile-paper, #lines) .line.has-item > .content > .note-tag:not(:has(~ .note-tag)) { margin-right: var(--more-room); } /* the last of 📝 📎 */
+  #main[data-density="tight"] :is(.pile-paper, #lines) .line.has-item > .content:has(> .span-tag:not(.note-tag)) > .note-tag:not(:has(~ .note-tag)) { margin-right: var(--more-room); } /* the last of 📝 📎 */
   :is(.pile-paper, #lines) .line.has-item > .content:has(> .att-tag) > .span-tag:not(.att-tag) { margin-right: 0; }
-  :is(.pile-paper, #lines) .line.has-item > .content > .att-tag { margin-right: var(--more-room); } /* 📎 shows in every spacing, last */
+  :is(.pile-paper, #lines) .line.has-item > .content:has(> .span-tag:not(.note-tag)) > .att-tag { margin-right: var(--more-room); } /* 📎 shows in every spacing, last (markers alone: far end, below) */
 }
 @media (hover: none) { #main .line.has-item > .content:has(> .close-top, > .edit-pills.pill-top) > textarea.item-title { max-width: calc(100% - 104px); } } /* phones: beside the name */
 /* A schedule item being edited: its time and note pills go (the pills under it say the same), as a task's chips do. */
@@ -4761,11 +4761,17 @@ html.kb-open :is(.sticky-top, .find-sticky, .dump-bar, .bb-sticky, .list-top, .b
 #main:not([data-density="tight"]):not([data-density="loose"]) .task-note .note-medium { display: block; -webkit-line-clamp: none; overflow: visible; overflow-wrap: anywhere; }
 #main:not([data-density="tight"]) :is(.pile-paper, #lines) .line.has-item > .content > textarea.item-title:not(:focus) { max-height: none; -webkit-mask: none; mask: none; }
 #main:not([data-density="tight"]) .planner .plan-note { white-space: normal; display: block; -webkit-line-clamp: none; overflow: visible; overflow-wrap: anywhere; }
-/* Compact spacing, Day Planner: a task whose only pill is its 📝 keeps it on its line, at the far end, the
-   name wrapping before it; on a laptop, More takes its place while the task is hovered. */
-#main[data-density="tight"] :is(.pile-paper, #lines) .line.has-item > .content:has(> .note-tag):not(:has(> .span-tag:not(.note-tag))) > textarea.item-title { flex: 1 1 0; }
-#main[data-density="tight"] :is(.pile-paper, #lines) .line.has-item > .content:not(:has(> .span-tag:not(.note-tag))) > .note-tag { margin: 4px 4px 0 6px; align-self: flex-start; }
-@media (hover: hover) { #main[data-density="tight"] :is(.pile-paper, #lines) .line.has-item > .content:hover:not(:has(> .span-tag:not(.note-tag))) > .note-tag { visibility: hidden; } }
+/* Day Planner: a task whose only pills are its markers (📝 in Compact, 📎 in every spacing) keeps them on its line, at the far end,
+   the name wrapping before them. On a laptop, More (and ✓ Close) float just before them, over the end of the name as on a row
+   with no pills, so they never cover 📎 and pressing 📎 opens the files (1.62.04). */
+:is(.pile-paper, #lines) .line.has-item > .content:has(> .note-tag):not(:has(> .span-tag:not(.note-tag))) > textarea.item-title { flex: 1 1 0; }
+:is(.pile-paper, #lines) .line.has-item > .content:not(:has(> .span-tag:not(.note-tag))) > .note-tag { margin: 4px 4px 0 6px; align-self: flex-start; }
+@media (hover: hover) {
+  :is(.pile-paper, #lines) .line.has-item:not(.pills-open) > .content:has(> .att-tag):not(:has(> .span-tag:not(.note-tag))) { --marks: 45px; }
+  #main[data-density="tight"] :is(.pile-paper, #lines) .line.has-item:not(.pills-open) > .content:not(:has(> .span-tag:not(.note-tag))):has(> .note-tag) { --marks: 45px; }
+  #main[data-density="tight"] :is(.pile-paper, #lines) .line.has-item:not(.pills-open) > .content:not(:has(> .span-tag:not(.note-tag))):has(> .note-tag ~ .note-tag) { --marks: 82px; }
+  :is(.pile-paper, #lines) .line.has-item > .content > :is(.more, .close-top, .edit-pills.pill-top > .pill-reveal) { right: calc(11px + var(--marks, 0px)) !important; }
+}
 
 /* Advanced day tasks (views/daytasks.js), laid out like an IT ticket queue: the day at a glance (counts), then one card
    holding the queue (column heads, To do and Done group bars, one compact row per task: status, name with its note
