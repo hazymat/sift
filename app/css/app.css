@@ -2828,7 +2828,7 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
   --note-line: 2rem;
   line-height: var(--note-line);
   padding: 0 10px calc(var(--note-line) * 1.5);
-  min-height: calc(var(--note-line) * 5);
+  min-height: calc(var(--note-line) * 5 + 2px); background-clip: padding-box; /* + its 1px top and bottom borders, so the fifth line shows; no line peeping into the top border */
   background-color: transparent;
   background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--note-line) - 1px), var(--rule) calc(var(--note-line) - 1px), var(--rule) var(--note-line));
   background-attachment: local;
@@ -2935,8 +2935,8 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--active-border); 
 .line.has-item.done > .content { opacity: .55; }
 
 /* Day Planner housekeeping: a quiet footer of text links under everything,
-   across the whole page, after a full-width rule. */
-.day-housekeeping { margin-top: 40px; padding: 12px 4px 0; border-top: 1px solid var(--rule, var(--glass-border)); font-size: .8rem; color: var(--muted); display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 6px; }
+   across the whole page. */
+.day-housekeeping { margin-top: 40px; padding: 12px 4px 0; border-top: 0; /* no rule: under Notes it read as a stray ruled line */ font-size: .8rem; color: var(--muted); display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 6px; }
 /* After every row of the layout (a named area would put it in one column). */
 .planner.docked > .day-housekeeping { grid-area: auto; grid-column: 1 / -1; grid-row: 99; }
 .day-housekeeping .hint { flex-basis: 100%; margin: 0; }
