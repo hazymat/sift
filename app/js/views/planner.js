@@ -457,7 +457,7 @@ const dayPlanner = {
             <textarea class="item-title one-line hand" rows="1" aria-label="Item" spellcheck="false">${esc(i.title)}</textarea>
             ${span ? `<span class="span-tag">${span}</span>` : i.estimate_min ? `<span class="span-tag">~${durationLabel(Number(i.estimate_min))}</span>` : ''}
             ${i.energy ? `<button type="button" class="span-tag bolts" data-act="energy-pill" title="Energy: ${esc(ENERGY.find(e => e.id === i.energy)?.label || '')}. Click to change" aria-haspopup="menu">${ENERGY.find(e => e.id === i.energy)?.bolts || ''}</button>` : ''}
-            ${noteTag(i)}
+            ${noteTag(i)}${attTag(i)}
             <button type="button" class="more entry-chip" data-act="quick-more" title="Open its full panel">More</button>
             <button type="button" class="details-btn" data-act="details" hidden aria-label="Details" aria-expanded="${editing === i.id}"></button>
             ${editing === i.id ? `<button type="button" class="entry-chip close-top" data-act="close-details" title="Close the panel">✓ Close${keys('Esc')}</button>` : ''}
@@ -505,6 +505,13 @@ const dayPlanner = {
     }
     const noteTag = i => ((i.notes || '').trim() && editing !== i.id
       ? `<button type="button" class="span-tag note-tag" data-act="toggle-note" title="${esc(plainLines(i.notes)[0]?.slice(0, 120) || 'Note')}"><span class="emo">📝</span><svg class="icon line-ico" aria-hidden="true"><use href="#i-note"/></svg></button>` : '');
+
+    // Files attached (to the item, or to the task it's linked to): a 📎 line drawing on its line in every spacing.
+    const attTag = i => {
+      const parent = atts.get(i.id)?.length ? i.id : atts.get(i.task_id)?.length ? i.task_id : null;
+      const files = parent && atts.get(parent).length;
+      return files ? `<button type="button" class="span-tag note-tag att-tag" data-att-view="${parent}" title="${files} attached: press to look" aria-label="Open ${files} attached ${files === 1 ? 'file' : 'files'}"><span class="emo">📎</span><svg class="icon line-ico" aria-hidden="true"><use href="#i-clip"/></svg></button>` : '';
+    };
 
     // Mount the notes editor wherever a row or details panel asked for one.
     function mountNoteEditors() {
