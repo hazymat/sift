@@ -4,7 +4,8 @@
 // attached file, and open in the same viewer.
 //   scans: title, kind (receipt|id|warranty|letter|other), expiry_date?, letter_date?,
 //          summary?, note?, linked { collection, id, title }?, reminder_task_id?,
-//          page_text? { page (attachment) id: the text read on it (ocr.js) }
+//          page_text? { page (attachment) id: the text read on it (ocr.js) },
+//          text_fixed? { text, pages: [page ids it replaces] } (the read text, corrected by hand)
 //
 //   KINDS                       the kinds, with labels
 //   newScan(files, fields, { look })  saved at once with a default title ("Receipt 26 Sep 14:32")
@@ -93,9 +94,10 @@ export async function pagesByScan() {
 }
 
 export function textOf(s, pages = null) {
-  const read = s.page_text || {};
+  const read = s.page_text || {}, fixed = s.text_fixed;
   const order = pages ? pages.map(a => a.id).filter(id => read[id]) : Object.keys(read);
-  return order.map(id => read[id]).filter(Boolean).join('\n\n');
+  const texts = order.filter(id => !fixed || !fixed.pages.includes(id)).map(id => read[id]);
+  return (fixed ? [fixed.text].concat(texts) : texts).filter(Boolean).join('\n\n');
 }
 
 export async function keptHere() {

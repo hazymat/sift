@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.95': [{ text: "Scans: the text read on a scan can be corrected. Open a scan and click ✎ Edit beside Text on it, change the words, then Save (Ctrl+Enter) or Cancel (Esc). Put back what was read undoes your corrections.", go: '#/scans', open: ['#main .scan-card'], at: '#main .scan-text-sec [data-act="text-edit"]', more: 'Search and Copy use the corrected text.' }],
   '1.61.94': [{ text: "Attach now takes Word documents too (.docx and .doc), plus Excel, OpenDocument and RTF files, so a letter you wrote in Word can go on a case entry. They show as a file with their name; Open saves the file so Word opens it.", go: '#/contacts/cases', open: ['#main [data-case-row]'], at: '#main .kc [data-act=\"log-attach\"]', more: "Every 📎 Attach in Sift takes them: Brain Dump, Tasks, the Day Planner, comments and cases." }],
   '1.61.93': [{ text: "Notes on iPhone: with a note open full screen and the keyboard up, the note now fills the screen down to the keyboard, with the formatting buttons just above Safari's ↑ ↓ ✓ bar, instead of floating with a gap and the page showing underneath. Panels that sit above the keyboard lost the same gap." }],
   '1.61.92': [{ text: "Follow along: the steps now roll round on a click, Done or the arrow keys on computers set to show fewer animations too (Windows' Animation effects switch turned this off).", go: '#/recipes', open: ['#main .bb-card', '#main .bb-follow'], at: '.fa-drum' }],
@@ -268,6 +269,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.95': '2026-11-01T14:21:57Z',
   '1.61.94': '2026-11-01T13:10:09Z',
   '1.61.93': '2026-10-30T19:06:05Z',
   '1.61.92': '2026-10-27T23:05:14Z',

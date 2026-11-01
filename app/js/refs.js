@@ -68,7 +68,7 @@ export const KINDS = {
   scans: {
     label: 'Scan', icon: '🧾',
     title: s => s.title || '(scan)', sub: s => `Scans${s.summary ? ` · ${s.summary}` : ''}`,
-    text: s => `${s.title} ${s.summary || ''} ${s.note || ''} ${Object.values(s.page_text || {}).join(' ')}`, route: s => `#/scans/${s.id}`,
+    text: s => `${s.title} ${s.summary || ''} ${s.note || ''} ${s.text_fixed?.text || ''} ${Object.entries(s.page_text || {}).filter(([id]) => !s.text_fixed?.pages.includes(id)).map(([, text]) => text).join(' ')}`, route: s => `#/scans/${s.id}`,
   },
   contracts: {
     label: 'Contract', icon: '📑',

@@ -41,6 +41,7 @@ export default {
     let noteEditor = null;
     const revealed = new Set(); // ID scans shown unblurred on this visit
     const reading = new Map(); // scan id → 'reading' | 'failed'
+    let fixingText = null; // scan id whose read text is open to correct
     let kept = () => true; // scan id → its pages kept on this device (scans.js keptHere)
     const gone = this.gone = new AbortController();
 
@@ -99,13 +100,35 @@ export default {
       const progress = reading.get(s.id);
       if (!text && !progress && !(layoutOn('scans', 'scan-read') && p.some(a => a.kind === 'image' || a.kind === 'pdf'))) return '<div class="panel-sec scan-text-sec" hidden></div>';
       if (s.kind === 'id' && !revealed.has(s.id)) return '<div class="panel-sec scan-text-sec" hidden></div>';
+      if (fixingText === s.id && progress !== 'reading') return `<div class="panel-sec scan-text-sec"><span class="panel-h">Text on it</span>
+        <textarea class="scan-text scan-text-edit" rows="${Math.min(16, Math.max(6, text.split('\n').length + 1))}" aria-label="Text on it" spellcheck="true">${esc(text)}</textarea>
+        <div class="scan-text-acts">${s.text_fixed ? '<button type="button" class="linklike" data-act="text-reset">Put back what was read</button>' : ''}<span class="spacer"></span>
+          <button type="button" data-act="text-cancel">Cancel${keys('Esc')}</button><button type="button" class="primary" data-act="text-save">Save${keys('Ctrl+Enter')}</button></div></div>`;
       const body = progress === 'reading' ? '<span class="muted">Reading the text, on this device…</span>'
         : text ? `<div class="scan-text">${esc(text)}</div>`
         : progress === 'failed' ? '<span class="muted">The text couldn\'t be read. The first time, Sift needs to be online to fetch its reader.</span>'
         : '<span class="muted">No text found.</span>';
-      return `<div class="panel-sec scan-text-sec"><span class="panel-h">Text on it${text && progress !== 'reading' ? ' <button type="button" class="linklike" data-act="copy-text">Copy</button>' : ''}</span>${body}</div>`;
+      return `<div class="panel-sec scan-text-sec"><span class="panel-h">Text on it${progress !== 'reading' ? `${text ? ' <button type="button" class="linklike" data-act="copy-text">Copy</button>' : ''} <button type="button" class="linklike" data-act="text-edit" title="Correct the text that was read">✎ Edit</button>` : ''}</span>${body}</div>`;
     }
     const redrawText = s => { const sec = root.querySelector('.scan-text-sec'); if (sec && state.id === s.id) sec.outerHTML = textHtml(s); };
+    // Corrected text replaces what was read on the pages read so far; pages read later are added after it.
+    function openFix(s) { fixingText = s.id; redrawText(s); const box = root.querySelector('.scan-text-edit'); if (box) { box.focus(); box.setSelectionRange(0, 0); box.scrollTop = 0; } }
+    function closeFix(s) { fixingText = null; redrawText(s); root.querySelector('.scan-text-sec [data-act="text-edit"]')?.focus(); }
+    async function saveFix(s) {
+      const box = root.querySelector('.scan-text-edit');
+      if (!box) return;
+      const typed = box.value.replace(/\s+$/, '');
+      fixingText = null;
+      if (typed === textOf(s, pages.get(s.id) || [])) return redrawText(s);
+      return change(s.id, { text_fixed: { text: typed, pages: Object.keys(s.page_text || {}) } }, 'Text saved');
+    }
+    root.addEventListener('keydown', ev => {
+      if (!ev.target.matches('.scan-text-edit')) return;
+      const s = state.id && scanOf(state.id);
+      if (!s) return;
+      if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); closeFix(s); }
+      else if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); saveFix(s); }
+    });
 
     // A PDF's own text; one that's only pictures of pages has its first page read like a photo.
     async function pdfText(blob, readText) {
@@ -292,7 +315,7 @@ export default {
     }
 
     this.route = rest => {
-      state.id = rest[0] || null;
+      state.id = rest[0] || null; fixingText = null;
       render();
     };
 
@@ -419,6 +442,10 @@ export default {
       if (act === 'add-photo') return pick(s, 'photos');
       if (act === 'reveal') { revealed.add(s.id); return render(); }
       if (act === 'share-file') { b.closest('details')?.removeAttribute('open'); if (!await att.shareFiles(pages.get(s.id) || [], s.title)) toast('No pages on this device yet'); return; }
+      if (act === 'text-edit') return openFix(s);
+      if (act === 'text-cancel') return closeFix(s);
+      if (act === 'text-save') return saveFix(s);
+      if (act === 'text-reset') { fixingText = null; return change(s.id, { text_fixed: null }, 'Text as it was read'); }
       if (act === 'copy-text') { try { await navigator.clipboard.writeText(textOf(s, pages.get(s.id) || [])); toast('Text copied'); } catch { toast("Couldn't copy"); } return; }
       if (act === 'open-linked') return openRef(`${s.linked.collection}/${s.linked.id}`);
       if (act === 'unlink') return change(s.id, { linked: null }, 'Taken off');
