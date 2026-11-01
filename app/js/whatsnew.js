@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.61.99': [{ text: "Day Planner, ↓ Bring items in: much more compact. Each item is one row with short buttons on the right (Claim, ✓, Archive, Skip), its energy and notes on the same line, no start or aim dates, and the day in the sheet's heading. In From Tasks, each project is a panel that opens with a tap, showing how many tasks it has.", go: '#/planner', open: ['#main [data-act="bring-in"]'], at: '#bring .review-list li', more: 'Earlier days and Google Calendar too: Bring, ✓, Let it go, Skip and 🗑 there; Schedule, Task and Skip for calendar events. A long name takes two lines at most; tap it to see it all.' }],
   '1.61.98': [{ text: 'Batch Book: a step that mentions an ingredient whose name starts with a number, such as {00 flour}, shows its amount (500g 00 flour) rather than 0g.' }],
   '1.61.97': [{ text: "Paste a picture (Ctrl+V, or Paste on an iPhone) while typing in something that takes files, and it's attached to what you're typing in: a task's name or note goes on the task, a comment on that comment, a case's New entry on the entry. Dragging a file in shows a blue dashed box round exactly where it will go: one comment, one Timeline entry, one Batch Book step. On a case, the top card goes on the case and lights up + Add under Photos and documents. Notes have a 📎 in their toolbar too, just left of ↗ Make.", go: '#/contacts/cases', open: ['#main [data-case-row]'], at: '#main .kase-hero', more: "Everywhere: Tasks, projects (paste in the project's name: files on the project itself, new), the Day Planner (items, their comments, and the day's Notes, which now take files), Advanced, lists (an item, or the list's name for the list itself, new), Find Things (a thing, or the box's lid for its photos), Contracts and Batch Book (photos only: the name or top goes on the recipe or batch, a step on that step). A task's open panel is boxed with its name now. Words copied from Word or Excel still paste as words." }],
   '1.61.96': [{ text: "Tasks and the Day Planner: a task with files attached shows a small 📎 on its line. In Tasks it's beside the 📝 in Compact spacing (Medium and Expanded already had the 📎 pill); in the Day Planner it's there in every spacing. Press it to look at the files.", go: '#/planner', at: '#main .pile-paper', more: 'Projects: the same, as their tasks are drawn the Tasks way.' }],
@@ -272,6 +273,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.61.99': '2026-11-01T19:22:08Z',
   '1.61.98': '2026-11-01T15:14:54Z',
   '1.61.97': '2026-11-01T14:34:57Z',
   '1.61.96': '2026-11-01T14:26:55Z',

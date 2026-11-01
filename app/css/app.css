@@ -5161,3 +5161,30 @@ html.case-open, html.case-open body { overflow: hidden; }
 #main[data-skin="minimal"][data-density="tight"] .thought .kind-select { display: inline-block; }
 @media (max-width: 699px) { #main[data-skin="minimal"] .thought-head > .muted { display: none; } } /* phones: the tab only, on one line */
 #main[data-skin="minimal"][data-density="tight"] .thought-head > .muted { display: none; }
+/* Bring items in: one line per row, buttons on the right that never wrap (1.61.99) */
+.bring-sheet h2 .bring-day { margin-left: 6px; font-size: .8em; font-weight: 400; color: var(--muted); }
+.bring-sheet .milestone { margin: 10px 4px 3px; font-size: .9rem; }
+.bring-sheet .review-list { gap: 3px; margin-bottom: 4px; }
+.bring-sheet .review-list li { flex-wrap: nowrap; gap: 6px; padding: 4px 6px 4px 10px; border-radius: 10px; }
+/* a long name takes two lines at most (a tap shows it all); its icons and notes run on after it */
+.bring-sheet .bring-main { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; flex: 1 1 auto; min-width: 0; overflow: hidden; line-height: 1.25; cursor: pointer; }
+.bring-sheet .bring-main.full { display: block; }
+.bring-sheet .bring-main .review-title { font-size: .95rem; }
+.bring-sheet .bring-main .review-about { font-size: .76rem; }
+.bring-sheet .review-actions { flex: none; flex-wrap: nowrap; gap: 3px; align-items: center; }
+.bring-sheet .review-actions button { padding: 3px 8px; font-size: .78rem; line-height: 1.3; white-space: nowrap; }
+.bring-sheet .review-actions .bring-icon { padding: 3px 6px; min-width: 26px; }
+.bring-sheet .bring-icon .icon { width: 14px; height: 14px; vertical-align: -2px; }
+.bring-sheet .bring-event .gcal-when { min-width: 0; margin-right: 2px; font-size: .8rem; }
+.bring-sheet .bring-move { display: block; margin: 0 0 6px; font-size: .85rem; }
+.bring-sheet .bring-move .muted { font-size: .76rem; }
+.bring-sheet .bring-already { margin: 2px 0 6px; padding: 5px 10px; }
+.bring-proj { margin: 4px 0 0; }
+.bring-proj > summary { list-style: none; cursor: pointer; margin: 0; padding: 6px 4px 3px; font-size: .9rem; font-weight: 500; }
+.bring-proj > summary::-webkit-details-marker { display: none; }
+.bring-proj > summary::before { content: '▸'; display: inline-block; width: 1em; color: var(--muted); transition: transform .15s; }
+.bring-proj[open] > summary::before { transform: rotate(90deg); }
+.bring-sheet .bring-down { margin: 0 0 4px; padding: 4px 10px; font-size: .8rem; }
+.bring-sheet .bring-tabs { margin: 2px 0 6px; }
+.bring-sheet .bring-cal-bar { gap: 2px 12px; margin: 0 0 6px; font-size: .82rem; }
+.bring-sheet .hint { margin: 0 0 6px; font-size: .82rem; }
