@@ -803,6 +803,7 @@ const dayPlanner = {
     store.getDeviceSettings().then(d => { bringMove = !!d.bring_move; });
     let showSkipped = false;
     let alreadyOpen = false;
+    const projOpen = new Set(); // From Tasks: which projects' panels are open (while the page is)
     const skipped = () => new Set(day.bring_skip || []);
     const notToday = () => (date === isoDate() ? 'Not today' : 'Not this day');
     const notForDay = () => (date === isoDate() ? 'not for today' : 'not for this day');
@@ -860,7 +861,7 @@ const dayPlanner = {
       const body = bringTab === 'earlier' ? earlierHtml(w, skip) : bringTab === 'calendar' ? calendarHtml(w, skip) : tasksHtml(skip);
       dlg.innerHTML = `
         <div class="sheet-handle"></div>
-        <h2>Bring items in</h2>
+        <h2>Bring items in <span class="bring-day">${esc(date === isoDate() ? `Today, ${dateText(parseDate(date), { weekday: 'short', day: 'numeric', month: 'short' })}` : dayCalled())}</span></h2>
         ${down ? `<p class="bring-down">${WEEKDAYS[parseDate(date).getDay()]} is a down day. Pick one or two things; rest counts as part of the plan.</p>` : ''}
         <div class="dump-filter-row bring-tabs"><div class="dump-filter" role="tablist" aria-label="Bring in from">${tab('tasks', 'From Tasks')}${tab('earlier', 'Earlier days', w.earlierWaiting.length)}${tab('calendar', 'Google Calendar', w.calWaiting.length)}</div></div>
         <div class="bring-body">${body}</div>
@@ -874,7 +875,11 @@ const dayPlanner = {
     const skippedHtml = (list, row) => (!list.length ? '' : showSkipped
       ? `<h3 class="milestone bring-skipped-head">${date === isoDate() ? 'Not for today' : 'Not for this day'} <button type="button" class="gcal-link" data-bring-act="hide-skipped">Hide</button></h3><ul class="review-list bring-list bring-skipped">${list.map(x => row(x, true)).join('')}</ul>`
       : `<p class="bring-skipped-note"><button type="button" class="gcal-link" data-bring-act="show-skipped">${list.length} ${notForDay()}</button></p>`);
-    const skipBtn = aside => (aside ? '' : `<button type="button" data-bring-act="skip" title="Out of the way for ${esc(dayCalled())} only; nothing else changes">${esc(notToday())}</button>`);
+    const skipBtn = aside => (aside ? '' : `<button type="button" data-bring-act="skip" title="${esc(notToday())}: out of the way for ${esc(dayCalled())} only; nothing else changes">Skip</button>`);
+    // One line per row where it fits: name with its icons and notes after it (two lines at most; a tap shows it all), buttons on the right.
+    const mainHtml = (title, about, cls = 'hand') => `<div class="bring-main" title="${esc(title)}"><span class="review-title ${cls}">${esc(title)}</span>${about.length ? ` <span class="review-about">${esc(about.join(' · '))}</span>` : ''}</div>`;
+    const iconBtn = (attr, title, glyph) => `<button type="button" class="bring-icon" ${attr} title="${title}" aria-label="${title}">${glyph}</button>`;
+    const archiveSvg = '<svg class="icon" aria-hidden="true"><use href="#i-archive"/></svg>';
 
     // From Tasks: at the top, what's planned or aimed for this day and ideas for
     // today's energy; then Now, Next and Later, then each project going on (a
@@ -896,26 +901,17 @@ const dayPlanner = {
       const energy = ENERGY.find(e => e.id === day.energy);
       const card = (t, note = '', aside = false) => {
         const bolts = ENERGY.find(x => x.id === t.energy)?.bolts;
-        const aim = aimDate(t);
-        const about = [note, bolts, aim ? `⚑ ${shortDay(aim)}` : '', t.start_date && t.start_date !== date ? `📅 ${shortDay(t.start_date)}` : '', projectOf(t) && !inSection ? `📁 ${projectOf(t).name}` : ''].filter(Boolean);
-        return `<li data-bring="${t.id}">
-          <div class="bring-main"><span class="review-title hand">${esc(t.title)}</span>${about.length ? `<span class="review-about">${esc(about.join(' · '))}</span>` : ''}</div>
-          <span class="review-actions">
-            <button type="button" class="primary" data-bring-act="claim">Claim for ${dayCalled()}</button>
-            <button type="button" data-bring-act="done" title="I did this already">✓ Did it</button>
-            <button type="button" data-bring-act="archive" title="Not needed any more: to the Archive">Archive</button>
-            ${skipBtn(aside)}
-          </span>
-        </li>`;
+        const about = [note, bolts, projectOf(t) && !inSection ? `📁 ${projectOf(t).name}` : ''].filter(Boolean);
+        return `<li data-bring="${t.id}">${mainHtml(t.title, about)}<span class="review-actions"><button type="button" class="primary" data-bring-act="claim" title="Claim for ${esc(dayCalled())}">Claim</button>${iconBtn('data-bring-act="done"', 'Did it already', '✓')}${iconBtn('data-bring-act="archive"', 'Not needed any more: to the Archive', archiveSvg)}${skipBtn(aside)}</span></li>`;
       };
       let inSection = false; // listing a project's own section: its name is the heading, not on each task
       const section = (title, list, note) => (list.length ? `<h3 class="milestone">${title}</h3><ul class="review-list bring-list">${list.map(t => card(t, typeof note === 'function' ? note(t) : note)).join('')}</ul>` : '');
-      const projectSections = () => { inSection = true; const html = projects.filter(p => (p.status || 'active') === 'active').map(p => section(`📁 ${esc(p.name)}`, inProject(p))).join(''); inSection = false; return html; };
+      // Each project going on is a panel, closed until opened, its name and how many tasks it has.
+      const projectSections = () => { inSection = true; const html = projects.filter(p => (p.status || 'active') === 'active').map(p => { const list = inProject(p); return list.length ? `<details class="bring-proj" data-proj="${p.id}"${projOpen.has(p.id) ? ' open' : ''}><summary>📁 ${esc(p.name)} <span class="bring-n">${list.length}</span></summary><ul class="review-list bring-list">${list.map(t => card(t)).join('')}</ul></details>` : ''; }).join(''); inSection = false; return html; };
       const aimNote = t => (t.start_date === date ? '' : aimDate(t) === date ? `aim is ${dayCalled()}` : 'ongoing');
       const alreadyWords = date === isoDate() ? "already in today's plan" : `already planned for ${dayCalled()}`;
       return `
-        <p class="muted hint">Claim what you'll do ${date === isoDate() ? 'today' : `on ${dayCalled()}`}. Tick off anything done already, or archive what's no longer needed.</p>
-        <label class="bring-move"><input type="checkbox" data-bring-move${bringMove ? ' checked' : ''}> Move, don't copy <span class="muted">(claimed tasks leave Tasks and their project, and live only on this day)</span></label>
+        <label class="bring-move"><input type="checkbox" data-bring-move${bringMove ? ' checked' : ''}> <span>Move, don't copy <span class="muted">(claimed tasks leave Tasks and their project)</span></span></label>
         ${already.length ? `<details class="bring-already"${alreadyOpen ? ' open' : ''}><summary>📅 ${already.length} ${alreadyWords}</summary><ul>${already.map(t => `<li class="hand">${esc(t.title)}</li>`).join('')}</ul></details>` : ''}
         ${skippedHtml(open.filter(t => skip.has(t.id) && !onDay.has(t.id)), (t, aside) => card(t, '', aside))}
         ${section(`For ${dayCalled()}`, top, aimNote)}
@@ -940,17 +936,7 @@ const dayPlanner = {
       const byDay = new Map();
       for (const i of left) { if (!byDay.has(i.date)) byDay.set(i.date, []); byDay.get(i.date).push(i); }
       // Not for today, listed together, say which day each was from.
-      const row = (i, aside = false) => `
-            <li data-review-id="${i.id}">
-              <div class="review-head"><span class="review-title hand">${esc(i.title)}</span><button type="button" data-review="delete" class="review-delete" title="Get rid of it completely (to the Bin)" aria-label="Delete">🗑</button></div>
-              ${aside ? `<span class="review-about">${esc(dayName(i.date))}</span>` : ''}
-              <span class="review-actions">
-                <button type="button" class="primary" data-review="bring" title="Put it in this day's tasks">→ Bring to ${dayCalled()}</button>
-                <button type="button" data-review="done" title="I did this already">✓ Did it</button>
-                <button type="button" data-review="letgo" title="Didn't do it and it doesn't need doing any more. It goes to the Archive">Let it go</button>
-                ${skipBtn(aside)}
-              </span>
-            </li>`;
+      const row = (i, aside = false) => `<li data-review-id="${i.id}">${mainHtml(i.title, aside ? [dayName(i.date)] : [])}<span class="review-actions"><button type="button" class="primary" data-review="bring" title="Bring to ${esc(dayCalled())}">Bring</button>${iconBtn('data-review="done"', 'Did it already', '✓')}${iconBtn('data-review="letgo"', "Let it go: didn't do it and it doesn't need doing any more (to the Archive)", archiveSvg)}${skipBtn(aside)}${iconBtn('data-review="delete"', 'Delete: get rid of it completely (to the Bin)', '🗑')}</span></li>`;
       return `
         ${left.length ? `<p class="muted hint">${esc(word('ph_day_review'))}</p>` : '<p class="muted">Nothing left unfinished from the last week.</p>'}
         ${skippedHtml(w.earlier.filter(i => skip.has(i.id)), row)}
@@ -959,14 +945,7 @@ const dayPlanner = {
           <ul class="review-list">${list.map(i => row(i)).join('')}
           </ul>`).join('')}
         ${left.length > 1 ? `<h3 class="milestone">All ${left.length} at once</h3>
-        <ul class="review-list review-every"><li>
-          <div class="review-head"><span class="review-title">Everything above</span><button type="button" data-review-all="delete" class="review-delete" title="Get rid of them all (to the Bin)" aria-label="Delete them all">🗑</button></div>
-          <span class="review-actions">
-            <button type="button" class="primary" data-review-all="bring">→ Bring all to ${dayCalled()}</button>
-            <button type="button" data-review-all="letgo">Let them all go</button>
-            <button type="button" data-bring-act="skip-all">${esc(notToday())}</button>
-          </span>
-        </li></ul>` : ''}`;
+        <ul class="review-list review-every"><li>${mainHtml('Everything above', [], '')}<span class="review-actions"><button type="button" class="primary" data-review-all="bring" title="Bring them all to ${esc(dayCalled())}">Bring all</button>${iconBtn('data-review-all="letgo"', 'Let them all go (to the Archive)', archiveSvg)}<button type="button" data-bring-act="skip-all" title="${esc(notToday())}: all of them">Skip</button>${iconBtn('data-review-all="delete"', 'Delete them all (to the Bin)', '🗑')}</span></li></ul>` : ''}`;
     }
 
     // Google Calendar: this day's events from the calendars chosen. A timed one
@@ -990,12 +969,8 @@ const dayPlanner = {
         const timed = !e.allDay && sameDay(e.start);
         const about = [e.location, multi ? e.calName : ''].filter(Boolean);
         return `<li data-event="${esc(e.id)}" class="bring-event${multi && e.calColour ? ' has-cal' : ''}"${multi && e.calColour ? ` style="--cal: ${esc(e.calColour)}"` : ''}>
-          <div class="bring-main"><span class="review-title"><span class="gcal-when">${when(e)}</span> <a class="gcal-title" href="${esc(e.link)}" target="_blank" rel="noopener">${esc(e.title)}</a></span>${about.length ? `<span class="review-about">${esc(about.join(' · '))}</span>` : ''}</div>
-          <span class="review-actions">${w.inPlan.has(e.id) ? '<span class="muted bring-in-plan">✓ In your plan</span>' : `
-            ${timed ? '<button type="button" class="primary" data-gcal="sched" title="Onto the schedule at its time">Onto the schedule</button>' : ''}
-            <button type="button"${timed ? '' : ' class="primary"'} data-gcal="task" title="Into this day's tasks, without a time">Into the day's tasks</button>
-            ${skipBtn(aside)}`}
-          </span>
+          <div class="bring-main" title="${esc(e.title)}"><span class="review-title"><span class="gcal-when">${when(e)}</span> <a class="gcal-title" href="${esc(e.link)}" target="_blank" rel="noopener">${esc(e.title)}</a></span>${about.length ? ` <span class="review-about">${esc(about.join(' · '))}</span>` : ''}</div>
+          <span class="review-actions">${w.inPlan.has(e.id) ? '<span class="muted bring-in-plan">✓ Planned</span>' : `${timed ? '<button type="button" class="primary" data-gcal="sched" title="Onto the schedule at its time">Schedule</button>' : ''}<button type="button"${timed ? '' : ' class="primary"'} data-gcal="task" title="Into this day's tasks, without a time">Task</button>${skipBtn(aside)}`}</span>
         </li>`;
       };
       const status = gcalBusy ? 'Refreshing…' : gcalProblem ? esc(gcalProblem) : got ? `Updated ${agoText(got.at)}` : '';
@@ -1021,7 +996,10 @@ const dayPlanner = {
         ${gcalCals.map(c => `<label><input type="checkbox" data-cal-id="${esc(c.id)}"${gcalChosen.includes(c.id) ? ' checked' : ''}><span class="bring-cal-dot" style="--cal: ${esc(c.colour || 'var(--muted)')}"></span>${esc(c.name)}${c.primary ? ' <span class="muted">(main)</span>' : ''}</label>`).join('')}` : ''}</div>`;
     }
 
-    $('#bring').addEventListener('toggle', ev => { if (ev.target.matches?.('.bring-already')) alreadyOpen = ev.target.open; }, true);
+    $('#bring').addEventListener('toggle', ev => {
+      if (ev.target.matches?.('.bring-already')) alreadyOpen = ev.target.open;
+      if (ev.target.matches?.('.bring-proj')) (ev.target.open ? projOpen.add(ev.target.dataset.proj) : projOpen.delete(ev.target.dataset.proj));
+    }, true);
     // Closed by Done, dragging the handle, a tap outside or Esc (js/sheets.js): redraw the day.
     $('#bring').addEventListener('close', () => render());
 
@@ -1050,6 +1028,8 @@ const dayPlanner = {
       const dlg = $('#bring');
       if (ev.target === dlg) { dlg.close(); return; }
       const t = ev.target.closest('[data-bring-tab]');
+      const name = ev.target.closest('.bring-main');
+      if (name && !ev.target.closest('a')) { name.classList.toggle('full'); return; } // a cut-short name shows in full
       if (t) { bringTab = t.dataset.bringTab; showSkipped = false; drawBring(); if (bringTab === 'calendar') gcalAuto(); return; }
       const g = ev.target.closest('[data-gcal]');
       if (g) return gcalAct(g);
