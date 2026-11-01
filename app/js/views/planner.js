@@ -137,9 +137,10 @@ const dayPlanner = {
           <a class="advanced-link" href="#/planner/${date}/advanced" title="This day's tasks as cases: comments, notes and files on show">Advanced</a>
           <p class="muted hint">${esc(word('ph_day_tasks'))}</p>
         </section>
-        <section class="day-notes">
+        <section class="day-notes" data-attach="day">
           <h2>${esc(word('day_notes'))}</h2>
           <div id="notes"></div>
+          <div class="day-files"></div>
         </section>
       </div>
       <footer class="day-housekeeping">
@@ -444,12 +445,18 @@ const dayPlanner = {
       if (notesDate !== date || !$('#notes').contains(document.activeElement)) notes.setValue(day.notes || '');
       notesDate = date;
       el.classList.toggle('is-down-day', down);
+      paintDayFiles();
+    }
+    // The day's own files, under its notes (pasted or dropped there, or 📎 in the notes' toolbar).
+    function paintDayFiles() {
+      const files = atts.get(date) || [];
+      $('.day-files').innerHTML = files.length ? att.rowHtml(files, { parent: date, addButton: false }) : '';
     }
 
     function itemRow(i, label) {
       const span = i.end_time ? `${fmt(i.time)}–${fmt(i.end_time)}` : null;
       return `
-        <div class="line has-item${i.done_at ? ' done' : ''}${i.dropped_at ? ' dropped' : ''}${selected.has(i.id) ? ' selected' : ''}${armed === i.id ? ' armed' : ''}${i._mark ? ` ${i._mark}` : ''}${i.time && (i.end_time || i.estimate_min) ? ' spans' : ''}" data-item="${i.id}"${i.time ? ` data-time="${i.time}"` : ''}>
+        <div class="line has-item${i.done_at ? ' done' : ''}${i.dropped_at ? ' dropped' : ''}${selected.has(i.id) ? ' selected' : ''}${armed === i.id ? ' armed' : ''}${i._mark ? ` ${i._mark}` : ''}${i.time && (i.end_time || i.estimate_min) ? ' spans' : ''}" data-item="${i.id}" data-attach="day_items:${i.id}"${i.time ? ` data-time="${i.time}"` : ''}>
           <span class="margin">${i.time && label ? `<input class="margin-time" value="${label}" data-time-for="${i.id}" aria-label="Start time" inputmode="decimal" autocomplete="off">` : label ?? ''}</span>
           <span class="content">
             <button type="button" class="drag-grip" aria-label="Drag to a time" title="Drag onto a time">⠿</button>
@@ -613,7 +620,7 @@ const dayPlanner = {
         let k = n + 1;
         while (k < rows.length && rows[k].coveredBy && rows[k].coveredBy.id === r.item.id) k++;
         if (k === n + 1) { out.push(r.html); continue; }
-        out.push(`<div class="span-block${r.item._mark ? ` ${r.item._mark}` : ''}" style="--lines:${k - n}">${rows.slice(n, k).map(x => x.html).join('')}</div>`);
+        out.push(`<div class="span-block${r.item._mark ? ` ${r.item._mark}` : ''}" data-attach="day_items:${r.item.id}" style="--lines:${k - n}">${rows.slice(n, k).map(x => x.html).join('')}</div>`);
         n = k - 1;
       }
 
@@ -1324,6 +1331,7 @@ const dayPlanner = {
       paintSharing();
       items = await itemsFor(date);
       atts = await att.byParent();
+      paintDayFiles();
       renderLines();
       renderPile();
       didThings();
@@ -1558,12 +1566,20 @@ const dayPlanner = {
     // (An item spanning several slots is a .span-block: its lower rows take files too.)
     // Writing in a note (on a phone, full screen): only its files are redrawn.
     const attDone = async parent => {
+      if (parent?.collection === 'days') { atts = await att.byParent(); return paintDayFiles(); }
       if (att.writingIn(el)) { atts = await att.byParent(); await att.redrawRows(el, parent?.id); return; }
       refresh();
     };
-    att.enableDrop(el, '.item-details[data-for], .line.has-item[data-item], .span-block', node => ({ collection: 'day_items', id: node.dataset.for || node.dataset.item || node.querySelector('.line.has-item')?.dataset.item }), attDone);
+    att.watchAttach(el, attDone); // files pasted or dropped on an item, its panel or a comment (data-attach)
+    // On the day's notes: the day is saved first, so its files follow it into a share.
+    el.addEventListener('attach-files', async ev => {
+      if (!ev.target.closest('.day-notes')) return;
+      const forDate = date;
+      if (!await store.get('days', forDate)) await saveDay(forDate, {});
+      att.attachFiles({ collection: 'days', id: forDate }, ev.detail.files, attDone);
+    });
     el.addEventListener('click', async ev => {
-      if (att.onClick(ev, b => { const id = b.closest('[data-for]')?.dataset.for; return id ? { collection: 'day_items', id } : null; }, attDone)) return;
+      if (att.onClick(ev, b => { if (b.closest('.day-files')) return { collection: 'days', id: date }; const id = b.closest('[data-for]')?.dataset.for; return id ? { collection: 'day_items', id } : null; }, attDone)) return;
       const t = ev.target.closest('[data-act], [data-energy], [data-item-energy]');
       if (!t) return;
       if (t.dataset.itemEnergy) {

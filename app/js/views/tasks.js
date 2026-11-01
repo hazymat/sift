@@ -184,7 +184,7 @@ export default {
 
     function row(t, { draggable = true, group = '', tree = '' } = {}) {
       return `
-        <li data-task="${t.id}" data-id="${t.id}" data-depth="${t.depth ?? 0}" class="${isDone(t) ? 'done' : ''} ${group}">${tree}
+        <li data-task="${t.id}" data-id="${t.id}" data-attach="tasks:${t.id}" data-depth="${t.depth ?? 0}" class="${isDone(t) ? 'done' : ''} ${group}">${tree}
           <button type="button" class="drag-handle" aria-label="Select${draggable ? ' or move' : ''} ${esc(t.title)}">${icon('i-grip')}</button>
           <input type="checkbox" class="tick" ${isDone(t) ? 'checked' : ''} aria-label="Done">
           <textarea class="task-title one-line" rows="1" aria-label="Task" autocomplete="off">${esc(t.title)}</textarea>
@@ -194,7 +194,7 @@ export default {
           ${open === t.id ? `<button type="button" class="entry-chip close-top" data-act="close-details" title="Close the panel">✓ Close${keys('Esc')}</button>` : ''}
           ${subLine(t)}
         </li>
-        ${open === t.id ? `<li class="task-details" data-for="${t.id}">${details(t)}</li>` : ''}`;
+        ${open === t.id ? `<li class="task-details" data-for="${t.id}" data-attach="tasks:${t.id}">${details(t)}</li>` : ''}`;
     }
 
     // Under the title: status pills, then the note (the app-wide convention).
@@ -388,7 +388,7 @@ export default {
         const who = sharedWithText({ kind: 'project', id: project.id });
         // As an open list's top (Lists): back, colour, name and ⋯; then progress, aim date and + Milestone.
         html += `
-          <div class="list-top project-top">
+          <div class="list-top project-top" data-attach="projects:${project.id}">
           <div class="project-head" style="--c:${projectHex(project)}">
             <button type="button" class="back" data-act="all-projects">‹ Projects${keys('Esc')}</button>
             <button type="button" class="note-dot list-colour" data-act="project-colour" title="Project colour" aria-label="Project colour"><span class="swatch" style="--sw:${projectHex(project)}"></span></button>
@@ -402,6 +402,7 @@ export default {
             <span class="muted">${pr.done} of ${pr.total} done</span>
             <button type="button" data-act="project-aim" title="When you want it finished">⚑ ${project.due_date ? shortDate(project.due_date) : 'Aim date'}</button>
             <button type="button" data-act="new-milestone">+ Milestone</button>
+            ${atts.get(project.id)?.length ? att.rowHtml(atts.get(project.id), { parent: project.id, addButton: false }) : ''}
           </div>
           </div>`;
       }
@@ -1548,13 +1549,13 @@ export default {
       }
     });
 
-    const attParent = b => { const id = b.closest('[data-for]')?.dataset.for; return id ? { collection: 'tasks', id } : null; };
+    const attParent = b => { const id = b.closest('[data-for]')?.dataset.for; if (id) return { collection: 'tasks', id }; const p = b.closest('.project-top') && state.project; return p ? { collection: 'projects', id: p } : null; };
     const attDone = async parent => {
       if (att.writingIn(body)) { atts = await att.byParent(); await att.redrawRows(body, parent?.id); return; }
       await flushNote();
       await render();
     };
-    att.enableDrop(el, '.task-details[data-for], li[data-task]', node => ({ collection: 'tasks', id: node.dataset.for || node.dataset.task }), attDone);
+    att.watchAttach(el, attDone); // files pasted or dropped on a task, its panel or a comment (data-attach)
     // The pills under a task only show what's set; clicking one opens the
     // task's editing pills (under its title), where each can be changed.
     function editInPlace(id) {

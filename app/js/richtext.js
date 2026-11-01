@@ -45,6 +45,7 @@ import { openPicker } from './linkpicker.js';
 import { openRef, findDetails, detailKey, loadDetailIndex, createDetailContact, spotSettings, attachContact, detachContact, unlinkInRecord } from './refs.js';
 import * as store from './store.js';
 import { toast } from './toast.js';
+import { ATTACHABLE, chooseInto } from './attachments.js';
 import { openFull, closeFull, isFull, setFullLabel, PHONE } from './fullnote.js';
 import { titleFrom } from './summary.js';
 import { sectionName } from './words.js';
@@ -324,6 +325,8 @@ export function richText(container, { value = '', onChange, placeholder = '', or
       <button type="button" data-cmd="insertOrderedList" title="Numbered list (or type 1. at the start of a line)">1. List</button>
       <span class="md-sizes"><button type="button" data-size="-1" title="Smaller text (this line)" aria-label="Smaller text">A<small>−</small></button><button type="button" data-size="1" title="Bigger text (this line)" aria-label="Bigger text">A<sup>+</sup></button></span>
       <span class="md-sep" aria-hidden="true"></span>
+      <button type="button" class="md-clip" title="Attach photos or files to this (or paste or drop them)" aria-label="Attach files" hidden><svg class="icon" aria-hidden="true"><use href="#i-clip"/></svg></button>
+      <span class="md-sep md-clip-sep" aria-hidden="true" hidden></span>
       <button type="button" class="md-make" title="Make this line (or the selected lines) into tasks or a contact; the text stays here, linked" aria-haspopup="menu">↗ Make</button>
       <span class="md-sep" aria-hidden="true"></span>
       <span class="md-emoji">${EMOJI.map(([e, name]) => `<button type="button" data-emoji="${e}" title="${name}" aria-label="Insert ${name.toLowerCase()} emoji">${e}</button>`).join('')}</span>
@@ -701,7 +704,7 @@ export function richText(container, { value = '', onChange, placeholder = '', or
   // dropped on it (attachments.js); the page redraws its files on "attached".
   edit.addEventListener('paste', async ev => {
     ev.preventDefault();
-    const files = [...(ev.clipboardData?.files || [])];
+    const files = ev.clipboardData.getData('text/plain').trim() ? [] : [...(ev.clipboardData?.files || [])]; // words win: Word puts a picture of them there too
     if (files.length) {
       const o = from();
       const { addFiles, ATTACHABLE } = await import('./attachments.js');
@@ -877,6 +880,19 @@ export function richText(container, { value = '', onChange, placeholder = '', or
     changed(toMarkdown(edit));
     showState();
   });
+
+  // 📎: files for what the note belongs to, as if pasted there (attachments.js): the marked
+  // element round it, else the note's own record. Only shown where files can go.
+  const clipTo = () => {
+    const marked = container.closest('[data-attach]');
+    if (marked) return { el: marked };
+    const o = from();
+    return o?.id && ATTACHABLE.includes(o.collection) ? { el: container, parent: { collection: o.collection, id: o.id } } : null;
+  };
+  const showClip = () => { const off = !clipTo(); container.querySelector('.md-clip').hidden = off; container.querySelector('.md-clip-sep').hidden = off; };
+  container.addEventListener('focusin', showClip);
+  container.querySelector('.md-clip').addEventListener('mousedown', ev => ev.preventDefault()); // the note stays open
+  container.querySelector('.md-clip').addEventListener('click', () => { const t = clipTo(); if (t) chooseInto(t.el, t.parent); });
 
   // ↗ Make: the line the cursor is on (or the selected lines) becomes tasks in
   // the Inbox or a contact; the text stays, linked to them (linemake.js). The

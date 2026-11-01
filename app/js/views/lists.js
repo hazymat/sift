@@ -215,7 +215,7 @@ export default {
       const who = sharedWithText({ kind: 'list', id: l.id });
       // Items are drawn as Tasks draws tasks (rows.js): cards, or lined paper (👁), sub-items joined by fine lines.
       const row = (i, n) => `
-          <li data-id="${i.id}" data-task="${i.id}" data-depth="${i.depth}" class="${i.checked_at ? 'done' : ''} ${groupOf(shown, n)}">${treeHtml(shown, n, lay('margin'))}
+          <li data-id="${i.id}" data-task="${i.id}" data-attach="list_items:${i.id}" data-depth="${i.depth}" class="${i.checked_at ? 'done' : ''} ${groupOf(shown, n)}">${treeHtml(shown, n, lay('margin'))}
             <button type="button" class="drag-handle" aria-label="Select or move">${icon('i-grip')}</button>
             ${isTemplate ? '<input type="checkbox" class="tick" disabled tabindex="-1" aria-hidden="true" style="visibility:hidden">' : `<input type="checkbox" class="tick" ${i.checked_at ? 'checked' : ''} aria-label="Ticked">`}
             <textarea class="task-title one-line" name="text" rows="1" aria-label="Item" autocomplete="off">${esc(i.text)}</textarea>
@@ -224,7 +224,7 @@ export default {
             ${openItem === i.id ? `<button type="button" class="entry-chip close-top" data-act="close-item" title="Close the panel">✓ Close${keys('Esc')}</button>` : ''}
             ${subLine(i, isTemplate)}
           </li>
-          ${openItem === i.id ? `<li class="task-details list-panel" data-for="${i.id}">
+          ${openItem === i.id ? `<li class="task-details list-panel" data-for="${i.id}" data-attach="list_items:${i.id}">
             <div class="list-notes"></div>
             ${att.rowHtml(atts.get(i.id), { parent: i.id })}
             <div class="detail-actions">
@@ -236,7 +236,7 @@ export default {
       // The name, progress, Reset ticks and Show / hide ticked stay at the top while the items scroll.
       return `<article class="list-page">
         <div class="list-top-mark" aria-hidden="true"></div>
-        <div class="list-top">
+        <div class="list-top" data-attach="lists:${l.id}">
         <div class="project-head" style="--c:${tintHex(l)}">
           <button type="button" class="back" data-act="home">‹ Lists${keys('Esc')}</button>
           <button type="button" class="note-dot list-colour" data-act="list-colour" title="List colour" aria-label="List colour"><span class="swatch" style="--sw:${tintHex(l)}"></span></button>
@@ -260,6 +260,7 @@ export default {
             ${template ? `<span class="muted">from <a href="#/lists/${template.id}">${esc(template.name)}</a></span>` : ''}
             ${missing.length ? `<button type="button" data-act="add-missing">Add ${missing.length} missing from template</button>` : ''}
             ${pasteBtn()}
+            ${atts.get(l.id)?.length ? att.rowHtml(atts.get(l.id), { parent: l.id, addButton: false }) : ''}
           </div>`}
         </div>
         <div class="task-entry list-entry-box" id="list-entry">
@@ -290,7 +291,7 @@ export default {
       if (att.writingIn(el)) { atts = await att.byParent(); await att.redrawRows(el, parent?.id); return; }
       render();
     };
-    att.enableDrop(el, 'li.list-panel[data-for], ul.checklist > li[data-id]', node => ({ collection: 'list_items', id: node.dataset.for || node.dataset.id }), attDone);
+    att.watchAttach(el, attDone); // files pasted or dropped on an item, its panel or the list's top (data-attach)
     // After a sync the app calls refresh(): redraw from fresh data, keeping what's open.
     const render = this.render = this.refresh = async () => {
       // A list someone shares with you is read and changed in their space.

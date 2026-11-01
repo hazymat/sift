@@ -101,7 +101,7 @@ export default {
       const note = oneLine(i.notes);
       // Updated: its latest comment, tick or change, as in a ticket queue.
       const last = [list.at(-1)?.at, i.done_at, i.updated_at, task?.updated_at].filter(Boolean).sort().at(-1);
-      return `<li class="adv-row${i.done_at ? ' done' : ''}" data-id="${i.id}">
+      return `<li class="adv-row${i.done_at ? ' done' : ''}" data-id="${i.id}" data-attach="new">
         <span class="drag-handle" role="button" tabindex="-1" aria-label="Choose or move">⠿</span>
         <input type="checkbox" class="tick" aria-label="Done"${i.done_at ? ' checked' : ''}>
         <span class="adv-status ${i.done_at ? 'closed' : 'open'}">${i.done_at ? 'Done' : 'To do'}</span>
@@ -448,26 +448,16 @@ export default {
       document.body.append(picker);
       picker.click();
     }
-    // A screenshot pasted into a row's Add a comment line: added as a comment of its own (with what's typed, if anything).
-    el.addEventListener('paste', async ev => {
-      const box = ev.target.closest?.('.adv-quick-add');
-      const files = [...(ev.clipboardData?.files || [])];
-      if (!box || !files.length) return;
-      ev.preventDefault();
-      const id = box.closest('.adv-row').dataset.id;
-      const text = box.value.trim();
+    // Files pasted (in its name, note or Add a comment line) or dropped on a card go in as a comment
+    // of their own, with what's typed in its Add a comment line, if anything (data-attach, attachments.js).
+    el.addEventListener('attach-files', async ev => {
+      const id = ev.target.closest('.adv-row')?.dataset.id;
+      if (!id) return;
+      const box = ev.target.querySelector('.adv-quick-add'), text = box?.value.trim();
       if (text) { await store.create('comments', { ...ownerOf(id), at: new Date().toISOString(), body: text }); box.value = ''; typed.delete(id); draftCleared(box); }
-      await attachAsComment(ownerOf(id), files, render);
+      await attachAsComment(ownerOf(id), ev.detail.files, render);
     }, page);
-    // Files dropped on a card (not on its comments, which take them themselves): the same.
-    el.addEventListener('dragover', ev => { if (ev.target.closest('.adv-row') && [...(ev.dataTransfer?.types || [])].includes('Files')) ev.preventDefault(); }, page);
-    el.addEventListener('drop', async ev => {
-      const cardEl = ev.target.closest('.adv-row');
-      const files = [...(ev.dataTransfer?.files || [])];
-      if (!cardEl || !files.length) return;
-      ev.preventDefault();
-      await attachAsComment(ownerOf(cardEl.dataset.id), files, render);
-    }, page);
+    att.watchAttach(el, () => render(), page); // the full panel's own files
 
     el.addEventListener('click', async ev => {
       if (att.onClick(ev, b => { const id = b.closest('.item-details[data-for]')?.dataset.for; return id ? { collection: 'day_items', id } : null; }, () => render())) return;

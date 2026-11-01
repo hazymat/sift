@@ -308,7 +308,7 @@ export default {
             <div class="bb-step-view" data-step-view tabindex="0" role="button" title="Press to change">${linkUrls(stepHtml(x.text, ings, times, esc)) || '<span class="muted">Empty step</span>'}</div>
             <textarea class="bb-step-edit no-inline" data-step-text rows="1" hidden aria-label="Step ${n + 1}">${esc(x.text)}</textarea>
             ${(atts.get(x.id) || []).length ? att.rowHtml(atts.get(x.id), { parent: x.id, addButton: false }) : ''}`,
-            `<button type="button" class="icon-btn" data-step-photo title="Add a photo to this step" aria-label="Add a photo">${camera}</button>`, `data-step="${x.id}" data-id="${x.id}" data-depth="0"`, 'li')).join('')}</ul>
+            `<button type="button" class="icon-btn" data-step-photo title="Add a photo to this step" aria-label="Add a photo">${camera}</button>`, `data-step="${x.id}" data-id="${x.id}" data-depth="0" data-attach="${o.collection}:${x.id}" data-attach-only="image"`, 'li')).join('')}</ul>
           ${line('+', `<textarea class="bb-step-new no-inline" rows="1" placeholder="${steps.length ? 'Next step' : 'First step'}" aria-label="New step"></textarea>`)}
         </div>
         <p class="muted hint bb-ref-hint">{salt} shows the salt with its amount. {1/2 salt} or {25% salt} shows part of it; {stock|hot stock} shows the amount with your own words ("200ml hot stock"), and {salt|a pinch} shows just your words. Enter starts the next step.</p>
@@ -343,7 +343,7 @@ export default {
       const sec = sectionFor(r);
       const made = makesOf(r.id);
       return `${top('home', 'Recipes', `${shareMark(r)}${followBtn(r)}<button type="button" class="primary bb-make-btn" data-act="make" title="Start a batch: its own copy of this recipe">🧪 Make<span class="bb-follow-word"> this</span>${state.times !== 1 ? ` ×${qtyText(state.times)}` : ''}</button>`, r)}
-        <article class="bb-paper" data-paper="${paper()}" style="--bb:${colourOf(r)};${workMargin(r, state.times)}">
+        <article class="bb-paper" data-paper="${paper()}" data-attach="recipes:${r.id}" data-attach-only="image" style="--bb:${colourOf(r)};${workMargin(r, state.times)}">
           ${photoStrip(r.id)}
           <header class="bb-title-row">
             <span class="bb-emoji">${sec.emoji}</span>
@@ -394,7 +394,7 @@ export default {
           `<input type="date" data-entry-field="date" value="${esc(e.date || '')}" aria-label="Date">`,
           `<textarea class="bb-entry-text no-inline" data-entry-field="text" rows="1" placeholder="${kind === 'tasting' ? 'How it tasted' : 'What happened'}" aria-label="Notes">${esc(e.text || '')}</textarea>${(atts.get(e.id) || []).length ? att.rowHtml(atts.get(e.id), { parent: e.id, addButton: false }) : ''}`,
           `<button type="button" class="icon-btn" data-entry-photo title="Add a photo" aria-label="Add a photo">${camera}</button><button type="button" class="icon-btn bb-x" data-entry-remove aria-label="Remove">×</button>`,
-          `data-entry="${e.id}"`)).join('')}
+          `data-entry="${e.id}" data-attach="recipe_entries:${e.id}" data-attach-only="image"`)).join('')}
           ${line('', `<button type="button" class="bb-add-field" data-add-entry="${kind}">+ Add ${kind === 'tasting' ? 'a tasting' : 'an entry'}</button>`)}
         </div>`;
     }
@@ -412,7 +412,7 @@ export default {
       const f = m.fields || {};
       const goal = k => `<label><span>${k}</span><input data-field-key="${k}" value="${esc(f[k] || '')}" aria-label="${k}" placeholder="…"></label>`;
       return `${state.fromList ? top('home', 'Batches', shareMark(r) + followBtn(m), r) : top('to-recipe', r?.title || 'Recipe', shareMark(r) + followBtn(m), r)}
-        <article class="bb-paper bb-make" data-paper="${paper()}" style="--bb:${colourOf(r)};${workMargin(m, 1)}">
+        <article class="bb-paper bb-make" data-paper="${paper()}" data-attach="recipe_makes:${m.id}" data-attach-only="image" style="--bb:${colourOf(r)};${workMargin(m, 1)}">
           ${photoStrip(m.id)}
           <header class="bb-title-row">
             <span class="bb-emoji">${sec.emoji}</span>
@@ -788,6 +788,8 @@ export default {
     // Pressing an ingredient chip keeps the cursor in the step being written.
     el.addEventListener('mousedown', ev => { if (ev.target.closest('[data-ref]')) ev.preventDefault(); });
 
+    // Photos pasted or dropped: on a step or diary entry, they go on it; anywhere else on the page, on the recipe or batch (data-attach).
+    att.watchAttach(el, () => render());
     const attParent = b => {
       const e = b.closest('[data-entry]');
       if (e) return { collection: 'recipe_entries', id: e.dataset.entry };

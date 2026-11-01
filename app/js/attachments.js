@@ -9,6 +9,7 @@
 //   writingIn(root)                     → is a note under root being written in?
 //   addFiles({ collection, id }, files) → the new records (other kinds of file are skipped)
 //   enableDrop(root, selector, parentOf, done) → drop files onto matching elements
+//   data-attach on any element: pasting (Ctrl+V) or dropping files there attaches them (installFileDrop)
 //   onClick(ev, parentOf, done)        → handles the row's buttons; true if it did
 //   open(id) / view(atts, i)           → the viewer: pictures, and a card with Open for other files
 //   pick(parent, done)                 → the file chooser, then attach
@@ -22,7 +23,7 @@ import { toast, undoable } from './toast.js';
 
 const MAX_BYTES = 25 * 1024 * 1024;
 // What files can be attached to (a pasted screenshot in any other note is refused).
-export const ATTACHABLE = ['thoughts', 'tasks', 'day_items', 'list_items', 'items', 'comments', 'scans', 'contracts', 'recipes', 'recipe_makes', 'recipe_entries', 'places', 'cases', 'interactions', 'case_notes'];
+export const ATTACHABLE = ['thoughts', 'tasks', 'projects', 'lists', 'days', 'day_items', 'list_items', 'items', 'comments', 'scans', 'contracts', 'recipes', 'recipe_makes', 'recipe_entries', 'places', 'cases', 'interactions', 'case_notes'];
 const THUMB = 240;
 // Office documents (Word, Excel, OpenDocument, RTF) have no preview: Open saves them for the app that opens them.
 const DOC_EXT = /\.(docx?|xlsx?|odt|ods|rtf)$/i;
@@ -309,12 +310,27 @@ export function view(atts, start = 0) {
   show(start);
 }
 
+// Files to a record, with Undo (a view's own drops, e.g. a day's notes).
+export async function attachFiles(parent, files, done) {
+  const made = await addFiles(parent, files);
+  if (made.length) afterAdd(made, done, parent);
+  return made;
+}
+
 function afterAdd(made, done, parent) {
   done?.(parent);
   undoable(`Attached ${made.length === 1 ? made[0].name : `${made.length} files`}`, async () => {
     for (const m of made) await store.remove('attachments', m.id);
     done?.(parent);
   });
+}
+
+// The file chooser, then the files go where a paste on el would put them (a note's 📎, richtext.js).
+export function chooseInto(el, parent = null) {
+  const input = Object.assign(document.createElement('input'), { type: 'file', multiple: true, accept: el.closest('[data-attach]')?.dataset.attachOnly === 'image' ? 'image/*' : ACCEPT, hidden: true });
+  input.onchange = () => { attachTo(el.closest('[data-attach]') && !parent ? el.closest('[data-attach]') : el, [...input.files], parent); input.remove(); };
+  document.body.append(input);
+  input.click();
 }
 
 let picker = null;
@@ -352,28 +368,55 @@ export function onClick(ev, parentOf, done) {
   return true;
 }
 
+// The dashed box round where dropped files will go (one for the whole page).
+// Marked elements next to each other with the same data-attach (a task's row and
+// its open panel under it) are boxed as one.
+let dropEl = null, lit = null;
+export function dropBox(el, show = null) {
+  lit?.classList.remove('drop-show');
+  lit = null;
+  if (!el) { if (dropEl) dropEl.hidden = true; return; }
+  const key = el.dataset.attach;
+  // Round the outermost marked the same (an item spanning several slots of the Day Planner).
+  for (let up = el.parentElement?.closest('[data-attach]'); key && up?.dataset.attach === key; up = up.parentElement?.closest('[data-attach]')) el = up;
+  const same = [el];
+  for (let x = el.previousElementSibling; key && x?.dataset?.attach === key; x = x.previousElementSibling) same.push(x);
+  for (let x = el.nextElementSibling; key && x?.dataset?.attach === key; x = x.nextElementSibling) same.push(x);
+  const rects = same.map(x => x.getBoundingClientRect()).filter(r => r.width || r.height);
+  if (!rects.length) return;
+  const top = Math.min(...rects.map(r => r.top)), left = Math.min(...rects.map(r => r.left));
+  const right = Math.max(...rects.map(r => r.right)), bottom = Math.max(...rects.map(r => r.bottom));
+  if (!dropEl) { dropEl = document.createElement('div'); dropEl.className = 'drop-box'; document.body.append(dropEl); }
+  Object.assign(dropEl.style, { top: `${top - 3}px`, left: `${left - 3}px`, width: `${right - left + 6}px`, height: `${bottom - top + 6}px` });
+  dropEl.hidden = false;
+  // e.g. a case's + under Photos and documents, which does the same thing
+  if (show) { lit = el.closest('.page, #main, body').querySelector(show); lit?.classList.add('drop-show'); }
+}
+
+// A redraw for files pasted or dropped onto data-attach elements under root
+// (and pasted into a note, richtext.js), and pressing a file while writing
+// keeps the cursor in the note.
+export function watchAttach(root, done, opts) {
+  root.addEventListener('attached', ev => done?.(ev.detail), opts);
+  root.addEventListener('mousedown', ev => { if (ev.target.closest('.att-open, .att-x, .att-count, [data-att-open]')) ev.preventDefault(); }, opts);
+}
+
 // Dropping files on an element matching `selector` inside `root` attaches
-// them to the note `parentOf(element)` names.
-export function enableDrop(root, selector, parentOf, done) {
-  // A note inside says it has attached a pasted file (richtext.js): redraw.
-  root.addEventListener('attached', ev => done?.(ev.detail));
-  // Pressing a file (to open or remove it) while writing in the note doesn't
-  // take the cursor out of the note, so the note stays open.
-  root.addEventListener('mousedown', ev => { if (ev.target.closest('.att-open, .att-x, .att-count, [data-att-open]')) ev.preventDefault(); });
+// them to the note `parentOf(element)` names. boxOf(element): what the dashed
+// box goes round, when not the element itself.
+export function enableDrop(root, selector, parentOf, done, { boxOf = el => el } = {}) {
+  watchAttach(root, done);
   const hasFiles = ev => [...(ev.dataTransfer?.types || [])].includes('Files');
-  let over = null;
-  const clear = () => { over?.classList.remove('drop-over'); over = null; };
   root.addEventListener('dragover', ev => {
     if (!hasFiles(ev)) return;
     const t = ev.target.closest(selector);
-    if (!t) return clear();
+    if (!t) return dropBox(null);
     ev.preventDefault();
-    if (over !== t) { clear(); over = t; t.classList.add('drop-over'); }
+    dropBox(boxOf(t));
   });
-  root.addEventListener('dragleave', ev => { if (over && !over.contains(ev.relatedTarget)) clear(); });
   root.addEventListener('drop', async ev => {
     const t = hasFiles(ev) && ev.target.closest(selector);
-    clear();
+    dropBox(null);
     if (!t) return;
     ev.preventDefault();
     const p = parentOf(t);
@@ -381,6 +424,36 @@ export function enableDrop(root, selector, parentOf, done) {
     const made = await addFiles(p, [...ev.dataTransfer.files]);
     if (made.length) afterAdd(made, done, p);
   });
+}
+
+// Files pasted or dropped onto an element marked data-attach (the innermost
+// one: pasting, round the field being typed in; dropping, under the pointer):
+//   data-attach="tasks:<id>"   attached to that record, then "attached" is sent from it (watchAttach redraws)
+//   data-attach="new"          something not saved yet (a comment or log entry being written):
+//                              the element gets an "attach-files" event with the files, to keep for it
+//   data-attach-only="image"   photos only (Batch Book)
+//   data-attach-show=".sel"    also lights up that control while dragging
+const filesOf = data => {
+  const files = [...(data?.files || [])];
+  return files.length ? files : [...(data?.items || [])].filter(x => x.kind === 'file').map(x => x.getAsFile()).filter(Boolean);
+};
+// parent: where they go when nothing round el is marked (a note's own record, richtext.js).
+async function attachTo(el, files, parent = null) {
+  if (el.dataset.attachOnly === 'image') {
+    const pics = files.filter(f => /^image\//.test(f.type));
+    if (pics.length < files.length) toast(pics.length ? 'Only the photos were added: only photos go here' : 'Not added: only photos go here');
+    files = pics;
+  }
+  if (!files.length) return;
+  const key = parent ? null : el.dataset.attach;
+  const [collection, id] = parent ? [parent.collection, parent.id] : key.split(':');
+  if (!id) return el.dispatchEvent(new CustomEvent('attach-files', { bubbles: true, detail: { files } }));
+  parent = { collection, id };
+  const made = await addFiles(parent, files);
+  if (!made.length) return;
+  const tell = () => (el.isConnected || !key ? el : document.querySelector(`[data-attach="${CSS.escape(key)}"]`))?.dispatchEvent(new CustomEvent('attached', { bubbles: true, detail: parent }));
+  tell();
+  undoable(`Attached ${made.length === 1 ? made[0].name : `${made.length} files`}`, async () => { for (const m of made) await store.remove('attachments', m.id); tell(); });
 }
 
 // Files dragged over the page anywhere else: a hint at the bottom says where
@@ -391,6 +464,7 @@ export function enableDrop(root, selector, parentOf, done) {
 export function installFileDrop() {
   const pageHint = ev => ev.target.closest?.('[data-drop-hint]')?.dataset.dropHint;
   const hasFiles = ev => [...(ev.dataTransfer?.types || [])].includes('Files');
+  const marked = ev => ev.target.closest?.('[data-attach]');
   let hint = null;
   let timer;
   const show = on => {
@@ -402,18 +476,50 @@ export function installFileDrop() {
     if (on) hint.textContent = on;
     hint?.classList.toggle('show', !!on);
   };
+  // Marked elements first (capture), so the innermost wins over a view's own drop area round it.
   addEventListener('dragover', ev => {
     if (!hasFiles(ev)) return;
     clearTimeout(timer);
+    timer = setTimeout(() => { show(false); dropBox(null); }, 300); // dragover repeats while over the page
+    const el = marked(ev);
+    if (!el) return dropBox(null);
+    show(el.dataset.attachOnly === 'image' ? 'Drop to add the photo here' : 'Drop to attach it here');
+    ev.preventDefault();
+    ev.stopPropagation();
+    dropBox(el, el.dataset.attachShow);
+  }, true);
+  addEventListener('drop', ev => {
+    const el = hasFiles(ev) && marked(ev);
+    if (!el) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    show(false);
+    dropBox(null);
+    attachTo(el, filesOf(ev.dataTransfer));
+  }, true);
+  addEventListener('dragover', ev => {
+    if (!hasFiles(ev)) return;
     show(pageHint(ev) || 'Drop onto a note or item to attach it');
     if (!ev.defaultPrevented) ev.preventDefault(); // so a drop here reaches us (and doesn't open the file)
-    timer = setTimeout(() => show(false), 300); // dragover repeats while over the page
   });
   addEventListener('drop', ev => {
     if (!hasFiles(ev)) return;
     show(false);
+    dropBox(null);
     if (ev.defaultPrevented) return;
     ev.preventDefault();
     toast(pageHint(ev) ? `Not added: ${pageHint(ev)}` : 'Not attached: drop it onto a note or item (or its open panel)');
   });
+  // Ctrl+V (or Paste on a phone) of a picture or file while typing in a marked
+  // place attaches it, as a drop would; words on the clipboard paste as words
+  // (Word and Excel put a picture of what was copied there too).
+  addEventListener('paste', ev => {
+    const el = ev.target.closest?.('[data-attach]');
+    if (!el) return;
+    const files = filesOf(ev.clipboardData);
+    if (!files.length || ev.clipboardData.getData('text/plain').trim()) return;
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+    attachTo(el, files);
+  }, true);
 }
