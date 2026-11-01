@@ -8,13 +8,57 @@ A personal, local-first "life app" for people who like to get things out of thei
 
 ## A look round
 
-<table>
-<tr><td width="50%"><img src="docs/screenshots/tasks.jpg" alt="Tasks: sub-tasks, and several rows chosen at once"><br><sub>Tasks: sub-tasks, and several rows chosen at once</sub></td><td width="50%"><img src="docs/screenshots/shared-project.jpg" alt="A project shared with two people, with milestones and owners"><br><sub>A project shared with two people, with milestones and owners</sub></td></tr>
-<tr><td width="50%"><img src="docs/screenshots/day-planner.jpg" alt="The Day Planner"><br><sub>The Day Planner</sub></td><td width="50%"><img src="docs/screenshots/google-calendar.jpg" alt="Bringing in what's on Google Calendar"><br><sub>Bringing in what's on Google Calendar</sub></td></tr>
-<tr><td width="50%"><img src="docs/screenshots/share-menu.jpg" alt="Share: with people, copy, print, picture or PDF"><br><sub>Share: with people, copy, print, picture or PDF</sub></td><td width="50%"><img src="docs/screenshots/print-preview.jpg" alt="Print preview for a day, calendar events included"><br><sub>Print preview for a day, calendar events included</sub></td></tr>
-<tr><td width="50%"><img src="docs/screenshots/batch-book.jpg" alt="Batch Book: a recipe"><br><sub>Batch Book: a recipe</sub></td><td width="50%"><img src="docs/screenshots/follow-along.jpg" alt="Batch Book: Follow along while you cook"><br><sub>Batch Book: Follow along while you cook</sub></td></tr>
-<tr><td width="50%"><img src="docs/screenshots/lists.jpg" alt="Lists"><br><sub>Lists</sub></td><td width="50%"><img src="docs/screenshots/scans.jpg" alt="Scans"><br><sub>Scans</sub></td></tr>
-</table>
+**Tasks.** Each list has its own colour and icon (Now, Next, Later, Done, All). Sub-tasks, and two rows chosen at once, with the keys for each action shown in the bar.
+
+![Tasks](docs/screenshots/tasks.jpg)
+
+**Day Planner.** Today on paper: the schedule, the tasks for the day and a few notes.
+
+![Day Planner](docs/screenshots/day-planner.jpg)
+
+**Google Calendar.** What's on today, ready to drop onto the schedule or into the day's tasks.
+
+![Google Calendar](docs/screenshots/google-calendar.jpg)
+
+**Print a day.** The preview, calendar events included, on A5 or whatever paper you use.
+
+![Print a day](docs/screenshots/print-preview.jpg)
+
+**Batch Book.** A recipe, with scaling and UK or US measures.
+
+![Batch Book](docs/screenshots/batch-book.jpg)
+
+**Follow along.** One step at a time with its ingredients lit up, a one-tap timer for the wait the step mentions, and timers across the top: one has run out and is ringing in red.
+
+![Follow along](docs/screenshots/follow-along.jpg)
+
+**A shared project.** Shared with two people: milestones, who's doing what, and what's waiting on someone else.
+
+![A shared project](docs/screenshots/shared-project.jpg)
+
+**Lists.** A shopping list, with what you have already ticked.
+
+![Lists](docs/screenshots/lists.jpg)
+
+**Projects.** Everything on the go at a glance, and who each one is shared with.
+
+![Projects](docs/screenshots/projects.jpg)
+
+**Scans.** Receipts and letters, cut to the page and read on your own device.
+
+![Scans](docs/screenshots/scans.jpg)
+
+**Find Things.** A box with its label, where it lives and what is in it.
+
+![Find Things](docs/screenshots/box-open.jpg)
+
+**Brain Dump.** A powerful replacement for Windows Notepad that syncs across all your devices. It saves as you type, so even a browser crash never loses what you wrote. Notes can carry photos and files.
+
+![Brain Dump](docs/screenshots/brain-dump.jpg)
+
+**Full screen.** Any note opens full screen (Alt+Enter) for proper writing.
+
+![Full screen](docs/screenshots/brain-dump-full.jpg)
 
 ## What it does
 
