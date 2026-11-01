@@ -179,8 +179,10 @@ export function parseLine(line) {
 // ---------- references in a step ----------
 
 const REF = /\{([^{}|]+?)(?:\|([^{}]*))?\}/g;
-// "1/2 salt" → [0.5, "salt"]; "25% honey" → [0.25, "honey"]; "salt" → [1, "salt"]
-function refParts(body) {
+// "1/2 salt" → [0.5, "salt"]; "25% honey" → [0.25, "honey"]; "salt" → [1, "salt"]. A name that starts with a number
+// ("00 flour") is the whole ingredient when one is called exactly that, not part of one.
+function refParts(body, ingredients = []) {
+  if (ingredients.some(ing => ing.item.toLowerCase() === body.trim().toLowerCase())) return [1, body.trim()];
   const pct = body.match(/^\s*(\d+(?:\.\d+)?)\s*%\s+(.+)$/);
   if (pct) return [pct[1] / 100, pct[2].trim()];
   const part = body.match(new RegExp(`^\\s*${QTY}\\s+(.+)$`));
@@ -199,7 +201,7 @@ const OWN_AMOUNT = /[\d½¼¾⅓⅔⅛]|^\s*(?:the|a|an|some|half|more|loads?|lo
 // A step as HTML: references become marked amounts; a reference to nothing stays as typed, marked as missing.
 export function stepHtml(text, ingredients, times, esc) {
   return esc(text || '').replace(/\{([^{}|]+?)(?:\|([^{}]*))?\}/g, (whole, body, own) => {
-    const [part, name] = refParts(body.replace(/&amp;/g, '&'));
+    const [part, name] = refParts(body.replace(/&amp;/g, '&'), ingredients);
     const ing = findIngredient(ingredients, name);
     if (!ing) return `<span class="bb-ref bb-ref-missing" title="No ingredient called that">${whole}</span>`;
     const full = ingredientText(ing, times);
@@ -213,7 +215,7 @@ export function stepHtml(text, ingredients, times, esc) {
 // The ingredients a step puts in (by id), for Follow along's highlighting.
 export function stepRefs(text, ingredients) {
   const ids = new Set();
-  for (const [, body] of (text || '').matchAll(REF)) { const ing = findIngredient(ingredients, refParts(body)[1]); if (ing) ids.add(ing.id); }
+  for (const [, body] of (text || '').matchAll(REF)) { const ing = findIngredient(ingredients, refParts(body, ingredients)[1]); if (ing) ids.add(ing.id); }
   return ids;
 }
 // The first wait a step mentions, in seconds ("simmer for 15 minutes", "1 hour", "30 secs", "1½ hours"), for a one-tap timer.
@@ -235,7 +237,7 @@ export function stepWaits(text) {
 export function renameRefs(text, from, to) {
   if (!from || !to || from === to) return text;
   return (text || '').replace(REF, (whole, body, own) => {
-    const [, name] = refParts(body);
+    const [, name] = refParts(body, [{ item: from }]);
     if (name.toLowerCase() !== from.toLowerCase()) return whole;
     return `{${body.slice(0, body.toLowerCase().lastIndexOf(name.toLowerCase()))}${to}${own != null ? `|${own}` : ''}}`;
   });
@@ -321,7 +323,7 @@ export function parseRecipes(text) {
   }
   for (const r of recipes) {
     r.description = r.description.trim(); r.tasting = r.tasting.trim();
-    for (const st of r.steps) for (const [, body] of st.text.matchAll(REF)) { const name = refParts(body)[1]; if (name && !findIngredient(r.ingredients, name)) r.ingredients.push({ id: store.uuidv7(), qty: null, unit: '', item: name, note: '' }); }
+    for (const st of r.steps) for (const [, body] of st.text.matchAll(REF)) { const name = refParts(body, r.ingredients)[1]; if (name && !findIngredient(r.ingredients, name)) r.ingredients.push({ id: store.uuidv7(), qty: null, unit: '', item: name, note: '' }); }
   }
   return recipes.filter(r => r.title);
 }
