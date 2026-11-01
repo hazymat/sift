@@ -471,10 +471,11 @@ async function route(force = false) {
   currentView?.unmount?.();
   store.useSpace(null); // a new area starts on your own things (sharing.js)
   // A fresh #main for each page: the old one still carries the click handlers
-  // of every page shown in it before, which would all fire again.
-  const stale = $('#main');
-  const main = stale.cloneNode(false);
-  stale.replaceWith(main);
+  // of every page shown in it before, which would all fire again, and the classes
+  // and data- marks pages put on it (Contacts' c-opened hid Tasks' top bar).
+  const main = document.createElement('main');
+  main.id = 'main';
+  $('#main').replaceWith(main);
   main.dataset.area = next.id;
   applyDensity();
   const module = await import(next.view);
