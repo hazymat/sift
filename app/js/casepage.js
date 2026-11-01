@@ -233,7 +233,7 @@ export async function openCase(owner, { closed, back } = {}) {
     const direct = [...data.ids].flatMap(id => files.get(id) || []);
     page.setAttribute('aria-label', `Task: ${main.title}`);
     const stateCls = state.cls === 'open' ? 'open' : state.cls === 'closed' ? 'closed' : 'gone';
-    page.innerHTML = `<div class="case-wrap">
+    page.innerHTML = `<div class="case-wrap" data-attach="new">
       <div class="case-top">
         <button type="button" class="back" data-case="back">‹ Back${keys('Esc')}</button>
       </div>
@@ -297,19 +297,10 @@ export async function openCase(owner, { closed, back } = {}) {
     }
   }, sig);
   page.addEventListener('input', ev => { if (ev.target.classList.contains('case-add-box')) typedComment = ev.target.value; }, sig);
-  page.addEventListener('paste', async ev => {
-    const files = [...(ev.clipboardData?.files || [])];
-    if (!ev.target.closest('.case-add-box') || !files.length) return;
-    ev.preventDefault();
-    if (page.querySelector('.case-add-box').value.trim()) await addComment();
-    await attachAsComment(commentOwner(), files, render);
-  }, sig);
-  page.addEventListener('dragover', ev => { if ([...(ev.dataTransfer?.types || [])].includes('Files')) ev.preventDefault(); }, sig);
-  page.addEventListener('drop', async ev => {
-    const files = [...(ev.dataTransfer?.files || [])];
-    if (!files.length) return;
-    ev.preventDefault();
-    await attachAsComment(commentOwner(), files, render);
+  // Files pasted or dropped anywhere on it go in as a comment of their own (with what's typed first, as a comment) (data-attach).
+  page.addEventListener('attach-files', async ev => {
+    if (page.querySelector('.case-add-box')?.value.trim()) await addComment();
+    await attachAsComment(commentOwner(), ev.detail.files, render);
   }, sig);
   // Keys stay on this page: nothing reaches the page underneath (its arrows, Delete, Esc going up a level).
   page.addEventListener('keydown', ev => {

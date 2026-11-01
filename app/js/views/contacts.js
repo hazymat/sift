@@ -231,7 +231,7 @@ export default {
     function logForm(prefix, openTasks = []) {
       const hows = prefix === 'case' ? HOW : HOW.filter(h => !h.caseOnly);
       return `
-        <div class="log-form log-box" data-log-form="${prefix}">
+        <div class="log-form log-box" data-log-form="${prefix}" data-attach="new">
           <div class="log-row log-kind"><select name="how" aria-label="What kind">${hows.map(h => `<option value="${h.id}">${h.icon} ${h.label}</option>`).join('')}</select>
             <select name="direction"><option value="out">Sent</option><option value="in">Received</option></select></div>
           <input name="summary" placeholder="${esc(word('ph_log_what'))}" autocomplete="off">
@@ -262,7 +262,7 @@ export default {
     function composer() {
       const tiles = KIND_ORDER.map(id => HOW.find(h => h.id === id)).map(h => `<button type="button" class="kc-kind" data-kind="${h.id}" aria-pressed="${draft.how === h.id}"><b aria-hidden="true">${h.icon}</b>${h.label}</button>`).join('');
       const now = new Date();
-      return `<div class="log-form kc" data-log-form="case">
+      return `<div class="log-form kc" data-log-form="case" data-attach="new">
         <input type="hidden" name="how" value="${draft.how}"><input type="hidden" name="direction" value="${draft.dir}">
         <div class="kc-kinds" role="group" aria-label="What kind">${tiles}</div>
         <div class="kc-seg" role="group" aria-label="Received or sent"${draft.how === 'note' ? ' hidden' : ''}><button type="button" data-dir="in" aria-pressed="${draft.dir === 'in'}">↙ Received</button><button type="button" data-dir="out" aria-pressed="${draft.dir === 'out'}">↗ Sent</button></div>
@@ -290,7 +290,7 @@ export default {
     // A saved log entry (a call, visit... or a case note) opened to change its when, kind and words.
     function entryEditor(coll, r) {
       const isNote = coll === 'case_notes';
-      return `<li class="entry-edit" data-entry="${coll}:${r.id}"><div class="log-form log-box">
+      return `<li class="entry-edit" data-entry="${coll}:${r.id}" data-attach="${coll}:${r.id}"><div class="log-form log-box">
         ${isNote ? '' : `<div class="log-row log-kind"><select name="how" aria-label="What kind">${HOW.filter(h => !h.caseOnly).map(h => `<option value="${h.id}"${h.id === r.how ? ' selected' : ''}>${h.icon} ${h.label}</option>`).join('')}</select>
         <select name="direction"><option value="out">Sent</option><option value="in"${r.direction === 'in' ? ' selected' : ''}>Received</option></select></div>`}
         <input name="summary" class="no-inline" value="${esc(isNote ? r.body : r.summary)}" placeholder="${esc(word(isNote ? 'ph_case_note' : 'ph_log_what'))}" autocomplete="off" aria-label="${isNote ? 'Note' : 'What happened'}">
@@ -354,7 +354,7 @@ export default {
           <h3 class="milestone">Log</h3>
           ${logForm('contact', tasks.filter(t => !t.done_at))}
           <ul class="timeline">${timeline.map(e => (e.id && editing === `interactions:${e.id}` ? entryEditor('interactions', log.find(i => i.id === e.id))
-            : `<li class="${e.kind}"${e.id ? ` data-entry="interactions:${e.id}"` : ''}><span class="muted">${when(e.at)}</span> ${esc(e.text)}${e.id ? editBtn('interactions', e.id) + filesOf(e.id) : ''}</li>`)).join('')}</ul>
+            : `<li class="${e.kind}"${e.id ? ` data-entry="interactions:${e.id}" data-attach="interactions:${e.id}"` : ''}><span class="muted">${when(e.at)}</span> ${esc(e.text)}${e.id ? editBtn('interactions', e.id) + filesOf(e.id) : ''}</li>`)).join('')}</ul>
           ${cases.length || tasks.length || dayItems.length || mentions.length || scans.length ? `<h3 class="milestone">Connected</h3><ul class="links">
             ${cases.map(k => `<li><a href="#/contacts/cases/${k.id}">Case: ${esc(k.title)}</a></li>`).join('')}
             ${tasks.map(t => `<li><a href="#/tasks/list${t.project_id ? `/${t.project_id}` : ''}">Task: ${esc(t.title)}</a></li>`).join('')}
@@ -591,7 +591,7 @@ export default {
       const timeline = events.map((e, n) => {
         const month = n === 0 || monthOf(e.at) !== monthOf(events[n - 1].at) ? `<li class="ctl-month"><span>${esc(monthOf(e.at))}</span></li>` : '';
         if (e.entry && editing === `${e.entry[0]}:${e.entry[1].id}`) return month + entryEditor(e.entry[0], e.entry[1]);
-        return `${month}<li class="ctl-item ctl-${e.type}"${e.entry ? ` data-entry="${e.entry[0]}:${e.entry[1].id}"` : ''}>
+        return `${month}<li class="ctl-item ctl-${e.type}"${e.entry ? ` data-entry="${e.entry[0]}:${e.entry[1].id}" data-attach="${e.entry[0]}:${e.entry[1].id}"` : ''}>
           <span class="ctl-icon" aria-hidden="true">${e.icon}</span>
           <div class="ctl-card"><div class="ctl-head"><time>${when(e.at)}</time> <b>${e.head}</b>${e.entry ? editBtn(e.entry[0], e.entry[1].id) : ''}</div>
             ${e.body ? `<div class="ctl-body">${e.body}</div>` : ''}${e.entry ? filesOf(e.entry[1].id) : ''}</div></li>`;
@@ -612,7 +612,7 @@ export default {
               <button type="button" data-act="archive-case">Archive case</button><button type="button" class="danger" data-act="delete-case">Delete case</button></div>
           </details></div>
         <div class="c-page kase" data-case-page="${k.id}">
-          <header class="kase-hero" style="--st:${STATUS_COLOUR[status.id]}">
+          <header class="kase-hero" style="--st:${STATUS_COLOUR[status.id]}" data-attach="cases:${k.id}" data-attach-show=".kase-files .att-add">
             <div class="kase-eyebrow"><span class="kase-fold" aria-hidden="true">📁</span>Case<span aria-hidden="true">·</span>opened ${esc(dateText(new Date(k.opened_at || k.created_at), { day: 'numeric', month: 'short', year: 'numeric' }))}</div>
             <textarea class="kase-title one-line" name="title" data-case="${k.id}" rows="1" aria-label="Case title">${esc(k.title)}</textarea>
             <textarea class="kase-summary one-line" name="summary" data-case="${k.id}" rows="1" placeholder="Add a summary" aria-label="Summary">${esc(k.summary)}</textarea>
@@ -632,7 +632,7 @@ export default {
           </header>
           ${composer()}
           <h2 class="kase-lab"><span>Photos and documents</span><span>${files.length || ''}</span></h2>
-          <div class="kase-files">${att.rowHtml(files, { parent: k.id, addButton: 'Add' })}</div>
+          <div class="kase-files" data-attach="cases:${k.id}">${att.rowHtml(files, { parent: k.id, addButton: 'Add' })}</div>
           <h2 class="kase-lab"><span>Timeline</span><span>${events.length || ''}</span></h2>
           <ol class="ctl">${timeline || '<li class="ctl-empty muted">Nothing yet. Log a call, letter or note above.</li>'}</ol>
           <div class="kase-foot"><button type="button" class="kc-btn" data-act="case-task">+ Task</button><button type="button" class="kc-btn" data-act="archive-case">Archive</button><button type="button" class="kc-btn danger" data-act="delete-case">Delete</button></div>
@@ -828,16 +828,10 @@ export default {
     };
     // An entry open to edit keeps what's typed: only its files row is redrawn.
     const attDone = async parent => { if (parent?.collection === 'cases' || !el.querySelector(`.entry-edit[data-entry$=":${parent?.id}"]`)) return render(); atts = await att.byParent(); await att.redrawRows(el, parent.id); };
-    att.enableDrop(el, '.timeline li[data-entry], [data-case-page]', entryParent, attDone);
-    // Files dropped on the New entry box wait to go on the entry when it's logged.
-    el.addEventListener('dragover', ev => { if (ev.target.closest?.('.log-box[data-log-form]') && [...(ev.dataTransfer?.types || [])].includes('Files')) ev.preventDefault(); });
-    el.addEventListener('drop', ev => {
-      if (!ev.target.closest?.('.log-box[data-log-form]') || !ev.dataTransfer?.files.length) return;
-      ev.preventDefault();
-      ev.stopPropagation();
-      pending = pending.concat(Array.from(ev.dataTransfer.files));
-      drawPending();
-    }, true);
+    // Files pasted or dropped: on an entry, the case's top card or its Photos and documents (data-attach);
+    // on a New entry box, they wait to go on the entry when it's logged.
+    att.watchAttach(el, attDone);
+    el.addEventListener('attach-files', ev => { pending = pending.concat(ev.detail.files); drawPending(); });
 
     // Tapping a number/email logs a contact attempt, then lets the link work.
     el.addEventListener('click', async ev => {

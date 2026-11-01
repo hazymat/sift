@@ -16,7 +16,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 export function dayPanelHtml(i, { atts = [], durationMax, linked = false } = {}) {
   const mins = [...new Set([...durationChoices(durationMax), ...(i.estimate_min ? [Number(i.estimate_min)] : [])])].sort((a, b) => a - b);
   return `
-    <div class="item-details" data-for="${i.id}">
+    <div class="item-details" data-for="${i.id}" data-attach="day_items:${i.id}">
       <div class="panel-sec detail-sec wide"><span class="panel-h">Details</span><div class="detail-grid">
       ${i.time ? `<label>Time<input type="time" name="time" value="${i.time}"></label>
       <label>Until<input type="time" name="end_time" value="${i.end_time || ''}"></label>` : ''}

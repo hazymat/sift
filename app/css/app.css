@@ -2275,6 +2275,10 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 #main[data-density="tight"] .thought:not(.zoomed) .att-row { display: none; }
 button.att-count { font: inherit; font-size: inherit; padding: 1px 8px; }
 .drop-over { outline: 2px dashed var(--active-border, currentColor); outline-offset: 2px; }
+/* Where dropped files will go (attachments.js dropBox): one box for the page, over everything. */
+.drop-box { position: fixed; z-index: 2000; pointer-events: none; border: 2px dashed rgba(70, 140, 255, .8); border-radius: 10px; background: rgba(70, 140, 255, .06); }
+.drop-box[hidden] { display: none; }
+.drop-show { background: var(--active-bg) !important; border-color: rgba(70, 140, 255, .8) !important; box-shadow: 0 0 0 3px rgba(70, 140, 255, .35) !important; }
 .thought-actions .icon { width: 1.05em; height: 1.05em; vertical-align: -.15em; }
 .save-state { font-size: .78rem; color: var(--muted, inherit); opacity: .85; margin: 2px 4px; min-height: 1.1em; }
 .save-state[data-state="saving"] { opacity: .6; }
@@ -3303,7 +3307,6 @@ a.comment-mark:hover { color: var(--text); }
 .comment-mark.due { color: var(--accent, #f5a66a); }
 .comment-body .att-row { margin-top: 4px; }
 .comment-pending { font-size: .78rem; padding: 2px 6px; }
-.comments.drop-over, .comment.drop-over { outline: 2px dashed var(--muted); }
 
 /* Notes toolbar shows what's on (155): pressed formatting, size ends greyed. */
 .md-bar [data-cmd][aria-pressed="true"] { background: var(--active-bg); border-color: var(--active-border); }
@@ -3396,8 +3399,6 @@ a.comment-mark:hover { color: var(--text); }
 /* Archive and ⋯ stay together at the right, wrapping as a pair on a phone. */
 .thought-actions .note-end { display: flex; align-items: center; gap: 6px; margin-left: auto; }
 /* A file dragged over an item spanning several slots outlines the whole item (192). */
-.span-block > .line.has-item.drop-over { outline: none; }
-.span-block:has(> .line.has-item.drop-over), .span-block.drop-over { outline: 2px dashed var(--active-border, currentColor); outline-offset: 2px; border-radius: 6px; }
 /* 158: the New note box shows its toolbar only once you're writing in it (like
    the day's Notes); in full screen the toolbar always shows. */
 #dump-body.rich:not(.in-use):not(.is-full) > .md-bar, #dump-body.rich:not(:focus-within):not(.is-full) > .md-bar { display: none; }

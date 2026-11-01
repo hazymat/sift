@@ -170,7 +170,7 @@ async function draw(box) {
   const extra = await Promise.all(list.map(marks));
   const files = list.length ? await att.byParent() : new Map();
   box.querySelector('.comment-items').innerHTML = (list.length ? `<ol class="comment-list">${list.map((c, n) => `
-      <li class="comment" data-comment="${c.id}">
+      <li class="comment" data-comment="${c.id}" data-attach="comments:${c.id}">
         <span class="comment-when" title="${esc(new Date(c.at).toLocaleString('en-GB'))}">${when(c.at)}</span>
         <div class="comment-body">${webLinks(toHtml(c.body))}${files.get(c.id)?.length ? att.rowHtml(files.get(c.id), { addButton: false }) : ''}${extra[n]}</div>
         <button type="button" class="comment-more" data-cmt="menu" aria-label="Comment options">⋯</button>
@@ -289,25 +289,9 @@ function wire(box) {
     });
   });
   // Files pasted or dropped into "Add a comment…" go with the next comment;
-  // dropped on a comment, they're attached to it.
-  box.addEventListener('paste', ev => {
-    const files = [...(ev.clipboardData?.files || [])];
-    if (!files.length || !ev.target.closest('.comment-add')) return;
-    ev.preventDefault();
-    setPending(box, [...(box._pending || []), ...files]);
-  });
-  box.addEventListener('dragover', ev => { if ([...(ev.dataTransfer?.types || [])].includes('Files')) { ev.preventDefault(); ev.stopPropagation(); } });
-  box.addEventListener('drop', async ev => {
-    const files = [...(ev.dataTransfer?.files || [])];
-    if (!files.length) return;
-    ev.preventDefault();
-    ev.stopPropagation();
-    const li = ev.target.closest('[data-comment]');
-    if (!li) { setPending(box, [...(box._pending || []), ...files]); box.querySelector('.comment-add').focus(); return; }
-    const made = await att.addFiles({ collection: 'comments', id: li.dataset.comment }, files);
-    await draw(box);
-    if (made.length) undoable(`Attached ${made.length === 1 ? made[0].name : `${made.length} files`}`, async () => { for (const m of made) await store.remove('attachments', m.id); await draw(box); });
-  });
+  // on a comment (or pasted while editing it), they're attached to it (data-attach, attachments.js).
+  box.addEventListener('attach-files', ev => { ev.stopPropagation(); setPending(box, [...(box._pending || []), ...ev.detail.files]); box.querySelector('.comment-add').focus(); });
+  box.addEventListener('attached', ev => { ev.stopPropagation(); draw(box); });
   box.addEventListener('click', ev => { att.onClick(ev, () => null, () => draw(box)); }, true);
   box.addEventListener('input', ev => {
     if (!ev.target.matches('.comment-add')) return;
@@ -371,7 +355,7 @@ export async function mountComments(root, changed) {
     box._changed = changed;
     if (box._wired) continue;
     box._wired = true;
-    box.innerHTML = '<span class="panel-h">Comments</span><div class="comment-items"></div><div class="comment-add-row"><textarea class="comment-add no-inline" rows="1" placeholder="Add a comment…" aria-label="Add a comment"></textarea><span class="comment-tools"><button type="button" data-cmt-link="contact" title="Link a contact (or type 📞)" aria-label="Link a contact">📞</button><button type="button" data-cmt-link="note" title="Link anything in Sift (or type 📝)" aria-label="Link anything">📝</button></span></div><div class="comment-pending muted" hidden></div>';
+    box.innerHTML = '<span class="panel-h">Comments</span><div class="comment-items"></div><div class="comment-add-row" data-attach="new"><textarea class="comment-add no-inline" rows="1" placeholder="Add a comment…" aria-label="Add a comment"></textarea><span class="comment-tools"><button type="button" data-cmt-link="contact" title="Link a contact (or type 📞)" aria-label="Link a contact">📞</button><button type="button" data-cmt-link="note" title="Link anything in Sift (or type 📝)" aria-label="Link anything">📝</button></span></div><div class="comment-pending muted" hidden></div>';
     wire(box);
     const ta = box.querySelector('.comment-add');
     ta._asText = () => boxText(ta);

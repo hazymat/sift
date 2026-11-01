@@ -117,7 +117,7 @@ export default {
           <input class="project-name" name="name" value="${esc(c.name)}" aria-label="Name" placeholder="e.g. Home insurance">
           ${shareHtml()}
         </div>
-        <div class="scan-page contract-page" data-id="${c.id}">
+        <div class="scan-page contract-page" data-id="${c.id}" data-attach="contracts:${c.id}">
           <div class="panel-sec"><span class="panel-h">Status</span>
             <div class="energy-pick" role="group" aria-label="Status">${STATUSES.map(([id, label]) => `<button type="button" data-status="${id}" aria-pressed="${c.status === id}">${label}</button>`).join('')}</div>
           </div>
@@ -162,7 +162,7 @@ export default {
             <button type="button" class="linklike" data-act="add-field">+ Add a detail (e.g. Excess, Account holder)</button>
           </div>
           <div class="panel-sec"><span class="panel-h">Files</span>
-            ${att.rowHtml(atts.get(c.id) || [])}
+            ${att.rowHtml(atts.get(c.id) || [], { parent: c.id })}
             ${scans.length ? `<div class="scan-filed">${scans.map(s => `<a class="chip" href="#/scans/${s.id}">🧾 ${esc(s.title)}</a>`).join('')}</div>` : ''}
           </div>
           <div class="panel-sec"><span class="panel-h">Note</span><div class="contract-note"></div></div>
@@ -223,8 +223,9 @@ export default {
 
     this.route = rest => { state.id = rest[0] || null; state.reveal = false; render(); };
 
-    // Files dropped anywhere on a contract's page go into its Files.
-    att.enableDrop(root, '.contract-page', node => ({ collection: 'contracts', id: node.dataset.id }), () => render());
+    // Files pasted or dropped anywhere on a contract's page go into its Files (data-attach);
+    // while a field is being typed in, only the files are redrawn.
+    att.watchAttach(root, async parent => { atts = await att.byParent(); if (!await att.redrawRows(root, parent?.id)) render(); });
     root.addEventListener('dragover', () => { root.dataset.dropHint = state.id ? "Drop to add to this contract's files" : 'Open a contract to add files to it'; });
 
     // ---------- changes ----------

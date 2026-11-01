@@ -219,7 +219,7 @@ export default {
         </div>
         </div>
         <article class="box-page" style="--tint: ${tintHex(b)}">
-          <div class="box-lid">
+          <div class="box-lid" data-attach="places:${b.id}" data-attach-only="image">
           ${photos.length ? `<div class="box-photo">${att.rowHtml(photos, { parent: b.id, addButton: false })}</div>` : ''}
           <div class="box-lid-text">
           <header class="box-page-head">
@@ -241,7 +241,7 @@ export default {
             <textarea id="new-items" class="list-entry" rows="1" placeholder="${esc(word('ph_box_add'))}" enterkeyhint="done" aria-label="New item"></textarea>
           </div>
           <ul class="item-list">${b.items.map(i => `
-            <li data-id="${i.id}" data-item="${i.id}" data-depth="${i.depth}" style="--tint: ${tintHex(i)}">
+            <li data-id="${i.id}" data-item="${i.id}" data-attach="items:${i.id}" data-depth="${i.depth}" style="--tint: ${tintHex(i)}">
               <button type="button" class="drag-handle thing-grip" aria-label="Select or move ${esc(i.name)}" title="Tap to select">${icon('i-places')}</button>
               ${i.quantity ? `<span class="span-tag qty" title="Quantity">×${i.quantity}</span>` : ''}
               <input name="name" value="${esc(i.name)}" aria-label="Item">
@@ -321,7 +321,7 @@ export default {
     }
 
     function thingPanel(i) {
-      return `<li class="thing-panel item-details" data-item="${i.id}" data-for="${i.id}">
+      return `<li class="thing-panel item-details" data-item="${i.id}" data-for="${i.id}" data-attach="items:${i.id}">
         <div class="detail-grid">
           <label>Quantity<input type="number" name="quantity" min="0" step="1" value="${i.quantity ?? ''}" placeholder="-" inputmode="numeric"></label>
           <div class="tag-edit"><span class="field-label">Tags</span><div class="tag-box">
@@ -955,8 +955,8 @@ export default {
       if (att.writingIn(el)) { atts = await att.byParent(); await att.redrawRows(el, parent?.id); return; }
       reload();
     };
-    att.enableDrop(el, '.thing-panel[data-for]', node => ({ collection: 'items', id: node.dataset.for }), attDone);
-    att.enableDrop(page, '.box-lid', () => ({ collection: 'places', id: openId }), attDone); // the box's own photo
+    // Files pasted or dropped on a thing, its panel, or the box's lid (its own photos) (data-attach).
+    att.watchAttach(el, attDone);
     el.addEventListener('click', ev => {
       if (att.onClick(ev, b => { if (b.closest('.box-lid')) return { collection: 'places', id: openId }; const id = b.closest('[data-for]')?.dataset.for; return id ? { collection: 'items', id } : null; }, attDone)) return;
       if (ev.target.closest('.quick-add')) return;
