@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.62.04': [{ text: "Day Planner: a task's 📎 stays put when you point at the task. More now sits just before the 📝 and 📎 instead of on top of them, so pressing 📎 always opens the files.", go: '#/planner', at: '#main .att-tag' }],
   '1.62.03': [{ text: "Tasks: after opening a contact or a case, going to Tasks could show only New task, with no section tabs or menus at the top, until you reloaded. Fixed.", go: '#/tasks', at: '#main .tasks-head' }],
   '1.62.02': [{ text: "Contacts and Cases: an open case's ⋯ menu no longer has Edit references and people. Use the ✎ Edit chip beside the references and people on the case instead.", go: '#/contacts/cases', open: ['#main [data-case-row]'], at: '#main .kase-fact.add' }],
   '1.62.01': [{ text: "Day Planner, ↓ Bring items in: the headings, project panels, Done and the space between groups have their room back; only the items themselves stay compact.", go: '#/planner', open: ['#main [data-act="bring-in"]'], at: '#bring .review-all' }],
@@ -277,6 +278,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.62.04': '2026-11-01T22:47:06Z',
   '1.62.03': '2026-11-01T21:23:26Z',
   '1.62.02': '2026-11-01T21:18:16Z',
   '1.62.01': '2026-11-01T19:56:08Z',

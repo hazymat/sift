@@ -1196,3 +1196,4 @@ NOTES['1.62.00'] = [B('Day Planner Notes: the fifth ruled line was missing and a
 NOTES['1.62.01'] = [F('Day Planner, Bring items in: headings, project panels, Done and the gaps between groups have their usual room again; only the item rows stay compact.')]
 NOTES['1.62.02'] = [F('Contacts and Cases: Edit references and people is gone from an open case\'s menu; the Edit chip beside the references and people does the same job.')]
 NOTES['1.62.03'] = [B('Tasks: after opening a contact or a case, going to Tasks could show only New task, with no Tasks | Projects, section tabs or menus until the page was reloaded. Fixed.')]
+NOTES['1.62.04'] = [B('Day Planner: pointing at a task with only 📝 or 📎 beside it no longer puts More on top of them. More sits just before them, so pressing 📎 opens the files, and they stay on the name\'s line.')]
