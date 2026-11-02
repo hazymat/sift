@@ -4935,6 +4935,7 @@ html.case-open, html.case-open body { overflow: hidden; }
 .case-what { font-weight: 600; }
 .case-ev.is-edit .case-what { font-weight: 500; color: var(--muted); }
 .case-said { margin-top: 2px; overflow-wrap: anywhere; }
+.case-share { margin-top: 4px; }
 .case-edits { margin: 2px 0 0; padding-left: 18px; font-size: .9rem; overflow-wrap: anywhere; }
 .case-pics { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .case-pic { padding: 0; border-radius: 10px; overflow: hidden; border: 1px solid var(--glass-border); background: none; }

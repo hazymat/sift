@@ -16,7 +16,7 @@ import * as store from './store.js';
 import { toHtml } from './richtext.js';
 import { undoable, toast } from './toast.js';
 import * as att from './attachments.js';
-import { attachAsComment } from './comments.js';
+import { attachAsComment, shareComment } from './comments.js';
 import { ENERGY, dateText, dateTimeText, parseDate, durationLabel, showTime, isoDate } from './days.js';
 import { STATUSES, PRIORITIES, horizons, doneFields, projectMembers } from './tasks.js';
 import { repeatLabel } from './repeat.js';
@@ -199,7 +199,7 @@ export async function openCase(owner, { closed, back } = {}) {
       const own = files.get(c.id) || [];
       const text = (c.body || '').trim();
       const what = text ? (own.length ? 'Comment, with files' : 'Comment') : own.some(a => a.kind === 'image') ? (own.length > 1 ? `${own.length} photos added` : 'Photo added') : own.length > 1 ? `${own.length} files added` : 'File added';
-      push(c.at, what, `${text ? `<div class="case-said">${toHtml(unlink(c.body))}</div>` : ''}${own.length ? `<div class="case-pics">${fileButtons(own)}</div>` : ''}`, 'is-comment');
+      push(c.at, what, `${text ? `<div class="case-said">${toHtml(unlink(c.body))}</div><button type="button" class="entry-chip case-share" data-case="share" data-comment="${esc(c.id)}" title="Send its words to another device or app (AirDrop on an iPad or iPhone); copies them where sharing is not available">Share…</button>` : ''}${own.length ? `<div class="case-pics">${fileButtons(own)}</div>` : ''}`, 'is-comment');
     }
     for (const id of ids) for (const a of files.get(id) || []) push(a.created_at, a.kind === 'image' ? 'Photo added' : `File added: ${a.name}`, `<div class="case-pics">${fileButtons([a])}</div>`, 'is-comment');
     // Edits made on this device (History): what changed from what.
@@ -289,6 +289,7 @@ export async function openCase(owner, { closed, back } = {}) {
     const act = ev.target.closest('[data-case]')?.dataset.case;
     if (act === 'back') leave();
     else if (act === 'tick') toggleDone();
+    else if (act === 'share') { const c = data.comments.find(k => k.id === ev.target.closest('[data-comment]').dataset.comment); if (c) shareComment(c); }
     else if (act === 'attach') {
       const picker = Object.assign(document.createElement('input'), { type: 'file', multiple: true, accept: att.ACCEPT, hidden: true });
       picker.onchange = async () => { await attachAsComment(commentOwner(), [...picker.files], render); picker.remove(); };
