@@ -16,7 +16,7 @@ import * as store from './store.js';
 import { toHtml } from './richtext.js';
 import { undoable, toast } from './toast.js';
 import * as att from './attachments.js';
-import { attachAsComment, shareComment } from './comments.js';
+import { attachAsComment, commentMenu, commentMarks } from './comments.js';
 import { ENERGY, dateText, dateTimeText, parseDate, durationLabel, showTime, isoDate } from './days.js';
 import { STATUSES, PRIORITIES, horizons, doneFields, projectMembers } from './tasks.js';
 import { repeatLabel } from './repeat.js';
@@ -27,7 +27,6 @@ const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></s
 const noComma = s => s.replace(/^(\w+),/, '$1');
 const thisYear = d => d.getFullYear() === new Date().getFullYear();
 const whenText = iso => { const d = new Date(iso); return noComma(dateTimeText(d, { weekday: 'short', day: 'numeric', month: 'short', ...(thisYear(d) ? {} : { year: 'numeric' }), hour: '2-digit', minute: '2-digit' })); };
-const dayHead = iso => { const d = new Date(iso); return dateText(d, { weekday: 'long', day: 'numeric', month: 'long', ...(thisYear(d) ? {} : { year: 'numeric' }) }); };
 const timeOnly = iso => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 const dayText = iso => noComma(dateText(parseDate(iso), { weekday: 'short', day: 'numeric', month: 'short', ...(thisYear(parseDate(iso)) ? {} : { year: 'numeric' }) }));
 const clockTime = (rec, field) => { const c = rec?._field_clocks?.[field]; return c ? new Date(store.parseHlc(c).wall).toISOString() : null; };
@@ -81,11 +80,12 @@ export async function openCase(owner, { closed, back } = {}) {
     const ids = new Set([task?.id, ...days.map(i => i.id)].filter(Boolean));
     const comments = (await store.list('comments', { filter: c => ids.has(c.task_id) || ids.has(c.item_id) })).sort((a, b) => (a.at || '').localeCompare(b.at || ''));
     const files = await att.byParent();
+    const marks = new Map(await Promise.all(comments.map(async c => [c.id, await commentMarks(c)])));
     const lookup = async (collection, id) => (id ? store.get(collection, id) : null);
     const main = task || item;
     const project = await lookup('projects', task?.project_id);
     return {
-      task, item, days, main, comments, files, project,
+      task, item, days, main, comments, files, marks, project,
       milestone: await lookup('milestones', task?.milestone_id),
       people: (await Promise.all((main?.contact_ids || []).map(id => lookup('contacts', id)))).filter(Boolean),
       kase: await lookup('cases', main?.case_id),
@@ -174,13 +174,13 @@ export async function openCase(owner, { closed, back } = {}) {
 
   // Everything that happened, newest first.
   function events() {
-    const { task, days, comments, files, history, ids } = data;
+    const { task, days, comments, files, marks, history, ids } = data;
     const out = [];
-    const push = (at, what, body = '', cls = '') => { if (at) out.push({ at, what, body, cls }); };
-    if (task) push(task.created_at, data.thought ? 'Opened, from a Brain Dump note' : 'Opened', '', 'is-opened');
+    const push = (at, what, body = '', cls = '', icon = '📅', comment = null) => { if (at) out.push({ at, what, body, cls, icon, comment }); };
+    if (task) push(task.created_at, data.thought ? 'Opened, from a Brain Dump note' : 'Opened', '', 'ctl-in', '📂');
     for (const i of days) {
-      push(i.created_at, task ? `Put on the Day Planner for ${dayText(i.date)}` : `Opened on the Day Planner for ${dayText(i.date)}`, '', task ? '' : 'is-opened');
-      if (i.unique_from) push(clockTime(i, 'unique_from'), 'Kept only on the Day Planner (the task it came from went to the Bin)');
+      push(i.created_at, task ? `Put on the Day Planner for ${dayText(i.date)}` : `Opened on the Day Planner for ${dayText(i.date)}`, '', task ? '' : 'ctl-in', task ? '📅' : '📂');
+      if (i.unique_from) push(clockTime(i, 'unique_from'), 'Kept only on the Day Planner (the task it came from went to the Bin)', '', '', '🔗');
     }
     // Ticks: a day item and its task tick together (link.js), so the same tick is listed once.
     const ticks = [];
@@ -188,37 +188,42 @@ export async function openCase(owner, { closed, back } = {}) {
       const log = rec.done_log?.length ? rec.done_log : rec.done_at ? [{ at: rec.done_at, done: true }] : [];
       for (const t of log) if (!ticks.some(x => x.done === t.done && Math.abs(Date.parse(x.at) - Date.parse(t.at)) < 10000)) ticks.push(t);
     }
-    for (const t of ticks) push(t.at, t.done ? 'Closed: ticked done' : 'Reopened: unticked', '', t.done ? 'is-closed' : 'is-opened');
+    for (const t of ticks) push(t.at, t.done ? 'Closed: ticked done' : 'Reopened: unticked', '', t.done ? 'ctl-done' : 'ctl-in', t.done ? '✅' : '📂');
     for (const rec of [task, ...days].filter(Boolean)) {
-      if (rec.dropped_at) push(rec.dropped_at, 'Let go', '', 'is-closed');
-      else if (rec.archived_at) push(rec.archived_at, 'Archived', '', 'is-closed');
-      if (rec.deleted_at) push(rec.deleted_at, 'Put in the Bin', '', 'is-closed');
+      if (rec.dropped_at) push(rec.dropped_at, 'Let go', '', 'ctl-done', '🍃');
+      else if (rec.archived_at) push(rec.archived_at, 'Archived', '', 'ctl-done', '🗄️');
+      if (rec.deleted_at) push(rec.deleted_at, 'Put in the Bin', '', 'ctl-done', '🗑️');
     }
-    if (task?.owner_id && task.owner_at) push(task.owner_at, `Owner set to ${show('owner_id', task.owner_id)}${task.owner_by && task.owner_by !== task.owner_id ? ` by ${show('owner_id', task.owner_by)}` : ''}`);
+    if (task?.owner_id && task.owner_at) push(task.owner_at, `Owner set to ${show('owner_id', task.owner_id)}${task.owner_by && task.owner_by !== task.owner_id ? ` by ${show('owner_id', task.owner_by)}` : ''}`, '', '', '👤');
     for (const c of comments) {
       const own = files.get(c.id) || [];
       const text = (c.body || '').trim();
       const what = text ? (own.length ? 'Comment, with files' : 'Comment') : own.some(a => a.kind === 'image') ? (own.length > 1 ? `${own.length} photos added` : 'Photo added') : own.length > 1 ? `${own.length} files added` : 'File added';
-      push(c.at, what, `${text ? `<div class="case-said">${toHtml(unlink(c.body))}</div><button type="button" class="entry-chip case-share" data-case="share" data-comment="${esc(c.id)}" title="Send its words to another device or app (AirDrop on an iPad or iPhone); copies them where sharing is not available">Share…</button>` : ''}${own.length ? `<div class="case-pics">${fileButtons(own)}</div>` : ''}`, 'is-comment');
+      const icon = text ? '💬' : own.some(a => a.kind === 'image') ? '📷' : '📎';
+      push(c.at, what, `${text ? `<div class="case-said">${toHtml(unlink(c.body))}</div>` : ''}${own.length ? `<div class="case-pics">${fileButtons(own)}</div>` : ''}${marks.get(c.id)}`, 'ctl-out', icon, c);
     }
-    for (const id of ids) for (const a of files.get(id) || []) push(a.created_at, a.kind === 'image' ? 'Photo added' : `File added: ${a.name}`, `<div class="case-pics">${fileButtons([a])}</div>`, 'is-comment');
+    for (const id of ids) for (const a of files.get(id) || []) push(a.created_at, a.kind === 'image' ? 'Photo added' : `File added: ${a.name}`, `<div class="case-pics">${fileButtons([a])}</div>`, 'ctl-out', a.kind === 'image' ? '📷' : '📎');
     // Edits made on this device (History): what changed from what.
     for (const e of history) {
       // A task and its Day Planner copy change together (link.js): each change once. Status to or from Done is the tick, listed already.
       const parts = new Set();
       for (const c of e.changes.filter(x => ids.has(x.id) && !x.created)) for (const f of Object.keys(c.after).filter(k => FIELD_WORDS[k] && !(k === 'status' && [c.before?.[k], c.after[k]].includes('done')))) parts.add(f === 'notes' ? 'Note edited' : `${FIELD_WORDS[f]}: ${show(f, c.before?.[f])} → ${show(f, c.after[f])}`);
-      if (parts.size) push(e.at, 'Changed on this device', `<ul class="case-edits">${[...parts].map(p => `<li>${esc(p)}</li>`).join('')}</ul>`, 'is-edit');
+      if (parts.size) push(e.at, 'Changed on this device', `<ul class="case-edits">${[...parts].map(p => `<li>${esc(p)}</li>`).join('')}</ul>`, 'ctl-edit', '✏️');
     }
     return out.sort((a, b) => b.at.localeCompare(a.at)); // newest first, nearest the Add a comment line
   }
 
+  // The same timeline as a case under Contacts (.ctl): a rail of icons, each event in its own callout, a heading for each month.
   function historyHtml() {
-    let day = '';
-    return events().map(e => {
-      const d = dayHead(e.at);
-      const head = d !== day ? `<li class="adv-group case-day"><span class="adv-h">${esc(d)}</span></li>` : '';
-      day = d;
-      return `${head}<li class="case-ev ${e.cls}"><time datetime="${esc(e.at)}" title="${esc(whenText(e.at))}">${esc(timeOnly(e.at))}</time><div class="case-ev-body"><span class="case-what">${esc(e.what)}</span>${e.body}</div></li>`;
+    const month = iso => dateText(new Date(iso), { month: 'long', year: 'numeric' });
+    const list = events();
+    return list.map((e, n) => {
+      const head = n === 0 || month(e.at) !== month(list[n - 1].at) ? `<li class="ctl-month"><span>${esc(month(e.at))}</span></li>` : '';
+      const more = e.comment ? '<button type="button" class="comment-more" data-case="comment-menu" aria-label="Comment options">⋯</button>' : '';
+      return `${head}<li class="ctl-item ${e.cls}"${e.comment ? ` data-comment="${esc(e.comment.id)}" data-attach="comments:${esc(e.comment.id)}"` : ''}>
+        <span class="ctl-icon" aria-hidden="true">${e.icon}</span>
+        <div class="ctl-card"><div class="ctl-head"><time datetime="${esc(e.at)}">${esc(whenText(e.at))}</time> <b>${esc(e.what)}</b>${more}</div>
+          ${e.body ? `<div class="ctl-body comment-body">${e.body}</div>` : e.comment ? '<div class="ctl-body comment-body"></div>' : ''}</div></li>`;
     }).join('');
   }
 
@@ -233,7 +238,7 @@ export async function openCase(owner, { closed, back } = {}) {
     const direct = [...data.ids].flatMap(id => files.get(id) || []);
     page.setAttribute('aria-label', `Task: ${main.title}`);
     const stateCls = state.cls === 'open' ? 'open' : state.cls === 'closed' ? 'closed' : 'gone';
-    page.innerHTML = `<div class="case-wrap" data-attach="new">
+    page.innerHTML = `<div class="case-wrap">
       <div class="case-top">
         <button type="button" class="back" data-case="back">‹ Back${keys('Esc')}</button>
       </div>
@@ -242,18 +247,20 @@ export async function openCase(owner, { closed, back } = {}) {
         <h1 class="case-title"><span class="adv-status ${stateCls}">${state.word}</span> <span class="case-name${main.done_at ? ' done' : ''}">${esc(main.title)}</span></h1>
         ${main.deleted_at || main.dropped_at ? '' : `<button type="button" class="case-tick${main.done_at ? '' : ' primary'}" data-case="tick">${main.done_at ? 'Reopen case' : '✓ Mark case done'}</button>`}
       </div>
+      <section class="adv-card case-sec case-note" data-attach="${task ? 'tasks' : 'day_items'}:${main.id}"><div class="adv-card-h"><h2 class="adv-h">Note</h2></div>
+        ${(main.notes || '').trim() ? `<div class="case-notes">${toHtml(unlink(main.notes))}</div>` : '<p class="case-notes muted">No note yet.</p>'}
+        ${direct.length ? `<div class="case-attached">${att.rowHtml(direct, { addButton: false, parent: (task || item).id })}</div>` : ''}
+      </section>
       ${statsHtml()}
       <section class="adv-card case-sec">
-        ${(main.notes || '').trim() ? `<div class="adv-card-h"><h2 class="adv-h">Description</h2></div><div class="case-notes">${toHtml(unlink(main.notes))}</div>` : ''}
-        <div class="case-add">
+        <div class="case-add" data-attach="new">
           <input class="case-add-box no-inline" placeholder="Add a comment…" aria-label="Add a comment" autocomplete="off" enterkeyhint="send">
           <button type="button" class="case-attach" data-case="attach" title="Attach photos, PDFs, text or Word files, as a comment with its time (or drop them here)">${icon('i-clip')}</button>
         </div>
       </section>
       <section class="adv-card case-sec"><div class="adv-card-h"><h2 class="adv-h">History</h2></div>
-        <ol class="case-log">${historyHtml()}</ol>
+        <ol class="ctl">${historyHtml()}</ol>
       </section>
-      ${direct.length ? `<section class="adv-card case-sec"><div class="adv-card-h"><h2 class="adv-h">Attached</h2></div><div class="case-attached">${att.rowHtml(direct, { addButton: false, parent: (task || item).id })}</div></section>` : ''}
       <section class="adv-card case-sec"><div class="adv-card-h"><h2 class="adv-h">Details</h2></div>${detailsHtml()}</section>
       <p class="case-honest muted">Ticks, comments, photos and files are kept with the task on every device. Edits to its details are listed only when made on this device (its History); "changed" beside each detail is the last time it changed on any device.</p>
     </div>`;
@@ -289,7 +296,7 @@ export async function openCase(owner, { closed, back } = {}) {
     const act = ev.target.closest('[data-case]')?.dataset.case;
     if (act === 'back') leave();
     else if (act === 'tick') toggleDone();
-    else if (act === 'share') { const c = data.comments.find(k => k.id === ev.target.closest('[data-comment]').dataset.comment); if (c) shareComment(c); }
+    else if (act === 'comment-menu') { const c = data.comments.find(k => k.id === ev.target.closest('[data-comment]').dataset.comment); if (c) commentMenu(ev.target.closest('[data-case]'), c, { host: page, redraw: render, changed: render }); }
     else if (act === 'attach') {
       const picker = Object.assign(document.createElement('input'), { type: 'file', multiple: true, accept: att.ACCEPT, hidden: true });
       picker.onchange = async () => { await attachAsComment(commentOwner(), [...picker.files], render); picker.remove(); };
@@ -298,7 +305,8 @@ export async function openCase(owner, { closed, back } = {}) {
     }
   }, sig);
   page.addEventListener('input', ev => { if (ev.target.classList.contains('case-add-box')) typedComment = ev.target.value; }, sig);
-  // Files pasted or dropped anywhere on it go in as a comment of their own (with what's typed first, as a comment) (data-attach).
+  // Files pasted or dropped on the Add a comment line go in as a comment of their own (with what's typed first, as a comment); on a comment or the note, on that (data-attach).
+  att.watchAttach(page, () => render(), sig);
   page.addEventListener('attach-files', async ev => {
     if (page.querySelector('.case-add-box')?.value.trim()) await addComment();
     await attachAsComment(commentOwner(), ev.detail.files, render);
@@ -310,10 +318,10 @@ export async function openCase(owner, { closed, back } = {}) {
   }, sig);
   // Esc: out of the comment line first (what's typed stays), then closes. Not while a file or a question is open over it.
   addEventListener('keydown', ev => {
-    if (ev.key !== 'Escape' || document.querySelector('dialog[open], .pill-menu')) return;
+    if (ev.key !== 'Escape' || document.querySelector('dialog[open], .pill-menu, .ref-picker')) return;
     ev.preventDefault();
     ev.stopImmediatePropagation();
-    if (ev.target.closest?.('.case-page input')) ev.target.blur(); else leave();
+    if (ev.target.closest?.('.case-page :is(input, textarea)')) ev.target.blur(); else leave();
   }, { capture: true, signal: gone.signal });
   addEventListener('hashchange', () => close(), sig);
   // Changes from elsewhere (another device, the toast's Undo) show straight away.
@@ -321,7 +329,7 @@ export async function openCase(owner, { closed, back } = {}) {
   const unsubscribe = store.subscribe(change => {
     if (!['tasks', 'day_items', 'comments', 'attachments'].includes(change?.collection)) return;
     clearTimeout(redraw);
-    redraw = setTimeout(render, 250);
+    redraw = setTimeout(() => { if (!page.querySelector('.comment-edit')) render(); }, 250); // never from under a comment being edited
   });
 
   const leave = () => (back ? back() : close());

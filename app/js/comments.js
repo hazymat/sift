@@ -16,6 +16,8 @@
 //   moveComments(from, to)        e.g. a day-only item became a task: { item_id } → { task_id }
 //   attachAsComment(owner, files, done)  files added as a comment of their own (timed like one)
 //   shareComment(c)               a comment's words to the share sheet (AirDrop), or copied where there isn't one
+//   commentMenu(btn, c, how)      a comment's ⋯ menu, wherever it's shown: how = { host, redraw, changed }
+//   commentMarks(c)               the line under a comment: its sub-task, plan item, check-back
 //
 // Links, as in notes: 📞 or 📝 typed (or pressed beside the box while writing)
 // opens the same search and puts a link in; phone numbers and emails become
@@ -26,7 +28,7 @@ import { toHtml } from './richtext.js';
 import { pillMenu } from './pillmenu.js';
 import { undoable, toast } from './toast.js';
 import { addTask, MAX_DEPTH, depthIn } from './tasks.js';
-import { addItem, isoDate, dateText } from './days.js';
+import { isoDate, dateText } from './days.js';
 import { ask, askText, askEmptied } from './ask.js';
 import * as att from './attachments.js';
 import { openPicker } from './linkpicker.js';
@@ -144,7 +146,7 @@ const short = iso => dateText(new Date(`${iso}T12:00`), { weekday: 'short', day:
 const titleOf = c => (c.body.split('\n').map(l => l.replace(/^\s*[-*]\s+/, '').trim()).find(Boolean) || 'Comment').slice(0, 120);
 
 // What a comment has turned into, and when to check back, under its text.
-async function marks(c) {
+export async function commentMarks(c) {
   const out = [];
   const sub = c.sub_task_id && await store.get('tasks', c.sub_task_id);
   if (sub) out.push(`<span class="comment-mark">${sub.done_at ? '✓' : '↳'} Sub-task</span>`);
@@ -168,7 +170,7 @@ const grow = ta => { ta.style.height = 'auto'; ta.style.height = `${ta.scrollHei
 // Only the list is redrawn; the add box stays put, so typing carries on.
 async function draw(box) {
   const list = await commentsFor(ownerOf(box.dataset.comments));
-  const extra = await Promise.all(list.map(marks));
+  const extra = await Promise.all(list.map(commentMarks));
   const files = list.length ? await att.byParent() : new Map();
   box.querySelector('.comment-items').innerHTML = (list.length ? `<ol class="comment-list">${list.map((c, n) => `
       <li class="comment" data-comment="${c.id}" data-attach="comments:${c.id}">
@@ -178,7 +180,7 @@ async function draw(box) {
       </li>`).join('')}</ol>` : '');
 }
 
-function edit(box, li, c) {
+function edit(how, li, c, owner) {
   const body = li.querySelector('.comment-body');
   body.innerHTML = '<textarea class="comment-edit no-inline" rows="1" aria-label="Edit comment"></textarea>';
   const ta = body.querySelector('textarea');
@@ -191,50 +193,45 @@ function edit(box, li, c) {
     done = true;
     const text = boxText(ta).trim();
     if (save && !text && c.body) {
-      await draw(box);
+      await how.redraw();
       if (await askEmptied('comment')) {
         await store.remove('comments', c.id);
-        undoable('Comment deleted', async () => { await store.restore('comments', c.id); await draw(box); });
+        undoable('Comment deleted', async () => { await store.restore('comments', c.id); await how.redraw(); });
       }
-      return draw(box);
+      return how.redraw();
     }
     if (save && text && text !== c.body) {
       await store.update('comments', c.id, { body: text });
-      const made = await linkDetails({ ...c, body: text }, ownerOf(box.dataset.comments));
+      const made = await linkDetails({ ...c, body: text }, owner);
       undoable('Comment saved', async () => {
         await store.update('comments', c.id, { body: c.body });
         for (const id of made) await store.remove('contacts', id);
-        await draw(box);
+        await how.redraw();
       });
     }
-    await draw(box);
+    await how.redraw();
   };
   ta.addEventListener('input', ev => {
     grow(ta);
     const m = ev.inputType?.startsWith('insert') && ta.value.slice(0, ta.selectionStart).match(/(📞|📝|⚠️?)$/u);
-    if (m) linkSearch(box, ta, TRIGGERS[m[1]]);
+    if (m) linkSearch(how.host, ta, TRIGGERS[m[1]]);
   });
   ta.addEventListener('keydown', ev => {
     if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); finish(true); }
     if ((ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) || ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); finish(true); }
   });
-  ta.addEventListener('blur', () => setTimeout(() => { if (!box.querySelector('.ref-picker') && document.activeElement !== ta) finish(true); }));
+  ta.addEventListener('blur', () => setTimeout(() => { if (!how.host.querySelector('.ref-picker') && document.activeElement !== ta) finish(true); }));
 }
 
-async function act(box, v, c, owner) {
-  const changed = async () => { await draw(box); await box._changed?.(); };
+async function act(how, v, c, owner) {
+  const { changed } = how;
   const task = owner.task_id && await store.get('tasks', owner.task_id);
-  if (v === 'attach') return att.pick({ collection: 'comments', id: c.id }, () => draw(box));
+  if (v === 'attach') return att.pick({ collection: 'comments', id: c.id }, () => how.redraw());
   if (v === 'sub' && task) {
     const sub = await addTask({ title: titleOf(c), parent_task_id: task.id, project_id: task.project_id || null, milestone_id: task.milestone_id || null, horizon: task.horizon || 'now', from_comment_id: c.id });
     await store.update('comments', c.id, { sub_task_id: sub.id });
     await changed();
     undoable('Made a sub-task', async () => { await store.remove('tasks', sub.id); await store.update('comments', c.id, { sub_task_id: null }); await changed(); });
-  } else if (v === 'plan') {
-    const made = await addItem(isoDate(), { title: titleOf(c), from_comment_id: c.id, case_id: task?.case_id || null, contact_ids: task?.contact_ids || [] });
-    await store.update('comments', c.id, { plan_item_id: made.id });
-    await changed();
-    undoable("On today's plan", async () => { await store.remove('day_items', made.id); await store.update('comments', c.id, { plan_item_id: null }); await changed(); });
   } else if (v === 'back' || v === 'noback') {
     let date = null;
     if (v === 'back') {
@@ -317,29 +314,31 @@ function wire(box) {
   box.addEventListener('click', async ev => {
     const btn = ev.target.closest('[data-cmt="menu"]');
     if (!btn) return;
-    const li = btn.closest('[data-comment]');
-    const c = await store.get('comments', li.dataset.comment);
-    if (!c) return;
-    const owner = ownerOf(box.dataset.comments);
-    const options = [{ value: 'edit', label: 'Edit' }];
-    const all = owner.task_id ? await store.list('tasks') : [];
-    const roomBelow = owner.task_id && depthIn(all.find(t => t.id === owner.task_id), all) < MAX_DEPTH;
-    if (owner.task_id && !c.sub_task_id && roomBelow) options.push({ value: 'sub', label: '→ Sub-task', title: 'Make this a sub-task of the task' });
-    if (!c.plan_item_id) options.push({ value: 'plan', label: "→ Today's plan", title: "Put this on today's plan" });
-    if ((c.body || '').trim()) options.push({ value: 'share', label: 'Share…', title: 'Send its words to another device or app (AirDrop on an iPad or iPhone); copies them where sharing is not available' });
-    options.push({ value: 'attach', label: '📎 Attach…', title: 'Attach photos, PDFs, text or Word files (or drop them on the comment)' });
-    options.push({ value: 'back', label: c.check_back ? '⏰ Change check-back' : '⏰ Check back…', title: 'Bring the task back on a day, e.g. when waiting on someone' });
-    if (c.check_back) options.push({ value: 'noback', label: 'No check-back' });
-    options.push({ value: 'delete', label: 'Delete' });
-    pillMenu(btn, options, async v => {
-      if (v === 'edit') return edit(box, li, c);
-      if (v === 'share') return shareComment(c);
-      if (v !== 'delete') return act(box, v, c, owner);
-      await store.remove('comments', c.id);
-      await draw(box);
-      undoable('Comment deleted', async () => { await store.restore('comments', c.id); await draw(box); });
-    }, { className: 'comment-menu' });
+    const c = await store.get('comments', btn.closest('[data-comment]').dataset.comment);
+    if (c) commentMenu(btn, c, { host: box, redraw: () => draw(box), changed: async () => { await draw(box); await box._changed?.(); } });
   });
+}
+
+// The anchor sits in an element with data-comment, which holds the comment's words in .comment-body.
+export async function commentMenu(btn, c, how) {
+  const owner = c.task_id ? { task_id: c.task_id } : { item_id: c.item_id };
+  const options = [{ value: 'edit', label: 'Edit' }];
+  const all = owner.task_id ? await store.list('tasks') : [];
+  const roomBelow = owner.task_id && depthIn(all.find(t => t.id === owner.task_id), all) < MAX_DEPTH;
+  if (owner.task_id && !c.sub_task_id && roomBelow) options.push({ value: 'sub', label: '→ Sub-task', title: 'Make this a sub-task of the task' });
+  if ((c.body || '').trim()) options.push({ value: 'share', label: 'Share…', title: 'Send its words to another device or app (AirDrop on an iPad or iPhone); copies them where sharing is not available' });
+  options.push({ value: 'attach', label: '📎 Attach…', title: 'Attach photos, PDFs, text or Word files (or drop them on the comment)' });
+  options.push({ value: 'back', label: c.check_back ? '⏰ Change check-back' : '⏰ Check back…', title: 'Bring the task back on a day, e.g. when waiting on someone' });
+  if (c.check_back) options.push({ value: 'noback', label: 'No check-back' });
+  options.push({ value: 'delete', label: 'Delete' });
+  pillMenu(btn, options, async v => {
+    if (v === 'edit') return edit(how, btn.closest('[data-comment]'), c, owner);
+    if (v === 'share') return shareComment(c);
+    if (v !== 'delete') return act(how, v, c, owner);
+    await store.remove('comments', c.id);
+    await how.redraw();
+    undoable('Comment deleted', async () => { await store.restore('comments', c.id); await how.redraw(); });
+  }, { className: 'comment-menu' });
 }
 
 // Only marks that come in pairs and links go, so what was typed (a long licence key, say) arrives exactly as written.

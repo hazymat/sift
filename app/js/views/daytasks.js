@@ -105,7 +105,7 @@ export default {
       const note = oneLine(i.notes);
       // Updated: its latest comment, tick or change, as in a ticket queue.
       const last = [list.at(-1)?.at, i.done_at, i.updated_at, task?.updated_at].filter(Boolean).sort().at(-1);
-      return `<li class="adv-row${i.done_at ? ' done' : ''}" data-id="${i.id}" data-attach="new">
+      return `<li class="adv-row${i.done_at ? ' done' : ''}" data-id="${i.id}" data-attach="${task ? `tasks:${task.id}` : `day_items:${i.id}`}">
         <span class="drag-handle" role="button" tabindex="-1" aria-label="Choose or move">⠿</span>
         <input type="checkbox" class="tick" aria-label="Done"${i.done_at ? ' checked' : ''}>
         <span class="adv-status ${i.done_at ? 'closed' : 'open'}">${i.done_at ? 'Done' : 'To do'}</span>
@@ -115,9 +115,9 @@ export default {
         </div>
         <div class="adv-side">
           ${latest ? `<ol class="adv-latest" data-act="all" title="All comments">${latest}</ol>` : ''}
-          <div class="adv-quick">
+          <div class="adv-quick" data-attach="new">
             <input class="adv-quick-add no-inline" data-no-move placeholder="Add a comment…" aria-label="Add a comment" autocomplete="off">
-            <button type="button" class="adv-attach" data-act="attach" title="Attach photos, PDFs, text or Word files, as a comment with its time (or drop them on the row)">${icon('i-clip')}</button>
+            <button type="button" class="adv-attach" data-act="attach" title="Attach photos, PDFs, text or Word files, as a comment with its time (or drop them on this line)">${icon('i-clip')}</button>
             ${own.length ? att.countChip(own) : ''}
             ${list.length > LATEST ? `<button type="button" class="adv-all" data-act="all" title="All comments: add, edit, remove">All ${list.length}</button>` : ''}
           </div>
@@ -454,8 +454,8 @@ export default {
       document.body.append(picker);
       picker.click();
     }
-    // Files pasted (in its name, note or Add a comment line) or dropped on a card go in as a comment
-    // of their own, with what's typed in its Add a comment line, if anything (data-attach, attachments.js).
+    // Files pasted or dropped on a card go on the case; on its Add a comment line, in as a comment
+    // of their own, with what's typed on the line, if anything (data-attach, attachments.js).
     el.addEventListener('attach-files', async ev => {
       const id = ev.target.closest('.adv-row')?.dataset.id;
       if (!id) return;
