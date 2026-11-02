@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.62.15': [{ text: "View case, in Minimal: each comment is one line, its time then its words lined up, without the word Comment. Each item has a little more room." }],
   '1.62.14': [{ text: "Day Planner, Advanced: Minimal's counts (To do, Done, Updates, Scheduled) have colour and a background. The To do and Done pills beside each task are gone: the To do and Done headings already say.", go: '#/planner', at: '#main .advanced-link' }],
   '1.62.13': [{ text: "Day Planner, Advanced: Minimal now matches Tasks: the ⠿ always shows and rows sit on one square panel. In Tight spacing each row is one line: a mark for its note, and its latest comment, or Add a comment while pointing at the row." }],
   '1.62.12': [{ text: "Day Planner, Advanced: its own 👁 View button, with a Style (Cards, Lined paper, Minimal) and Spacing, kept separately from Tasks. View case uses the same style.", go: '#/planner', at: '#main .advanced-link' }],

@@ -5228,6 +5228,24 @@ html.case-open, html.case-open body { overflow: hidden; }
   .ctl-card::before { display: none; }
   .case-notes { border-bottom: 0; }
 }
+/* View case's items: the time, then the words on the same line and lined up; a comment's icon says what it is, so no word for it. */
+:is(#main, .case-page)[data-skin="minimal"] {
+  .ctl-item { padding: 9px 12px; margin-bottom: 3px; border-bottom: 0; }
+  .ctl-card { display: grid; grid-template-columns: max-content minmax(0, 1fr) auto; gap: 2px 12px; align-items: baseline; }
+  .ctl-head { display: contents; }
+  .ctl-head time { grid-column: 1; grid-row: 1; white-space: nowrap; }
+  .ctl-head b { grid-column: 2; grid-row: 1; }
+  .ctl-head .comment-more { grid-column: 3; grid-row: 1; margin: 0; }
+  .ctl-body { grid-column: 2; margin: 0; }
+  .ctl-item.is-said .ctl-head b { display: none; }
+  .ctl-item.is-said .ctl-body { grid-row: 1; }
+  .case-said { margin: 0; }
+}
+@media (max-width: 520px) { :is(#main, .case-page)[data-skin="minimal"] {
+  .ctl-card { grid-template-columns: minmax(0, 1fr) auto; }
+  .ctl-head .comment-more { grid-column: 2; }
+  .ctl-head b, .ctl-body, .ctl-item.is-said .ctl-body { grid-column: 1 / -1; grid-row: auto; }
+} }
 @media (min-width: 761px) { #main[data-skin="minimal"] .adv-row { grid-template-columns: 26px 20px minmax(0, 1fr) minmax(0, 38%) 74px 30px; } }
 @media (hover: hover) { #main[data-skin="minimal"] .adv-row:not(:hover, :focus-within) .adv-case-chip { opacity: 0; } }
 /* Every row's ⠿ shows (faint) all the time, as in Tasks' Minimal. */
@@ -5262,3 +5280,5 @@ html.case-open, html.case-open body { overflow: hidden; }
 #main[data-density="tight"] .adv-row { padding-block: 1px; }
 :is(#main, .case-page)[data-density="tight"] .ctl-item { padding-block: 2px; }
 :is(#main, .case-page)[data-density="loose"] { .adv-row { padding-block: 10px; } .ctl-item { padding-block: 9px; } }
+:is(#main, .case-page)[data-skin="minimal"][data-density="tight"] .ctl-item { padding-block: 6px; }
+:is(#main, .case-page)[data-skin="minimal"][data-density="loose"] .ctl-item { padding-block: 13px; }
