@@ -1308,10 +1308,10 @@ a.chip { color: var(--text); text-decoration: none; }
 /* A case (Contacts and Cases, 1.60.92): one control size everywhere (.kc-btn: 44px, 14px corners, glass), a hero
    card with the status built in, the New entry composer as the one raised surface, then the photos and the Timeline. */
 .kase-top, .kase { max-width: 760px; }
-.kase-top { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; }
+.kase-top { display: flex; align-items: center; gap: 8px; margin: 0 auto 14px; }
 .kase-top .spacer { flex: 1; }
 .kase-top .page-share { margin-left: 0; }
-.kase { --kc-h: 44px; --kc-r: 14px; display: block; }
+.kase { --kc-h: 44px; --kc-r: 14px; display: block; margin-inline: auto; }
 .kc-btn { height: var(--kc-h); min-height: var(--kc-h); display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; border-radius: var(--kc-r); border: 1px solid var(--glass-border); background: var(--glass); box-shadow: none; color: var(--text); font: inherit; font-size: .95rem; font-weight: 550; white-space: nowrap; cursor: pointer; }
 .kc-btn.round { width: var(--kc-h); padding: 0; border-radius: 999px; font-size: 1.15rem; }
 .kc-btn.primary { background: var(--accent); border-color: transparent; color: #0b1626; font-weight: 700; }
