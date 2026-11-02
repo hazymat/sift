@@ -4,6 +4,7 @@
 // filtered, searched, edited, pinned, and converted into a task, a day plan
 // item, a Find Things item or (select text) a contact.
 
+import { visibleHeight } from '../visible.js';
 import { cogHtml } from '../viewcog.js';
 import { shareHtml } from '../share.js';
 import * as store from '../store.js';
@@ -585,7 +586,7 @@ export default {
       el.append(pop);
       const r = anchor.getBoundingClientRect();
       const w = pop.offsetWidth, h = pop.offsetHeight;
-      const room = (visualViewport?.height ?? innerHeight) - 8;
+      const room = visibleHeight() - 8;
       pop.style.left = `${Math.max(8, Math.min(r.left, document.documentElement.clientWidth - w - 8))}px`;
       pop.style.top = `${r.bottom + 6 + h <= room ? r.bottom + 6 : Math.max(8, r.top - 6 - h)}px`;
       pop._anchor = anchor;

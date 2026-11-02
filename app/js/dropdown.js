@@ -8,6 +8,7 @@
 // Alt+↓ on a focused dropdown; ↑ ↓ Home End move, Enter picks, Esc or Tab or a
 // click elsewhere closes. Nothing else on the page sees clicks inside the list,
 // so panels and pills it belongs to stay open.
+import { visibleHeight } from './visible.js';
 
 const FINE = matchMedia('(any-pointer: fine)');
 let open = null; // { select, anchor, menu, active, host }
@@ -196,7 +197,7 @@ export function installMenuFlip() {
     menu.classList.add('placed'); // shown only now it's placed (CSS), so it never flashes the wrong way first
     const r = menu.getBoundingClientRect();
     const btn = d.getBoundingClientRect();
-    const room = (visualViewport?.height ?? innerHeight) - 8;
+    const room = visibleHeight() - 8;
     // Never under the top bar, or a bar stuck at the top of the page (unless the menu is in it).
     const bars = [...document.querySelectorAll('.appbar, .stuck')].filter(bar => !bar.contains(d));
     const top = Math.max(8, ...bars.map(bar => bar.getBoundingClientRect().bottom + 8));

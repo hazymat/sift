@@ -8,6 +8,7 @@
 //   With the cursor in the menu, ← / → (or ↑ / ↓) move between its pills, Enter picks.
 //   energyMenu(anchorEl, currentEnergy, onPick)   the energy picker used everywhere
 
+import { visibleHeight } from './visible.js';
 import { ENERGY } from './days.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -25,7 +26,7 @@ export function pillMenu(anchor, options, onPick, { focus = true, back = true, c
   // Under the anchor, or above it when there's no room below (e.g. from the
   // selection bar at the bottom of the screen).
   const below = r.bottom + 4;
-  const room = (visualViewport?.height ?? innerHeight) - 8;
+  const room = visibleHeight() - 8;
   menu.style.top = `${below + menu.offsetHeight <= room ? below : Math.max(8, r.top - 4 - menu.offsetHeight)}px`;
 
   const close = () => {
