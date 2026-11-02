@@ -114,7 +114,7 @@ Each paper sets fonts, colours, spacing and time format through tokens scoped to
 **Calendar awareness** (later): real appointments drawn on the timeline as busy blocks (read only). Scheduling an item over one warns, and the pile can suggest free slots that fit an item's estimate.
 
 - `days`: `id = date (YYYY-MM-DD, so every device edits the same record), date, focus, energy (high|medium|low)?, notes (markdown), paper? (override of the default paper style)`
-- `day_items`: `date (YYYY-MM-DD), title, notes?, time? (HH:MM), end_time?, estimate_min? (shown as Duration), estimate_unsure ("Not sure yet"), done_at?, dropped_at? (let go), sort_order, task_id?, case_id?, contact_ids[], source_thought_id?, carried_from? (date), merged_from[]? (ids of items combined into this one), gcal_id? (the Google Calendar event it was added from), not_in_advanced? (left out of Advanced day tasks; still in the Day Planner's Tasks)`
+- `day_items`: `date (YYYY-MM-DD), title, notes?, time? (HH:MM), end_time?, estimate_min? (shown as Duration), estimate_unsure ("Not sure yet"), done_at?, dropped_at? (let go), sort_order, task_id?, case_id?, contact_ids[], source_thought_id?, carried_from? (date), merged_from[]? (ids of items combined into this one), gcal_id? (the Google Calendar event it was added from), not_in_advanced? (removed from Advanced view; still in the Day Planner)`
   - No `time` = on the day's pile. With `time` = on the timeline, sorted by time.
   - Moving to another day = change `date` (carry-over also sets `carried_from`).
   - Separate records per item (not an array on the day) so edits from two devices merge per item.

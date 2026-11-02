@@ -4877,12 +4877,6 @@ html.kb-open :is(.sticky-top, .find-sticky, .dump-bar, .bb-sticky, .list-top, .b
 .adv-empty { margin: 0; padding: 10px 12px; border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent); }
 .adv-done-h { list-style: none; }
 .adv-done-h .adv-group { border-top: 1px solid var(--glass-border); }
-.adv-left-out .adv-group { border-top: 1px solid var(--glass-border); }
-.adv-out-list { list-style: none; margin: 0; padding: 0; }
-.adv-out-list li { display: flex; align-items: center; gap: 10px; padding: 6px 12px; border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent); font-size: .88rem; }
-.adv-out-list li:last-child { border-bottom: 0; }
-.adv-out-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.adv-out-list li.done .adv-out-name { text-decoration: line-through; opacity: .55; }
 .adv-drop-hint { margin: 0; padding: 8px 12px; font-size: .85rem; border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent); }
 /* The day's schedule: its own card, time then what. */
 .adv-schedule { position: sticky; top: 12px; padding: 0 0 4px; }

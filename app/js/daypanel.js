@@ -41,9 +41,9 @@ export function dayPanelHtml(i, { atts = [], durationMax, linked = false } = {})
         <button type="button" data-act="open-case" title="This task on a screen of its own: its note, its whole history, then its details">View case</button>
         <button type="button" data-act="to-task" title="Take it off this day and keep it as a task">→ Tasks</button>
         ${linked ? '<button type="button" data-act="make-unique" title="Keep only this copy: the original leaves Tasks or its project">Make unique</button>' : ''}
-        ${i.time ? '' : i.not_in_advanced
-          ? '<button type="button" data-act="advanced-in" title="Show it in Advanced again">Put back in Advanced</button>'
-          : '<button type="button" data-act="advanced-out" title="Not shown in Advanced: it stays in the Day Planner\'s Tasks">Leave out of Advanced</button>'}
+        ${i.not_in_advanced
+          ? '<button type="button" data-act="advanced-in" title="Show it in Advanced view">Add to Advanced view</button>'
+          : '<button type="button" data-act="advanced-out" title="It stays in the Day Planner, whose ⋯ panel can add it to Advanced view">Remove from Advanced view</button>'}
         <button type="button" data-act="archive-item" title="Take it off this day into the Archive">Archive</button>
         <button type="button" class="danger" data-act="delete">Delete</button>
       </div>
