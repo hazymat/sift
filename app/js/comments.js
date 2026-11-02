@@ -366,7 +366,8 @@ export async function mountComments(root, changed) {
     box._changed = changed;
     if (box._wired) continue;
     box._wired = true;
-    box.innerHTML = '<span class="panel-h">Comments</span><div class="comment-items"></div><div class="comment-add-row" data-attach="new"><textarea class="comment-add no-inline" rows="1" placeholder="Add a comment…" aria-label="Add a comment"></textarea><span class="comment-tools"><button type="button" data-cmt-link="contact" title="Link a contact (or type 📞)" aria-label="Link a contact">📞</button><button type="button" data-cmt-link="note" title="Link anything in Sift (or type 📝)" aria-label="Link anything">📝</button></span></div><div class="comment-pending muted" hidden></div>';
+    const addWord = box.closest('.adv') ? 'Add an update' : 'Add a comment'; // Advanced's cases have updates
+    box.innerHTML = `<span class="panel-h">Comments</span><div class="comment-items"></div><div class="comment-add-row" data-attach="new"><textarea class="comment-add no-inline" rows="1" placeholder="${addWord}…" aria-label="${addWord}"></textarea><span class="comment-tools"><button type="button" data-cmt-link="contact" title="Link a contact (or type 📞)" aria-label="Link a contact">📞</button><button type="button" data-cmt-link="note" title="Link anything in Sift (or type 📝)" aria-label="Link anything">📝</button></span></div><div class="comment-pending muted" hidden></div>`;
     wire(box);
     const ta = box.querySelector('.comment-add');
     ta._asText = () => boxText(ta);
