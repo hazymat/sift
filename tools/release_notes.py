@@ -1210,3 +1210,4 @@ NOTES['1.62.14'] = [F('Day Planner, Advanced: Minimal\'s counts have colour and 
 NOTES['1.62.15'] = [F('View case, in Minimal: each comment is one line, its time then its words lined up, without the word Comment. Each item has a little more room.')]
 NOTES['1.62.16'] = [F('Day Planner, Advanced: in Minimal and Lined paper, New task matches Tasks: a faint italic line with no box round it, even while typing.')]
 NOTES['1.62.17'] = [B('Day Planner: pressing and holding a task moved its tick box over the name, drew the outline round the whole list, and carried the task well to the right of and below the pointer. It now shades its row for half a second, lifts from where it was with the pointer on the same spot, and a dashed outline shows where it would drop.'), F('Day Planner: View case is gone from a task\'s full panel.')]
+NOTES['1.62.18'] = [F('Contacts and Cases: an open case sits in the middle of a wide window, as View case does, not against the left edge.')]
