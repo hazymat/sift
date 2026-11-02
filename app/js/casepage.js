@@ -252,22 +252,25 @@ export async function openCase(owner, { closed, back } = {}) {
         <h1 class="case-title"><span class="adv-status ${stateCls}">${state.word}</span> <span class="case-name${main.done_at ? ' done' : ''}">${esc(main.title)}</span></h1>
         ${main.deleted_at || main.dropped_at ? '' : `<button type="button" class="case-tick${main.done_at ? '' : ' primary'}" data-case="tick">${main.done_at ? 'Reopen case' : '✓ Mark case done'}</button>`}
       </div>
+      <div class="case-body"><div class="case-main">
       <section class="adv-card case-sec case-note" data-attach="${task ? 'tasks' : 'day_items'}:${main.id}"><div class="adv-card-h"><h2 class="adv-h">Note</h2></div>
         ${(main.notes || '').trim() ? `<div class="case-notes">${toHtml(unlink(main.notes))}</div>` : '<p class="case-notes muted">No note yet.</p>'}
         ${direct.length ? `<div class="case-attached">${att.rowHtml(direct, { addButton: false, parent: (task || item).id })}</div>` : ''}
       </section>
-      ${statsHtml()}
-      <section class="adv-card case-sec">
+      <section class="adv-card case-sec case-add-sec">
         <div class="case-add" data-attach="new">
           <input class="case-add-box no-inline" placeholder="Add a comment…" aria-label="Add a comment" autocomplete="off" enterkeyhint="send">
           <button type="button" class="case-attach" data-case="attach" title="Attach photos, PDFs, text or Word files, as a comment with its time (or drop them here)">${icon('i-clip')}</button>
         </div>
       </section>
-      <section class="adv-card case-sec"><div class="adv-card-h"><h2 class="adv-h">History</h2></div>
+      <section class="adv-card case-sec case-history"><div class="adv-card-h"><h2 class="adv-h">History</h2></div>
         <ol class="ctl">${historyHtml()}</ol>
       </section>
-      <section class="adv-card case-sec"><div class="adv-card-h"><h2 class="adv-h">Details</h2></div>${detailsHtml()}</section>
+      </div><div class="case-side">
+      ${statsHtml()}
+      <section class="adv-card case-sec case-details"><div class="adv-card-h"><h2 class="adv-h">Details</h2></div>${detailsHtml()}</section>
       <p class="case-honest muted">Ticks, comments, photos and files are kept with the task on every device. Edits to its details are listed only when made on this device (its History); "changed" beside each detail is the last time it changed on any device.</p>
+      </div></div>
     </div>`;
     const box = page.querySelector('.case-add-box');
     box.value = typedComment;
