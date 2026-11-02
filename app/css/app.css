@@ -3621,7 +3621,7 @@ dialog.att-view::backdrop { background: rgb(0 0 0 / .82); }
 .detail-more > summary:hover { background: var(--glass-hover); }
 .detail-more > summary .more-what { color: var(--muted); }
 .detail-more[open] > summary { margin-bottom: 10px; }
-.task-details > .detail-actions, .item-details > .detail-actions { margin: 12px calc(-1 * var(--pp-r, 12px)) calc(-1 * var(--pp-b, 12px)) calc(-1 * var(--pp-l, 12px)); padding: 9px var(--pp-r, 12px) 9px var(--pp-l, 12px); background: color-mix(in srgb, var(--text) 6%, transparent); border-top: 1px solid color-mix(in srgb, var(--text) 9%, transparent); border-radius: 0 0 13px 13px; max-width: none; }
+.task-details .detail-actions, .item-details > .detail-actions { margin: 12px calc(-1 * var(--pp-r, 12px)) calc(-1 * var(--pp-b, 12px)) calc(-1 * var(--pp-l, 12px)); padding: 9px var(--pp-r, 12px) 9px var(--pp-l, 12px); background: color-mix(in srgb, var(--text) 6%, transparent); border-top: 1px solid color-mix(in srgb, var(--text) 9%, transparent); border-radius: 0 0 13px 13px; max-width: none; }
 /* Tasks in Compact spacing: the name is only as wide as its text, with the 📝
    and the pills straight after it; a long name ends in "…" so they still show.
    (Browsers without field-sizing keep the pills at the far right.) */
@@ -3645,7 +3645,7 @@ dialog.att-view::backdrop { background: rgb(0 0 0 / .82); }
   .task-list > li.task-details { margin: 0 -16px 10px !important; max-width: none; border-left: 0; border-right: 0; border-radius: 0; }
   .task-list > li[data-task]:has(+ li.task-details)::before { left: -16px; right: -16px; border-left: 0; border-right: 0; border-radius: 0; }
   .task-list > li.task-details { --pp-l: 16px; --pp-r: 16px; }
-  .task-list > li.task-details > .detail-actions { border-radius: 0; }
+  .task-list > li.task-details .detail-actions { border-radius: 0; }
 }
 /* 222: the New task line under the list, once it's a sub-task, hangs from its
    task by the same fine L as the sub-tasks above it. */
@@ -5098,7 +5098,7 @@ html.case-open, html.case-open body { overflow: hidden; }
   .task-details .detail-more > summary { padding: 6px 0; border: 0; border-radius: 0; background: none; font-size: 12.5px; }
   .task-details .detail-more > summary:hover { background: none; color: var(--text); }
   .task-details .detail-more[open] > .detail-grid { padding-bottom: 8px; }
-  .task-details > .detail-actions { margin: 6px 0 0; padding: 8px 0 0; border-top: 1px solid var(--glass-border); background: none; gap: 6px; }
+  .task-details .detail-actions { margin: 6px 0 0; padding: 8px 0 0; border-top: 1px solid var(--glass-border); background: none; gap: 6px; }
   .task-details .detail-actions button { padding: 3px 10px; font-size: 12.5px; border-radius: 5px; box-shadow: none; }
   .task-list > li[data-task] :is(.pill-reveal, .pill-done, .more, .close-details) { padding: 1px 8px; font-size: 12px; border-radius: 5px; box-shadow: none; }
 }
@@ -5289,3 +5289,22 @@ html.case-open, html.case-open body { overflow: hidden; }
 #main:is([data-skin="lined"], [data-skin="minimal"]) #adv-new::placeholder { font-style: italic; color: color-mix(in srgb, var(--text) 22%, transparent); opacity: 1; }
 #main:is([data-skin="lined"], [data-skin="minimal"])[data-density="tight"] .adv-new { min-height: 35px; box-sizing: border-box; }
 #main:is([data-skin="lined"], [data-skin="minimal"])[data-density="tight"] #adv-new { padding-block: 2px; font-size: 14px; line-height: 20px; }
+
+/* Wide windows: a task's panel and View case in two columns, the words at a readable width (--read), details beside them. One column below 1300px, in the same order as ever (the wrappers step aside). A later full-width choice only has to change --read. */
+.case-body { display: flex; flex-direction: column; }
+.case-main, .case-side, .td-main, .td-side { display: contents; }
+.case-note { order: 1; } .case-stats { order: 2; } .case-add-sec { order: 3; } .case-history { order: 4; } .case-details { order: 5; } .case-honest { order: 6; }
+@media (min-width: 1300px) {
+  :root { --read: 800px; }
+  .case-wrap { max-width: none; }
+  .case-body { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; align-items: start; }
+  .case-main, .case-side { display: block; min-width: 0; }
+  .case-side { position: sticky; top: 12px; }
+  .case-side .case-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  :is(.case-notes > *, .case-said, .case-page .comment-edit) { max-width: var(--read); }
+  .case-side .case-props > div { grid-template-columns: 96px minmax(0, 1fr); }
+  .case-side .case-props .case-changed { grid-column: 2; white-space: normal; }
+  .task-list > li.task-details { display: grid; grid-template-columns: minmax(0, var(--read)) 340px; justify-content: center; column-gap: 24px; align-items: start; }
+  .task-details > :is(.td-main, .td-side) { display: block; min-width: 0; }
+  .task-list > li.task-details .detail-actions { margin: 12px 0 0; padding: 0; border: 0; background: none; }
+}

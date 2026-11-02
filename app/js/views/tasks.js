@@ -243,9 +243,11 @@ export default {
       const members = membersOf(t), owner = ownerOf(t);
       const moreSet = t.project_id || (t.contact_ids || []).length || owner || t.waiting_on || t.case_id || (t.priority && Number(t.priority) !== 3) || (t.status && t.status !== 'todo');
       return `
+        <div class="td-main">
         <div class="task-notes"></div>
         ${att.rowHtml(atts.get(t.id), { parent: t.id })}
         ${commentsHtml({ task_id: t.id })}
+        </div><div class="td-side">
         <div class="panel-sec detail-sec"><span class="panel-h">Details</span>
         <div class="energy-pick" role="group" aria-label="Energy"><span>Energy</span>
           ${ENERGY.map(e => `<button type="button" class="bolts" data-energy="${e.id}" aria-pressed="${t.energy === e.id}" title="${esc(`${e.label}: ${e.hint}`)}" aria-label="${e.label}">${e.bolts}</button>`).join('')}
@@ -280,6 +282,7 @@ export default {
           <span class="spacer"></span>
           <button type="button" data-act="archive">Archive</button>
           <button type="button" class="danger" data-act="delete">Delete</button>
+        </div>
         </div>`;
     }
 

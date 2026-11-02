@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.62.19': [{ text: "View case and a task's full panel, on a wide window: two columns. The note and comments at a readable width, with the details beside them. View case now fills the window, as Advanced's list does." }],
   '1.62.18': [{ text: "Contacts and Cases: an open case sits in the middle of a wide window, as View case does, not against the left edge.", go: '#/contacts/cases' }],
   '1.62.17': [{ text: "Day Planner: press and hold a task: the shading fills its row for half a second, then it lifts, right where it was and under the pointer, with a dashed outline where it would drop. The tick box no longer jumps over the name, and the outline no longer goes round the whole list. Fixed." },
     { text: "Day Planner: View case is gone from a task's full panel." }],
@@ -293,6 +294,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.62.19': '2026-11-02T12:28:47Z',
   '1.62.18': '2026-11-02T12:17:57Z',
   '1.62.17': '2026-11-02T12:13:08Z',
   '1.62.16': '2026-11-02T11:56:21Z',
