@@ -2440,6 +2440,7 @@ select:focus option:checked { background-color: var(--active-border, #35507a); }
 
 /* Numbered lists */
 .rich-edit ol, .thought-body ol, .note-body ol, .note-loose ol { margin: 0; padding-left: 1.6em; }
+:is(.md-ol, .rich-edit ol) > li + li { margin-top: .45em; } /* a little room between numbered items, with no blank line typed */
 :is(.rich-edit, .thought-body, .note-body, .note-medium, .note-loose, .item-note, .detail-notes, .task-notes, .list-notes, .thing-notes) ol { list-style-type: decimal; }
 :is(.rich-edit, .thought-body, .note-body, .note-loose) ol ol, :is(.rich-edit, .thought-body, .note-body, .note-loose) ul ol, :is(.rich-edit, .thought-body, .note-body, .note-loose) ol ul { margin: 0; padding-left: 1.4em; }
 :is(.rich-edit, .thought-body, .note-body, .note-loose) ol li::marker { font-family: system-ui, sans-serif; }

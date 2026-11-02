@@ -141,21 +141,23 @@ function inline(text) {
     .replace(/(^|[\s(])_(.+?)_(?=$|[\s).,!?:;])/g, '$1<i>$2</i>')); // web addresses as links (weburl.js)
 }
 
-// Bullet and numbered lines as nested lists. `items` are { d: depth, ordered, html };
+// Bullet and numbered lines as nested lists. `items` are { d: depth, ordered, n, html };
 // a line can only sit one level deeper than the one before it, and a list is
-// numbered or bulleted by the line that opens it.
+// numbered or bulleted by the line that opens it. A numbered list starts at the number
+// typed on that line, so one split by a blank line or some words carries on counting.
 function listHtml(items) {
   let html = '';
   const open = []; // the list tags open now, one per depth
-  for (const { d: want, ordered, html: text } of items) {
+  for (const { d: want, ordered, n, html: text } of items) {
     const tag = ordered ? 'ol' : 'ul';
+    const opening = ordered ? `<ol class="md-ol"${n !== 1 ? ` start="${n}"` : ''}>` : '<ul>';
     const d = Math.max(0, Math.min(want, open.length));
-    if (!open.length || d >= open.length) { html += `<${tag}>`; open.push(tag); }
+    if (!open.length || d >= open.length) { html += opening; open.push(tag); }
     else {
       html += '</li>';
       while (open.length - 1 > d) html += `</${open.pop()}></li>`;
       // Bulleted after numbered (or the other way round) at the same level: a new list.
-      if (open[d] !== tag) { html += `</${open.pop()}><${tag}>`; open.push(tag); }
+      if (open[d] !== tag) { html += `</${open.pop()}>${opening}`; open.push(tag); }
     }
     html += `<li>${text}`;
   }
@@ -168,7 +170,7 @@ export function toHtml(md) {
   const out = [];
   let list = null;
   const flush = () => { if (list) { out.push(listHtml(list)); list = null; } };
-  for (const line of (md || '').split('\n')) {
+  for (const line of (md || '').split(/\r?\n/)) {
     const big = line.match(/^#\s+(.*)$/);
     const sized = line.match(/^(-#|\+#|#\+)\s+(.*)$/);
     const label = line.match(/^#{2,6}\s+(.*)$/);
@@ -179,11 +181,11 @@ export function toHtml(md) {
       continue;
     }
     const bullet = line.match(/^(\s*)[-*]\s+(.*)$/);
-    const numbered = !bullet && line.match(/^(\s*)\d{1,3}[.)]\s+(.*)$/);
+    const numbered = !bullet && line.match(/^(\s*)(\d{1,3})[.)]\s+(.*)$/);
     const item = bullet || numbered;
     if (item) {
       list ??= [];
-      list.push({ d: Math.floor(item[1].replace(/\t/g, '  ').length / 2), ordered: !!numbered, html: inline(item[2]) || '<br>' });
+      list.push({ d: Math.floor(item[1].replace(/\t/g, '  ').length / 2), ordered: !!numbered, n: numbered ? Number(numbered[2]) : null, html: inline(item.at(-1)) || '<br>' });
       continue;
     }
     flush();
@@ -197,7 +199,7 @@ export function toMarkdown(root) {
   // A list's lines, two spaces of indent per level. (The browser nests a list either
   // inside an <li> or straight inside the <ul>; both come out the same.)
   const listLines = (ul, depth) => {
-    let n = 0;
+    let n = (ul.start ?? 1) - 1;
     return [...ul.children].flatMap(child => {
       if (child.tagName === 'UL' || child.tagName === 'OL') return listLines(child, depth + 1);
       if (child.tagName !== 'LI') return [];
@@ -648,12 +650,14 @@ export function richText(container, { value = '', onChange, placeholder = '', or
     const node = sel.anchorNode;
     if (!sel.rangeCount || !sel.isCollapsed || node?.nodeType !== Node.TEXT_NODE || !edit.contains(node) || inList(node)) return;
     const typed = lineBefore(node, sel.anchorOffset);
-    const m = /^(?:([-*])|\d{1,3}[.)])[ \u00a0]/.exec(typed);
+    const m = /^(?:([-*])|(\d{1,3})[.)])[ \u00a0]/.exec(typed);
     if (!m) return;
     const list = m[1] ? 'insertUnorderedList' : 'insertOrderedList';
+    const startAtTyped = () => { const ol = getSelection().anchorNode?.parentElement?.closest('ol'); if (ol?.children.length === 1 && m[2] && Number(m[2]) !== 1) ol.start = Number(m[2]); }; // joined onto a list just above: that list's numbers stand
     if (typed.length === m[0].length) {
       for (let k = 0; k < typed.length; k++) document.execCommand('delete');
       document.execCommand(list);
+      startAtTyped();
       return true;
     }
     // More was typed after the marker: only when the marker starts this bit of
@@ -667,6 +671,7 @@ export function richText(container, { value = '', onChange, placeholder = '', or
     sel.addRange(r);
     document.execCommand('delete');
     document.execCommand(list);
+    startAtTyped();
     // The cursor is now at the start of the new bullet: back to where it was.
     const now = getSelection();
     if (node.isConnected && now.anchorNode === node) now.collapse(node, Math.min(keep, node.nodeValue.length));
