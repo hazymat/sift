@@ -2,9 +2,10 @@
 // and its actions. The same panel in the Day Planner and in Advanced day tasks; each
 // view wires its own buttons (data-act) and fields (name=…, data-item-energy).
 //
-//   dayPanelHtml(item, { atts, durationMax, linked })
+//   dayPanelHtml(item, { atts, durationMax, linked, viewCase })
 //     atts: the item's attachments; durationMax: daySettings' duration_max_min;
 //     linked: brought in from Tasks or a project (adds Make unique)
+//     viewCase: false leaves out View case (the Day Planner)
 
 import { ENERGY, durationChoices, durationLabel } from './days.js';
 import * as att from './attachments.js';
@@ -13,7 +14,7 @@ import { commentsHtml } from './comments.js';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 // Time and Until only on the schedule: a day task gets its time by being dragged onto it.
-export function dayPanelHtml(i, { atts = [], durationMax, linked = false } = {}) {
+export function dayPanelHtml(i, { atts = [], durationMax, linked = false, viewCase = true } = {}) {
   const mins = [...new Set([...durationChoices(durationMax), ...(i.estimate_min ? [Number(i.estimate_min)] : [])])].sort((a, b) => a - b);
   return `
     <div class="item-details" data-for="${i.id}" data-attach="day_items:${i.id}">
@@ -38,7 +39,7 @@ export function dayPanelHtml(i, { atts = [], durationMax, linked = false } = {})
         ${i.dropped_at
           ? '<button type="button" data-act="take-back" title="It needs doing after all">Take back</button>'
           : i.done_at ? '' : '<button type="button" data-act="let-go" title="Didn\'t do it and it doesn\'t need doing any more">Let go</button>'}
-        <button type="button" data-act="open-case" title="This task on a screen of its own: its note, its whole history, then its details">View case</button>
+        ${viewCase ? '<button type="button" data-act="open-case" title="This task on a screen of its own: its note, its whole history, then its details">View case</button>' : ''}
         <button type="button" data-act="to-task" title="Take it off this day and keep it as a task">→ Tasks</button>
         ${linked ? '<button type="button" data-act="make-unique" title="Keep only this copy: the original leaves Tasks or its project">Make unique</button>' : ''}
         ${i.not_in_advanced

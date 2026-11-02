@@ -540,7 +540,7 @@ const dayPlanner = {
     }
 
     // The full panel (daypanel.js, shared with Advanced day tasks).
-    const details = i => dayPanelHtml(i, { atts: atts.get(i.id), durationMax: settings.duration_max_min, linked: !!i.task_id });
+    const details = i => dayPanelHtml(i, { atts: atts.get(i.id), durationMax: settings.duration_max_min, linked: !!i.task_id, viewCase: false });
 
     // 👁 Layout: a task ticked off in the Tasks list also shows on the schedule, crossed out, at the
     // time it was ticked (that day only). Its own row, so a slot can hold any number; inside an item
@@ -1617,7 +1617,6 @@ const dayPlanner = {
       }
       else if (act === 'details') { if (editing === id) closeDetails(); else { editing = id; refresh(); } }
       else if (act === 'close-details') closeDetails();
-      else if (act === 'open-case') (await import('../casepage.js')).openCase({ item_id: id }, { closed: () => refresh() });
       else if (act === 'make-unique') { editing = null; await uniqueItems([id]); }
       else if (act === 'advanced-out' || act === 'advanced-in') {
         editing = null;
@@ -2101,7 +2100,7 @@ const dayPlanner = {
         resizing = { item, startY: ev.clientY, base: duration(item), minutes: null, lineH };
         return;
       }
-      press = { id: item.id, x: ev.clientX, y: ev.clientY, rowH: row.getBoundingClientRect().height, dragging: false, body: !grip.closest('.drag-grip') }; // body: pressed on an armed item itself
+      press = { id: item.id, x: ev.clientX, y: ev.clientY, row: rowPlace(row, ev.clientX, ev.clientY), dragging: false, body: !grip.closest('.drag-grip') }; // body: pressed on an armed item itself
     });
 
     el.addEventListener('pointermove', ev => {
@@ -2116,6 +2115,12 @@ const dayPlanner = {
       }
       carry(ev.clientX, ev.clientY);
     });
+    // Where a pressed row is, so what's carried starts exactly over it and keeps the pointer on the same spot of it.
+    function rowPlace(row, x, y) {
+      const box = row.getBoundingClientRect();
+      const title = row.querySelector('.item-title');
+      return { dx: x - box.left, dy: y - box.top, width: box.width, height: box.height, pad: title ? title.getBoundingClientRect().left - box.left : 12, font: title ? getComputedStyle(title).fontSize : '' };
+    }
     // Pick up: the selection if this item is in it, otherwise just this one.
     function pickUp() {
       press.dragging = true;
@@ -2125,6 +2130,11 @@ const dayPlanner = {
       ghost.className = 'pickup-stack';
       ghost.innerHTML = carried.slice(0, 4).map(i => `<div class="pickup-row hand">${esc(i.title)}${i.time ? ` <span class="span-tag">${fmt(i.time)}</span>` : ''}</div>`).join('')
         + (carried.length > 4 ? `<div class="pickup-more">+ ${carried.length - 4} more</div>` : '');
+      const place = press.row;
+      Object.assign(ghost.style, { width: `${place.width}px`, transformOrigin: `${place.dx}px ${place.dy}px` });
+      ghost.style.setProperty('--pick-pad', `${place.pad}px`);
+      ghost.style.setProperty('--pick-h', `${place.height}px`);
+      if (place.font) ghost.style.setProperty('--pick-font', place.font);
       document.body.append(ghost);
       press.ghost = ghost;
       press.ids.forEach(id => lifted.add(id));
@@ -2134,8 +2144,7 @@ const dayPlanner = {
     }
     // The picked-up stack follows the pointer; the day shows where it would land.
     function carry(x, y) {
-      const w = Math.min(420, $('.paper').getBoundingClientRect().width - 80);
-      Object.assign(press.ghost.style, { left: `${x - 20}px`, top: `${y - press.rowH / 2}px`, width: `${w}px` });
+      Object.assign(press.ghost.style, { left: `${x - press.row.dx}px`, top: `${y - press.row.dy}px` });
       press.target = targetAt(x, y);
       showPreview(press.target);
     }
@@ -2144,7 +2153,8 @@ const dayPlanner = {
     el.dataset.holdDrag = ''; // holding an item's text drags it, not opens its panel (holdopen.js)
     const hold = holdToLift(el, {
       rowAt: t => (t.closest('.line.has-item[data-item] > .content') && !t.closest('.line.armed') ? t.closest('.line.has-item[data-item]') : null),
-      shadeOf: row => row.querySelector(':scope > .content'),
+      shadeOf: row => (row.closest('.pile-paper') ? row : row.querySelector(':scope > .content')), // a task's tick is placed by its row: the shade mustn't take that over
+      ms: 500,
       skip: `${HOLD_SKIP}, .drag-grip, .resize-grip, .margin, .note-edit`,
       busy: () => !!press || !!resizing,
       onLift: (row, x, y, pointerId) => {
@@ -2152,7 +2162,7 @@ const dayPlanner = {
         if (!item) return;
         try { el.setPointerCapture(pointerId); } catch {}
         this.pills?.close?.();
-        press = { id: item.id, x, y, rowH: row.getBoundingClientRect().height, dragging: false, body: true };
+        press = { id: item.id, x, y, row: rowPlace(row, x, y), dragging: false, body: true };
         pickUp();
         carry(x, y);
       },

@@ -1127,7 +1127,6 @@ kbd { font: inherit; font-size: .72em; line-height: 1.2; vertical-align: middle;
 }
 .drag-source { opacity: .35; }
 .line.drop-target { background: var(--active-bg); }
-#pile.drop-target { outline: 2px dashed var(--active-border); outline-offset: 2px; }
 .line.will-cover .content { border-left: 3px solid var(--active-border); margin-left: 10px; background: var(--glass-track); }
 
 
@@ -1500,11 +1499,14 @@ li[data-id]:hover .kit-grip { opacity: .8; }
   transform: rotate(-1.2deg);
   filter: drop-shadow(0 14px 24px rgba(0, 0, 0, .35));
 }
-.pickup-row { padding: 6px 12px; border-radius: 12px; background: var(--glass-strong); border: 1px solid var(--active-border); font-size: 1.05rem; color: var(--text); }
+.pickup-row { box-sizing: border-box; display: flex; align-items: center; gap: 8px; min-height: var(--pick-h, auto); padding: 2px 12px 2px var(--pick-pad, 12px); border-radius: 12px; background: var(--glass-strong); border: 1px solid var(--active-border); font-size: var(--pick-font, 1.05rem); color: var(--text); }
 .pickup-more { font-size: .75rem; color: var(--muted); padding-left: 12px; }
 .pickup-stack[data-when]::before {
   content: attr(data-when);
-  justify-self: end;
+  position: absolute; /* beside the row, never pushing it from under the pointer */
+  right: 0;
+  bottom: 100%;
+  margin-bottom: 3px;
   padding: 1px 10px;
   border-radius: 999px;
   font-size: .75rem;
@@ -2075,7 +2077,7 @@ li.dragging[data-drop-label]:not([data-drop-label=""])::after {
 .pile-paper .pile-list .line:last-child { border-bottom: 1px solid var(--rule); }
 .pile-new .new-task { flex: 1; min-width: 0; background: transparent; border-color: transparent; font-size: 1.1rem; padding: 4px 6px; color: var(--text); }
 .pile-new .new-task:focus { background: var(--glass-track); border-color: var(--active-border); }
-.pile-gap { height: 2.375rem; border-bottom: 1px solid var(--rule); background: color-mix(in srgb, var(--accent) 14%, transparent); list-style: none; }
+.pile-gap { box-sizing: border-box; height: 2.375rem; border: 2px dashed var(--active-border); background: color-mix(in srgb, var(--accent) 14%, transparent); list-style: none; } /* where it would drop (the same dashed outline as .drop-slot) */
 .pile-done li[data-pile] { opacity: .75; }
 .pile h2 .task-count, .done-toggle .task-count {
   font-family: var(--font);

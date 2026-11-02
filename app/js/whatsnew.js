@@ -25,6 +25,8 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.62.17': [{ text: "Day Planner: press and hold a task: the shading fills its row for half a second, then it lifts, right where it was and under the pointer, with a dashed outline where it would drop. The tick box no longer jumps over the name, and the outline no longer goes round the whole list. Fixed." },
+    { text: "Day Planner: View case is gone from a task's full panel." }],
   '1.62.16': [{ text: "Day Planner, Advanced: in Minimal and Lined paper, New task matches Tasks: a faint italic line with no box round it, even while typing.", go: '#/planner', at: '#main .advanced-link' }],
   '1.62.15': [{ text: "View case, in Minimal: each comment is one line, its time then its words lined up, without the word Comment. Each item has a little more room." }],
   '1.62.14': [{ text: "Day Planner, Advanced: Minimal's counts (To do, Done, Updates, Scheduled) have colour and a background. The To do and Done pills beside each task are gone: the To do and Done headings already say.", go: '#/planner', at: '#main .advanced-link' }],
