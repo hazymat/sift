@@ -356,7 +356,7 @@ export async function openCase(owner, { closed, back } = {}) {
   }, sig);
   // Esc: out of the comment line first (what's typed stays), then closes. Not while a file or a question is open over it.
   addEventListener('keydown', ev => {
-    if (ev.key !== 'Escape' || document.querySelector('dialog[open], .pill-menu, .ref-picker')) return;
+    if (ev.key !== 'Escape' || document.querySelector('dialog[open], .pill-menu, .ref-picker, .rich.is-full')) return;
     ev.preventDefault();
     ev.stopImmediatePropagation();
     if (ev.target.closest?.('.case-page :is(input, textarea, [contenteditable="true"])')) ev.target.blur(); else leave();
