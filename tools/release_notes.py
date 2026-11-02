@@ -1197,3 +1197,4 @@ NOTES['1.62.01'] = [F('Day Planner, Bring items in: headings, project panels, Do
 NOTES['1.62.02'] = [F('Contacts and Cases: Edit references and people is gone from an open case\'s menu; the Edit chip beside the references and people does the same job.')]
 NOTES['1.62.03'] = [B('Tasks: after opening a contact or a case, going to Tasks could show only New task, with no Tasks | Projects, section tabs or menus until the page was reloaded. Fixed.')]
 NOTES['1.62.04'] = [B('Day Planner: pointing at a task with only 📝 or 📎 beside it no longer puts More on top of them. More sits just before them, so pressing 📎 opens the files, and they stay on the name\'s line.')]
+NOTES['1.62.05'] = [F('Day Planner, Advanced: a task can be left out of Advanced with Leave out on the Selections bar or Leave out of Advanced in its ⋯ panel. It stays in the Day Planner\'s Tasks. Left out at the bottom of Advanced, or the Day Planner\'s ⋯ panel, puts it back.')]

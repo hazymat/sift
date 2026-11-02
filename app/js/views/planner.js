@@ -1619,6 +1619,11 @@ const dayPlanner = {
       else if (act === 'close-details') closeDetails();
       else if (act === 'open-case') (await import('../casepage.js')).openCase({ item_id: id }, { closed: () => refresh() });
       else if (act === 'make-unique') { editing = null; await uniqueItems([id]); }
+      else if (act === 'advanced-out' || act === 'advanced-in') {
+        editing = null;
+        const it = items.find(i => i.id === id);
+        await change(id, { not_in_advanced: act === 'advanced-out' ? true : null }, `${act === 'advanced-out' ? 'Left out of' : 'Put back in'} Advanced: ${it?.title || 'item'}`);
+      }
       else if (act === 'unschedule') { editing = null; await change(id, { time: null, end_time: null }, 'Time unallocated'); }
       else if (act === 'archive-item') {
         editing = null;
