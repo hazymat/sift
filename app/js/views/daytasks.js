@@ -19,7 +19,7 @@ import { debounced } from '../autosave.js';
 import * as att from '../attachments.js';
 import { createListKit, typingIn } from '../listkit.js';
 import { byRank, rankOf, reorderWrites, firstKey, keyBetween } from '../order.js';
-import { layoutOn } from '../viewcog.js';
+import { layoutOn, cogHtml } from '../viewcog.js';
 import { tickWave, fadeFold } from '../tickwave.js';
 import { commentsHtml, mountComments, commentsFor, closingComment, attachAsComment, moveComments } from '../comments.js';
 import { deleteLinked, deleteAll, makeUnique } from '../link.js';
@@ -61,6 +61,7 @@ export default {
         </div>
         <span class="spacer"></span>
         <button type="button" class="share-btn" data-act="share" title="Share or export this day's tasks"><svg class="icon" aria-hidden="true"><use href="#i-share"/></svg><span class="share-word"> Share</span></button>
+        ${cogHtml('advanced')}
       </div>
       <h1 class="adv-day"><span class="adv-date"></span> <span class="adv-word muted">Advanced</span></h1>
       <div class="adv-stats" aria-label="This day at a glance"></div>

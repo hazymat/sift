@@ -17,6 +17,7 @@ import { toHtml } from './richtext.js';
 import { undoable, toast } from './toast.js';
 import * as att from './attachments.js';
 import { attachAsComment, commentMenu, commentMarks } from './comments.js';
+import { skinOf, densityOf, layoutOn } from './viewcog.js';
 import { ENERGY, dateText, dateTimeText, parseDate, durationLabel, showTime, isoDate } from './days.js';
 import { STATUSES, PRIORITIES, horizons, doneFields, projectMembers } from './tasks.js';
 import { repeatLabel } from './repeat.js';
@@ -237,6 +238,10 @@ export async function openCase(owner, { closed, back } = {}) {
     const where = task ? (data.project ? `📁 ${esc(data.project.name)}` : 'Tasks') : 'Day Planner only';
     const direct = [...data.ids].flatMap(id => files.get(id) || []);
     page.setAttribute('aria-label', `Task: ${main.title}`);
+    // Advanced's 👁 style and spacing, wherever it was opened from.
+    page.dataset.skin = skinOf('advanced');
+    page.dataset.density = densityOf('advanced');
+    page.toggleAttribute('data-layout-alt', layoutOn('advanced', 'alt'));
     const stateCls = state.cls === 'open' ? 'open' : state.cls === 'closed' ? 'closed' : 'gone';
     page.innerHTML = `<div class="case-wrap">
       <div class="case-top">

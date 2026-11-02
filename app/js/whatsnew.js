@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.62.12': [{ text: "Day Planner, Advanced: its own 👁 View button, with a Style (Cards, Lined paper, Minimal) and Spacing, kept separately from Tasks. View case uses the same style.", go: '#/planner', at: '#main .advanced-link' }],
   '1.62.11': [{ text: "Notes and comments: a numbered list with blank lines or words between its items showed every item as 1. It now keeps the numbers you typed. Fixed. Numbered items also have a little space between them, with no blank line needed." }],
   '1.62.10': [{ text: "View case: the task's note is at the top. Paste or drop a file on the note to attach it to the case, on a comment to attach it to that comment, or on Add a comment to make a new comment; a blue dashed box shows where it will go.", more: "Day Planner, Advanced: a file dropped on a case, or pasted in its name or note, now goes on the case; on its Add a comment line, it goes in as a comment." }],
   '1.62.09': [{ text: "View case: History is now a timeline like a case under Contacts and Cases, and each comment has the ⋯ menu: Edit, Share…, Attach, Check back, Delete. The Share… button under each comment is gone. Comments: → Today's plan is gone from the ⋯ menu." }],
@@ -285,6 +286,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.62.12': '2026-11-02T11:20:29Z',
   '1.62.11': '2026-11-02T11:15:38Z',
   '1.62.10': '2026-11-02T10:06:23Z',
   '1.62.09': '2026-11-02T10:06:23Z',
