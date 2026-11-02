@@ -5313,3 +5313,13 @@ html.case-open, html.case-open body { overflow: hidden; }
   .case-attach { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
   .comment-edit, .case-note-edit :is(.rich-edit, .rich-raw) { border-radius: 0; }
 }
+
+/* Advanced and View case in Minimal: no curves at all, including what floats over the page (menus, sheets, the bars, the drop marks). Only the press-and-hold splash stays round. */
+:root:has(#main[data-skin="minimal"] .adv, .case-page[data-skin="minimal"]) {
+  :is(#main, .case-page, .pill-menu, .select-bar, .toast, .drop-box, .drop-slot, .drag-ghost, .file-drop-hint, dialog),
+  :is(#main, .case-page, .pill-menu, .select-bar, .toast, .drag-ghost, dialog) *:not(.hold-ripple > span, .hold-waves > span),
+  :is(#main, .case-page, .pill-menu, .select-bar, .toast, .drag-ghost, dialog) *:not(.hold-ripple > span, .hold-waves > span)::before,
+  :is(#main, .case-page, .pill-menu, .select-bar, .toast, .drag-ghost, dialog) *:not(.hold-ripple > span, .hold-waves > span)::after { border-radius: 0 !important; }
+  input[type="radio"] { appearance: none; -webkit-appearance: none; flex: none; width: 14px; height: 14px; margin: 0; border: 1px solid var(--glass-border); background: transparent; }
+  input[type="radio"]:checked { border: 4px solid var(--accent); }
+}

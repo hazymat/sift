@@ -1215,3 +1215,4 @@ NOTES['1.62.19'] = [F('View case and a task\'s full panel, on a wide window: two
 NOTES['1.62.20'] = [F('View case: click the note to edit it, or to add one. In Minimal, Add a comment is a plain line with no rounded box.')]
 NOTES['1.62.21'] = [F('Day Planner, Advanced: Add a comment is now Add an update, and View case is back to one column in the middle of the page. Tasks: on a wide window a task\'s full panel keeps its fixed width and sits on the left.')]
 NOTES['1.62.22'] = [B("iPad: the ⋯, Share and 👁 menus at the top right stopped opening after Split View or switching apps, until Sift was closed: the iPad could get stuck saying a keyboard covered the screen, and the menus opened out of sight under the top bar (#499).")]
+NOTES['1.62.23'] = [F('Day Planner, Advanced and View case, in Minimal: no curved corners anywhere: tick boxes, buttons, pills, fields, panels, menus and sheets are all square.')]
