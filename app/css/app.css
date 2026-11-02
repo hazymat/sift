@@ -5179,3 +5179,50 @@ html.case-open, html.case-open body { overflow: hidden; }
 .bring-proj > summary::-webkit-details-marker { display: none; }
 .bring-proj > summary::before { content: '▸'; display: inline-block; width: 1em; color: var(--muted); transition: transform .15s; }
 .bring-proj[open] > summary::before { transform: rotate(90deg); }
+
+/* Advanced and View case in 👁 Style (viewcog.js; View case has no #main, so its marks are its own). Cards is their plain look, above. */
+:is(#main, .case-page)[data-skin="lined"] {
+  .adv-card { border-width: 1px 0; border-color: var(--rule); border-radius: 0; background: transparent; }
+  .adv-stat { border-width: 0 0 0 3px; border-radius: 0; background: transparent; }
+  :is(.adv-new, .adv-cols, .adv-group, .adv-card-h, .adv-sched li, .adv-empty, .adv-drop-hint, .adv-row, .case-notes) { border-bottom: 1px solid var(--rule); }
+  :is(.adv-group, .adv-count) { background: transparent; }
+  .adv-done-h .adv-group { border-top: 0; }
+  .adv-side { border-left-color: var(--rule); }
+  .adv-row:nth-child(even of .adv-row) { background-color: transparent; }
+  .ctl-card { border-width: 0 0 1px; border-color: var(--rule); border-radius: 0; background: transparent; padding-inline: 2px; }
+  .ctl-card::before { display: none; }
+  .ctl-icon { background: transparent; }
+}
+:is(#main, .case-page)[data-skin="lined"][data-layout-alt] {
+  .adv-row:nth-child(even of .adv-row) { background-color: color-mix(in srgb, var(--text) 5%, transparent); }
+  .ctl-item:nth-child(even of .ctl-item) .ctl-card { background: color-mix(in srgb, var(--text) 5%, transparent); }
+}
+#main[data-skin="lined"][data-layout-margin] .adv-row { background-image: linear-gradient(to right, transparent 135px, var(--margin-rule) 135px, var(--margin-rule) 136.5px, transparent 136.5px); }
+@media (max-width: 760px) { #main[data-skin="lined"][data-layout-margin] .adv-row { background-image: linear-gradient(to right, transparent 67px, var(--margin-rule) 67px, var(--margin-rule) 68.5px, transparent 68.5px); } }
+:is(#main, .case-page)[data-skin="minimal"] {
+  .adv-card { border: 0; border-radius: 0; background: transparent; }
+  .adv-stats { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-bottom: 10px; max-width: none; }
+  .adv-stat { flex-direction: row; align-items: baseline; gap: 5px; padding: 0; border: 0; border-radius: 0; background: transparent; }
+  .adv-stat b { font-size: .95rem; font-weight: 600; }
+  .adv-cols { display: none; }
+  .adv-row .adv-status { display: none; }
+  .adv-row { padding: 3px 10px; border-bottom-color: color-mix(in srgb, var(--text) 10%, transparent); }
+  .adv-title { font-weight: 400; }
+  .adv-side { border-left: 0; }
+  :is(.adv-group, .adv-count) { background: transparent; border-color: transparent; }
+  :is(.adv-new, .adv-card-h, .adv-done-h .adv-group) { border-color: transparent; }
+  .adv-sched li { border-bottom: 0; padding-block: 3px; }
+  .ctl { padding: 2px 12px 10px; }
+  :is(.ctl-month, .ctl-item)::before { display: none; }
+  .ctl-month { padding: 10px 0 2px; }
+  .ctl-item { grid-template-columns: 20px minmax(0, 1fr); gap: 8px; padding: 5px 0; border-bottom: 1px solid color-mix(in srgb, var(--text) 10%, transparent); }
+  .ctl-icon { width: 20px; height: 20px; border: 0; border-radius: 0; background: transparent; box-shadow: none; font-size: .9rem; }
+  .ctl-card { padding: 0; border: 0; border-radius: 0; background: transparent; }
+  .ctl-card::before { display: none; }
+  .case-notes { border-bottom: 0; }
+}
+@media (min-width: 761px) { :is(#main)[data-skin="minimal"] .adv-row { grid-template-columns: 20px 24px minmax(0, 1fr) minmax(0, 38%) 74px 30px; } }
+@media (hover: hover) { #main[data-skin="minimal"] .adv-row:not(:hover, :focus-within) .adv-case-chip { opacity: 0; } }
+/* 👁 Spacing, in any style. */
+:is(#main, .case-page)[data-density="tight"] { .adv-row { padding-block: 1px; } .ctl-item { padding-block: 2px; } }
+:is(#main, .case-page)[data-density="loose"] { .adv-row { padding-block: 10px; } .ctl-item { padding-block: 9px; } }

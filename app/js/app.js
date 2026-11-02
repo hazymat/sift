@@ -459,7 +459,8 @@ async function route(force = false) {
   if (sheet.open) sheet.close();
   $('#topnav-more-menu').parentElement.removeAttribute('open');
   if (next.id === current && force !== true) {
-    currentView?.route?.(rest); // same area, deeper path (e.g. a box)
+    applyDensity(); // the Day Planner's Advanced has its own view choices
+    Promise.resolve(currentView?.route?.(rest)).then(() => applyDensity()); // same area, deeper path (e.g. a box); a view may swap #main
     return;
   }
 
@@ -683,7 +684,7 @@ async function boot() {
       else { openMoreSheet(); more.focus(); }
     });
   }
-  applyDensity = installViewCog(() => current);
+  applyDensity = installViewCog(() => (current === 'planner' && /^#\/planner\/[^/]*\/advanced/.test(location.hash) ? 'advanced' : current));
   installShare(() => current);
   installKeyNav();
   installSwipe();

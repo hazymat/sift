@@ -96,6 +96,10 @@ const LAYOUTS = {
     { id: 'alt', label: 'Alternate shading', skin: 'lined', def: area => localStorage.getItem(shadeKey(area)) === 'alt' }, // was a Look
     { id: 'added-flash', label: 'Highlight item when added', def: true },
   ],
+  advanced: [
+    { id: 'margin', label: 'Show margin', skin: 'lined', def: true },
+    { id: 'alt', label: 'Alternate shading', skin: 'lined' },
+  ],
   recipes: [
     { id: 'lined', label: 'Lined paper', def: true },
     { id: 'margin', label: 'Show margin', def: true, needs: 'lined' },
@@ -139,7 +143,7 @@ export function layoutHtml(area, heading = true) {
   return `${heading ? '<h4>Layout</h4>' : ''}${optHtml(area, opts, 'Layout')}`;
 }
 
-// Styles (skins) for pages of rows: Tasks (its projects too), Lists and Brain Dump (Cards and Minimal). One is picked in 👁 Style,
+// Styles (skins) for pages of rows: Tasks (its projects too), Lists, Brain Dump (Cards and Minimal) and the Day Planner's Advanced (its own choice, View case follows it). One is picked in 👁 Style,
 // put on <main data-skin>; lined: true styles also set data-layout-lined (the paper CSS). A style's
 // own options are LAYOUTS entries with skin: <its id>, shown under the picker only while it's picked.
 // forces: Layout switches the style sets itself (hidden from Layout while it's picked); areas: where
@@ -147,10 +151,10 @@ export function layoutHtml(area, heading = true) {
 // A new style: add it here (sample: the pill's own look) and its CSS under #main[data-skin="<id>"].
 export const SKINS = [
   { id: 'cards', label: 'Cards' },
-  { id: 'lined', label: 'Lined paper', lined: true, areas: ['tasks', 'lists'] },
+  { id: 'lined', label: 'Lined paper', lined: true, areas: ['tasks', 'lists', 'advanced'] },
   { id: 'minimal', label: 'Minimal', lined: true, forces: { 'add-top': true, pad: false } },
 ];
-const SKIN_AREAS = ['tasks', 'lists', 'dump'];
+const SKIN_AREAS = ['tasks', 'lists', 'dump', 'advanced'];
 const skinsFor = area => SKINS.filter(x => !x.areas || x.areas.includes(area));
 const forcedBy = (area, id) => (SKIN_AREAS.includes(area) ? skinDef(area).forces?.[id] : undefined);
 const optHidden = (area, o) => forcedBy(area, o.id) !== undefined || (o.needs && !setOn(area, o.needs));
@@ -219,6 +223,7 @@ export function installViewCog(getArea) {
   const apply = () => {
     const main = document.querySelector('#main');
     if (!main) return;
+    for (const a of [...main.attributes]) if (a.name.startsWith('data-layout-')) main.removeAttribute(a.name); // Advanced and the Day Planner share a #main's marks
     main.dataset.density = densityOf(getArea());
     main.dataset.shade = shadeOf(getArea());
     if (SKIN_AREAS.includes(getArea())) main.dataset.skin = skinOf(getArea()); else delete main.dataset.skin;
