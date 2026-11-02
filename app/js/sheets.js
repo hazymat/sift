@@ -1,6 +1,7 @@
 // Bottom sheets (<dialog class="sheet">), the same everywhere: close one by
 // dragging its handle down, tapping outside it, or Esc (no ✕, by request).
 // Views that need to know listen for the dialog's `close` event.
+import { keyboardUp } from './visible.js';
 
 const DRAG_CLOSE = 110; // px pulled down that closes it (or a quick flick)
 
@@ -41,7 +42,7 @@ function drag(ev) {
 function aboveKeyboard() {
   const vv = window.visualViewport;
   for (const dlg of document.querySelectorAll('dialog.sheet[open]')) {
-    const kb_up = innerHeight - vv.height > 120 && Math.abs(vv.scale - 1) < .01; // (not just zoomed in)
+    const kb_up = keyboardUp();
     const lift = kb_up ? Math.max(0, Math.round(innerHeight - vv.offsetTop - vv.height)) : 0;
     dlg.style.marginBottom = lift ? `${lift}px` : '';
     dlg.style.maxHeight = lift ? `${Math.round(vv.height - 8)}px` : '';

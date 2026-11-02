@@ -8,6 +8,7 @@
 //   linkUrls(html)       marks the addresses in HTML's text (never inside its tags)
 //   urlAt(text, offset)  the address at that spot in plain text, or ''
 //   offerUrlAt(field, x, y)  after a page puts the cursor in a text box itself: asks if (x, y) is on an address
+import { visibleHeight } from './visible.js';
 
 const TLDS = 'com|org|net|io|co|uk|dev|app|ai|gov|edu|info|me|eu|de|fr|nl|ie|es|it|us|ca|au|nz|tv|shop|store|blog|site|online|xyz';
 // `chars`: what an address is made of (in HTML, & is written &amp;).
@@ -63,7 +64,7 @@ function ask(pointX, pointY, url, field, target) {
   menu.innerHTML = '<button type="button" role="menuitem" data-url="open">Open ↗</button><button type="button" role="menuitem" data-url="edit">Edit text</button>';
   (target.closest('dialog[open]') || document.body).append(menu); // in a sheet, inside it (the page behind can't be pressed)
   if (menu.showPopover) { menu.popover = 'manual'; menu.showPopover(); } // on top of everything
-  const room = (visualViewport?.height ?? innerHeight) - 8;
+  const room = visibleHeight() - 8;
   menu.style.left = `${Math.max(8, Math.min(pointX - menu.offsetWidth / 2, document.documentElement.clientWidth - menu.offsetWidth - 8))}px`;
   menu.style.top = `${pointY + 14 + menu.offsetHeight <= room ? pointY + 14 : Math.max(8, pointY - 14 - menu.offsetHeight)}px`;
   // Pressing the menu doesn't take the cursor out of the text (which would end the editing).

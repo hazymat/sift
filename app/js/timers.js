@@ -6,6 +6,7 @@
 // installTimers() adds the dock: the timers as pills at the bottom right of every page (Follow along shows its own).
 // The ring here only works while Sift is open; alerts with Sift closed come from the server (push.js).
 
+import { visibleHeight } from './visible.js';
 import * as store from './store.js';
 import { askText } from './ask.js';
 import { toast } from './toast.js';
@@ -171,7 +172,7 @@ function timerMenu(pill, t, open, places = []) {
   document.body.append(box);
   const place = () => {
     const anchor = [...document.querySelectorAll(`[data-timer="${t.id}"]`)].find(el => el.getClientRects().length) || pill; // the one showing (Follow along has a phone row too)
-    const r = anchor.getBoundingClientRect(), room = visualViewport?.height ?? innerHeight;
+    const r = anchor.getBoundingClientRect(), room = visibleHeight();
     box.style.left = `${Math.max(8, Math.min(r.right - box.offsetWidth, document.documentElement.clientWidth - box.offsetWidth - 8))}px`;
     box.style.top = `${r.bottom + 6 + box.offsetHeight <= room - 8 ? r.bottom + 6 : Math.max(8, r.top - 6 - box.offsetHeight)}px`;
   };
