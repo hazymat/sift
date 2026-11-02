@@ -68,7 +68,7 @@ export default {
       <div class="adv-body">
         <section class="adv-main adv-card" aria-label="Tasks">
           <div class="adv-new"><span class="adv-new-plus" aria-hidden="true">+</span><input id="adv-new" class="no-inline" placeholder="New task" autocomplete="off" enterkeyhint="done" aria-label="New task"></div>
-          <div class="adv-cols" aria-hidden="true"><span></span><span>Status</span><span>Task</span><span>Latest update</span><span>Updated</span><span></span></div>
+          <div class="adv-cols" aria-hidden="true"><span></span><span>Task</span><span>Latest update</span><span>Updated</span><span></span></div>
           <h2 class="adv-h adv-group">To do <span class="adv-count" data-count="todo"></span></h2>
           <p class="adv-empty muted" hidden>Nothing to do on this day. Type a task above, or bring tasks in from the Day Planner.</p>
           <ul class="adv-list adv-tasks"></ul>
@@ -109,7 +109,6 @@ export default {
       return `<li class="adv-row${i.done_at ? ' done' : ''}" data-id="${i.id}" data-attach="${task ? `tasks:${task.id}` : `day_items:${i.id}`}">
         <span class="drag-handle" role="button" tabindex="-1" aria-label="Choose or move">⠿</span>
         <input type="checkbox" class="tick" aria-label="Done"${i.done_at ? ' checked' : ''}>
-        <span class="adv-status ${i.done_at ? 'closed' : 'open'}">${i.done_at ? 'Done' : 'To do'}</span>
         <div class="adv-text">
           <textarea class="item-title adv-title no-inline" rows="1" aria-label="Task">${esc(i.title)}</textarea><button type="button" class="entry-chip adv-case-chip" data-act="view-case" title="This task on a screen of its own: its note, its whole history, then its details (Back or Esc comes back here)">View case</button>${from}<button type="button" class="adv-note-peek${note ? '' : ' empty'}" data-act="note" title="${note ? esc(note) : 'Add a note'}"><span class="adv-note-words">${note ? esc(note) : '+ Note'}</span>${note ? '<svg class="icon line-ico" aria-hidden="true"><use href="#i-note"/></svg>' : ''}</button>
           <div class="adv-note" data-note-for="${i.id}" hidden></div>

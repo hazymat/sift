@@ -1206,3 +1206,4 @@ NOTES['1.62.10'] = [F('View case: the task\'s note is at the top. Paste or drop 
 NOTES['1.62.11'] = [B('Notes and comments: a numbered list with blank lines or words between its items showed every item as 1.'), F('Notes and comments: numbered items have a little space between them, with no blank line needed.')]
 NOTES['1.62.12'] = [F('Day Planner, Advanced: its own 👁 View button, with a Style (Cards, Lined paper, Minimal) and Spacing, kept separately from Tasks. View case uses the same style.')]
 NOTES['1.62.13'] = [F('Day Planner, Advanced: Minimal now matches Tasks: the ⠿ always shows and rows sit on one square panel. In Tight spacing each row is one line: a mark for its note, and its latest comment, or Add a comment while pointing at the row.')]
+NOTES['1.62.14'] = [F('Day Planner, Advanced: Minimal\'s counts have colour and a background. The To do and Done pills beside each task are gone, as the headings already say.')]
