@@ -238,7 +238,7 @@ export async function openCase(owner, { closed, back } = {}) {
     const direct = [...data.ids].flatMap(id => files.get(id) || []);
     page.setAttribute('aria-label', `Task: ${main.title}`);
     const stateCls = state.cls === 'open' ? 'open' : state.cls === 'closed' ? 'closed' : 'gone';
-    page.innerHTML = `<div class="case-wrap" data-attach="new">
+    page.innerHTML = `<div class="case-wrap">
       <div class="case-top">
         <button type="button" class="back" data-case="back">‹ Back${keys('Esc')}</button>
       </div>
@@ -247,10 +247,13 @@ export async function openCase(owner, { closed, back } = {}) {
         <h1 class="case-title"><span class="adv-status ${stateCls}">${state.word}</span> <span class="case-name${main.done_at ? ' done' : ''}">${esc(main.title)}</span></h1>
         ${main.deleted_at || main.dropped_at ? '' : `<button type="button" class="case-tick${main.done_at ? '' : ' primary'}" data-case="tick">${main.done_at ? 'Reopen case' : '✓ Mark case done'}</button>`}
       </div>
+      <section class="adv-card case-sec case-note" data-attach="${task ? 'tasks' : 'day_items'}:${main.id}"><div class="adv-card-h"><h2 class="adv-h">Note</h2></div>
+        ${(main.notes || '').trim() ? `<div class="case-notes">${toHtml(unlink(main.notes))}</div>` : '<p class="case-notes muted">No note yet.</p>'}
+        ${direct.length ? `<div class="case-attached">${att.rowHtml(direct, { addButton: false, parent: (task || item).id })}</div>` : ''}
+      </section>
       ${statsHtml()}
       <section class="adv-card case-sec">
-        ${(main.notes || '').trim() ? `<div class="adv-card-h"><h2 class="adv-h">Description</h2></div><div class="case-notes">${toHtml(unlink(main.notes))}</div>` : ''}
-        <div class="case-add">
+        <div class="case-add" data-attach="new">
           <input class="case-add-box no-inline" placeholder="Add a comment…" aria-label="Add a comment" autocomplete="off" enterkeyhint="send">
           <button type="button" class="case-attach" data-case="attach" title="Attach photos, PDFs, text or Word files, as a comment with its time (or drop them here)">${icon('i-clip')}</button>
         </div>
@@ -258,7 +261,6 @@ export async function openCase(owner, { closed, back } = {}) {
       <section class="adv-card case-sec"><div class="adv-card-h"><h2 class="adv-h">History</h2></div>
         <ol class="ctl">${historyHtml()}</ol>
       </section>
-      ${direct.length ? `<section class="adv-card case-sec"><div class="adv-card-h"><h2 class="adv-h">Attached</h2></div><div class="case-attached">${att.rowHtml(direct, { addButton: false, parent: (task || item).id })}</div></section>` : ''}
       <section class="adv-card case-sec"><div class="adv-card-h"><h2 class="adv-h">Details</h2></div>${detailsHtml()}</section>
       <p class="case-honest muted">Ticks, comments, photos and files are kept with the task on every device. Edits to its details are listed only when made on this device (its History); "changed" beside each detail is the last time it changed on any device.</p>
     </div>`;
@@ -303,7 +305,8 @@ export async function openCase(owner, { closed, back } = {}) {
     }
   }, sig);
   page.addEventListener('input', ev => { if (ev.target.classList.contains('case-add-box')) typedComment = ev.target.value; }, sig);
-  // Files pasted or dropped anywhere on it go in as a comment of their own (with what's typed first, as a comment) (data-attach).
+  // Files pasted or dropped on the Add a comment line go in as a comment of their own (with what's typed first, as a comment); on a comment or the note, on that (data-attach).
+  att.watchAttach(page, () => render(), sig);
   page.addEventListener('attach-files', async ev => {
     if (page.querySelector('.case-add-box')?.value.trim()) await addComment();
     await attachAsComment(commentOwner(), ev.detail.files, render);
