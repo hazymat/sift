@@ -221,7 +221,7 @@ export async function openCase(owner, { closed, back } = {}) {
     return list.map((e, n) => {
       const head = n === 0 || month(e.at) !== month(list[n - 1].at) ? `<li class="ctl-month"><span>${esc(month(e.at))}</span></li>` : '';
       const more = e.comment ? '<button type="button" class="comment-more" data-case="comment-menu" aria-label="Comment options">⋯</button>' : '';
-      return `${head}<li class="ctl-item ${e.cls}"${e.comment ? ` data-comment="${esc(e.comment.id)}" data-attach="comments:${esc(e.comment.id)}"` : ''}>
+      return `${head}<li class="ctl-item ${e.cls}${(e.comment?.body || '').trim() ? ' is-said' : ''}"${e.comment ? ` data-comment="${esc(e.comment.id)}" data-attach="comments:${esc(e.comment.id)}"` : ''}>
         <span class="ctl-icon" aria-hidden="true">${e.icon}</span>
         <div class="ctl-card"><div class="ctl-head"><time datetime="${esc(e.at)}">${esc(whenText(e.at))}</time> <b>${esc(e.what)}</b>${more}</div>
           ${e.body ? `<div class="ctl-body comment-body">${e.body}</div>` : e.comment ? '<div class="ctl-body comment-body"></div>' : ''}</div></li>`;
