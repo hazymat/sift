@@ -110,7 +110,7 @@ export function doneFields(done) {
 // on), any other open copies go, and removing the date takes it off. Ticked
 // copies stay where they are, as a record. Returns an undo.
 //   planDay(task, date, { keepDate })   date = 'YYYY-MM-DD' or null;
-//     keepDate: leave the task's Plan for day alone (e.g. dragged to "To place")
+//     keepDate: leave the task's Plan for day alone (e.g. dragged to the Day Planner's Tasks)
 export async function planDay(task, date, { keepDate = false } = {}) {
   const { addItem } = await import('./days.js');
   const before = task.start_date || null;

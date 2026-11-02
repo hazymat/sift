@@ -34,7 +34,7 @@ export function dayPanelHtml(i, { atts = [], durationMax, linked = false } = {})
       <div class="wide">${att.rowHtml(atts, { parent: i.id })}</div>
       <div class="wide">${commentsHtml(i.task_id ? { task_id: i.task_id } : { item_id: i.id })}</div>
       <div class="detail-actions">
-        ${i.time ? '<button type="button" data-act="unschedule" title="Remove the start and end time and put it back in To place">Unallocate time</button>' : ''}
+        ${i.time ? '<button type="button" data-act="unschedule" title="Remove the start and end time and put it back in Tasks">Unallocate time</button>' : ''}
         ${i.dropped_at
           ? '<button type="button" data-act="take-back" title="It needs doing after all">Take back</button>'
           : i.done_at ? '' : '<button type="button" data-act="let-go" title="Didn\'t do it and it doesn\'t need doing any more">Let go</button>'}

@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.62.07': [{ text: "Day Planner: To place is gone from the Selections bar. To take items off the schedule, drag them onto Tasks, or use Unallocate time in an item's ⋯ panel.", go: '#/planner', at: '#main .pile' }],
   '1.62.06': [{ text: "Day Planner: any item, on the schedule or in Tasks, can be removed from Advanced view: Remove from Advanced view in its ⋯ panel or on the Selections bar. It disappears from Advanced and stays in the Day Planner, whose ⋯ panel has Add to Advanced view. This replaces Leave out and the Left out list.", go: '#/planner', at: '#main .advanced-link' }],
   '1.62.05': [{ text: "Day Planner, Advanced: a task can be left out of Advanced (Leave out on the Selections bar, or Leave out of Advanced in its ⋯ panel). It stays in the Day Planner's Tasks, and Left out at the bottom of Advanced puts it back.", go: '#/planner', at: '#main .advanced-link' }],
   '1.62.04': [{ text: "Day Planner: a task's 📎 stays put when you point at the task. More now sits just before the 📝 and 📎 instead of on top of them, so pressing 📎 always opens the files.", go: '#/planner', at: '#main .att-tag' }],
