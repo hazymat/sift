@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.62.21': [{ text: "Day Planner, Advanced: Add a comment is now Add an update, and View case is back to one column in the middle of the page. Tasks: on a wide window a task's full panel keeps its fixed width and sits on the left." }],
   '1.62.20': [{ text: "View case: click the note to edit it, or to add one. In Minimal, Add a comment is a plain line with no rounded box." }],
   '1.62.19': [{ text: "View case and a task's full panel, on a wide window: two columns. The note and comments at a readable width, with the details beside them. View case now fills the window, as Advanced's list does." }],
   '1.62.18': [{ text: "Contacts and Cases: an open case sits in the middle of a wide window, as View case does, not against the left edge.", go: '#/contacts/cases' }],

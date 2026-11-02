@@ -1213,3 +1213,4 @@ NOTES['1.62.17'] = [B('Day Planner: pressing and holding a task moved its tick b
 NOTES['1.62.18'] = [F('Contacts and Cases: an open case sits in the middle of a wide window, as View case does, not against the left edge.')]
 NOTES['1.62.19'] = [F('View case and a task\'s full panel, on a wide window: two columns. The note and comments at a readable width, with the details beside them. View case now fills the window, as Advanced\'s list does.')]
 NOTES['1.62.20'] = [F('View case: click the note to edit it, or to add one. In Minimal, Add a comment is a plain line with no rounded box.')]
+NOTES['1.62.21'] = [F('Day Planner, Advanced: Add a comment is now Add an update, and View case is back to one column in the middle of the page. Tasks: on a wide window a task\'s full panel keeps its fixed width and sits on the left.')]

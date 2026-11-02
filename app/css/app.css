@@ -5290,25 +5290,14 @@ html.case-open, html.case-open body { overflow: hidden; }
 #main:is([data-skin="lined"], [data-skin="minimal"])[data-density="tight"] .adv-new { min-height: 35px; box-sizing: border-box; }
 #main:is([data-skin="lined"], [data-skin="minimal"])[data-density="tight"] #adv-new { padding-block: 2px; font-size: 14px; line-height: 20px; }
 
-/* Wide windows: a task's panel and View case in two columns, the words at a readable width (--read), details beside them. One column below 1300px, in the same order as ever (the wrappers step aside). A later full-width choice only has to change --read. */
-.case-body { display: flex; flex-direction: column; }
-.case-main, .case-side, .td-main, .td-side { display: contents; }
-.case-note { order: 1; } .case-stats { order: 2; } .case-add-sec { order: 3; } .case-history { order: 4; } .case-details { order: 5; } .case-honest { order: 6; }
+/* Wide windows: a task's panel in two columns, on the left: the words at a readable width (--read), details beside them. One column below 1300px, in the same order as ever (the wrappers step aside). A later full-width choice only has to change --read. */
+.td-main, .td-side { display: contents; }
 @media (min-width: 1300px) {
   :root { --read: 800px; }
-  .case-wrap { max-width: none; }
-  .case-body { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; align-items: start; }
-  .case-main, .case-side { display: block; min-width: 0; }
-  .case-side { position: sticky; top: 12px; }
-  .case-side .case-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  :is(.case-notes > *, .case-said, .case-page .comment-edit) { max-width: var(--read); }
-  .case-side .case-props > div { grid-template-columns: 96px minmax(0, 1fr); }
-  .case-side .case-props .case-changed { grid-column: 2; white-space: normal; }
-  .task-list > li.task-details { display: grid; grid-template-columns: minmax(0, var(--read)) 340px; justify-content: center; column-gap: 24px; align-items: start; }
+  .task-list > li.task-details { display: grid; grid-template-columns: minmax(0, var(--read)) 340px; justify-content: start; column-gap: 24px; align-items: start; }
   .task-details > :is(.td-main, .td-side) { display: block; min-width: 0; }
   .task-list > li.task-details .detail-actions { margin: 12px 0 0; padding: 0; border: 0; background: none; }
 }
-
 /* View case's note, edited where it's shown. */
 .case-notes[data-case="note"] { cursor: text; }
 .case-notes[data-case="note"]:hover { background: color-mix(in srgb, var(--text) 3%, transparent); }
