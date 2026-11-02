@@ -1613,7 +1613,7 @@ const dayPlanner = {
         const undo = await planDay(task, date);
         await refresh();
         renderTasks();
-        undoable(act === 'adopt' ? `Adopted "${task.title}"` : `"${task.title}" is in To place`, async () => { await undo(); await refresh(); renderTasks(); });
+        undoable(act === 'adopt' ? `Adopted "${task.title}"` : `"${task.title}" is in ${word('day_tasks')}`, async () => { await undo(); await refresh(); renderTasks(); });
       }
       else if (act === 'details') { if (editing === id) closeDetails(); else { editing = id; refresh(); } }
       else if (act === 'close-details') closeDetails();
@@ -1622,7 +1622,7 @@ const dayPlanner = {
       else if (act === 'advanced-out' || act === 'advanced-in') {
         editing = null;
         const it = items.find(i => i.id === id);
-        await change(id, { not_in_advanced: act === 'advanced-out' ? true : null }, `${act === 'advanced-out' ? 'Left out of' : 'Put back in'} Advanced: ${it?.title || 'item'}`);
+        await change(id, { not_in_advanced: act === 'advanced-out' ? true : null }, `${act === 'advanced-out' ? 'Removed from' : 'Added to'} Advanced view: ${it?.title || 'item'}`);
       }
       else if (act === 'unschedule') { editing = null; await change(id, { time: null, end_time: null }, 'Time unallocated'); }
       else if (act === 'archive-item') {
@@ -1815,7 +1815,7 @@ const dayPlanner = {
     // this item is in it): the items leave the page and ride under the pointer,
     // and the lines they'd land on show a preview. Drop on a line = that
     // line's time (snaps to the line, never in between). Timed items keep
-    // their spacing; untimed ones fill the following lines. Drop on To place =
+    // their spacing; untimed ones fill the following lines. Drop on the Tasks list =
     // no time. The bottom handle of a timed item drags its length.
 
     const selected = new Set();
@@ -1831,9 +1831,10 @@ const dayPlanner = {
     bar.innerHTML = `<button type="button" data-sel="clear" aria-label="Clear selection">✕</button><span class="select-count"></span>
       <button type="button" data-sel="done">Done${keys(CTRL_ENTER)}</button>
       <button type="button" data-sel="undone">Not done</button>
-      <button type="button" data-sel="pile">To place</button>
       <button type="button" data-sel="letgo" title="Didn't do these and they don't need doing">Let go</button>
       <button type="button" data-sel="tomorrow">Tomorrow</button>
+      <button type="button" data-sel="adv-out" title="It stays in the Day Planner, whose ⋯ panel can add it to Advanced view">Remove from Advanced view</button>
+      <button type="button" data-sel="adv-in" title="Show them in Advanced view">Add to Advanced view</button>
       <button type="button" data-sel="unique" title="Keep only the copy here: the original leaves Tasks or its project">Make unique</button>
       <button type="button" data-sel="archive">Archive${keys('A')}</button>
       <button type="button" data-sel="delete" class="danger">Delete${keys('D')}</button>`;
@@ -1862,6 +1863,8 @@ const dayPlanner = {
       const picked = items.filter(i => selected.has(i.id));
       bar.querySelector('[data-sel="done"]').hidden = !picked.some(i => !i.done_at);
       bar.querySelector('[data-sel="undone"]').hidden = !picked.some(i => i.done_at);
+      bar.querySelector('[data-sel="adv-out"]').hidden = !picked.some(i => !i.not_in_advanced);
+      bar.querySelector('[data-sel="adv-in"]').hidden = !picked.some(i => i.not_in_advanced);
     }
     const clearSelection = () => { selected.clear(); paintSelection(); };
 
@@ -1907,8 +1910,8 @@ const dayPlanner = {
         await moveMany(new Map(ids.map(id => [id, { done_at: new Date().toISOString() }])), `Done: ${ids.length} item${ids.length === 1 ? '' : 's'}`, () => Promise.all(rows.map((row, n) => tickedOff(row, n))));
       }
       if (b.dataset.sel === 'letgo') { const now = new Date().toISOString(); await moveMany(new Map(ids.map(id => [id, { dropped_at: now, archived_at: now }])), `Let go of ${plural} (in the Archive)`); clearSelection(); }
-      if (b.dataset.sel === 'pile') await moveMany(new Map(ids.map(id => [id, { time: null, end_time: null }])), `${plural} back to To place`);
       if (b.dataset.sel === 'unique') return uniqueItems(ids);
+      if (b.dataset.sel === 'adv-out' || b.dataset.sel === 'adv-in') { const out = b.dataset.sel === 'adv-out'; await moveMany(new Map(ids.map(id => [id, { not_in_advanced: out ? true : null }])), `${plural} ${out ? 'removed from' : 'added to'} Advanced view`); clearSelection(); }
       if (b.dataset.sel === 'tomorrow') { await moveMany(new Map(ids.map(id => [id, { date: addDays(date, 1), carried_from: date }])), `${plural} moved to tomorrow`); clearSelection(); }
       if (b.dataset.sel === 'archive') { await moveMany(new Map(ids.map(id => [id, { archived_at: new Date().toISOString() }])), `Archived ${plural}`); clearSelection(); }
       if (b.dataset.sel === 'delete') {

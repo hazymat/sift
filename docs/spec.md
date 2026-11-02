@@ -80,7 +80,7 @@ Common fields on every record: `id (UUIDv7), created_at, updated_at, deleted_at,
    - Anything can be put at any time: an item at an odd time (12.45) gets its own line in time order; several items at one time get several lines. An item with an end time or duration is drawn as one block across the lines it covers (text centred, a bar down its side, the margin times still visible); nothing can be added inside it.
    - Items before the day starts get lines above; items after it go under **Evening** at the bottom.
    - Tap an empty line to write on it; tick items off; ⋯ opens time, until, estimate, day (move to another date), note, back to pile, delete.
-6. **To place** (the pile): things for today without a time yet, fed by the dump box (text to list; a line starting with a time, e.g. `12.45 speak to L` or `12.45-13.30 …`, goes straight onto the plan).
+6. **Tasks** (the pile): things for today without a time yet, fed by the dump box (text to list; a line starting with a time, e.g. `12.45 speak to L` or `12.45-13.30 …`, goes straight onto the plan).
 7. **Tasks**: Tasks whose **start date** is this day, plus unfinished Tasks whose **completion aim** falls on this day. Multi-day tasks (start and aim on different days) show in their own strip ("ongoing: day 2 of 5"). Other undated Tasks and Brain Dump items can be **adopted** into the day, which sets their start date.
 8. **Notes**: free text for the day (the notes editor, §4.7), which can reference other things (see mentions).
 
@@ -114,7 +114,7 @@ Each paper sets fonts, colours, spacing and time format through tokens scoped to
 **Calendar awareness** (later): real appointments drawn on the timeline as busy blocks (read only). Scheduling an item over one warns, and the pile can suggest free slots that fit an item's estimate.
 
 - `days`: `id = date (YYYY-MM-DD, so every device edits the same record), date, focus, energy (high|medium|low)?, notes (markdown), paper? (override of the default paper style)`
-- `day_items`: `date (YYYY-MM-DD), title, notes?, time? (HH:MM), end_time?, estimate_min? (shown as Duration), estimate_unsure ("Not sure yet"), done_at?, dropped_at? (let go), sort_order, task_id?, case_id?, contact_ids[], source_thought_id?, carried_from? (date), merged_from[]? (ids of items combined into this one), gcal_id? (the Google Calendar event it was added from), not_in_advanced? (left out of Advanced day tasks; still in the Day Planner's Tasks)`
+- `day_items`: `date (YYYY-MM-DD), title, notes?, time? (HH:MM), end_time?, estimate_min? (shown as Duration), estimate_unsure ("Not sure yet"), done_at?, dropped_at? (let go), sort_order, task_id?, case_id?, contact_ids[], source_thought_id?, carried_from? (date), merged_from[]? (ids of items combined into this one), gcal_id? (the Google Calendar event it was added from), not_in_advanced? (removed from Advanced view; still in the Day Planner)`
   - No `time` = on the day's pile. With `time` = on the timeline, sorted by time.
   - Moving to another day = change `date` (carry-over also sets `carried_from`).
   - Separate records per item (not an array on the day) so edits from two devices merge per item.
@@ -251,7 +251,7 @@ Where it applies (2026-09-25): Brain Dump notes, Find Things boxes and things, L
 | Area | Laptop | iPhone |
 |---|---|---|
 | **Tasks** | Left: projects. Main: tasks grouped by milestone, drag reorder. Right: detail. Views: Today, Upcoming, Project, Done. | Segmented views; detail as full-screen sheet. |
-| **Day Planner** | See §4.2a: title, Day Focus, Today's Energy Level, carry-over, lined paper with times in the margin, Evening, To place (pile + dump box), Tasks, Notes. ‹ Today › and a Calendar popup. Paper picker per day. | Same page, one column. |
+| **Day Planner** | See §4.2a: title, Day Focus, Today's Energy Level, carry-over, lined paper with times in the margin, Evening, Tasks (pile + New task line), Notes. ‹ Today › and a Calendar popup. Paper picker per day. | Same page, one column. |
 | **Brain Dump** | Large text area focused on open; kind pills underneath; Save (⌘↵). Below: thought list/cloud, filter by kind and tag. | Opens into text entry with keyboard up; pills above keyboard. |
 | **Find Things** | Search bar always on top (`/`), searching every life area: matching boxes show their path and only the matching items. Life Area tabs; each group is a grid of box cards (big code, name, where it lives in orange, first few items, "+ n more"). Tap a card to edit the box and its contents (add many items at once, one per line). Menu: add box / group / life area, import / export CSV. | Same, one column; box editor as a full-height sheet. |
 | **Contacts** | Tabs: **Recent** (transient + recently used, "What was this?" prompts), **Directory** (by category; research mode per category), **Cases**. Contact detail: name, about, details (tap to call/email, which logs an interaction), raw captured text, notes, timeline (captured, looked up, contacted), connected contacts, cases, tasks and day items, jobs. | Same, full-screen detail. Quick "Contacted" button. |

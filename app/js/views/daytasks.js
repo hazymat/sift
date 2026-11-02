@@ -7,9 +7,9 @@
 //
 // The cards are the Day Planner's own day tasks (day items without a time),
 // so everything here is the same as there: ticking a copy brought in from
-// Tasks ticks the task (link.js), and comments are the task's. A day task can be
-// left out of here (not_in_advanced): it stays in the Day Planner's Tasks, and
-// the Left out list at the bottom puts it back.
+// Tasks ticks the task (link.js), and comments are the task's. Any day item can be
+// removed from here (not_in_advanced): it stays in the Day Planner, whose ⋯ panel
+// adds it.
 
 import * as store from '../store.js';
 import { isoDate, parseDate, addDays, itemsFor, addItem, dateText, showTime, daySettings } from '../days.js';
@@ -35,7 +35,8 @@ import { openCase, caseTimes, tookText } from '../casepage.js';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
 const byPlace = byRank();
-const isCase = i => !i.time && !i.dropped_at && !i.not_in_advanced;
+const inAdvanced = i => !i.not_in_advanced;
+const isCase = i => inAdvanced(i) && !i.time && !i.dropped_at;
 const EXPORT_DEFAULTS = { todo: true, done: true, notes: true, comments: true, times: false, files: true, schedule: true, doneFirst: false, took: 'working' };
 
 export default {
@@ -70,7 +71,6 @@ export default {
           <h2 class="adv-h adv-group">To do <span class="adv-count" data-count="todo"></span></h2>
           <p class="adv-empty muted" hidden>Nothing to do on this day. Type a task above, or bring tasks in from the Day Planner.</p>
           <ul class="adv-list adv-tasks"></ul>
-          <div class="adv-left-out" hidden></div>
         </section>
         <aside class="adv-schedule adv-card" aria-label="Schedule"><h2 class="adv-h adv-card-h">Schedule</h2><ol class="adv-sched"></ol></aside>
       </div>
@@ -128,7 +128,7 @@ export default {
     }
 
     function schedule() {
-      const timed = items.filter(i => i.time).sort((a, b) => a.time.localeCompare(b.time));
+      const timed = items.filter(i => inAdvanced(i) && i.time).sort((a, b) => a.time.localeCompare(b.time));
       $('.adv-sched').innerHTML = timed.length
         ? timed.map(i => `<li class="${i.done_at ? 'done' : ''}${i.dropped_at ? ' dropped' : ''}"><span class="adv-when">${showTime(i.time)}${i.end_time ? `–${showTime(i.end_time)}` : ''}</span> <span class="adv-what">${esc(i.title)}</span></li>`).join('')
         : '<li class="muted adv-sched-empty">Nothing on the schedule.</li>';
@@ -167,14 +167,10 @@ export default {
       const doneHead = all.length ? `<li class="list-head adv-done-h"><h2 class="adv-h adv-group">Done <span class="adv-count">${done.length ? `${done.length}/${all.length}` : ''}</span></h2>${done.length ? '' : '<p class="adv-drop-hint muted">Drag a task here, or tick it, when it\'s done.</p>'}</li>` : '';
       $('.adv-tasks').innerHTML = todo.map(row).join('') + doneHead + done.map(row).join('');
       $('.adv-empty').hidden = !!todo.length;
-      const out = items.filter(i => !i.time && !i.dropped_at && i.not_in_advanced).sort(byPlace);
-      $('.adv-left-out').hidden = !out.length;
-      $('.adv-left-out').innerHTML = out.length ? `<h2 class="adv-h adv-group" title="Still in the Day Planner's Tasks. Not shown here or in Share.">Left out <span class="adv-count">${out.length}</span></h2>
-        <ul class="adv-out-list">${out.map(i => `<li class="${i.done_at ? 'done' : ''}" data-id="${i.id}"><span class="adv-out-name">${esc(i.title)}</span><button type="button" class="entry-chip" data-act="put-back" title="Show it in Advanced again">Put back</button></li>`).join('')}</ul>` : '';
       el.querySelector('[data-count="todo"]').textContent = todo.length ? todo.length : '';
       // At a glance, as at the top of a ticket queue: open, done, and updates (comments) today.
       const updates = all.reduce((n, i) => n + (commentsOf.get(keyOf(ownerOf(i.id))) || []).filter(c => c.at && isoDate(new Date(c.at)) === date).length, 0);
-      $('.adv-stats').innerHTML = [['open', 'To do', todo.length], ['closed', 'Done', `${done.length}<small>/${all.length}</small>`], ['updates', 'Updates', updates], ['sched', 'Scheduled', items.filter(i => i.time).length]]
+      $('.adv-stats').innerHTML = [['open', 'To do', todo.length], ['closed', 'Done', `${done.length}<small>/${all.length}</small>`], ['updates', 'Updates', updates], ['sched', 'Scheduled', items.filter(i => inAdvanced(i) && i.time).length]]
         .map(([cls, words, n]) => `<div class="adv-stat ${cls}"><b>${n}</b><span>${words}</span></div>`).join('');
       schedule();
       for (const box of el.querySelectorAll('.adv-quick-add')) { const id = box.closest('.adv-row').dataset.id; if (typed.get(id)) box.value = typed.get(id); keepDraft(box, `adv-comment:${id}`); }
@@ -365,8 +361,7 @@ export default {
     const letGo = ids => { const now = new Date().toISOString(); return setMany(ids, { dropped_at: now, archived_at: now }, 'Let go (in the Archive):'); };
     const takeBack = ids => setMany(ids, { dropped_at: null, archived_at: null }, 'Taken back:');
     const archive = ids => setMany(ids, { archived_at: new Date().toISOString() }, 'Archived');
-    const leaveOut = ids => setMany(ids, { not_in_advanced: true }, 'Left out of Advanced:');
-    const putBack = ids => setMany(ids, { not_in_advanced: null }, 'Put back in Advanced:');
+    const removeFromAdvanced = ids => setMany(ids, { not_in_advanced: true }, 'Removed from Advanced view:');
 
     // Choosing and dragging are listkit.js and sortable.js, the same code as Tasks (hold anywhere on a row to lift it,
     // the tilt and wobble, rows sliding aside, the dashed outline where it lands), so a change there reaches both.
@@ -379,7 +374,7 @@ export default {
         { id: 'letgo', label: 'Let go', run: letGo },
         { id: 'to-tasks', label: '→ Tasks', run: toTasks },
         { id: 'unique', label: 'Make unique', run: uniqueMany, title: 'Keep only the copy here: the original leaves Tasks or its project' },
-        { id: 'leave-out', label: 'Leave out', run: leaveOut, title: "Not shown in Advanced: it stays in the Day Planner's Tasks" },
+        { id: 'remove-advanced', label: 'Remove from Advanced view', run: removeFromAdvanced, title: "It stays in the Day Planner, whose ⋯ panel can add it to Advanced view" },
         { id: 'archive', label: 'Archive', key: 'A', run: archive },
         { id: 'delete', label: 'Delete', key: 'D', danger: true, run: deleteMany },
       ],
@@ -489,12 +484,11 @@ export default {
       if (act === 'next') return go(addDays(date, 1));
       if (act === 'today') return go(isoDate());
       if (act === 'share') return openExport();
-      if (act === 'put-back') return putBack([b.closest('[data-id]').dataset.id]);
       // The panel's own buttons: the same actions as the Selections bar.
       const panelId = b.closest('.item-details[data-for]')?.dataset.for;
       if (panelId) {
         if (act === 'open-case') { location.hash = `#/planner/${date}/advanced/case/${panelId}`; return; }
-        const run = { 'let-go': letGo, 'take-back': takeBack, 'to-task': toTasks, 'make-unique': uniqueMany, 'advanced-out': leaveOut, 'archive-item': archive, delete: deleteMany }[act];
+        const run = { 'let-go': letGo, 'take-back': takeBack, 'to-task': toTasks, 'make-unique': uniqueMany, 'advanced-out': removeFromAdvanced, 'archive-item': archive, delete: deleteMany }[act];
         if (run) { panelFor = null; await run([panelId]); }
         return;
       }
@@ -566,7 +560,7 @@ export default {
       const all = items.filter(isCase);
       const todo = choices.todo ? all.filter(i => !i.done_at).sort(byPlace) : [];
       const done = choices.done ? all.filter(i => i.done_at).sort(byPlace) : [];
-      const timed = choices.schedule ? items.filter(i => i.time).sort((a, b) => a.time.localeCompare(b.time)) : [];
+      const timed = choices.schedule ? items.filter(i => inAdvanced(i) && i.time).sort((a, b) => a.time.localeCompare(b.time)) : [];
       return { todo: await Promise.all(todo.map(caseOf)), done: await Promise.all(done.map(caseOf)), timed };
     }
     // Time taken, as chosen in Share (casepage.js caseTimes): working time, open time, both or none. Open cases: so far.

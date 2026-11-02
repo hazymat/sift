@@ -15,6 +15,7 @@
 //   closingComment(owner)         the toast button after ticking something done
 //   moveComments(from, to)        e.g. a day-only item became a task: { item_id } → { task_id }
 //   attachAsComment(owner, files, done)  files added as a comment of their own (timed like one)
+//   shareComment(c)               a comment's words to the share sheet (AirDrop), or copied where there isn't one
 //
 // Links, as in notes: 📞 or 📝 typed (or pressed beside the box while writing)
 // opens the same search and puts a link in; phone numbers and emails become
@@ -23,13 +24,13 @@
 import * as store from './store.js';
 import { toHtml } from './richtext.js';
 import { pillMenu } from './pillmenu.js';
-import { undoable } from './toast.js';
+import { undoable, toast } from './toast.js';
 import { addTask, MAX_DEPTH, depthIn } from './tasks.js';
 import { addItem, isoDate, dateText } from './days.js';
 import { ask, askText, askEmptied } from './ask.js';
 import * as att from './attachments.js';
 import { openPicker } from './linkpicker.js';
-import { linkMd, linkDetailsInText } from './refs.js';
+import { linkMd, linkDetailsInText, unlinkText } from './refs.js';
 import { keepDraft, draftCleared } from './drafts.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -325,18 +326,29 @@ function wire(box) {
     const roomBelow = owner.task_id && depthIn(all.find(t => t.id === owner.task_id), all) < MAX_DEPTH;
     if (owner.task_id && !c.sub_task_id && roomBelow) options.push({ value: 'sub', label: '→ Sub-task', title: 'Make this a sub-task of the task' });
     if (!c.plan_item_id) options.push({ value: 'plan', label: "→ Today's plan", title: "Put this on today's plan" });
+    if ((c.body || '').trim()) options.push({ value: 'share', label: 'Share…', title: 'Send its words to another device or app (AirDrop on an iPad or iPhone); copies them where sharing is not available' });
     options.push({ value: 'attach', label: '📎 Attach…', title: 'Attach photos, PDFs, text or Word files (or drop them on the comment)' });
     options.push({ value: 'back', label: c.check_back ? '⏰ Change check-back' : '⏰ Check back…', title: 'Bring the task back on a day, e.g. when waiting on someone' });
     if (c.check_back) options.push({ value: 'noback', label: 'No check-back' });
     options.push({ value: 'delete', label: 'Delete' });
     pillMenu(btn, options, async v => {
       if (v === 'edit') return edit(box, li, c);
+      if (v === 'share') return shareComment(c);
       if (v !== 'delete') return act(box, v, c, owner);
       await store.remove('comments', c.id);
       await draw(box);
       undoable('Comment deleted', async () => { await store.restore('comments', c.id); await draw(box); });
     }, { className: 'comment-menu' });
   });
+}
+
+// Only marks that come in pairs and links go, so what was typed (a long licence key, say) arrives exactly as written.
+export async function shareComment(c) {
+  const text = unlinkText(c.body).replace(/\*\*(.+?)\*\*/g, '$1').replace(/~~(.+?)~~/g, '$1').trim();
+  if (navigator.share) {
+    try { await navigator.share({ text }); return; } catch (err) { if (err?.name === 'AbortError') return; }
+  }
+  try { await navigator.clipboard.writeText(text); toast('Comment copied'); } catch { toast("Couldn't share or copy the comment"); }
 }
 
 // Files as a comment of their own, so when they were added shows as a comment's time does (Advanced day tasks' 📎).

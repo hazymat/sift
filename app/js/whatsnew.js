@@ -25,6 +25,9 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.62.08': [{ text: "Comments: Share… in a comment's ⋯ menu sends its words to the share sheet, so on an iPad or iPhone they can go by AirDrop. Handy for something too long to type, like a licence key. Where there's no share sheet it copies them. View case has a Share… under each comment.", go: '#/tasks' }],
+  '1.62.07': [{ text: "Day Planner: To place is gone from the Selections bar. To take items off the schedule, drag them onto Tasks, or use Unallocate time in an item's ⋯ panel.", go: '#/planner', at: '#main .pile' }],
+  '1.62.06': [{ text: "Day Planner: any item, on the schedule or in Tasks, can be removed from Advanced view: Remove from Advanced view in its ⋯ panel or on the Selections bar. It disappears from Advanced and stays in the Day Planner, whose ⋯ panel has Add to Advanced view. This replaces Leave out and the Left out list.", go: '#/planner', at: '#main .advanced-link' }],
   '1.62.05': [{ text: "Day Planner, Advanced: a task can be left out of Advanced (Leave out on the Selections bar, or Leave out of Advanced in its ⋯ panel). It stays in the Day Planner's Tasks, and Left out at the bottom of Advanced puts it back.", go: '#/planner', at: '#main .advanced-link' }],
   '1.62.04': [{ text: "Day Planner: a task's 📎 stays put when you point at the task. More now sits just before the 📝 and 📎 instead of on top of them, so pressing 📎 always opens the files.", go: '#/planner', at: '#main .att-tag' }],
   '1.62.03': [{ text: "Tasks: after opening a contact or a case, going to Tasks could show only New task, with no section tabs or menus at the top, until you reloaded. Fixed.", go: '#/tasks', at: '#main .tasks-head' }],
@@ -279,6 +282,9 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.62.08': '2026-11-02T09:11:12Z',
+  '1.62.07': '2026-11-02T09:11:12Z',
+  '1.62.06': '2026-11-02T09:11:12Z',
   '1.62.05': '2026-11-02T08:26:49Z',
   '1.62.04': '2026-11-01T22:47:06Z',
   '1.62.03': '2026-11-01T21:23:26Z',
