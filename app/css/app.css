@@ -5206,23 +5206,58 @@ html.case-open, html.case-open body { overflow: hidden; }
   .adv-stat b { font-size: .95rem; font-weight: 600; }
   .adv-cols { display: none; }
   .adv-row .adv-status { display: none; }
-  .adv-row { padding: 3px 10px; border-bottom-color: color-mix(in srgb, var(--text) 10%, transparent); }
+  /* Rows as in Tasks' Minimal: one faint square panel, split by the same thin dark dividers. */
+  :is(.adv-tasks, .adv-sched) { background: color-mix(in srgb, var(--text) 3.5%, transparent); border-radius: 0; }
+  :is(.adv-row, .adv-sched li) { border-width: 0 0 1px; border-style: solid; border-color: transparent transparent color-mix(in srgb, #000 28%, transparent); border-radius: 0; }
+  .adv-row { padding: 3px 10px; }
+  .adv-row > .drag-handle { width: 26px; height: 24px; }
   .adv-title { font-weight: 400; }
+  .adv-new { max-width: 700px; margin-bottom: 26px; padding: 0 2px; border-bottom: 1px solid var(--glass-border); }
+  .adv-new-plus { display: none; }
   .adv-side { border-left: 0; }
   :is(.adv-group, .adv-count) { background: transparent; border-color: transparent; }
-  :is(.adv-new, .adv-card-h, .adv-done-h .adv-group) { border-color: transparent; }
-  .adv-sched li { border-bottom: 0; padding-block: 3px; }
+  :is(.adv-card-h, .adv-done-h .adv-group) { border-color: transparent; }
+  .adv-sched li { padding-block: 5px; }
   .ctl { padding: 2px 12px 10px; }
   :is(.ctl-month, .ctl-item)::before { display: none; }
   .ctl-month { padding: 10px 0 2px; }
-  .ctl-item { grid-template-columns: 20px minmax(0, 1fr); gap: 8px; padding: 5px 0; border-bottom: 1px solid color-mix(in srgb, var(--text) 10%, transparent); }
+  .ctl-item { grid-template-columns: 20px minmax(0, 1fr); gap: 8px; padding: 5px 8px; background: color-mix(in srgb, var(--text) 3.5%, transparent); border-bottom: 1px solid color-mix(in srgb, #000 28%, transparent); }
   .ctl-icon { width: 20px; height: 20px; border: 0; border-radius: 0; background: transparent; box-shadow: none; font-size: .9rem; }
   .ctl-card { padding: 0; border: 0; border-radius: 0; background: transparent; }
   .ctl-card::before { display: none; }
   .case-notes { border-bottom: 0; }
 }
-@media (min-width: 761px) { :is(#main)[data-skin="minimal"] .adv-row { grid-template-columns: 20px 24px minmax(0, 1fr) minmax(0, 38%) 74px 30px; } }
+@media (min-width: 761px) { #main[data-skin="minimal"] .adv-row { grid-template-columns: 26px 20px minmax(0, 1fr) minmax(0, 38%) 74px 30px; } }
 @media (hover: hover) { #main[data-skin="minimal"] .adv-row:not(:hover, :focus-within) .adv-case-chip { opacity: 0; } }
+/* Every row's ⠿ shows (faint) all the time, as in Tasks' Minimal. */
+#main[data-skin="minimal"] .adv-row > .drag-handle { opacity: .35; }
+@media (hover: hover) { #main[data-skin="minimal"] .adv-row:not(:hover, .selected, .dragging) > .drag-handle { opacity: .35 !important; } }
+/* Tight: one line a row. 35px rows (37px on iPad), 14px text; the note a mark (it opens as before); one comment's line, or Add a comment while pointing at the row or typing. */
+#main[data-skin="minimal"][data-density="tight"] {
+  .adv-row { align-items: center; min-height: 35px; padding-block: 1px; font-size: 14px; }
+  .adv-row:has(+ .adv-panel-li), .adv-row.noting { align-items: start; }
+  .adv-row .tick { width: 14px; height: 14px; margin: 0 0 0 2px; }
+  .adv-text { align-items: center; flex-wrap: nowrap; padding-top: 0; }
+  .adv-row.noting .adv-text { flex-wrap: wrap; }
+  .adv-title { font-size: 14px; line-height: 20px; padding: 3px 0; field-sizing: content; }
+  .adv-case-chip { margin: 0 0 0 6px; padding: 0 8px; }
+  .adv-note-peek { flex: none; }
+  .adv-note-peek.empty { display: none; }
+  .adv-note-words { display: none; }
+  .adv-note-peek .line-ico { display: inline-block; width: 13px; height: 13px; vertical-align: middle; stroke-width: 1.8; opacity: .75; }
+  .adv-side { padding-top: 0; }
+  .adv-latest { margin: 0; }
+  .adv-latest li:not(:last-child) { display: none; }
+  .adv-side:has(.adv-latest) .adv-quick { display: none; }
+  .adv-row:is(:focus-within, :hover) .adv-side:has(.adv-latest) .adv-latest { display: none; }
+  .adv-row:is(:focus-within, :hover) .adv-side .adv-quick { display: flex; }
+  .adv-updated, .adv-more { padding-block: 0; }
+}
+@media (pointer: coarse) and (min-width: 700px) { #main[data-skin="minimal"][data-density="tight"] .adv-row { min-height: 37px; } }
+@media (hover: none) { #main[data-skin="minimal"][data-density="tight"] .adv-row:not(:focus-within) .adv-side:has(.adv-latest) .adv-latest { display: block; } }
+@media (hover: none) { #main[data-skin="minimal"][data-density="tight"] .adv-row:not(:focus-within) .adv-side:has(.adv-latest) .adv-quick { display: none; } }
+@media (max-width: 760px) { #main[data-skin="minimal"][data-density="tight"] .adv-side { display: none; } }
 /* 👁 Spacing, in any style. */
-:is(#main, .case-page)[data-density="tight"] { .adv-row { padding-block: 1px; } .ctl-item { padding-block: 2px; } }
+#main[data-density="tight"] .adv-row { padding-block: 1px; }
+:is(#main, .case-page)[data-density="tight"] .ctl-item { padding-block: 2px; }
 :is(#main, .case-page)[data-density="loose"] { .adv-row { padding-block: 10px; } .ctl-item { padding-block: 9px; } }
