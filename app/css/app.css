@@ -4753,6 +4753,7 @@ html.kb-open :is(.sticky-top, .find-sticky, .dump-bar, .bb-sticky, .list-top, .b
 .stats-cols > span { flex: 1; height: 100%; display: flex; align-items: flex-end; }
 .stats-cols > span > span { width: 100%; min-height: 1px; background: var(--accent); border-radius: 3px 3px 0 0; }
 .stats-cols-ends { display: flex; justify-content: space-between; font-size: .8rem; margin-top: 4px; }
+.pill-menu.comment-menu { z-index: 1200; } /* over View case */
 .pill-menu.list-menu { z-index: 1200; flex-wrap: nowrap; min-width: 180px; max-height: min(60vh, 420px); overflow-y: auto; } /* over the toast and the Selections bar; long lists scroll */
 .pill-menu.list-menu button[aria-checked="true"] { font-weight: 600; }
 /* Medium and Extended spacing: every task's whole name and note show, wrapping onto as many lines as they
@@ -4923,19 +4924,9 @@ html.case-open, html.case-open body { overflow: hidden; }
 .case-add-box { flex: 1; min-width: 0; box-sizing: border-box; padding: 9px 14px; border-radius: var(--radius-sm); border: 1px solid var(--glass-border); background: var(--glass-track); color: var(--text); font: inherit; }
 .case-attach { padding: 8px 10px; }
 .case-attach .icon { width: 18px; height: 18px; }
-.case-log { list-style: none; margin: 0; padding: 0; }
-.case-log .case-day { border-top: 1px solid var(--glass-border); }
-.case-log .case-day:first-child { border-top: 0; }
-.case-ev { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 10px; padding: 8px 12px; border-left: 3px solid transparent; border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent); }
-.case-ev:last-child { border-bottom: 0; }
-.case-ev.is-opened { border-left-color: var(--accent); }
-.case-ev.is-closed { border-left-color: #4caf7a; }
-.case-ev.is-comment { border-left-color: #d9a441; }
-.case-ev time { font-variant-numeric: tabular-nums; color: var(--muted); font-size: .88rem; padding-top: 1px; }
-.case-what { font-weight: 600; }
-.case-ev.is-edit .case-what { font-weight: 500; color: var(--muted); }
+.case-sec .ctl-head .comment-more { margin-left: auto; }
+.ctl-edit .ctl-head b { font-weight: 500; color: var(--muted); }
 .case-said { margin-top: 2px; overflow-wrap: anywhere; }
-.case-share { margin-top: 4px; }
 .case-edits { margin: 2px 0 0; padding-left: 18px; font-size: .9rem; overflow-wrap: anywhere; }
 .case-pics { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .case-pic { padding: 0; border-radius: 10px; overflow: hidden; border: 1px solid var(--glass-border); background: none; }
@@ -4954,7 +4945,6 @@ html.case-open, html.case-open body { overflow: hidden; }
   .case-top .back kbd { display: none; }
   .case-head { flex-direction: column; }
   .case-title { font-size: 1.25rem; }
-  .case-ev { grid-template-columns: 44px minmax(0, 1fr); }
   .case-props > div { grid-template-columns: 110px minmax(0, 1fr); }
   .case-props .case-changed { grid-column: 2; white-space: normal; }
 }
