@@ -5282,3 +5282,8 @@ html.case-open, html.case-open body { overflow: hidden; }
 :is(#main, .case-page)[data-density="loose"] { .adv-row { padding-block: 10px; } .ctl-item { padding-block: 9px; } }
 :is(#main, .case-page)[data-skin="minimal"][data-density="tight"] .ctl-item { padding-block: 6px; }
 :is(#main, .case-page)[data-skin="minimal"][data-density="loose"] .ctl-item { padding-block: 13px; }
+/* New task in Lined paper and Minimal: as Tasks' line. No box, focused or not; its words a faint italic until typed in. */
+#main:is([data-skin="lined"], [data-skin="minimal"]) #adv-new, #main:is([data-skin="lined"], [data-skin="minimal"]) #adv-new:focus { padding: 4px 5px; border: 0; border-radius: 0; background: transparent; box-shadow: none; outline: none; font-size: 1rem; }
+#main:is([data-skin="lined"], [data-skin="minimal"]) #adv-new::placeholder { font-style: italic; color: color-mix(in srgb, var(--text) 22%, transparent); opacity: 1; }
+#main:is([data-skin="lined"], [data-skin="minimal"])[data-density="tight"] .adv-new { min-height: 35px; box-sizing: border-box; }
+#main:is([data-skin="lined"], [data-skin="minimal"])[data-density="tight"] #adv-new { padding-block: 2px; font-size: 14px; line-height: 20px; }
