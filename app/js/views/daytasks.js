@@ -111,7 +111,7 @@ export default {
         <input type="checkbox" class="tick" aria-label="Done"${i.done_at ? ' checked' : ''}>
         <span class="adv-status ${i.done_at ? 'closed' : 'open'}">${i.done_at ? 'Done' : 'To do'}</span>
         <div class="adv-text">
-          <textarea class="item-title adv-title no-inline" rows="1" aria-label="Task">${esc(i.title)}</textarea><button type="button" class="entry-chip adv-case-chip" data-act="view-case" title="This task on a screen of its own: its note, its whole history, then its details (Back or Esc comes back here)">View case</button>${from}<button type="button" class="adv-note-peek${note ? '' : ' empty'}" data-act="note" title="${note ? 'Edit the note' : 'Add a note'}">${note ? esc(note) : '+ Note'}</button>
+          <textarea class="item-title adv-title no-inline" rows="1" aria-label="Task">${esc(i.title)}</textarea><button type="button" class="entry-chip adv-case-chip" data-act="view-case" title="This task on a screen of its own: its note, its whole history, then its details (Back or Esc comes back here)">View case</button>${from}<button type="button" class="adv-note-peek${note ? '' : ' empty'}" data-act="note" title="${note ? esc(note) : 'Add a note'}"><span class="adv-note-words">${note ? esc(note) : '+ Note'}</span>${note ? '<svg class="icon line-ico" aria-hidden="true"><use href="#i-note"/></svg>' : ''}</button>
           <div class="adv-note" data-note-for="${i.id}" hidden></div>
         </div>
         <div class="adv-side">
