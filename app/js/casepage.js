@@ -13,7 +13,8 @@
 // show only as the time each field last changed (its clock), beside the field.
 
 import * as store from './store.js';
-import { toHtml } from './richtext.js';
+import { toHtml, richText } from './richtext.js';
+import { debounced } from './autosave.js';
 import { undoable, toast } from './toast.js';
 import * as att from './attachments.js';
 import { attachAsComment, commentMenu, commentMarks } from './comments.js';
@@ -228,7 +229,34 @@ export async function openCase(owner, { closed, back } = {}) {
     }).join('');
   }
 
+  // The note, edited where it's shown (as Advanced's): saves as you type and on leaving it; leaving shows it as it reads.
+  let noteSave = null;
+  function editNote() {
+    const { main, task } = data;
+    const shown = page.querySelector('.case-notes');
+    if (!shown || !main || main.deleted_at) return;
+    const collection = task ? 'tasks' : 'day_items';
+    const box = document.createElement('div');
+    box.className = 'case-note-edit';
+    shown.replaceWith(box);
+    let saved = main.notes || '';
+    const auto = debounced(async () => {
+      const text = box._editor?.value.replace(/\s+$/, '');
+      if (text === undefined || text === saved) return;
+      saved = text;
+      await store.update(collection, main.id, { notes: text });
+    }, 700);
+    noteSave = auto.flush;
+    box._editor = richText(box, { value: main.notes || '', placeholder: 'Note', origin: () => ({ collection, id: main.id, title: main.title, field: 'notes' }), onChange: () => auto.trigger(), bare: true });
+    box.addEventListener('focusout', () => setTimeout(() => { if (box.isConnected && !box.contains(document.activeElement)) render(); }, 150));
+    box._editor.focus?.();
+    const line = box.querySelector('[contenteditable]');
+    if (line && !box.contains(document.activeElement)) line.focus();
+    if (line) getSelection().selectAllChildren(line), getSelection().collapseToEnd();
+  }
+
   async function render() {
+    if (noteSave) { const save = noteSave; noteSave = null; await save(); }
     const scroll = page.scrollTop;
     const focusedAdd = document.activeElement?.classList?.contains('case-add-box');
     data = await load();
@@ -254,7 +282,7 @@ export async function openCase(owner, { closed, back } = {}) {
       </div>
       <div class="case-body"><div class="case-main">
       <section class="adv-card case-sec case-note" data-attach="${task ? 'tasks' : 'day_items'}:${main.id}"><div class="adv-card-h"><h2 class="adv-h">Note</h2></div>
-        ${(main.notes || '').trim() ? `<div class="case-notes">${toHtml(unlink(main.notes))}</div>` : '<p class="case-notes muted">No note yet.</p>'}
+        <div class="case-notes${(main.notes || '').trim() ? '' : ' muted'}" data-case="note" tabindex="0" role="button" title="Edit the note">${(main.notes || '').trim() ? toHtml(unlink(main.notes)) : 'No note yet. Click to add one.'}</div>
         ${direct.length ? `<div class="case-attached">${att.rowHtml(direct, { addButton: false, parent: (task || item).id })}</div>` : ''}
       </section>
       <section class="adv-card case-sec case-add-sec">
@@ -304,6 +332,7 @@ export async function openCase(owner, { closed, back } = {}) {
     const act = ev.target.closest('[data-case]')?.dataset.case;
     if (act === 'back') leave();
     else if (act === 'tick') toggleDone();
+    else if (act === 'note') { if (!ev.target.closest('a')) editNote(); }
     else if (act === 'comment-menu') { const c = data.comments.find(k => k.id === ev.target.closest('[data-comment]').dataset.comment); if (c) commentMenu(ev.target.closest('[data-case]'), c, { host: page, redraw: render, changed: render }); }
     else if (act === 'attach') {
       const picker = Object.assign(document.createElement('input'), { type: 'file', multiple: true, accept: att.ACCEPT, hidden: true });
@@ -322,14 +351,15 @@ export async function openCase(owner, { closed, back } = {}) {
   // Keys stay on this page: nothing reaches the page underneath (its arrows, Delete, Esc going up a level).
   page.addEventListener('keydown', ev => {
     if (ev.target.classList?.contains('case-add-box') && ev.key === 'Enter' && !ev.isComposing) { ev.preventDefault(); addComment(); }
+    if (ev.target.matches?.('[data-case="note"]') && ev.key === 'Enter') { ev.preventDefault(); editNote(); }
     if (ev.key !== 'Escape') ev.stopPropagation();
   }, sig);
   // Esc: out of the comment line first (what's typed stays), then closes. Not while a file or a question is open over it.
   addEventListener('keydown', ev => {
-    if (ev.key !== 'Escape' || document.querySelector('dialog[open], .pill-menu, .ref-picker')) return;
+    if (ev.key !== 'Escape' || document.querySelector('dialog[open], .pill-menu, .ref-picker, .rich.is-full')) return;
     ev.preventDefault();
     ev.stopImmediatePropagation();
-    if (ev.target.closest?.('.case-page :is(input, textarea)')) ev.target.blur(); else leave();
+    if (ev.target.closest?.('.case-page :is(input, textarea, [contenteditable="true"])')) ev.target.blur(); else leave();
   }, { capture: true, signal: gone.signal });
   addEventListener('hashchange', () => close(), sig);
   // Changes from elsewhere (another device, the toast's Undo) show straight away.
@@ -337,7 +367,7 @@ export async function openCase(owner, { closed, back } = {}) {
   const unsubscribe = store.subscribe(change => {
     if (!['tasks', 'day_items', 'comments', 'attachments'].includes(change?.collection)) return;
     clearTimeout(redraw);
-    redraw = setTimeout(() => { if (!page.querySelector('.comment-edit')) render(); }, 250); // never from under a comment being edited
+    redraw = setTimeout(() => { if (!page.querySelector('.comment-edit, .case-note-edit')) render(); }, 250); // never from under a comment or the note being edited
   });
 
   const leave = () => (back ? back() : close());

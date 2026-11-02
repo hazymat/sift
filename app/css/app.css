@@ -5308,3 +5308,19 @@ html.case-open, html.case-open body { overflow: hidden; }
   .task-details > :is(.td-main, .td-side) { display: block; min-width: 0; }
   .task-list > li.task-details .detail-actions { margin: 12px 0 0; padding: 0; border: 0; background: none; }
 }
+
+/* View case's note, edited where it's shown. */
+.case-notes[data-case="note"] { cursor: text; }
+.case-notes[data-case="note"]:hover { background: color-mix(in srgb, var(--text) 3%, transparent); }
+.case-note-edit { padding: 6px 4px; border-bottom: 1px solid var(--glass-border); }
+.case-note-edit .rich { display: block; }
+.case-note-edit :is(.md-bar, .md-full) { display: none; }
+.case-note-edit :is(.rich-edit, .rich-raw) { min-height: 3em; padding: 4px 10px; border-radius: var(--radius-sm); }
+/* In Minimal nothing here is a rounded box: Add a comment is a plain line, as New task is. */
+.case-page[data-skin="minimal"] {
+  .case-add { padding: 0 2px; }
+  .case-add-box, .case-add-box:focus { padding: 7px 5px; border: 0; border-bottom: 1px solid var(--glass-border); border-radius: 0; background: transparent; box-shadow: none; outline: none; }
+  .case-add-box::placeholder { font-style: italic; color: color-mix(in srgb, var(--text) 22%, transparent); opacity: 1; }
+  .case-attach { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+  .comment-edit, .case-note-edit :is(.rich-edit, .rich-raw) { border-radius: 0; }
+}
