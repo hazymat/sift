@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.62.28': [{ text: "Cases and Contacts are now separate areas in the menu. Cases opens straight on your cases, with no tabs. Contacts keeps Recent and Directory.", go: '#/cases' }],
   '1.62.27': [{ text: "Help hints are now small callouts around the app, each with a ✕ that dismisses it for good. Settings, Appearance has Reset and show all help hints, and Hide all help hints, in place of Show hints.", go: '#/settings', at: '#main .hint-settings' }],
   '1.62.26': [{ text: "Lists: Hide ticked is remembered for each list when you leave and come back, and it's the same for everyone the list is shared with." }],
   '1.62.25': [{ text: "Day Planner: dragging a task with its full panel open drew the whole panel into the schedule, stretching the page under the pointer. Its panel now closes as it lifts and only its bar is carried. Fixed." }],
@@ -302,6 +303,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.62.28': '2026-11-03T12:09:08Z',
   '1.62.27': '2026-11-03T11:46:05Z',
   '1.62.26': '2026-11-03T11:14:05Z',
   '1.62.25': '2026-11-03T11:09:51Z',

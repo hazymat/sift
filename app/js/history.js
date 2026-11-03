@@ -9,7 +9,7 @@ export const AREA_OF = {
   tasks: 'Tasks', comments: 'Tasks', note_versions: 'Notes', projects: 'Tasks', milestones: 'Tasks',
   day_items: 'Day Planner', days: 'Day Planner',
   thoughts: 'Brain Dump',
-  contacts: 'Contacts', contact_categories: 'Contacts', contact_jobs: 'Contacts', interactions: 'Contacts', cases: 'Contacts', case_notes: 'Contacts',
+  contacts: 'Contacts', contact_categories: 'Contacts', contact_jobs: 'Contacts', interactions: 'Contacts', cases: 'Cases', case_notes: 'Cases',
   lists: 'Lists', list_items: 'Lists',
   scans: 'Scans', contracts: 'Contracts', settings: 'Settings',
 };

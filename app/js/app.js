@@ -28,6 +28,8 @@ export const AREAS = [
   { id: 'lists', get label() { return word('area_lists'); }, icon: 'i-lists', view: './views/lists.js' },
   // Internally "places" (saved nav order etc. use it); the address is #/find-things.
   { id: 'places', slug: 'find-things', get label() { return word('area_places'); }, icon: 'i-places', view: './views/places.js' },
+  // Cases and Contacts are one view module, two areas (views/contacts.js looks at its #main's area).
+  { id: 'cases', get label() { return word('area_cases'); }, icon: 'i-cases', view: './views/contacts.js' },
   { id: 'contacts', get label() { return word('area_contacts'); }, icon: 'i-contacts', view: './views/contacts.js' },
   { id: 'scans', get label() { return word('area_scans'); }, icon: 'i-scans', view: './views/scans.js' },
   { id: 'contracts', get label() { return word('area_contracts'); }, icon: 'i-contracts', view: './views/contracts.js' },
@@ -428,6 +430,7 @@ async function firstVisit() {
 }
 
 async function route(force = false) {
+  if (/^#\/contacts\/cases(\/|$)/.test(location.hash)) { location.replace(location.hash.replace('#/contacts/cases', '#/cases')); return; } // the old address (links kept in notes, What's new)
   const [id, ...rest] = location.hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent);
   const next = area(id);
   if (!next) {
@@ -485,11 +488,11 @@ function stepUp(hash) {
   const [id, ...rest] = hash.replace(/^#\/?/, '').split('/');
   if (!rest.length) return null;
   if (id === 'recipes' && rest[1] === 'make') return rest.includes('list') ? '#/recipes' : `#/recipes/${rest[0]}`; // a batch opened from the batches list goes back to it
-  if (['lists', 'scans', 'contracts', 'recipes'].includes(id)) return `#/${id}`;
+  if (['lists', 'scans', 'contracts', 'recipes', 'cases'].includes(id)) return `#/${id}`;
   if (id === 'tasks' && rest[0] === 'list' && rest[1]) return '#/tasks/projects'; // a project's page
   if (id === 'contacts') {
     if (rest[0] === 'c') return '#/contacts';
-    if (['cases', 'directory'].includes(rest[0]) && rest.length > 1) return `#/contacts/${rest[0]}`;
+    if (rest[0] === 'directory' && rest.length > 1) return '#/contacts/directory';
   }
   return null;
 }
@@ -665,7 +668,7 @@ async function boot() {
     });
   }
   applyDensity = installViewCog(() => (current === 'planner' && /^#\/planner\/[^/]*\/advanced/.test(location.hash) ? 'advanced' : current));
-  installShare(() => current);
+  installShare(() => (current === 'cases' ? 'contacts' : current)); // Cases shares and prints through its view's own (contacts)
   installKeyNav();
   installSwipe();
   installKeyboard();

@@ -1,7 +1,7 @@
 // Contacts (spec §4.4, §4.4a).
 //   #/contacts                 Recent: transient numbers + recently used, quick capture
 //   #/contacts/directory/<cat> Stored contacts by category; research mode per category
-//   #/contacts/cases           Cases list;  #/contacts/cases/<id>  one case's timeline
+//   #/cases                    Its own area, no tabs: the Cases list;  #/cases/<id>  one case's timeline
 //   #/contacts/c/<id>          One contact (opening it stamps "looked up")
 
 import { hintHtml } from '../hints.js';
@@ -71,7 +71,8 @@ const when = iso => dateTimeText(new Date(iso), { weekday: 'short', day: 'numeri
 
 export default {
   async mount(el) {
-    const state = this.state = { tab: 'recent', id: null, q: '' };
+    const casesArea = el.dataset.area === 'cases';
+    const state = this.state = { tab: casesArea ? 'cases' : 'recent', id: null, q: '', casesArea };
     let data = { contacts: [], categories: [], cases: [], interactions: [] };
     let editors = [];
     let editing = null; // the log entry being edited: 'interactions:<id>' or 'case_notes:<id>'
@@ -89,7 +90,7 @@ export default {
       <div class="tasks-head">
         <button type="button" class="primary c-new-btn" data-act="new-here">+ New contact</button>
         ${shareHtml()}
-          ${cogHtml('contacts')}
+          ${cogHtml(el.dataset.area)}
         <details class="tool-menu page-more">
           <summary class="icon-btn" aria-label="More actions">${icon('i-more')}</summary>
           <div class="menu">
@@ -100,12 +101,11 @@ export default {
           </div>
         </details>
       </div>
-      <!-- Recent | Directory | Cases: the area's main tabs, coloured with an emoji each as Batch Book's books. -->
-      <div class="dump-filter-row c-tabs-row">
+      <!-- Recent | Directory: the area's main tabs, coloured with an emoji each as Batch Book's books. -->
+      <div class="dump-filter-row c-tabs-row"${casesArea ? ' hidden' : ''}>
         <div class="dump-filter" id="c-tabs" role="tablist" aria-label="Show">
           <button type="button" data-tab="recent" style="--bb:#5aa9e6">🕘 Recent</button>
           <button type="button" data-tab="directory" style="--bb:#9b7fe0">📇 Directory</button>
-          <button type="button" data-tab="cases" style="--bb:#e0a040">🗂️ Cases</button>
         </div>
       </div>
       </div>
@@ -357,7 +357,7 @@ export default {
           <ul class="timeline">${timeline.map(e => (e.id && editing === `interactions:${e.id}` ? entryEditor('interactions', log.find(i => i.id === e.id))
             : `<li class="${e.kind}"${e.id ? ` data-entry="interactions:${e.id}" data-attach="interactions:${e.id}"` : ''}><span class="muted">${when(e.at)}</span> ${esc(e.text)}${e.id ? editBtn('interactions', e.id) + filesOf(e.id) : ''}</li>`)).join('')}</ul>
           ${cases.length || tasks.length || dayItems.length || mentions.length || scans.length ? `<h3 class="milestone">Connected</h3><ul class="links">
-            ${cases.map(k => `<li><a href="#/contacts/cases/${k.id}">Case: ${esc(k.title)}</a></li>`).join('')}
+            ${cases.map(k => `<li><a href="#/cases/${k.id}">Case: ${esc(k.title)}</a></li>`).join('')}
             ${tasks.map(t => `<li><a href="#/tasks/list${t.project_id ? `/${t.project_id}` : ''}">Task: ${esc(t.title)}</a></li>`).join('')}
             ${dayItems.map(i => `<li><a href="#/planner/${i.date}">Plan ${i.date}: ${esc(i.title)}</a></li>`).join('')}
             ${mentions.map(m => `<li><a href="${m.route}">${m.icon} Mentioned in ${esc(m.label.toLowerCase())}: ${esc(m.title)}</a></li>`).join('')}
@@ -419,7 +419,7 @@ export default {
       const photo = facts.files.find(file => file.kind === 'image' && file.thumb);
       const chips = peopleOf(kase).map(name => `<span class="chip">👤 ${esc(name)}</span>`).concat(refOf(kase) ? [`<span class="chip"># ${esc(refOf(kase))}</span>`] : []);
       return `<li class="bb-card-li case-card" data-id="${kase.id}" data-depth="0" style="--bb:${STATUS_COLOUR[statusOf(kase).id]}">
-        <a class="bb-card" draggable="false" href="#/contacts/cases/${kase.id}">
+        <a class="bb-card" draggable="false" href="#/cases/${kase.id}">
           <span class="bb-card-pic">${photo ? `<img src="${photo.thumb}" alt="" loading="lazy">` : `<span class="bb-card-emoji">${STATUS_EMOJI[statusOf(kase).id]}</span>`}${badge(kase)}</span>
           <span class="bb-card-body">
             <span class="bb-card-title">${esc(kase.title || 'Untitled')}</span>
@@ -651,7 +651,7 @@ export default {
       el.querySelector('.c-new-btn').textContent = state.tab === 'cases' ? '+ New case' : '+ New contact';
       const casesList = state.tab === 'cases' && !state.id;
       const menu = el.querySelector('.page-cog .view-settings');
-      if (menu.dataset.cases !== String(casesList)) { menu.innerHTML = casesList ? casesMenuHtml() : menuHtml('contacts'); menu.dataset.cases = String(casesList); }
+      if (menu.dataset.cases !== String(casesList)) { menu.innerHTML = casesList ? casesMenuHtml() : menuHtml(el.dataset.area); menu.dataset.cases = String(casesList); }
       if (!casesList) caseTable.close();
       body.innerHTML = state.tab === 'directory' ? viewDirectory()
         : state.tab === 'cases' ? await viewCases()
@@ -732,7 +732,7 @@ export default {
       if (ev.key === 'Escape' && !ev.target.closest('input, textarea, select, [contenteditable]') && (kit.escape() || dirKit.escape() || catKit.escape() || caseKit.escape())) ev.preventDefault();
       // A row of the Cases table opens with Enter, as a click.
       const row = ev.key === 'Enter' && ev.target.closest?.('tr[data-case-row]');
-      if (row) { ev.preventDefault(); go(`#/contacts/cases/${row.dataset.caseRow}`); }
+      if (row) { ev.preventDefault(); go(`#/cases/${row.dataset.caseRow}`); }
     };
     addEventListener('keydown', this.onKey);
 
@@ -771,7 +771,7 @@ export default {
       const title = await askText('New case', { placeholder: word('ph_new_case'), ok: 'Add' });
       if (!title?.trim()) return;
       const k = await store.create('cases', { title: title.trim(), status: 'open', summary: '', references: [], contact_ids: [], project_id: null, opened_at: new Date().toISOString(), closed_at: null });
-      go(`#/contacts/cases/${k.id}`);
+      go(`#/cases/${k.id}`);
     }
 
     async function updateContact(id, fields, label = 'Saved') {
@@ -872,7 +872,7 @@ export default {
       if (caseBtn) {
         if (caseBtn.dataset.caseShow) { caseKit.escape(); setChoice('contacts', 'case-show', caseBtn.dataset.caseShow); return render(); }
         if (caseBtn.dataset.caseLook) { setChoice('contacts', 'case-look', caseBtn.dataset.caseLook); for (const other of caseBtn.parentElement.children) other.setAttribute('aria-pressed', String(other === caseBtn)); return render(); }
-        if (caseBtn.dataset.caseRow) return ev.target.closest('a, button') ? undefined : go(`#/contacts/cases/${caseBtn.dataset.caseRow}`);
+        if (caseBtn.dataset.caseRow) return ev.target.closest('a, button') ? undefined : go(`#/cases/${caseBtn.dataset.caseRow}`);
         caseBtn.closest('details')?.removeAttribute('open');
         const id = caseBtn.closest('li[data-id]').dataset.id;
         if (caseBtn.dataset.caseCardStatus) return changeCases([id], kase => statusPatch(kase, caseBtn.dataset.caseCardStatus), `Marked ${caseBtn.dataset.caseCardStatus}`);
@@ -906,7 +906,7 @@ export default {
       if (act === 'new-category') { const cat = await newCategory(); if (cat) go(`#/contacts/directory/${cat.id}`); return; }
       if (act === 'new-case') return newCase();
       if (act === 'dir-home') return go('#/contacts/directory');
-      if (act === 'cases-home') return go('#/contacts/cases');
+      if (act === 'cases-home') return go('#/cases');
       if (act === 'case-unfilter') { const view = caseView(); view.filters = {}; setChoice('contacts', 'case-table', JSON.stringify(view)); return render(); }
       if (act === 'back') { history.length > 1 ? history.back() : go('#/contacts'); return; }
 
@@ -1007,7 +1007,7 @@ export default {
         if (act === 'archive-case' || act === 'delete-case') {
           const field = act === 'delete-case' ? 'deleted_at' : 'archived_at';
           await store.update('cases', k.id, { [field]: new Date().toISOString() });
-          go('#/contacts/cases');
+          go('#/cases');
           undoable(act === 'delete-case' ? 'Deleted case' : 'Archived case', async () => { await store.update('cases', k.id, { [field]: null }); render(); });
         }
       }
@@ -1065,7 +1065,9 @@ export default {
   },
 
   async route([tab, id]) {
-    if (tab === 'c' && id) {
+    if (this.state.casesArea) {
+      Object.assign(this.state, { tab: 'cases', id: tab || null });
+    } else if (tab === 'c' && id) {
       Object.assign(this.state, { tab: 'contact', id });
       // Opening a contact counts as looking it up.
       const c = await store.get('contacts', id);
@@ -1076,7 +1078,7 @@ export default {
         await store.update('contacts', id, fields);
       }
     } else {
-      Object.assign(this.state, { tab: ['directory', 'cases'].includes(tab) ? tab : 'recent', id: id || null });
+      Object.assign(this.state, { tab: tab === 'directory' ? tab : 'recent', id: id || null });
     }
     this.stopEditing?.();
     return this.render();
@@ -1095,6 +1097,7 @@ export default {
   },
 
   quickAdd() {
+    if (this.state.casesArea) return document.querySelector('#main .c-new-btn')?.click();
     location.hash = '#/contacts';
     setTimeout(() => document.querySelector('#c-new')?.focus(), 50);
   },

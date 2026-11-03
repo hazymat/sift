@@ -179,7 +179,7 @@ export default {
         if (c) out.push(`<a class="chip" href="#/contacts/c/${c.id}" title="Contact">${mark('👤', 'i-contacts')} ${esc(c.name || '?')}</a>`);
       }
       const kase = t.case_id && people.cases.find(k => k.id === t.case_id);
-      if (kase) out.push(`<a class="chip" href="#/contacts/cases/${kase.id}" title="Case">${mark('📁', 'i-archive')} ${esc(kase.title)}</a>`);
+      if (kase) out.push(`<a class="chip" href="#/cases/${kase.id}" title="Case">${mark('📁', 'i-archive')} ${esc(kase.title)}</a>`);
       return out.join('');
     }
 
