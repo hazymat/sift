@@ -37,8 +37,8 @@ const OLDER_DAYS = 60;
 const SAID_IN = { call: 'Call received', text: 'Text received', email: 'Email received', letter: 'Letter received', visit: 'They visited', meeting: 'Meeting', other: 'Received' };
 const SAID_OUT = { call: 'Call made', text: 'Text sent', email: 'Email sent', letter: 'Letter sent', visit: 'Visit made', meeting: 'Meeting', other: 'Sent' };
 const KIND_ORDER = ['call', 'letter', 'email', 'note', 'text', 'visit', 'meeting', 'other']; // a case's New entry: the usual ones first
-const STATUS_COLOUR = { open: 'var(--accent)', waiting: '#d9a441', closed: '#4caf7a' };
-const STATUS_EMOJI = { open: '📂', waiting: '⏳', closed: '✅' };
+const STATUS_COLOUR = { planned: '#9b7fe0', open: 'var(--accent)', waiting: '#d9a441', on_hold: '#8a93a6', closed: '#4caf7a' };
+const STATUS_EMOJI = { planned: '🗓️', open: '📂', waiting: '⏳', on_hold: '⏸️', closed: '✅' };
 // Cases never dragged sort newest opened first.
 const openedOrder = kase => -(Date.parse(kase.opened_at || kase.created_at) / 1e4 || 0);
 const rankOfCase = kase => rankOf(kase, openedOrder);
@@ -383,7 +383,7 @@ export default {
     const caseView = () => { try { return Object.assign({ sort: { id: 'opened', dir: 'desc' } }, JSON.parse(choiceOf('contacts', 'case-table', '{}'))); } catch { return { sort: { id: 'opened', dir: 'desc' } }; } };
     const isClosed = kase => kase.status === 'closed';
     const caseOf = id => data.cases.find(kase => kase.id === id);
-    const statusOf = kase => CASE_STATUS.find(option => option.id === kase.status) || CASE_STATUS[0];
+    const statusOf = kase => CASE_STATUS.find(option => option.id === kase.status) || CASE_STATUS.find(option => option.id === 'open');
     const badge = kase => `<span class="case-badge" style="--st:${STATUS_COLOUR[statusOf(kase).id]}">${statusOf(kase).label}</span>`;
     const peopleOf = kase => (kase.contact_ids || []).map(id => byId(id)).filter(Boolean).map(label);
     const refOf = kase => (kase.references || []).find(ref => ref.value)?.value || '';
@@ -556,7 +556,7 @@ export default {
           if (!ch.timeline) for (const e of events) all.push(...filesFor(e));
           const full = ['both', 'full'].includes(ch.photos) ? (await Promise.all(all.map(async a => { const src = await picOf(a); return src ? `<div class="full"><img class="photo" src="${src}" alt=""><div>${esc(a.name)} · ${esc(dateText(new Date(a.created_at), { day: 'numeric', month: 'short', year: 'numeric' }))}</div></div>` : ''; }))).join('') : '';
           const opened = dateText(new Date(k.opened_at || k.created_at), { day: 'numeric', month: 'short', year: 'numeric' });
-          return { flow: true, css: CSS, html: `<div class="flow" style="--st:${status.id === 'closed' ? '#2f855a' : status.id === 'waiting' ? '#d69e2e' : '#2b6cb0'}">
+          return { flow: true, css: CSS, html: `<div class="flow" style="--st:${{ closed: '#2f855a', waiting: '#d69e2e', planned: '#6b46c1', on_hold: '#718096' }[status.id] || '#2b6cb0'}">
             <div class="chead"><div><div class="eye">Case</div><h1>${esc(k.title)}</h1></div><div class="right"><span class="pill">${esc(status.label.toUpperCase())}</span><br>Opened ${esc(opened)} · ${days} day${days === 1 ? '' : 's'}</div></div>
             ${ch.details ? `<table class="facts">${refs.map(r => `<tr><td>${esc(r.label || 'Reference')}</td><td><b>${esc(r.value)}</b></td></tr>`).join('')}
               ${people.length ? `<tr><td>People</td><td>${people.map(c => esc([c.name, ...(c.details || []).filter(d => d.value && /phone|email/.test(d.kind || '')).map(d => d.value)].join(' · '))).join('<br>')}</td></tr>` : ''}
@@ -597,7 +597,7 @@ export default {
           <div class="ctl-card"><div class="ctl-head"><time>${when(e.at)}</time> <b>${e.head}</b>${e.entry ? editBtn(e.entry[0], e.entry[1].id) : ''}</div>
             ${e.body ? `<div class="ctl-body">${e.body}</div>` : ''}${e.entry ? filesOf(e.entry[1].id) : ''}</div></li>`;
       }).join('');
-      const status = CASE_STATUS.find(x => x.id === k.status) || CASE_STATUS[0];
+      const status = statusOf(k);
       const entries = log.concat(notes);
       const last = entries.map(x => x.at).sort().at(-1);
       const days = Math.max(0, Math.floor((Date.parse(k.closed_at || new Date().toISOString()) - Date.parse(k.opened_at || k.created_at)) / 86400000));

@@ -23,8 +23,10 @@ export const RESEARCH = [
 ];
 
 export const CASE_STATUS = [
+  { id: 'planned', label: 'Planned' },
   { id: 'open', label: 'Open' },
   { id: 'waiting', label: 'Waiting' },
+  { id: 'on_hold', label: 'On hold' },
   { id: 'closed', label: 'Closed' },
 ];
 
