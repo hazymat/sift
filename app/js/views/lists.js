@@ -53,7 +53,7 @@ export default {
     let nameNext = null; // a list just made: select its name for typing
     let atts = new Map(); // list item id → its attachments
     let focusAdd = false; // Enter or Tab from the list name carries on into "Add items"
-    const state = this.state = { id: null, owner: null, hideTicked: false, tab: 'lists' };
+    const state = this.state = { id: null, owner: null, tab: 'lists' };
     let data = { lists: [], items: [] };
     let shared = []; // lists others share with you: [{ l, items, owner_id, name, share }]
 
@@ -207,7 +207,7 @@ export default {
       const all = nestItems(itemsOf(l.id));
       const pr = progress(all);
       // Ticked ones hidden (Hide ticked), and sub-items of a folded item.
-      const shown = all.filter(i => !(state.hideTicked && i.checked_at) && !(i.depth && collapsed.has(i.parent_id)));
+      const shown = all.filter(i => !(l.hide_ticked && i.checked_at) && !(i.depth && collapsed.has(i.parent_id)));
       const template = l.template_id && listOf(l.template_id);
       const copies = isTemplate ? data.lists.filter(x => x.template_id === l.id) : [];
       const missing = template ? missingFromTemplate(all, itemsOf(template.id)) : [];
@@ -256,7 +256,7 @@ export default {
             <div class="bar list-bar"><span style="width:${pr.pct}%"></span></div>
             <span class="muted">${pr.done} of ${pr.total} ticked</span>
             <button type="button" data-act="reset" ${pr.done ? '' : 'disabled'}>Reset ticks</button>
-            <button type="button" data-act="hide" aria-pressed="${state.hideTicked}">${state.hideTicked ? 'Show ticked' : 'Hide ticked'}</button>
+            <button type="button" data-act="hide" aria-pressed="${!!l.hide_ticked}">${l.hide_ticked ? 'Show ticked' : 'Hide ticked'}</button>
             ${template ? `<span class="muted">from <a href="#/lists/${template.id}">${esc(template.name)}</a></span>` : ''}
             ${missing.length ? `<button type="button" data-act="add-missing">Add ${missing.length} missing from template</button>` : ''}
             ${pasteBtn()}
@@ -272,7 +272,7 @@ export default {
           <p class="muted hint list-hint">${listHint({ enterAdds: true })}</p>
         </div>
         <ul class="task-list checklist" style="--tint: ${tintHex(l)}">${shown.map(row).join('')}</ul>
-        ${state.hideTicked && pr.done ? `<p class="muted hint">${pr.done} ticked item${pr.done === 1 ? '' : 's'} hidden.</p>` : ''}
+        ${l.hide_ticked && pr.done ? `<p class="muted hint">${pr.done} ticked item${pr.done === 1 ? '' : 's'} hidden.</p>` : ''}
         ${from ? '' : `<div class="detail-actions list-end">
           <span class="spacer"></span>
           <button type="button" data-act="archive-list">Archive list</button>
@@ -389,7 +389,7 @@ export default {
       rows.forEach(li => { const tick = li.querySelector(':scope > .tick'); if (tick) tick.checked = true; });
       await Promise.all(rows.map((li, n) => tickWave(li, { title: li.querySelector(':scope > .task-title'), parts: li.querySelectorAll(':scope > .item-sub :is(.chip, .task-note)'), delay: 100 + n * 200 }).done));
       rows.forEach(li => li.classList.add('done', 'ticked-away'));
-      if (state.hideTicked) await fadeFold(rows);
+      if (listOf(state.id)?.hide_ticked) await fadeFold(rows);
     }
     async function batch(ids, fields, label, { subs = true, wave = false } = {}) {
       const all = subs ? [...new Set([...ids, ...data.items.filter(i => ids.includes(i.parent_id)).map(i => i.id)])] : ids;
@@ -774,7 +774,7 @@ export default {
         });
         return;
       }
-      if (act === 'hide') { state.hideTicked = !state.hideTicked; return render(); }
+      if (act === 'hide') { await store.update('lists', l.id, { hide_ticked: !l.hide_ticked }); return render(); } // on the list itself: kept, and shared with whoever has it
       if (act === 'add-missing') {
         const missing = missingFromTemplate(itemsOf(l.id), itemsOf(l.template_id));
         const made = await addItems(l.id, missing.map(m => ({ text: m.text, sub: false })), nestItems(itemsOf(l.id)));

@@ -179,10 +179,10 @@ An ongoing saga with one or more organisations or people, e.g. "Mum's care fundi
 
 For lists you use again and again: packing for a trip, the weekly shop, a pre-flight check for the van.
 
-- `lists`: `name, kind (template|instance|list), template_id?, notes, sort_order, used_at?`
+- `lists`: `name, kind (template|instance|list), template_id?, notes, sort_order, used_at?, hide_ticked? (Hide ticked: kept on the list, so it's the same for everyone it's shared with)`
 - `list_items`: `list_id, text, parent_id? (one level of sub-items), sort_order, checked_at?`
 - **Template**: the master list. "Use this template" makes an **instance** (a full copy, e.g. "Holiday packing – Portugal"), editable without touching the template.
-- **Ticking**: tick items off in any order; progress "18 of 30"; **Reset ticks** clears them all (e.g. to re-pack for the trip home); **Hide ticked**.
+- **Ticking**: tick items off in any order; progress "18 of 30"; **Reset ticks** clears them all (e.g. to re-pack for the trip home); **Hide ticked**, remembered per list and the same for everyone it's shared with.
 - **Keeping template and copies in step**: an instance offers "Add n missing from template"; selecting items in an instance offers "Add to template".
 - **Plain lists** have ticks without a template (a one-off shopping list).
 - Same list behaviour as everywhere (select, drag, indent, text to list), undo, History, Archive & Bin.
