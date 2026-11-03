@@ -47,7 +47,7 @@ export const KINDS = {
   cases: {
     label: 'Case', icon: '📁',
     title: k => k.title || '(untitled case)', sub: k => k.summary || 'Case',
-    text: k => `${k.title} ${k.summary || ''}`, route: k => `#/contacts/cases/${k.id}`,
+    text: k => `${k.title} ${k.summary || ''}`, route: k => `#/cases/${k.id}`,
   },
   items: {
     label: 'Thing', icon: '📦',

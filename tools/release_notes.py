@@ -1196,6 +1196,7 @@ NOTES['1.62.24'] = [B("iPhone and iPad: after Sift had been put away for a while
 NOTES['1.62.25'] = [B('Day Planner: dragging a task with its full panel open drew the whole panel into the schedule, stretching the page under the pointer and landing it on the wrong time.')]
 NOTES['1.62.26'] = [F('Lists: Hide ticked is remembered for each list when you leave and come back, and it\'s the same for everyone the list is shared with.')]
 NOTES['1.62.27'] = [F('Help hints are now small callouts around the app, each with a ✕ that dismisses it for good. Settings, Appearance has Reset and show all help hints, and Hide all help hints, in place of Show hints.')]
+NOTES['1.62.28'] = [F('Cases and Contacts are now separate areas in the menu. Cases opens straight on your cases, with no tabs. Contacts keeps Recent and Directory.')]
 NOTES['1.62.00'] = [B('Day Planner Notes: the fifth ruled line was missing and a wider line sat further below the others; the lines are now evenly spaced.')]
 NOTES['1.62.01'] = [F('Day Planner, Bring items in: headings, project panels, Done and the gaps between groups have their usual room again; only the item rows stay compact.')]
 NOTES['1.62.02'] = [F('Contacts and Cases: Edit references and people is gone from an open case\'s menu; the Edit chip beside the references and people does the same job.')]
