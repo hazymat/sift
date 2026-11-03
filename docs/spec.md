@@ -153,7 +153,7 @@ Making a transient contact stored asks for its categories; it then appears in th
 
 An ongoing saga with one or more organisations or people, e.g. "Mum's care funding: council". Everything about it in one timeline, instead of scattered across calls, letters and tasks.
 
-- `cases`: `title, status (open|waiting|closed), summary?, references[] ({label, value}: case numbers, reference numbers, named contacts), contact_ids[], project_id? (Tasks project, if it also has actionable work), opened_at, closed_at?`
+- `cases`: `title, status (planned|open|waiting|on_hold|closed), summary?, references[] ({label, value}: case numbers, reference numbers, named contacts), contact_ids[], project_id? (Tasks project, if it also has actionable work), opened_at, closed_at?`
 - The case **timeline** is assembled from records that carry `case_id`:
   - `interactions` (calls, emails, visits, letters in and out; which number was used; what was said)
   - `scans` with `linked = {collection: "cases", id}` (letters received or sent: `kind = letter`, `letter_date`, `summary` of what it said; OCR in v2)
