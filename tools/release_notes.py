@@ -1193,6 +1193,7 @@ NOTES['1.61.97'] = [F('Pasting a picture (Ctrl+V, or Paste on an iPhone) while t
 NOTES['1.61.98'] = [B('Batch Book: a step mentioning an ingredient whose name starts with a number, such as {00 flour}, showed 0g of it instead of its amount.')]
 NOTES['1.61.99'] = [F('Day Planner, Bring items in: one compact row per item in every tab, with short buttons (Claim, a tick, Archive, Skip) that never wrap, energy and notes on the same line, no start or aim dates, and the day in the heading. From Tasks shows each project as a panel that opens, with its number of tasks.')]
 NOTES['1.62.24'] = [B("iPhone and iPad: after Sift had been put away for a while, saving or loading could fail until a reload (the device had closed its local storage). Sift now opens it again.")]
+NOTES['1.62.25'] = [B('Day Planner: dragging a task with its full panel open drew the whole panel into the schedule, stretching the page under the pointer and landing it on the wrong time.')]
 NOTES['1.62.00'] = [B('Day Planner Notes: the fifth ruled line was missing and a wider line sat further below the others; the lines are now evenly spaced.')]
 NOTES['1.62.01'] = [F('Day Planner, Bring items in: headings, project panels, Done and the gaps between groups have their usual room again; only the item rows stay compact.')]
 NOTES['1.62.02'] = [F('Contacts and Cases: Edit references and people is gone from an open case\'s menu; the Edit chip beside the references and people does the same job.')]

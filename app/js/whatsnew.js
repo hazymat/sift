@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.62.25': [{ text: "Day Planner: dragging a task with its full panel open drew the whole panel into the schedule, stretching the page under the pointer. Its panel now closes as it lifts and only its bar is carried. Fixed." }],
   '1.62.24': [{ text: "iPhone and iPad: coming back to Sift after a while no longer sometimes fails to save or load until you reload." }],
   '1.62.23': [{ text: "Day Planner, Advanced and View case, in Minimal: no curved corners anywhere: tick boxes, buttons, pills, fields, panels, menus and sheets are all square." }],
   '1.62.22': [{ text: "iPad: the ⋯, Share and 👁 menus at the top right no longer stop opening after Split View or switching apps (the iPad could wrongly report a keyboard covering the screen, and the menus opened out of sight under the top bar). The measurements line at the bottom left is gone again." }],
@@ -299,6 +300,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.62.25': '2026-11-03T11:09:51Z',
   '1.62.24': '2026-11-03T07:00:26Z',
   '1.62.23': '2026-11-02T15:24:34Z',
   '1.62.22': '2026-11-02T15:13:26Z',
