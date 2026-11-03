@@ -2,6 +2,7 @@
 // cards. Tapping a card zooms into the box (#/find-things/<box id>); Back zooms
 // out again. Search across all life areas, CSV import/export.
 
+import { hintHtml } from '../hints.js';
 import { cogHtml } from '../viewcog.js';
 import { shareHtml } from '../share.js';
 import { loadTree, search, importCsv, exportCsv, archivedMatchCount, splitQuantity } from '../places.js';
@@ -254,7 +255,7 @@ export default {
           </ul>
           <datalist id="thing-tags">${allTags().map(t => `<option value="${esc(t)}">`).join('')}</datalist>
           </div>
-          <p class="muted hint">${listHint({ enterAdds: true })} Press and hold a thing to move it, as in Tasks; drop it onto another to put it inside (or Tab / Shift+Tab). Tap a cube to select (swipe down the cubes for several). Changes save as you go; Esc closes.</p>
+          ${hintHtml('box-things', `${listHint({ enterAdds: true })} Press and hold a thing to move it, as in Tasks; drop it onto another to put it inside (or Tab / Shift+Tab). Tap a cube to select (swipe down the cubes for several). Changes save as you go; Esc closes.`)}
           <div class="sheet-actions">
             <span class="spacer"></span>
             <label class="inline">Move to <select name="parent_place_id">${sections.map(o => `<option value="${o.id}" ${o.id === s.id ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}</select></label>

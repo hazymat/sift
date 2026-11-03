@@ -3,6 +3,7 @@
 // odd time slotted in as its own line; evening below; a pile for things not
 // yet given a time (fed by the dump box); notes. Calendar popup for any date.
 
+import { hintHtml } from '../hints.js';
 import { spacingHtml, lookHtml, layoutHtml, layoutOn, separateHtml } from '../viewcog.js';
 import * as store from '../store.js';
 import {
@@ -135,7 +136,7 @@ const dayPlanner = {
             <div id="pile-blank" aria-hidden="true"></div>
           </div>
           <a class="advanced-link" href="#/planner/${date}/advanced" title="This day's tasks as cases: comments, notes and files on show">Advanced</a>
-          <p class="muted hint">${esc(word('ph_day_tasks'))}</p>
+          ${hintHtml('planner-tasks', `${esc(word('ph_day_tasks'))}`)}
         </section>
         <section class="day-notes" data-attach="day">
           <h2>${esc(word('day_notes'))}</h2>
@@ -144,7 +145,7 @@ const dayPlanner = {
         </section>
       </div>
       <footer class="day-housekeeping">
-        <p class="muted hint">${esc(word('ph_day_view'))}</p>
+        ${hintHtml('planner-view', `${esc(word('ph_day_view'))}`)}
       </footer>
       </div>
       <dialog class="sheet cal-sheet" id="cal" aria-label="Pick a date"></dialog>
@@ -938,7 +939,7 @@ const dayPlanner = {
       // Not for today, listed together, say which day each was from.
       const row = (i, aside = false) => `<li data-review-id="${i.id}">${mainHtml(i.title, aside ? [dayName(i.date)] : [])}<span class="review-actions"><button type="button" class="primary" data-review="bring" title="Bring to ${esc(dayCalled())}">Bring</button>${iconBtn('data-review="done"', 'Did it already', '✓')}${iconBtn('data-review="letgo"', "Let it go: didn't do it and it doesn't need doing any more (to the Archive)", archiveSvg)}${skipBtn(aside)}${iconBtn('data-review="delete"', 'Delete: get rid of it completely (to the Bin)', '🗑')}</span></li>`;
       return `
-        ${left.length ? `<p class="muted hint">${esc(word('ph_day_review'))}</p>` : '<p class="muted">Nothing left unfinished from the last week.</p>'}
+        ${left.length ? `${hintHtml('planner-review', `${esc(word('ph_day_review'))}`)}` : '<p class="muted">Nothing left unfinished from the last week.</p>'}
         ${skippedHtml(w.earlier.filter(i => skip.has(i.id)), row)}
         ${[...byDay].map(([d, list]) => `
           <h3 class="milestone">${esc(dayName(d))}</h3>
@@ -953,7 +954,7 @@ const dayPlanner = {
     // one into the day's tasks. Connecting, Refresh and which calendars are here too.
     function calendarHtml(w, skip) {
       if (!gcal.connected()) {
-        return `<p class="muted hint">See what's on in your Google Calendar each day, and bring what you need into the plan. Sift only reads your calendar, and keeps what it reads on this device.</p>
+        return `${hintHtml('planner-calendar', `See what's on in your Google Calendar each day, and bring what you need into the plan. Sift only reads your calendar, and keeps what it reads on this device.`)}
           <p class="bring-connect"><button type="button" class="primary" data-gcal="connect">Connect Google Calendar</button>${gcalProblem ? ` <span class="muted">${esc(gcalProblem)}</span>` : ''}</p>`;
       }
       // While the calendars chosen are fetched again, what was showing stays (faded), so nothing jumps about.
@@ -992,7 +993,7 @@ const dayPlanner = {
         : gcalCalsProblem ? `${esc(gcalCalsProblem)} <button type="button" class="gcal-btn" data-gcal="cals-allow" data-again="1">Allow</button>`
         : !gcalCals ? '<button type="button" class="gcal-btn" data-gcal="cals-allow">List my calendars</button>' : '';
       // The list kept on this device shows while it's fetched again (or couldn't be).
-      return `<div class="bring-cals">${say ? `<p class="muted">${say}</p>` : ''}${gcalCals ? `<p class="muted hint">Which calendars show here (on this device):</p>
+      return `<div class="bring-cals">${say ? `<p class="muted">${say}</p>` : ''}${gcalCals ? `<p class="muted">Which calendars show here (on this device):</p>
         ${gcalCals.map(c => `<label><input type="checkbox" data-cal-id="${esc(c.id)}"${gcalChosen.includes(c.id) ? ' checked' : ''}><span class="bring-cal-dot" style="--cal: ${esc(c.colour || 'var(--muted)')}"></span>${esc(c.name)}${c.primary ? ' <span class="muted">(main)</span>' : ''}</label>`).join('')}` : ''}</div>`;
     }
 

@@ -30,6 +30,7 @@ const SHELL = [
   'js/slide.js',
   'js/rowswipe.js',
   'js/keys.js',
+  'js/hints.js',
   'js/hold.js',
   'js/weburl.js',
   'js/tickwave.js',

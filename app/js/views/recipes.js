@@ -7,6 +7,7 @@
 // Pages are drawn on the same papers as the Day Planner (👁: paper, lined, margin).
 // Data and units: js/batchbook.js. A book is stored as a recipe's `type` (settings.batch_sections).
 
+import { hintHtml } from '../hints.js';
 import { keys } from '../keys.js';
 import * as store from '../store.js';
 import * as att from '../attachments.js';
@@ -311,7 +312,7 @@ export default {
             `<button type="button" class="icon-btn" data-step-photo title="Add a photo to this step" aria-label="Add a photo">${camera}</button>`, `data-step="${x.id}" data-id="${x.id}" data-depth="0" data-attach="${o.collection}:${x.id}" data-attach-only="image"`, 'li')).join('')}</ul>
           ${line('+', `<textarea class="bb-step-new no-inline" rows="1" placeholder="${steps.length ? 'Next step' : 'First step'}" aria-label="New step"></textarea>`)}
         </div>
-        <p class="muted hint bb-ref-hint">{salt} shows the salt with its amount. {1/2 salt} or {25% salt} shows part of it; {stock|hot stock} shows the amount with your own words ("200ml hot stock"), and {salt|a pinch} shows just your words. Enter starts the next step.</p>
+        ${hintHtml('recipe-refs', `{salt} shows the salt with its amount. {1/2 salt} or {25% salt} shows part of it; {stock|hot stock} shows the amount with your own words ("200ml hot stock"), and {salt|a pinch} shows just your words. Enter starts the next step.`, 'bb-ref-hint')}
       </div>`;
     }
 

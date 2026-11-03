@@ -3,6 +3,7 @@
 // Every extra (day, aim, energy, project, milestone, notes) lives behind a
 // task's ⋯ so the list stays simple until you want more.
 
+import { hintHtml } from '../hints.js';
 import { keepDraft, draftCleared } from '../drafts.js';
 import { cogHtml, layoutOn } from '../viewcog.js';
 import { shareHtml, printers, printPage } from '../share.js';
@@ -314,7 +315,7 @@ export default {
                 <select data-entry="horizon" aria-label="Which list">${horizons().map(x => opt(x.id, x.label, x.label === (listName || sectionName('inbox')))).join('')}</select></label>
               <button type="button" class="entry-chip pill-more" data-act="entry-panel" title="Add it and open its full panel">More…</button>
             </div>
-            <p class="muted hint">${esc(word('ph_tasks_entry'))}</p>
+            ${hintHtml('tasks-entry', `${esc(word('ph_tasks_entry'))}`)}
           </div>
         </div>`;
     }
@@ -522,7 +523,7 @@ export default {
       // Finished ones go under Finished, at the end.
       const finished = data.projects.filter(p => p.status === 'done');
       return `<div class="project-grid">${data.projects.filter(p => p.status !== 'done').map(p => card(p)).join('')}</div>
-        <p class="muted hint">${esc(word('ph_tasks_projects'))}</p>
+        ${hintHtml('tasks-projects', `${esc(word('ph_tasks_projects'))}`)}
         ${shared.length || invitesHtml(['project']) ? `<h3 class="milestone">Shared with me</h3>${invitesHtml(['project'])}
         <div class="project-grid">${shared.map(x => card(x.p, x)).join('')}</div>` : ''}
         ${finished.length ? `<h3 class="milestone">Finished</h3><div class="project-grid finished">${finished.map(p => card(p)).join('')}</div>` : ''}`;

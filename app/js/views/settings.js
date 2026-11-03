@@ -1,3 +1,4 @@
+import { resetHints, hideHints } from '../hints.js';
 import { sortable } from '../sortable.js';
 import { toast } from '../toast.js';
 import { ask, askText, askYes } from '../ask.js';
@@ -52,7 +53,11 @@ export default {
           ${[[87.5, 'Smaller'], [100, 'Normal'], [112.5, 'Larger'], [125, 'Largest']].map(([v, l]) => `<button type="button" data-size="${v}" style="font-size:${v / 100}em">${l}</button>`).join('')}
         </div>
         <p class="muted">${esc(word('ph_set_size'))}</p>
-        <label class="check-row"><input type="checkbox" id="show-hints"> Show hints <span class="muted">(the grey help text under lists and boxes, e.g. "Enter adds a task…")</span></label>
+        <div class="hint-settings">
+          <h3>Help hints</h3>
+          <p class="muted">Help hints are small notes at various places in the app. Read one where it appears, and press its ✕ to dismiss it for good.</p>
+          <div class="hint-settings-btns"><button type="button" id="hints-reset">Reset and show all help hints</button><button type="button" id="hints-hide">Hide all help hints</button></div>
+        </div>
       </section>
 
       <section class="card" id="nav-card">
@@ -759,13 +764,8 @@ export default {
       toast('✓ Text size changed');
     });
 
-    const hintsBox = el.querySelector('#show-hints');
-    hintsBox.checked = document.documentElement.classList.contains('show-hints');
-    hintsBox.addEventListener('change', async () => {
-      app.setHints(hintsBox.checked);
-      await store.updateSettings({ show_hints: hintsBox.checked });
-      toast(hintsBox.checked ? '✓ Hints shown' : '✓ Hints hidden');
-    });
+    el.querySelector('#hints-reset').addEventListener('click', async () => { await resetHints(); toast('✓ All help hints will show'); });
+    el.querySelector('#hints-hide').addEventListener('click', async () => { await hideHints(); toast('✓ Help hints hidden'); });
 
     // Theme: a dropdown whose rows preview each theme (colours and fonts).
     const themeNote = () => {
