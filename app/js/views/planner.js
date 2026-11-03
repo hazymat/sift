@@ -2125,6 +2125,11 @@ const dayPlanner = {
     function pickUp() {
       press.dragging = true;
       press.ids = selected.has(press.id) && selected.size > 1 ? items.filter(i => selected.has(i.id)).map(i => i.id) : [press.id];
+      // Its full panel closes (what's typed in its note saved): only the bar is carried, and the panel isn't drawn into the schedule as it would land.
+      if (editing && press.ids.includes(editing)) {
+        el.querySelector(`.item-details[data-for="${editing}"] [data-note-for]`)?._flush?.();
+        editing = null;
+      }
       const carried = items.filter(i => press.ids.includes(i.id));
       const ghost = document.createElement('div');
       ghost.className = 'pickup-stack';
