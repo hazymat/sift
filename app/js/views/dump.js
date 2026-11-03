@@ -4,6 +4,7 @@
 // filtered, searched, edited, pinned, and converted into a task, a day plan
 // item, a Find Things item or (select text) a contact.
 
+import { hintHtml } from '../hints.js';
 import { visibleHeight } from '../visible.js';
 import { cogHtml } from '../viewcog.js';
 import { shareHtml } from '../share.js';
@@ -116,7 +117,7 @@ export default {
         <div class="dump-h-row">
           <h2 class="dump-h" id="dump-notes-h">${esc(word('dump_mine'))}</h2>
         </div>
-        <p class="muted hint">${esc(word('ph_dump_select'))}</p>
+        ${hintHtml('dump-select', `${esc(word('ph_dump_select'))}`)}
       </section>
       <div class="dump-bar-mark" aria-hidden="true"></div>
       <div class="dump-bar">

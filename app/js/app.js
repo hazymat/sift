@@ -10,6 +10,7 @@ import { installSearchClear } from './searchclear.js';
 import { installFlash } from './flash.js';
 import { mountSearch } from './search.js';
 import { installViewCog } from './viewcog.js';
+import { installHints } from './hints.js';
 import { installShare } from './share.js';
 import { installDropdowns, installMenuFlip } from './dropdown.js';
 import { installFileDrop } from './attachments.js';
@@ -151,14 +152,6 @@ export async function openCustomTheme() {
   }
   await customStyle();
   customCss.openEditor({ app: { THEMES, customTheme, setCustomTheme }, paper: (await (await import('./days.js')).daySettings()).paper_style });
-}
-
-// ---------- hints ----------
-// The grey help text under lists and boxes ("Enter adds a task…") shows only
-// when Settings → Appearance → Show hints is on (off at first). Settings' own
-// explanations always show.
-export function setHints(on) {
-  document.documentElement.classList.toggle('show-hints', on);
 }
 
 // ---------- navigation ----------
@@ -474,7 +467,7 @@ async function route(force = false) {
   if (current === next.id) currentView.arrived?.(); // drawn: e.g. Tasks may put the cursor in New task
 }
 
-const appApi = { AREAS, MAX_PINNED, pinnedAreas, setPinned, THEMES, currentTheme, setTheme, openCustomTheme, setHints, checkForUpdate, applyUpdate };
+const appApi = { AREAS, MAX_PINNED, pinnedAreas, setPinned, THEMES, currentTheme, setTheme, openCustomTheme, checkForUpdate, applyUpdate };
 
 // ---------- header status ----------
 
@@ -581,7 +574,7 @@ async function boot() {
   }
   theme = themeOf(settings.theme).id;
   if (settings.custom_theme) custom = settings.custom_theme;
-  setHints(!!settings.show_hints);
+  installHints(settings);
   applyTheme();
   prefersLight.addEventListener('change', applyTheme);
 

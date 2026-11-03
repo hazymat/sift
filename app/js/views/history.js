@@ -1,6 +1,7 @@
 // History: every change on this device, newest first. Undo any one (or a
 // selection) in any order; an undo is itself an entry you can undo (redo).
 
+import { hintHtml } from '../hints.js';
 import * as store from '../store.js';
 import { describe, lines, areasOf, undoEntries } from '../history.js';
 import { createListKit } from '../listkit.js';
@@ -19,7 +20,7 @@ export default {
     let q = '';
 
     el.innerHTML = `
-      <p class="muted hint">${esc(word('ph_history'))}</p>
+      ${hintHtml('history', `${esc(word('ph_history'))}`)}
       <input type="search" id="h-q" class="search" placeholder="${esc(word('ph_history_search'))}" autocomplete="off">
       <div id="h-body"></div>`;
     const body = el.querySelector('#h-body');

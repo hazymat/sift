@@ -8,6 +8,7 @@
 // The text on each photographed page is read on this device (ocr.js) once the
 // scan is opened, kept in page_text, shown under its pages and searched.
 
+import { hintHtml } from '../hints.js';
 import { keys } from '../keys.js';
 import * as store from '../store.js';
 import { cogHtml, layoutOn } from '../viewcog.js';
@@ -87,7 +88,7 @@ export default {
           <button type="button" data-kind="all" aria-pressed="${state.kind === 'all'}">All</button>
           ${KINDS.map(k => `<button type="button" data-kind="${k.id}" aria-pressed="${state.kind === k.id}">${k.plural}</button>`).join('')}
         </div></div>
-        <p class="muted hint">${COARSE ? 'Scan takes a photo; it is saved straight away.' : 'Scan picks photos or PDFs, or drop them anywhere on this page. Each is saved straight away.'}</p>
+        ${hintHtml('scans-add', `${COARSE ? 'Scan takes a photo; it is saved straight away.' : 'Scan picks photos or PDFs, or drop them anywhere on this page. Each is saved straight away.'}`)}
         <div class="scan-grid">${shown.map(card).join('') || `<div class="empty"><h2>${scans.length ? 'Nothing matches.' : 'No scans yet.'}</h2>${scans.length ? '' : '<p class="muted">Receipts, warranties, letters and IDs, kept on this device (and your server, if you sync).</p>'}</div>`}</div>`;
     }
 

@@ -139,5 +139,5 @@ export const MOCKS = {
   contracts: () => generic('contracts', 'Contracts', ['Phone contract', 'Ends in June; cancel or switch before.', '£18 a month', 'Set a reminder', 'Started June 2024', 'Notice: 30 days']),
   recipes: () => generic('recipes', 'Recipes', ['Tomato soup', 'Quick, for four.', '25 minutes', 'Add to the shopping list', '6 tomatoes', '1 onion', 'Stock']),
   bin: () => generic('bin', 'Archive and Bin', ['Old shopping list', 'Archived last week.', 'Brain Dump · 7 days ago', 'Put it back', 'Called the bank', 'Holiday packing']),
-  settings: () => generic('settings', 'Settings', ['Appearance', 'Theme, text size and spacing.', 'Changes show straight away.', 'Change fonts and colours', 'Theme', 'Text size', 'Show hints']),
+  settings: () => generic('settings', 'Settings', ['Appearance', 'Theme, text size and spacing.', 'Changes show straight away.', 'Change fonts and colours', 'Theme', 'Text size', 'Help hints']),
 };

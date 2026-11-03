@@ -4,6 +4,7 @@
 //   #/contacts/cases           Cases list;  #/contacts/cases/<id>  one case's timeline
 //   #/contacts/c/<id>          One contact (opening it stamps "looked up")
 
+import { hintHtml } from '../hints.js';
 import { cogHtml, menuHtml, separateHtml, choiceOf, setChoice } from '../viewcog.js';
 import { tableHtml, shown as tableRows, wireTable, anyFilter } from '../detailtable.js';
 import { rankOf, byRank, reorderWrites } from '../order.js';
@@ -192,7 +193,7 @@ export default {
           </div>
           <details class="research" ${inCat.length ? '' : 'open'}>
             <summary>Research mode: add lots at once</summary>
-            <p class="muted hint">One per line: name, number, website, a note, in any order. Numbers, emails and links are recognised. Each becomes a candidate in ${esc(cat.name)}. ${SHORTCUT} to add.</p>
+            ${hintHtml('contacts-import', `One per line: name, number, website, a note, in any order. Numbers, emails and links are recognised. Each becomes a candidate in ${esc(cat.name)}. ${SHORTCUT} to add.`)}
             <textarea id="research-new" rows="4" placeholder="Smith Plumbing 0161 555 0101 smithplumbing.co.uk good reviews&#10;Joe (a neighbour's plumber) 07700 900123 maybe"></textarea>
           </details>
           <ul class="c-list research-list kit-list">${inCat.map(c => `
@@ -200,7 +201,7 @@ export default {
             <li class="research-row" data-research="${c.id}">
               ${RESEARCH.map(r => `<button type="button" data-status="${r.id}" aria-pressed="${c.research_status === r.id}">${r.label}</button>`).join('')}
               <span class="stars">${[1, 2, 3, 4, 5].map(n => `<button type="button" data-rate="${n}" aria-pressed="${(c.rating || 0) >= n}">★</button>`).join('')}</span>
-            </li>`).join('') || '<li class="muted hint">' + esc(word('ph_contact_none')) + '</li>'}
+            </li>`).join('') || '<li class="muted">' + esc(word('ph_contact_none')) + '</li>'}
           </ul>`;
       }
       const uncategorised = stored.filter(c => !c.category_ids?.length);
@@ -212,7 +213,7 @@ export default {
           }).join('')}</ul>
           <button type="button" class="project-card add-card" data-act="new-category">+ New category</button>
         </div>
-        <p class="muted hint">${esc(word('ph_categories'))}</p>
+        ${hintHtml('contacts-categories', `${esc(word('ph_categories'))}`)}
         ${uncategorised.length ? `<h3 class="milestone">Stored, no category</h3><ul class="c-list">${uncategorised.map(contactCard).join('')}</ul>` : ''}`;
     }
 

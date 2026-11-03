@@ -1,6 +1,7 @@
 // Lists: templates you reuse (packing, the weekly shop), the copies made
 // from them, and plain lists. #/lists  and  #/lists/<list id>
 
+import { hintHtml } from '../hints.js';
 import { cogHtml, layoutOn } from '../viewcog.js';
 import { shareHtml, printers } from '../share.js';
 import * as store from '../store.js';
@@ -103,7 +104,7 @@ export default {
         </div>
         </div>
         ${invitesHtml(['list'])}
-        ${state.tab === 'templates' ? `<p class="muted hint">${esc(word('ph_lists_templates'))}</p>${grid(templates.map(l => card(l)), 'ph_lists_no_templates')}`
+        ${state.tab === 'templates' ? `${hintHtml('lists-templates', `${esc(word('ph_lists_templates'))}`)}${grid(templates.map(l => card(l)), 'ph_lists_no_templates')}`
           : state.tab === 'shared' ? grid(shared.map(x => card(x.l, x)), 'ph_lists_none', false)
           : grid(inUse.map(l => card(l)), 'ph_lists_none')}`;
     }
@@ -269,10 +270,10 @@ export default {
             <textarea id="list-new" class="new-task-line list-entry" rows="1" placeholder="${esc(word('ph_add_items'))}" enterkeyhint="done" aria-label="New item"></textarea>
             <button type="button" class="entry-add" data-act="add" title="Add (Enter)">Add <kbd>Enter</kbd></button>
           </div>
-          <p class="muted hint list-hint">${listHint({ enterAdds: true })}</p>
+          ${hintHtml('list-items', `${listHint({ enterAdds: true })}`, 'list-hint')}
         </div>
         <ul class="task-list checklist" style="--tint: ${tintHex(l)}">${shown.map(row).join('')}</ul>
-        ${l.hide_ticked && pr.done ? `<p class="muted hint">${pr.done} ticked item${pr.done === 1 ? '' : 's'} hidden.</p>` : ''}
+        ${l.hide_ticked && pr.done ? `<p class="muted list-hidden-count">${pr.done} ticked item${pr.done === 1 ? '' : 's'} hidden.</p>` : ''}
         ${from ? '' : `<div class="detail-actions list-end">
           <span class="spacer"></span>
           <button type="button" data-act="archive-list">Archive list</button>

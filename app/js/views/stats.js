@@ -1,5 +1,6 @@
 // Usage stats: for the Sift server's owner only (the server says who may see them).
 // Reached from Settings, This device. Everything is worked out here from the raw tallies.
+import { hintHtml } from '../hints.js';
 import * as store from '../store.js';
 import { STATS_SERVER } from '../stats.js';
 
@@ -29,7 +30,7 @@ function columns(counts, { label = key => key, value = n => n } = {}) {
   const most = Math.max(...rows.map(row => row[1]), 1);
   return `<div class="stats-cols">${rows.map(([key, n]) => `<span title="${esc(label(key))}: ${esc(value(n))}"><span style="height:${(100 * n) / most}%"></span></span>`).join('')}</div><div class="stats-cols-ends muted"><span>${esc(label(rows[0]?.[0] ?? ''))}</span><span>most ${esc(value(most))}</span><span>${esc(label(rows.at(-1)?.[0] ?? ''))}</span></div>`;
 }
-const card = (title, body, hint = '') => `<section class="card stats-card"><h2>${esc(title)}</h2>${hint ? `<p class="muted hint">${esc(hint)}</p>` : ''}${body}</section>`;
+const card = (title, body, hint = '') => `<section class="card stats-card"><h2>${esc(title)}</h2>${hint ? hintHtml(`stats-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`, esc(hint)) : ''}${body}</section>`;
 const table = (heads, rows) => (rows.length ? `<div class="stats-table-wrap"><table class="stats-table"><thead><tr>${heads.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(row => `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : '<p class="muted">Nothing yet</p>');
 
 function draw(data, period) {

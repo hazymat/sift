@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.62.27': [{ text: "Help hints are now small callouts around the app, each with a ✕ that dismisses it for good. Settings, Appearance has Reset and show all help hints, and Hide all help hints, in place of Show hints.", go: '#/settings', at: '#main .hint-settings' }],
   '1.62.26': [{ text: "Lists: Hide ticked is remembered for each list when you leave and come back, and it's the same for everyone the list is shared with." }],
   '1.62.25': [{ text: "Day Planner: dragging a task with its full panel open drew the whole panel into the schedule, stretching the page under the pointer. Its panel now closes as it lifts and only its bar is carried. Fixed." }],
   '1.62.24': [{ text: "iPhone and iPad: coming back to Sift after a while no longer sometimes fails to save or load until you reload." }],
