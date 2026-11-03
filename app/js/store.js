@@ -336,7 +336,8 @@ function makeSpace(name) {
   const isLocal = name === LOCAL_DB;
   let db = null;
   async function open() {
-    if (db) return db;
+    // iPhone and iPad close the database when the app is put away, without telling us: open it again.
+    if (db) { try { db.transaction('sync_meta').abort(); return db; } catch { db = null; } }
     if (!isLocal) await local.open(); // the device id and clock come from this device's own data
     const request = indexedDB.open(name, DB_VERSION);
     request.onupgradeneeded = () => {
@@ -353,6 +354,7 @@ function makeSpace(name) {
     };
     db = await promisify(request);
     db.onversionchange = () => { db.close(); db = null; if (isLocal) location.reload(); };
+    const conn = db; db.onclose = () => { if (db === conn) db = null; };
     if (!isLocal) return db;
 
     const tx = db.transaction('sync_meta', 'readwrite');
