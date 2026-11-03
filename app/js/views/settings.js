@@ -62,7 +62,7 @@ export default {
 
       <section class="card" id="nav-card">
         <h2>Navigation</h2>
-        <p class="muted">Drag to reorder. The top ${app.MAX_PINNED} go in the bottom bar on your phone; the rest live under More.</p>
+        <p class="muted">Drag to reorder. The top ${app.MAX_PINNED} go in the bottom bar on your phone; the rest live under More, in this order. On a computer, this is also the order across the top.</p>
         <ul class="pin-list" id="nav-order"></ul>
       </section>
 
@@ -799,7 +799,7 @@ export default {
       list.innerHTML = [
         ...pinned.map(id => row(app.AREAS.find(a => a.id === id))),
         '<li class="divider">More</li>',
-        ...app.AREAS.filter(a => !a.hidden && !pinned.includes(a.id)).map(row),
+        ...app.moreAreas().map(row),
       ].join('');
     };
 
@@ -822,7 +822,7 @@ export default {
       onMove: enforce,
       async onEnd() {
         const focused = document.activeElement?.closest('li')?.dataset.id;
-        await app.setPinned(above().map(li => li.dataset.id));
+        await app.setPinned(above().map(li => li.dataset.id), [...divider().parentElement.children].slice([...list.children].indexOf(divider()) + 1).map(li => li.dataset.id));
         renderPins();
         if (focused) list.querySelector(`[data-id="${focused}"] .drag-handle`)?.focus();
       },

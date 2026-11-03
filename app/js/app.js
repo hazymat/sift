@@ -56,6 +56,7 @@ const path = a => a.slug || a.id; // what the address bar shows
 const icon = (id, cls = 'icon') => `<svg class="${cls}" aria-hidden="true"><use href="#${id}"/></svg>`;
 
 let pinned = DEFAULT_PINNED;
+let moreOrder = []; // the areas under More, in the order chosen in Settings
 let current = null;
 let currentView = null;
 let applyDensity = () => {};
@@ -64,9 +65,18 @@ export function pinnedAreas() {
   return pinned;
 }
 
-export async function setPinned(ids) {
+// Everything not pinned, in the order chosen; an area not placed yet (a new one) stays where AREAS has it.
+export function moreAreas() {
+  const natural = AREAS.filter(a => !a.hidden && !pinned.includes(a.id));
+  const placed = moreOrder.map(area).filter(a => natural.includes(a));
+  natural.forEach((a, n) => { if (!placed.includes(a)) placed.splice(n, 0, a); });
+  return placed;
+}
+
+export async function setPinned(ids, more = moreOrder) {
   pinned = ids.filter(id => area(id)?.pinnable !== false).slice(0, MAX_PINNED);
-  await store.updateSettings({ pinned_areas: pinned });
+  moreOrder = more;
+  await store.updateSettings({ pinned_areas: pinned, more_order: moreOrder });
   renderNav();
 }
 
@@ -159,7 +169,7 @@ export async function openCustomTheme() {
 // ---------- navigation ----------
 
 function renderNav() {
-  const more = AREAS.filter(a => !a.hidden && !pinned.includes(a.id));
+  const more = moreAreas();
   const activeInMore = more.some(a => a.id === current);
 
   // Bottom bar (phone): pinned areas + More.
@@ -232,7 +242,7 @@ function installKeyNav() {
     if ((ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') || ev.altKey || ev.metaKey || ev.shiftKey || ev.defaultPrevented || busy(ev.ctrlKey)) return;
     const dir = ev.key === 'ArrowLeft' ? -1 : 1;
     if (ev.ctrlKey) {
-      const order = [...pinned.map(area), ...AREAS.filter(a => !a.hidden && !pinned.includes(a.id))];
+      const order = [...pinned.map(area), ...moreAreas()];
       const at = order.findIndex(a => a.id === current);
       const to = at < 0 ? null : order[at + dir];
       if (!to) return;
@@ -470,7 +480,7 @@ async function route(force = false) {
   if (current === next.id) currentView.arrived?.(); // drawn: e.g. Tasks may put the cursor in New task
 }
 
-const appApi = { AREAS, MAX_PINNED, pinnedAreas, setPinned, THEMES, currentTheme, setTheme, openCustomTheme, checkForUpdate, applyUpdate };
+const appApi = { AREAS, MAX_PINNED, pinnedAreas, moreAreas, setPinned, THEMES, currentTheme, setTheme, openCustomTheme, checkForUpdate, applyUpdate };
 
 // ---------- header status ----------
 
@@ -575,6 +585,7 @@ async function boot() {
     pinned = settings.pinned_areas.filter(id => area(id)).slice(0, MAX_PINNED);
     if (pinned.join(',') === OLD_DEFAULT) pinned = DEFAULT_PINNED; // never changed by hand: take the new order
   }
+  if (Array.isArray(settings.more_order)) moreOrder = settings.more_order;
   theme = themeOf(settings.theme).id;
   if (settings.custom_theme) custom = settings.custom_theme;
   installHints(settings);

@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.62.30': [{ text: "Settings, Navigation: the items under More can now be put in your own order. It sets the order across the top on a computer, and in the More menu on a computer and a phone.", go: '#/settings', at: '#nav-card' }],
   '1.62.29': [{ text: "Cases: two more statuses, Planned and On hold, as well as Open, Waiting and Closed. Both count as not closed, so they show under Open.", go: '#/cases' }],
   '1.62.28': [{ text: "Cases and Contacts are now separate areas in the menu. Cases opens straight on your cases, with no tabs. Contacts keeps Recent and Directory.", go: '#/cases' }],
   '1.62.27': [{ text: "Help hints are now small callouts around the app, each with a ✕ that dismisses it for good. Settings, Appearance has Reset and show all help hints, and Hide all help hints, in place of Show hints.", go: '#/settings', at: '#main .hint-settings' }],
