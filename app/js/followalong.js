@@ -32,16 +32,19 @@ const kept = () => {
 };
 // The tabs (each one's step, ticks, scale and clock) are synced to every device through settings.follow; which tab is
 // in front and Side by side stay with this device.
-let sendSoon = 0, lastSent = '';
+let sendSoon = 0, lastSent = '', unsent = false;
 const keep = k => {
-  k.touched = Date.now();
+  k.touched = Math.max(Date.now(), (k.touched || 0) + 1); // newer than what it replaces, even if another device's clock is ahead
   try { localStorage.setItem(KEPT, JSON.stringify(k)); } catch {}
   clearTimeout(sendSoon);
-  sendSoon = setTimeout(() => { const v = JSON.stringify(k.tabs); if (v === lastSent) return; lastSent = v; store.updateSettings({ follow: { tabs: k.tabs, touched: k.touched } }).catch(() => {}); }, 1200);
+  unsent = true;
+  sendSoon = setTimeout(() => { unsent = false; const v = JSON.stringify(k.tabs); if (v === lastSent) return; lastSent = v; store.updateSettings({ follow: { tabs: k.tabs, touched: k.touched } }).catch(() => {}); }, 1200);
 };
 // Another device's, when it's newer: taken, and 'sift-follow-synced' tells Follow along and Batch Book's ▶ Cooking pill.
 async function pull() {
-  const f = (await store.getSettings()).follow, k = kept();
+  const f = (await store.getSettings()).follow;
+  if (unsent) return; // a change here is on its way: what arrived mustn't undo it
+  const k = kept();
   if (!f || (f.touched || 0) <= (k.touched || 0)) return;
   lastSent = JSON.stringify(f.tabs || []);
   const changed = lastSent !== JSON.stringify(k.tabs);
@@ -411,6 +414,9 @@ export async function openFollow(open) {
     clearTimeout(fresher);
     fresher = setTimeout(async () => {
       if (!el.isConnected || document.querySelector('dialog[open]')) return;
+      // A recipe that has arrived since (it was added on another device): its tab shows now.
+      const arrived = (await Promise.all(away.map(loadTab))).filter(Boolean);
+      if (arrived.length) { arrived.forEach(x => delete x.tab.away_since); pots.push(...arrived); away = away.filter(t => !arrived.some(x => x.tab === t)); save(); }
       const again = await Promise.all(pots.map(p => loadTab(p.tab)));
       if (!el.isConnected || again.some(x => !x)) return;
       again.forEach((x, n) => { x.files = pots[n].files; x.editTime = pots[n].editTime; }); // photos chosen for the end, not saved yet
@@ -464,7 +470,16 @@ export async function openFollow(open) {
       if (fold) { const hits = [...fold.querySelectorAll('[data-pick]')].filter(b => !b.hidden).length; fold.hidden = !!w && !hits; if (w) fold.open = hits > 0; }
     });
     let chosen = null;
-    dlg.addEventListener('click', ev => { const b = ev.target.closest('[data-pick]'); if (b) { chosen = rows[+b.dataset.pick]; dlg.close(); } });
+    dlg.addEventListener('click', ev => { const b = ev.target.closest('[data-pick]'); if (b) chosen = rows[+b.dataset.pick]; if (chosen) dlg.close(); });
+    // Taken from the press itself: on an iPad the keyboard going down moves the list under the finger, so the tap's click can land beside the row and close this with nothing picked.
+    let pressed = null;
+    dlg.addEventListener('pointerdown', ev => { pressed = ev.target.closest('[data-pick]') ? { row: ev.target.closest('[data-pick]'), x: ev.clientX, y: ev.clientY } : null; });
+    dlg.addEventListener('pointercancel', () => { pressed = null; }); // scrolling the list
+    dlg.addEventListener('pointerup', ev => {
+      if (!pressed || Math.hypot(ev.clientX - pressed.x, ev.clientY - pressed.y) > 12) return;
+      chosen = rows[+pressed.row.dataset.pick];
+      setTimeout(() => { if (dlg.open) dlg.close(); }, 350); // the click, when it comes, closes it; held open till then so it can't land on the page behind
+    });
     dlg.addEventListener('keydown', ev => { if (ev.key === 'Enter' && ev.target === q) { const b = [...dlg.querySelectorAll('[data-pick]')].find(x => !x.hidden); if (b) { ev.preventDefault(); b.click(); } } });
     await new Promise(resolve => { dlg.addEventListener('close', () => { dlg.remove(); resolve(); }); dlg.showModal(); q.focus(); });
     if (!chosen) return;
