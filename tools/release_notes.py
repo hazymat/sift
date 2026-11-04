@@ -1199,6 +1199,7 @@ NOTES['1.62.27'] = [F('Help hints are now small callouts around the app, each wi
 NOTES['1.62.28'] = [F('Cases and Contacts are now separate areas in the menu. Cases opens straight on your cases, with no tabs. Contacts keeps Recent and Directory.')]
 NOTES['1.62.29'] = [F('Cases: two more statuses, Planned and On hold, as well as Open, Waiting and Closed. Both count as not closed, so they show under Open.')]
 NOTES['1.62.30'] = [F('Settings, Navigation: the items under More can now be put in your own order. It sets the order across the top on a computer, and in the More menu on a computer and a phone.')]
+NOTES['1.62.31'] = [B('Follow along: a recipe it could not find on this device stayed hidden in the list, so ▶ Cooking did nothing or counted one that could not be seen. It now says so, with a way to put it away, and gives up after 3 days.'), F('Follow along: adding a recipe with + Recipe shows both side by side, where the screen has room.')]
 NOTES['1.62.00'] = [B('Day Planner Notes: the fifth ruled line was missing and a wider line sat further below the others; the lines are now evenly spaced.')]
 NOTES['1.62.01'] = [F('Day Planner, Bring items in: headings, project panels, Done and the gaps between groups have their usual room again; only the item rows stay compact.')]
 NOTES['1.62.02'] = [F('Contacts and Cases: Edit references and people is gone from an open case\'s menu; the Edit chip beside the references and people does the same job.')]

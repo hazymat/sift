@@ -25,6 +25,8 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.62.31': [{ text: "Follow along: a recipe it can't find on this device no longer hides. ▶ Cooking used to do nothing, or count one you couldn't see. It now says so, with a way to put it away. Fixed." },
+    { text: "Follow along: adding a recipe with + Recipe shows both side by side, where the screen has room." }],
   '1.62.30': [{ text: "Settings, Navigation: the items under More can now be put in your own order. It sets the order across the top on a computer, and in the More menu on a computer and a phone.", go: '#/settings', at: '#nav-card' }],
   '1.62.29': [{ text: "Cases: two more statuses, Planned and On hold, as well as Open, Waiting and Closed. Both count as not closed, so they show under Open.", go: '#/cases' }],
   '1.62.28': [{ text: "Cases and Contacts are now separate areas in the menu. Cases opens straight on your cases, with no tabs. Contacts keeps Recent and Directory.", go: '#/cases' }],

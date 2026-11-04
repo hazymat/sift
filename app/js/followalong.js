@@ -75,7 +75,8 @@ function waitName(text, n) {
 // null: deleted (its tab goes); undefined: not found here, so its tab is kept rather than lost.
 async function loadTab(tab) {
   const space = tab.owner ? store.spaceOf(tab.owner) : store.local;
-  const rec = await space.get(tab.c, tab.id).catch(() => null);
+  // A failed read isn't a missing recipe: iPhone and iPad can drop the database as they wake, so it's tried once more.
+  const rec = await space.get(tab.c, tab.id).catch(() => new Promise(done => setTimeout(done, 300)).then(() => space.get(tab.c, tab.id)).catch(() => null));
   if (!rec) return undefined; // not on this device (yet): the tab is kept for when it is
   if (rec.deleted_at) return null;
   const recipe = tab.c === 'recipe_makes' ? await space.get('recipes', rec.recipe_id).catch(() => null) : rec;
@@ -103,14 +104,21 @@ export async function openFollow(open) {
   }
   const loaded = await Promise.all(k.tabs.map(loadTab));
   const pots = loaded.filter(Boolean);
-  let away = k.tabs.filter((t, n) => loaded[n] === undefined); // kept in the saved tabs, not shown
+  // Kept in the saved tabs, with a note beside the tabs saying so; given up after 3 days, in case the recipe has really gone.
+  const now = Date.now();
+  let away = k.tabs.filter((t, n) => loaded[n] === undefined && now - (t.away_since ??= now) < FORGET);
+  pots.forEach(p => delete p.tab.away_since);
   if (away.length) feature('follow_tab_away');
   k.tabs = pots.map(p => p.tab).concat(away);
   k.at = Math.max(0, Math.min(k.at, pots.length - 1));
   let wantStep = null; try { wantStep = JSON.parse(sessionStorage.getItem('sift_follow_step') || 'null'); sessionStorage.removeItem('sift_follow_step'); } catch {}
   if (wantStep && open && pots[k.at]) atStep(pots[k.at], { step_id: wantStep.id, step_no: wantStep.no });
   keep(k);
-  if (!pots.length) return;
+  if (!pots.length) {
+    // Nothing to show: saying so, rather than the ▶ Cooking pill doing nothing.
+    if (away.length) toast(away.length === 1 ? "That recipe isn't on this device" : `Those ${away.length} recipes aren't on this device`, { action: 'Put away', ms: 10000, onAction: () => { k.tabs = []; keep(k); dispatchEvent(new CustomEvent('sift-follow-closed')); } });
+    return;
+  }
   closeOpen?.(); // one open at a time, and the one before lets go of everything it was listening to
   document.querySelector('.fa-screen')?.remove();
   const el = document.createElement('div');
@@ -317,6 +325,7 @@ export async function openFollow(open) {
   });
 
   const tabsHtml = () => `<div class="fa-tabs" role="tablist">${pots.map((p, n) => `<span class="fa-tab${n === k.at ? ' on' : ''}${sideBySide() && n < showing() ? ' fa-shown' : ''}" role="tab" aria-selected="${n === k.at}" data-slot="${n}" data-tab="${n}"${pots.length > 1 ? ` data-drag="${n}"` : ''}><button type="button" class="fa-tab-go" data-tab="${n}">${esc(p.title)}</button>${pots.length > 1 ? `<button type="button" class="fa-tab-x" data-tab-x="${n}" title="Put this one away" aria-label="Put ${esc(p.title)} away">✕</button>` : ''}</span>`).join('')}
+    ${away.length ? `<span class="fa-tab-away" title="Added on another device, or no longer here. It comes back here once it's on this device.">${away.length} not on this device<button type="button" data-fa="away-x" aria-label="Put away what isn't on this device">✕</button></span>` : ''}
     <button type="button" class="fa-tab-add" data-fa="add" title="Cook another recipe at the same time">+ Recipe</button>
     ${pots.length > 1 && columns() > 1 ? `<button type="button" class="fa-side" data-fa="side" aria-pressed="${!!k.side}" title="Show several at once: the first tabs, in their order (drag a tab sideways to change it)">◫ Side by side</button>` : ''}</div>`;
   let ro = null;
@@ -460,9 +469,10 @@ export async function openFollow(open) {
     await new Promise(resolve => { dlg.addEventListener('close', () => { dlg.remove(); resolve(); }); dlg.showModal(); q.focus(); });
     if (!chosen) return;
     const p = await loadTab({ c: chosen.c, id: chosen.id, owner: null, times: 1, at: 0, started: Date.now() });
-    if (!p) return;
+    if (!p) return toast(`Couldn't open ${chosen.label}. Try again.`);
     pots.push(p);
     k.at = pots.length - 1;
+    if (columns() > 1) k.side = true; // two to cook from: both on the screen, where there's room
     save();
     draw();
   }
@@ -615,6 +625,7 @@ export async function openFollow(open) {
     if (b.dataset.fa === 'close') return close();
     if (b.dataset.fa === 'timer') return timers.newTimerSheet(focused()?.pot.where || {});
     if (b.dataset.fa === 'add') return addPot();
+    if (b.dataset.fa === 'away-x') { const was = away; away = []; save(); draw(); return toast('Put away', { action: 'Undo', onAction: () => { away = was; save(); draw(); } }); }
     if (b.dataset.fa === 'finish') return finish();
     if (b.dataset.fa === 'clock') { const p = s?.pot || pots[k.at]; p.tab.clock = Date.now(); delete p.tab.took; save(); return draw(); }
     if (b.dataset.fa === 'side') { k.side = !k.side; save(); return draw(); }
@@ -669,6 +680,8 @@ body.follow-open > :is(.appbar, #main, #tabbar, #timer-dock, .select-bar:not(.tm
 .fa-tab button, .fa-tab button:hover:not(:disabled), .fa-tab button:active { background: none; box-shadow: none; border: 0; -webkit-tap-highlight-color: transparent; }
 .fa-tab-go { padding-left: 14px; font-weight: 600; max-width: 16em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fa-tab-x { padding: 6px 10px 6px 2px; color: var(--muted); }
+.fa-tab-away { flex: none; display: inline-flex; align-items: center; gap: 2px; padding-left: 10px; border: 1px dashed var(--glass-border); border-radius: 999px; font-size: .8rem; color: var(--muted); white-space: nowrap; }
+.fa-tab-away button { padding: 4px 10px 4px 6px; border: 0; background: none; box-shadow: none; color: inherit; }
 .fa-tab-add, .fa-side { flex: none; }
 .fa-side[aria-pressed="true"], .fa-side[aria-pressed="true"]:hover { background: var(--active-bg); border-color: var(--active-border); } /* on at once, even under a finger (a touch screen keeps :hover on what was tapped) */
 @media (hover: none) { .fa-side[aria-pressed="false"]:hover { background: var(--glass); } }
