@@ -116,7 +116,7 @@ export async function openFollow(open) {
   keep(k);
   if (!pots.length) {
     // Nothing to show: saying so, rather than the ▶ Cooking pill doing nothing.
-    if (away.length) toast(away.length === 1 ? "That recipe isn't on this device" : `Those ${away.length} recipes aren't on this device`, { action: 'Put away', ms: 10000, onAction: () => { k.tabs = []; keep(k); dispatchEvent(new CustomEvent('sift-follow-closed')); } });
+    if (away.length) toast(away.length === 1 ? "That recipe isn't on this device" : `Those ${away.length} recipes aren't on this device`, { action: 'Put away', ms: 10000, onAction: () => { const now = kept(); now.tabs = now.tabs.filter(t => !away.includes(t) && !away.some(a => a.id === t.id)); keep(now); dispatchEvent(new CustomEvent('sift-follow-closed')); dispatchEvent(new CustomEvent('sift-follow-synced')); } }); // only those: a recipe may have been opened since
     return;
   }
   closeOpen?.(); // one open at a time, and the one before lets go of everything it was listening to
