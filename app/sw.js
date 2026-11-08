@@ -58,6 +58,7 @@ const SHELL = [
   'js/listkit.js',
   'js/inline.js',
   'js/views/history.js',
+  'js/views/shared.js',
   'js/richtext.js',
   'js/fullnote.js',
   'js/autosave.js',

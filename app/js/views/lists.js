@@ -72,7 +72,7 @@ export default {
       return `<li class="list-card-li" ${from ? `data-list="${l.id}"` : `data-id="${l.id}" data-list="${l.id}" data-depth="0"`}>
         <a class="project-card list-card" draggable="false" href="#/lists/${l.id}${from ? `/from/${from.owner_id}` : ''}" style="--tint: ${tintHex(l)}; --c: ${tintHex(l)}">
           <span class="project-title">${esc(l.name || 'Untitled')}</span>
-          ${from ? `<span class="muted">👥 from ${esc(from.name)}</span>` : who ? `<span class="muted">👥 shared with ${esc(who)}</span>` : ''}
+          ${from ? `<span class="muted list-theirs" title="Shared with you by ${esc(from.name)}: you both see and change it">👥 ${esc(from.name)}'s</span>` : who ? `<span class="muted">👥 shared with ${esc(who)}</span>` : ''}
           ${l.kind === 'template'
             ? `<span class="muted">${items.length} item${items.length === 1 ? '' : 's'}${copies ? ` · used ${copies}×` : ''}${l.used_at ? ` · last ${shortDate(l.used_at)}` : ''}</span>`
             : `<span class="bar"><span style="width:${pr.pct}%"></span></span><span class="muted">${pr.done} of ${pr.total} ticked</span>`}
@@ -83,9 +83,12 @@ export default {
     function overview() {
       const templates = data.lists.filter(l => l.kind === 'template');
       const inUse = data.lists.filter(l => l.kind !== 'template').sort(byRank(newestFirst));
-      if (state.tab === 'shared' && !shared.length) state.tab = 'lists';
+      if (state.tab === 'shared') state.tab = 'lists'; // lists shared with you now sit among your own (👥 on each)
+      const theirLists = shared.filter(x => (x.l.kind === 'template') === (state.tab === 'templates'));
       const tab = (id, label) => `<button type="button" data-list-tab="${id}" aria-pressed="${state.tab === id}">${label}</button>`;
-      const grid = (cards, empty, mine = true) => cards.length ? `<ul class="project-grid list-grid"${mine ? ' data-mine' : ''}>${cards.join('')}</ul>` : `<p class="muted">${esc(word(empty))}</p>`;
+      // Yours (dragged into your own order), then those shared with you, in the same grid.
+      const theirsGrid = theirLists.length ? `<ul class="project-grid list-grid list-grid-theirs">${theirLists.map(x => card(x.l, x)).join('')}</ul>` : '';
+      const grid = (cards, empty) => (cards.length ? `<ul class="project-grid list-grid" data-mine>${cards.join('')}</ul>` : theirsGrid ? '' : `<p class="muted">${esc(word(empty))}</p>`) + theirsGrid;
       return `
         <div class="sticky-top-mark" aria-hidden="true"></div>
         <div class="sticky-top">
@@ -98,14 +101,13 @@ export default {
             <div class="menu"><a href="#/bin/archive/lists">Show Archive</a><a href="#/bin/bin/lists">Show Bin</a></div>
           </details>
         </div>
-        <!-- Lists | Templates (| Shared with me): a filter bar like Brain Dump's and Tasks' (underlined tabs). -->
+        <!-- Lists | Templates (lists shared with you among them, 👥): a filter bar like Brain Dump's and Tasks' (underlined tabs). -->
         <div class="dump-filter-row">
-          <div class="dump-filter" id="list-tabs" role="tablist" aria-label="Show">${tab('lists', 'Lists')}${tab('templates', 'Templates')}${shared.length ? tab('shared', 'Shared with me') : ''}</div>
+          <div class="dump-filter" id="list-tabs" role="tablist" aria-label="Show">${tab('lists', 'Lists')}${tab('templates', 'Templates')}</div>
         </div>
         </div>
         ${invitesHtml(['list'])}
         ${state.tab === 'templates' ? `${hintHtml('lists-templates', `${esc(word('ph_lists_templates'))}`)}${grid(templates.map(l => card(l)), 'ph_lists_no_templates')}`
-          : state.tab === 'shared' ? grid(shared.map(x => card(x.l, x)), 'ph_lists_none', false)
           : grid(inUse.map(l => card(l)), 'ph_lists_none')}`;
     }
 
@@ -302,7 +304,7 @@ export default {
       data = await loadLists();
       atts = await att.byParent();
       const l = state.id && listOf(state.id);
-      if (state.id) state.tab = state.owner ? 'shared' : l?.kind === 'template' ? 'templates' : 'lists'; // back to the tab it's on
+      if (state.id) state.tab = l?.kind === 'template' ? 'templates' : 'lists'; // back to the tab it's on
       const viewOpen = body.querySelector('details.view-menu[open]'); // 👁 stays open while its choices redraw the page
       const menuTop = viewOpen?.querySelector('.menu')?.scrollTop;
       body.innerHTML = state.id ? page() : overview();

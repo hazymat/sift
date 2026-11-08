@@ -416,6 +416,8 @@ let privateKey = null;
 const shareListeners = new Set();
 export const sharesNow = () => shares;
 export const onShares = fn => { shareListeners.add(fn); fn(shares); return () => shareListeners.delete(fn); };
+// Something about the shares changed here only (an invitation answered, sharing.js): everyone listening redraws.
+export const nudgeShares = () => { for (const fn of shareListeners) fn(shares); };
 export const myUserId = () => account?.user_id;
 // What the app calls someone: the name they set (first name, with the last name
 // when two people sharing with you have the same first name; else their username),
