@@ -807,21 +807,27 @@ export async function eraseAll() {
   if (indexedDB.databases) for (const d of await indexedDB.databases()) if (d.name?.startsWith(`${LOCAL_DB}_from_`)) await makeSpace(d.name).erase();
   await local.erase();
 }
+// Someone else's Batch Book (shared with you) is read-only: writes to it here are refused (sync.js never sends them either).
+export const READ_ONLY = ['recipes', 'recipe_makes', 'recipe_entries'];
+const locked = (collection, fields) => current !== local && (READ_ONLY.includes(collection) || (collection === 'attachments' && READ_ONLY.includes(fields?.parent_collection)));
+const refused = () => Promise.reject(new Error('Shared with you to read: copy it to your own Batch Book to change it'));
 // Usage stats (stats.js): things made and ticked off on this device, not the tour's examples.
 const COUNTED = c => c !== 'settings' && c !== 'note_versions';
 export function create(collection, fields) {
+  if (locked(collection, fields)) return refused();
   const made = current.create(collection, fields);
   if (COUNTED(collection)) made.then(rec => { if (!demoIds.has(rec?.id ?? fields?.id)) stats.made(collection); }, () => {});
   return made;
 }
 export function update(collection, id, changes) {
+  if (locked(collection)) return refused();
   if (changes?.done_at && !demoIds.has(id)) stats.ticked(collection);
   return current.update(collection, id, changes);
 }
-export function remove(collection, id) { return current.remove(collection, id); }
-export function restore(collection, id) { return current.restore(collection, id); }
-export function updateMany(collection, changes) { return current.updateMany(collection, changes); }
-export function purgeMany(collection, ids) { return current.purgeMany(collection, ids); }
+export function remove(collection, id) { return locked(collection) ? refused() : current.remove(collection, id); }
+export function restore(collection, id) { return locked(collection) ? refused() : current.restore(collection, id); }
+export function updateMany(collection, changes) { return locked(collection) ? refused() : current.updateMany(collection, changes); }
+export function purgeMany(collection, ids) { return locked(collection) ? refused() : current.purgeMany(collection, ids); }
 export function get(collection, id, opts) { return current.get(collection, id, opts); }
 export function list(collection, opts) { return current.list(collection, opts); }
 export function putBlob(blobId, data, opts) { return current.putBlob(blobId, data, opts); }

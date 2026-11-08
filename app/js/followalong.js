@@ -166,13 +166,14 @@ export async function openFollow(open) {
   const clockHtml = p => (p.tab.clock ? `<span class="fa-clock" data-clock="${p.tab.id}">⏱ ${clockText(p)}</span>` : '');
   const timeText = mins => [Math.floor(mins / 60) ? `${Math.floor(mins / 60)} h` : '', mins % 60 ? `${mins % 60} min` : ''].filter(Boolean).join(' ') || '0 min';
   // Nothing is saved until ✓ Finish: the card only gathers what to keep (time on the recipe, photos, a new batch).
-  const saveTime = p => p.tab.save_time !== false && !!p.recipe;
-  const batchTarget = p => p.tab.c === 'recipe_makes' || !!p.tab.new_batch;
+  // Someone else's recipe (shared with you, tab.owner) is read-only: Finish keeps nothing on it.
+  const saveTime = p => !p.tab.owner && p.tab.save_time !== false && !!p.recipe;
+  const batchTarget = p => !p.tab.owner && (p.tab.c === 'recipe_makes' || !!p.tab.new_batch);
   const photosOnBatch = p => batchTarget(p) && p.tab.photo_to !== 'recipe';
   const willDo = p => {
     const n = (p.files || []).length, list = [];
     if (saveTime(p)) list.push('save the time on the recipe');
-    if (p.tab.new_batch) list.push('keep it as a batch');
+    if (p.tab.new_batch && !p.tab.owner) list.push('keep it as a batch');
     if (n) list.push(`add ${n === 1 ? 'the photo' : `${n} photos`} to the ${photosOnBatch(p) ? 'batch' : 'recipe'}`);
     return list.length ? `Finish will ${list.join(', ').replace(/, ([^,]*)$/, ' and $1')}.` : 'Finish puts it away.';
   };
@@ -187,9 +188,9 @@ export async function openFollow(open) {
     return `<section class="fa-end" data-end-of="${p.tab.id}">
       <header><span class="fa-end-badge">✓</span><div><h3>All done</h3><small>${esc(p.title)}${p.tab.c === 'recipes' && p.tab.times !== 1 ? ` · ×${qtyText(p.tab.times || 1)}` : ''}</small></div></header>
       <dl>
-        ${row('Time taken', `${time}<small>${p.recipe ? `Save it on the recipe${said ? ` (it says ${esc(said)} now)` : ''}` : ''}</small>`, p.recipe ? toggle('save_time', saveTime(p), 'Save the time on the recipe') : '')}
-        ${p.tab.c === 'recipes' ? row('New batch', '<span>Keep this cook as a batch</span><small>Marked done, with its time and photos</small>', toggle('new_batch', !!p.tab.new_batch, 'Keep this cook as a batch')) : ''}
-        ${row('Photos', `${files.length ? `<span class="fa-end-pics">${files.map((f, n) => `<button type="button" class="fa-end-pic" data-end-drop="${n}" title="Take this one out" aria-label="Take this photo out"><img src="${f.url}" alt=""><i>✕</i></button>`).join('')}</span>` : '<span class="muted">None yet</span>'}${batchTarget(p) ? `<span class="segmented fa-end-to" aria-label="Photos go on">${[['recipe', '📖 On the recipe'], ['batch', '🧪 On the batch']].map(([v, l]) => `<button type="button" data-end-to="${v}" aria-pressed="${(v === 'batch') === photosOnBatch(p)}">${l}</button>`).join('')}</span>` : ''}`, '<button type="button" data-end="photo">📷 Add</button>')}
+        ${row('Time taken', `${time}<small>${p.tab.owner ? 'Shared with you to read: nothing is saved on it' : p.recipe ? `Save it on the recipe${said ? ` (it says ${esc(said)} now)` : ''}` : ''}</small>`, p.recipe && !p.tab.owner ? toggle('save_time', saveTime(p), 'Save the time on the recipe') : '')}
+        ${p.tab.c === 'recipes' && !p.tab.owner ? row('New batch', '<span>Keep this cook as a batch</span><small>Marked done, with its time and photos</small>', toggle('new_batch', !!p.tab.new_batch, 'Keep this cook as a batch')) : ''}
+        ${p.tab.owner ? '' : row('Photos', `${files.length ? `<span class="fa-end-pics">${files.map((f, n) => `<button type="button" class="fa-end-pic" data-end-drop="${n}" title="Take this one out" aria-label="Take this photo out"><img src="${f.url}" alt=""><i>✕</i></button>`).join('')}</span>` : '<span class="muted">None yet</span>'}${batchTarget(p) ? `<span class="segmented fa-end-to" aria-label="Photos go on">${[['recipe', '📖 On the recipe'], ['batch', '🧪 On the batch']].map(([v, l]) => `<button type="button" data-end-to="${v}" aria-pressed="${(v === 'batch') === photosOnBatch(p)}">${l}</button>`).join('')}</span>` : ''}`, '<button type="button" data-end="photo">📷 Add</button>')}
       </dl>
       <footer><small>${willDo(p)}</small><button type="button" class="fa-end-finish" data-end="finish">✓ Finish</button></footer>
     </section>`;
@@ -217,7 +218,7 @@ export async function openFollow(open) {
       if (!b?.dataset.side) return;
       const ings = p.ings.map(i => (i.id === id ? Object.assign({}, i, { unit: b.dataset.side }) : i));
       p.ings = ings; p.rec.ingredients = ings; fill();
-      await p.space.update(p.tab.c, p.rec.id, { ingredients: ings }).catch(() => toast('Couldn\'t save that'));
+      if (!p.tab.owner) await p.space.update(p.tab.c, p.rec.id, { ingredients: ings }).catch(() => toast('Couldn\'t save that')); // someone else's: just for this cook
     });
     document.body.append(dlg);
     dlg.addEventListener('close', () => { dlg.remove(); shown.filter(x => x.pot === p).forEach(x => x.rescale()); });
@@ -524,7 +525,7 @@ export async function openFollow(open) {
       done.push(`time saved (${text})`);
     }
     let batch = p.tab.c === 'recipe_makes' ? p.rec.id : null;
-    if (p.tab.c === 'recipes' && p.tab.new_batch) {
+    if (p.tab.c === 'recipes' && p.tab.new_batch && !p.tab.owner) {
       // As Make this does, kept as a record of this cook: at its scale, with the time it took, marked done.
       const times = p.tab.times || 1, day = isoDate(new Date());
       const [makes, recipes, files] = await Promise.all([store.list('recipe_makes'), store.list('recipes'), store.list('attachments')]);
@@ -539,7 +540,7 @@ export async function openFollow(open) {
       undo.push(() => store.remove('recipe_makes', m.id));
       done.push('batch kept');
     }
-    if ((p.files || []).length) {
+    if ((p.files || []).length && !p.tab.owner) {
       const onBatch = batch && p.tab.photo_to !== 'recipe';
       const made = await att.addFiles(onBatch ? { collection: 'recipe_makes', id: batch } : { collection: 'recipes', id: r.id }, p.files.map(f => f.file));
       undo.push(async () => { for (const a of made) await store.remove('attachments', a.id); });
