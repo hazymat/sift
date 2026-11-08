@@ -268,7 +268,11 @@ const IN_SCOPE = {
   recipe: (info, c, r) => (c === 'recipes' && r.id === info.id) || ((c === 'recipe_makes' || c === 'recipe_entries') && r.recipe_id === info.id),
   days: (info, c, r) => (c === 'days' || c === 'day_items') && !!r.date && (!info.from || r.date >= info.from) && (!info.to || r.date <= info.to),
   project: (info, c, r) => (c === 'projects' && r.id === info.id) || ((c === 'milestones' || c === 'tasks' || c === 'comments') && r.project_id === info.id),
+  // A Batch Book book (id: its name) or every book (id '*'): its recipes and their batches; a batch's book is its recipe's (scoped).
+  book: (info, c, r) => (c === 'recipes' ? info.id === '*' || (r.type || '') === info.id : (c === 'recipe_makes' || c === 'recipe_entries') && (info.id === '*' || r._book === info.id)),
 };
+// The Batch Book is read-only for the people it's shared with (store.READ_ONLY): only its owner changes it; they copy a recipe to change it.
+const READ_ONLY = store.READ_ONLY;
 const SHAREABLE = ['lists', 'list_items', 'thoughts', 'days', 'day_items', 'recipes', 'recipe_makes', 'recipe_entries', 'projects', 'milestones', 'tasks', 'comments', 'attachments'];
 // A comment goes where its task goes: it carries task_id, so its task's project is looked up.
 // An attachment (a photo, a file) goes where the thing it's on goes: its parent, looked up (_parent).
@@ -276,6 +280,11 @@ async function scoped(space, c, r) {
   if (c === 'attachments') {
     const parent = r.parent_collection && r.parent_id && await space.get(r.parent_collection, r.parent_id, { includeDeleted: true });
     return Object.assign({}, r, { _parent: parent ? [r.parent_collection, await scoped(space, r.parent_collection, parent)] : null });
+  }
+  if (c === 'recipe_makes' || c === 'recipe_entries') {
+    const make = c === 'recipe_entries' && !r.recipe_id && r.make_id && await space.get('recipe_makes', r.make_id, { includeDeleted: true });
+    const recipeId = r.recipe_id || make?.recipe_id, recipe = recipeId && await space.get('recipes', recipeId, { includeDeleted: true });
+    return Object.assign({}, r, { _book: recipe ? recipe.type || '' : null });
   }
   if (c !== 'comments') return r;
   const task = r.task_id && await space.get('tasks', r.task_id, { includeDeleted: true });
@@ -289,6 +298,7 @@ async function idsWhere(space, c, test) {
 }
 export const inShare = (sh, c, r) => (c === 'attachments' ? !!r._parent && inShare(sh, r._parent[0], r._parent[1]) : !!IN_SCOPE[sh.info?.kind]?.(sh.info, c, r));
 function routes(space, c, r) {
+  if (!space.isLocal && (READ_ONLY.includes(c) || (c === 'attachments' && READ_ONLY.includes(r._parent?.[0])))) return []; // someone else's recipes: never sent back
   return shares.filter(sh => sh.accepted && (space.isLocal ? sh.mine : !sh.mine && space === store.spaceOf(sh.owner_id)) && inShare(sh, c, r)).map(sh => sh.id);
 }
 
@@ -337,6 +347,13 @@ async function pushSpace(space) {
         if (e.collection === 'tasks') {
           const ids = (await space.list('comments', { includeDeleted: true, filter: k => k.task_id === rec.id })).map(k => k.id);
           if (ids.length) await space.queue('comments', ids, null);
+        }
+        // A recipe moved to another book: its batches, and their diaries and readings, follow.
+        if (e.collection === 'recipes' || e.collection === 'recipe_makes') {
+          const key = e.collection === 'recipes' ? 'recipe_id' : 'make_id';
+          if (key === 'recipe_id') { const ids = (await space.list('recipe_makes', { includeDeleted: true, filter: m => m.recipe_id === rec.id })).map(m => m.id); if (ids.length) await space.queue('recipe_makes', ids, null); }
+          const ids = (await space.list('recipe_entries', { includeDeleted: true, filter: x => x[key] === rec.id })).map(x => x.id);
+          if (ids.length) await space.queue('recipe_entries', ids, null);
         }
         const files = (await space.list('attachments', { includeDeleted: true, filter: a => a.parent_id === rec.id })).map(a => a.id);
         if (files.length) await space.queue('attachments', files, null);

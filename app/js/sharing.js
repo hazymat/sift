@@ -12,7 +12,13 @@ import { ask, askYes } from './ask.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 export const personName = sync.personName;
-const KIND_WORDS = { list: 'a list', note: 'a note', recipe: 'a recipe', project: 'a project', days: 'their diary' };
+const KIND_WORDS = { list: 'a list', note: 'a note', recipe: 'a recipe', project: 'a project', days: 'their diary', book: 'a book' };
+// A Batch Book book ({ kind: 'book', id: its name, or '*' for every book }), in words: "their "Brewing" book", "their whole Batch Book".
+export const bookWords = (info, whose = 'their') => (info.id === '*' ? `${whose} whole Batch Book` : `${whose} "${info.name || 'No book'}" book`);
+// What someone shares with you, in words: "their day plan (28 Sep to 4 Oct)", "a list, "Shopping"", "their whole Batch Book".
+const theirThing = (info, comma = false) => (info.kind === 'days' ? `their day plan (${scopeText(info)})` : info.kind === 'book' ? bookWords(info) : `${KIND_WORDS[info.kind]}, ${scopeText(info)}${comma ? ',' : ''}`);
+// The Batch Book (a book, or a recipe) is read-only for the people it's shared with.
+const readOnly = info => info.kind === 'book' || info.kind === 'recipe';
 const sameScope = (a, b) => a.kind === b.kind && (a.kind === 'days' ? a.from === b.from && a.to === b.to : a.id === b.id);
 const fmtDate = d => new Date(`${d}T12:00`).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
 
@@ -68,7 +74,7 @@ export function people(kinds) {
 export function invitesHtml(kinds) {
   const waiting = sync.sharesNow().filter(sh => !sh.mine && !sh.accepted && kinds.includes(sh.info?.kind));
   return waiting.map(sh => `<div class="share-invite">
-    <span><b>${esc(personName(sh.owner_email))}</b> wants to share ${sh.info.kind === 'days' ? `their day plan (${esc(scopeText(sh.info))})` : `${KIND_WORDS[sh.info.kind]}, ${esc(scopeText(sh.info))},`} with you.</span>
+    <span><b>${esc(personName(sh.owner_email))}</b> wants to share ${esc(theirThing(sh.info, true))} with you${readOnly(sh.info) ? ' to read and copy from' : ''}.</span>
     <span class="spacer"></span>
     <button type="button" class="primary" data-share-accept="${sh.id}">Accept</button>
     <button type="button" data-share-decline="${sh.id}">Decline</button>
@@ -85,7 +91,7 @@ export function aboutShare(id) {
   const me = sh.members?.find(m => m.user_id === sync.myUserId());
   const when = d => (d ? new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '');
   const others = (sh.members || []).filter(m => m.user_id !== sync.myUserId() && m.user_id !== sh.owner_id && m.accepted);
-  const what = sh.info.kind === 'days' ? `their day plan (${scopeText(sh.info)})` : `${KIND_WORDS[sh.info.kind]}, ${scopeText(sh.info)}`;
+  const what = theirThing(sh.info);
   const dlg = document.createElement('dialog');
   dlg.className = 'sheet ask-sheet share-sheet';
   dlg.innerHTML = `
@@ -93,7 +99,7 @@ export function aboutShare(id) {
     <form method="dialog">
       <h2>👥 Shared with you</h2>
       <p><b>${esc(personName(sh.owner_email))}</b> <span class="muted">${esc(sh.owner_email || '')}</span> shared ${esc(what)} with you${me?.added_at ? ` on ${esc(when(me.added_at))}` : ''}.</p>
-      <p class="muted">You can both see and change it.${others.length ? ` Also shared with ${esc(others.map(m => personName(m.email)).join(', '))}.` : ''}</p>
+      <p class="muted">${readOnly(sh.info) ? 'You can read it, follow along and print it; only they can change it. To change a recipe or make a batch, use ⧉ Copy to my Batch Book on it: the copy is yours.' : 'You can both see and change it.'}${others.length ? ` Also shared with ${esc(others.map(m => personName(m.email)).join(', '))}.` : ''}</p>
       <div class="sheet-actions">
         <button type="button" class="danger" data-share-leave="${esc(sh.id)}">Leave</button>
         <span class="spacer"></span>
@@ -134,7 +140,7 @@ export function shareSheet(info, what) {
       <div class="sheet-handle"></div>
       <form method="dialog">
         <h2>Share ${esc(what)}</h2>
-        ${on ? `<p class="muted">With someone who has an account on your sync server. They get an invitation; once they accept, you both see and change the same ${info.kind === 'days' ? 'days' : info.kind}.</p>`
+        ${on ? `<p class="muted">With someone who has an account on your sync server. They get an invitation; once they accept, ${readOnly(info) ? `they see ${info.kind === 'book' ? 'its recipes and batches as you change them, and recipes you add to it later' : 'it and its batches as you change them'}. Only you can change ${info.kind === 'book' ? 'them' : 'it'}: they can copy a recipe into their own Batch Book to change it.` : `you both see and change the same ${info.kind === 'days' ? 'days' : info.kind}.`}</p>`
           : '<p class="muted">Sharing goes through your sync server: sign in under Settings → Sync first.</p>'}
         ${others.length ? `<ul class="share-people">${others.map(m => `<li><span><b>${esc(personName(m.email))}</b> <span class="muted">${esc(m.email)} · ${m.accepted ? 'sharing' : 'invited'}</span></span><button type="button" data-remove="${esc(m.user_id)}">Remove</button></li>`).join('')}</ul>` : ''}
         ${on ? `<label class="ask-field share-to"><span>Their sign-in email</span><input name="email" type="email" autocomplete="off" autocapitalize="off" placeholder="name@example.com"${past.length > FEW ? ' role="combobox" aria-autocomplete="list" aria-expanded="false"' : ''}></label>` : ''}
@@ -230,7 +236,7 @@ export function installSharing() {
       if (b.dataset.shareDecline) { await sync.leaveShare(b.dataset.shareDecline); toast('Declined'); }
       if (b.dataset.shareLeave) {
         const sh = sync.sharesNow().find(x => x.id === b.dataset.shareLeave);
-        if (!await askYes(`Leave ${sh ? `${personName(sh.owner_email)}'s ${sh.info.kind === 'days' ? 'day plan' : sh.info.kind}` : 'this'}?`, { text: 'It goes from your devices. They can share it with you again.', ok: 'Leave', danger: true })) { b.disabled = false; return; }
+        if (!await askYes(`Leave ${sh ? (sh.info.kind === 'book' ? bookWords(sh.info, `${personName(sh.owner_email)}'s`) : `${personName(sh.owner_email)}'s ${sh.info.kind === 'days' ? 'day plan' : sh.info.kind}`) : 'this'}?`, { text: 'It goes from your devices. They can share it with you again.', ok: 'Leave', danger: true })) { b.disabled = false; return; }
         store.useSpace(null);
         b.closest('dialog')?.close();
         await sync.leaveShare(b.dataset.shareLeave);
@@ -240,7 +246,7 @@ export function installSharing() {
   });
   sync.onShares(list => {
     const waiting = list.filter(sh => !sh.mine && !sh.accepted);
-    if (seen) for (const sh of waiting.filter(x => !seen.has(x.id))) toast(`${personName(sh.owner_email)} wants to share ${sh.info.kind === 'days' ? 'their day plan' : KIND_WORDS[sh.info.kind]} with you: see ${sh.info.kind === 'list' ? 'Lists' : sh.info.kind === 'note' ? 'Brain Dump' : sh.info.kind === 'recipe' ? 'Batch Book' : sh.info.kind === 'project' ? 'Tasks, Projects' : 'the Day Planner'}`);
+    if (seen) for (const sh of waiting.filter(x => !seen.has(x.id))) toast(`${personName(sh.owner_email)} wants to share ${sh.info.kind === 'days' ? 'their day plan' : sh.info.kind === 'book' ? bookWords(sh.info) : KIND_WORDS[sh.info.kind]} with you: see ${sh.info.kind === 'list' ? 'Lists' : sh.info.kind === 'note' ? 'Brain Dump' : sh.info.kind === 'recipe' || sh.info.kind === 'book' ? 'Batch Book' : sh.info.kind === 'project' ? 'Tasks, Projects' : 'the Day Planner'}`);
     seen = new Set(waiting.map(sh => sh.id));
   });
 }

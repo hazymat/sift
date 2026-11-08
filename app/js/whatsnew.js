@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.62.33': [{ text: "Batch Book: share a whole book, or every book, with someone (⋯, Share the book, with a book's tab chosen; on All it shares every book). They see its recipes and batches as you change them, including recipes you add later, but can't change them: ⧉ Copy to my Batch Book on any of them gives them their own copy to change and make batches from, which links back to yours.", go: '#/recipes', open: ['#main .page-more summary'], at: '#main [data-act="share-book"]', more: "A single shared recipe is now read-only for the person it's shared with too, in the same way." }],
   '1.62.32': [{ text: "Follow along, on iPad and iPhone: picking a recipe in + Recipe could close the list without adding it, if the keyboard going down moved the list under your finger. Fixed." },
     { text: "Follow along across devices: a change you've just made can't be undone by an older one arriving, and a recipe added on another device shows as soon as it reaches this one." }],
   '1.62.31': [{ text: "Follow along: a recipe it can't find on this device no longer hides. ▶ Cooking used to do nothing, or count one you couldn't see. It now says so, with a way to put it away. Fixed." },
@@ -309,6 +310,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.62.33': '2026-11-08T11:00:01Z',
   '1.62.32': '2026-11-04T14:28:07Z',
   '1.62.31': '2026-11-04T13:51:26Z',
   '1.62.30': '2026-11-03T12:15:29Z',

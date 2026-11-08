@@ -3997,6 +3997,10 @@ kbd + kbd, .pill-reveal kbd + kbd, .pill-done kbd + kbd { margin-left: 3px; }
 .share-invite { background: var(--calm, var(--glass)); border: 1px solid var(--active-border); }
 .theirs-note .spacer, .share-invite .spacer { flex: 1; }
 .theirs-note button, .share-invite button { padding: 4px 12px; }
+/* Someone else's recipe or batch (views/recipes.js lockPage): to read, nothing to change */
+.bb-readonly :is(.bb-listline, .bb-stock-btn:not([aria-pressed="true"]), .bb-x, .bb-add-field, .bb-foot, .bb-batch-del, .bb-reading-adds, .bb-scale:has([data-rescale]), [data-entry-photo], [data-step-photo], .att-add, .att-x, .drag-handle, .bb-line:has(.bb-ing-add, .bb-step-new, [data-add-entry])) { display: none; }
+.bb-readonly .bb-paper :is(input, textarea, select):is([readonly], :disabled) { cursor: default; opacity: 1; }
+.bb-readonly :is([data-batch-status], [data-stock], [data-step-view]) { pointer-events: none; }
 .share-people { list-style: none; margin: 0 0 12px; padding: 0; }
 .share-people li { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--glass-border); }
 .share-people li > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
