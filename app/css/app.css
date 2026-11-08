@@ -696,6 +696,29 @@ body.is-dragging .select-bar { opacity: 0; pointer-events: none; }
 body { --sel-lift: 0px; --upd-lift: 0px; }
 body.has-select-bar { --sel-lift: 58px; }
 body:has(#update-banner:not([hidden])) { --upd-lift: 70px; }
+/* An invitation waiting (sharing.js): its bar sits above the update one when both show; toasts go above it. */
+body:has(#share-banner) { --upd-lift: 84px; }
+body:has(#share-banner):has(#update-banner:not([hidden])) { --upd-lift: 150px; }
+.share-banner { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; white-space: normal; width: max-content; max-width: min(680px, calc(100vw - 24px)); z-index: 46; }
+body:has(#update-banner:not([hidden])) .share-banner { bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 16px + var(--sel-lift) + 66px); }
+.share-banner-words { flex: 1 1 260px; }
+.share-banner-acts { display: flex; gap: 6px; margin-left: auto; }
+.share-banner-acts button { margin: 0; padding: 5px 12px; }
+.share-banner-acts .primary { background: var(--accent, var(--active-bg)); }
+/* Shared with me (views/shared.js) */
+.sw { max-width: 820px; margin: 0 auto; padding: 8px 16px 40px; }
+.sw-title { font-size: 1.4rem; font-weight: 500; margin: 8px 0 16px; }
+.sw-group { margin: 0 0 24px; }
+.sw-group h2 { font-size: 1.05rem; margin: 0 0 4px; }
+.sw-group > p { margin: 0 0 10px; font-size: .9rem; }
+.sw-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.sw-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 14px; border-radius: 14px; background: var(--glass); border: 1px solid var(--glass-border); cursor: pointer; }
+.sw-row:hover { border-color: var(--active-border); }
+.sw-area { flex: none; font-size: .8rem; }
+.sw-words { flex: 1 1 240px; }
+.sw-acts { display: flex; gap: 6px; margin-left: auto; }
+.sw-acts button { padding: 4px 12px; }
+
 body.has-select-bar main { padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 80px); }
 @media (min-width: 768px) {
   .select-bar { bottom: 24px; }
@@ -1524,6 +1547,8 @@ li[data-id]:hover .kit-grip { opacity: .8; }
 .lists-head .tool-menu { margin-left: auto; }
 .list-card { text-decoration: none; color: var(--text); }
 .list-grid { margin: 0; padding: 0; list-style: none; }
+.list-grid[data-mine] + .list-grid-theirs { margin-top: var(--grid-gap, 14px); }
+.list-theirs { font-weight: 600; color: var(--text); opacity: .85; }
 .list-card-li { display: flex; flex-direction: column; list-style: none; border-radius: 20px; }
 .list-card-li > .list-card { flex: 1; align-content: start; }
 .list-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 10px; }
@@ -4318,6 +4343,7 @@ body.is-dragging [data-hold-drag] { -webkit-user-select: none; user-select: none
 .bb-mode button { padding: 5px 12px; font-size: .88rem; line-height: 1.2; white-space: nowrap; }
 .bb-sections { flex-wrap: nowrap; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
 .bb-sections button { white-space: nowrap; border-bottom-color: color-mix(in srgb, var(--bb, var(--muted)) 35%, transparent); }
+.bb-whose { font-size: .78em; opacity: .8; font-weight: 400; margin-left: 2px; }
 .bb-sections button[aria-pressed="true"] { background: color-mix(in srgb, var(--bb, var(--muted)) 16%, transparent); border-radius: 8px 8px 0 0; }
 .bb-sections button[aria-pressed="true"], .bb-status button[aria-pressed="true"] { color: inherit; font-weight: 600; border-bottom-color: var(--bb, currentColor); }
 .bb-status { margin: 0 0 8px; }

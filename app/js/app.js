@@ -34,6 +34,8 @@ export const AREAS = [
   { id: 'scans', get label() { return word('area_scans'); }, icon: 'i-scans', view: './views/scans.js' },
   { id: 'contracts', get label() { return word('area_contracts'); }, icon: 'i-contracts', view: './views/contracts.js' },
   { id: 'recipes', get label() { return word('area_recipes'); }, icon: 'i-recipes', view: './views/recipes.js' },
+  // Everything shared with you (and by you), in one place: views/shared.js.
+  { id: 'shared', label: 'Shared with me', icon: 'i-share', view: './views/shared.js' },
   // Archive and Bin together; in the nav just before Settings unless moved.
   { id: 'bin', get label() { return word('area_bin'); }, icon: 'i-archive', view: './views/bin.js' },
   { id: 'settings', label: 'Settings', icon: 'i-settings', view: './views/settings.js', pinnable: false },

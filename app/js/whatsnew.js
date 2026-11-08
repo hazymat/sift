@@ -25,6 +25,11 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.62.34': [{ text: "Sharing, in every area: when someone shares something with you, a bar at the bottom asks Accept, Decline or Not now, and stays until you answer. Accept and Decline both have Undo, and Accept has Take me there, which opens it and makes it pulse." },
+    { text: "Shared with me (in More, and Settings, Sync): everything shared with you, and by you, in one place. Accept or decline again, and Take me there.", go: '#/shared', at: '#main .sw-title' },
+    { text: "Batch Book: a book someone shares with you is a tab of its own, in their colour. ⋯ has Colour… to give it yours, and ⧉ Copy this book to my Batch Book.", go: '#/recipes', at: '#main .bb-sections' },
+    { text: "Lists: lists shared with you sit with your own, marked 👥 with whose they are, instead of on their own tab.", go: '#/lists', at: '#main .list-grid' },
+    { text: "Batch Book: a batch's Add to list can put things on a list someone shares with you." }],
   '1.62.33': [{ text: "Batch Book: share a whole book, or every book, with someone (⋯, Share the book, with a book's tab chosen; on All it shares every book). They see its recipes and batches as you change them, including recipes you add later, but can't change them: ⧉ Copy to my Batch Book on any of them gives them their own copy to change and make batches from, which links back to yours.", go: '#/recipes', open: ['#main .page-more summary'], at: '#main [data-act="share-book"]', more: "A single shared recipe is now read-only for the person it's shared with too, in the same way." }],
   '1.62.32': [{ text: "Follow along, on iPad and iPhone: picking a recipe in + Recipe could close the list without adding it, if the keyboard going down moved the list under your finger. Fixed." },
     { text: "Follow along across devices: a change you've just made can't be undone by an older one arriving, and a recipe added on another device shows as soon as it reaches this one." }],
@@ -310,6 +315,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.62.34': '2026-11-08T12:19:24Z',
   '1.62.33': '2026-11-08T11:00:01Z',
   '1.62.32': '2026-11-04T14:28:07Z',
   '1.62.31': '2026-11-04T13:51:26Z',

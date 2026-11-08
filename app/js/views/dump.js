@@ -29,7 +29,7 @@ import { browseTo } from '../browse.js';
 import * as att from '../attachments.js';
 import { pointTo, flash } from '../flash.js';
 import { word, dumpTypes, sectionName } from '../words.js';
-import { shareSheet, sharedWithText, people, fromOthers, invitesHtml, theirIconHtml } from '../sharing.js';
+import { shareSheet, sharedWithText, people, fromOthers, invitesHtml, theirIconHtml, takeWant } from '../sharing.js';
 import { slide } from '../slide.js';
 import { keys } from '../keys.js';
 
@@ -215,7 +215,11 @@ export default {
     }
 
     // After a sync the app calls refresh(): redraw from fresh data, keeping what's open.
+    // Take me there (sharing.js) to a note someone shares: their notes show.
+    addEventListener('sift-share-want', () => render(), { signal: gone.signal });
     const render = this.render = this.refresh = async () => {
+      const want = takeWant('note');
+      if (want) state.filter = want.owner ? `from:${want.owner}` : 'all';
       drawFilters();
       const owner = theirsOwner();
       useOwnSpaceWhileWriting();

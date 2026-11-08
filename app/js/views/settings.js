@@ -286,6 +286,7 @@ export default {
             <p><b>Signed in</b> as ${acct.email} on <code>${acct.server.replace(/^https?:\/\//, '')}</code></p>
             ${sync.namesWork() ? `<p class="sync-name"><b>Your name:</b> ${sync.hasName() ? `${esc(sync.personName(acct.email))}${nameMore()}` : '<span class="muted">not set</span>'}<button type="button" class="link-btn" data-sync="name">${sync.hasName() ? 'Change' : 'Set your name'}</button></p>
             <p class="muted hint">How people you share with see you, on shared things and invitations, so they know it's you.${sync.hasName() ? '' : ` Without a name they see "${esc(sync.emailName(acct.email))}", from your email.`}</p>` : ''}
+            <p class="sync-name"><b>Sharing:</b> everything shared with you, and by you<a class="link-btn" href="#/shared">👥 Shared with me</a></p>
             <dl class="sync-facts" id="sync-line">${factsHtml(st)}</dl>
             <p class="muted hint sync-code-hint">Two devices showing the same three words hold the same data. Different words: one of them is still catching up (or can't reach the server).</p>
             <div class="backup-row">

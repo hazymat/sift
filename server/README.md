@@ -21,7 +21,7 @@ Accounts are made in the app, never on the server. Everything is encrypted on yo
 | Change an account's email | `sudo sift-admin rename-user <old email> <new email>` |
 | Remove an account | `sudo sift-admin delete-user <email>` (deletes everything stored for it) |
 | See accounts | `sudo sift-admin users` |
-| Share with someone | Both need an account on the same server. In Sift: a list's 👥 Share, a note's ⋯ → Share with someone, or the Day Planner's Share menu. The other person accepts the invitation in the same area. |
+| Share with someone | Both need an account on the same server. In Sift: a list's 👥 Share, a note's ⋯ → Share with someone, or the Day Planner's Share menu. The other person accepts the invitation on the bar at the bottom of Sift, or in Shared with me (More). |
 
 **Create account** only shows once the server address is typed and the server is accepting new accounts. By default (`REGISTRATION=first`) that's only until the first account exists; after that it closes by itself. With Docker, use `docker compose exec sift node admin.js <command>`; to change registration there, set `REGISTRATION` in `.env` and run `docker compose up -d`.
 

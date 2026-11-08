@@ -36,7 +36,7 @@ import { tickWave, fadeFold } from '../tickwave.js';
 import { commentsHtml, mountComments, moveComments, closingComment } from '../comments.js';
 import { deleteLinked, deleteAll, makeUnique } from '../link.js';
 import { dayPanelHtml } from '../daypanel.js';
-import { shareSheet, people, sharedWithText, invitesHtml, theirIconHtml, scopeText } from '../sharing.js';
+import { shareSheet, people, sharedWithText, invitesHtml, theirIconHtml, scopeText, takeWant } from '../sharing.js';
 import { sharesNow, inShare, myUserId, personName } from '../sync.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -1144,7 +1144,11 @@ const dayPlanner = {
     // space, store.js), with a note saying whose day it is.
     let viewing = null; // the person whose day is showing (null: yours)
     const weekOf = d => { const monday = addDays(d, -((parseDate(d).getDay() + 6) % 7)); return { from: monday, to: addDays(monday, 6) }; };
+    // Take me there (sharing.js) to someone's shared days: show their day.
+    addEventListener('sift-share-want', () => { const want = takeWant('days'); if (want) { viewing = want.owner; editing = null; selected.clear(); render(); } }, page);
     function paintSharing() {
+      const want = takeWant('days');
+      if (want) viewing = want.owner;
       const others = people(['days']);
       if (viewing && !others.some(p => p.owner_id === viewing)) viewing = null;
       store.useSpace(viewing ? store.spaceOf(viewing) : null);
