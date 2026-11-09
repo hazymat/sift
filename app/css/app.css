@@ -356,7 +356,7 @@ main {
   background: var(--muted);
   opacity: .5;
 }
-.sheet-handle::before { content: ''; position: absolute; inset: -14px -70px; } /* a bigger area to grab */
+.sheet-handle::before { content: ''; position: absolute; inset: -14px -70px -10px; } /* a bigger area to grab, stopping short of what's under it */
 .sheet-handle:focus { outline: none; } /* More's sheet opens with the focus here, so a phone keyboard doesn't cover the list */
 .sheet-list { display: grid; gap: 6px; }
 .sheet-list a {
@@ -2610,7 +2610,7 @@ html.note-full :has(> .rich.is-full), html.note-full :has(.rich.is-full) { trans
    thicker handle that's easier to grab. */
 @media (pointer: coarse) {
   .sheet-handle { width: 56px; height: 7px; border-radius: 4px; opacity: .65; margin: 6px auto 14px; }
-  .sheet-handle::before { inset: -18px -90px; }
+  .sheet-handle::before { inset: -18px -90px -12px; }
 }
 
 /* The empty page's ＋ is drawn (a text ＋ never sits exactly in the middle). */
