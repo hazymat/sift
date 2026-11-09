@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.62.35': [{ text: "Phones: a tap at the top edge of a box just under a sheet's handle, like the search box in More, now goes to the box instead of the handle."}],
   '1.62.34': [{ text: "Sharing, in every area: when someone shares something with you, a bar at the bottom asks Accept, Decline or Not now, and stays until you answer. Accept and Decline both have Undo, and Accept has Take me there, which opens it and makes it pulse." },
     { text: "Shared with me (in More, and Settings, Sync): everything shared with you, and by you, in one place. Accept or decline again, and Take me there.", go: '#/shared', at: '#main .sw-title' },
     { text: "Batch Book: a book someone shares with you is a tab of its own, in their colour. ⋯ has Colour… to give it yours, and ⧉ Copy this book to my Batch Book.", go: '#/recipes', at: '#main .bb-sections' },
@@ -315,6 +316,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.62.35': '2026-11-09T06:59:31Z',
   '1.62.34': '2026-11-08T12:19:24Z',
   '1.62.33': '2026-11-08T11:00:01Z',
   '1.62.32': '2026-11-04T14:28:07Z',
