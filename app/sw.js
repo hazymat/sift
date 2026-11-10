@@ -26,6 +26,7 @@ const SHELL = [
   'js/colours.js',
   'js/comments.js',
   'js/fold.js',
+  'js/factbox.js',
   'js/customtheme.js',
   'js/thememocks.js',
   'js/slide.js',

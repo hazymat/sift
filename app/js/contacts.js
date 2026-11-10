@@ -67,6 +67,11 @@ export function splitContactText(text = '') {
 
 export const guessName = text => splitContactText(text).name;
 
+// What a contact is called anywhere it's listed: its name, else the text it was made from (a number typed into a note keeps its line), else its number.
+export const contactLabel = contact => contact?.name?.trim() || (contact?.body || '').split('\n').map(line => line.trim()).find(Boolean)?.slice(0, 60) || contact?.details?.[0]?.value || contact?.about?.trim() || 'Unnamed';
+// The small text beside it: a number or email not already in the label, else what they're about.
+export const contactHint = contact => { const shown = contactLabel(contact); return (contact?.details || []).map(detail => detail.value).find(value => value && !shown.includes(value)) || (contact?.about && contact.about !== shown ? contact.about : ''); };
+
 export const telHref = v => `tel:${v.replace(/[^\d+]/g, '')}`;
 export const detailHref = d => {
   const v = d.value || '';
@@ -146,7 +151,7 @@ export const binProvider = {
     const at = r => (kind === 'bin' ? r.deleted_at : r.archived_at);
     const out = [];
     for (const c of await store.list('contacts', { includeDeleted: true, filter: inState })) {
-      out.push({ collection: 'contacts', id: c.id, kind: c.status === 'stored' ? 'Contact' : 'Number', title: c.name || '(no name)', subtitle: c.about || '', detail: c.details?.map(d => d.value).join(' · ') || '', at: at(c), children: [], search: `${c.name} ${c.about} ${c.body} ${c.notes} ${c.details?.map(d => d.value).join(' ')}` });
+      out.push({ collection: 'contacts', id: c.id, kind: c.status === 'stored' ? 'Contact' : 'Number', title: contactLabel(c), subtitle: c.about || '', detail: c.details?.map(d => d.value).join(' · ') || '', at: at(c), children: [], search: `${c.name} ${c.about} ${c.body} ${c.notes} ${c.details?.map(d => d.value).join(' ')}` });
     }
     for (const k of await store.list('cases', { includeDeleted: true, filter: inState })) {
       out.push({ collection: 'cases', id: k.id, kind: 'Case', title: k.title, subtitle: k.summary || '', detail: '', at: at(k), children: [], search: `${k.title} ${k.summary} ${k.references?.map(r => r.value).join(' ')}` });

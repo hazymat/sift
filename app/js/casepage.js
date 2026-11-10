@@ -13,6 +13,7 @@
 // show only as the time each field last changed (its clock), beside the field.
 
 import * as store from './store.js';
+import { contactLabel } from './contacts.js';
 import { toHtml, richText } from './richtext.js';
 import { debounced } from './autosave.js';
 import { undoable, toast } from './toast.js';
@@ -165,7 +166,7 @@ export async function openCase(owner, { closed, back } = {}) {
     if (task?.priority && Number(task.priority) !== 3) add('Priority', show('priority', task.priority), task, 'priority');
     if (task?.owner_id) add('Owner', `👤 ${show('owner_id', task.owner_id)}`, task, 'owner_id');
     if (main.waiting_on) add('Waiting on', `⏳ ${main.waiting_on}`, main, 'waiting_on');
-    if (people.length) add('People', people.map(p => p.name || '(no name)').join(', '), main, 'contact_ids');
+    if (people.length) add('People', people.map(contactLabel).join(', '), main, 'contact_ids');
     if (kase) add('Case', kase.title, main, 'case_id');
     if (thought) add('Made from', 'a Brain Dump note', main, null);
     return `<dl class="case-props">${rows.map(r => `<div><dt>${esc(r.label)}</dt><dd>${r.value}</dd><dd class="case-changed muted">${r.at ? `changed ${esc(whenText(r.at))}` : ''}</dd></div>`).join('')}</dl>`;

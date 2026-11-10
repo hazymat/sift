@@ -1375,6 +1375,15 @@ select.kc-btn { width: auto; padding: 0 14px; }
 .kase-edit-people:empty { display: none; }
 .kase-edit-bar { display: flex; flex-wrap: wrap; gap: 8px; }
 .kase-edit-bar .spacer { flex: 1; }
+.fact-box { flex: 1 1 240px; min-width: 0; display: grid; }
+.fact-box input { width: 100%; justify-content: flex-start; font-weight: 500; cursor: text; }
+.fact-box input[aria-expanded="true"] { border-radius: 14px 14px 0 0; border-color: var(--active-border); }
+.fact-box .fact-suggest { position: static; margin-top: -1px; max-width: none; max-height: 300px; box-shadow: none; } /* in the page's flow, so the case's box never cuts it off */
+.fact-suggest .dd-opt { display: flex; align-items: baseline; gap: 8px; padding-left: 10px; white-space: normal; overflow-wrap: anywhere; }
+.fact-suggest .dd-opt em { flex: none; width: 1.2em; text-align: center; font-style: normal; color: var(--muted); }
+.fact-suggest .dd-opt b { font-weight: 600; }
+.fact-suggest .fact-ref, .fact-suggest .fact-new { color: var(--muted); }
+.fact-suggest .fact-ref b, .fact-suggest .fact-new b { color: var(--text); }
 /* New entry: the one raised surface on the page. */
 .kc { display: grid; gap: 12px; margin: 0 0 26px; padding: 14px; border-radius: 20px; border: 1px solid var(--glass-border); background: color-mix(in srgb, var(--text) 7%, var(--glass)); box-shadow: 0 10px 30px rgb(0 0 0 / .28); }
 .kc-kinds { display: flex; gap: 8px; margin: 0 -14px; padding: 0 14px 2px; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
