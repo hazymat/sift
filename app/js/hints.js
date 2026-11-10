@@ -13,9 +13,11 @@ import { toast } from './toast.js';
 
 const PREFIX = 'hint_off:';
 let off = new Set();
+let showing = false;
 const follow = settings => {
   off = new Set(Object.keys(settings).filter(k => k.startsWith(PREFIX) && settings[k]).map(k => k.slice(PREFIX.length)));
-  document.documentElement.classList.toggle('show-hints', !!settings.show_hints);
+  showing = !!settings.show_hints;
+  document.documentElement.classList.toggle('show-hints', showing);
   for (const el of document.querySelectorAll('[data-hint]')) if (off.has(el.dataset.hint)) el.remove();
 };
 
@@ -23,6 +25,9 @@ export function hintHtml(id, html, cls = '') {
   if (off.has(id)) return '';
   return `<div class="hint hint-callout${cls ? ` ${cls}` : ''}" data-hint="${id}"><span class="hint-bulb" aria-hidden="true">💡</span><div class="hint-words">${html}</div><button type="button" class="hint-x" data-hint-x title="Dismiss this hint for good" aria-label="Dismiss this hint for good">✕</button></div>`;
 }
+
+// Whether a hint shows at all: hints on in Settings and this one not dismissed (for hints that aren't a callout).
+export const hintShown = id => !!showing && !off.has(id);
 
 export function installHints(settings) {
   follow(settings);
