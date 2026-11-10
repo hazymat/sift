@@ -11,7 +11,7 @@ import { rankOf, byRank, reorderWrites } from '../order.js';
 import { shareHtml, printers, sharers } from '../share.js';
 import * as store from '../store.js';
 import {
-  loadContacts, createContact, contactFromText, extractDetails, logInteraction, lastActivity,
+  loadContacts, createContact, contactFromText, extractDetails, logInteraction, lastActivity, contactLabel, contactHint,
   detailHref, howFor, HOW, RESEARCH, CASE_STATUS, withCapturedText, CAPTURED_HEADING,
 } from '../contacts.js';
 import { listEntry, listHint, SHORTCUT } from '../listentry.js';
@@ -30,6 +30,7 @@ import { keys } from '../keys.js';
 import { pillMenu } from '../pillmenu.js';
 import * as att from '../attachments.js';
 import { foldLong } from '../fold.js';
+import { factBox } from '../factbox.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -141,7 +142,7 @@ export default {
     // A contact can be just a bit of text with a number ("man about the van
     // 07…"): the text is its name. "What was this?" only asks when there is no
     // text at all, just a number.
-    const label = c => c.name?.trim() || (c.body || '').split('\n').map(l => l.trim()).find(Boolean) || '(no name)';
+    const label = contactLabel;
     const needsLabel = c => c.status === 'transient' && !c.about && !/\p{L}/u.test((c.details || []).reduce((text, detail) => text.split(detail.value).join(' '), c.name?.trim() || c.body || ''));
 
     function contactCard(c) {
@@ -624,12 +625,11 @@ export default {
               <ul class="detail-rows">${(k.references || []).map((r, n) => `
                 <li data-ref="${n}"><input name="label" value="${esc(r.label)}" class="d-label" aria-label="What it is"><input name="value" value="${esc(r.value)}" aria-label="Reference">
                   <button type="button" class="kc-btn round" data-act="del-ref" aria-label="Remove">×</button></li>`).join('')}</ul>
-              <div class="kase-edit-people">${people.map(c => `<span class="kase-fact"><em aria-hidden="true">👤</em>${esc(c.name)}<button type="button" class="chip-x" data-act="case-unlink" data-id="${c.id}" aria-label="Take ${esc(c.name)} off the case">×</button></span>`).join('')}</div>
-              <div class="kase-edit-bar"><button type="button" class="kc-btn" data-act="add-ref">+ Reference</button>
-                <select id="case-add-contact" class="kc-btn" aria-label="Add a person"><option value="">+ Person…</option>${data.contacts.filter(c => !k.contact_ids?.includes(c.id)).map(c => `<option value="${c.id}">${esc(c.name || '(no name)')}</option>`).join('')}</select>
-                <span class="spacer"></span><button type="button" class="kc-btn primary" data-act="facts-done">Done</button></div></div>`
+              <div class="kase-edit-people">${people.map(c => `<span class="kase-fact"><em aria-hidden="true">👤</em>${esc(label(c))}<button type="button" class="chip-x" data-act="case-unlink" data-id="${c.id}" aria-label="Take ${esc(label(c))} off the case">×</button></span>`).join('')}</div>
+              <div class="kase-edit-bar"><div class="fact-box"><input id="case-fact-box" class="kc-btn" autocomplete="off" placeholder="Type a reference, name or number" aria-label="Add a reference or person"></div>
+                <button type="button" class="kc-btn primary" data-act="facts-done">Done</button></div></div>`
             : `<div class="kase-facts">${refs.map(r => `<button type="button" class="kase-fact" data-act="copy-ref" data-value="${esc(r.value)}" title="Copy ${esc(r.value)}"><em aria-hidden="true">#</em>${esc(r.value)}${r.label ? ` <small>${esc(r.label)}</small>` : ''}</button>`).join('')}
-              ${people.map(c => `<a class="kase-fact" href="#/contacts/c/${c.id}"><em aria-hidden="true">👤</em>${esc(c.name)}</a>`).join('')}
+              ${people.map(c => `<a class="kase-fact" href="#/contacts/c/${c.id}"><em aria-hidden="true">👤</em>${esc(label(c))}${contactHint(c) ? ` <small>${esc(contactHint(c))}</small>` : ''}</a>`).join('')}
               <button type="button" class="kase-fact add" data-act="facts-edit">${refs.length || people.length ? '✎ Edit' : '+ Reference or person'}</button></div>`}
           </header>
           ${composer()}
@@ -639,6 +639,26 @@ export default {
           <ol class="ctl">${timeline || '<li class="ctl-empty muted">Nothing yet. Log a call, letter or note above.</li>'}</ol>
           <div class="kase-foot"><button type="button" class="kc-btn" data-act="case-task">+ Task</button><button type="button" class="kc-btn" data-act="archive-case">Archive</button><button type="button" class="kc-btn danger" data-act="delete-case">Delete</button></div>
         </div>`;
+    }
+
+    // A case's references and people, added from one box (factbox.js); the box keeps the cursor for the next one.
+    function wireFactBox(input) {
+      const kase = data.cases.find(x => x.id === state.id);
+      const change = async (fields, label, extraUndo) => {
+        const old = Object.fromEntries(Object.keys(fields).map(field => [field, kase[field] ?? null]));
+        await store.update('cases', kase.id, fields);
+        await render();
+        body.querySelector('#case-fact-box')?.focus();
+        undoable(label, async () => { await store.update('cases', kase.id, old); if (extraUndo) await extraUndo(); render(); });
+      };
+      const people = (kase.contact_ids || []);
+      factBox(input, {
+        people: data.contacts.filter(contact => !people.includes(contact.id)),
+        onPerson: id => change({ contact_ids: people.concat([id]) }, `Added ${label(byId(id))}`),
+        onRef: text => change({ references: (kase.references || []).filter(ref => ref.value).concat([{ label: 'Reference', value: text }]) }, 'Added a reference'),
+        onNew: async text => { const made = await contactFromText(text); data.contacts.push(made); await change({ contact_ids: people.concat([made.id]) }, `Added ${label(made)} to Contacts and the case`, () => store.remove('contacts', made.id)); },
+        onDone: async () => { factsEdit = false; await render(); },
+      });
     }
 
     // ---------- render ----------
@@ -659,6 +679,8 @@ export default {
         : state.tab === 'contact' ? await viewContact()
         : viewRecent();
       foldLong(body, '.kase .ctl-body');
+      const factInput = body.querySelector('#case-fact-box');
+      if (factInput) wireFactBox(factInput);
       // The chosen kind tile in view, even when it's one the row has to scroll to.
       const kindOn = body.querySelector('.kc-kind[aria-pressed="true"]');
       if (kindOn) kindOn.parentElement.scrollLeft = kindOn.offsetLeft - kindOn.parentElement.offsetLeft - 14;
@@ -969,11 +991,9 @@ export default {
           undoable(label, async () => { await store.update('cases', k.id, old); render(); });
         };
         if (act === 'case-status') return upd({ status: b.dataset.value, closed_at: b.dataset.value === 'closed' ? new Date().toISOString() : null }, CASE_STATUS.find(s => s.id === b.dataset.value).label);
-        if (act === 'add-ref') factsEdit = true;
-        if (act === 'add-ref') return upd({ references: [...(k.references || []), { label: 'Case no', value: '' }] }, 'Added a reference');
         if (act === 'del-ref') { const n = Number(b.closest('[data-ref]').dataset.ref); return upd({ references: k.references.filter((_, i) => i !== n) }, 'Removed'); }
         if (act === 'copy-ref') { await navigator.clipboard?.writeText(b.dataset.value); toast(`Copied ${b.dataset.value}`); return; }
-        if (act === 'facts-edit' || act === 'facts-done') { factsEdit = act === 'facts-edit'; await render(); if (factsEdit) body.querySelector('.kase-edit input, .kase-edit select')?.focus(); return; }
+        if (act === 'facts-edit' || act === 'facts-done') { factsEdit = act === 'facts-edit'; await render(); if (factsEdit) body.querySelector('#case-fact-box')?.focus(); return; }
         if (act === 'case-status-menu') {
           return pillMenu(b, CASE_STATUS.map(x => ({ value: x.id, label: `<i class="kase-dot" style="--st:${STATUS_COLOUR[x.id]}"></i>${x.label}${x.id === k.status ? ' ✓' : ''}`, current: x.id === k.status })),
             v => { if (v !== k.status) upd({ status: v, closed_at: v === 'closed' ? new Date().toISOString() : null }, CASE_STATUS.find(x => x.id === v).label); }, { className: 'list-menu kase-menu' });
@@ -1024,11 +1044,6 @@ export default {
         await store.update('contact_categories', cat.id, { name: t.value.trim() });
         undoable('Saved', async () => { await store.update('contact_categories', cat.id, { name: old }); render(); });
         return;
-      }
-      if (t.id === 'case-add-contact' && t.value) {
-        const k = data.cases.find(x => x.id === state.id);
-        await store.update('cases', k.id, { contact_ids: [...(k.contact_ids || []), t.value] });
-        return render();
       }
       if (t.dataset.case && t.name) {
         const k = data.cases.find(x => x.id === t.dataset.case);

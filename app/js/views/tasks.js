@@ -21,7 +21,7 @@ import { rowSwipe } from '../rowswipe.js';
 import { rankOf, reorderWrites, keyBetween } from '../order.js';
 import { toast, undoable } from '../toast.js';
 import { richText, toHtml, previewLine, inlineAll, plainLines } from '../richtext.js';
-import { loadContacts } from '../contacts.js';
+import { loadContacts, contactLabel, contactHint } from '../contacts.js';
 import { myUserId } from '../sync.js';
 import * as att from '../attachments.js';
 import { atEdge, caretTo } from '../walk.js';
@@ -272,9 +272,9 @@ export default {
             ${t.project_id ? `<label>Milestone<select name="milestone_id"><option value="">None</option>${ms.map(m => `<option value="${m.id}" ${t.milestone_id === m.id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}<option value="__new">+ New milestone…</option></select></label>` : ''}
             ${members.length ? `<label>Owner<select name="owner_id"><option value="">Nobody (anyone)</option>${members.map(m => `<option value="${m.user_id}" ${owner === m.user_id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label>` : ''}
             <label>Waiting on<select name="waiting_on"><option value="">Nobody</option>${t.waiting_on ? `<option value="=" selected>${esc(t.waiting_on)}</option>` : ''}<option value="__type">Other: type a name…</option></select></label>
-            <label>People<select name="add_contact" data-filled="${(t.contact_ids || []).length ? 1 : ''}"><option value="">+ Add a contact…</option>${people.contacts.filter(c => !(t.contact_ids || []).includes(c.id)).map(c => `<option value="${c.id}">${esc(c.name || '(no name)')}</option>`).join('')}</select></label>
+            <label>People<select name="add_contact" data-filled="${(t.contact_ids || []).length ? 1 : ''}"><option value="">+ Add a contact…</option>${people.contacts.filter(c => !(t.contact_ids || []).includes(c.id)).map(c => `<option value="${c.id}">${esc(contactLabel(c))}${contactHint(c) ? ` · ${esc(contactHint(c))}` : ''}</option>`).join('')}</select></label>
             <label>Case<select name="case_id"><option value="">None</option>${people.cases.map(k => `<option value="${k.id}" ${t.case_id === k.id ? 'selected' : ''}>${esc(k.title)}</option>`).join('')}</select></label>
-            ${(t.contact_ids || []).length ? `<div class="energy-pick"><span>With</span>${t.contact_ids.map(cid => people.contacts.find(c => c.id === cid)).filter(Boolean).map(c => `<span class="chip">${esc(c.name)} <button type="button" class="chip-x" data-act="remove-contact" data-id="${c.id}" aria-label="Remove">×</button></span>`).join('')}</div>` : ''}
+            ${(t.contact_ids || []).length ? `<div class="energy-pick"><span>With</span>${t.contact_ids.map(cid => people.contacts.find(c => c.id === cid)).filter(Boolean).map(c => `<span class="chip">${esc(contactLabel(c))} <button type="button" class="chip-x" data-act="remove-contact" data-id="${c.id}" aria-label="Remove">×</button></span>`).join('')}</div>` : ''}
           </div>
         </details>
         <div class="detail-actions">

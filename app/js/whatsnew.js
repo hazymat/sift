@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.62.37': [{ text: "Cases: on a case, + Reference or person (or ✎ Edit) has one box: type a reference, a name or a phone number and press Enter. It lists the people in Contacts it could be, then Add as a reference and Add as a new person, the likelier one first.", go: '#/cases', open: ['#main [data-case-row]', '#main [data-act="facts-edit"]'], at: '#main #case-fact-box', more: "People without a name show the text or number they were made from instead of (no name), here, on the case and in a task's People." }],
   '1.62.36': [{ text: "Cases: a long entry in the Timeline, like a pasted email, shows its first few lines with More under it to read the rest (Less folds it again).", go: '#/cases', open: ['#main [data-case-row]'], at: '#main .ctl', more: "A task's View case, in its History: long comments fold the same way." }],
   '1.62.35': [{ text: "Phones: a tap at the top edge of a box just under a sheet's handle, like the search box in More, now goes to the box instead of the handle."}],
   '1.62.34': [{ text: "Sharing, in every area: when someone shares something with you, a bar at the bottom asks Accept, Decline or Not now, and stays until you answer. Accept and Decline both have Undo, and Accept has Take me there, which opens it and makes it pulse." },
@@ -317,6 +318,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.62.37': '2026-11-10T16:53:54Z',
   '1.62.36': '2026-11-10T16:42:47Z',
   '1.62.35': '2026-11-09T06:59:31Z',
   '1.62.34': '2026-11-08T12:19:24Z',
