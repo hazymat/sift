@@ -25,6 +25,7 @@ const SHELL = [
   'js/detailtable.js',
   'js/colours.js',
   'js/comments.js',
+  'js/fold.js',
   'js/customtheme.js',
   'js/thememocks.js',
   'js/slide.js',

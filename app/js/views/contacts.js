@@ -29,6 +29,7 @@ import { tintHex, tintId, colourMenu } from '../colours.js';
 import { keys } from '../keys.js';
 import { pillMenu } from '../pillmenu.js';
 import * as att from '../attachments.js';
+import { foldLong } from '../fold.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -657,6 +658,7 @@ export default {
         : state.tab === 'cases' ? await viewCases()
         : state.tab === 'contact' ? await viewContact()
         : viewRecent();
+      foldLong(body, '.kase .ctl-body');
       // The chosen kind tile in view, even when it's one the row has to scroll to.
       const kindOn = body.querySelector('.kc-kind[aria-pressed="true"]');
       if (kindOn) kindOn.parentElement.scrollLeft = kindOn.offsetLeft - kindOn.parentElement.offsetLeft - 14;
