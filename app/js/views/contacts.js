@@ -269,6 +269,7 @@ export default {
         <input type="hidden" name="how" value="${draft.how}"><input type="hidden" name="direction" value="${draft.dir}">
         <div class="kc-kinds" role="group" aria-label="What kind">${tiles}</div>
         <div class="kc-seg" role="group" aria-label="Received or sent"${draft.how === 'note' ? ' hidden' : ''}><button type="button" data-dir="in" aria-pressed="${draft.dir === 'in'}">↙ Received</button><button type="button" data-dir="out" aria-pressed="${draft.dir === 'out'}">↗ Sent</button></div>
+        <input name="headline" class="kc-text kc-headline no-inline" placeholder="${esc(word('ph_entry_headline'))}" autocomplete="off" aria-label="Summary">
         <textarea name="summary" class="kc-text" rows="3" placeholder="${esc(word(draft.how === 'note' ? 'ph_case_note' : 'ph_log_what'))}"></textarea>
         <div class="log-pending">${pendingHtml()}</div>
         <div class="kc-bar">
@@ -296,7 +297,8 @@ export default {
       return `<li class="entry-edit" data-entry="${coll}:${r.id}" data-attach="${coll}:${r.id}"><div class="log-form log-box">
         ${isNote ? '' : `<div class="log-row log-kind"><select name="how" aria-label="What kind">${HOW.filter(h => !h.caseOnly).map(h => `<option value="${h.id}"${h.id === r.how ? ' selected' : ''}>${h.icon} ${h.label}</option>`).join('')}</select>
         <select name="direction"><option value="out">Sent</option><option value="in"${r.direction === 'in' ? ' selected' : ''}>Received</option></select></div>`}
-        <input name="summary" class="no-inline" value="${esc(isNote ? r.body : r.summary)}" placeholder="${esc(word(isNote ? 'ph_case_note' : 'ph_log_what'))}" autocomplete="off" aria-label="${isNote ? 'Note' : 'What happened'}">
+        <input name="headline" class="no-inline" value="${esc(r.headline || '')}" placeholder="${esc(word('ph_entry_headline'))}" autocomplete="off" aria-label="Summary">
+        <textarea name="summary" class="kc-text no-inline" rows="3" placeholder="${esc(word(isNote ? 'ph_case_note' : 'ph_log_what'))}" aria-label="${isNote ? 'Note' : 'What happened'}">${esc(isNote ? r.body : r.summary)}</textarea>
         ${att.rowHtml(atts.get(r.id) || [], { parent: r.id })}
         <div class="log-row log-foot">${whenField(r.at, false)}</div>
         <div class="log-row log-foot"><button type="button" class="danger" data-act="entry-delete">Delete</button><span class="spacer"></span>
@@ -304,7 +306,7 @@ export default {
           <button type="button" class="primary" data-act="entry-save">Save${keys('Enter')}</button></div>
       </div></li>`;
     }
-    const editBtn = (coll, id) => `<button type="button" class="icon-btn small entry-edit-btn" data-act="entry-edit" data-entry="${coll}:${id}" title="Edit (when, words)" aria-label="Edit">✎</button>`;
+    const editBtn = (coll, id) => `<button type="button" class="icon-btn small entry-edit-btn" data-act="entry-edit" data-entry="${coll}:${id}" title="Edit (when, summary, words)" aria-label="Edit">✎</button>`;
 
     async function viewContact() {
       const c = byId(state.id);
@@ -318,7 +320,7 @@ export default {
       atts = await att.byParent();
       const timeline = [
         { at: c.captured_at, text: 'Recorded', kind: 'captured' },
-        ...log.map(i => ({ at: i.at, text: `${HOW.find(h => h.id === i.how)?.icon || ''} ${i.direction === 'in' ? 'They' : 'I'} ${i.how === 'call' ? 'called' : i.how === 'email' ? 'emailed' : i.how === 'text' ? 'texted' : i.how}${i.detail_used ? ` (${i.detail_used})` : ''}${i.summary ? `: ${i.summary}` : ''}`, kind: 'log', id: i.id })),
+        ...log.map(i => ({ at: i.at, text: `${HOW.find(h => h.id === i.how)?.icon || ''} ${i.direction === 'in' ? 'They' : 'I'} ${i.how === 'call' ? 'called' : i.how === 'email' ? 'emailed' : i.how === 'text' ? 'texted' : i.how}${i.detail_used ? ` (${i.detail_used})` : ''}${i.headline || i.summary ? `: ${i.headline || i.summary}` : ''}`, kind: 'log', id: i.id })),
         ...(c.looked_up_at || []).slice(0, 5).map(at => ({ at, text: 'Looked up', kind: 'look' })),
       ].filter(e => e.at).sort((a, b) => b.at.localeCompare(a.at));
       contactShown = { c, timeline, cases, tasks: tasks.filter(t => !t.done_at) };
@@ -396,7 +398,7 @@ export default {
       caseInfo = new Map(data.cases.map(kase => {
         const entries = data.interactions.filter(entry => entry.case_id === kase.id).concat(notes.filter(note => note.case_id === kase.id)).sort((one, two) => (two.at || '').localeCompare(one.at || ''));
         const latest = entries[0];
-        const latestText = !latest ? '' : latest.how ? `${HOW.find(how => how.id === latest.how)?.icon || '•'} ${latest.summary || (latest.direction === 'in' ? SAID_IN : SAID_OUT)[latest.how] || ''}` : `📝 ${plainLines(latest.body || '')[0] || 'Note'}`;
+        const latestText = !latest ? '' : latest.headline ? `${latest.how ? HOW.find(how => how.id === latest.how)?.icon || '•' : '📝'} ${latest.headline}` : latest.how ? `${HOW.find(how => how.id === latest.how)?.icon || '•'} ${latest.summary || (latest.direction === 'in' ? SAID_IN : SAID_OUT)[latest.how] || ''}` : `📝 ${plainLines(latest.body || '')[0] || 'Note'}`;
         const files = (atts.get(kase.id) || []).concat(entries.flatMap(entry => atts.get(entry.id) || []));
         const last = [kase.opened_at || kase.created_at, kase.closed_at, latest?.at].concat(files.map(file => file.created_at)).filter(Boolean).sort().at(-1);
         return [kase.id, { entries: entries.length, latest, latestText, files, last }];
@@ -552,7 +554,7 @@ export default {
             const thumbs = ['thumbs', 'both'].includes(ch.photos) ? (await Promise.all(files.map(async a => { const src = await picOf(a); return src ? `<img class="photo" src="${src}" alt="">` : `<span class="fname">📎 ${esc(a.name)}</span>`; }))).join('') : '';
             const names = ch.photos === 'names' || ch.photos === 'full' ? files.map(a => `<span class="fname">📎 ${esc(a.name)}</span>`).join(' ') : '';
             const body = e.type === 'file' ? (thumbs ? '' : ch.photos === 'none' ? '' : names) : words(e.body);
-            return `<div class="ev ${/ctl-in/.test(e.type) ? 'in' : /ctl-out/.test(e.type) ? 'out' : ''}"><div class="ic">${e.icon}</div><div><div class="hd">${ch.times ? `${esc(when(e.at))} · ` : ''}<b>${words(e.head)}</b></div>${body ? `<div class="bd">${body}</div>` : ''}${thumbs ? `<div class="thumbs">${thumbs}</div>` : e.type !== 'file' && names ? `<div class="bd">${names}</div>` : ''}</div></div>`;
+            return `<div class="ev ${/ctl-in/.test(e.type) ? 'in' : /ctl-out/.test(e.type) ? 'out' : ''}"><div class="ic">${e.icon}</div><div><div class="hd">${ch.times ? `${esc(when(e.at))} · ` : ''}<b>${words(e.head)}</b></div>${e.gist ? `<div class="bd"><b>${esc(e.gist)}</b></div>` : ''}${body ? `<div class="bd">${body}</div>` : ''}${thumbs ? `<div class="thumbs">${thumbs}</div>` : e.type !== 'file' && names ? `<div class="bd">${names}</div>` : ''}</div></div>`;
           };
           const timeline = ch.timeline ? (await Promise.all(shown.filter(e => e.type !== 'file' || ch.photos !== 'none').map(evHtml))).join('') : '';
           if (!ch.timeline) for (const e of events) all.push(...filesFor(e));
@@ -584,8 +586,8 @@ export default {
       const who = i => (i.contact_id && byId(i.contact_id)?.name) || '';
       const said = i => `${(i.direction === 'in' ? SAID_IN : SAID_OUT)[i.how] || (i.direction === 'in' ? 'Received' : 'Sent')}${who(i) ? ` · ${who(i)}` : ''}`;
       const events = files.map(a => ({ at: a.created_at, type: 'file', icon: '📎', head: 'Attached to the case', body: `<button type="button" class="link-btn" data-att-open="${a.id}">${esc(a.name)}</button>` }))
-        .concat(log.map(i => ({ at: i.at, type: `log ctl-${i.direction === 'in' ? 'in' : 'out'}`, icon: HOW.find(h => h.id === i.how)?.icon || '•', entry: ['interactions', i], head: esc(said(i)), body: `${i.detail_used ? `<span class="muted">${esc(i.detail_used)}</span> ` : ''}${esc(i.summary || '')}` })))
-        .concat(notes.map(n => ({ at: n.at, type: 'note', icon: '📝', entry: ['case_notes', n], head: 'Note', body: n.body ? inlineAll(n.body) : '' })))
+        .concat(log.map(i => ({ at: i.at, type: `log ctl-${i.direction === 'in' ? 'in' : 'out'}`, icon: HOW.find(h => h.id === i.how)?.icon || '•', entry: ['interactions', i], gist: i.headline, head: esc(said(i)), body: `${i.detail_used ? `<span class="muted">${esc(i.detail_used)}</span> ` : ''}${esc(i.summary || '')}` })))
+        .concat(notes.map(n => ({ at: n.at, type: 'note', icon: '📝', entry: ['case_notes', n], gist: n.headline, head: 'Note', body: n.body ? inlineAll(n.body) : '' })))
         .concat(tasks.map(t => ({ at: t.created_at, type: `task${t.done_at ? ' ctl-done' : ''}`, icon: t.done_at ? '✅' : '☑️', head: t.done_at ? 'Task (done)' : 'Task', body: `<a href="#/tasks/list">${esc(t.title)}</a>` })))
         .concat(comments.map(c => ({ at: c.at, type: 'comment', icon: '💬', head: `On <a href="#/tasks/list">${esc(taskIds.get(c.task_id).title)}</a>`, body: c.body ? inlineAll(c.body) : '📎' })))
         .concat(scans.map(sc => ({ at: sc.letter_date || sc.created_at, type: 'scan', icon: '🧾', head: 'Scan', body: `<a href="#/scans/${sc.id}">${esc(sc.title)}</a>${sc.summary ? `: ${esc(sc.summary)}` : ''}` })))
@@ -597,7 +599,7 @@ export default {
         return `${month}<li class="ctl-item ctl-${e.type}"${e.entry ? ` data-entry="${e.entry[0]}:${e.entry[1].id}" data-attach="${e.entry[0]}:${e.entry[1].id}"` : ''}>
           <span class="ctl-icon" aria-hidden="true">${e.icon}</span>
           <div class="ctl-card"><div class="ctl-head"><time>${when(e.at)}</time> <b>${e.head}</b>${e.entry ? editBtn(e.entry[0], e.entry[1].id) : ''}</div>
-            ${e.body ? `<div class="ctl-body">${e.body}</div>` : ''}${e.entry ? filesOf(e.entry[1].id) : ''}</div></li>`;
+            ${e.gist ? `<div class="ctl-gist">${esc(e.gist)}</div>` : ''}${e.body ? `<div class="ctl-body">${e.body}</div>` : ''}${e.entry ? filesOf(e.entry[1].id) : ''}</div></li>`;
       }).join('');
       const status = statusOf(k);
       const entries = log.concat(notes);
@@ -820,9 +822,9 @@ export default {
       }
       const atField = row.querySelector('[name="at"]');
       const text = row.querySelector('[name="summary"]').value.trim();
-      const fields = { at: atField.value && atField.value !== localValue(new Date(r.at)) ? new Date(atField.value).toISOString() : r.at };
+      const fields = { headline: row.querySelector('[name="headline"]').value.trim(), at: atField.value && atField.value !== localValue(new Date(r.at)) ? new Date(atField.value).toISOString() : r.at };
       if (coll === 'case_notes') {
-        if (!text && !atts.get(id)?.length) { editing = row.dataset.entry; toast('A note needs some words: Delete takes it away'); return; }
+        if (!text && !fields.headline && !atts.get(id)?.length) { editing = row.dataset.entry; toast('A note needs some words: Delete takes it away'); return; }
         fields.body = text;
       } else Object.assign(fields, { summary: text, how: row.querySelector('[name="how"]').value, direction: row.querySelector('[name="direction"]').value });
       const old = Object.fromEntries(Object.keys(fields).map(x => [x, r[x] ?? null]));
@@ -833,7 +835,7 @@ export default {
     }
     el.addEventListener('keydown', ev => {
       const row = ev.target.closest('.entry-edit');
-      if (row && ev.key === 'Enter' && !ev.isComposing && ev.target.matches('input')) { ev.preventDefault(); entryDone(row, false); }
+      if (row && ev.key === 'Enter' && !ev.isComposing && (ev.target.matches('input') || ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); entryDone(row, false); }
       else if (row && ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); editing = null; render(); }
       else if (ev.key === 'Enter' && !ev.isComposing && ev.target.matches('.log-form [name="summary"]') && (ev.target.matches('input') || ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); ev.target.closest('.log-form').querySelector('[data-act="log-case"], [data-act="log-contact"]').click(); }
     });
@@ -1002,16 +1004,17 @@ export default {
         if (act === 'log-case') {
           const f = b.closest('.log-form');
           const how = f.querySelector('[name="how"]').value, summary = f.querySelector('[name="summary"]').value.trim(), at = atFrom(f.querySelector('[name="at"]'));
+          const headline = f.querySelector('[name="headline"]')?.value.trim() || '';
           if (how === 'note') {
-            if (!summary && !pending.length) { toast('Write the note first'); f.querySelector('[name="summary"]').focus(); return; }
-            const n = await store.create('case_notes', { case_id: k.id, at, body: summary });
+            if (!summary && !headline && !pending.length) { toast('Write the note first'); f.querySelector('[name="summary"]').focus(); return; }
+            const n = await store.create('case_notes', { case_id: k.id, at, body: summary, headline });
             const files = await attachPending('case_notes', n.id);
             await store.update('cases', k.id, { status: k.status });
             await render();
             undoable('Note added', async () => { await store.remove('case_notes', n.id); for (const a of files) await store.remove('attachments', a.id); render(); });
             return;
           }
-          const made = await logInteraction({ case_id: k.id, contact_id: k.contact_ids?.[0] || null, how, direction: f.querySelector('[name="direction"]').value, summary, at });
+          const made = await logInteraction({ case_id: k.id, contact_id: k.contact_ids?.[0] || null, how, direction: f.querySelector('[name="direction"]').value, summary, headline, at });
           const files = await attachPending('interactions', made.id);
           await store.update('cases', k.id, { status: k.status });
           await render();

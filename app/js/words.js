@@ -76,6 +76,7 @@ export const WORDS = [
   { group: "Phrases: Contacts", key: 'ph_contact_about', default: "e.g. The plumber a friend recommended", hint: "The example in \"What was this? / who are they\"." },
   { group: "Phrases: Contacts", key: 'ph_cases', default: "A case is an ongoing saga (e.g. a complaint or an insurance claim): references, people, calls, letters, tasks and notes in one timeline.", hint: "The hint on the Cases page." },
   { group: "Phrases: Contacts", key: 'ph_case_summary', default: "What is this about?", hint: "The grey prompt in a case's summary." },
+  { group: "Phrases: Contacts", key: 'ph_entry_headline', default: "Summary (optional), e.g. They'll refund by Friday", hint: "The grey prompt for an entry's one-line summary on a case." },
   { group: "Phrases: Contacts", key: 'ph_case_note', default: "Add a note (e.g. letter received: they want more details)", hint: "The grey prompt for a note on a case." },
   { group: "Phrases: Contacts", key: 'ph_case_letters', default: "Letters: scans linked to this case will show here once Scans is built.", hint: "On a case, about letters." },
   { group: "Phrases: Contacts", key: 'ph_contact_notes', default: "Record contact notes here", hint: "The grey prompt in a contact's notes." },

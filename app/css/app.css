@@ -1439,6 +1439,8 @@ select.kc-btn { width: auto; padding: 0 14px; }
 .ctl-card:hover .entry-edit-btn, .ctl-head .entry-edit-btn:focus-visible { opacity: 1; }
 .ctl-body { margin-top: 3px; font-size: .92rem; line-height: 1.4; }
 .ctl-body a, .ctl-head a { color: var(--accent); }
+.ctl-gist { margin-top: 3px; font-weight: 600; line-height: 1.35; }
+.kc-text.kc-headline { min-height: 0; margin-bottom: 8px; padding-block: 10px; }
 /* A long entry folded to its first lines (fold.js), fading out above More / Less. */
 .folded { max-height: var(--fold-h, 8em); overflow: hidden; -webkit-mask-image: linear-gradient(to bottom, #000 65%, transparent); mask-image: linear-gradient(to bottom, #000 65%, transparent); }
 .ctl-fold { display: inline-block; margin-top: 4px; padding: 1px 10px; border-radius: 999px; font: inherit; font-size: .82rem; cursor: pointer; color: var(--text); border: 1px solid color-mix(in srgb, var(--energy-ink, #4caf7a) 40%, transparent); background: color-mix(in srgb, var(--energy-ink, #4caf7a) 13%, transparent); }
