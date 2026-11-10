@@ -23,6 +23,7 @@ import { ENERGY, dateText, dateTimeText, parseDate, durationLabel, showTime, iso
 import { STATUSES, PRIORITIES, horizons, doneFields, projectMembers } from './tasks.js';
 import { repeatLabel } from './repeat.js';
 import { keys } from './keys.js';
+import { foldLong } from './fold.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -298,6 +299,7 @@ export async function openCase(owner, { closed, back } = {}) {
       <p class="case-honest muted">Ticks, comments, photos and files are kept with the task on every device. Edits to its details are listed only when made on this device (its History); "changed" beside each detail is the last time it changed on any device.</p>
     </div>`;
     const box = page.querySelector('.case-add-box');
+    foldLong(page, '.ctl .case-said');
     box.value = typedComment;
     if (focusedAdd) box.focus();
     page.scrollTop = scroll;
