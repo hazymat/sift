@@ -43,7 +43,7 @@ function copyOver(field, row) {
     boxSizing: 'border-box', borderStyle: 'solid', borderColor: 'transparent', borderWidth: style.borderWidth,
     paddingTop: `${parseFloat(style.paddingTop) + ROOM}px`, paddingBottom: `${parseFloat(style.paddingBottom) + ROOM}px`, paddingLeft: style.paddingLeft, paddingRight: style.paddingRight,
     font: style.font, letterSpacing: style.letterSpacing, wordSpacing: style.wordSpacing, lineHeight: style.lineHeight, textAlign: style.textAlign,
-    color: style.color, whiteSpace: isInput ? 'pre' : 'pre-wrap', overflowWrap: style.overflowWrap,
+    color: style.color, whiteSpace: isInput ? 'pre' : style.whiteSpace, overflowWrap: style.overflowWrap, // wraps only where the field does: a name only as wide as its text (Compact) must not wrap, as its letters set one by one come out a touch wider
     display: isInput ? 'flex' : 'block', alignItems: 'center', // an input's text sits in the middle of it
     WebkitMaskImage: style.webkitMaskImage, maskImage: style.maskImage,
   });
