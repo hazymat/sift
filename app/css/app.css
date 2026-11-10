@@ -4677,8 +4677,6 @@ pre.hs-rules { white-space: pre-wrap; font: inherit; font-size: 0.9rem; margin: 
 @media (max-width: 560px) { .list-top .list-actions { flex-wrap: wrap; } .list-top .list-bar { flex: 1 1 100%; max-width: none; } }
 /* The new item line: one line like Tasks' New task, growing with what's pasted; its hint only while typing. */
 #list-new { resize: none; overflow: hidden; line-height: 1.4; min-height: 0; font-family: inherit; }
-.list-entry-box:not(:focus-within) .list-hint { display: none; }
-.list-entry-box .list-hint { margin: 2px 0 6px 54px; font-size: .75rem; }
 .list-end { margin-top: 18px; }
 
 /* Tasks | Projects, as Batch Book's Recipes | Batches; on phones the list tabs go on the row under it. */

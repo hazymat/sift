@@ -1,13 +1,13 @@
 // Lists: templates you reuse (packing, the weekly shop), the copies made
 // from them, and plain lists. #/lists  and  #/lists/<list id>
 
-import { hintHtml } from '../hints.js';
+import { hintHtml, hintShown } from '../hints.js';
 import { cogHtml, layoutOn } from '../viewcog.js';
 import { shareHtml, printers } from '../share.js';
 import * as store from '../store.js';
 import { loadLists, nestItems, progress, createList, addItems, useTemplate, missingFromTemplate } from '../lists.js';
 import { createListKit } from '../listkit.js';
-import { listEntry, listHint } from '../listentry.js';
+import { listEntry } from '../listentry.js';
 import { toast, undoable } from '../toast.js';
 import { richText, previewLine, plainLines } from '../richtext.js';
 import { debounced } from '../autosave.js';
@@ -272,7 +272,6 @@ export default {
             <textarea id="list-new" class="new-task-line list-entry" rows="1" placeholder="${esc(word('ph_add_items'))}" enterkeyhint="done" aria-label="New item"></textarea>
             <button type="button" class="entry-add" data-act="add" title="Add (Enter)">Add <kbd>Enter</kbd></button>
           </div>
-          ${hintHtml('list-items', `${listHint({ enterAdds: true })}`, 'list-hint')}
         </div>
         <ul class="task-list checklist" style="--tint: ${tintHex(l)}">${shown.map(row).join('')}</ul>
         ${l.hide_ticked && pr.done ? `<p class="muted list-hidden-count">${pr.done} ticked item${pr.done === 1 ? '' : 's'} hidden.</p>` : ''}
@@ -327,6 +326,10 @@ export default {
         const fit = () => { ta.style.height = 'auto'; ta.style.height = `${ta.scrollHeight}px`; };
         ta.addEventListener('input', fit);
         fit();
+        // The how-to hint is the box's grey prompt while it has the cursor (hints on, this one not dismissed), gone once typing starts.
+        ta.addEventListener('focus', () => { if (hintShown('list-items')) ta.placeholder = ta.clientWidth < 420 ? 'One per line, - for a sub-item' : 'One per line. Start with - for a sub-item. Shift+Enter for a new line.'; });
+        ta.addEventListener('blur', () => { ta.placeholder = word('ph_add_items'); });
+        if (document.activeElement === ta) ta.dispatchEvent(new Event('focus'));
         // Esc keeps what's typed (adds it, as Enter) and leaves the box; the next Esc leaves the list.
         ta.addEventListener('keydown', async ev => {
           if (ev.key !== 'Escape' || ev.isComposing || ev.defaultPrevented || document.querySelector('.ref-picker')) return;

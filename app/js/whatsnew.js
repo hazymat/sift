@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.62.40': [{ text: "Lists: the how-to for adding items (one per line, - for a sub-item) is now the grey prompt in the Add items box while you're in it, instead of a box underneath. It goes as soon as you type.", go: '#/lists' }],
   '1.62.39': [{ text: "Lists and Tasks, in Compact spacing: ticking something off no longer breaks its name onto two lines while the line is drawn through it. Fixed." }],
   '1.62.38': [{ text: "Cases: every Timeline entry can have a one-line summary, typed above its words in New entry or added later with ✎. It shows in bold above the entry, so a long folded email reads at a glance, and in the cases list as the latest entry.", go: '#/cases', open: ['#main [data-case-row]'], at: '#main .kc-headline', more: "Editing an entry with ✎ now keeps its line breaks (a pasted email used to be squashed onto one line)." }],
   '1.62.37': [{ text: "Cases: on a case, + Reference or person (or ✎ Edit) has one box: type a reference, a name or a phone number and press Enter. It lists the people in Contacts it could be, then Add as a reference and Add as a new person, the likelier one first.", go: '#/cases', open: ['#main [data-case-row]', '#main [data-act="facts-edit"]'], at: '#main #case-fact-box', more: "People without a name show the text or number they were made from instead of (no name), here, on the case and in a task's People." }],
@@ -320,6 +321,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.62.40': '2026-11-10T20:46:06Z',
   '1.62.39': '2026-11-10T20:44:09Z',
   '1.62.38': '2026-11-10T16:58:07Z',
   '1.62.37': '2026-11-10T16:53:54Z',
