@@ -1233,3 +1233,4 @@ NOTES['1.62.37'] = [F("Cases: adding to a case's references and people is one bo
 NOTES['1.62.38'] = [F("Cases: every Timeline entry can have a one-line summary, typed above its words in New entry or added later with ✎. It shows in bold above the entry, so a long folded email reads at a glance, and in the cases list as the latest entry."), B("Cases: editing an entry with ✎ squashed a pasted email's lines onto one line.")]
 NOTES['1.62.39'] = [B("Ticking something off in Compact spacing (Lists and Tasks): the name broke onto two lines while the line was drawn through it.")]
 NOTES['1.62.40'] = [F("Lists: the how-to for adding items is now the grey prompt in the Add items box while you're in it, instead of a box underneath. It goes as soon as you type.")]
+NOTES['1.62.41'] = [B("Brain dump: clicking a link (a contact, say) on a note's tile opened that instead of the note. A click anywhere on the tile now opens the note.")]

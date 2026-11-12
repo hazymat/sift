@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.62.41': [{ text: "Brain dump: clicking a note anywhere opens the note, even where it mentions a contact or something else linked. (Open the link from inside the note.)" }],
   '1.62.40': [{ text: "Lists: the how-to for adding items (one per line, - for a sub-item) is now the grey prompt in the Add items box while you're in it, instead of a box underneath. It goes as soon as you type.", go: '#/lists' }],
   '1.62.39': [{ text: "Lists and Tasks, in Compact spacing: ticking something off no longer breaks its name onto two lines while the line is drawn through it. Fixed." }],
   '1.62.38': [{ text: "Cases: every Timeline entry can have a one-line summary, typed above its words in New entry or added later with ✎. It shows in bold above the entry, so a long folded email reads at a glance, and in the cases list as the latest entry.", go: '#/cases', open: ['#main [data-case-row]'], at: '#main .kc-headline', more: "Editing an entry with ✎ now keeps its line breaks (a pasted email used to be squashed onto one line)." }],
