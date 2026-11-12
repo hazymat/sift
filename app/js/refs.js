@@ -273,11 +273,12 @@ export async function unlinkInRecord(origin, ref, field = 'notes') {
   if (next !== r[field]) await store.update(origin.collection, origin.id, { [field]: next });
 }
 
-// Chips in notes that aren't being edited open what they link to.
+// Chips in notes that aren't being edited open what they link to. (Not on a
+// Brain dump tile: a click anywhere on it opens the note itself.)
 export function installRefLinks() {
   document.addEventListener('click', ev => {
     const chip = ev.target.closest?.('.ref[data-ref]');
-    if (!chip || chip.closest('.rich-edit')) return;
+    if (!chip || chip.closest('.rich-edit, .thought-body')) return;
     ev.preventDefault();
     ev.stopPropagation();
     openRef(chip.dataset.ref);
