@@ -318,8 +318,8 @@ export default {
           ${editing === t.id
             ? `<div class="save-state" data-state="saved">Saved ✓</div><div class="thought-edit" data-thought="${t.id}"></div>`
             : thoughtBody(t)}
-          ${atts.get(t.id)?.length ? att.rowHtml(atts.get(t.id), { addButton: false }) : ''}
           <div class="thought-actions">
+            ${atts.get(t.id)?.length ? att.rowHtml(atts.get(t.id), { addButton: false }) : ''}
             <span class="spacer"></span>
             <span class="note-end">
             <button type="button" class="archive-pill" data-act="archive" title="Done with it: into the Archive (Undo)">Archive</button>
@@ -613,7 +613,9 @@ export default {
       // "→ Task" chips go to the task and light it up when you get there.
       const jump = ev.target.closest('a[data-focus]');
       if (jump) { const [c, id] = jump.dataset.focus.split(':'); pointTo(c, id); return; }
-      const b = ev.target.closest('[data-act], [data-kind], [data-filter]');
+      // A click on a note's tile anywhere but its controls opens the note (beside its thumbnails, the empty bar).
+      const tile = ev.target.closest('.thought[data-id]');
+      const b = ev.target.closest('[data-act], [data-kind], [data-filter]') || (tile && tile.dataset.id !== editing && !ev.target.closest('a, button, select, input, summary, details, .thought-edit, .zoom-back') ? tile.querySelector('.thought-body[data-act="edit"]') : null);
       if (!b) return;
       // Choosing the kind doesn't go back into the note (on a phone that would open it full screen).
       if (b.dataset.kind) { kind = b.dataset.kind; paintKinds(); return; }
