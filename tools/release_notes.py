@@ -1234,3 +1234,4 @@ NOTES['1.62.38'] = [F("Cases: every Timeline entry can have a one-line summary, 
 NOTES['1.62.39'] = [B("Ticking something off in Compact spacing (Lists and Tasks): the name broke onto two lines while the line was drawn through it.")]
 NOTES['1.62.40'] = [F("Lists: the how-to for adding items is now the grey prompt in the Add items box while you're in it, instead of a box underneath. It goes as soon as you type.")]
 NOTES['1.62.41'] = [B("Brain dump: clicking a link (a contact, say) on a note's tile opened that instead of the note. A click anywhere on the tile now opens the note.")]
+NOTES['1.62.42'] = [F("Brain dump: a note's photos and files are small thumbnails in its bottom bar, next to Archive, so the words get the whole tile."), B("Brain dump: clicking beside a note's photos didn't open the note. Anywhere on a tile that isn't a button now opens it.")]

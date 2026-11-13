@@ -1266,7 +1266,14 @@ a.chip { color: var(--text); text-decoration: none; }
 .thought-edit { font-size: 1.05rem; margin: 6px 0; }
 .thought-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .thought-actions button { padding: 3px 10px; font-size: .78rem; box-shadow: none; background: transparent; border-color: var(--glass-border); }
-.thought:not(:hover):not(:focus-within) .thought-actions { opacity: .55; }
+.thought:not(:hover):not(:focus-within) .thought-actions > :not(.att-row) { opacity: .55; }
+/* A note's photos and files: small, in its bottom bar from the left, so the text has the whole tile. */
+.thought-actions .att-row { flex: 0 1 auto; flex-wrap: nowrap; min-width: 0; overflow: hidden; gap: 4px; margin: 0; }
+.thought-actions .att-open { padding: 0; border-radius: 4px; }
+.thought-actions .att-img .att-open img { height: 26px; max-width: 40px; }
+.thought-actions .att-file .att-open { padding: 2px 6px; font-size: .7rem; max-width: 110px; }
+.thought-actions .att-file .att-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.thought-actions :is(.att-pdf, .att-wait), .thought:not(:has(.thought-edit)) .thought-actions .att .att-x { display: none; }
 .thought-panel { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; align-items: end; margin-top: 10px; padding: 10px; border-radius: 14px; background: var(--glass-track); }
 .thought-panel .wide { grid-column: 1 / -1; }
 .thought-panel input, .thought-panel select { color: var(--text); font-size: .9rem; padding: 6px 8px; }
@@ -5166,7 +5173,6 @@ html.case-open, html.case-open body { overflow: hidden; }
   .thought-head .pin { top: 8px; }
   .thought .thought-body { flex: 1; min-height: 0; display: block; overflow: hidden; margin: 0; padding: 10px 14px 0; border-top: 1px solid var(--np-line); color: var(--text); font-size: 14px; line-height: 1.5; -webkit-mask-image: linear-gradient(to bottom, #000 75%, transparent); mask-image: linear-gradient(to bottom, #000 75%, transparent); }
   .thought .thought-title { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
-  .thought > .att-row { flex: none; margin: 0; padding: 4px 12px; }
   .thought-actions { flex: none; margin: 0; padding: 3px 6px 3px 12px; border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent); background: var(--np-strip); }
   .thought-actions .note-end > button, .thought-actions .note-more > summary { padding: 1px 8px; font-size: 11px; border-radius: 0; border-color: transparent; background: transparent; box-shadow: none; color: color-mix(in srgb, var(--text) 70%, transparent); }
   .thought-actions .note-end > button:hover, .thought-actions .note-more > summary:hover { background: var(--glass-hover); color: var(--text); }

@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.62.42': [{ text: "Brain dump: a note's photos and files are now small thumbnails in its bottom bar, next to Archive, so the note's words get the whole tile. Clicking anywhere else on a note (beside the thumbnails too) opens it.", go: '#/dump' }],
   '1.62.41': [{ text: "Brain dump: clicking a note anywhere opens the note, even where it mentions a contact or something else linked. (Open the link from inside the note.)" }],
   '1.62.40': [{ text: "Lists: the how-to for adding items (one per line, - for a sub-item) is now the grey prompt in the Add items box while you're in it, instead of a box underneath. It goes as soon as you type.", go: '#/lists' }],
   '1.62.39': [{ text: "Lists and Tasks, in Compact spacing: ticking something off no longer breaks its name onto two lines while the line is drawn through it. Fixed." }],
