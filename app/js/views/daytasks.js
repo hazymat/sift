@@ -31,6 +31,7 @@ import { autosizeAll } from '../inline.js';
 import { addTask } from '../tasks.js';
 import { dayPanelHtml } from '../daypanel.js';
 import { openCase, caseTimes, tookText } from '../casepage.js';
+import { stripMarks } from '../mdmarks.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -91,7 +92,7 @@ export default {
     let commentsOf = new Map(); // 'task_id:…' / 'item_id:…' → comments, oldest first
     const keyOf = o => (o.task_id ? `task_id:${o.task_id}` : `item_id:${o.item_id}`);
     const at = iso => { const d = new Date(iso); const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); return isoDate(d) === date ? time : `${dateText(d, { day: 'numeric', month: 'short' })} ${time}`; };
-    const oneLine = md => (md || '').replace(/\[([^\]]*)\]\(sift:[^)]*\)/g, '$1').replace(/\*\*|~~/g, '').replace(/^\s*[-*]\s+/gm, '• ').replace(/^(?:#{1,6}|-#|\+#|#\+)\s+/gm, '').split('\n').map(l => l.trim()).filter(Boolean).join(' · ');
+    const oneLine = md => stripMarks(md || '').replace(/\[([^\]]*)\]\(sift:[^)]*\)/g, '$1').replace(/^\s*[-*]\s+/gm, '• ').replace(/^(?:#{1,6}|-#|\+#|#\+)\s+/gm, '').split('\n').map(l => l.trim()).filter(Boolean).join(' · ');
     function row(i) {
       const task = i.task_id && tasks.get(i.task_id);
       const project = task?.project_id && projects.get(task.project_id);
@@ -537,7 +538,7 @@ export default {
     let choices = { ...EXPORT_DEFAULTS };
     store.getDeviceSettings().then(d => { choices = Object.assign({}, EXPORT_DEFAULTS, d.advanced_share || {}); });
     const unlink = s => (s || '').replace(/\[([^\]]*)\]\(sift:[^)]*\)/g, '$1');
-    const plainNote = s => unlink(s).replace(/\*\*(.+?)\*\*/g, '$1').replace(/~~(.+?)~~/g, '$1').replace(/(^|\s)_(\S.*?)_(?=$|[\s).,!?:;])/g, '$1$2').replace(/^(?:#{1,6}|-#|\+#|#\+)\s+/gm, '');
+    const plainNote = s => stripMarks(unlink(s)).replace(/^(?:#{1,6}|-#|\+#|#\+)\s+/gm, '');
     // A file added: when, and its name unless it's a photo.
     const fileLine = a => (a.kind === 'image' ? '📷 Photo added' : `📎 File added: ${a.name}`);
     // One case: its updates in time order (comments, and the files added to it).

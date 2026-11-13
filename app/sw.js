@@ -35,6 +35,7 @@ const SHELL = [
   'js/hints.js',
   'js/hold.js',
   'js/weburl.js',
+  'js/mdmarks.js',
   'js/tickwave.js',
   'js/undo.js',
   'js/gcal.js',

@@ -21,6 +21,7 @@
 
 import * as store from './store.js';
 import { dateTimeText } from './days.js';
+import { stripMarks } from './mdmarks.js';
 
 const PAUSE = 1000; // ms without typing that starts a new step
 const MAX_STEPS = 500;
@@ -157,7 +158,7 @@ export async function showVersions(ref, current, pick) {
   if (!list.length) { (await import('./toast.js')).toast('No earlier versions of this note yet'); return; }
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const when = iso => dateTimeText(new Date(iso), { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-  const line = md => md.split('\n').map(l => l.replace(/^(?:#{1,6}|-#|\+#|#\+|\s*[-*]|\s*\d+[.)])\s+/, '').replace(/\*\*|~~/g, '').trim()).filter(Boolean).slice(0, 2).join(' · ') || '(empty)';
+  const line = md => md.split('\n').map(l => stripMarks(l).replace(/^(?:#{1,6}|-#|\+#|#\+|\s*[-*]|\s*\d+[.)])\s+/, '').trim()).filter(Boolean).slice(0, 2).join(' · ') || '(empty)';
   const dlg = document.createElement('dialog');
   dlg.className = 'sheet versions-sheet';
   dlg.innerHTML = `<div class="sheet-handle"></div><h2>Earlier versions</h2>

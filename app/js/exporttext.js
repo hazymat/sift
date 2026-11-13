@@ -19,11 +19,12 @@ import * as store from './store.js';
 import { byRank } from './order.js';
 import { KINDS } from './refs.js';
 import { feature } from './stats.js';
+import { stripMarks } from './mdmarks.js';
 
 const byPlace = byRank(); // order.js
 
 const LINK = /\[([^\]]*)\]\(sift:([a-z_]+)\/([\w-]+)\)/g;
-const plain = s => s.replace(/\*\*(.+?)\*\*/g, '$1').replace(/~~(.+?)~~/g, '$1').replace(/(^|\s)_(\S.*?)_(?=$|[\s).,!?:;])/g, '$1$2').replace(/^(?:#{1,6}|-#|\+#|#\+)\s+/, '');
+const plain = s => stripMarks(s).replace(/^(?:#{1,6}|-#|\+#|#\+)\s+/, '');
 const showTime = t => { const [h, m] = t.split(':'); return `${Number(h)}.${m}`; };
 const longDate = d => new Date(`${d}T12:00`).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 

@@ -38,6 +38,7 @@ import { deleteLinked, deleteAll, makeUnique } from '../link.js';
 import { dayPanelHtml } from '../daypanel.js';
 import { shareSheet, people, sharedWithText, invitesHtml, theirIconHtml, scopeText, takeWant } from '../sharing.js';
 import { sharesNow, inShare, myUserId, personName } from '../sync.js';
+import { stripMarks } from '../mdmarks.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 // Achievements' words: a few done is "Three and counting", 6 to 10 and 11+ get
@@ -2355,7 +2356,7 @@ const dayPlanner = {
     function mdTo(kind, s) {
       const t = unlink(s);
       if (kind === 'whatsapp') return t.replace(/\*\*(.+?)\*\*/g, '*$1*').replace(/~~(.+?)~~/g, '~$1~').replace(/^(?:#{1,6}|-#|\+#|#\+)\s+(.*)$/gm, '*$1*');
-      return t.replace(/\*\*(.+?)\*\*/g, '$1').replace(/~~(.+?)~~/g, '$1').replace(/(^|\s)_(\S.*?)_(?=$|[\s).,!?:;])/g, '$1$2').replace(/^(?:#{1,6}|-#|\+#|#\+)\s+/gm, '');
+      return stripMarks(t).replace(/^(?:#{1,6}|-#|\+#|#\+)\s+/gm, '');
     }
     const shareTitle = () => parseDate(date).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     function dayText(kind) {

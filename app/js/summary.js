@@ -19,6 +19,7 @@
 
 import { toast } from './toast.js';
 import { labelHistory } from './store.js';
+import { stripMarks } from './mdmarks.js';
 
 export const MAX = 50;
 
@@ -43,8 +44,7 @@ const tidy = s => {
 
 // A title for free text (like iPhone Notes): its first line, without
 // markdown or link syntax, shortened if it's long.
-export const cleanLine = line => line.trim().replace(/\[([^\]]*)\]\(sift:[^)]*\)/g, '$1').replace(/^(?:#{1,6}|-#|\+#|#\+)\s+/, '').replace(/^[-*•]\s+/, '')
-  .replace(/\*\*|~~/g, '').replace(/(^|\s)_(\S.*?)_(?=$|[\s).,!?:;])/g, '$1$2').trim();
+export const cleanLine = line => stripMarks(line.trim().replace(/\[([^\]]*)\]\(sift:[^)]*\)/g, '$1').replace(/^(?:#{1,6}|-#|\+#|#\+)\s+/, '').replace(/^[-*•]\s+/, '')).trim();
 
 export function titleFrom(text) {
   const first = (text || '').split('\n').map(l => l.trim()).find(Boolean) || '';
