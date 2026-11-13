@@ -37,7 +37,7 @@ export const EMOJI = [
 // A note as plain lines for one-line previews: no markdown marks, bullets as "•".
 export function plainLines(md) {
   return (md || '').split('\n')
-    .map(l => l.replace(LINK_RE, '$1').replace(/^(?:#{1,6}|-#|\+#|#\+)\s+/, '').replace(/^\s*[-*]\s+/, '• ').replace(/\*\*|~~/g, '').replace(/(^|\s)_(\S.*?)_(?=$|[\s).,!?:;])/g, '$1$2').trim())
+    .map(l => stripMarks(l.replace(LINK_RE, '$1').replace(/^(?:#{1,6}|-#|\+#|#\+)\s+/, '').replace(/^\s*[-*]\s+/, '• ')).trim())
     .filter(Boolean);
 }
 
@@ -53,6 +53,7 @@ import { noteUndo, showVersions } from './noteundo.js';
 import { flushAll } from './autosave.js';
 import { keys } from './keys.js';
 import { linkUrls } from './weburl.js';
+import { marksHtml, stripMarks } from './mdmarks.js';
 
 const LINK_RE = /\[([^\]]+)\]\(sift:([a-z_]+)\/([\w-]+)\)/g;
 
@@ -67,6 +68,8 @@ const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&
 //   titleHtml(md, title)  a note's title (its first line, maybe shortened) with the formatting it has there
 // plainLines() and summary.js cleanLine() are for plain text only (sharing,
 // searching, working out titles), never for showing.
+// The marks' rules themselves live in mdmarks.js: anything else that reads a
+// note's text uses its stripMarks() rather than its own pattern.
 
 // A note's first line as HTML for one-line previews (links stay clickable),
 // and how many more lines there are.
@@ -102,7 +105,7 @@ function titleCut(line, len, plain) {
 export function titleHtml(md, title) {
   const first = (md || '').split('\n').find(l => l.trim()) || '';
   const line = first.replace(/^(?:#{1,6}|-#|\+#|#\+)\s+/, '').replace(/^\s*[-*]\s+/, '').trim();
-  const plain = s => s.replace(LINK_RE, '$1').replace(/\*\*|~~/g, '').replace(/(^|\s)_(\S.*?)_(?=$|[\s).,!?:;])/g, '$1$2');
+  const plain = s => stripMarks(s.replace(LINK_RE, '$1'));
   const want = (title || '').replace(/…$/, '').trim();
   if (!want || plain(line).trim().toLowerCase() === want.toLowerCase()) return inline(line);
   if (!plain(line).toLowerCase().startsWith(want.toLowerCase())) return esc(title || '');
@@ -119,7 +122,7 @@ export function titleHtml(md, title) {
 export function afterTitle(md, title) {
   const first = (md || '').split('\n').find(l => l.trim()) || '';
   const line = first.replace(/^(?:#{1,6}|-#|\+#|#\+)\s+/, '').replace(/^\s*[-*]\s+/, '').trim();
-  const plain = s => s.replace(LINK_RE, '$1').replace(/\*\*|~~/g, '').replace(/(^|\s)_(\S.*?)_(?=$|[\s).,!?:;])/g, '$1$2');
+  const plain = s => stripMarks(s.replace(LINK_RE, '$1'));
   const want = (title || '').replace(/…$/, '').trim();
   if (!want || !plain(line).toLowerCase().startsWith(want.toLowerCase())) return null; // not how the line starts
   const { head, tail } = titleCut(line, want.length, plain);
@@ -133,12 +136,9 @@ export function afterTitle(md, title) {
 const TRIGGER_BEFORE_LINK = /(?:📞|📝)[\s\u00a0]*(?=\[[^\]]+\]\(sift:)/gu;
 
 function inline(text) {
-  return linkUrls(esc(text)
+  return linkUrls(marksHtml(esc(text)
     .replace(TRIGGER_BEFORE_LINK, '')
-    .replace(LINK_RE, (m, label, c, id) => `<span class="ref" data-ref="${c}/${id}" contenteditable="false">${label}</span>`)
-    .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
-    .replace(/~~(.+?)~~/g, '<s>$1</s>')
-    .replace(/(^|[\s(])_(.+?)_(?=$|[\s).,!?:;])/g, '$1<i>$2</i>')); // web addresses as links (weburl.js)
+    .replace(LINK_RE, (m, label, c, id) => `<span class="ref" data-ref="${c}/${id}" contenteditable="false">${label}</span>`))); // marks (mdmarks.js), then web addresses as links (weburl.js)
 }
 
 // Bullet and numbered lines as nested lists. `items` are { d: depth, ordered, n, html };
@@ -217,13 +217,18 @@ export function toMarkdown(root) {
     const tag = node.tagName;
     const style = node.style || {};
     if (tag === 'BR') return '\n';
-    if (tag === 'B' || tag === 'STRONG' || style.fontWeight === 'bold' || Number(style.fontWeight) >= 600) return wrap(inner(), '**');
-    if (tag === 'I' || tag === 'EM' || style.fontStyle === 'italic') return wrap(inner(), '_');
-    if (tag === 'S' || tag === 'STRIKE' || tag === 'DEL' || /line-through/.test(style.textDecoration || '')) return wrap(inner(), '~~');
+    const mark = markOf(node);
+    if (mark) { // already inside the same mark (bold in bold): no second pair
+      if (active.has(mark)) return inner();
+      active.add(mark);
+      const text = wrap(inner(), mark);
+      active.delete(mark);
+      return text;
+    }
     if (tag === 'H3') return `# ${inner().replace(/\n+$/, '')}\n`;
     if (/^H[1-6]$/.test(tag)) return `## ${inner().replace(/\n+$/, '')}\n`;
-    const mark = { s: '-#', m: '+#', xl: '#+' }[node.dataset?.sz];
-    if (mark) return `${mark} ${inner().replace(/\n+$/, '')}\n`;
+    const size = { s: '-#', m: '+#', xl: '#+' }[node.dataset?.sz];
+    if (size) return `${size} ${inner().replace(/\n+$/, '')}\n`;
     if (tag === 'UL' || tag === 'OL') return `${listLines(node, 0).join('\n')}\n`;
     if (tag === 'DIV' || tag === 'P') {
       const text = inner();
@@ -231,7 +236,37 @@ export function toMarkdown(root) {
     }
     return inner();
   };
-  return [...root.childNodes].map(walk).join('').replace(/\n+$/, '');
+  const active = new Set();
+  return [...tidyMarks(root).childNodes].map(walk).join('').replace(/\n+$/, '');
+}
+
+// Which mark an element in the editor stands for, if any.
+function markOf(node) {
+  const tag = node.tagName, style = node.style || {};
+  if (tag === 'B' || tag === 'STRONG' || style.fontWeight === 'bold' || Number(style.fontWeight) >= 600) return '**';
+  if (tag === 'I' || tag === 'EM' || style.fontStyle === 'italic') return '_';
+  if (tag === 'S' || tag === 'STRIKE' || tag === 'DEL' || /line-through/.test(style.textDecoration || '')) return '~~';
+  return null;
+}
+
+// A copy of the editor's contents that writes back without stray underscores:
+// side-by-side pieces with the same mark become one ("_a__b_" was the result), and
+// italic that starts or ends inside a word takes in the rest of the word, since
+// "half_word_" can't be shown as italic and would show its underscores.
+function tidyMarks(root) {
+  const copy = root.cloneNode(true);
+  for (const el of copy.querySelectorAll('*')) {
+    const mark = copy.contains(el) ? markOf(el) : null; // null once merged into the one before
+    if (!mark) continue;
+    while (el.nextSibling?.nodeType === Node.ELEMENT_NODE && markOf(el.nextSibling) === mark && !el.nextSibling.dataset?.ref) { const next = el.nextSibling; while (next.firstChild) el.append(next.firstChild); next.remove(); }
+    if (mark !== '_') continue;
+    const before = el.previousSibling, after = el.nextSibling;
+    const head = before?.nodeType === Node.TEXT_NODE && before.nodeValue.match(/[\p{L}\p{N}_]+$/u);
+    if (head && /^[\p{L}\p{N}_]/u.test(el.textContent)) { before.nodeValue = before.nodeValue.slice(0, -head[0].length); el.prepend(head[0]); }
+    const tail = after?.nodeType === Node.TEXT_NODE && after.nodeValue.match(/^[\p{L}\p{N}_]+/u);
+    if (tail && /[\p{L}\p{N}_]$/u.test(el.textContent)) { after.nodeValue = after.nodeValue.slice(tail[0].length); el.append(tail[0]); }
+  }
+  return copy;
 }
 
 // Keep markers outside surrounding spaces: "** word**" → " **word**".

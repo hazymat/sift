@@ -32,6 +32,7 @@ import { word, dumpTypes, sectionName } from '../words.js';
 import { shareSheet, sharedWithText, people, fromOthers, invitesHtml, theirIconHtml, takeWant } from '../sharing.js';
 import { slide } from '../slide.js';
 import { keys } from '../keys.js';
+import { stripMarks } from '../mdmarks.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const icon = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
@@ -747,7 +748,7 @@ export default {
       } else if (['copy-plain', 'copy-rich', 'copy-whatsapp', 'copy-md', 'share-sheet'].includes(act)) {
         // Share a saved note: the text as written (links as their words); Markdown as it's kept, WhatsApp with its own marks.
         const text = unlinkText(t.body);
-        const plain = text.replace(/\*\*|~~/g, ''); // no bold or cross-out marks
+        const plain = stripMarks(text); // no bold, italic or cross-out marks
         try {
           if (act === 'share-sheet') { await navigator.share({ title: t.title || titleFrom(t.body), text: plain }); return; }
           if (act === 'copy-rich' && window.ClipboardItem) {
@@ -877,7 +878,7 @@ export default {
       ev.preventDefault();
       const text = unlinkText(t.body);
       ev.clipboardData.setData('text/html', toHtml(text));
-      ev.clipboardData.setData('text/plain', text.replace(/\*\*|~~/g, ''));
+      ev.clipboardData.setData('text/plain', stripMarks(text));
       toast('Copied note with formatting', {
         action: 'Copy markdown instead',
         onAction: () => navigator.clipboard.writeText(text).then(() => toast('Copied as markdown'), () => toast("Couldn't copy it from here")),

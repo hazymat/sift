@@ -7,10 +7,11 @@
 //       item: { title, emoji, colour, book, sub, description, date, abv, og, fg, ings }
 import { openPrint, esc, filePicture } from './print.js';
 import { stepsOf, stepHtml, amountText, qtyText } from './batchbook.js';
+import { stripMarks } from './mdmarks.js';
 
 const SCALES = [[1 / 3, '×⅓'], [0.5, '×½'], [2 / 3, '×⅔'], [1, '×1 (as written)'], [1.5, '×1½'], [2, '×2'], [2.5, '×2½'], [3, '×3'], [4, '×4'], [5, '×5'], [6, '×6'], [8, '×8'], [10, '×10']];
 // Markdown notes (tasting) as plain lines for paper.
-const plainMd = md => String(md || '').replace(/\*\*|__|~~|^#+\s*/gm, '').trim();
+const plainMd = md => stripMarks(String(md || '')).replace(/^#+\s*/gm, '').trim();
 
 const RECIPE_CSS = `
 .rc { --c: var(--accent); padding: 0 0 1.4em; break-inside: avoid; }

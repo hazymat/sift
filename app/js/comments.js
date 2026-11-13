@@ -34,6 +34,7 @@ import * as att from './attachments.js';
 import { openPicker } from './linkpicker.js';
 import { linkMd, linkDetailsInText, unlinkText } from './refs.js';
 import { keepDraft, draftCleared } from './drafts.js';
+import { stripMarks } from './mdmarks.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const keyOf = o => o.task_id ? `task_id:${o.task_id}` : `item_id:${o.item_id}`;
@@ -343,7 +344,7 @@ export async function commentMenu(btn, c, how) {
 
 // Only marks that come in pairs and links go, so what was typed (a long licence key, say) arrives exactly as written.
 export async function shareComment(c) {
-  const text = unlinkText(c.body).replace(/\*\*(.+?)\*\*/g, '$1').replace(/~~(.+?)~~/g, '$1').trim();
+  const text = stripMarks(unlinkText(c.body)).trim();
   if (navigator.share) {
     try { await navigator.share({ text }); return; } catch (err) { if (err?.name === 'AbortError') return; }
   }
