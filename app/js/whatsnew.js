@@ -25,6 +25,7 @@ import { track, feature } from './stats.js';
 
 const FIRST_BOX = ['#main .box-card[data-box]'];
 export const WHATS_NEW = {
+  '1.62.45': [{ text: "Day Planner, advanced view: ticking a task off no longer breaks its name onto a second line over its note and View case while the line is drawn through it. Fixed." }],
   '1.62.44': [{ text: "Day Planner: ticking off a task in the Tasks list no longer puts it on the schedule at the time you ticked it. It stays in Tasks, crossed out as done. To have them on the schedule again, switch it on in 👁, Layout.", go: '#/planner', open: ['#main details.view-menu > summary'], at: '#main [data-layout-set="done-on-plan"]' }],
   '1.62.43': [{ text: "Notes: making bold text italic (or the other way round) no longer shows underscores around it. Notes that already had them show as bold italic again, and italic, bold and cross out now look the same in every preview, title and copy." }],
   '1.62.42': [{ text: "Brain dump: a note's photos and files are now small thumbnails in its bottom bar, next to Archive, so the note's words get the whole tile. Clicking anywhere else on a note (beside the thumbnails too) opens it.", go: '#/dump' }],
@@ -325,6 +326,7 @@ export const WHATS_NEW = {
 };
 
 export const PUBLISHED = {
+  '1.62.45': '2026-11-18T09:29:45Z',
   '1.62.44': '2026-11-17T16:30:33Z',
   '1.62.43': '2026-11-13T14:00:52Z',
   '1.62.42': '2026-11-13T14:00:52Z',
