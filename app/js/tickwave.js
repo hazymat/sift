@@ -35,15 +35,17 @@ function placeIn(row, el) {
 // The name's words, as letters that can move, laid over its field.
 function copyOver(field, row) {
   const style = getComputedStyle(field), at = placeIn(row, field), isInput = field.tagName === 'INPUT';
+  // A name on one line stays on one line: its letters set one by one come out a touch wider than the field (e.g. the Day Planner's advanced rows, a textarea only as wide as its text), so they'd wrap.
+  const lineHeight = parseFloat(style.lineHeight) || parseFloat(style.fontSize) * 1.2, oneLine = isInput || field.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom) < lineHeight * 1.5;
   const copy = document.createElement('div');
   copy.className = 'tw-copy';
   copy.setAttribute('aria-hidden', 'true');
   Object.assign(copy.style, {
-    left: `${at.left}px`, top: `${at.top - ROOM}px`, width: `${at.width}px`, height: `${at.height + 2 * ROOM}px`,
+    left: `${at.left}px`, top: `${at.top - ROOM}px`, width: `${at.width + (oneLine ? ROOM : 0)}px`, height: `${at.height + 2 * ROOM}px`, // one line: room on the right too, so the wider letters aren't clipped
     boxSizing: 'border-box', borderStyle: 'solid', borderColor: 'transparent', borderWidth: style.borderWidth,
-    paddingTop: `${parseFloat(style.paddingTop) + ROOM}px`, paddingBottom: `${parseFloat(style.paddingBottom) + ROOM}px`, paddingLeft: style.paddingLeft, paddingRight: style.paddingRight,
+    paddingTop: `${parseFloat(style.paddingTop) + ROOM}px`, paddingBottom: `${parseFloat(style.paddingBottom) + ROOM}px`, paddingLeft: style.paddingLeft, paddingRight: `${parseFloat(style.paddingRight) + (oneLine ? ROOM : 0)}px`,
     font: style.font, letterSpacing: style.letterSpacing, wordSpacing: style.wordSpacing, lineHeight: style.lineHeight, textAlign: style.textAlign,
-    color: style.color, whiteSpace: isInput ? 'pre' : style.whiteSpace, overflowWrap: style.overflowWrap, // wraps only where the field does: a name only as wide as its text (Compact) must not wrap, as its letters set one by one come out a touch wider
+    color: style.color, whiteSpace: oneLine ? 'pre' : style.whiteSpace, overflowWrap: style.overflowWrap,
     display: isInput ? 'flex' : 'block', alignItems: 'center', // an input's text sits in the middle of it
     WebkitMaskImage: style.webkitMaskImage, maskImage: style.maskImage,
   });
