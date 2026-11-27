@@ -66,6 +66,7 @@ The look and behaviour every app copies, drawn from Sift and Quizaroo. Apps diff
 
 - First-run hints: a small callout with its own ✕, each shown once for good. Settings can show them all again or hide them all.
 - No paragraphs of help. If a screen needs explaining, the screen is wrong.
+- **Formats stay visible.** A box that needs a format or an example (an address, a port, a range) shows it as a hint under the box that stays while typing, never only as a placeholder: e.g. "Like mqtt://<IP address>:1883". Placeholders only name the box.
 
 ### Phone specifics
 
