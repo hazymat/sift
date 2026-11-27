@@ -32,6 +32,8 @@ The look and behaviour every app copies, drawn from Sift and Quizaroo. Apps diff
 - **Top bar:** page title left; right: status chip(s), 👁 View, ⋯ (rare things only), round +. Sticky, glass once stuck.
 - **Parts of a page:** underlined tabs in one row under the top bar (never a second row of tabs, never headings to split a page).
 - **Opened things:** back button "‹ <where you came from>" with Esc; swipe sideways on a phone goes back.
+- **Settings:** a column of panels, as Quizaroo: each a glass card closed by default, its title with a one-line status beside it (Updates · Version 2.4.1), a small chevron on the left that turns as it opens. Which are open is remembered on the device. One with a problem shows it in red in its status and opens by itself.
+- **Updates** show within about two minutes of a release, as a banner with Update now, without a reload: web apps re-check when they come back to the front; installed apps ask every couple of minutes and whenever their page opens.
 
 ### Changes and undo
 
