@@ -1,6 +1,81 @@
 # UI consistency
 
-How every area of Sift shows its controls, to find where areas do the same job in different ways. All new UI follows the **standards** below. Where there's no standard yet, copy what most areas already do and add the choice here. The same text is GitHub issue #284; keep the two in sync.
+Two parts. **Rules for every app** is the master UI/UX guide for all of Mat's apps (Sift, Quizaroo, Swarm2MQTT and any new one): other repos link here, never copy it. **Sift** below it is how every area of Sift shows its controls.
+
+## Rules for every app
+
+The look and behaviour every app copies, drawn from Sift and Quizaroo. Apps differ in content, never in how things feel. Where these rules are silent, Sift's standards below decide, and the choice gets added here if it should be shared. Windows desktop apps (WinSqueeze, WinTapeRecorder, WinGCal, WinSwitch) also follow their shared `docs/DESIGN.md` for tray dots and cards.
+
+**Keeping this up to date:** any change in any app that adds or alters a shared pattern updates this section in the same piece of work. Each app's AGENTS.md (or working notes) says so.
+
+### Taste
+
+- Task-based and visual. Show it, don't explain it. Minimal text; no explanatory text inside lists.
+- One way to do each thing. Push back on settings that paper over a problem; fix the behaviour instead.
+- Plain words. No jargon, no internal names, no IDs unless asked for (tucked under Details).
+- Mockups before any visual change. One recommendation, not a choice of mockups.
+- Every colour, dot or badge must explain itself in one click, and match a label of the same colour.
+
+### Look
+
+- **Themes:** Quizaroo's Glass (dark: navy gradient with soft blue light top left) and Light. Both from the same CSS variables (`--bg`, `--bg-image`, `--glass`, `--glass-border`, `--bar`, `--sheet`, `--accent`, `--text`, `--muted`).
+- **Surfaces:** glass cards (translucent white, 1px soft border), corners 14 to 18px, blur behind bars and sheets.
+- **Type:** system UI font. Page title large and light (weight 300) with its icon before it.
+- **Colour:** pastel tints for things a person picks or acts on (pills, active nav item, badges), each item its own tint. Accent blue (`#4f8ff0`) for choosing, focus and primary buttons. Status colours: green fine, amber needs a look, red not working.
+- **Pills:** primary actions are rounded pills in a pastel tint with dark text. Round + button top right for the page's main "new" action.
+- **Pictures:** real thing pictures on a white rounded square, never cropped by the row.
+
+### Frame
+
+- **Computer:** sidebar on the left (wordmark, then areas; Settings pinned to the bottom). The active area fills with its own pastel tint.
+- **Phone (700px and narrower):** the same areas in a bar fixed at the bottom, icon over label. Up to 4 pinned, the rest under More. The person reorders them by press, hold and drag, exactly as rows.
+- **Top bar:** page title left; right: status chip(s), 👁 View, ⋯ (rare things only), round +. Sticky, glass once stuck.
+- **Parts of a page:** underlined tabs in one row under the top bar (never a second row of tabs, never headings to split a page).
+- **Opened things:** back button "‹ <where you came from>" with Esc; swipe sideways on a phone goes back.
+
+### Changes and undo
+
+- **Every change** shows a pill at the bottom centre: what happened, **Undo**, and a small doughnut that empties as its time runs out (6 s with an action, 1.6 s without).
+- **Ctrl+Z / Ctrl+Y** undo and redo outside text fields, even after the pill has gone.
+- **History:** every change recorded field by field (before and after), grouped per action and named after its pill. A History page lists them newest first; any entry can be undone on its own. Undoing is itself an entry.
+- **Never confirm, always undo.** No "Are you sure?" dialogs. Something that can't be undone for real (a device leaving a network, an email going out) waits until its doughnut runs out before it happens.
+- **Bottom floats stack**, never overlap: selection bar lowest, then the update banner, then pills.
+
+### Choosing several
+
+- **Press and hold** any row or card (about 0.3 to 0.45 s) to choose it: an accent ring and a light accent fill. On a computer, Ctrl/⌘+click too.
+- While any are chosen, a tap adds or removes one; Shift+click (or Shift+↑/↓) chooses a run. Esc or ✕ clears.
+- **Selection bar** at the bottom centre: ✕ with Esc first, then "n chosen", then the actions, each showing its key (A Archive, D Delete, Ctrl+Enter Done). A button that opens more (Move ▸) opens beside itself in the same bar.
+- Holding never starts text selection or the phone's own press-and-hold menu.
+
+### Dragging
+
+- **Hold anywhere on a row** to pick it up; with a mouse, cards drag straight away.
+- Picked up, it tilts slightly (under 1°) with a springy wobble and a shadow, as if lifted. Put down, it wobbles straight.
+- The other rows slide aside, and a **dashed outline** (accent blue, light fill) shows where it will land.
+- Several chosen move together. The order becomes "Your order"; dragging in a list sorted another way switches to Your order quietly.
+- The same code everywhere a list reorders: never a drag of a view's own.
+
+### Keys
+
+- Keys are shown on buttons as small boxes (hidden on touch screens).
+- ↑ / ↓ move between rows, Enter opens, Esc closes or steps back one level, / searches, Shift+Enter goes one step further (quick edit, then full panel).
+- Esc closes a panel wherever the focus is, unless a menu is open on top.
+
+### Help
+
+- First-run hints: a small callout with its own ✕, each shown once for good. Settings can show them all again or hide them all.
+- No paragraphs of help. If a screen needs explaining, the screen is wrong.
+
+### Phone specifics
+
+- Buttons the thumb needs live at the bottom (bottom bar, selection bar, pills).
+- A list opens to its rows; a tapped thing opens as its own page.
+- Swipe a row for its quick actions where the app has them (⋯ More, ✓ Done, Delete).
+
+# Sift
+
+All new Sift UI follows the **standards** below. Where there's no standard yet, copy what most areas already do and add the choice here. This part is also GitHub issue #284; keep the two in sync.
 
 Audited at 1.54.09 (29 September 2026), updated for 1.60.11.
 
