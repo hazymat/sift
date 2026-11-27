@@ -54,7 +54,7 @@ After an update, Sift shows a What's new sheet (Settings, Show update info; on u
 - **Commits** keep the author already used in this repo: `Mat <7063284+hazymat@users.noreply.github.com>`. No co-author or "generated with" lines in commits, pull requests, issues or files.
 - **Writing** (UI text, docs, issues, commit messages): plain British English, short, in the UI's words; no em dashes. Issues and docs are written without referring to anyone ("to be checked", not who will check it).
 - **Design priority:** distraction-free, but discoverable. No new buttons that need explaining; show advanced options only where and when they're relevant.
-- **UI consistency:** new UI must follow `docs/ui-consistency.md` (where each kind of control goes, in every area). When a new control has no settled rule there yet, do it the way most areas already do and add it to that file.
+- **UI consistency:** new UI must follow `docs/ui-consistency.md` (where each kind of control goes, in every area). When a new control has no settled rule there yet, do it the way most areas already do and add it to that file. Its first part, Rules for every app, is the shared guide for all of Mat's apps: a change that adds or alters a shared pattern updates that part in the same PR.
 - **Code:** plain HTML, CSS and JS in `app/`, no build step, no framework. Libraries vendored in `app/vendor`, never from a CDN. Comments only where the reason isn't obvious. Multi-line edits are easier with a small script than with shell heredocs (they mangle `\n` inside quoted code).
 
 ## Map of the code
