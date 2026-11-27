@@ -21,14 +21,15 @@ The look and behaviour every app copies, drawn from Sift and Quizaroo. Apps diff
 - **Themes:** Quizaroo's Glass (dark: navy gradient with soft blue light top left) and Light. Both from the same CSS variables (`--bg`, `--bg-image`, `--glass`, `--glass-border`, `--bar`, `--sheet`, `--accent`, `--text`, `--muted`).
 - **Surfaces:** glass cards (translucent white, 1px soft border), corners 14 to 18px, blur behind bars and sheets.
 - **Type:** system UI font. Page title large and light (weight 300) with its icon before it.
-- **Colour:** pastel tints for things a person picks or acts on (pills, active nav item, badges), each item its own tint. Accent blue (`#4f8ff0`) for choosing, focus and primary buttons. Status colours: green fine, amber needs a look, red not working.
+- **Colour:** pastel tints for things a person picks or acts on (pills, the active sidebar item, badges), each item its own tint. Accent blue (`#4f8ff0`) for choosing, focus and primary buttons. Status colours: green fine, amber needs a look, red not working.
 - **Pills:** primary actions are rounded pills in a pastel tint with dark text. Round + button top right for the page's main "new" action.
 - **Pictures:** real thing pictures on a white rounded square, never cropped by the row.
 
 ### Frame
 
 - **Computer:** sidebar on the left (wordmark, then areas; Settings pinned to the bottom). The active area fills with its own pastel tint.
-- **Phone (700px and narrower):** the same areas in a bar fixed at the bottom, icon over label. Up to 4 pinned, the rest under More. The person reorders them by press, hold and drag, exactly as rows.
+- **Phone (700px and narrower):** the same areas in a bar fixed at the bottom, icon over label. Up to 4 pinned, the rest under More. The person reorders them by press, hold and drag, exactly as rows. The bar is plain and quiet: dark, slightly see-through with a frosted blur, a faint light line along its top, 22px line icons with small labels, other areas grey. The current area gets a soft accent-blue fill with a thin blue outline and white text, never a pastel block (pastel shouts on a phone bar).
+- **Home Screen:** a web app ships a Home Screen icon (iPhone 180px, 192/512 and a maskable one), its name under the icon, and full-screen app mode. Settings has a Home Screen panel (first on an iPhone that hasn't added it): Show me how gives the steps, and once added it says "✓ Opens as an app".
 - **Top bar:** page title left; right: status chip(s), 👁 View, ⋯ (rare things only), round +. Sticky, glass once stuck.
 - **Parts of a page:** underlined tabs in one row under the top bar (never a second row of tabs, never headings to split a page).
 - **Opened things:** back button "‹ <where you came from>" with Esc; swipe sideways on a phone goes back.
@@ -39,7 +40,8 @@ The look and behaviour every app copies, drawn from Sift and Quizaroo. Apps diff
 
 - **Every change** shows a pill at the bottom centre: what happened, **Undo**, and a small doughnut that empties as its time runs out (6 s with an action, 1.6 s without).
 - **Ctrl+Z / Ctrl+Y** undo and redo outside text fields, even after the pill has gone.
-- **History:** every change recorded field by field (before and after), grouped per action and named after its pill. A History page lists them newest first; any entry can be undone on its own. Undoing is itself an entry.
+- **Undo history** (called that): every change recorded field by field (before and after), grouped per action and named after its pill, listed newest first, reachable from Settings too. Clicking an entry steps back to before it (undoing everything after it, in order); clicking an undone one redoes up to it; a "You are here" marker sits between done and undone. Ctrl+Z / Ctrl+Y with nothing left say "Nothing to undo" / "Nothing to redo". Ctrl+R stays the browser's reload.
+- **Every press shows.** A pressed button presses in, then pulses and can't be pressed again until its answer comes. After about 4 s a pill says what it's waiting for (a device to answer; a sleeping device: press its button to wake it). The end is always a result or a plain-words failure with what to try, never silence and never a raw library error. Say what really happened, not that it was sent: read back where possible ("2 of 3 done. Hall lamp didn't confirm."). Actions a thing can't do aren't shown.
 - **Never confirm, always undo.** No "Are you sure?" dialogs. Something that can't be undone for real (a device leaving a network, an email going out) waits until its doughnut runs out before it happens.
 - **Bottom floats stack**, never overlap: selection bar lowest, then the update banner, then pills.
 
