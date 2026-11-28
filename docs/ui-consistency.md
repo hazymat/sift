@@ -51,6 +51,7 @@ The look and behaviour every app copies, drawn from Sift and Quizaroo. Apps diff
 - While any are chosen, a tap adds or removes one; Shift+click (or Shift+↑/↓) chooses a run. Esc or ✕ clears.
 - **Selection bar** at the bottom centre: ✕ with Esc first, then "n chosen", then the actions, each showing its key (A Archive, D Delete, Ctrl+Enter Done). A button that opens more (Move ▸) opens beside itself in the same bar.
 - Holding never starts text selection or the phone's own press-and-hold menu.
+- Quick repeated taps on a button (+ and − beside a number, for example) are taps, never the phone's double-tap zoom: buttons, links and fields get `touch-action: manipulation`, so pinch zoom still works.
 
 ### Dragging
 
